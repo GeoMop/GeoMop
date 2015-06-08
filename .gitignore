@@ -52,3 +52,13 @@ docs/_build/
 
 # PyBuilder
 target/
+
+#Eric project files
+.eric5project/
+*.e4g
+*.e4t
+*.e4p
+*.e4m
+
+#vi
+*.swp
