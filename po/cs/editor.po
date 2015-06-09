@@ -1,0 +1,28 @@
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:8
+msgid "Layer above"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:8
+#: ../src/LayerEditor/editor.py:16
+msgid "Layer below"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:25
+msgid "Add"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:27
+msgid "Delete"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:42
+msgid "Picture File:"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:96
+msgid "Choose Picture"
+msgstr ""
+
+#: ../src/LayerEditor/Panels/AddPictureWidget.py:97
+msgid "Images (*.png *.xpm *.jpg)"
+msgstr ""

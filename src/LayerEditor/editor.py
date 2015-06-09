@@ -1,9 +1,14 @@
 import sys
+sys.path.insert(0, '../lib')
+
 from Panels.AddPictureWidget import *
 from Panels.CanvasWidget import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from lang import gettext as _ 
+
+test=_("Layer below")
 
 app = QApplication(sys.argv)
 messageSplitter = QSplitter(Qt.Horizontal)

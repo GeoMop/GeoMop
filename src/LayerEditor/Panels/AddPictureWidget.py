@@ -3,8 +3,9 @@ from copy import deepcopy
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from lang import gettext as _ 
 
-_DEFAULT_LIST=[["LAYER_BELOW","LAYER ABOVE"],["Layer below","Layer above"]]
+_DEFAULT_LIST=[["LAYER_BELOW","LAYER ABOVE"],[_("Layer below"),_("Layer above")]]
 
 class AddPictureWidget(QWidget):
     pictureListChanged = pyqtSignal()
@@ -21,9 +22,9 @@ class AddPictureWidget(QWidget):
         self._listWidget = QListWidget()
         self._initList();
              
-        self._addButton = QPushButton("Add")
+        self._addButton = QPushButton(_("Add"))
         self._addButton.clicked.connect(self._addItem)
-        self._deleteButton = QPushButton("Delete")
+        self._deleteButton = QPushButton(_("Delete"))
         self._deleteButton.clicked.connect(self._deleteItem) 
         
         grid = QGridLayout()
@@ -38,7 +39,7 @@ class AddPictureWidget(QWidget):
         fileLayeout.addWidget( self._fileName)        
         fileLayeout.addWidget( self._fileButton)
         
-        label = QLabel("Picture File:")
+        label = QLabel(_("Picture File:"))
         
         layout = QVBoxLayout()
         layout.addWidget(self._listWidget)
@@ -92,8 +93,8 @@ class AddPictureWidget(QWidget):
     def _addPicture(self):
         from os.path import expanduser
         home = expanduser("~")
-        picture= QFileDialog.getOpenFileName(self,"Choose Picture", home,
-                        "Images (*.png *.xpm *.jpg)")
+        picture= QFileDialog.getOpenFileName(self,_("Choose Picture"), home,
+                        _("Images (*.png *.xpm *.jpg)"))
         if picture[0]:
             self._fileName.setText(picture[0])
             
