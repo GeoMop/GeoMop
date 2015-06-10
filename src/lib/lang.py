@@ -1,6 +1,8 @@
 import gettext
+import os
 
-t = gettext.translation('lib', '../locale', fallback=True)
+_d=os.path.dirname(os.path.realpath(__file__))
+_t = gettext.translation('lib', _d+'/../locale')
 
 def gettext(text):
-    return t.gettext(text)
+    return _t.gettext(text)

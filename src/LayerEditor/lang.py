@@ -1,6 +1,8 @@
 import gettext
+import os
 
-t = gettext.translation('editor', '../locale', fallback=True)
+_d=os.path.dirname(os.path.realpath(__file__))
+_t = gettext.translation('editor', _d+'/../locale', fallback=True)
 
 def gettext(text):
-    return t.gettext(text)
+    return _t.gettext(text)
