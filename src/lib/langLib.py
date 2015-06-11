@@ -1,3 +1,10 @@
+"""
+Translation for lib package
+
+Usage:
+    In file declare::
+    from langLib import gettext as _ 
+"""
 import gettext
 import os
 

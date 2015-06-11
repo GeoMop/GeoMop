@@ -1,3 +1,10 @@
+"""
+Translation for LayerEditor package
+
+Usage:
+    In file declare::
+    from langLE import gettext as _ 
+"""
 import gettext
 import os
 
