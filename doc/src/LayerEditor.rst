@@ -4,6 +4,6 @@ LayerEditor
 .. toctree::
    :maxdepth: 4
 
-   Panels
    editor
-   langLE
+   lang_le
+   panels

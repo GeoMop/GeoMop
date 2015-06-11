@@ -1,7 +1,7 @@
-langLE module
-=============
+lang_le module
+==============
 
-.. automodule:: langLE
+.. automodule:: lang_le
     :members:
     :undoc-members:
     :show-inheritance:

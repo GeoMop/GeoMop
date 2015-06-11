@@ -1,21 +1,21 @@
-Panels package
+panels package
 ==============
 
 Submodules
 ----------
 
-Panels.AddPictureWidget module
-------------------------------
+panels.addpicture module
+------------------------
 
-.. automodule:: Panels.AddPictureWidget
+.. automodule:: panels.addpicture
     :members:
     :undoc-members:
     :show-inheritance:
 
-Panels.CanvasWidget module
---------------------------
+panels.canvas module
+--------------------
 
-.. automodule:: Panels.CanvasWidget
+.. automodule:: panels.canvas
     :members:
     :undoc-members:
     :show-inheritance:
@@ -24,7 +24,7 @@ Panels.CanvasWidget module
 Module contents
 ---------------
 
-.. automodule:: Panels
+.. automodule:: panels
     :members:
     :undoc-members:
     :show-inheritance:

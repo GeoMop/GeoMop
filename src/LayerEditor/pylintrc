@@ -1,0 +1,3 @@
+[typecheck]
+ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore
+ignored-classes=AddPictureWidget,CanvasWidget
