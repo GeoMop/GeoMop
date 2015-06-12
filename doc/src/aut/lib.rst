@@ -4,4 +4,4 @@ lib
 .. toctree::
    :maxdepth: 4
 
-   langLib
+   lang_lib

@@ -48,14 +48,15 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
+	rm -rf aut/* 
 
 modules.LE.rst:
-	sphinx-apidoc -o ./ -s .rst ../../src/LayerEditor/
-	mv modules.rst LayerEditor.rst
+	sphinx-apidoc -o ./aut -s .rst ../../src/LayerEditor/
+	mv aut/modules.rst aut/LayerEditor.rst
 
-modules.lib.rst:
-	sphinx-apidoc -o ./ -s .rst ../../src/lib/
-	mv modules.rst lib.rst
+modules.lib.rst: 
+	sphinx-apidoc -o ./aut -s .rst ../../src/lib/
+	mv aut/modules.rst aut/lib.rst
 
 autogen_src: modules.LE.rst modules.lib.rst
 

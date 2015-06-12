@@ -1,0 +1,2 @@
+Pylint Exception (czech)
+========================

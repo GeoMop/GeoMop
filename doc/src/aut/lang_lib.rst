@@ -1,7 +1,7 @@
-langLib module
-==============
+lang_lib module
+===============
 
-.. automodule:: langLib
+.. automodule:: lang_lib
     :members:
     :undoc-members:
     :show-inheritance:

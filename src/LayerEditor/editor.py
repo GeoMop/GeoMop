@@ -1,4 +1,3 @@
-# pylint: disable=C0103
 """Start script that inicialize main window """
 
 import sys
@@ -10,10 +9,15 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from lang_le import gettext as _
 
+# pylint: disable=C0103
 _app = QtWidgets.QApplication(sys.argv)
+# pylint: disable=C0103
 _messageSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+# pylint: disable=C0103
 _messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
+# pylint: disable=C0103
 _form1 = panels.addpicture.AddPictureWidget(_messageSplitter)
+# pylint: disable=C0103
 _form2 = panels.canvas.CanvasWidget(_messageSplitter)
 
 _messageSplitter.addWidget(_form1)
