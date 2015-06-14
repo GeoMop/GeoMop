@@ -13,7 +13,6 @@ from lang_le import gettext as _
 _app = QtWidgets.QApplication(sys.argv)
 # pylint: disable=C0103
 _messageSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-# pylint: disable=C0103
 _messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
 # pylint: disable=C0103
 _form1 = panels.addpicture.AddPictureWidget(_messageSplitter)
