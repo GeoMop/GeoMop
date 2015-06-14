@@ -7,19 +7,15 @@ Welcome to GeoMop Source Documentation's documentation!
 =======================================================
 
 GeoMop project organization:
-
-.. toctree::
-   :maxdepth: 2
-
-   organization/procedures
-   organization/rules	
+  * :doc:`GeoMop Development Procedures (czech) <organization/procedures>`
+  * :doc:`GeoMop Development Rules (czech) <organization/rules>`	
 	
 
 Source code documentation
 =========================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    aut/lib
    aut/LayerEditor
