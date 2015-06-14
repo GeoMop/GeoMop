@@ -29,16 +29,17 @@ Kontrola kódu
 =============
 Pro kontrolu se používá `pyLint <www.pylint.org>`_. V hlavním adresáři každého 
 modulu je soubor pylintrc, v kterém se píší pravidla pro vyjímky. Další vyjímky
-je možné napsat na začátek souboru. Pravidla pro tyto vyjímky budou vznikat 
-během vývoje a budou zapisovány do :doc:`zvláštního souboru <pylint_rules>`.
+je možné napsat na začátek souboru, nebo nad vyjmutý řádek. Pravidla pro tyto 
+vyjímky budou vznikat během vývoje a budou zapisovány do :doc:`samostatného souboru 
+<pylint_rules>`.
 
 Bohužel s kontrolou kódu nemám zkušenosti a některé požadavky vyplynou až během 
 vývoje. Proto zde popíši oblasti, na které by jsem se chtěl při kontrole kódu 
 zaměřit a to co nekontrolovat vyplyne z porovnání poměru režie/přínos. To co
 nebude odpovídat mé představě o programování vyřadím. Bohužel zatím mám spíše
 dojem, že to nabízenými nástroji nedokáži udělat dostatečně adresně, aby zůstalo
-zachováno i co se mi líbí. Přehled kontrolovaných oblastí je 
-`zde <http://docs.pylint.org/features.html>`_.
+zachováno i co se mi líbí. Přehled pylintem kontrolovaných oblastí (lze použít 
+pro vypnutí testu) je `zde <http://docs.pylint.org/features.html>`_.
 
 **Odsazení**
 
@@ -88,26 +89,17 @@ a do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.h
 `sphinx <http://sphinx-doc.org/index.htmls>`_ pak umožnuje dodat pěkné formátování textu 
 a vygenerovat požadovaný formát dokumentu. Generovat celou vývojářskou dokumentaci je možné
 z adresáře doc/src/ pomocí make a požadovaného formátu. Například::
-<<<<<<< HEAD
 
-=======
->>>>>>> df826e39bcabb84030bdbb8f53ca81bad69b0ad9
   make html
 
 Dokumentace se skládá z organizačních pokynů v adresáři doc/src/organization a z dokumentace 
 zdrojových kódů. Ta je automaticky generována po jednotlivých GeoMop modulech pomocí sphinx modulu 
-`sphinx <http://sphinx-doc.org/man/sphinx-apidoc.html>`_ příkazem umístěným v Makefile::
-<<<<<<< HEAD
+`sphinx-apidoc <http://sphinx-doc.org/man/sphinx-apidoc.html>`_ příkazem umístěným v Makefile::
 
   modules.lib.rst: 
 	  sphinx-apidoc -o ./aut -s .rst ../../src/lib/
 	  mv aut/modules.rst aut/lib.rst
 
-=======
-  modules.lib.rst: 
-	  sphinx-apidoc -o ./aut -s .rst ../../src/lib/
-	  mv aut/modules.rst aut/lib.rst
->>>>>>> df826e39bcabb84030bdbb8f53ca81bad69b0ad9
 a začleněna do index.rst (odkaz na soubor aut/lib.rst)
 
 `sphinx <http://sphinx-doc.org/index.htmls>`_ není úplně jednoduchý nástroj na osvojení a je 
@@ -126,11 +118,11 @@ do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htm
 
 Lokalizace
 ==========
+.. _localization:
 
 **Překlady**
 
 Ve zdrojovém kódu jsou texty uzavřeny funkcí _() a překlad zajištěn pomocí::
-<<<<<<< HEAD
 
   from lang_le import gettext as _
   _messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
@@ -150,19 +142,6 @@ nebo vygenerovat a nakopírovat do lokálního adresáře src/locale příkazem:
 
   make copy
 
-=======
-  from lang_le import gettext as _
-  _messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
-lang_le je pak modul specifik soubor umístěný do kořenového adresáře GeoMop modulu.
-
-Překlady je pak možné získat ze zdrojáků příkazem::
-  make po
-Po přeložení po souborů, umístěných v jazyk specifik adresářích je možné vygenerovat
-mo soubory příkazem::
-  make mo
-nebo vygenerovat a nakopírovat do lokálního adresáře src/locale příkazem::
-  make copy
->>>>>>> df826e39bcabb84030bdbb8f53ca81bad69b0ad9
 po nakopírování souborů do lokálního adresáře by měli být překlady funkční na lokálním
 prostředí.
 
@@ -175,13 +154,9 @@ Testování
 
 Pro psaní automatických testů je použit `pyTest <http://pytest.org/latest/>`_. Testy
 je možné lokálně spustit z testing adresáře příkazem::
-<<<<<<< HEAD
 
   RunTests.sh
 
-=======
-  RunTests.sh
->>>>>>> df826e39bcabb84030bdbb8f53ca81bad69b0ad9
 V budoucnu je třeba spouštět testy automaticky po každém poslání do gitu nejlépe na 
 deployi ve virtuálním prostředí.
 
@@ -197,10 +172,7 @@ Požadavky na vývojový PC
 
 Vše je psané pro Linux. Pokud by se mělo vyvíjet i na window, je nutné tam nainstalovat
 maketool a asi napsat nějaké alternativy k sh skriptům, ale ten je použit jen pro testy.
-<<<<<<< HEAD
 
-=======
->>>>>>> df826e39bcabb84030bdbb8f53ca81bad69b0ad9
   * *dodělat, dohodnout se zda podporovat windows*
   * *dopsat posat postup instalace na vývojový stroj (asi instalace požadavků pro GeoMop +
     požadavků pro vývoj)*
