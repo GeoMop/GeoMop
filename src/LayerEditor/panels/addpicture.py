@@ -83,13 +83,13 @@ class AddPictureWidget(QtWidgets.QWidget):
         for item in items:
             i = self._list_widget.row(item)
             pictures.append(self._list[0][i])
+            
+            
         return pictures
 
     def _init_list(self):
         """create list of  pictures with default item"""
         self._list_widget.addItems(_DEFAULT_LIST[1])
-        self._list_widget.setSelectionMode(
-            QtWidgets.QAbstractItemView.ExtendedSelection)
         self._list_widget.itemSelectionChanged.connect(self._selection_changed)
 
         for i in range(0, len(self._list)-1):
@@ -135,3 +135,19 @@ class AddPictureWidget(QtWidgets.QWidget):
     def _selection_changed(self):
         """ItemSelectionChanged event for _list_widget"""
         self.pictureListChanged.emit()
+
+import config
+
+class _AddPictureData():
+    """
+    Helper for preservation AddPictureWidget data
+    """
+    
+    def __init__(self):
+        data=config.getConfigFile("AddPictureData")
+        if(data != None):
+            self = data
+            return
+        self.pic_paths=[]
+        self.pic_names=[]
+        

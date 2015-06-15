@@ -68,18 +68,20 @@ konvencí, spíš jí mám problém udržet. Doufám že pomocí pylintu bude m�
 co se týká jednotnosti pojmenování, konzistentní. Škoda že to neumí hledat
 české názvy.
 
-Trochu mě vadí pravidlo, že globální proměnná mimo třídu má být konstatnta
-  * *zjistit zda to lze vypnout globálně a ponechat kontrolu ostatních názvů*
-  * *zjistit proč je to považováno za problém*
-
 **Kontrola použití lokální proměnné (_xxx) jiného modulu**
 
-  * *zjistit zda to pylint dělá*
+Python nemá žádnou přímou cestu jak schovat proměnnou. (Jedině jí dát do souboru
+který je schovaný pomocí __init__.py) Osobně si myslím že bez nějaký formy 
+``zapouzdření`` to větším projektu nejde. Proto bych poprosil o důsledné rozlišení
+a označování lokálních proměnných pomocí _. A doufám že chybu 
+``protected-access (W0212): Access to a protected member ...`` nikde neuvidím.
+Jen kromě testů, kde je testování lokálních proměnných praktické.
 
 **Starý styl vytvoření třídy**
 
 super-on-old-class (E1002)
   * *s někým se poradit a zjistit co to dělá*
+
 
 Vývojářska Dokumentace
 ======================
@@ -107,9 +109,6 @@ primárně určený na psaní dokumentace obecně. Naopak jako nástroj pro gene
 ze zdrojových kódů není ideální a má mnoho much. Ale alternativy již nejsou zrovna aktivně
 vyvíjený a `sphinx <http://sphinx-doc.org/index.htmls>`_ následně můžeme použít i na psaní
 uživatelské dokumentace.
-
-  * *Je potřeba ujasnit co bude šířený spolu s programem (Podle licencování celého programu)*
-  * *Asi by bylo dobré ji vždy přegenerovat ve formátu html a někam vystavit*
 
 Uživatelská Dokumentace
 =======================
@@ -149,33 +148,59 @@ prostředí.
   * *dodělat do po/Makefile mechanizmus pro vytvoření jednoho po souboru s nepřeloženými 
     texty a zakomponování překladů z tohoto souboru po překladu zpět do po souborů*
 
-Testování
-=========
+Testování kódu po sobě
+======================
+
+Kód je nutné otestova kompletně a pokud víme že ovlivní i jiné části programu, pak i ty.
+Tam kde jsou psané kompletní testy stačí zběžně, v jiném případě by mělo být testování
+kompletnější.
+
+Testování - automatické testy
+=============================
 
 Pro psaní automatických testů je použit `pyTest <http://pytest.org/latest/>`_. Testy
 je možné lokálně spustit z testing adresáře příkazem::
 
   RunTests.sh
 
+UI testy qt částí aplikace je možné dělat pomocí qt knihovny 
+`QTest <http://doc.qt.io/qt-5/qtest.html>`_ (Jen Qt dokumentace). Testování je popsáno 
+`v tomto článku <http://johnnado.com/pyqt-qtest-example/>`_.
+
 V budoucnu je třeba spouštět testy automaticky po každém poslání do gitu nejlépe na 
 deployi ve virtuálním prostředí.
 
-  * *Určitě by se měla testovat přítomnost a inicializace všech částí aplikace a kde to
-    jde by se měl udělat i integrační test. U unit testů si nejsem jist jak definovat
-    požadovaný stav co testovat. Zatímco u některých částí je velmi přínosné pokoušet
-    se o úplné testy, jinde to může být velice neefektivní a nevím zda si to můžeme
-    z časového hlediska dovolit. Zatím to studui.*
-  * *Zjistit jak dělat a co umí UI Testy a podle výsledku se rozhodnout co dělat.*
+**Co se musí aut. testovat**:
+  * přítomnost souboru v prostředí (z každého souboru zavolat nějakou funkci)
+  * pokud je kód souboru závislý na nějakém resourci, knihově, nebo na něčem jiném, pak 
+    otestovat jejich přítomnost (zavolat část kódu, která danou závislost načte, nebo kde
+    proběhne inicializace)
+  * pokud jde o qt třídu, která obsahuje signál, pak otestovat signál
 
+**Co je dobré aut. testovat**:
+  * Psaní automatických testů může být činnost, jež ušetří mnoho práce v budoucnosti,
+    naopak muže být i velmi časově náročné a výsledek nevalný. Něco se testuje lépe a
+    něco hůře. Na každém z nás je aby našel tu hranici, kde je to výhoddné.
+  * Některý kód vede na něco jako úplné testy. Například implementujeme-li něco, co se
+    může během vývoje (přidávání nové vlastnosti) lehce rozbít. Přičemž lze relativně 
+    lehce otestovat, že se nezměnila již nainplementovaná část. Pokud tomu tak je, 
+    určitě se o takovýto test pokusit. Do popisu třídy se pak poznačí, že jsou k ní k
+    dispozici úplné testy
+  
 Požadavky na vývojový PC
 ========================
 
 Vše je psané pro Linux. Pokud by se mělo vyvíjet i na window, je nutné tam nainstalovat
 maketool a asi napsat nějaké alternativy k sh skriptům, ale ten je použit jen pro testy.
+Pokud by se našel někdo, kdo by chtěl vyvíjet na windows, je to v zásadě vítané, ale bude 
+to znamenat vyřešit a zdokumentovat instalaci prostředí a přidání alternativních skriptů.
 
-  * *dodělat, dohodnout se zda podporovat windows*
-  * *dopsat posat postup instalace na vývojový stroj (asi instalace požadavků pro GeoMop +
-    požadavků pro vývoj)*
+Požadavky:
+  * Python3
+  * PyQt5
+  * PyTest
+  * PyLint
+  * Sphinx
 
 IDE
 ===

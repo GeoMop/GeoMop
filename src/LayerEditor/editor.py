@@ -9,27 +9,30 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from lang_le import gettext as _
 
-# pylint: disable=C0103
-_app = QtWidgets.QApplication(sys.argv)
-# pylint: disable=C0103
-_messageSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-_messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
-# pylint: disable=C0103
-_form1 = panels.addpicture.AddPictureWidget(_messageSplitter)
-# pylint: disable=C0103
-_form2 = panels.canvas.CanvasWidget(_messageSplitter)
+class Editor:
+    """Layeout editor main class"""
+    
+    def __init__(self):
+        self._app = QtWidgets.QApplication(sys.argv)
+        self._messageSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self._messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
+        self._form1 = panels.addpicture.AddPictureWidget(self._messageSplitter)
+        self._form2 = panels.canvas.CanvasWidget(self._messageSplitter)
+        self._messageSplitter.addWidget(self._form1)
+        self._messageSplitter.addWidget(self._form2)
+        self._messageSplitter.show()
+        self._form1.pictureListChanged.connect(self._picture_list_changed)
 
-_messageSplitter.addWidget(_form1)
-_messageSplitter.addWidget(_form2)
-_messageSplitter.show()
+    def main(self):
+        """go"""        
+        self._app.exec_()
 
-def _picture_list_changed():
-    """
-    Send list of background pictures from :mod:`Panels.AddPictureWidget`
-    to :mod:`Panels.CanvasWidget`
+    def _picture_list_changed(self):
+        """
+        Send list of background pictures from :mod:`Panels.AddPictureWidget`
+        to :mod:`Panels.CanvasWidget`
+        """
+        self._form2.set_undercoat(self._form1.get_picture_paths())
 
-    """
-    _form2.set_undercoat(_form1.get_picture_paths())
+Editor().main()
 
-_form1.pictureListChanged.connect(_picture_list_changed)
-_app.exec_()

@@ -1,7 +1,7 @@
 import os.path
 
 def test_loadLang():
-    import lang
+    import lang_le as lang
     # Test lang parent adresare 
     assert os.path.split(lang._d)[1]=="LayerEditor"
     # Test inicializace tridy pro lokalizaci
