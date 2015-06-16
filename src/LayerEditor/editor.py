@@ -7,7 +7,6 @@ import panels.addpicture
 import panels.canvas
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from lang_le import gettext as _
 
 class Editor:
     """Layeout editor main class"""
@@ -15,7 +14,7 @@ class Editor:
     def __init__(self):
         self._app = QtWidgets.QApplication(sys.argv)
         self._messageSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self._messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
+        self._messageSplitter.setWindowTitle("GeoMop Layer Editor")
         self._form1 = panels.addpicture.AddPictureWidget(self._messageSplitter)
         self._form2 = panels.canvas.CanvasWidget(self._messageSplitter)
         self._messageSplitter.addWidget(self._form1)
@@ -32,7 +31,7 @@ class Editor:
         Send list of background pictures from :mod:`Panels.AddPictureWidget`
         to :mod:`Panels.CanvasWidget`
         """
-        self._form2.set_undercoat(self._form1.get_picture_paths())
+        self._form2.set_undercoat(self._form1.get_pixmap())
 
 Editor().main()
 

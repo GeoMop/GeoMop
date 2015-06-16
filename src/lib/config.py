@@ -12,13 +12,13 @@ try:
 except:
     raise Exception('Cannot create config directory')
  
-def getConfigFile(name):
+def get_config_file(name):
     """
-    Get config object from file Name.cfg in  config directory
+    Get config object from file Name.cfg in config directory
     
     return: Config object or None (if file not exist)
     """
-    file_name=os.path.jjoin(__config_dir__, name+'.cfg')
+    file_name=os.path.join(__config_dir__, name+'.cfg')
     try:
         pkl_file = open(file_name, 'rb')
     except (FileNotFoundError, IOError):
@@ -27,9 +27,19 @@ def getConfigFile(name):
     pkl_file.close()
     return config
     
-def saveConfigFile(name,  config):
-    """Save config object to file Name.cfg in  config directory"""    
-    file_name=os.path.jjoin(__config_dir__, name+'.cfg')
+def save_config_file(name,  config):
+    """Save config object to file Name.cfg in config directory"""    
+    file_name=os.path.join(__config_dir__, name+'.cfg')
     pkl_file = open(file_name, 'wb')
     pickle.dump(config, pkl_file)
     pkl_file.close()
+
+def delete_config_file(name):
+    """
+    Delete config file Name.cfg from config directory
+     """
+    file_name=os.path.join(__config_dir__, name+'.cfg')
+    try:
+        os.remove(file_name)
+    except (FileNotFoundError):
+        return

@@ -3,7 +3,7 @@
 CURR_PATH=$(pwd)
 
 cd LayerEditor
-export PYTHONPATH=../../src/LayerEditor
+export PYTHONPATH=../../src/LayerEditor:../../src/lib
 py.test-3
 
 cd ../lib

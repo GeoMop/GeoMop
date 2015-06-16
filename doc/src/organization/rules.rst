@@ -30,8 +30,6 @@ snaží spravovat samu sebe a opravý jen část stavových proměnných. Kde ne
 pád applikace možný, je nutný zalogovat problém a vymyslet nějakou formu
 částečného, nebo úplný restart. Pro pád applikace je možné využít vyjímky.
 
-Všechny texty připravovat pro pozdější :doc:`lokalizaci <procedures>`..
-
 Přednostně se použijí knihovny používané již jinou částí aplikace. Přidání nové
 knihovny, mimo té jež se považuje za standartní součást pythonu musí předcházet
 důkladné rozvážení. Pokud by úspora času získanám přidání knihovny byla malá,

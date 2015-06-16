@@ -10,19 +10,15 @@ je::
 
   doc
   	src
-  po
   src
   	LayerEditor
   	lib
-  	locale
   testing
 
 Popis:
   * doc/src - vývojářská dokumentace
-  * po - adresář s překlady
   * src/LayerEditor - Modul pro zobrazení a úpravu vrstev
   * src/lib - Modul s knihovnami používanými ostatními moduly
-  * src/locale - Adresář s překlady (mo soubory) generovanými v po adresáři
   * testing - Automatické testy 
 
 Kontrola kódu
@@ -114,39 +110,6 @@ Uživatelská Dokumentace
 =======================
 Dokumentace bude asi psaná v `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ a 
 do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htmls>`_.
-
-Lokalizace
-==========
-.. _localization:
-
-**Překlady**
-
-Ve zdrojovém kódu jsou texty uzavřeny funkcí _() a překlad zajištěn pomocí::
-
-  from lang_le import gettext as _
-  _messageSplitter.setWindowTitle(_("GeoMop Layer Editor"))
-
-lang_le je pak modul specifik soubor umístěný do kořenového adresáře GeoMop modulu.
-
-Překlady je pak možné získat ze zdrojáků příkazem::
-
-  make po
-
-Po přeložení po souborů, umístěných v jazyk specifik adresářích je možné vygenerovat
-mo soubory příkazem::
-
-  make mo
-
-nebo vygenerovat a nakopírovat do lokálního adresáře src/locale příkazem::
-
-  make copy
-
-po nakopírování souborů do lokálního adresáře by měli být překlady funkční na lokálním
-prostředí.
-
-  * *dodělat do po/Makefile globální slovník, který bude překlady šoupat mezi moduli*
-  * *dodělat do po/Makefile mechanizmus pro vytvoření jednoho po souboru s nepřeloženými 
-    texty a zakomponování překladů z tohoto souboru po překladu zpět do po souborů*
 
 Testování kódu po sobě
 ======================
