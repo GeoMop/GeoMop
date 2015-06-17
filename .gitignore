@@ -66,3 +66,6 @@ target/
 
 #gedit
 *~
+
+#config files
+*.cfg

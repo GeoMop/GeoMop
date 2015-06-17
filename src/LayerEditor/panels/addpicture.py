@@ -1,6 +1,7 @@
 # pylint: disable=E1002
 """AddPictureWidget file"""
 import os
+import copy
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
@@ -35,6 +36,8 @@ class AddPictureWidget(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
         self.setMinimumSize(QtCore.QSize(200, 500))
 
+        label_picture = QtWidgets.QLabel("Select Underlying Picture:")
+
         self._list_widget = QtWidgets.QListWidget()
         self._init_list()
 
@@ -54,6 +57,7 @@ class AddPictureWidget(QtWidgets.QWidget):
             self._x.setText("min")
         else:
             self._x.setText(self._data.rect.left())
+        self._x.editingFinished.connect(self._rect_changed)
         
         label_y = QtWidgets.QLabel("y:")
         self._y = QtWidgets.QLineEdit()
@@ -61,6 +65,7 @@ class AddPictureWidget(QtWidgets.QWidget):
             self._y.setText("min")
         else:
             self._y.setText(self._data.rect.bottom())
+        self._y.editingFinished.connect(self._rect_changed)
         
         label_dx = QtWidgets.QLabel("dx:")
         self._dx = QtWidgets.QLineEdit()
@@ -68,6 +73,7 @@ class AddPictureWidget(QtWidgets.QWidget):
             self._dx.setText("max")
         else:
             self._dx.setText(self._data.rect.width())
+        self._dx.editingFinished.connect(self._rect_changed)
             
         label_dy = QtWidgets.QLabel("dy:")
         self._dy = QtWidgets.QLineEdit()
@@ -75,26 +81,32 @@ class AddPictureWidget(QtWidgets.QWidget):
             self._dy.setText("max")
         else:
             self._dy.setText(self._data.rect.height())
+        self._dy.editingFinished.connect(self._rect_changed)
             
         label_opaque = QtWidgets.QLabel("Opaque:")
         self._opaque = QtWidgets.QSpinBox()
         self._opaque.setAlignment(QtCore.Qt.AlignRight)
         self._opaque.setRange(0, 100)
         self._opaque.setValue(self._data.opaque)
+        self._opaque.valueChanged.connect(self._opaque_changed)
         
         self._above_layer = QtWidgets.QCheckBox("Disply Above Layer")
         self._above_layer.setChecked(self._data.layer_above)
+        self._above_layer.stateChanged.connect(lambda: self._change_disply_layer(True))
         self._al_color = QtWidgets.QFrame(self)
         self._al_color.setStyleSheet("QWidget { background-color: %s }" 
             % self._data.layer_above_color.name())
         self._al_color_button = QtWidgets.QPushButton("Color ...")
+        self._al_color_button.clicked.connect(lambda: self._change_color(True))
 
         self._below_layer = QtWidgets.QCheckBox("Disply Below Layer")
         self._below_layer.setChecked(self._data.layer_below)
+        self._below_layer.stateChanged.connect(lambda: self._change_disply_layer(False))
         self._bl_color = QtWidgets.QFrame(self)
         self._bl_color.setStyleSheet("QWidget { background-color: %s }" 
             % self._data.layer_below_color.name())
         self._bl_color_button = QtWidgets.QPushButton("Color ...")
+        self._bl_color_button.clicked.connect(lambda: self._change_color(False))
         
         grid = QtWidgets.QGridLayout()
         grid.addWidget(self._add_button, 0, 0, 1, 2)
@@ -120,6 +132,7 @@ class AddPictureWidget(QtWidgets.QWidget):
         grid.addWidget(self._bl_color_button, 7, 3)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label_picture)
         layout.addWidget(self._list_widget)
         layout.addLayout(grid)
         self.setLayout(layout)
@@ -132,15 +145,9 @@ class AddPictureWidget(QtWidgets.QWidget):
         return:
             QPixmap underlying picture
         """
-        items = self._list_widget.selectedItems()
-        self._data.selected=-1
-        
-        for item in items:
-            i = self._list_widget.row(item)
-            self._data.selected=i
-            picture = self._data.pic_paths[i]
-            break
-                      
+        picture = self._data.lastPicture
+        if picture == "None":
+            return []        
         return [picture]
 
     def _init_list(self):
@@ -179,6 +186,10 @@ class AddPictureWidget(QtWidgets.QWidget):
         items = self._list_widget.selectedItems()
         for item in items:
             i = self._list_widget.row(item)
+            if i==0:
+                # none pocture can't be remove
+                continue
+                
             #self._list_widget.deleteItemWidget(item)
             item = self._list_widget.takeItem(i)
 
@@ -206,7 +217,60 @@ class AddPictureWidget(QtWidgets.QWidget):
             break
             
         self._data.save()
-        self.pictureListChanged.emit()
+        if self._data.is_state_changed():
+            self.pictureListChanged.emit()
+    
+    def _rect_changed(self):
+        """editingFinished event for _x ,_y, _dx or _dy widget"""
+        self._data.rect = QtCore.QRect(
+            self._check_and_get_coordinate(self._x), 
+            self._check_and_get_coordinate(self._y), 
+            self._check_and_get_coordinate(self._dx), 
+            self._check_and_get_coordinate(self._dy))
+        self._data.save()
+        if self._data.is_state_changed():
+            self.pictureListChanged.emit()
+        
+    def _check_and_get_coordinate(self, edit):
+        """get coordinate from QLineEdit or -1"""
+        coord = edit.text()
+        try:
+            coord = int(coord)
+        except ValueError:
+            coord = -1
+        return coord
+        
+    def _opaque_changed(self):
+        """valueChanged event for _opaque widget"""
+        self._data.opaque = self._opaque.value()
+        self._data.save()
+        if self._data.is_state_changed():
+            self.pictureListChanged.emit()
+    
+    def _change_color(self,  above):
+        """Clicked event for _al_color_button (above = True) or _bl_color_button button"""
+        col = QtWidgets.QColorDialog.getColor()
+        if above:
+            self._data.layer_above_color = col
+            self._al_color.setStyleSheet("QWidget { background-color: %s }" 
+                % self._data.layer_above_color.name())
+        else:
+            self._data.layer_below_color = col
+            self._bl_color.setStyleSheet("QWidget { background-color: %s }" 
+                % self._data.layer_below_color.name())
+        self._data.save()
+        if self._data.is_state_changed():
+            self.pictureListChanged.emit()
+            
+    def _change_disply_layer(self,  above):
+        """stateChanged event for _al_color (above = True) or _bl_color checkbox"""
+        if above:
+            self._data.layer_above = self._above_layer.isChecked()
+        else:
+            self._data.layer_below = self._below_layer.isChecked()
+        self._data.save()    
+        if self._data.is_state_changed():
+            self.pictureListChanged.emit()
 
 import config
 
@@ -215,25 +279,81 @@ class _AddPictureData():
     Helper for preservation AddPictureWidget data
     """
     
-    def __init__(self):
+    def __init__(self, readFromConfig = True):
         """
         Try load AddPictureWidget data from config file, 
         or set default AddPictureWidget data if config file not exist
         """
-        data=config.get_config_file("AddPictureData")
+        if readFromConfig:
+            data=config.get_config_file("AddPictureData")
+        else:
+            data=None
+            
         if(data != None):
-            self = data
-            return
-        self.pic_paths = []
-        self.pic_names = []
-        self.selected = -1
-        self.rect = QtCore.QRect(-1, -1, -1, -1)
-        self.opaque = 50
-        self.layer_below = False
-        self.layer_above = False
-        self.layer_below_color = QtGui.QColor(255, 120, 200)
-        self.layer_above_color = QtGui.QColor(120, 120, 255)
+            self.pic_paths = copy.deepcopy(data.pic_paths)
+            self.pic_names = copy.deepcopy(data.pic_names)
+            self.selected = data.selected
+            self.rect = QtCore.QRect(data.rect)
+            self.opaque = data.opaque
+            self.layer_below = data.layer_below
+            self.layer_above =  data.layer_above
+            self.layer_below_color = QtGui.QColor(data.layer_below_color)
+            self.layer_above_color = QtGui.QColor(data.layer_above_color)
+        else:
+            self.pic_paths = ["Without underlying picture"]
+            self.pic_names = ["None"]
+            self.selected = 0
+            self.rect = QtCore.QRect(-1, -1, -1, -1)
+            self.opaque = 50
+            self.layer_below = False
+            self.layer_above = False
+            self.layer_below_color = QtGui.QColor(255, 120, 200)
+            self.layer_above_color = QtGui.QColor(120, 120, 255)
+        self.lastPicture = None
+        if  self.selected > 0 and self.selected <  len(self.pic_paths):
+            self.lastPicture = self.pic_paths[self.selected]
+        self._lastState = None
         
     def save(self):
         """Save AddPictureWidget data"""
         config.save_config_file("AddPictureData", self)
+        
+    def is_state_changed(self):
+        """
+        Check last state and copy current state for next calling this function
+        
+        return if state was changed
+        """
+        changed = False
+        if self._lastState == None:
+            # for lastState values self.pic_paths, self.pic_names, _lastPicture and _lastState not use
+            self._lastState = _AddPictureData(False)
+        
+        if  self.selected > 0 and self.selected <  len(self.pic_paths):
+            newPicture = self.pic_paths[self.selected]
+        else:
+            newPicture = None
+        if newPicture != self.lastPicture:
+            changed = True
+            self.lastPicture = newPicture
+        if self.rect != self._lastState.rect:
+            changed = True
+            self._lastState.rect=QtCore.QRect(self.rect)
+        if self.opaque != self._lastState.opaque:
+            changed = True
+            self._lastState.opaque=self.opaque
+        if self.layer_below != self._lastState.layer_below:
+            changed = True
+            self._lastState.layer_below = self.layer_below
+            self._lastState.layer_below_color = QtGui.QColor(self.layer_below_color)
+        elif self.layer_below and self._lastState.layer_below_color != self.layer_below_color:    
+            changed = True
+            self._lastState.layer_below_color = QtGui.QColor(self.layer_below_color)
+        if self.layer_above != self._lastState.layer_above:
+            changed = True
+            self._lastState.layer_above = self.layer_above
+            self._lastState.layer_above_color = QtGui.QColor(self.layer_above_color)
+        elif self.layer_above and self._lastState.layer_above_color != self.layer_above_color:    
+            changed = True
+            self._lastState.layer_above_color = QtGui.QColor(self.layer_above_color)            
+        return changed
