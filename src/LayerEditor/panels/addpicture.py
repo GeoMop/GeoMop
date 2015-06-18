@@ -2,6 +2,7 @@
 """AddPictureWidget file"""
 import os
 import copy
+import drawing.pixmap_lib as pxl
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
@@ -137,7 +138,7 @@ class AddPictureWidget(QtWidgets.QWidget):
         layout.addLayout(grid)
         self.setLayout(layout)
 
-    def get_pixmap(self):
+    def get_pixmap(self, x, y):
         """
         .. _getPicturePaths:
         Return underlying composite picture
@@ -145,7 +146,9 @@ class AddPictureWidget(QtWidgets.QWidget):
         return:
             QPixmap underlying picture
         """
-        picture = self._data.lastPicture
+        
+        picture = pxl.getWhitePixmap(x, y)
+#        picture = self._data.lastPicture
         if picture == "None":
             return []        
         return [picture]

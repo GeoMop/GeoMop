@@ -34,7 +34,7 @@ class CanvasWidget(QtWidgets.QWidget):
         if self._pictures:
             for picture in self._pictures:
                 target = painter.window()
-                pixmap = QtGui.QPixmap(picture)
+                pixmap = picture
                 if pixmap:
                     source = pixmap.rect()
                     painter.drawPixmap(target, pixmap, source)

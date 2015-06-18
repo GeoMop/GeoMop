@@ -31,7 +31,7 @@ class Editor:
         Send list of background pictures from :mod:`Panels.AddPictureWidget`
         to :mod:`Panels.CanvasWidget`
         """
-        self._form2.set_undercoat(self._form1.get_pixmap())
+        self._form2.set_undercoat(self._form1.get_pixmap(100, 100))
 
 Editor().main()
 
