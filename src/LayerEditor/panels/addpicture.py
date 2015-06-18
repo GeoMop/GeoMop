@@ -2,10 +2,12 @@
 """AddPictureWidget file"""
 import os
 import copy
-import drawing.pixmap_lib as pxl
+import drawing.draw_lib as pxl
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
+
+BIG_NUMBER = 100000000.1
 
 class AddPictureWidget(QtWidgets.QWidget):
     """
@@ -21,7 +23,6 @@ class AddPictureWidget(QtWidgets.QWidget):
     :ref:`get_picture_paths  function <get_picture_paths>` for
     new set of underlying pictures.
     """
-
     def __init__(self, parent=None):
         """
         Inicialize window
@@ -54,34 +55,34 @@ class AddPictureWidget(QtWidgets.QWidget):
 
         label_x = QtWidgets.QLabel("x:")
         self._x = QtWidgets.QLineEdit()
-        if self._data.rect.left()<0:
+        if self._data.rect.left()<(1-BIG_NUMBER):
             self._x.setText("min")
         else:
-            self._x.setText(self._data.rect.left())
+            self._x.setText(str(self._data.rect.left()))
         self._x.editingFinished.connect(self._rect_changed)
         
         label_y = QtWidgets.QLabel("y:")
         self._y = QtWidgets.QLineEdit()
-        if self._data.rect.bottom()<0:
+        if self._data.rect.top()<(1-BIG_NUMBER):
             self._y.setText("min")
         else:
-            self._y.setText(self._data.rect.bottom())
+            self._y.setText(str(self._data.rect.top()))
         self._y.editingFinished.connect(self._rect_changed)
         
         label_dx = QtWidgets.QLabel("dx:")
         self._dx = QtWidgets.QLineEdit()
-        if self._data.rect.width()<0:
+        if self._data.rect.width()<(1-BIG_NUMBER):
             self._dx.setText("max")
         else:
-            self._dx.setText(self._data.rect.width())
+            self._dx.setText(str(self._data.rect.width()))
         self._dx.editingFinished.connect(self._rect_changed)
             
         label_dy = QtWidgets.QLabel("dy:")
         self._dy = QtWidgets.QLineEdit()
-        if self._data.rect.height()<0:
+        if self._data.rect.height()<(1-BIG_NUMBER):
             self._dy.setText("max")
         else:
-            self._dy.setText(self._data.rect.height())
+            self._dy.setText(str(self._data.rect.height()))
         self._dy.editingFinished.connect(self._rect_changed)
             
         label_opaque = QtWidgets.QLabel("Opaque:")
@@ -138,7 +139,7 @@ class AddPictureWidget(QtWidgets.QWidget):
         layout.addLayout(grid)
         self.setLayout(layout)
 
-    def get_pixmap(self, x, y):
+    def get_pixmap(self, x, y,  scale):
         """
         .. _getPicturePaths:
         Return underlying composite picture
@@ -148,6 +149,19 @@ class AddPictureWidget(QtWidgets.QWidget):
         """
         
         picture = pxl.getWhitePixmap(x, y)
+        
+        if self._data.selected>0:
+            rect = QtCore.QRect(0, 0, x,  y)
+            if self._data.rect.left() > (1-BIG_NUMBER):
+                rect.setX(int(self._data.rect.left()*scale))
+            if self._data.rect.top() > (1-BIG_NUMBER):
+                rect.setY(int(self._data.rect.top()*scale))    
+            if self._data.rect.width() > (1-BIG_NUMBER):
+                rect.setRight(int(self._data.rect.right()*scale))
+            if self._data.rect.height() > (1-BIG_NUMBER):
+                rect.setBottom(int(self._data.rect.bottom()*scale))
+
+            pxl.drawPictureTiPixmap(self._data.lastPicture, rect, picture,  self._data.opaque)
 #        picture = self._data.lastPicture
         if picture == "None":
             return []        
@@ -225,7 +239,7 @@ class AddPictureWidget(QtWidgets.QWidget):
     
     def _rect_changed(self):
         """editingFinished event for _x ,_y, _dx or _dy widget"""
-        self._data.rect = QtCore.QRect(
+        self._data.rect = QtCore.QRectF(
             self._check_and_get_coordinate(self._x), 
             self._check_and_get_coordinate(self._y), 
             self._check_and_get_coordinate(self._dx), 
@@ -238,9 +252,9 @@ class AddPictureWidget(QtWidgets.QWidget):
         """get coordinate from QLineEdit or -1"""
         coord = edit.text()
         try:
-            coord = int(coord)
+            coord = float(coord)
         except ValueError:
-            coord = -1
+            coord = -BIG_NUMBER
         return coord
         
     def _opaque_changed(self):
@@ -296,7 +310,7 @@ class _AddPictureData():
             self.pic_paths = copy.deepcopy(data.pic_paths)
             self.pic_names = copy.deepcopy(data.pic_names)
             self.selected = data.selected
-            self.rect = QtCore.QRect(data.rect)
+            self.rect = QtCore.QRectF(data.rect)
             self.opaque = data.opaque
             self.layer_below = data.layer_below
             self.layer_above =  data.layer_above
@@ -306,7 +320,7 @@ class _AddPictureData():
             self.pic_paths = ["Without underlying picture"]
             self.pic_names = ["None"]
             self.selected = 0
-            self.rect = QtCore.QRect(-1, -1, -1, -1)
+            self.rect = QtCore.QRectF(-BIG_NUMBER, -BIG_NUMBER, -BIG_NUMBER, -BIG_NUMBER)
             self.opaque = 50
             self.layer_below = False
             self.layer_above = False
@@ -341,7 +355,7 @@ class _AddPictureData():
             self.lastPicture = newPicture
         if self.rect != self._lastState.rect:
             changed = True
-            self._lastState.rect=QtCore.QRect(self.rect)
+            self._lastState.rect=QtCore.QRectF(self.rect)
         if self.opaque != self._lastState.opaque:
             changed = True
             self._lastState.opaque=self.opaque
