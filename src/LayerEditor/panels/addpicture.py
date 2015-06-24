@@ -295,14 +295,16 @@ class _AddPictureData():
     """
     Helper for preservation AddPictureWidget data
     """
+    SERIAL_FILE = "AddPictureData"    
+    """Serialize class file"""
     
-    def __init__(self, readFromConfig = True):
+    def __init__(self, readfromconfig = True):
         """
         Try load AddPictureWidget data from config file, 
         or set default AddPictureWidget data if config file not exist
         """
-        if readFromConfig:
-            data=config.get_config_file("AddPictureData")
+        if readfromconfig:
+            data=config.get_config_file(self.__class__.SERIAL_FILE)
         else:
             data=None
             
@@ -333,7 +335,7 @@ class _AddPictureData():
         
     def save(self):
         """Save AddPictureWidget data"""
-        config.save_config_file("AddPictureData", self)
+        config.save_config_file(self.__class__.SERIAL_FILE, self)
         
     def is_state_changed(self):
         """

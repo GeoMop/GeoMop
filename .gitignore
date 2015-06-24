@@ -69,3 +69,4 @@ target/
 
 #config files
 *.cfg
+src/config/*.yaml
