@@ -19,6 +19,7 @@ Source code documentation
 
    aut/lib
    aut/LayerEditor
+   aut/ModelEditor
 
 
 Indices and tables

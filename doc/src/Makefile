@@ -54,6 +54,10 @@ modules.LE.rst:
 	sphinx-apidoc -o ./aut -s .rst ../../src/LayerEditor/
 	mv aut/modules.rst aut/LayerEditor.rst
 
+modules.ME.rst:
+	sphinx-apidoc -o ./aut -s .rst ../../src/ModelEditor/
+	mv aut/modules.rst aut/ModelEditor.rst
+
 modules.lib.rst: 
 	sphinx-apidoc -o ./aut -s .rst ../../src/lib/
 	mv aut/modules.rst aut/lib.rst
