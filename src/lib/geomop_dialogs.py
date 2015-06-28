@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 
 class GMErrorDialog(QtWidgets.QMessageBox):
     """Error dialog for GeoMop graphic applications"""
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Inicialize standart QDialoc with GeoMop specific properties"""
         super(GMErrorDialog, self).__init__(parent)
@@ -16,4 +16,5 @@ class GMErrorDialog(QtWidgets.QMessageBox):
         if(error == None):
             self.setInformativeText("")
         else:
-            self.setInformativeText(type(error) +" "+error)
+            self.setInformativeText(type(error).__name__ +" "+str(error))
+        super(GMErrorDialog, self).exec()
