@@ -61,6 +61,9 @@ target/
 *.e4p
 *.e4m
 
+#PyCharm project files
+.idea/
+
 #vi
 *.swp
 
