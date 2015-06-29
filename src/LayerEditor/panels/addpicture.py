@@ -173,7 +173,7 @@ class AddPictureWidget(QtWidgets.QWidget):
         self._list_widget.itemSelectionChanged.connect(self._selection_changed)
 
         # set path as tooltip
-        for i in range(0, len(self._data.pic_paths)-1):
+        for i in range(0, len(self._data.pic_paths)):
             item = self._list_widget.item(i)
             item.setToolTip(self._data.pic_paths[i])
             
