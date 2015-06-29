@@ -23,11 +23,18 @@ class _Config():
             
         if(data != None):
             self.recent_files = copy.deepcopy(data.recent_files)
-            self.format_files = copy.deepcopy(data.format_files)     
+            self.format_files = copy.deepcopy(data.format_files)
+            self.last_data_dir = data.last_data_dir
         else:
+            from os.path import expanduser
+            self.last_data_dir = expanduser("~")
             self.recent_files = []
             self.format_files = []
-      
+    
+    def update_last_data_dir(self,  file):
+        """Save dir from last used file"""
+        self.last_data_dir = os.path.dirname(os.path.realpath(file))
+        
     def save(self):
         """Save AddPictureWidget data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self)
@@ -101,6 +108,10 @@ class MEConfig():
     """text set by editor after significant changing"""
     main_window = None
     """parent of dialogs"""
+    errors = []
+    """array of validation errors"""
+    changed = False
+    """is file changed"""
     
     @classmethod
     def init(cls, main_window):
@@ -139,6 +150,16 @@ class MEConfig():
         cls.update_format()
 
     @classmethod
+    def new_file(cls):
+        """
+       empty file
+        """
+        cls.yaml_text = ""
+        cls.update_format()
+        cls.changed = False
+        cls.curr_file = None
+ 
+    @classmethod
     def open_file(cls, file_name):
         """
         read file
@@ -147,10 +168,13 @@ class MEConfig():
         """
         try:
             file = open(file_name, 'r')
+            cls.config.update_last_data_dir(file_name)
+            file.close()
             cls.yaml_text = file.read()
             cls.curr_file = file_name;
-            cls.config. add_recent_file(file_name, cls.curr_format_file)
+            cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
+            cls.changed = False
             return True
         except Exception as err:
             err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
@@ -170,9 +194,12 @@ class MEConfig():
         try:
             file = open(file_name, 'r')
             cls.yaml_text = file.read()
+            file.close()
+            cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name;
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
+            cls.changed = False
             return True
         except Exception as err:
             err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
@@ -196,8 +223,10 @@ class MEConfig():
         try:
             file = open(cls.curr_file, 'w')
             file.write(cls.yaml_text)
+            file.close()
             #format is save to recent files up to save file 
-            cls.config.format_files[0] = cls.curr_format_file          
+            cls.config.format_files[0] = cls.curr_format_file
+            cls.changed = False
         except Exception as err:
             err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.exec("Can't save file", err)
@@ -208,9 +237,20 @@ class MEConfig():
         try:
             file = open(file_name, 'w')
             file.write(cls.yaml_text)
+            file.close()
+            cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name;
             cls.config.add_recent_file(file_name, cls.curr_format_file)
-            cls.update()
+            cls.changed = False
         except Exception as err:
             err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.exec("Can't save file", err)
+
+    @classmethod
+    def update_yaml_file(cls, new_yaml_text):
+        """update new editor text"""
+        if new_yaml_text != cls.yaml_text:
+            cls.yaml_tex = new_yaml_text
+            cls.changed = True
+            return True
+        return False       

@@ -2,6 +2,7 @@
 
 import sys
 sys.path.insert(1, '../lib')
+import os
 
 from data.meconfig import MEConfig as cfg
 import panels.yaml_editor
@@ -19,15 +20,21 @@ class ModelEditor:
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self._mainwindow = QtWidgets.QMainWindow()
         self._mainwindow.setCentralWidget(self._hsplitter)
-        self._mainwindow.setWindowTitle("GeoMop Model Editor")
         
         #load config
         cfg.init(self._mainwindow)
+        self._update_document_name()
         
         #menu
         #file
         menubar = self._mainwindow.menuBar()
         self._file_menu = menubar.addMenu('&File')
+        
+        self._new_file_action= QtWidgets.QAction('&New File ...', self._mainwindow)        
+        self._new_file_action.setShortcut('Ctrl+N')
+        self._new_file_action.setStatusTip('New model yaml file')
+        self._new_file_action.triggered.connect(self._new_file)
+        self._file_menu.addAction(self._new_file_action)
         
         self._open_file_action= QtWidgets.QAction('&Open File ...', self._mainwindow)        
         self._open_file_action.setShortcut('Ctrl+O')
@@ -79,40 +86,64 @@ class ModelEditor:
         #show
         self._mainwindow.show()
 
+    def _new_file(self):
+        """newt file menu action"""
+        if not self._save_old_file():
+            return
+        cfg.new_file()
+        self._editor.reload()
+        self._tree.reload()
+        self._update_recent_files(0)
+        self._update_document_name()
+
     def _open_file(self):
         """open file menu action"""
-        from os.path import expanduser
-        home = expanduser("~")
+        if not self._save_old_file():
+            return
         yaml_file = QtWidgets.QFileDialog.getOpenFileName(
-            self._mainwindow, "Choose Yaml Model File", home,"Yaml Files (*.yaml)")
+            self._mainwindow, "Choose Yaml Model File", 
+            cfg.config.last_data_dir,"Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
             self._editor.reload()
             self._tree.reload()
-            self._update_recent_files
+            self._update_recent_files()
+            self._update_document_name()
 
     def _open_recent(self, action):
         """open recent file menu action"""
-        cfg.open_file(action.text())
+        if not self._save_old_file():
+            return
+        cfg.open_recent_file(action.text())
         self._editor.reload()
         self._tree.reload()
-        self._update_recent_files
+        self._update_recent_files()
+        self._update_document_name()
 
     def _save_file(self):
         """save file menu action"""
-        cfg.yaml_text = self._editor.text()
+        if cfg.curr_file == None:
+            return self._save_as()
+        cfg.update_yaml_file(self._editor.text())
         cfg.save_file()
         
     def _save_as(self):
         """save file menu action"""
-        cfg.yaml_text = self._editor.text()
+        cfg.update_yaml_file(self._editor.text())
+        if cfg.curr_file == None:
+            newFile=cfg.config.last_data_dir + os.path.sep + "NewFile.yaml"
+        else:
+            newFile = cfg.curr_file
         yaml_file = QtWidgets.QFileDialog.getSaveFileName(
-            self._mainwindow, "Set Yaml Model File", cfg.curr_file,"Yaml Files (*.yaml)") 
+            self._mainwindow, "Set Yaml Model File",newFile ,"Yaml Files (*.yaml)") 
 
         if yaml_file[0]:
             cfg.save_as(yaml_file[0]) 
-            self._update_recent_files()   
-        
+            self._update_recent_files() 
+            self._update_document_name()
+            return True
+        return False
+
     def _format_checked(self):
         """format checked file menu action"""
         action=self._format_group.checkedAction()
@@ -131,6 +162,35 @@ class ModelEditor:
             rf = self._recent_group.addAction(QtWidgets.QAction(cfg.config.recent_files[i],  self._mainwindow, checkable=True))
             self._recent.addAction(rf)
         self._recent_group.triggered.connect(self._open_recent)  
+
+    def _update_document_name(self):
+        """Update document title (add file name)"""
+        title = "GeoMop Model Editor"
+        if cfg.curr_file == None:
+            title += " - New File"
+        else:
+            title += " - " + cfg.curr_file
+        self._mainwindow.setWindowTitle(title)
+
+    def _save_old_file(self):
+        """
+        If file not saved, display confirmation dialeg and if is needed, do it
+        
+        return: False if action have to be aborted
+        """
+        cfg.update_yaml_file(self._editor.text())
+        if cfg.changed:
+            reply = QtWidgets.QMessageBox.question(self._mainwindow, 'Comfirmation',
+                "The document has unsaved changes, do you want to save it?", 
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Abort)
+            if reply == QtWidgets.QMessageBox.Abort:
+                return False
+            if reply == QtWidgets.QMessageBox.Yes:
+                if cfg.curr_file == None:
+                    return self._save_as()
+                else:
+                    self._save_file()
+        return True
 
     def main(self):
         """go"""        
