@@ -7,7 +7,7 @@ import geomop_dialogs
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
 
-class _Config():
+class _Config(object):
     """Class for ModelEditor serialization"""
 
     SERIAL_FILE = "ModelEditorData"
@@ -92,7 +92,7 @@ class _Config():
                 return  self.format_files[i]
         return None
 
-class MEConfig():
+class MEConfig(object):
     """Static data class"""
     format_files = []
     """Array of format files"""
@@ -104,7 +104,7 @@ class MEConfig():
     """Serialized variables"""
     root = None
     """root DataNode structure"""
-    yaml_text = None
+    yaml_text = ""
     """text set by editor after significant changing"""
     main_window = None
     """parent of dialogs"""
@@ -182,7 +182,7 @@ class MEConfig():
             cls.update_format()
             cls.changed = False
             return True
-        except Exception as err:
+        except (RuntimeError, IOError) as err:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog("Can't open file", err)
         return False
@@ -207,7 +207,7 @@ class MEConfig():
             cls.update_format()
             cls.changed = False
             return True
-        except Exception as err:
+        except (RuntimeError, IOError) as err:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog("Can't open file", err)
         return False
@@ -233,7 +233,7 @@ class MEConfig():
             #format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
-        except Exception as err:
+        except (RuntimeError, IOError) as err:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog("Can't save file", err)
 
@@ -248,7 +248,7 @@ class MEConfig():
             cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
-        except Exception as err:
+        except (RuntimeError, IOError) as err:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog("Can't save file", err)
 

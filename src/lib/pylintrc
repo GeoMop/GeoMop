@@ -1,4 +1,3 @@
 [typecheck]
 ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore
-[master]
-init-hook='sys.path.append("../lib")'
+ignored-classes=GMErrorDialog

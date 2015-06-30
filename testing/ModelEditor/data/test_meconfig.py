@@ -4,6 +4,7 @@ from data.meconfig import _Config as Config
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
     cfg.init(None)
+    cfg.config=Config()
     #cfg.config is assigned
     assert cfg.config.__class__== Config
     
@@ -18,7 +19,7 @@ def test_config(request):
     assert  home == cfg.config.last_data_dir
     config = Config(False)
     #new config have last_data_dir == home
-    assert  home == cfg.config.last_data_dir
+    assert  home == config.last_data_dir
     
     cfg.config.add_recent_file("test_file1", "test_format_file1")
     #add first file
