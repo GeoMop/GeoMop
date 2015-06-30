@@ -4,7 +4,7 @@ Data Node package
 Contains classes for representing the tree structure of config files.
 """
 
-from data.meconfig import MEConfig as cfg
+# from data.meconfig import MEConfig as cfg
 
 class DataNode:
     """
@@ -23,10 +23,13 @@ class DataNode:
             self.key = Key()
         self.input_type = None
         """input type specified by format"""
-        self.options = []
-        """possible options to hint in autocomplete"""
-        self.position = None
+        self.section = None
         """borders the position of this node in input text"""
+
+    @property
+    def options(self):
+        """possible options to hint in autocomplete"""
+        return []
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""
@@ -95,17 +98,20 @@ class Key:
 
 class Position:
     """Marks a cursor position in text."""
-    def __init__(self):
+    def __init__(self, mark):
         self.line = None
         """line number; starts from 1"""
         self.column = None
         """column number; starts from 1"""
+        if mark is not None:
+            self.line = mark.line + 1
+            self.column = mark.column + 1
 
 
 class Section:
     """Borders a part of text."""
-    def __init__(self):
-        self.start = None
+    def __init__(self, start_mark=None, end_mark=None):
+        self.start = Position(start_mark)
         """:class:`.Position` indicates the start of the section; inclusive"""
-        self.end = None
+        self.end = Position(end_mark)
         """:class:`.Position` indicates the end of the section; exclusive"""
