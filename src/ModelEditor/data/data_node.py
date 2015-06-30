@@ -21,20 +21,19 @@ class DataNode:
         """key (name) of this node"""
         if self.key is None:
             self.key = Key()
-        self.start_mark = (None, None)
-        """position where the node starts; (line, column) tuple"""
-        self.end_mark = (None, None)
-        """position where the node ends; (line, column) tuple"""
         self.input_type = None
         """input type specified by format"""
         self.options = []
+        """possible options to hint in autocomplete"""
+        self.position = None
+        """borders the position of this node in input text"""
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""
         raise NotImplementedError
 
     @property
-    def documentation(self):
+    def info_text(self):
         """help text describing the input type"""
         raise NotImplementedError
 
@@ -57,8 +56,6 @@ class RecordNode(DataNode):
         super(RecordNode, self).__init__(key, parent)
         self.children = {}
         """dictionary of children nodes and their keys"""
-        self.options = []
-        """list of possible keys for autocomplete"""
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""
@@ -75,11 +72,7 @@ class ScalarNode(DataNode):
     def __init__(self, key=None, parent=None, value=None):
         super(ScalarNode, self).__init__(key, parent)
         self.value = value
-        """representation of the key"""
-        self.start_mark = (None, None)
-        """position where the value starts"""
-        self.end_mark = (None, None)
-        """position where the value ends"""
+        """the scalar value"""
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""
@@ -96,7 +89,23 @@ class Key:
     def __init__(self, value=None):
         self.value = value
         """representation of the key"""
-        self.start_mark = (None, None)
-        """position where the key starts"""
-        self.end_mark = (None, None)
-        """position where the key ends"""
+        self.section = None
+        """:class:`.Section` borders the position of the key"""
+
+
+class Position:
+    """Marks a cursor position in text."""
+    def __init__(self):
+        self.line = None
+        """line number; starts from 1"""
+        self.column = None
+        """column number; starts from 1"""
+
+
+class Section:
+    """Borders a part of text."""
+    def __init__(self):
+        self.start = None
+        """:class:`.Position` indicates the start of the section; inclusive"""
+        self.end = None
+        """:class:`.Position` indicates the end of the section; exclusive"""
