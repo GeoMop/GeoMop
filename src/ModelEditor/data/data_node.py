@@ -27,6 +27,7 @@ class DataNode:
         """position where the node ends; (line, column) tuple"""
         self.input_type = None
         """input type specified by format"""
+        self.options = []
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""

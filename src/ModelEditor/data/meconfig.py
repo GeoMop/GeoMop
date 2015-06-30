@@ -4,24 +4,25 @@ import copy
 import config as cfg
 import geomop_dialogs
 
-__format_dir__=os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
+__format_dir__ = os.path.join(
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
 
 class _Config():
     """Class for ModelEditor serialization"""
-    
-    SERIAL_FILE = "ModelEditorData"    
+
+    SERIAL_FILE = "ModelEditorData"
     """Serialize class file"""
-    
-    COUNT_RECENT_FILES = 5    
+
+    COUNT_RECENT_FILES = 5
     """Count of recent files"""
-    
-    def __init__(self, readfromconfig = True):        
+
+    def __init__(self, readfromconfig=True):
         if readfromconfig:
-            data=cfg.get_config_file(self.__class__.SERIAL_FILE)
+            data = cfg.get_config_file(self.__class__.SERIAL_FILE)
         else:
-            data=None
-            
-        if(data != None):
+            data = None
+
+        if data != None:
             self.recent_files = copy.deepcopy(data.recent_files)
             self.format_files = copy.deepcopy(data.format_files)
             self.last_data_dir = data.last_data_dir
@@ -30,28 +31,28 @@ class _Config():
             self.last_data_dir = expanduser("~")
             self.recent_files = []
             self.format_files = []
-    
-    def update_last_data_dir(self,  file):
+
+    def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
-        self.last_data_dir = os.path.dirname(os.path.realpath(file))
-        
+        self.last_data_dir = os.path.dirname(os.path.realpath(file_name))
+
     def save(self):
         """Save AddPictureWidget data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self)
-       
-    def add_recent_file(self,  file,  format_file):
+
+    def add_recent_file(self, file_name, format_file):
         """
-        If file is in array, move it top, else add file to top and delete last 
+        If file is in array, move it top, else add file to top and delete last
         file if is needed. Relevant format files is keep
         """
         #0 files
         if len(self.recent_files) == 0:
-            self.recent_files.append(file)
+            self.recent_files.append(file_name)
             self.format_files.append(format_file)
             self.save()
             return
         #first file == update file
-        if  format_file == self.recent_files[0]:
+        if  file_name == self.recent_files[0]:
             #format file can be changed
             self.format_files[0] = format_file
             self.save()
@@ -59,41 +60,40 @@ class _Config():
         #init for
         last_file = self.recent_files[0]
         last_format = self.format_files[0]
-        self.recent_files[0] = file
+        self.recent_files[0] = file_name
         self.format_files[0] = format_file
-        
+
         for i in range(1, len(self.recent_files)):
-            if  file == self.recent_files[i]:
+            if  file_name == self.recent_files[i]:
                 #added file is in list
                 self.recent_files[i] = last_file
-                self.format_files[i] =  last_format
+                self.format_files[i] = last_format
                 self.save()
                 return
             last_file_pom = self.recent_files[i]
             last_format_pom = self.format_files[i]
             self.recent_files[i] = last_file
-            self.format_files[i] =  last_format
+            self.format_files[i] = last_format
             last_file = last_file_pom
             last_format = last_format_pom
             # recent files is max+1, but first is not displayed
-            if self.__class__.COUNT_RECENT_FILES<i+1:
+            if self.__class__.COUNT_RECENT_FILES < i+1:
                 self.save()
                 return
         #add last file
         self.recent_files.append(last_file)
         self.format_files.append(last_format)
         self.save()
-    
-    def get_format_file(self, file):
+
+    def get_format_file(self, file_name):
         """get format file that is in same position as file"""
-        for i in range(0, len(self.recent_files)-1):
-            if self.recent_files[i] ==  file:
+        for i in range(0, len(self.recent_files)):
+            if self.recent_files[i] == file_name:
                 return  self.format_files[i]
-        return None        
-                
+        return None
 
 class MEConfig():
-    
+    """Static data class"""
     format_files = []
     """Array of format files"""
     curr_format_file = None
@@ -102,7 +102,7 @@ class MEConfig():
     """Serialized variables"""
     curr_file = None
     """Serialized variables"""
-    root=None
+    root = None
     """root DataNode structure"""
     yaml_text = None
     """text set by editor after significant changing"""
@@ -112,7 +112,10 @@ class MEConfig():
     """array of validation errors"""
     changed = False
     """is file changed"""
-    
+
+    def __init__(self):
+        pass
+
     @classmethod
     def init(cls, main_window):
         """Init class wit static method"""
@@ -121,22 +124,23 @@ class MEConfig():
         if len(cls.config.format_files) > 0:
             cls.curr_format_file = cls.config.format_files[0]
         else:
-            if len(cls.format_files)>0:
+            if len(cls.format_files) > 0:
                 cls.curr_format_file = cls.format_files[0]
 
-    @classmethod    
+    @classmethod
     def _read_format_files(cls):
         """read names of format files in format files directory"""
         from os import listdir
         from os.path import isfile, join
-        for file in listdir(__format_dir__):
-                if isfile(join(__format_dir__,file)) and file[-5:].lower() == ".json":
-                    cls.format_files.append(file[:-5])
+        for file_name in listdir(__format_dir__):
+            if (isfile(join(__format_dir__, file_name)) and
+                    file_name[-5:].lower() == ".json"):
+                cls.format_files.append(file_name[:-5])
 
-    @classmethod    
+    @classmethod
     def get_data_node(cls, line):
         """
-        Return dataNode for line number (or preceding DataNode, 
+        Return dataNode for line number (or preceding DataNode,
         if line number don't show to data node)
         """
         #ToDo:TK
@@ -146,6 +150,8 @@ class MEConfig():
         """
         set current format file
         """
+        if not file_name in cls.format_files:
+            return
         cls.curr_format_file = file_name
         cls.update_format()
 
@@ -158,59 +164,59 @@ class MEConfig():
         cls.update_format()
         cls.changed = False
         cls.curr_file = None
- 
+
     @classmethod
     def open_file(cls, file_name):
         """
         read file
-        
+
         return: if file have good format (boolean)
         """
         try:
-            file = open(file_name, 'r')
+            file_d = open(file_name, 'r')
+            cls.yaml_text = file_d.read()
+            file_d.close()
             cls.config.update_last_data_dir(file_name)
-            file.close()
-            cls.yaml_text = file.read()
-            cls.curr_file = file_name;
+            cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
             return True
         except Exception as err:
-            err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.exec("Can't open file", err)
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't open file", err)
         return False
-        
+
     @classmethod
     def open_recent_file(cls, file_name):
         """
         read file from recent files
-        
+
         return: if file have good format (boolean)
-        """        
+        """
         format_file = cls.config.get_format_file(file_name)
         if format_file != None:
             cls.curr_format_file = format_file
         try:
-            file = open(file_name, 'r')
-            cls.yaml_text = file.read()
-            file.close()
+            file_d = open(file_name, 'r')
+            cls.yaml_text = file_d.read()
+            file_d.close()
             cls.config.update_last_data_dir(file_name)
-            cls.curr_file = file_name;
+            cls.curr_file = file_name
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
             return True
         except Exception as err:
-            err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.exec("Can't open file", err)
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't open file", err)
         return False
 
     @classmethod
     def update(cls):
         """reread yaml text and update node tree"""
         #ToDo:TK
-    
+
     @classmethod
     def update_format(cls):
         """reread json format file and update node tree"""
@@ -221,36 +227,36 @@ class MEConfig():
     def save_file(cls):
         """save file"""
         try:
-            file = open(cls.curr_file, 'w')
-            file.write(cls.yaml_text)
-            file.close()
-            #format is save to recent files up to save file 
+            file_d = open(cls.curr_file, 'w')
+            file_d.write(cls.yaml_text)
+            file_d.close()
+            #format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
         except Exception as err:
-            err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.exec("Can't save file", err)
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't save file", err)
 
     @classmethod
     def save_as(cls, file_name):
         """save file as"""
         try:
-            file = open(file_name, 'w')
-            file.write(cls.yaml_text)
-            file.close()
+            file_d = open(file_name, 'w')
+            file_d.write(cls.yaml_text)
+            file_d.close()
             cls.config.update_last_data_dir(file_name)
-            cls.curr_file = file_name;
+            cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
         except Exception as err:
-            err_dialog=geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.exec("Can't save file", err)
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't save file", err)
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
         """update new editor text"""
         if new_yaml_text != cls.yaml_text:
-            cls.yaml_tex = new_yaml_text
+            cls.yaml_text = new_yaml_text
             cls.changed = True
             return True
-        return False       
+        return False

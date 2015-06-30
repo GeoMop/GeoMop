@@ -10,7 +10,7 @@ cd ../lib
 export PYTHONPATH=../../src/lib
 py.test-3
 
-cd ModelEditor
+cd ../ModelEditor
 export PYTHONPATH=../../src/ModelEditor:../../src/lib
 py.test-3
 

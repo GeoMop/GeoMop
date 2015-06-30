@@ -1,5 +1,6 @@
 import sys
 from panels.addpicture import *
+from panels.addpicture import _AddPictureData as Data
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -19,10 +20,7 @@ def test_loadApp():
 def test_loadPanel(request):
     global  signal_is_send
     
-    #set another serialize file and finalizer for delete it
-    panel = AddPictureWidget( )
-    panel._data.__class__.SERIAL_FILE = "AddPictureData_test"
-    #load new serialize file
+    Data.SERIAL_FILE = "AddPictureData_test"
     panel = AddPictureWidget( )
     def fin_test_config():
         import config

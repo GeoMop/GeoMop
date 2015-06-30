@@ -9,7 +9,7 @@ class GMErrorDialog(QtWidgets.QMessageBox):
         super(GMErrorDialog, self).__init__(parent)
         self.setIcon(QtWidgets.QMessageBox.Critical)
         
-    def exec(self, text,  error = None,  title = "GeoMop Error"  ):
+    def open_error_dialog(self, text,  error = None,  title = "GeoMop Error"  ):
         """Display dialog with title, text and error message in detail"""
         self.setWindowTitle(title)
         self.setText(text)
