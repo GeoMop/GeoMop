@@ -1,4 +1,3 @@
-# pylint: disable=E1002
 """CanvasWidget file"""
 
 import PyQt5.QtCore as QtCore

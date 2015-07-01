@@ -1,4 +1,3 @@
-# pylint: disable=R0903
 """
 Geomop's dialogs used in more geomop apllications
 that have standartized appearent
@@ -7,7 +6,6 @@ import PyQt5.QtWidgets as QtWidgets
 
 class GMErrorDialog(QtWidgets.QMessageBox):
     """Error dialog for GeoMop graphic applications"""
-    # pylint: disable=E1002
     def __init__(self, parent):
         """
         Inicialize standart QDialoc with GeoMop specific properties"""

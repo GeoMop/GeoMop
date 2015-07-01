@@ -113,6 +113,14 @@ def test_meconfig_static(request):
     cfg.config.add_recent_file("test.yaml","flow_1.8.2_input_format")  
     cfg.save_file()
     
+    def fin_test_static():
+        import os
+        if os.path.isfile("test.yaml"):
+            os.remove("test.yaml")
+        if os.path.isfile("test2.yaml"):
+            os.remove("test2.yaml")
+    request.addfinalizer(fin_test_static)    
+    
     #save file test   
     assert cfg.changed == False
     assert cfg.curr_file == "test.yaml"

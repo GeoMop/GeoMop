@@ -7,7 +7,7 @@ import geomop_dialogs
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
 
-class _Config(object):
+class _Config:
     """Class for ModelEditor serialization"""
 
     SERIAL_FILE = "ModelEditorData"
@@ -92,7 +92,7 @@ class _Config(object):
                 return  self.format_files[i]
         return None
 
-class MEConfig(object):
+class MEConfig:
     """Static data class"""
     format_files = []
     """Array of format files"""

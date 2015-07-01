@@ -1,4 +1,3 @@
-# pylint: disable=E1002
 """AddPictureWidget file"""
 import os
 import copy
