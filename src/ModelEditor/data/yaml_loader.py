@@ -18,15 +18,16 @@ class YamlLoader:
     def _create_root_node(self, events):
         root = None
         try:
-            root = self._create_node(events)
+            event = next(events)
+            root = self._create_node(event, events)
             while root is None:
-                root = self._create_node(events)
+                event = next(events)
+                root = self._create_node(event, events)
         except StopIteration:
             pass
         return root
 
-    def _create_node(self, events, parent=None):
-        event = next(events)
+    def _create_node(self, event, events, parent=None):
         node = None
         if isinstance(event, yaml.MappingStartEvent):
             node = self._create_record_node(event, events)
@@ -48,7 +49,8 @@ class YamlLoader:
             key = Key()
             key.value = event.value
             key.section = Section(event.start_mark, event.end_mark)
-            child_node = self._create_node(events)  # recursively create children
+            event = next(events)
+            child_node = self._create_node(event, events)  # recursively create children
             child_node.key = key
             node.children[key.value] = child_node
             event = next(events)
@@ -57,11 +59,22 @@ class YamlLoader:
         return node
 
     def _create_array_node(self, event, events):
-        pass
+        node = ArrayNode()
+        start_mark = event.start_mark
+        event = next(events)
+        while not isinstance(event, yaml.SequenceEndEvent):
+            key = Key()
+            key.value = len(node.children)
+            child_node = self._create_node(event, events)  # recursively create children
+            child_node.key = key
+            node.children.append(child_node)
+            event = next(events)
+        end_mark = event.end_mark
+        node.section = Section(start_mark, end_mark)
+        return node
 
     def _create_scalar_node(self, event):
         node = ScalarNode()
         node.value = event.value
         node.section = Section(event.start_mark, event.end_mark)
         return node
-
