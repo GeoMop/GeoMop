@@ -13,6 +13,8 @@ class Loader:
 
     def load(self, document):
         """Loads the YAML document and returns the root DataNode."""
+        if document is None:
+            return None
         events = yaml.parse(document)
         root = self._create_root_node(events)
         return root

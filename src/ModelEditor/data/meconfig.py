@@ -3,6 +3,7 @@ import os
 import copy
 import config as cfg
 import geomop_dialogs
+from data.yaml import Loader
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -55,7 +56,7 @@ class _Config:
             self.save()
             return
         #first file == update file
-        if  file_name == self.recent_files[0]:
+        if file_name == self.recent_files[0]:
             #format file can be changed
             self.format_files[0] = format_file
             self.save()
@@ -107,7 +108,7 @@ class MEConfig:
     """Serialized variables"""
     root = None
     """root DataNode structure"""
-    yaml_text = None
+    document = ''
     """text set by editor after significant changing"""
     main_window = None
     """parent of dialogs"""
@@ -115,6 +116,8 @@ class MEConfig:
     """array of validation errors"""
     changed = False
     """is file changed"""
+    loader = Loader()
+    """loader for YAML documents"""
 
     def __init__(self):
         pass
@@ -163,7 +166,7 @@ class MEConfig:
         """
        empty file
         """
-        cls.yaml_text = ""
+        cls.document = ""
         cls.update_format()
         cls.changed = False
         cls.curr_file = None
@@ -177,7 +180,7 @@ class MEConfig:
         """
         try:
             file_d = open(file_name, 'r')
-            cls.yaml_text = file_d.read()
+            cls.document = file_d.read()
             file_d.close()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
@@ -202,7 +205,7 @@ class MEConfig:
             cls.curr_format_file = format_file
         try:
             file_d = open(file_name, 'r')
-            cls.yaml_text = file_d.read()
+            cls.document = file_d.read()
             file_d.close()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
@@ -218,7 +221,7 @@ class MEConfig:
     @classmethod
     def update(cls):
         """reread yaml text and update node tree"""
-        #ToDo:TK
+        cls.root = cls.loader.load(cls.document)
 
     @classmethod
     def update_format(cls):
@@ -231,7 +234,7 @@ class MEConfig:
         """save file"""
         try:
             file_d = open(cls.curr_file, 'w')
-            file_d.write(cls.yaml_text)
+            file_d.write(cls.document)
             file_d.close()
             #format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
@@ -245,7 +248,7 @@ class MEConfig:
         """save file as"""
         try:
             file_d = open(file_name, 'w')
-            file_d.write(cls.yaml_text)
+            file_d.write(cls.document)
             file_d.close()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
@@ -258,8 +261,8 @@ class MEConfig:
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
         """update new editor text"""
-        if new_yaml_text != cls.yaml_text:
-            cls.yaml_text = new_yaml_text
+        if new_yaml_text != cls.document:
+            cls.document = new_yaml_text
             cls.changed = True
             return True
         return False

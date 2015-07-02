@@ -4,10 +4,8 @@ Data Node package
 Contains classes for representing the tree structure of config files.
 """
 
-from data.meconfig import MEConfig as cfg
-
-
-DEBUG_MODE = cfg.config.DEBUG_MODE
+DEBUG_MODE = True
+"""changes the behaviour to debug mode"""
 
 
 class DataNode:
