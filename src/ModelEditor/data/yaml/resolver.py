@@ -24,7 +24,7 @@ SOFTWARE.
 import re
 
 
-def resolve(value):
+def resolve_scalar_tag(value):
     """Resolves a tag for scalar value."""
     if value == '':
         resolvers = _YAML_IMPLICIT_RESOLVERS.get('', [])

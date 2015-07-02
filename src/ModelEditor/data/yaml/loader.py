@@ -1,10 +1,12 @@
 """Package for generating DataNode structure from YAML document."""
 
 import yaml
+from data.yaml.constructor import construct_scalar
+from data.yaml.resolver import resolve_scalar_tag
 from data.data_node import RecordNode, ArrayNode, ScalarNode, Key, Section
 
 
-class YamlLoader:
+class Loader:
     """Generates DataNode structure from YAML document."""
     def __init__(self):
         pass
@@ -75,6 +77,9 @@ class YamlLoader:
 
     def _create_scalar_node(self, event):
         node = ScalarNode()
-        node.value = event.value
+        tag = event.tag
+        if tag is None:
+            tag = resolve_scalar_tag(event.value)
+        node.value = construct_scalar(event.value, tag)
         node.section = Section(event.start_mark, event.end_mark)
         return node
