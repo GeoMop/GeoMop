@@ -52,4 +52,4 @@ class YamlEditorWidget(QsciScintilla):
 
     def reload(self):
         """reload data from config"""
-        self.setText(	cfg.yaml_text)
+        self.setText(	cfg.document)

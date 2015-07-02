@@ -4,9 +4,9 @@ from data.meconfig import _Config as Config
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
     cfg.init(None)
-    cfg.config=Config()
-    #cfg.config is assigned
-    assert cfg.config.__class__== Config
+    cfg.config = Config()
+    # cfg.config is assigned
+    assert cfg.config.__class__ == Config
     
     def fin_test_config():
         import config
@@ -15,25 +15,25 @@ def test_config(request):
     
     from os.path import expanduser
     home = expanduser("~")
-    #last_data_dir for first opened config is home
-    assert  home == cfg.config.last_data_dir
+    # last_data_dir for first opened config is home
+    assert home == cfg.config.last_data_dir
     config = Config(False)
-    #new config have last_data_dir == home
-    assert  home == config.last_data_dir
+    # new config have last_data_dir == home
+    assert home == config.last_data_dir
     
     cfg.config.add_recent_file("test_file1", "test_format_file1")
-    #add first file
+    # add first file
     assert cfg.config.recent_files[0] == "test_file1"
     assert cfg.config.format_files[0] == "test_format_file1"
     
     cfg.config.add_recent_file("test_file1", "test_format_file_new_1")
-    #change only format
+    # change only format
     assert cfg.config.format_files[0] == "test_format_file_new_1"
     assert len(cfg.config.format_files) == 1
     
     cfg.config.add_recent_file("test_file2", "test_format_file2")
     cfg.config.add_recent_file("test_file3", "test_format_file3")
-    #add 3 files
+    # add 3 files
     assert len(cfg.config.format_files) == 3
     assert cfg.config.recent_files[0] == "test_file3"
     assert cfg.config.format_files[0] == "test_format_file3"
@@ -60,7 +60,7 @@ def test_config(request):
     cfg.config.save()
     cfg.config.recent_files = []
     cfg.config.format_files = []
-    cfg.config=Config()
+    cfg.config = Config()
     
     # save config
     assert len(cfg.config.format_files) == 3
@@ -69,12 +69,13 @@ def test_config(request):
     assert cfg.config.recent_files[1] == "test_file3"
     assert cfg.config.format_files[1] == "test_format_file3"
     assert cfg.config.recent_files[2] == "test_file1"
-    assert cfg.config.format_files[2] == "test_format_file_new_1"   
-    
+    assert cfg.config.format_files[2] == "test_format_file_new_1"
+
+
 def test_meconfig_static(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
     cfg.init(None)
-    #cfg.config is assigned
+    # cfg.config is assigned
     assert cfg.config.__class__== Config
     
     def fin_test_config():
@@ -85,29 +86,29 @@ def test_meconfig_static(request):
     cfg.format_files = []
     cfg._read_format_files()
     
-    #read format files
+    # read format files
     assert len(cfg.format_files) == 2    
-    assert 'flow_1.8.2_input_format' in  cfg.format_files
-    assert '1.8.2' in  cfg.format_files
+    assert 'flow_1.8.2_input_format' in cfg.format_files
+    assert '1.8.2' in cfg.format_files
     
     cfg.curr_format_file = None
     cfg.set_current_format_file('flow_1.8.2_input_format')
-    #good name
+    # good name
     assert cfg.curr_format_file == 'flow_1.8.2_input_format'
     cfg.set_current_format_file('bad_name')
-    #bad name
+    # bad name
     assert cfg.curr_format_file == 'flow_1.8.2_input_format'
     
-    cfg.yaml_text = "#test"
+    cfg.document = "#test"
     cfg.changed = True
     cfg.curr_file = "test"
     cfg.new_file()
-    #new file test   
-    assert cfg.yaml_text == ""
-    assert cfg.changed == False
-    assert cfg.curr_file == None
+    # new file test
+    assert cfg.document == ""
+    assert cfg.changed is False
+    assert cfg.curr_file is None
     
-    cfg.yaml_text = "#test"
+    cfg.document = "#test"
     cfg.changed = True
     cfg.curr_file = "test.yaml" 
     cfg.config.add_recent_file("test.yaml","flow_1.8.2_input_format")  
@@ -121,48 +122,48 @@ def test_meconfig_static(request):
             os.remove("test2.yaml")
     request.addfinalizer(fin_test_static)    
     
-    #save file test   
-    assert cfg.changed == False
+    # save file test
+    assert cfg.changed is False
     assert cfg.curr_file == "test.yaml"
     assert cfg.config.recent_files[0] == "test.yaml"
     assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
 
-    cfg.yaml_text = "#test2"
+    cfg.document = "#test2"
     cfg.changed = True
     cfg.save_as("test2.yaml")
     
-    #save us test   
-    assert cfg.changed == False
+    #save us test
+    assert cfg.changed is False
     assert cfg.curr_file == "test2.yaml"
     assert cfg.config.recent_files[0] == "test2.yaml"
     assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
     assert cfg.config.recent_files[1] == "test.yaml"
     assert cfg.config.format_files[1] == "flow_1.8.2_input_format"
     
-    cfg.yaml_text = "#test2"
+    cfg.document = "#test2"
     cfg.changed = True
     cfg.set_current_format_file('1.8.2')    
     
     cfg.open_file("test.yaml")
-    #open file test   
-    assert cfg.changed == False
+    #open file test
+    assert cfg.changed is False
     assert cfg.curr_file == "test.yaml"
-    assert cfg.yaml_text == "#test"
+    assert cfg.document == "#test"
     assert cfg.config.recent_files[1] == "test2.yaml"
     assert cfg.config.format_files[1] == "flow_1.8.2_input_format"
     assert cfg.config.recent_files[0] == "test.yaml"
     assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.curr_format_file == '1.8.2'
  
-    cfg.yaml_text = ""
+    cfg.document = ""
     cfg.changed = True
     cfg.set_current_format_file('1.8.2')    
     
     cfg.open_recent_file("test2.yaml")
-    #open recent file test   
-    assert cfg.changed == False
+    # open recent file test
+    assert cfg.changed is False
     assert cfg.curr_file == "test2.yaml"
-    assert cfg.yaml_text == "#test2"
+    assert cfg.document == "#test2"
     assert cfg.config.recent_files[0] == "test2.yaml"
     assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
     assert cfg.config.recent_files[1] == "test.yaml"
@@ -170,14 +171,12 @@ def test_meconfig_static(request):
     assert cfg.curr_format_file == 'flow_1.8.2_input_format'    
     
     cfg.update_yaml_file("#new test")
-    #test update_yaml_file 1
+    # test update_yaml_file 1
     assert cfg.changed == True
-    assert cfg.yaml_text == "#new test"
+    assert cfg.document == "#new test"
     
     cfg.changed = False
     cfg.update_yaml_file("#new test")
-    #test update_yaml_file 2
-    assert cfg.changed == False
-    assert cfg.yaml_text == "#new test" 
-    
-    
+    # test update_yaml_file 2
+    assert cfg.changed is False
+    assert cfg.document == "#new test"
