@@ -23,7 +23,7 @@ class DataNode:
             self.key = Key()
         self.input_type = None
         """input type specified by format"""
-        self.section = None
+        self.span = None
         """borders the position of this node in input text"""
 
     @property
@@ -108,7 +108,7 @@ class Position:
             self.column = mark.column + 1
 
 
-class Section:
+class Span:
     """Borders a part of text."""
     def __init__(self, start_mark=None, end_mark=None):
         self.start = Position(start_mark)

@@ -30,7 +30,7 @@ def construct_scalar(value, tag):
     """Constructs a scalar value of the correct python type. """
     if tag not in _CONSTRUCTORS:
         raise Exception('Tag {tag} is not supported for scalar values.'
-                        .format(tag))
+                        .format(tag=tag))
     return _CONSTRUCTORS[tag](value)
 
 
@@ -103,17 +103,17 @@ def _construct_yaml_float(value):
         return sign*float(value)
 
 
-_TIMESTAMP_REGEX = re.compile(
-        r'''^(?P<year>[0-9][0-9][0-9][0-9])
-            -(?P<month>[0-9][0-9]?)
-            -(?P<day>[0-9][0-9]?)
-            (?:(?:[Tt]|[ \t]+)
-            (?P<hour>[0-9][0-9]?)
-            :(?P<minute>[0-9][0-9])
-            :(?P<second>[0-9][0-9])
-            (?:\.(?P<fraction>[0-9]*))?
-            (?:[ \t]*(?P<tz>Z|(?P<tz_sign>[-+])(?P<tz_hour>[0-9][0-9]?)
-            (?::(?P<tz_minute>[0-9][0-9]))?))?)?$''', re.X)
+_TIMESTAMP_REGEX = re.compile((
+    r'^(?P<year>[0-9][0-9][0-9][0-9])'
+    r'-(?P<month>[0-9][0-9]?)'
+    r'-(?P<day>[0-9][0-9]?)'
+    r'-(?:(?:[Tt]|[ \t]+)'
+    r'-(?P<hour>[0-9][0-9]?)'
+    r'-:(?P<minute>[0-9][0-9])'
+    r'-:(?P<second>[0-9][0-9])'
+    r'-(?:\.(?P<fraction>[0-9]*))?'
+    r'-(?:[ \t]*(?P<tz>Z|(?P<tz_sign>[-+])(?P<tz_hour>[0-9][0-9]?)'
+    r'-(?::(?P<tz_minute>[0-9][0-9]))?))?)?$'), re.X)
 
 
 def _construct_yaml_timestamp(value):

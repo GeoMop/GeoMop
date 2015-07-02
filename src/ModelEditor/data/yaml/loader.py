@@ -3,7 +3,7 @@
 import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
-from data.data_node import RecordNode, ArrayNode, ScalarNode, Key, Section
+from data.data_node import RecordNode, ArrayNode, ScalarNode, Key, Span
 
 
 class Loader:
@@ -50,14 +50,14 @@ class Loader:
                 raise Exception('Complex keys are not supported for Records')
             key = Key()
             key.value = event.value
-            key.section = Section(event.start_mark, event.end_mark)
+            key.section = Span(event.start_mark, event.end_mark)
             event = next(events)
             child_node = self._create_node(event, events)  # recursively create children
             child_node.key = key
             node.children[key.value] = child_node
             event = next(events)
         end_mark = event.end_mark
-        node.section = Section(start_mark, end_mark)
+        node.section = Span(start_mark, end_mark)
         return node
 
     def _create_array_node(self, event, events):
@@ -72,7 +72,7 @@ class Loader:
             node.children.append(child_node)
             event = next(events)
         end_mark = event.end_mark
-        node.section = Section(start_mark, end_mark)
+        node.section = Span(start_mark, end_mark)
         return node
 
     def _create_scalar_node(self, event):
@@ -81,5 +81,5 @@ class Loader:
         if tag is None:
             tag = resolve_scalar_tag(event.value)
         node.value = construct_scalar(event.value, tag)
-        node.section = Section(event.start_mark, event.end_mark)
+        node.section = Span(event.start_mark, event.end_mark)
         return node
