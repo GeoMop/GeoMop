@@ -3,7 +3,7 @@
 import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
-from data.data_node import RecordNode, ArrayNode, ScalarNode, Key, Span
+from data.data_node import RecordNode, ArrayNode, ScalarNode, Key, Span, Position
 
 
 class Loader:
@@ -52,14 +52,14 @@ class Loader:
                 raise Exception('Complex keys are not supported for Records')
             key = Key()
             key.value = event.value
-            key.section = Span(event.start_mark, event.end_mark)
+            key.section = _get_span_from_marks(event.start_mark, event.end_mark)
             event = next(events)
             child_node = self._create_node(event, events)  # recursively create children
             child_node.key = key
             node.children[key.value] = child_node
             event = next(events)
         end_mark = event.end_mark
-        node.section = Span(start_mark, end_mark)
+        node.span = _get_span_from_marks(start_mark, end_mark)
         return node
 
     def _create_array_node(self, event, events):
@@ -74,7 +74,7 @@ class Loader:
             node.children.append(child_node)
             event = next(events)
         end_mark = event.end_mark
-        node.section = Span(start_mark, end_mark)
+        node.span = _get_span_from_marks(start_mark, end_mark)
         return node
 
     def _create_scalar_node(self, event):
@@ -83,5 +83,14 @@ class Loader:
         if tag is None:
             tag = resolve_scalar_tag(event.value)
         node.value = construct_scalar(event.value, tag)
-        node.section = Span(event.start_mark, event.end_mark)
+        node.span = _get_span_from_marks(event.start_mark, event.end_mark)
+        if node.value is None:
+            node.span.start.column += 1
+            node.span.end.column += 1
         return node
+
+
+def _get_span_from_marks(start_mark, end_mark):
+    start = Position(start_mark.line + 1, start_mark.column + 1)
+    end = Position(end_mark.line + 1, end_mark.column + 1)
+    return Span(start, end)

@@ -1,10 +1,21 @@
+from data.data_node import Position
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 
 
+def test_position():
+    assert (Position(1, 1) == Position(1, 1)) is True
+    assert (Position(1, 1) < Position(1, 1)) is False
+    assert (Position(1, 1) <= Position(1, 1)) is True
+    assert (Position(1, 1) > Position(1, 2)) is False
+    assert (Position(1, 2) >= Position(1, 2)) is True
+    assert (Position(2, 1) <= Position(1, 2)) is False
+    assert (Position(2, 1) > Position(1, 2)) is True
+
+
 def test_parse():
     loader = Loader()
-    
+
     # parse mapping, scalar
     document = (
         "format: ascii\n"
@@ -39,6 +50,8 @@ def test_parse():
     )
     loader = Loader()
     root = loader.load(document)
+
+    # test values - are scalars converted to the correct type?
     assert (root.children['output_streams'].children[0].children['file']
             .value) is None
     assert (root.children['problem'].children['primary_equation']
@@ -50,6 +63,21 @@ def test_parse():
     assert (root.children['problem'].children['primary_equation']
             .children['input_fields'].children[1].children['bc_pressure']
             .value) == 0
+
+    # test node spans - try to get node at certain positions
+    assert root.get_node_at_mark(Position(2, 4)) == (
+        root.children['output_streams'].children[0])
+    assert root.get_node_at_mark(Position(2, 9)) == (
+        root.children['output_streams'].children[0].children['file'])
+    assert root.get_node_at_mark(Position(10, 18)) == (
+        root.children['problem'].children['primary_equation']
+        .children['balance'])
+    assert root.get_node_at_mark(Position(12, 22)) == (
+        root.children['problem'].children['primary_equation']
+        .children['input_fields'].children[0].children['conductivity'])
+    assert root.get_node_at_mark(Position(12, 32)) == (
+        root.children['problem'].children['primary_equation']
+        .children['input_fields'].children[0])
 
 
 def test_resolver():
@@ -65,7 +93,3 @@ def test_resolver():
     assert resolve_scalar_tag(value) == 'tag:yaml.org,2002:bool'
     value = ''
     assert resolve_scalar_tag(value) == 'tag:yaml.org,2002:null'
-
-
-if __name__ == '__main__':
-    test_parse()
