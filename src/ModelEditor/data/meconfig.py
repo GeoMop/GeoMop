@@ -7,8 +7,11 @@ import geomop_dialogs
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
 
-class _Config():
+class _Config:
     """Class for ModelEditor serialization"""
+
+    DEBUG_MODE = False
+    """debug mode changes the behaviour"""
 
     SERIAL_FILE = "ModelEditorData"
     """Serialize class file"""
@@ -22,7 +25,7 @@ class _Config():
         else:
             data = None
 
-        if data != None:
+        if data is not None:
             self.recent_files = copy.deepcopy(data.recent_files)
             self.format_files = copy.deepcopy(data.format_files)
             self.last_data_dir = data.last_data_dir
@@ -64,7 +67,7 @@ class _Config():
         self.format_files[0] = format_file
 
         for i in range(1, len(self.recent_files)):
-            if  file_name == self.recent_files[i]:
+            if file_name == self.recent_files[i]:
                 #added file is in list
                 self.recent_files[i] = last_file
                 self.format_files[i] = last_format
@@ -89,10 +92,10 @@ class _Config():
         """get format file that is in same position as file"""
         for i in range(0, len(self.recent_files)):
             if self.recent_files[i] == file_name:
-                return  self.format_files[i]
+                return self.format_files[i]
         return None
 
-class MEConfig():
+class MEConfig:
     """Static data class"""
     format_files = []
     """Array of format files"""
@@ -150,7 +153,7 @@ class MEConfig():
         """
         set current format file
         """
-        if not file_name in cls.format_files:
+        if file_name not in cls.format_files:
             return
         cls.curr_format_file = file_name
         cls.update_format()
@@ -195,7 +198,7 @@ class MEConfig():
         return: if file have good format (boolean)
         """
         format_file = cls.config.get_format_file(file_name)
-        if format_file != None:
+        if format_file is not None:
             cls.curr_format_file = format_file
         try:
             file_d = open(file_name, 'r')

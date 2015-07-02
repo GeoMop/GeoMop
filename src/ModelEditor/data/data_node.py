@@ -4,7 +4,11 @@ Data Node package
 Contains classes for representing the tree structure of config files.
 """
 
-# from data.meconfig import MEConfig as cfg
+from data.meconfig import MEConfig as cfg
+
+
+DEBUG_MODE = cfg.config.DEBUG_MODE
+
 
 class DataNode:
     """
@@ -29,7 +33,16 @@ class DataNode:
     @property
     def options(self):
         """possible options to hint in autocomplete"""
-        return []
+        options = []
+        if DEBUG_MODE:
+            # return start, end position as options
+            options.append("start: {line}:{column}"
+                           .format(line=self.span.start.line,
+                                   column=self.span.start.column))
+            options.append("end: {line}:{column}"
+                           .format(line=self.span.end.line,
+                                   column=self.span.end.column))
+        return options
 
     def get_node_at_mark(self, mark):
         """Retrieves DataNode at specified mark (line, column)."""
@@ -67,6 +80,8 @@ class RecordNode(DataNode):
     @property
     def options(self):
         """list of possible record keys for autocomplete"""
+        if DEBUG_MODE:
+            return super(RecordNode, self).options
         raise NotImplementedError
 
 
@@ -84,6 +99,8 @@ class ScalarNode(DataNode):
     @property
     def options(self):
         """list of possible values for autocomplete"""
+        if DEBUG_MODE:
+            return super(RecordNode, self).options
         raise NotImplementedError
 
 
