@@ -6,6 +6,7 @@ output_streams:
   file: dual_por.pvd
   format: {TYPE: vtk, variant: ascii}
   name: flow_output_stream
+  test: [1,2,3]
 - &outputstream1
   file: dual_por_transport.pvd
   format: {TYPE: vtk, variant: ascii}

@@ -54,7 +54,7 @@ class Loader:
             key.value = event.value
             key.section = _get_span_from_marks(event.start_mark, event.end_mark)
             event = next(events)
-            child_node = self._create_node(event, events)  # recursively create children
+            child_node = self._create_node(event, events, node)  # recursively create children
             child_node.key = key
             node.children[key.value] = child_node
             event = next(events)
@@ -69,7 +69,7 @@ class Loader:
         while not isinstance(event, yaml.SequenceEndEvent):
             key = Key()
             key.value = len(node.children)
-            child_node = self._create_node(event, events)  # recursively create children
+            child_node = self._create_node(event, events, node)  # recursively create children
             child_node.key = key
             node.children.append(child_node)
             event = next(events)
