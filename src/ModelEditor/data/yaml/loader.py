@@ -39,6 +39,8 @@ class Loader:
             node = self._create_array_node(event, events)
         elif isinstance(event, yaml.ScalarEvent):
             node = self._create_scalar_node(event)
+        elif isinstance(event, yaml.AliasEvent):
+            raise NotImplementedError
         if node is not None:
             node.parent = parent
         return node

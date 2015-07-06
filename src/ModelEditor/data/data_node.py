@@ -54,12 +54,15 @@ class DataNode:
         return ''
 
     def __str__(self):
-        text = ("{instance}\n"
-                "  key: {key}\n"
-                "  parent: {parent}\n"
-                "  ref: {ref}\n"
-                "  span: {sline}:{scol}-{eline}:{ecol}\n"
-                "  input_type: {input_type}\n").format(
+        text = (
+            "{instance}\n"
+            "  key: {key}\n"
+            "  parent: {parent}\n"
+            "  ref: {ref}\n"
+            "  span: {sline}:{scol}-{eline}:{ecol}\n"
+            "  input_type: {input_type}\n"
+        )
+        return text.format(
             instance=super(DataNode, self).__str__(),
             key=self.key.value,
             parent=super(DataNode, self.parent).__str__(),
@@ -70,7 +73,6 @@ class DataNode:
             ecol=self.span.end.column,
             input_type=self.input_type
         )
-        return text
 
 
 class ArrayNode(DataNode):

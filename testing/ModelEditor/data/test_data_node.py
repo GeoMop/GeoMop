@@ -95,5 +95,33 @@ def test_resolver():
     assert resolve_scalar_tag(value) == 'tag:yaml.org,2002:null'
 
 
+def profile_parsing():
+    import timeit
+
+    setup = (
+        "from data.yaml import Loader\n"
+        "with open('data/examples/config_simple.yaml') as file:\n"
+        "    document = file.read()\n"
+        "loader = Loader()\n"
+    )
+    number = 100
+    total_time = timeit.timeit('root = loader.load(document)',
+                               setup=setup,
+                               number=number)
+    print("loading document takes ~{0:.3f}ms".format(total_time * 1000 / number))
+
+    setup += (
+        "root = loader.load(document)\n"
+        "from data.data_node import Position\n"
+        "position = Position(40, 35)\n"
+    )
+    number = 10000
+    total_time = timeit.timeit('root.get_node_at_position(position)',
+                               setup=setup,
+                               number=number)
+
+    print("finding node takes ~{0:.3f}ms".format(total_time * 1000 / number))
+
+
 if __name__ == '__main__':
-    test_parse()
+    profile_parsing()
