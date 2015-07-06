@@ -50,8 +50,27 @@ class DataNode:
     def info_text(self):
         """help text describing the input type"""
         if DEBUG_MODE:
-            return self.key.value
+            return str(self)
         return ''
+
+    def __str__(self):
+        text = ("{instance}\n"
+                "  key: {key}\n"
+                "  parent: {parent}\n"
+                "  ref: {ref}\n"
+                "  span: {sline}:{scol}-{eline}:{ecol}\n"
+                "  input_type: {input_type}\n").format(
+            instance=super(DataNode, self).__str__(),
+            key=self.key.value,
+            parent=super(DataNode, self.parent).__str__(),
+            ref=self.ref,
+            sline=self.span.start.line,
+            scol=self.span.start.column,
+            eline=self.span.end.line,
+            ecol=self.span.end.column,
+            input_type=self.input_type
+        )
+        return text
 
 
 class ArrayNode(DataNode):
@@ -72,6 +91,14 @@ class ArrayNode(DataNode):
                     node = descendant
                     break
         return node
+
+    def __str__(self):
+        text = super(ArrayNode, self).__str__()
+        children_keys = [str(i) for i in range(len(self.children))]
+        text += "  children_keys: {children_keys}\n".format(
+            children_keys=', '.join(children_keys)
+        )
+        return text
 
 
 class RecordNode(DataNode):
@@ -101,6 +128,14 @@ class RecordNode(DataNode):
             return super(RecordNode, self).options
         raise NotImplementedError
 
+    def __str__(self):
+        text = super(RecordNode, self).__str__()
+        children_keys = sorted(self.children.keys())
+        text += "  children_keys: {children_keys}".format(
+            children_keys=', '.join(children_keys)
+        )
+        return text
+
 
 class ScalarNode(DataNode):
     """Represents a scalar node in the tree structure."""
@@ -119,8 +154,15 @@ class ScalarNode(DataNode):
     def options(self):
         """list of possible values for autocomplete"""
         if DEBUG_MODE:
-            return super(RecordNode, self).options
+            return super(ScalarNode, self).options
         raise NotImplementedError
+
+    def __str__(self):
+        text = super(ScalarNode, self).__str__()
+        text += "  value: {value}".format(
+            value=self.value
+        )
+        return text
 
 
 class Key:

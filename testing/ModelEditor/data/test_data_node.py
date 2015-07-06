@@ -93,3 +93,7 @@ def test_resolver():
     assert resolve_scalar_tag(value) == 'tag:yaml.org,2002:bool'
     value = ''
     assert resolve_scalar_tag(value) == 'tag:yaml.org,2002:null'
+
+
+if __name__ == '__main__':
+    test_parse()

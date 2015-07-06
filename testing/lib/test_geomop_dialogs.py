@@ -32,7 +32,7 @@ def test_err_dialog(request):
     app.quit()
     #button tests
     assert dialog_result['button_count'] == 1
-    assert dialog_result['button_text'] =='&OK'
+    assert dialog_result['button_text'] in ('&OK', 'OK')
     #text test
     assert dialog_result['text'] == "Can't open file"
     assert dialog_result['informativeText'][:12] == "FileNotFound"
