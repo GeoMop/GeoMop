@@ -1,6 +1,7 @@
-from data.data_node import Position
+from data.data_node import Position, DataError
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
+import pytest
 
 
 def test_position():
@@ -79,6 +80,14 @@ def test_parse():
         root.children['problem'].children['primary_equation']
         .children['input_fields'].children[0])
 
+    # test parser error
+    document = (
+        "format: ascii\n"
+        "- file: dual_sorp.vtk"
+    )
+    with pytest.raises(DataError):
+        loader.load(document)
+
 
 def test_resolver():
     value = '13'
@@ -124,4 +133,4 @@ def profile_parsing():
 
 
 if __name__ == '__main__':
-    profile_parsing()
+    test_parse()

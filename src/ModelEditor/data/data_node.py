@@ -251,3 +251,14 @@ class DataError(Exception):
             description=self.description
         )
 
+    @classmethod
+    def from_marked_yaml_error(cls, yaml_error):
+        """Creates DataError from MarkedYAMLError."""
+        if yaml_error.problem_mark is not None:
+            line = yaml_error.problem_mark.line
+            column = yaml_error.problem_mark.column
+        else:
+            line = yaml_error.context_mark.line
+            column = yaml_error.context_mark.column
+        position = Position(line + 1, column + 1)
+        return DataError(ErrorCategory.yaml, yaml_error.problem, position)

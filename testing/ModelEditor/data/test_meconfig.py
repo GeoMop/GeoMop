@@ -180,3 +180,13 @@ def test_meconfig_static(request):
     # test update_yaml_file 2
     assert cfg.changed is False
     assert cfg.document == "#new test"
+
+    # test document parsing
+    cfg.document = "n: 1"
+    cfg.update()
+    assert cfg.root.children['n'].value == 1
+
+    # test document parsing error
+    cfg.document = "n: :"
+    cfg.update()
+    assert len(cfg.errors) == 1

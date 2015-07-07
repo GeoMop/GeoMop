@@ -4,6 +4,7 @@ import copy
 import config as cfg
 import geomop_dialogs
 from data.yaml import Loader
+from data.data_node import DataError
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -49,19 +50,19 @@ class _Config:
         If file is in array, move it top, else add file to top and delete last
         file if is needed. Relevant format files is keep
         """
-        #0 files
+        # 0 files
         if len(self.recent_files) == 0:
             self.recent_files.append(file_name)
             self.format_files.append(format_file)
             self.save()
             return
-        #first file == update file
+        # first file == update file
         if file_name == self.recent_files[0]:
-            #format file can be changed
+            # format file can be changed
             self.format_files[0] = format_file
             self.save()
             return
-        #init for
+        # init for
         last_file = self.recent_files[0]
         last_format = self.format_files[0]
         self.recent_files[0] = file_name
@@ -69,7 +70,7 @@ class _Config:
 
         for i in range(1, len(self.recent_files)):
             if file_name == self.recent_files[i]:
-                #added file is in list
+                # added file is in list
                 self.recent_files[i] = last_file
                 self.format_files[i] = last_format
                 self.save()
@@ -84,7 +85,7 @@ class _Config:
             if self.__class__.COUNT_RECENT_FILES < i+1:
                 self.save()
                 return
-        #add last file
+        # add last file
         self.recent_files.append(last_file)
         self.format_files.append(last_format)
         self.save()
@@ -220,7 +221,11 @@ class MEConfig:
     @classmethod
     def update(cls):
         """reread yaml text and update node tree"""
-        cls.root = cls.loader.load(cls.document)
+        cls.errors = []
+        try:
+            cls.root = cls.loader.load(cls.document)
+        except DataError as error:
+            cls.errors.append(error)
 
     @classmethod
     def update_format(cls):
@@ -235,7 +240,7 @@ class MEConfig:
             file_d = open(cls.curr_file, 'w')
             file_d.write(cls.document)
             file_d.close()
-            #format is save to recent files up to save file
+            # format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
         except (RuntimeError, IOError) as err:
