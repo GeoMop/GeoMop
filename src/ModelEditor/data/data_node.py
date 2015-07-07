@@ -4,6 +4,8 @@ Data Node package
 Contains classes for representing the tree structure of config files.
 """
 
+from enum import Enum
+
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""
 
@@ -220,3 +222,32 @@ class Span:
         """:class:`.Position` indicates the start of the section; inclusive"""
         self.end = end
         """:class:`.Position` indicates the end of the section; exclusive"""
+
+
+class ErrorCategory(Enum):
+    """Defines the type of an error."""
+    validation = 'Validation Error'
+    yaml = 'Parsing Error'
+
+
+class DataError(Exception):
+    """Represents an error that occurs while working with data."""
+    def __init__(self, category, description, position, node=None):
+        self.category = category
+        """:class:`ErrorCategory` the category of error"""
+        self.position = position
+        """:class:`Position` the position of error"""
+        self.description = description
+        """describes the error"""
+        self.node = node
+        """:class:`DataNode` optional; the node where the error occurred"""
+
+    def __str__(self):
+        text = "{line}:{column} - {name}\n{description}"
+        return text.format(
+            line=self.position.line,
+            column=self.position.column,
+            name=self.category.value,
+            description=self.description
+        )
+
