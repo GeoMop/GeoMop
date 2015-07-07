@@ -1,6 +1,6 @@
 [typecheck]
 ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore
-ignored-classes=YamlEditorWidget
+ignored-classes=YamlEditorWidget,TreeWidget,TreeOfNodes
 [master]
 init-hook='sys.path.append("../lib")'
 [messages control]

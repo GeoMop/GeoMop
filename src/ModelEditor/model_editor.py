@@ -3,7 +3,6 @@
 import sys
 sys.path.insert(1, '../lib')
 import os
-
 from data.meconfig import MEConfig as cfg
 import panels.yaml_editor
 import panels.tree
@@ -58,6 +57,7 @@ class ModelEditor:
         self._save_as_action.triggered.connect(self._save_as)
         self._file_menu.addAction(self._save_as_action)
 
+        self._recent_file_signal_connect = False
         self._recent = self._file_menu.addMenu('Open &Recent Files')
         self._recent_group = QtWidgets.QActionGroup(
             self._mainwindow, exclusive=True)
@@ -91,11 +91,20 @@ class ModelEditor:
         self._vsplitter.addWidget(self._info)
         self._hsplitter.insertWidget(0, self._tree)
 
+        # signals
+        self._tree.itemSelected.connect(self._item_selected)
+
         #show
         self._mainwindow.show()
+        self._editor.setFocus()
+
+    def _item_selected(self, start_column, start_row, end_column, end_row):
+        """Click tree item action mark relative arrea in editor"""
+        self._editor.setFocus()
+        self._editor.mark_selected(start_column, start_row, end_column, end_row)
 
     def _new_file(self):
-        """newt file menu action"""
+        """new file menu action"""
         if not self._save_old_file():
             return
         cfg.new_file()
@@ -120,6 +129,8 @@ class ModelEditor:
 
     def _open_recent(self, action):
         """open recent file menu action"""
+        if action.text() == cfg.curr_file:
+            return
         if not self._save_old_file():
             return
         cfg.open_recent_file(action.text())
@@ -161,6 +172,9 @@ class ModelEditor:
 
     def _update_recent_files(self, from_row=1):
         """update recent file in menu"""
+        if self._recent_file_signal_connect:
+            self._recent_group.triggered.disconnect()
+            self._recent_file_signal_connect = False
         for action in  self._recent_group.actions():
             self._recent_group.removeAction(action)
         if len(cfg.config.recent_files) < from_row+1:
@@ -172,6 +186,7 @@ class ModelEditor:
                 cfg.config.recent_files[i], self._mainwindow, checkable=True))
             self._recent.addAction(raction)
         self._recent_group.triggered.connect(self._open_recent)
+        self._recent_file_signal_connect = True
 
     def _update_document_name(self):
         """Update document title (add file name)"""

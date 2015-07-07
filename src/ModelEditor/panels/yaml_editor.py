@@ -11,7 +11,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # Set the default font
         font = QtGui.QFont()
-        font.setFamily('Courier')
+        font.setFamily('serif')
         font.setFixedPitch(True)
         font.setPointSize(10)
         self.setFont(font)
@@ -50,6 +50,10 @@ class YamlEditorWidget(QsciScintilla):
         # not too small
         self.setMinimumSize(600, 450)
 
+    def mark_selected(self, start_column, start_row,  end_column,  end_row):
+        """mark area as selected and set cursor to end possition"""
+        self.setSelection(start_row-1, start_column-1, end_row-1, end_column-1)  
+        
     def reload(self):
         """reload data from config"""
         self.setText(	cfg.document)
