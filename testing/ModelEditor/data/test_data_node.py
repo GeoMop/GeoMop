@@ -67,7 +67,7 @@ def test_parse():
 
     # test node spans - try to get node at certain positions
     assert root.get_node_at_position(Position(2, 4)) == (
-        root.children['output_streams'].children[0])
+        root.children['output_streams'].children[0].children['file'])
     assert root.get_node_at_position(Position(2, 9)) == (
         root.children['output_streams'].children[0].children['file'])
     assert root.get_node_at_position(Position(10, 18)) == (
@@ -78,7 +78,7 @@ def test_parse():
         .children['input_fields'].children[0].children['conductivity'])
     assert root.get_node_at_position(Position(12, 32)) == (
         root.children['problem'].children['primary_equation']
-        .children['input_fields'].children[0])
+        .children['input_fields'].children[0].children['r_set'])
 
     # test parser error
     document = (

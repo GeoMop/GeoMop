@@ -10,20 +10,6 @@ DEBUG_MODE = True
 """changes the behaviour to debug mode"""
 
 
-def get_info_text_at_position(root, position):
-    """Returns info text for given position in tree."""
-    node = root.get_node_at_position(position)
-    if node is None:
-        return ''
-
-    if isinstance(node, RecordNode):
-        # show descendant info text on keys, not just on values
-        for __, child in node.children.items():
-            if child.key.section.start <= position < child.span.end:
-                return child.info_text
-    return node.info_text
-
-
 class DataNode:
     """
     Represents a node in the tree structure.
@@ -92,6 +78,18 @@ class DataNode:
             input_type=self.input_type
         )
 
+    @property
+    def _beginning(self):
+        """beginning of node, including its key"""
+        beginning = self.span.start
+        if self.key is not None and self.key.section is not None:
+            beginning = self.key.section.start
+        return beginning
+
+    @property
+    def _end(self):
+        return self.span.end
+
 
 class ArrayNode(DataNode):
     """Represents an array node in the tree structure."""
@@ -103,7 +101,7 @@ class ArrayNode(DataNode):
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         node = None
-        if self.span.start <= position < self.span.end:
+        if self._beginning <= position < self._end:
             node = self
             for child in self.children:
                 descendant = child.get_node_at_position(position)
@@ -131,7 +129,7 @@ class RecordNode(DataNode):
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         node = None
-        if self.span.start <= position < self.span.end:
+        if self._beginning <= position < self._end:
             node = self
             # pylint: disable=invalid-name, unused-variable
             for __, child in self.children.items():
@@ -166,7 +164,7 @@ class ScalarNode(DataNode):
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
-        if self.span.start <= position <= self.span.end:
+        if self._beginning <= position <= self._end:
             return self
         return None
 
