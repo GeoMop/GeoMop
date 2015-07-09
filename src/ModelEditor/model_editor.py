@@ -114,7 +114,6 @@ class ModelEditor:
     def _structure_changed(self, line, column):
         """Editor structure change signal"""
         if cfg.update_yaml_file(self._editor.text()):
-            cfg.update()
             self._reload()
         else:
             self._reload_node(line, column)            
@@ -126,6 +125,7 @@ class ModelEditor:
 
     def _reload(self):
         """reload panels after structure changes"""
+        cfg.update()
         self._editor.reload()
         self._tree.reload()
         line, index = self._editor.getCursorPosition()
@@ -134,6 +134,7 @@ class ModelEditor:
     def _reload_node(self, line, index):
         """reload info after changing node selection"""
         node = cfg.get_data_node(Position(line, index))
+        self._editor.set_new_node(node)
         if node is not None:
             self._info.setHtml(node.info_text)
         

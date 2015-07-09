@@ -1,4 +1,5 @@
 from data.meconfig import MEConfig as cfg
+import data.data_node as dn
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla,  QsciLexerYAML
 import PyQt5.QtGui as QtGui
@@ -77,16 +78,16 @@ class YamlEditorWidget(QsciScintilla):
         """mark area as selected and set cursor to end possition"""
         self.setSelection(start_row-1, start_column-1, end_row-1, end_column-1)  
 
-    def set_new_node(self):
-        line, index = self.getCursorPosition()
-        node = cfg.get_data_node(Position(line+1, index+1))        
+    def set_new_node(self, node=None):
+        if node is None:
+            line, index = self.getCursorPosition()
+            node = cfg.get_data_node(Position(line+1, index+1))        
         self._pos.node_init(node, self)
 
     def reload(self):
         """reload data from config"""
-        if cfg.document != self.text:
+        if cfg.document != self.text():
             self.setText(cfg.document)
-        self.set_new_node()
         
     def _cursor_position_changed(self,  line, index):
         """Function for cursorPositionChanged signal"""
@@ -121,13 +122,13 @@ class editorPosition():
         """X max data node position (by adding or deleting text is changed)"""
         self.is_changed = False
         """Is node changed"""
-        self._old_text = cfg.document.splitlines(False)
+        self._old_text = [""]        
         """All yaml text before changes"""
         self._last_line = ""
         """last cursor text of line for comparision"""
         self._last_line_after = ""
         """last after cursor text of line for comparision"""
-        self._to_end_line = False
+        self._to_end_line = True
         """Bound max position is to end line"""        
         
     def new_pos(self, editor,  line, index):
@@ -136,7 +137,7 @@ class editorPosition():
         self.index = index
         self._save_lines(editor)
         if(self.begin_line >= line and self.end_line <= line and
-           self.begin_index >= index and self.end_index <= index):
+           self.begin_index <= index and self.end_index >= index):
             return True
         return False
         
@@ -161,7 +162,8 @@ class editorPosition():
                 self.is_changed = False
             #return origin values of end
             if self.end_line == self.line and self.node is not None:
-                if(self.node.key.section is not None):            
+                if(self.node.key.section is not None and
+                   type(self.node) != dn.ScalarNode):            
                     self.end_index = self.node.key.section.end.column-1
                 else:
                     self.end_index = self.node.span.end.column-1
@@ -174,10 +176,17 @@ class editorPosition():
         self.is_changed = True
         end_pos = 0
         befor_pos = 0
-        while new_line[-end_pos-1] == self._last_line[-end_pos-1]:
-            end_pos += 1
-        while new_line[befor_pos+1] == self._last_line[befor_pos+1]:
-            befor_pos += 1
+        if len(self._last_line) != 0 and len(new_line) != 0:
+            while new_line[befor_pos] == self._last_line[befor_pos]:
+                befor_pos += 1
+                if(len(new_line) == (befor_pos) or
+                   len(self._last_line) == (befor_pos)):
+                    break
+            while new_line[-end_pos] == self._last_line[-end_pos]:
+                end_pos += 1
+                if(len(new_line) == (end_pos) or
+                   len(self._last_line) == (end_pos)):
+                    break
         # changes outside bounds
         if(self.begin_line == self.line and 
            befor_pos < self.begin_index):
@@ -189,9 +198,9 @@ class editorPosition():
         # new end position
         if self.end_line == self.line:
             if self._to_end_line:
-                self.end_line = len(new_line)
+                self.end_index = len(new_line)
             else:
-                self.end_line = len(new_line)-end_pos-1
+                self.end_index = len(new_line)-end_pos-1
         self._save_lines(editor)
         return True
         
@@ -208,7 +217,11 @@ class editorPosition():
                 self.begin_index = node.span.start.column-1
                 self.begin_line = node.span.start.line-1
                 self.end_index = node.span.end.column-1
-                self.end_line = node.span.end.line-1            
+                self.end_line = node.span.end.line-1  
+        if type(node) == dn.ScalarNode:
+            self.end_index = node.span.end.column-1
+            self.end_line = node.span.end.line-1
+            
         else:
             self.begin_line = 0
             self.begin_index = 0
@@ -217,7 +230,11 @@ class editorPosition():
         self.is_changed = False
         self._save_lines(editor)
         self._to_end_line = self.end_line+1 == len(self._last_line)
+        if len(self._last_line) == 0:
+            self._to_end_line = True
         self._old_text = cfg.document.splitlines(False)
+        if len(self._old_text)+1 == editor.lines():
+            self._old_text.append("")
         self.line, self.index = editor.getCursorPosition()
         
     def _save_lines(self,  editor):

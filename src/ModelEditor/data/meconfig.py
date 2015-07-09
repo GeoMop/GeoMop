@@ -149,6 +149,10 @@ class MEConfig:
         """
         Returns DataNode at given `class::Position` position.
         """
+        #empty file with comment
+        if cls.root is None:
+            return None
+            
         return cls.root.get_node_at_position(position)
 
     @classmethod
