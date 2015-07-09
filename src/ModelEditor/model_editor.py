@@ -7,8 +7,10 @@ from data.meconfig import MEConfig as cfg
 import panels.yaml_editor
 import panels.tree
 import panels.info_panel
+import panels.error_tab
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
+from data.data_node import Position
 
 class ModelEditor:
     """Model editor main class"""
@@ -81,35 +83,66 @@ class ModelEditor:
             faction.setChecked(cfg.curr_format_file == frm)
         self._format_group.triggered.connect(self._format_checked)
 
+        #tab
+        self._tab = QtWidgets.QTabWidget()
+        self._info = panels.info_panel.InfoPanelWidget()        
+        self._err = panels.error_tab.ErrorWidget()
+        self._tab.addTab(self._info,"Structure Info");  
+        self._tab.addTab(self._err,"Messages");
+
         #spliters
         self._vsplitter = QtWidgets.QSplitter(
             QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)
+        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)       
         self._tree = panels.tree.TreeWidget()
-        self._info = panels.info_panel.InfoPanelWidget()
         self._vsplitter.addWidget(self._editor)
-        self._vsplitter.addWidget(self._info)
+        self._vsplitter.addWidget(self._tab)
         self._hsplitter.insertWidget(0, self._tree)
 
         # signals
         self._tree.itemSelected.connect(self._item_selected)
-
+        self._editor.nodeChanged.connect(self._node_changed)
+        self._editor.structureChanged.connect(self._structure_changed)
         #show
         self._mainwindow.show()
         self._editor.setFocus()
-
+    
+    def _node_changed(self, line, column):
+        """Editor node change signal"""
+        self._reload_node(line, column)
+        
+    def _structure_changed(self, line, column):
+        """Editor structure change signal"""
+        if cfg.update_yaml_file(self._editor.text()):
+            cfg.update()
+            self._reload()
+        else:
+            self._reload_node(line, column)            
+    
     def _item_selected(self, start_column, start_row, end_column, end_row):
         """Click tree item action mark relative arrea in editor"""
         self._editor.setFocus()
         self._editor.mark_selected(start_column, start_row, end_column, end_row)
 
+    def _reload(self):
+        """reload panels after structure changes"""
+        self._editor.reload()
+        self._tree.reload()
+        line, index = self._editor.getCursorPosition()
+        self._reload_node(line+1, index+1)
+
+    def _reload_node(self, line, index):
+        """reload info after changing node selection"""
+        node = cfg.get_data_node(Position(line, index))
+        if node is not None:
+            self._info.setHtml(node.info_text)
+        
     def _new_file(self):
         """new file menu action"""
         if not self._save_old_file():
             return
         cfg.new_file()
-        self._editor.reload()
-        self._tree.reload()
+        self._reload()
         self._update_recent_files(0)
         self._update_document_name()
 
@@ -122,8 +155,7 @@ class ModelEditor:
             cfg.config.last_data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
-            self._editor.reload()
-            self._tree.reload()
+            self._reload()
             self._update_recent_files()
             self._update_document_name()
 
@@ -134,8 +166,7 @@ class ModelEditor:
         if not self._save_old_file():
             return
         cfg.open_recent_file(action.text())
-        self._editor.reload()
-        self._tree.reload()
+        self._reload()
         self._update_recent_files()
         self._update_document_name()
 
@@ -167,8 +198,11 @@ class ModelEditor:
     def _format_checked(self):
         """format checked file menu action"""
         action = self._format_group.checkedAction()
+        if cfg.curr_format_file == action.text():
+            return
         cfg.curr_format_file = action.text()
         cfg.update_format()
+        self._reload()
 
     def _update_recent_files(self, from_row=1):
         """update recent file in menu"""
