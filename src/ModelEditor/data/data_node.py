@@ -10,6 +10,20 @@ DEBUG_MODE = True
 """changes the behaviour to debug mode"""
 
 
+def get_info_text_at_position(root, position):
+    """Returns info text for given position in tree."""
+    node = root.get_node_at_position(position)
+    if node is None:
+        return ''
+
+    if isinstance(node, RecordNode):
+        # show descendant info text on keys, not just on values
+        for __, child in node.children.items():
+            if child.key.section.start <= position < child.span.end:
+                return child.info_text
+    return node.info_text
+
+
 class DataNode:
     """
     Represents a node in the tree structure.
@@ -52,22 +66,24 @@ class DataNode:
     def info_text(self):
         """help text describing the input type"""
         if DEBUG_MODE:
-            return str(self)
+            return str(self).replace("\n", "<br/>")
         return ''
 
     def __str__(self):
         text = (
-            "{instance}\n"
+            "{type_} at 0x{address:x}\n"
             "  key: {key}\n"
-            "  parent: {parent}\n"
+            "  parent: {parent_type} at 0x{parent_address:x}\n"
             "  ref: {ref}\n"
             "  span: {sline}:{scol}-{eline}:{ecol}\n"
             "  input_type: {input_type}\n"
         )
         return text.format(
-            instance=super(DataNode, self).__str__(),
+            type_=type(self).__name__,
+            address=id(self),
             key=self.key.value,
-            parent=super(DataNode, self.parent).__str__(),
+            parent_type=type(self.parent).__name__,
+            parent_address=id(self.parent),
             ref=self.ref,
             sline=self.span.start.line,
             scol=self.span.start.column,

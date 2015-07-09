@@ -133,4 +133,4 @@ def profile_parsing():
 
 
 if __name__ == '__main__':
-    test_parse()
+    profile_parsing()

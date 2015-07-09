@@ -10,7 +10,7 @@ import panels.info_panel
 import panels.error_tab
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from data.data_node import Position
+from data.data_node import Position, get_info_text_at_position
 
 class ModelEditor:
     """Model editor main class"""
@@ -133,9 +133,8 @@ class ModelEditor:
 
     def _reload_node(self, line, index):
         """reload info after changing node selection"""
-        node = cfg.get_data_node(Position(line, index))
-        if node is not None:
-            self._info.setHtml(node.info_text)
+        info_text = get_info_text_at_position(cfg.root, Position(line, index))
+        self._info.setHtml(info_text)
         
     def _new_file(self):
         """new file menu action"""
