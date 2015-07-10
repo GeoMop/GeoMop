@@ -184,7 +184,7 @@ def test_meconfig_static(request):
     # test document parsing
     cfg.document = "n: 1"
     cfg.update()
-    assert cfg.root.children['n'].value == 1
+    assert cfg.root.children[0].value == 1
 
     # test document parsing error
     cfg.document = "n: :"

@@ -91,12 +91,15 @@ class DataNode:
         return self.span.end
 
 
-class ArrayNode(DataNode):
-    """Represents an array node in the tree structure."""
-    def __init__(self, key=None, parent=None):
-        super(ArrayNode, self).__init__(key, parent)
+class CompositeNode(DataNode):
+    """Represents a composite node in the tree structure."""
+    def __init__(self, explicit_keys, key=None, parent=None):
+        super(CompositeNode, self).__init__(key, parent)
         self.children = []
         """list of children nodes"""
+        self.explicits_keys = explicit_keys
+        """boolean; indicates whether keys are specified (record) or
+        implicit (array)"""
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
@@ -111,48 +114,21 @@ class ArrayNode(DataNode):
         return node
 
     def __str__(self):
-        text = super(ArrayNode, self).__str__()
-        children_keys = [str(i) for i in range(len(self.children))]
+        text = super(CompositeNode, self).__str__()
+        children_keys = [child.key.value for child in self.children]
         text += "  children_keys: {children_keys}\n".format(
             children_keys=', '.join(children_keys)
         )
         return text
 
-
-class RecordNode(DataNode):
-    """Represents a record node in the tree structure."""
-    def __init__(self, key=None, parent=None):
-        super(RecordNode, self).__init__(key, parent)
-        self.children = {}
-        """dictionary of children nodes and their keys"""
-
-    def get_node_at_position(self, position):
-        """Retrieves DataNode at specified position."""
-        node = None
-        if self._beginning <= position < self._end:
-            node = self
-            # pylint: disable=invalid-name, unused-variable
-            for __, child in self.children.items():
-                descendant = child.get_node_at_position(position)
-                if descendant is not None:
-                    node = descendant
-                    break
-        return node
-
     @property
     def options(self):
         """list of possible record keys for autocomplete"""
+        if not self.explicits_keys:
+            return []
         if DEBUG_MODE:
-            return super(RecordNode, self).options
+            return super(CompositeNode, self).options
         raise NotImplementedError
-
-    def __str__(self):
-        text = super(RecordNode, self).__str__()
-        children_keys = sorted(self.children.keys())
-        text += "  children_keys: {children_keys}".format(
-            children_keys=', '.join(children_keys)
-        )
-        return text
 
 
 class ScalarNode(DataNode):

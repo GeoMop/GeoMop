@@ -3,7 +3,7 @@
 import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
-from data.data_node import (RecordNode, ArrayNode, ScalarNode, Key, Span,
+from data.data_node import (CompositeNode, ScalarNode, Key, Span,
                             Position, DataError)
 
 
@@ -55,7 +55,7 @@ class Loader:
         return node
 
     def _create_record_node(self):
-        node = RecordNode()
+        node = CompositeNode(True)
         start_mark = self._event.start_mark
         self._parse_next_event()
         while not isinstance(self._event, yaml.MappingEndEvent):
@@ -68,14 +68,14 @@ class Loader:
             self._parse_next_event()
             child_node = self._create_node(node)  # recursively create children
             child_node.key = key
-            node.children[key.value] = child_node
+            node.children.append(child_node)
             self._parse_next_event()
         end_mark = self._event.end_mark
         node.span = _get_span_from_marks(start_mark, end_mark)
         return node
 
     def _create_array_node(self):
-        node = ArrayNode()
+        node = CompositeNode(False)
         start_mark = self._event.start_mark
         self._parse_next_event()
         while not isinstance(self._event, yaml.SequenceEndEvent):

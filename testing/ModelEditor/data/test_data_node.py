@@ -23,7 +23,7 @@ def test_parse():
         "file: dual_sorp.vtk"
     )
     root = loader.load(document)
-    assert root.children['format'].value == 'ascii'
+    assert root.children[0].value == 'ascii'
 
     # parse sequence, scalar
     document = (
@@ -53,32 +53,28 @@ def test_parse():
     root = loader.load(document)
 
     # test values - are scalars converted to the correct type?
-    assert (root.children['output_streams'].children[0].children['file']
-            .value) is None
-    assert (root.children['problem'].children['primary_equation']
-            .children['balance'].value) is True
-    assert (root.children['output_streams'].children[1].children['time_step']
-            .value) == 0.5
-    assert (root.children['problem'].children['primary_equation']
-            .children['input_fields'].children[0].children['r_set'].value) == 'ALL'
-    assert (root.children['problem'].children['primary_equation']
-            .children['input_fields'].children[1].children['bc_pressure']
+    assert root.children[0].children[0].children[0].value is None
+    assert root.children[1].children[1].children[0].value is True
+    assert root.children[0].children[1].children[1].value == 0.5
+    assert (root.children[1].children[1].children[1].children[0].children[1]
+            .value) == 'ALL'
+    assert (root.children[1].children[1].children[1].children[1].children[0]
             .value) == 0
 
     # test node spans - try to get node at certain positions
     assert root.get_node_at_position(Position(2, 4)) == (
-        root.children['output_streams'].children[0].children['file'])
+        root.children[0].children[0].children[0])
     assert root.get_node_at_position(Position(2, 9)) == (
-        root.children['output_streams'].children[0].children['file'])
+        root.children[0].children[0].children[0])
     assert root.get_node_at_position(Position(10, 18)) == (
-        root.children['problem'].children['primary_equation']
-        .children['balance'])
+        root.children[1].children[1]
+        .children[0])
     assert root.get_node_at_position(Position(12, 22)) == (
-        root.children['problem'].children['primary_equation']
-        .children['input_fields'].children[0].children['conductivity'])
+        root.children[1].children[1]
+        .children[1].children[0].children[0])
     assert root.get_node_at_position(Position(12, 32)) == (
-        root.children['problem'].children['primary_equation']
-        .children['input_fields'].children[0].children['r_set'])
+        root.children[1].children[1]
+        .children[1].children[0].children[1])
 
     # test parser error
     document = (

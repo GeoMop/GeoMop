@@ -158,41 +158,24 @@ class Node:
         """return row index for node"""
         if node.parent is None:
             return None
-        if type(node.parent) == dn.ArrayNode:
-            for i in range(0, len(node.parent.children)):
-                if node.key.value == node.parent.children[i].key.value:
-                    return i
-            return None
-        if type(node.parent) == dn.RecordNode:
-            i = 0
-            for child in node.parent.children:
-                if node.key.value == node.parent.children[child].key.value:
-                    return i
-                i += 1
+        if isinstance(node, dn.CompositeNode):
+            return node.parent.children.index(node)
         return None
 
     @staticmethod
     def count_child_rows(node):
         """return count of children for node"""
-        if type(node) == dn.ArrayNode:
-            return len(node.children)
-        if type(node) == dn.RecordNode:
+        if isinstance(node, dn.CompositeNode):
             return len(node.children)
         return 0
 
     @staticmethod
     def get_child(node, row):
         """return child in row row for node"""
-        if type(node) == dn.ArrayNode:
+        if isinstance(node, dn.CompositeNode):
             if len(node.children) > row:
                 return node.children[row]
             return None
-        if type(node) == dn.RecordNode:
-            i = 0
-            for child in node.children:
-                if i == row:
-                    return node.children[child]
-                i += 1
         return None
 
     @staticmethod
@@ -200,6 +183,6 @@ class Node:
         """return text displyed in tree in set column for node"""
         if column == 0:
             return node.key.value
-        if type(node) == dn.ScalarNode and column == 1:
+        if isinstance(dn.ScalarNode) and column == 1:
             return str(node.value)
         return ""
