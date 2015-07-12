@@ -117,7 +117,7 @@ class CompositeNode(DataNode):
         text = super(CompositeNode, self).__str__()
         children_keys = [child.key.value for child in self.children]
         text += "  children_keys: {children_keys}\n".format(
-            children_keys=', '.join(children_keys)
+            children_keys=', '.join(str(children_keys))
         )
         return text
 

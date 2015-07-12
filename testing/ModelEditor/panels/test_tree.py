@@ -14,13 +14,13 @@ signal_is_send = None
 x=None
 
 def test_loadApp():
+    global app
     #test inicializace qt applikace
     assert  type(app).__name__=="QApplication"    
 
 @app_not_init
 def test_loadPanel(request):
-    global  signal_is_send
-    global x
+    global  signal_is_send,  x
     
     mockcfg.set_empty_config()
     def fin_test_config():

@@ -175,7 +175,6 @@ class Node:
         if isinstance(node, dn.CompositeNode):
             if len(node.children) > row:
                 return node.children[row]
-            return None
         return None
 
     @staticmethod
@@ -183,6 +182,6 @@ class Node:
         """return text displyed in tree in set column for node"""
         if column == 0:
             return node.key.value
-        if isinstance(dn.ScalarNode) and column == 1:
+        if isinstance(node, dn.ScalarNode) and column == 1:
             return str(node.value)
         return ""

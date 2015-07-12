@@ -1,5 +1,6 @@
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
+import helpers.subyaml_change_analyzer as analyzer
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla,  QsciLexerYAML
 import PyQt5.QtGui as QtGui
@@ -50,7 +51,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # Current line visible with special background color
         self.setCaretLineVisible(True)
-        self.setCaretLineBackgroundColor(QtGui.QColor("#ffe4e4"))
+        self.setCaretLineBackgroundColor(QtGui.QColor("#e4e4e4"))
 
         # Set Yaml lexer
         # Set style for Yaml comments (style number 1) to a fixed-width
@@ -60,6 +61,11 @@ class YamlEditorWidget(QsciScintilla):
         lexer.setDefaultFont(font)
         self.setLexer(lexer)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT,1)
+        
+        self.setAutoIndent(True)
+        lexer.setAutoIndentStyle(QsciScintilla.AiMaintain)
+        lexer.setColor (QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
 
         # Don't want to see the horizontal scrollbar at all
         # Use raw message to Scintilla here (all messages are documented
@@ -91,7 +97,7 @@ class YamlEditorWidget(QsciScintilla):
         
     def _cursor_position_changed(self,  line, index):
         """Function for cursorPositionChanged signal"""
-        if not self._pos.new_pos(self, line, index):
+        if self._pos.new_pos(self, line, index):
             if self._pos.is_changed:
                 self.structureChanged.emit(line+1,  index+1)
             else:
@@ -122,6 +128,10 @@ class editorPosition():
         """X max data node position (by adding or deleting text is changed)"""
         self.is_changed = False
         """Is node changed"""
+        self.is_value_changed = False
+        """Is value changed"""
+        self.is_key_changed = False
+        """Is key changed"""
         self._old_text = [""]        
         """All yaml text before changes"""
         self._last_line = ""
@@ -129,17 +139,34 @@ class editorPosition():
         self._last_line_after = ""
         """last after cursor text of line for comparision"""
         self._to_end_line = True
-        """Bound max position is to end line"""        
+        """Bound max position is to end line"""  
+        self._key_and_value = False
+        """Bound max position is to end line""" 
         
     def new_pos(self, editor,  line, index):
-        """Update possition and return if is cursor above node"""
+        """
+        Update possition and return true if isn't cursor above node
+        or is in inner structure
+        """
         self.line =  line
         self.index = index
         self._save_lines(editor)
-        if(self.begin_line >= line and self.end_line <= line and
-           self.begin_index <= index and self.end_index >= index):
-            return True
-        return False
+        if not (self.begin_line > line or self.end_line < line or
+            (line == self.begin_line and self.begin_index > index) or        
+            (line == self.end_line and self.end_index < index)):            
+            anal = self._init_analyzer(editor, line, index)
+            pos_type = anal.get_pos_type()
+            # value or key changed and cursor is in opposit
+            if self._key_and_value and self.begin_line == self.line:            
+                if pos_type is analyzer.PosType.in_key:
+                    if self.is_value_changed:
+                        return True
+            if pos_type is analyzer.PosType.in_value:
+                if self.is_key_changed:
+                    return True
+            if pos_type is not analyzer.PosType.in_inner:
+                return False
+        return True
         
     def fix_bounds(self, editor):
         """
@@ -156,8 +183,14 @@ class editorPosition():
            self._last_line_after != editor.text(self.line+1)):
             return False
         new_line = editor.text(self.line)
+        # if indentation change
+        if analyzer.SubYamlChangeAnalyzer.indent_changed(new_line, self._old_text[self.line]):
+            return False
         #lin unchanged
-        if new_line == self._old_text[self.line]:
+        new_line_un = analyzer.SubYamlChangeAnalyzer.uncomment(new_line)
+        old_line_un = analyzer.SubYamlChangeAnalyzer.uncomment(self._old_text[self.line])
+        if(new_line == self._old_text[self.line] or
+           old_line_un == new_line_un):
             if self.begin_line == self.end_line:
                 self.is_changed = False
             #return origin values of end
@@ -200,8 +233,20 @@ class editorPosition():
             if self._to_end_line:
                 self.end_index = len(new_line)
             else:
-                self.end_index = len(new_line)-end_pos-1
+                self.end_index += len(new_line) - len(self._last_line)              
         self._save_lines(editor)
+        anal = self._init_analyzer(editor,  self.line, self.index)
+        # value and key changed and cursor is in opposit
+        pos_type = anal.get_pos_type()
+        if self._key_and_value and self.begin_line == self.line:            
+            if pos_type is analyzer.PosType.in_key:
+                self.is_key_changed = True
+                if self.is_value_changed:
+                    return False
+        if pos_type is analyzer.PosType.in_value:
+            self.is_value_changed = True
+            if self.is_key_changed:
+                return False
         return True
         
     def node_init(self, node,  editor):
@@ -211,32 +256,45 @@ class editorPosition():
             if(node.key.section is not None):            
                 self.begin_index = node.key.section.start.column-1
                 self.begin_line = node.key.section.start.line-1
-                self.end_index = node.key.section.end.column-1
-                self.end_line = node.key.section.end.line-1
             else:
                 self.begin_index = node.span.start.column-1
                 self.begin_line = node.span.start.line-1
-                self.end_index = node.span.end.column-1
-                self.end_line = node.span.end.line-1  
-        if type(node) == dn.ScalarNode:
             self.end_index = node.span.end.column-1
             self.end_line = node.span.end.line-1
-            
+            self._key_and_value = type(node) == dn.ScalarNode
         else:
             self.begin_line = 0
             self.begin_index = 0
             self.end_line = 0
             self.end_index = 0
         self.is_changed = False
+        self.is_value_changed = False
+        self.is_key_changed = False
         self._save_lines(editor)
-        self._to_end_line = self.end_line+1 == len(self._last_line)
+        self._to_end_line = self.end_index == len(self._last_line)
         if len(self._last_line) == 0:
             self._to_end_line = True
         self._old_text = cfg.document.splitlines(False)
         if len(self._old_text)+1 == editor.lines():
             self._old_text.append("")
         self.line, self.index = editor.getCursorPosition()
-        
+    
+    def _init_analyzer(self, editor, line, index):
+        """prepare data for analyzer, and return it"""        
+        in_line = self.line - self.begin_line
+        in_index = self.index
+        if self.line == self.begin_line:
+            in_index = self.index-self.begin_index
+        area=[]
+        for i in range(self.begin_line, self.end_line+1):
+            text = editor.text(i)
+            if i == self.end_line:
+                text = text[:self.end_index]
+            if i == self.begin_line:
+                text = text[self.begin_index:]
+            area.append(text)
+        return analyzer.SubYamlChangeAnalyzer(in_line, in_index,  area)
+    
     def _save_lines(self,  editor):
         self._last_line = editor.text(self.line)
         if editor.lines() == self.line+1:
