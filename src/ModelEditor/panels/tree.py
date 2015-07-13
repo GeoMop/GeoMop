@@ -25,12 +25,43 @@ class TreeWidget(QtWidgets.QTreeView):
         self.setMinimumSize(150, 450)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
         self.clicked.connect(self._item_clicked)
+        self.collapsed.connect(self._item_collapsed)
+        self.expanded.connect(self._item_expanded)
+        self._item_states = {}
 
     def reload(self):
         """start of reload data from config"""
         self._model = TreeOfNodes(cfg.root)
         self.setModel(self._model)
-
+        self._restore_expanded()
+        
+    def _restore_expanded(self, item = None):
+        """restore expanded state after init"""
+        if item is None:
+            item = QtCore.QModelIndex()
+        for i in range(0, self._model.rowCount(item)):
+            child = self._model.index(i, 0, item)
+            path = child.internalPointer().absolute_path()
+            if  path in self._item_states:
+                if self._item_states[path]:
+                    self.expand(child)
+                else:
+                    self.collapse(child)
+            else:
+                self.expand(child)
+                self._item_states[path] = True
+            self._restore_expanded(child)
+ 
+    def _item_collapsed(self, model_index):
+        """Function for itemColapsed signal"""
+        path = model_index.internalPointer().absolute_path()
+        self._item_states[path] = False
+        
+    def _item_expanded(self, model_index):
+        """Function for itemExpanded signal"""
+        path = model_index.internalPointer().absolute_path()
+        self._item_states[path] = True
+        
     def _item_clicked(self, model_index):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()

@@ -30,6 +30,16 @@ class DataNode:
         self.span = None
         """borders the position of this node in input text"""
 
+    def absolute_path(self, descendant_path=None):
+        """return path of node"""
+        if self.parent is None:
+            return "/" + descendant_path
+        if descendant_path is None:
+            path = str(self.key.value)
+        else:
+            path = str(self.key.value) + "/" + descendant_path
+        return self.parent.absolute_path(path)
+        
     @property
     def options(self):
         """possible options to hint in autocomplete"""
