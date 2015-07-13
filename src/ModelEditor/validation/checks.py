@@ -5,7 +5,24 @@ Basic rules for data validation
 @author: Tomas Krizek
 """
 
+import data.data_node as dn
 from validation import errors
+
+
+def check_scalar(node):
+    """Checks scalar node value."""
+    checks = {
+        'Integer': check_integer,
+        'Double': check_double,
+        'Bool': check_bool,
+        'String': check_string,
+        'Selection': check_selection,
+        'FileName': check_filename
+    }
+    check = checks.get(node.input_type['base_type'], None)
+    if check is None:
+        raise errors.ValidationTypeError()
+    return check(node.value, node.input_type)
 
 
 def check_integer(value, input_type):
@@ -68,13 +85,11 @@ def check_array(value, input_type):
     return True
 
 
-def check_record_key(record, key, input_type):
+def check_record_key(children_keys, key, input_type):
     """Checks a single key within a record."""
-    if not isinstance(record, dict):
-        raise errors.ValidationTypeError("Expecting type Record")
-
     # if key is not found in specifications, it is considered to be valid
     if key not in input_type['keys'] and key != 'TYPE':
+        # TODO unknown key
         # raise UnknownKey(key, input_type['type_name']
         return True
 
@@ -84,11 +99,8 @@ def check_record_key(record, key, input_type):
         pass  # if default or type isn't specified, skip
     else:
         if key_type == 'obligatory':
-            try:
-                record[key]
-            except KeyError:
+            if key not in children_keys:
                 raise errors.MissingKey(key, input_type['type_name'])
-
     return True
 
 

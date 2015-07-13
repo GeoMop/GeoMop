@@ -131,18 +131,15 @@ def test_check_record_key():
     }
     input_type = dict(keys=keys, type_name='MyRecord')
 
-    assert checks.check_record_key({'a1': None}, 'a1', input_type) is True
-    assert checks.check_record_key({'a1': None}, 'b', input_type) is True
-    assert checks.check_record_key({'a1': None}, 'c', input_type) is True
-    assert checks.check_record_key({'a1': None}, 'd', input_type) is True
-    assert (checks.check_record_key({'unknown': None}, 'unknown', input_type)
+    assert checks.check_record_key(['a1'], 'a1', input_type) is True
+    assert checks.check_record_key(['a1'], 'b', input_type) is True
+    assert checks.check_record_key(['a1'], 'c', input_type) is True
+    assert checks.check_record_key(['a1'], 'd', input_type) is True
+    assert (checks.check_record_key(['unknown'], 'unknown', input_type)
             is True)
 
     with pytest.raises(errors.MissingKey):
-        checks.check_record_key({'a1': None}, 'a2', input_type)
-
-    with pytest.raises(errors.ValidationTypeError):
-        checks.check_record_key([], 'a', input_type)
+        checks.check_record_key(['a1'], 'a2', input_type)
 
 
 def test_check_abstractrecord():
