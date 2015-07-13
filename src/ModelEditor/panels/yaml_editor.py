@@ -25,7 +25,7 @@ class YamlEditorWidget(QsciScintilla):
     Sgnal is sent when node structure document is changed.
     Reload and check is need
     """
-    
+
     def __init__(self, parent=None):
         super( YamlEditorWidget, self).__init__(parent)
 
@@ -61,9 +61,13 @@ class YamlEditorWidget(QsciScintilla):
         lexer.setDefaultFont(font)
         self.setLexer(lexer)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT,1)
-        
+
         self.setAutoIndent(True)
-        lexer.setAutoIndentStyle(QsciScintilla.AiMaintain)
+        self.setIndentationGuides(True)
+        self.setIndentationsUseTabs(False)
+        self.setTabWidth(4)
+        self.setUtf8(True)
+
         lexer.setColor (QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
         lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
 
@@ -74,7 +78,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # not too small
         self.setMinimumSize(600, 450)
-        
+
         #signals
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
@@ -94,7 +98,7 @@ class YamlEditorWidget(QsciScintilla):
         """reload data from config"""
         if cfg.document != self.text():
             self.setText(cfg.document)
-        
+
     def _cursor_position_changed(self,  line, index):
         """Function for cursorPositionChanged signal"""
         if self._pos.new_pos(self, line, index):
@@ -102,9 +106,12 @@ class YamlEditorWidget(QsciScintilla):
                 self.structureChanged.emit(line+1,  index+1)
             else:
                 self.nodeChanged.emit(line+1, index+1)
-                
+        self._pos.make_post_operation(self,  line, index)
+
     def _text_changed(self):
         """Function for textChanged signal"""
+        self._pos.new_array_line_completation(self)
+        self._pos.spec_char_completation(self)
         if not self._pos.fix_bounds(self):
             line, index = self.getCursorPosition()
             self.structureChanged.emit(line+1, index+1)
@@ -141,13 +148,62 @@ class editorPosition():
         self._to_end_line = True
         """Bound max position is to end line"""  
         self._key_and_value = False
-        """Bound max position is to end line""" 
-        
+        """Bound max position is to end line"""
+        self._new_array_item = False
+        """make new array item operation"""
+        self._spec_char = ""
+        """make special char operation""" 
+
+    def new_array_line_completation(self, editor):
+        """New line was added"""
+        if editor.lines() > len(self._old_text) and editor.lines() > self.line+1:
+            pre_line = editor.text(self.line)
+            index = pre_line.find("- ")
+            if index > -1:
+                self._new_array_item = True
+
+    def make_post_operation(self, editor, line, index):
+        """complete specion chars after update"""
+        if self._new_array_item and editor.lines() > line:
+            pre_line = editor.text(self.line-1)
+            new_line = editor.text(self.line)
+            if  not analyzer.SubYamlChangeAnalyzer.indent_changed(new_line+'x', pre_line):
+                arr_index = pre_line.find("- ")
+                if self.index == len(new_line) and self.index == arr_index:
+                    editor.insertAt ("- ", line, index)
+                    editor.setCursorPosition(line,  index+2)
+            self._new_array_item = False
+        if self._spec_char != "" and editor.lines() > line:
+            editor.insertAt (self._spec_char, line, index)
+            if self._spec_char == " ":
+                    editor.setCursorPosition(line,  index+1)
+            self._spec_char = ""
+
+    def spec_char_completation(self, editor):
+        """if is added special char, set text for completation else empty string"""
+        new_line = editor.text(self.line)
+        if len(self._last_line)+1 == len(new_line):
+            line, index = editor.getCursorPosition()
+            if len(new_line) > index:
+                self._spec_char = ""
+                if new_line[index] == '[':
+                    self._spec_char = "]"
+                if new_line[index] == '"':
+                    self._spec_char = '"'
+                if new_line[index] == "'":
+                    self._spec_char = "'"
+                if new_line[index] == '{':
+                    self._spec_char = "}"
+                if new_line[index] == ':' or new_line[index] == ',':
+                    self._spec_char = " "
+    
     def new_pos(self, editor,  line, index):
         """
         Update possition and return true if isn't cursor above node
         or is in inner structure
         """
+        if self.node == None:
+            return True
         self.line =  line
         self.index = index
         self._save_lines(editor)
@@ -167,13 +223,15 @@ class editorPosition():
             if pos_type is not analyzer.PosType.in_inner:
                 return False
         return True
-        
+
     def fix_bounds(self, editor):
         """
         Text is changed, recount bounds
-        
+
         return:False if recount is unsuccesful, and reload is needed
         """
+        if self.node == None:
+            return False
         # lines count changed        
         if editor.lines() != len(self._old_text):
             return False
@@ -248,7 +306,7 @@ class editorPosition():
             if self.is_key_changed:
                 return False
         return True
-        
+
     def node_init(self, node,  editor):
         """set new node"""
         self.node = node
@@ -278,7 +336,7 @@ class editorPosition():
         if len(self._old_text)+1 == editor.lines():
             self._old_text.append("")
         self.line, self.index = editor.getCursorPosition()
-    
+
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""        
         in_line = self.line - self.begin_line
@@ -293,8 +351,9 @@ class editorPosition():
             if i == self.begin_line:
                 text = text[self.begin_index:]
             area.append(text)
+        assert(in_line<len(area))
         return analyzer.SubYamlChangeAnalyzer(in_line, in_index,  area)
-    
+
     def _save_lines(self,  editor):
         self._last_line = editor.text(self.line)
         if editor.lines() == self.line+1:

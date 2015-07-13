@@ -1,6 +1,7 @@
 """Helper for yaml text editor"""
 from enum import Enum
 import re
+import copy
 
 class SubYamlChangeAnalyzer:
     """
@@ -10,9 +11,11 @@ class SubYamlChangeAnalyzer:
     if next more expensive text parsing is requard.
     """
     def __init__(self, cursor_line, cursor_index,  area):
-        self._area = area
+        self._area = copy.deepcopy(area)
         self._line = cursor_line
         self._index = cursor_index
+        if len(self._area[self._line]) == self._index:
+            self._index -= 1 
 
     @staticmethod
     def get_tag_poss(line, tag):
