@@ -8,14 +8,11 @@ Contains format specification class and methods to parse it from JSON.
 def parse_format(data):
     """Returns root input type."""
     input_types = {}
-    # named_types = {}
     root_id = data[0]['id']      # set root type
 
     for item in data:
         input_type = get_input_type(item)
         input_types[input_type['id']] = input_type  # register by id
-        # if 'type_name' in input_type:  # register by type_name
-        #     named_types[input_type['type_name']] = input_type
 
     _substitute_ids_with_references(input_types)
     return input_types[root_id]
@@ -23,30 +20,30 @@ def parse_format(data):
 
 def _substitute_ids_with_references(input_types):
     """Replaces ids or type names with python object references."""
+    def _substitute_implementations():
+        impls = {}
+        for id_ in input_type['implementations']:
+            type_ = input_types[id_]
+            impls[type_['type_name']] = type_
+        input_type['implementations'] = impls
+
+    def _substitute_default_descendant():
+        id_ = input_type.get('default_descendant', None)
+        if id_ is not None:
+            input_type['default_descendant'] = input_types[id_]
+
+    def _substitute_key_type():
+        for key, value in input_type['keys'].items():
+            value['type'] = input_types[value['type']]
+
     for key, input_type in input_types.items():
         if input_type['base_type'] == 'Array':
             input_type['subtype'] = input_types[input_type['subtype']]
         elif input_type['base_type'] == 'AbstractRecord':
-            _substitute_implementations(input_type, input_types)
-            _substitute_default_descendant(input_type, input_types)
+            _substitute_implementations()
+            _substitute_default_descendant()
         elif input_type['base_type'] == 'Record':
-            _substitute_key_type(input_type, input_types)
-
-def _substitute_implementations(input_type, input_types):
-    impls = {}
-    for id_ in input_type['implementations']:
-        type_ = input_types[id_]
-        impls[type_['type_name']] = type_
-    input_type['implementations'] = impls
-
-def _substitute_default_descendant(input_type, input_types):
-    id_ = input_type.get('default_descendant', None)
-    if id_ is not None:
-        input_type['default_descendant'] = input_types[id_]
-
-def _substitute_key_type(input_type, input_types):
-    for key, value in input_type['keys'].items():
-        value['type'] = input_types[value['type']]
+            _substitute_key_type()
 
 
 def get_input_type(data):
