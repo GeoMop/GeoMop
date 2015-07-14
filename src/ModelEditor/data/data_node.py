@@ -107,7 +107,7 @@ class CompositeNode(DataNode):
         super(CompositeNode, self).__init__(key, parent)
         self.children = []
         """list of children nodes"""
-        self.explicits_keys = explicit_keys
+        self.explicit_keys = explicit_keys
         """boolean; indicates whether keys are specified (record) or
         implicit (array)"""
 
@@ -134,11 +134,26 @@ class CompositeNode(DataNode):
     @property
     def options(self):
         """list of possible record keys for autocomplete"""
-        if not self.explicits_keys:
+        if not self.explicit_keys:
             return []
         if DEBUG_MODE:
             return super(CompositeNode, self).options
         raise NotImplementedError
+
+    def get_child(self, key):
+        """
+        Returns a child node for the given key; None if key doesn't
+        exist.
+        """
+        for child in self.children:
+            if key == child.key.value:
+                return child
+        return None
+
+    @property
+    def children_keys(self):
+        """Returns all children keys."""
+        return [child.key.value for child in self.children]
 
 
 class ScalarNode(DataNode):
