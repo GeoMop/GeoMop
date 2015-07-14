@@ -135,8 +135,9 @@ def test_check_record_key():
     assert checks.check_record_key(['a1'], 'b', input_type) is True
     assert checks.check_record_key(['a1'], 'c', input_type) is True
     assert checks.check_record_key(['a1'], 'd', input_type) is True
-    assert (checks.check_record_key(['unknown'], 'unknown', input_type)
-            is True)
+
+    with pytest.raises(errors.UnknownKey):
+        checks.check_record_key('unknown', 'unknown', input_type)
 
     with pytest.raises(errors.MissingKey):
         checks.check_record_key(['a1'], 'a2', input_type)

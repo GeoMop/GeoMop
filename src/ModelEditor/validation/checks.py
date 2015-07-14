@@ -9,7 +9,7 @@ import data.data_node as dn
 from validation import errors
 
 
-def check_scalar(node):
+def check_scalar(node, input_type):
     """Checks scalar node value."""
     checks = {
         'Integer': check_integer,
@@ -19,10 +19,10 @@ def check_scalar(node):
         'Selection': check_selection,
         'FileName': check_filename
     }
-    check = checks.get(node.input_type['base_type'], None)
+    check = checks.get(input_type['base_type'], None)
     if check is None:
         raise errors.ValidationTypeError()
-    return check(node.value, node.input_type)
+    return check(node.value, input_type)
 
 
 def check_integer(value, input_type):
@@ -89,9 +89,7 @@ def check_record_key(children_keys, key, input_type):
     """Checks a single key within a record."""
     # if key is not found in specifications, it is considered to be valid
     if key not in input_type['keys'] and key != 'TYPE':
-        # TODO unknown key
-        # raise UnknownKey(key, input_type['type_name']
-        return True
+        raise errors.UnknownKey(key, input_type['type_name'])
 
     try:
         key_type = input_type['keys'][key]['default']['type']

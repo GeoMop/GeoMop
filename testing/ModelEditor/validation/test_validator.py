@@ -56,11 +56,10 @@ def test_validator():
     # validate scalar
     node = dn.ScalarNode()
     node.value = 2
-    node.input_type = its_int
-    assert validator.validate(node) is True
+    assert validator.validate(node, its_int) is True
 
     node.value = 4
-    assert validator.validate(node) is False
+    assert validator.validate(node, its_int) is False
     assert len(validator.errors) == 1
 
     # validate record
@@ -69,31 +68,25 @@ def test_validator():
     child1.key = dn.Key()
     child1.key.value = 'a1'
     child1.value = 1
-    child1.input_type = its_int
     node.children.append(child1)
     child2 = dn.ScalarNode()
     child2.key = dn.Key()
     child2.key.value = 'a2'
     child2.value = 1
-    child2.input_type = its_int
     node.children.append(child2)
-    node.input_type = its_record
-    assert validator.validate(node) is True
+    assert validator.validate(node, its_record) is True
 
-    node = dn.CompositeNode(True)
     child3 = dn.ScalarNode()
     child3.key = dn.Key()
     child3.key.value = 'd'
     child3.value = 2
-    child3.input_type = its_int
     node.children.append(child3)
     child4 = dn.ScalarNode()
     child4.key = dn.Key()
     child4.key.value = 'e'
     child4.value = 4
-    child4.input_type = its_int
     node.children.append(child4)
-    assert validator.validate(node) is False
+    assert validator.validate(node, its_record) is False
     assert len(validator.errors) == 1
 
     # validate abstract
@@ -123,46 +116,39 @@ def test_validator():
 
     # test array
     node = dn.CompositeNode(False)
-    node.input_type = its_array
     child1 = dn.ScalarNode()
     child1.key = dn.Key()
     child1.key.value = 0
     child1.value = 0
-    child1.input_type = its_int
     node.children.append(child1)
     child2 = dn.ScalarNode()
     child2.key = dn.Key()
     child2.key.value = 1
     child2.value = 1
-    child2.input_type = its_int
     node.children.append(child2)
     child3 = dn.ScalarNode()
     child3.key = dn.Key()
     child3.key.value = 2
     child3.value = 1
-    child3.input_type = its_int
     node.children.append(child3)
     child4 = dn.ScalarNode()
     child4.key = dn.Key()
     child4.key.value = 3
     child4.value = 2
-    child4.input_type = its_int
     node.children.append(child4)
-    assert validator.validate(node) is True
+    assert validator.validate(node, its_array) is True
 
     child5 = dn.ScalarNode()
     child5.key = dn.Key()
     child5.key.value = 4
     child5.value = -1
-    child5.input_type = its_int
     node.children.append(child5)
     child6 = dn.ScalarNode()
     child6.key = dn.Key()
     child6.key.value = 5
     child6.value = 5
-    child6.input_type = its_int
     node.children.append(child6)
-    assert validator.validate(node) is False
+    assert validator.validate(node, its_array) is False
     assert len(validator.errors) == 3
 
 

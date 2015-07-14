@@ -19,9 +19,9 @@ class Validator:
         return out
 
     # TODO decouple node and input_type!
-    def validate(self, node):
+    def validate(self, node, input_type):
         """
-        Performs data validation of node.
+        Performs data validation of node with the specified input_type.
 
         Validation is performed recursively on all children nodes as well.
 
@@ -30,11 +30,11 @@ class Validator:
         """
         self._errors = []
         self.valid = True
-        self._validate_node(node)
+        self._validate_node(node, input_type)
         self._errors = self._errors
         return self.valid
 
-    def _validate_node(self, node):
+    def _validate_node(self, node, input_type):
         """
         Determines if node contains correct value.
 
@@ -44,43 +44,47 @@ class Validator:
             # TODO implement validation of references
             raise NotImplementedError
 
-        if node.input_type is None:
-            self._report_error(node, errors.ValidationTypeError())
-        elif node.input_type['base_type'] in Validator.SCALAR:
-            self._validate_scalar(node)
-        elif node.input_type['base_type'] == 'Record':
-            self._validate_record(node)
-        elif node.input_type['base_type'] == 'AbstractRecord':
-            self._validate_abstract(node)
-        elif node.input_type['base_type'] == 'Array':
-            self._validate_array(node)
+        if input_type['base_type'] in Validator.SCALAR:
+            self._validate_scalar(node, input_type)
+        elif input_type['base_type'] == 'Record':
+            self._validate_record(node, input_type)
+        elif input_type['base_type'] == 'AbstractRecord':
+            self._validate_abstract(node, input_type)
+        elif input_type['base_type'] == 'Array':
+            self._validate_array(node, input_type)
         else:
-            raise Exception("Format error: Unknown input_type {input_type})"
-                            .format(input_type=node.input_type['base_type']))
+            self._report_error(
+                node,
+                errors.ValidationError(
+                    ("Format error: Unknown input_type {input_type})"
+                        .format(input_type=input_type['base_type']))))
 
-    def _validate_scalar(self, node):
+    def _validate_scalar(self, node, input_type):
         try:
-            checks.check_scalar(node)
+            checks.check_scalar(node, input_type)
         except errors.ValidationError as error:
             self._report_error(node, error)
 
-    def _validate_record(self, node):
+    def _validate_record(self, node, input_type):
         if not isinstance(node, dn.CompositeNode) or not node.explicit_keys:
             self._report_error(node, errors.ValidationError("Expecting type Record"))
             return
         keys = node.children_keys
-        keys.extend(node.input_type['keys'].keys())
+        keys.extend(input_type['keys'].keys())
         for key in set(keys):
             child = node.get_child(key)
             try:
-                checks.check_record_key(node.children_keys, key, node.input_type)
+                checks.check_record_key(node.children_keys, key, input_type)
             except errors.ValidationError as error:
                 self._report_error(node, error)
+                if isinstance(error, errors.UnknownKey):
+                    continue
             else:
                 if child is not None:
-                    self._validate_node(child)
+                    child_input_type = input_type['keys'][key]['type']
+                    self._validate_node(child, child_input_type)
 
-    def _validate_abstract(self, node):
+    def _validate_abstract(self, node, input_type):
         raise NotImplementedError
         # node = self.root_node.get(path)
         # try:
@@ -90,16 +94,16 @@ class Validator:
         # else:
         #     self._validate_record(path, record_its)
 
-    def _validate_array(self, node):
+    def _validate_array(self, node, input_type):
         if not isinstance(node, dn.CompositeNode) or node.explicit_keys:
             self._report_error(node, errors.ValidationError("Expecting type Array"))
             return
         try:
-            checks.check_array(node.children, node.input_type)
+            checks.check_array(node.children, input_type)
         except errors.ValidationError as error:
             self._report_error(node, error)
         for child in node.children:
-            self._validate_node(child)
+            self._validate_node(child, input_type['subtype'])
 
     def __init__(self):
         self.valid = True
