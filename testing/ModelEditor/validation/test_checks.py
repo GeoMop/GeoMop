@@ -8,6 +8,7 @@ Tests for basic validation checks.
 """
 
 from validation import checks, errors
+import data.data_node as dn
 import pytest
 
 
@@ -144,26 +145,30 @@ def test_check_record_key():
 
 
 def test_check_abstractrecord():
-    # type1 = dict(type_name='type1')
-    # type2 = dict(type_name='type2')
-    # type3 = dict(type_name='type3')
-    # input_type = dict(default_descendant=type1, implementations={
-    #     'type1': type1, 'type2': type2, 'type3': type3})
-    # input_type.name = 'MyAbstractRecord'
-    # input_type_no_default = dict(implementations={'type1': type1,
-    #                                               'type2': type2,
-    #                                               'type3': type3})
-    #
-    # assert checks.get_abstractrecord_type(
-    #     {'TYPE': Mock(value='type2')}, input_type) == type2
-    # self.assertEqual(checks.get_abstractrecord_type({}, input_type), type1)
-    #
-    # self.assertEqual(checks.get_abstractrecord_type(
-    #     {'TYPE': Mock(value='type3')}, input_type_no_default), type3)
-    # with pytest.raises(errors.MissingAbstractRecordType):
-    #     checks.get_abstractrecord_type({}, input_type_no_default)
-    #
-    # with pytest.raises(errors.InvalidAbstractRecordType):
-    #     checks.get_abstractrecord_type(
-    #         {'TYPE': Mock(value='invalid')}, input_type)
-    pass
+    type1 = dict(type_name='type1')
+    type2 = dict(type_name='type2')
+    type3 = dict(type_name='type3')
+    input_type = dict(default_descendant=type1, implementations={
+        'type1': type1, 'type2': type2, 'type3': type3}, name='MyAbstractRecord')
+    input_type_no_default = dict(implementations={'type1': type1,
+                                                  'type2': type2,
+                                                  'type3': type3})
+    node = dn.CompositeNode(True)
+    type_node = dn.ScalarNode()
+    type_node.key = dn.Key()
+    type_node.key.value = 'TYPE'
+    type_node.value = 'type2'
+    node.children.append(type_node)
+
+    assert checks.get_abstractrecord_type(node, input_type) == type2
+    assert (checks.get_abstractrecord_type(dn.CompositeNode(True),
+                                           input_type) == type1)
+
+    type_node.value = 'type3'
+    assert checks.get_abstractrecord_type(node, input_type_no_default) == type3
+    with pytest.raises(errors.MissingAbstractRecordType):
+        checks.get_abstractrecord_type(dn.CompositeNode(True), input_type_no_default)
+
+    type_node.value = 'invalid'
+    with pytest.raises(errors.InvalidAbstractRecordType):
+        checks.get_abstractrecord_type(node, input_type)

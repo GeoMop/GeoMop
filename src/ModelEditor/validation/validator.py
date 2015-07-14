@@ -85,14 +85,12 @@ class Validator:
                     self._validate_node(child, child_input_type)
 
     def _validate_abstract(self, node, input_type):
-        raise NotImplementedError
-        # node = self.root_node.get(path)
-        # try:
-        #     record_its = checks.get_abstractrecord_type(node.value, its)
-        # except errors.ValidationError as error:
-        #     self._report_error(path, error)
-        # else:
-        #     self._validate_record(path, record_its)
+        try:
+            concrete_type = checks.get_abstractrecord_type(node, input_type)
+        except errors.ValidationError as error:
+            self._report_error(node, error)
+        else:
+            self._validate_record(node, concrete_type)
 
     def _validate_array(self, node, input_type):
         if not isinstance(node, dn.CompositeNode) or node.explicit_keys:

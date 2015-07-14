@@ -103,21 +103,17 @@ def check_record_key(children_keys, key, input_type):
 
 
 def get_abstractrecord_type(node, input_type):
-    # TODO implement for abstract records
-    raise NotImplementedError
-    # try:
-    #     type_name = node['TYPE'].value
-    # except (KeyError, TypeError):
-    #     try:
-    #         type_ = input_type['default_descendant']
-    #     except AttributeError:
-    #         raise errors.MissingAbstractRecordType()
-    # else:
-    #     try:
-    #         type_ = input_type['implementations'][type_name]
-    #     except KeyError:
-    #         raise errors.InvalidAbstractRecordType(type_name,
-    #                                                input_type['name'])
-    #
-    # return type_
+    type_node = node.get_child('TYPE')
+    if type_node is None:
+        try:
+            concrete_type = input_type['default_descendant']
+        except KeyError:
+            raise errors.MissingAbstractRecordType()
+    else:
+        try:
+            concrete_type = input_type['implementations'][type_node.value]
+        except KeyError:
+            raise errors.InvalidAbstractRecordType(type_node.value,
+                                                   input_type['name'])
+    return concrete_type
 
