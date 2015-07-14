@@ -124,7 +124,7 @@ class CompositeNode(DataNode):
     @property
     def options(self):
         """list of possible record keys for autocomplete"""
-        if not self.explicits_keys:
+        if not self.explicit_keys:
             return []
         if DEBUG_MODE:
             return super(CompositeNode, self).options

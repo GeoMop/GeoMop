@@ -5,8 +5,7 @@ Basic rules for data validation
 @author: Tomas Krizek
 """
 
-import data.data_node as dn
-from validation import errors
+from data.validation import errors
 
 
 def check_scalar(node, input_type):
@@ -47,6 +46,7 @@ def check_double(value, input_type):
     return True
 
 
+# pylint: disable=unused-argument
 def check_bool(value, input_type):
     """Checks if value is a boolean."""
     if not isinstance(value, bool):
@@ -103,6 +103,10 @@ def check_record_key(children_keys, key, input_type):
 
 
 def get_abstractrecord_type(node, input_type):
+    """
+    Returns the concrete TYPE of abstract record. ValidationErrors
+    can occur if it is impossible to resolve the type.
+    """
     type_node = node.get_child('TYPE')
     if type_node is None:
         try:

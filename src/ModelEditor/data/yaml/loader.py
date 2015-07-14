@@ -56,7 +56,6 @@ class Loader:
 
     def _create_record_node(self):
         node = CompositeNode(True)
-        # TODO resolve tag and its position
         if self._event.tag is not None:
             node.children.append(self._create_type_node())
         start_mark = self._event.start_mark

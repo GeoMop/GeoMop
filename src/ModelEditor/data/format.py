@@ -20,6 +20,8 @@ def parse_format(data):
 
 def _substitute_ids_with_references(input_types):
     """Replaces ids or type names with python object references."""
+    input_type = {}
+
     def _substitute_implementations():
         impls = {}
         for id_ in input_type['implementations']:
@@ -33,10 +35,12 @@ def _substitute_ids_with_references(input_types):
             input_type['default_descendant'] = input_types[id_]
 
     def _substitute_key_type():
-        for key, value in input_type['keys'].items():
+        # pylint: disable=unused-variable, invalid-name
+        for __, value in input_type['keys'].items():
             value['type'] = input_types[value['type']]
 
-    for key, input_type in input_types.items():
+    # pylint: disable=unused-variable, invalid-name
+    for __, input_type in input_types.items():
         if input_type['base_type'] == 'Array':
             input_type['subtype'] = input_types[input_type['subtype']]
         elif input_type['base_type'] == 'AbstractRecord':

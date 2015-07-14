@@ -7,9 +7,10 @@ Tests for basic validation checks.
 @author: Tomas Krizek
 """
 
-from validation import checks, errors
-import data.data_node as dn
 import pytest
+
+from data.validation import errors, checks
+import data.data_node as dn
 
 
 def test_check_integer():
@@ -30,10 +31,10 @@ def test_check_integer():
     assert checks.check_integer(0, input_type) is True
 
     with pytest.raises(errors.ValueTooSmall):
-        checks.check_integer(-1, input_type);
+        checks.check_integer(-1, input_type)
 
     with pytest.raises(errors.ValueTooBig):
-        checks.check_integer(5, input_type);
+        checks.check_integer(5, input_type)
 
 
 def test_check_double():

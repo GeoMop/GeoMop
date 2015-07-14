@@ -1,24 +1,18 @@
 """Validator for Flow123D data structure"""
 
-from validation import errors, checks
+from data.validation import errors, checks
 import data.data_node as dn
 
 
 class Validator:
+    """Handles data structure validation."""
     SCALAR = ['Integer', 'Double', 'Bool', 'String', 'Selection', 'FileName']
 
     @property
     def errors(self):
+        """Read-only list of errors that occured udring validation."""
         return tuple(self._errors)
 
-    @property
-    def console_log(self):
-        out = ('VALID' if self.valid else 'INVALID')
-        for path, error in sorted(self._errors, key=(lambda item: item[0])):
-            out = out + '\n' + path + ': ' + str(error)
-        return out
-
-    # TODO decouple node and input_type!
     def validate(self, node, input_type):
         """
         Performs data validation of node with the specified input_type.
@@ -53,11 +47,10 @@ class Validator:
         elif input_type['base_type'] == 'Array':
             self._validate_array(node, input_type)
         else:
-            self._report_error(
-                node,
-                errors.ValidationError(
-                    ("Format error: Unknown input_type {input_type})"
-                        .format(input_type=input_type['base_type']))))
+            message = "Format error: Unknown input_type {input_type})"
+            message = message.format(input_type=input_type['base_type'])
+            error = errors.ValidationError(message)
+            self._report_error(message, error)
 
     def _validate_scalar(self, node, input_type):
         try:
