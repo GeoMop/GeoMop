@@ -56,6 +56,9 @@ class Loader:
 
     def _create_record_node(self):
         node = CompositeNode(True)
+        # TODO resolve tag and its position
+        if self._event.tag is not None:
+            node.children.append(self._create_type_node())
         start_mark = self._event.start_mark
         self._parse_next_event()
         while not isinstance(self._event, yaml.MappingEndEvent):
@@ -72,6 +75,23 @@ class Loader:
             self._parse_next_event()
         end_mark = self._event.end_mark
         node.span = _get_span_from_marks(start_mark, end_mark)
+        return node
+
+    def _create_type_node(self):
+        """Creates a TYPE node from tag."""
+        if self._event.tag[0] == '!':
+            tag = self._event.tag[1:]
+            start = Position(self._event.start_mark.line + 1,
+                             self._event.start_mark.column + 2)
+            end = Position(start.line,
+                           start.column + len(tag))
+        else:
+            raise NotImplementedError("Tags with directive not supported yet")
+        node = ScalarNode()
+        node.key = Key()
+        node.key.value = 'TYPE'
+        node.value = tag
+        node.span = Span(start, end)
         return node
 
     def _create_array_node(self):

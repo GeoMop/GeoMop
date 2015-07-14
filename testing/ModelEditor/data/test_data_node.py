@@ -84,6 +84,15 @@ def test_parse():
     with pytest.raises(DataError):
         loader.load(document)
 
+    # test tag parsing
+    document = (
+        "problem: !SequentialCoupling\n"
+        "  test: 1"
+    )
+    root = loader.load(document)
+    assert root.children[0].children[0].value == 'SequentialCoupling'
+    assert root.get_node_at_position(Position(1, 11)).value == 'SequentialCoupling'
+
 
 def test_resolver():
     value = '13'
@@ -129,4 +138,4 @@ def profile_parsing():
 
 
 if __name__ == '__main__':
-    profile_parsing()
+    test_parse()
