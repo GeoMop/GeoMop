@@ -4,6 +4,7 @@ import sys
 sys.path.insert(1, '../lib')
 import os
 from data.meconfig import MEConfig as cfg
+from dialogs.json_editor import JsonEditorDlg
 import panels.yaml_editor
 import panels.tree
 import panels.info_panel
@@ -64,6 +65,8 @@ class ModelEditor:
         self._recent_group = QtWidgets.QActionGroup(
             self._mainwindow, exclusive=True)
         self._update_recent_files(0)
+        
+        self._file_menu.addSeparator()
 
         self._exit_action = QtWidgets.QAction('&Exit', self._mainwindow)
         self._exit_action.setShortcut('Ctrl+Q')
@@ -82,7 +85,16 @@ class ModelEditor:
             self._format.addAction(faction)
             faction.setChecked(cfg.curr_format_file == frm)
         self._format_group.triggered.connect(self._format_checked)
-
+        
+        self._format.addSeparator()
+        
+        self._edit_format_action = QtWidgets.QAction(
+            '&Edit Format File ...', self._mainwindow)
+        self._edit_format_action.setShortcut('Ctrl+E')
+        self._edit_format_action.setStatusTip('Edit format file in Json Editor')
+        self._edit_format_action.triggered.connect( self._edit_format)
+        self._format.addAction(self._edit_format_action)
+        
         #tab
         self._tab = QtWidgets.QTabWidget()
         self._info = panels.info_panel.InfoPanelWidget()        
@@ -204,6 +216,15 @@ class ModelEditor:
         cfg.curr_format_file = action.text()
         cfg.update_format()
         self._reload()
+
+    def  _edit_format(self):
+        """Open selected format file in Json Editor"""
+        text=cfg.get_curr_format_text()
+        if text is not None:
+            import data.meconfig
+            dlg = JsonEditorDlg(data.meconfig.__format_dir__, cfg.curr_format_file, 
+                                            "Format", text, self._mainwindow )
+            dlg.exec_()
 
     def _update_recent_files(self, from_row=1):
         """update recent file in menu"""

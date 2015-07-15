@@ -3,10 +3,10 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import data.task
 
-class geometrydlg(QtWidgets.QDialog):
+class GeometryDlg(QtWidgets.QDialog):
 
     def __init__(self, geometry=None, parent=None):
-        super(geometrydlg, self).__init__(parent)
+        super(GeometryDlg, self).__init__(parent)
         
         if geometry == None:
             geometry = new data.

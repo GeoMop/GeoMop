@@ -1,10 +1,12 @@
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 import helpers.subyaml_change_analyzer as analyzer
+from helpers.editor_appearance import EditorAppearance as appearance
 from data.data_node import Position
-from PyQt5.Qsci import QsciScintilla,  QsciLexerYAML
+from PyQt5.Qsci import QsciScintilla,  QsciLexerYAML, QsciAPIs
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+
 
 class YamlEditorWidget(QsciScintilla):
     """
@@ -25,41 +27,17 @@ class YamlEditorWidget(QsciScintilla):
     Sgnal is sent when node structure document is changed.
     Reload and check is need
     """
+    
 
     def __init__(self, parent=None):
         super( YamlEditorWidget, self).__init__(parent)
 
-        # Set the default font
-        font = QtGui.QFont()
-        font.setFamily('serif')
-        font.setFixedPitch(True)
-        font.setPointSize(10)
-        self.setFont(font)
-        self.setMarginsFont(font)
-
-        # Margin 0 is used for line numbers
-        fontmetrics = QtGui.QFontMetrics(font)
-        self.setMarginsFont(font)
-        self.setMarginWidth(0, fontmetrics.width("00000") + 6)
-        self.setMarginLineNumbers(0, True)
-        self.setMarginsBackgroundColor(QtGui.QColor("#cccccc"))
-
-        # Brace matching: enable for a brace immediately before or after
-        # the current position
-        #
-        self.setBraceMatching(QsciScintilla.SloppyBraceMatch)
-
-        # Current line visible with special background color
-        self.setCaretLineVisible(True)
-        self.setCaretLineBackgroundColor(QtGui.QColor("#e4e4e4"))
+        appearance.set_default_appearens(self)
 
         # Set Yaml lexer
-        # Set style for Yaml comments (style number 1) to a fixed-width
-        # courier.
-        #
-        lexer = QsciLexerYAML()
-        lexer.setDefaultFont(font)
-        self.setLexer(lexer)
+        self._lexer = QsciLexerYAML()
+        self._lexer.setDefaultFont( appearance.DEFAULT_FONT)
+        self.setLexer(self._lexer)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT,1)
 
         self.setAutoIndent(True)
@@ -68,13 +46,13 @@ class YamlEditorWidget(QsciScintilla):
         self.setTabWidth(4)
         self.setUtf8(True)
 
-        lexer.setColor (QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
-        lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
-
-        # Don't want to see the horizontal scrollbar at all
-        # Use raw message to Scintilla here (all messages are documented
-        # here: http://www.scintilla.org/ScintillaDoc.html)
-        self.SendScintilla(QsciScintilla.SCI_SETHSCROLLBAR, 0)
+        self._lexer.setColor (QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self._lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        
+        #Completetion
+        self._api = QsciAPIs(self._lexer)
+        self.setAutoCompletionSource(QsciScintilla.AcsAPIs)
+        self.setAutoCompletionThreshold(1)
 
         # not too small
         self.setMinimumSize(600, 450)
@@ -307,6 +285,13 @@ class editorPosition():
                 return False
         return True
 
+    def _reload_autocompletation(self, editor):
+        """New line was added"""
+        editor._api.clear()
+        for option in self.node.options:
+            editor._api.add(option)
+        editor._api.prepare()
+        
     def node_init(self, node,  editor):
         """set new node"""
         self.node = node
@@ -336,6 +321,8 @@ class editorPosition():
         if len(self._old_text)+1 == editor.lines():
             self._old_text.append("")
         self.line, self.index = editor.getCursorPosition()
+        if node is not None:
+            self._reload_autocompletation(editor)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""        

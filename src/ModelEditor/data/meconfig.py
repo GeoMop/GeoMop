@@ -145,6 +145,22 @@ class MEConfig:
                 cls.format_files.append(file_name[:-5])
 
     @classmethod
+    def get_curr_format_text(cls):
+        """return current format file text"""
+        from os.path import join
+        file_name = join(__format_dir__, cls.curr_format_file + ".json")
+        try:
+            file_d = open(file_name, 'r')
+            text = file_d.read()
+            file_d.close()
+            return text
+        except (RuntimeError, IOError) as err:
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog(
+                "Can't open format file '" + cls.curr_format_file +"'" , err)
+        return None
+
+    @classmethod
     def get_data_node(cls, position):
         """
         Returns DataNode at given `class::Position` position.
