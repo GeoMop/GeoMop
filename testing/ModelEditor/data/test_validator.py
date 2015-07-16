@@ -77,7 +77,7 @@ def test_validator():
         "d: 2\n"
         "e: 4")
     node = loader.load(document)
-    assert validator.validate(node, it_record) is False
+    assert validator.validate(node, it_record) is True
     assert len(validator.errors) == 1
 
     # test array

@@ -1,0 +1,23 @@
+# Minimal invalid example for flow_1.8.2._input_format.json
+# This is not an acutal config file -- only for testing purposes
+# Does not contain references
+# Does not require autocomplete
+# Editing may break tests
+
+problem:
+  TYPE: SequentialCoupling
+  mesh: {mesh_file: input/dual_por.msh}
+  unknown: test  # unknown key -> validation warning
+  primary_equation:
+    TYPE: Steady_MH
+    balance: {balance_on: true}
+    input_fields:
+        - bc_pressure: {value: 0}
+          bc_type: {value: dirichlet}
+          r_set: BOUNDARY   
+    output:
+      output_fields: []
+      output_stream:
+        file: dual_por.pvd
+        time_step: # missing value -> validation error
+    solver: {}  # missing TYPE -> validation error

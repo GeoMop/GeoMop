@@ -122,5 +122,7 @@ def get_abstractrecord_type(node, input_type):
         except KeyError:
             raise errors.InvalidAbstractRecordType(type_node.value,
                                                    input_type['name'])
+    if concrete_type is None:
+        raise errors.MissingAbstractRecordType()
     return concrete_type
 

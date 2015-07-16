@@ -2,6 +2,15 @@ from data.data_node import Position, DataError
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 import pytest
+from data.meconfig import MEConfig as cfg
+import mock_config as mockcfg
+import sys
+from PyQt5.QtWidgets import QApplication
+
+
+app = QApplication(sys.argv)
+app_not_init = pytest.mark.skipif(not (type(app).__name__ == "QApplication"),
+    reason="App not inicialized")
 
 
 def test_position():
@@ -14,7 +23,14 @@ def test_position():
     assert (Position(2, 1) > Position(1, 2)) is True
 
 
-def test_parse():
+@app_not_init
+def test_parse(request):
+    mockcfg.set_empty_config()
+
+    def fin_test_config():
+        mockcfg.clean_config()
+
+    request.addfinalizer(fin_test_config)
     loader = Loader()
 
     # parse mapping, scalar
@@ -34,46 +50,30 @@ def test_parse():
     assert root.children[1].value == 'utf-8'
 
     # test complex structure
-    document = (
-        "output_streams:\n"
-        "- file: \n"
-        "  format: flow_output_stream\n"
-        "- file: dual_por_transport.pvd\n"
-        "  time_step: 0.5\n"
-        "\n"
-        "problem:\n"
-        "  description: Some, text\n"
-        "  primary_equation:\n"
-        "    balance: true\n"
-        "    input_fields:\n"
-        "    - {conductivity: 1.0e-15, r_set: ALL}\n"
-        "    - {bc_pressure: 0, bc_type: dirichlet, r_set: BOUNDARY}\n"
-    )
-    loader = Loader()
-    root = loader.load(document)
+    mockcfg.load_complex_structure_to_config()
 
     # test values - are scalars converted to the correct type?
-    assert root.children[0].children[0].children[0].value is None
-    assert root.children[1].children[1].children[0].value is True
-    assert root.children[0].children[1].children[1].value == 0.5
-    assert (root.children[1].children[1].children[1].children[0].children[1]
+    assert cfg.root.children[0].children[0].children[0].value is None
+    assert cfg.root.children[1].children[1].children[0].value is True
+    assert cfg.root.children[0].children[1].children[1].value == 0.5
+    assert (cfg.root.children[1].children[1].children[1].children[0].children[1]
             .value) == 'ALL'
-    assert (root.children[1].children[1].children[1].children[1].children[0]
+    assert (cfg.root.children[1].children[1].children[1].children[1].children[0]
             .value) == 0
 
     # test node spans - try to get node at certain positions
-    assert root.get_node_at_position(Position(2, 4)) == (
-        root.children[0].children[0].children[0])
-    assert root.get_node_at_position(Position(2, 9)) == (
-        root.children[0].children[0].children[0])
-    assert root.get_node_at_position(Position(10, 18)) == (
-        root.children[1].children[1]
+    assert cfg.root.get_node_at_position(Position(5, 5)) == (
+        cfg.root.children[0].children[0].children[0])
+    assert cfg.root.get_node_at_position(Position(5, 9)) == (
+        cfg.root.children[0].children[0].children[0])
+    assert cfg.root.get_node_at_position(Position(13, 18)) == (
+        cfg.root.children[1].children[1]
         .children[0])
-    assert root.get_node_at_position(Position(12, 22)) == (
-        root.children[1].children[1]
+    assert cfg.root.get_node_at_position(Position(15, 22)) == (
+        cfg.root.children[1].children[1]
         .children[1].children[0].children[0])
-    assert root.get_node_at_position(Position(12, 32)) == (
-        root.children[1].children[1]
+    assert cfg.root.get_node_at_position(Position(15, 33)) == (
+        cfg.root.children[1].children[1]
         .children[1].children[0].children[1])
 
     # test parser error

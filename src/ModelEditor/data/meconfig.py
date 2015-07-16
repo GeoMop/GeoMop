@@ -314,7 +314,8 @@ class MEConfig:
                 return
             cls.validator.validate(cls.root, cls.root_input_type)
             cls.errors = cls.validator.data_errors
-        return
+            for error in cls.errors:
+                print(error)
 
     @classmethod
     def update_format(cls):
