@@ -3,11 +3,14 @@ import os
 import copy
 import config as cfg
 import geomop_dialogs
+from data.import_json import parse_con
 from data.yaml import Loader
 from data.data_node import DataError
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
+__transformation_dir__ = os.path.join(
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "transformation")
 
 class _Config:
     """Class for ModelEditor serialization"""
@@ -101,6 +104,8 @@ class MEConfig:
     """Static data class"""
     format_files = []
     """Array of format files"""
+    transformation_files = []
+    """Array of transformation files"""
     curr_format_file = None
     """selected format file"""
     config = _Config()
@@ -127,6 +132,7 @@ class MEConfig:
     def init(cls, main_window):
         """Init class wit static method"""
         cls._read_format_files()
+        cls._read_transformation_files()
         cls.main_window = main_window
         if len(cls.config.format_files) > 0:
             cls.curr_format_file = cls.config.format_files[0]
@@ -145,6 +151,16 @@ class MEConfig:
                 cls.format_files.append(file_name[:-5])
 
     @classmethod
+    def _read_transformation_files(cls):
+        """read names of transformation files in format files directory"""
+        from os import listdir
+        from os.path import isfile, join
+        for file_name in listdir(__transformation_dir__):
+            if (isfile(join(__transformation_dir__, file_name)) and
+                    file_name[-5:].lower() == ".json"):
+                cls.format_files.append(file_name[:-5])
+
+    @classmethod
     def get_curr_format_text(cls):
         """return current format file text"""
         from os.path import join
@@ -158,6 +174,22 @@ class MEConfig:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog(
                 "Can't open format file '" + cls.curr_format_file +"'" , err)
+        return None
+
+    @classmethod
+    def get_transformation_text(cls,  file):
+        """return transformation file text"""
+        from os.path import join
+        file_name = join(__transformation_dir__,  file + ".json")
+        try:
+            file_d = open(file_name, 'r')
+            text = file_d.read()
+            file_d.close()
+            return text
+        except (RuntimeError, IOError) as err:
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog(
+                "Can't open transformation file '" + file +"'" , err)
         return None
 
     @classmethod
@@ -211,6 +243,30 @@ class MEConfig:
         except (RuntimeError, IOError) as err:
             err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog("Can't open file", err)
+        return False
+
+    @classmethod
+    def import_file(cls, file_name):
+        """
+        read con file and transform it to yaml structure
+
+        return: if file have good format (boolean)
+        """
+        try:
+            file_d = open(file_name, 'r')
+            con = file_d.read()
+            file_d.close()
+            cls.document = parse_con(con)
+            cls.curr_file = None
+            cls.update_format()
+            cls.changed = True
+            return True
+        except (RuntimeError, IOError) as err:
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't open import file", err)
+        except Exception as err:
+            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog("Can't import file from con format", err)
         return False
 
     @classmethod

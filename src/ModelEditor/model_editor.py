@@ -67,6 +67,15 @@ class ModelEditor:
         self._update_recent_files(0)
         
         self._file_menu.addSeparator()
+        
+        self._import_file_action = QtWidgets.QAction(
+            '&import File ...', self._mainwindow)
+        self._import_file_action.setShortcut('Ctrl+I')
+        self._import_file_action.setStatusTip('Import model from old con formated file')
+        self._import_file_action.triggered.connect(self._import_file)
+        self._file_menu.addAction(self._import_file_action)
+        
+        self._file_menu.addSeparator()
 
         self._exit_action = QtWidgets.QAction('&Exit', self._mainwindow)
         self._exit_action.setShortcut('Ctrl+Q')
@@ -168,6 +177,19 @@ class ModelEditor:
             cfg.config.last_data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
+            self._reload()
+            self._update_recent_files()
+            self._update_document_name()
+
+    def _import_file(self):
+        """import con file menu action"""
+        if not self._save_old_file():
+            return
+        con_file = QtWidgets.QFileDialog.getOpenFileName(
+            self._mainwindow, "Choose Con Model File",
+            cfg.config.last_data_dir, "Con Files (*.con)")
+        if con_file[0]:
+            cfg.import_file(con_file[0])
             self._reload()
             self._update_recent_files()
             self._update_document_name()
