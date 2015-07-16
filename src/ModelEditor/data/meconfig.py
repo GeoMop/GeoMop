@@ -6,6 +6,9 @@ import geomop_dialogs
 from data.import_json import parse_con
 from data.yaml import Loader
 from data.data_node import DataError
+from data.validation.validator import Validator
+from data.format import get_root_input_type_from_file
+
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -124,6 +127,10 @@ class MEConfig:
     """is file changed"""
     loader = Loader()
     """loader for YAML documents"""
+    validator = Validator()
+    """data validator"""
+    root_input_type = None
+    """input type of the whole tree, parsed from format"""
 
     def __init__(self):
         pass
@@ -302,11 +309,20 @@ class MEConfig:
             cls.root = cls.loader.load(cls.document)
         except DataError as error:
             cls.errors.append(error)
+        else:
+            if cls.root_input_type is None or cls.root is None:
+                return
+            cls.validator.validate(cls.root, cls.root_input_type)
+            cls.errors = cls.validator.data_errors
+        return
 
     @classmethod
     def update_format(cls):
         """reread json format file and update node tree"""
-        #ToDo:TK
+        if cls.curr_format_file is None:
+            return
+        filename = os.path.join(__format_dir__, cls.curr_format_file + '.json')
+        cls.root_input_type = get_root_input_type_from_file(filename)
         cls.update()
 
     @classmethod

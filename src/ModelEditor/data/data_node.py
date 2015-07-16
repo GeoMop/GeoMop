@@ -239,15 +239,20 @@ class Span:
         """:class:`.Position` indicates the end of the section; exclusive"""
 
 
-class ErrorCategory(Enum):
-    """Defines the type of an error."""
-    validation = 'Validation Error'
-    yaml = 'Parsing Error'
-
-
 class DataError(Exception):
     """Represents an error that occurs while working with data."""
-    def __init__(self, category, description, position, node=None):
+
+    class Category(Enum):
+        """Defines the type of an error."""
+        validation = 'Validation Error'
+        yaml = 'Parsing Error'
+
+    class Severity(Enum):
+        """Severity of an error."""
+        warning = 'warning'
+        error = 'error'
+
+    def __init__(self, category, severity, description, position, node=None):
         self.category = category
         """:class:`ErrorCategory` the category of error"""
         self.position = position
@@ -256,6 +261,7 @@ class DataError(Exception):
         """describes the error"""
         self.node = node
         """:class:`DataNode` optional; the node where the error occurred"""
+        self.severity = severity
 
     def __str__(self):
         text = "{line}:{column} - {name}\n{description}"
@@ -276,4 +282,5 @@ class DataError(Exception):
             line = yaml_error.context_mark.line
             column = yaml_error.context_mark.column
         position = Position(line + 1, column + 1)
-        return DataError(ErrorCategory.yaml, yaml_error.problem, position)
+        return DataError(DataError.Category.yaml, DataError.Severity.error,
+                         yaml_error.problem, position)

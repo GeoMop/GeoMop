@@ -2,6 +2,7 @@
 
 from data.validation import errors, checks
 import data.data_node as dn
+from data.data_node import DataError
 
 
 class Validator:
@@ -12,6 +13,34 @@ class Validator:
     def errors(self):
         """Read-only list of errors that occured udring validation."""
         return tuple(self._errors)
+
+    @property
+    def data_errors(self):
+        """A list of DataErrors, which can be shown to the user."""
+        severities = {
+            errors.UnknownKey: DataError.Severity.warning,
+            errors.InvalidAbstractRecordType: DataError.Severity.error,
+            errors.InvalidOption: DataError.Severity.error,
+            errors.MissingAbstractRecordType: DataError.Severity.error,
+            errors.MissingKey: DataError.Severity.error,
+            errors.NotEnoughItems: DataError.Severity.error,
+            errors.TooManyItems: DataError.Severity.error,
+            errors.ValidationTypeError: DataError.Severity.error,
+            errors.ValueTooBig: DataError.Severity.error,
+            errors.ValueTooSmall: DataError.Severity.error,
+            errors.ValidationError: DataError.Severity.error
+        }
+        data_errors = []
+        category = DataError.Category.validation
+
+        for node, error in self._errors:
+            severity = severities[type(error)]
+            description = str(error)
+            position = node.span.start
+            data_errors.append(DataError(category, severity, description,
+                                         position, node))
+
+        return data_errors
 
     def validate(self, node, input_type):
         """
@@ -34,6 +63,8 @@ class Validator:
 
         Method verifies node recursively. All descendant nodes are checked.
         """
+        if node is None:
+            raise errors.ValidationError("Invalid node (None)")
         if node.ref is not None:
             # TODO implement validation of references
             raise NotImplementedError
