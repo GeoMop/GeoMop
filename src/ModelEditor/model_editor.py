@@ -104,6 +104,25 @@ class ModelEditor:
         self._edit_format_action.triggered.connect( self._edit_format)
         self._format.addAction(self._edit_format_action)
         
+        self._transformation = self._settings_menu.addMenu('&Transformation')
+        self._transformation_group = QtWidgets.QActionGroup(
+            self._mainwindow, exclusive=True)
+        for frm in cfg.transformation_files:
+            faction = self._transformation_group.addAction(QtWidgets.QAction(
+                frm, self._mainwindow))
+            self._transformation.addAction(faction)
+            self._transformation_group.triggered.connect(lambda: self._transform(frm))
+            
+        self._edit_transformation = self._settings_menu.addMenu('&Edit Transformation Rules')
+        self._edit_transformation_group = QtWidgets.QActionGroup(
+            self._mainwindow, exclusive=True)
+        for frm in cfg.transformation_files:
+            faction = self._edit_transformation_group.addAction(QtWidgets.QAction(
+                frm, self._mainwindow))
+            self._edit_transformation.addAction(faction)
+            self._edit_transformation_group.triggered.connect(
+                lambda: self._edit_transformation_file(frm))
+        
         #tab
         self._tab = QtWidgets.QTabWidget()
         self._info = panels.info_panel.InfoPanelWidget()        
@@ -229,6 +248,18 @@ class ModelEditor:
             self._update_document_name()
             return True
         return False
+
+    def _transform(self,  file):
+        """Run transformation accoding rules in set file"""
+        
+    def _edit_transformation_file(self,  file):
+        """edit transformation rules in file"""
+        text=cfg.get_transformation_text(file)
+        if text is not None:
+            import data.meconfig
+            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file, 
+                                "Transformation rules:", text, self._mainwindow )
+            dlg.exec_()
 
     def _format_checked(self):
         """format checked file menu action"""

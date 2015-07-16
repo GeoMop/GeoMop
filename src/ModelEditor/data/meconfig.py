@@ -165,7 +165,7 @@ class MEConfig:
         for file_name in listdir(__transformation_dir__):
             if (isfile(join(__transformation_dir__, file_name)) and
                     file_name[-5:].lower() == ".json"):
-                cls.format_files.append(file_name[:-5])
+                cls.transformation_files.append(file_name[:-5])
 
     @classmethod
     def get_curr_format_text(cls):

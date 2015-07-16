@@ -20,7 +20,7 @@ def parse_con(con):
     """
     data = _decode_con(con)
     data =_resolve_references(data)
-    data = yaml.dump(data)
+    data = yaml.dump(data, default_flow_style=False, indent=4)
     return data
     
 def _resolve_references(data):
