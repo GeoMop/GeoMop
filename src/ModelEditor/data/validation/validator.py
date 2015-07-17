@@ -33,12 +33,30 @@ class Validator:
         data_errors = []
         category = DataError.Category.validation
 
+        def get_error_span(node, error):
+            """Determines the correct position of an error."""
+            span = node.key.section
+            if isinstance(error, errors.UnknownKey):
+                span = node.get_child(error.key).key.section
+            elif isinstance(error, errors.InvalidAbstractRecordType):
+                span = node.get_child('TYPE').span
+            elif (isinstance(error, errors.InvalidOption) or
+                  isinstance(error, errors.ValueTooBig) or
+                  isinstance(error, errors.ValueTooSmall)):
+                span = node.span
+            elif isinstance(node, dn.ScalarNode):
+                if isinstance(error, errors.ValidationTypeError):
+                    span = node.key.section
+                else:
+                    span = node.span
+            return span
+
         for node, error in self._errors:
             severity = severities[type(error)]
             description = str(error)
-            position = node.span.start
+            span = get_error_span(node, error)
             data_errors.append(DataError(category, severity, description,
-                                         position, node))
+                                         span, node))
 
         return data_errors
 
@@ -91,7 +109,7 @@ class Validator:
 
     def _validate_record(self, node, input_type):
         if not isinstance(node, dn.CompositeNode) or not node.explicit_keys:
-            self._report_error(node, errors.ValidationError("Expecting type Record"))
+            self._report_error(node, errors.ValidationTypeError("Expecting type Record"))
             return
         keys = node.children_keys
         keys.extend(input_type['keys'].keys())
@@ -118,7 +136,7 @@ class Validator:
 
     def _validate_array(self, node, input_type):
         if not isinstance(node, dn.CompositeNode) or node.explicit_keys:
-            self._report_error(node, errors.ValidationError("Expecting type Array"))
+            self._report_error(node, errors.ValidationTypeError("Expecting type Array"))
             return
         try:
             checks.check_array(node.children, input_type)

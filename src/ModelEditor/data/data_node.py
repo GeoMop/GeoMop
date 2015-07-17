@@ -238,6 +238,14 @@ class Span:
         self.end = end
         """:class:`.Position` indicates the end of the section; exclusive"""
 
+    def __str__(self):
+        return "{from_line}:{from_column}-{to_line}:{to_column}".format(
+            from_line=self.start.line,
+            from_column=self.start.column,
+            to_line=self.end.line,
+            to_column=self.end.column
+        )
+
 
 class DataError(Exception):
     """Represents an error that occurs while working with data."""
@@ -252,11 +260,11 @@ class DataError(Exception):
         warning = 'warning'
         error = 'error'
 
-    def __init__(self, category, severity, description, position, node=None):
+    def __init__(self, category, severity, description, span, node=None):
         self.category = category
         """:class:`ErrorCategory` the category of error"""
-        self.position = position
-        """:class:`Position` the position of error"""
+        self.span = span
+        """:class:`Span` the position of error"""
         self.description = description
         """describes the error"""
         self.node = node
@@ -264,10 +272,9 @@ class DataError(Exception):
         self.severity = severity
 
     def __str__(self):
-        text = "{line}:{column} - {name}\n{description}"
+        text = "{span} {name}\n{description}"
         return text.format(
-            line=self.position.line,
-            column=self.position.column,
+            span=self.span,
             name=self.category.value,
             description=self.description
         )
