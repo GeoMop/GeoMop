@@ -30,23 +30,23 @@ class YamlEditorWidget(QsciScintilla):
     
 
     def __init__(self, parent=None):
-        super( YamlEditorWidget, self).__init__(parent)
+        super(YamlEditorWidget, self).__init__(parent)
 
         appearance.set_default_appearens(self)
 
         # Set Yaml lexer
         self._lexer = QsciLexerYAML()
-        self._lexer.setDefaultFont( appearance.DEFAULT_FONT)
+        self._lexer.setFont(appearance.DEFAULT_FONT)
         self.setLexer(self._lexer)
-        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT,1)
+        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
         self.setAutoIndent(True)
         self.setIndentationGuides(True)
         self.setIndentationsUseTabs(False)
-        self.setTabWidth(4)
+        self.setTabWidth(2)
         self.setUtf8(True)
 
-        self._lexer.setColor (QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self._lexer.setColor(QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
         self._lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
         
         #Completetion
