@@ -63,6 +63,7 @@ class TooManyItems(ValidationError):
 class UnknownKey(ValidationError):
     """Error occurs when an unknown key is encountered in record."""
     def __init__(self, key, record_name):
+        self.key = key
         message = ("Unknown key {key} in record {record}"
                    .format(key=key, record=record_name))
         super(UnknownKey, self).__init__(message)
