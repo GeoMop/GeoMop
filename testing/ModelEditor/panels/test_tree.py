@@ -14,7 +14,6 @@ signal_is_send = None
 x=None
 
 def test_loadApp():
-    global app
     #test inicializace qt applikace
     assert  type(app).__name__=="QApplication"
 

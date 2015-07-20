@@ -16,20 +16,20 @@ def clean_config():
 
 def load_complex_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_complex_structure.yaml') as file:
-        document = file.read()
+        cfg.document = file.read()
     loader = Loader()
-    cfg.root = loader.load(document)
+    cfg.root = loader.load(cfg.document)
 
 
 def load_valid_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_valid.yaml') as file:
-        document = file.read()
+        cfg.document = file.read()
     loader = Loader()
-    cfg.root = loader.load(document)
+    cfg.root = loader.load(cfg.document)
 
 
 def load_invalid_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_invalid.yaml') as file:
-        document = file.read()
+        cfg.document = file.read()
     loader = Loader()
-    cfg.root = loader.load(document)
+    cfg.root = loader.load(cfg.document)

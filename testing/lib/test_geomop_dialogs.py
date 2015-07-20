@@ -6,12 +6,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 dialog_result={}
-app =None
+app = QApplication(sys.argv)
 
 def test_err_dialog(request): 
-    global dialog_result, app
+    global dialog_result,  app
     
-    app = QApplication(sys.argv)
     label = QLabel("test dialog")
     label.setWindowFlags(Qt.SplashScreen)
     label.show()

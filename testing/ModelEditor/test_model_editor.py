@@ -5,11 +5,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 dialog_result={}
+editor = model_editor.ModelEditor()
 
 def test_err_dialog(request): 
-    global dialog_result
+    global dialog_result,  editor
  
-    editor = model_editor.ModelEditor()
     timer=QTimer(editor._mainwindow)
     timer.timeout.connect(lambda: start_dialog(editor))
     timer.start(0)

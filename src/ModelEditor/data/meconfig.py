@@ -178,9 +178,12 @@ class MEConfig:
             file_d.close()
             return text
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog(
-                "Can't open format file '" + cls.curr_format_file +"'" , err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog(
+                    "Can't open format file '" + cls.curr_format_file +"'" , err)
+            else:
+                raise err
         return None
 
     @classmethod
@@ -194,9 +197,12 @@ class MEConfig:
             file_d.close()
             return text
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog(
-                "Can't open transformation file '" + file +"'" , err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog(
+                    "Can't open transformation file '" + file +"'" , err)
+            else:
+                raise err
         return None
 
     @classmethod
@@ -248,8 +254,11 @@ class MEConfig:
             cls.changed = False
             return True
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't open file", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't open file", err)
+            else:
+                raise err
         return False
 
     @classmethod
@@ -269,11 +278,17 @@ class MEConfig:
             cls.changed = True
             return True
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't open import file", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't open import file", err)
+            else:
+                raise err
         except Exception as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't import file from con format", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't import file from con format", err)
+            else:
+                raise err
         return False
 
     @classmethod
@@ -297,8 +312,11 @@ class MEConfig:
             cls.changed = False
             return True
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't open file", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't open file", err)
+            else:
+                raise err
         return False
 
     @classmethod
@@ -337,8 +355,11 @@ class MEConfig:
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't save file", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't save file", err)
+            else:
+                raise err
 
     @classmethod
     def save_as(cls, file_name):
@@ -352,8 +373,11 @@ class MEConfig:
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-            err_dialog.open_error_dialog("Can't save file", err)
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't save file", err)
+            else:
+                raise err
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):

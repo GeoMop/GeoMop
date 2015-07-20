@@ -51,7 +51,7 @@ def test_parse(request):
 
     # test complex structure
     mockcfg.load_complex_structure_to_config()
-
+    
     # test values - are scalars converted to the correct type?
     assert cfg.root.children[0].children[0].children[0].value is None
     assert cfg.root.children[1].children[1].children[0].value is True
