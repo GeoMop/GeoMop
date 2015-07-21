@@ -283,6 +283,7 @@ class DataError(Exception):
     @classmethod
     def from_marked_yaml_error(cls, yaml_error):
         """Creates DataError from MarkedYAMLError."""
+        # TODO: deprecate
         if yaml_error.problem_mark is not None:
             line = yaml_error.problem_mark.line
             column = yaml_error.problem_mark.column

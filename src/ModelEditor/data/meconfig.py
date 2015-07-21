@@ -8,6 +8,7 @@ from data.yaml import Loader
 from data.data_node import DataError
 from data.validation.validator import Validator
 from data.format import get_root_input_type_from_file
+import yaml
 
 
 __format_dir__ = os.path.join(
@@ -325,8 +326,8 @@ class MEConfig:
         cls.errors = []
         try:
             cls.root = cls.loader.load(cls.document)
-        except DataError as error:
-            cls.errors.append(error)
+        except yaml.MarkedYAMLError as error:
+            cls.errors.append(DataError.from_marked_yaml_error(error))
         else:
             if cls.root_input_type is None or cls.root is None:
                 return

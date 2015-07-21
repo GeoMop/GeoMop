@@ -27,7 +27,7 @@ class Loader:
         try:
             self._event = next(self._events)
         except yaml.MarkedYAMLError as error:
-            raise DataError.from_marked_yaml_error(error)
+            raise error
         except StopIteration:
             self._event = None
 

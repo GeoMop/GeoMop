@@ -6,6 +6,7 @@ from data.meconfig import MEConfig as cfg
 import mock_config as mockcfg
 import sys
 from PyQt5.QtWidgets import QApplication
+import yaml
 
 
 app = QApplication(sys.argv)
@@ -81,7 +82,7 @@ def test_parse(request):
         "format: ascii\n"
         "- file: dual_sorp.vtk"
     )
-    with pytest.raises(DataError):
+    with pytest.raises(yaml.MarkedYAMLError):
         loader.load(document)
 
     # test tag parsing
