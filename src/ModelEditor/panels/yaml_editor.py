@@ -1,4 +1,5 @@
 from data.meconfig import MEConfig as cfg
+from enum import Enum
 import data.data_node as dn
 import helpers.subyaml_change_analyzer as analyzer
 from helpers.editor_appearance import EditorAppearance as appearance
@@ -6,6 +7,7 @@ from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla,  QsciLexerYAML, QsciAPIs
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+import icon
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -15,6 +17,7 @@ class YamlEditorWidget(QsciScintilla):
     Events:
         :ref:`nodeChanged <node_changed>`
         :ref:`structureChanged <structure_changed>`
+        :ref:`errorMarginClicked <error_margin_clicked>`
     """
     nodeChanged = QtCore.pyqtSignal(int, int)
     """
@@ -26,6 +29,13 @@ class YamlEditorWidget(QsciScintilla):
     .. _structure_changed:
     Sgnal is sent when node structure document is changed.
     Reload and check is need
+    """
+    errorMarginClicked = QtCore.pyqtSignal(int)
+    """
+    .. _error_margin_clicked:
+    Sgnal is sent when margin with error icon is clicked.
+    
+    parameter: line number in text document
     """
     
 
@@ -56,8 +66,18 @@ class YamlEditorWidget(QsciScintilla):
 
         # not too small
         self.setMinimumSize(600, 450)
+        
+        # Clickable margin 1 for showing markers
+        self.setMarginSensitivity(1, True)
+        self.markerDefine(icon.get_pixmap("error", 16),Severity.error.value)
+        self.markerDefine(icon.get_pixmap("warning", 16),Severity.warning.value)
+        self.markerDefine(icon.get_pixmap("information", 16),Severity.info.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.error.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.warning.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.info.value)
 
         #signals
+        self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self._pos = editorPosition()
@@ -76,6 +96,7 @@ class YamlEditorWidget(QsciScintilla):
         """reload data from config"""
         if cfg.document != self.text():
             self.setText(cfg.document)
+        self._reload_margin()
 
     def _cursor_position_changed(self,  line, index):
         """Function for cursorPositionChanged signal"""
@@ -93,6 +114,25 @@ class YamlEditorWidget(QsciScintilla):
         if not self._pos.fix_bounds(self):
             line, index = self.getCursorPosition()
             self.structureChanged.emit(line+1, index+1)
+
+    def _margin_clicked(self, margin, line, modifiers):
+        """Margin clicked signal"""
+        if self.markersAtLine(line) != 0:
+            self.errorMarginClicked.emit(line+1)
+
+    def _reload_margin(self):
+        """Set error icon to margin"""
+        self.markerDeleteAll()
+        for error in cfg.errors:
+            line = error.span.start.line-1
+            if self.markersAtLine(line) != 0:
+                continue
+            if error.severity == dn.DataError. Severity.error:
+                self.markerAdd(line, Severity.error.value)
+            elif error.severity == dn.DataError. Severity.warning:
+                self.markerAdd(line, Severity.warning.value)
+            else:
+                self.markerAdd(line, Severity.info.value)
 
 class editorPosition():
     """Helper for guarding cursor possition above node"""
@@ -347,3 +387,9 @@ class editorPosition():
             self._last_line_after = None
         else:
             self._last_line_after = editor.text(self.line+1)
+            
+class Severity(Enum):
+    """Severity of an error."""
+    info = 0
+    warning = 1
+    error = 2

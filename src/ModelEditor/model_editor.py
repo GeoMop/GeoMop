@@ -140,9 +140,11 @@ class ModelEditor:
         self._hsplitter.insertWidget(0, self._tree)
 
         # signals
+        self._err.itemSelected.connect(self._item_selected)
         self._tree.itemSelected.connect(self._item_selected)
         self._editor.nodeChanged.connect(self._node_changed)
         self._editor.structureChanged.connect(self._structure_changed)
+        self._editor.errorMarginClicked.connect(self._error_margin_clicked)
         #show
         self._mainwindow.show()
         self._editor.setFocus()
@@ -163,11 +165,17 @@ class ModelEditor:
         self._editor.setFocus()
         self._editor.mark_selected(start_column, start_row, end_column, end_row)
 
+    def _error_margin_clicked(self, line):
+        """Click error icon in margin"""
+        self._tab.setCurrentIndex(self._tab.indexOf(self._err))
+        self._err.select_error(line)
+
     def _reload(self):
         """reload panels after structure changes"""
         cfg.update()
         self._editor.reload()
         self._tree.reload()
+        self._err. reload()
         line, index = self._editor.getCursorPosition()
         self._reload_node(line+1, index+1)
 

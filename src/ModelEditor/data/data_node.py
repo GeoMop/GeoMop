@@ -257,6 +257,7 @@ class DataError(Exception):
 
     class Severity(Enum):
         """Severity of an error."""
+        info = 'info'
         warning = 'warning'
         error = 'error'
 
