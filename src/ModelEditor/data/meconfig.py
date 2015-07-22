@@ -385,3 +385,9 @@ class MEConfig:
             cls.changed = True
             return True
         return False
+        
+    @classmethod
+    def transform(cls, file):
+        """save file"""
+        cls.update()
+        cls.update()

@@ -257,9 +257,10 @@ class DataError(Exception):
 
     class Severity(Enum):
         """Severity of an error."""
-        info = 'info'
-        warning = 'warning'
-        error = 'error'
+        info = 0
+        warning = 1
+        error = 2
+        fatal = 3
 
     def __init__(self, category, severity, description, span, node=None):
         self.category = category

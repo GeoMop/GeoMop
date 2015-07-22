@@ -1,5 +1,4 @@
 from data.meconfig import MEConfig as cfg
-from enum import Enum
 import data.data_node as dn
 import helpers.subyaml_change_analyzer as analyzer
 from helpers.editor_appearance import EditorAppearance as appearance
@@ -15,14 +14,20 @@ class YamlEditorWidget(QsciScintilla):
     Main editor widget for editing yaml file
 
     Events:
+        :ref:`cursorChanged <cursor_changed>`
         :ref:`nodeChanged <node_changed>`
         :ref:`structureChanged <structure_changed>`
         :ref:`errorMarginClicked <error_margin_clicked>`
     """
+    cursorChanged = QtCore.pyqtSignal(int, int)
+    """
+    .. _cursor_changed:
+    Sgnal is sent when cursor possition is changed.
+    """
     nodeChanged = QtCore.pyqtSignal(int, int)
     """
     .. _node_changed:
-    Sgnal is sent when node below cursor possition changed.
+    Sgnal is sent when node below cursor possition is changed.
     """
     structureChanged = QtCore.pyqtSignal(int, int)
     """
@@ -69,12 +74,14 @@ class YamlEditorWidget(QsciScintilla):
         
         # Clickable margin 1 for showing markers
         self.setMarginSensitivity(1, True)
-        self.markerDefine(icon.get_pixmap("error", 16),Severity.error.value)
-        self.markerDefine(icon.get_pixmap("warning", 16),Severity.warning.value)
-        self.markerDefine(icon.get_pixmap("information", 16),Severity.info.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.error.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.warning.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), Severity.info.value)
+        self.markerDefine(icon.get_pixmap("fatal", 16),dn.DataError.Severity.fatal.value)
+        self.markerDefine(icon.get_pixmap("error", 16),dn.DataError.Severity.error.value)
+        self.markerDefine(icon.get_pixmap("warning", 16),dn.DataError.Severity.warning.value)
+        self.markerDefine(icon.get_pixmap("information", 16),dn.DataError.Severity.info.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.fatal.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.error.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.warning.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.info.value)
 
         #signals
         self.marginClicked.connect(self._margin_clicked)
@@ -106,6 +113,7 @@ class YamlEditorWidget(QsciScintilla):
             else:
                 self.nodeChanged.emit(line+1, index+1)
         self._pos.make_post_operation(self,  line, index)
+        self.cursorChanged.emit(line+1, index+1)
 
     def _text_changed(self):
         """Function for textChanged signal"""
@@ -127,12 +135,14 @@ class YamlEditorWidget(QsciScintilla):
             line = error.span.start.line-1
             if self.markersAtLine(line) != 0:
                 continue
-            if error.severity == dn.DataError. Severity.error:
-                self.markerAdd(line, Severity.error.value)
+            if error.severity == dn.DataError.Severity.fatal:
+                self.markerAdd(line, dn.DataError.Severity.fatal.value)
+            if error.severity == dn.DataError.Severity.error:
+                self.markerAdd(line, dn.DataError.Severity.error.value)
             elif error.severity == dn.DataError. Severity.warning:
-                self.markerAdd(line, Severity.warning.value)
+                self.markerAdd(line, dn.DataError.Severity.warning.value)
             else:
-                self.markerAdd(line, Severity.info.value)
+                self.markerAdd(line, dn.DataError.Severity.info.value)
 
 class editorPosition():
     """Helper for guarding cursor possition above node"""
@@ -386,10 +396,5 @@ class editorPosition():
         if editor.lines() == self.line+1:
             self._last_line_after = None
         else:
-            self._last_line_after = editor.text(self.line+1)
-            
-class Severity(Enum):
-    """Severity of an error."""
-    info = 0
-    warning = 1
-    error = 2
+            self._last_line_after = editor.text(self.line+1)            
+

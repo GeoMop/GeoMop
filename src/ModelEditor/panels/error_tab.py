@@ -40,10 +40,13 @@ class ErrorWidget(QtWidgets.QListWidget):
     def _load_items(self):
         """load errors"""
         for error in cfg.errors:
-            if error.severity == dn.DataError. Severity.error:
+            if error.severity == dn.DataError.Severity.fatal:
+                item = QtWidgets.QListWidgetItem(
+                    icon.get_icon("fatal", 24), error.category.value + ": " + error.description) 
+            elif error.severity == dn.DataError.Severity.error:
                 item = QtWidgets.QListWidgetItem(
                     icon.get_icon("error", 24), error.category.value + ": " + error.description) 
-            elif error.severity == dn.DataError. Severity.warning:
+            elif error.severity == dn.DataError.Severity.warning:
                 item = QtWidgets.QListWidgetItem(
                     icon.get_icon("warning", 24), error.category.value + ": " + error.description) 
             else:

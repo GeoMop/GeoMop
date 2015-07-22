@@ -5,4 +5,4 @@ Tango Icon Library 0.8.90 (tango)
 	formats: svg, png
 	subdirectory: open_icon_library-devel/icons/tango
 
-error.png, information.png, warning.png - tango
+error.png, information.png, warning.png, fatal.png - tango
