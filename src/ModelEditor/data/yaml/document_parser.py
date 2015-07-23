@@ -63,17 +63,18 @@ class DocumentParser:
         """Removes the diff block of code at error position."""
         parsed_doc_lines = self.parsed_doc.splitlines(keepends=True)
         current_doc_lines = self.current_doc.splitlines(keepends=True)
-        sm = difflib.SequenceMatcher(current_doc_lines, parsed_doc_lines)
+        sm = difflib.SequenceMatcher(a=current_doc_lines, b=parsed_doc_lines)
         for tag, cur_start_line, cur_end_line, par_start_line, par_end_line \
                 in sm.get_opcodes():
-            pass
-        # SequenceMatcher diff
-        # replace all until error
-        # comment out entire block at position
-        # replace all
-        # TODO: set self._error_end_position = end of diff area
-        # return document with some lines commented out
-        pass
+            # comment out edited lines
+            if cur_start_line >= self._error_line and tag == 'replace':
+                i = cur_start_line
+                while i < cur_end_line:
+                    current_doc_lines[i] = '#' + current_doc_lines[i]
+                    i += 1
+                self._error_end_pos = dn.Position(cur_end_line + 1, 1)
+                break  # perform just a single change
+        return current_doc_lines
 
     def _get_error_line_from_yaml_error(self, yaml_error):
         if yaml_error.problem_mark is not None:
