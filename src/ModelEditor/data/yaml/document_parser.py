@@ -28,8 +28,7 @@ class DocumentParser:
     @property
     def errors(self):
         """Tuple of parsing errors."""
-        # TODO: transform _errors into DataError
-        raise NotImplementedError
+        return list(self._errors)
 
     def parse(self, current_doc):
         """
@@ -63,6 +62,7 @@ class DocumentParser:
         """Removes the diff block of code at error position."""
         parsed_doc_lines = self.parsed_doc.splitlines(keepends=True)
         current_doc_lines = self.current_doc.splitlines(keepends=True)
+        self._error_end_pos = None
         sm = difflib.SequenceMatcher(a=current_doc_lines, b=parsed_doc_lines)
         for tag, cur_start_line, cur_end_line, par_start_line, par_end_line \
                 in sm.get_opcodes():
@@ -72,10 +72,13 @@ class DocumentParser:
                 while i < cur_end_line:
                     current_doc_lines[i] = '#' + current_doc_lines[i]
                     i += 1
-                self._error_end_pos = dn.Position(cur_end_line + 1, 1)
-                if not (cur_start_line >= self._error_line and cur_end_line < self._error_line):
-                    # show user info on commented out blocks
-                    self._report_modification_ignored(cur_start_line, cur_end_line)
+                if self._error_end_pos is None and self._error_line < cur_end_line:
+                    # set end mark for parser error
+                    self._error_end_pos = dn.Position(cur_end_line + 1, 1)
+                # show user info on commented out blocks
+                self._report_modification_ignored(cur_start_line, cur_end_line)
+        if self._error_end_pos is None:
+            self._error_end_pos = dn.Position(cur_end_line + 1, 1)
         return current_doc_lines
 
     def _get_error_line_from_yaml_error(self, yaml_error):

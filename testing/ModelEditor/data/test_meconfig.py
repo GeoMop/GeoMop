@@ -189,4 +189,4 @@ def test_meconfig_static(request):
     # test document parsing error
     cfg.document = "n: :"
     cfg.update()
-    assert len(cfg.errors) == 1
+    assert len(cfg.errors) == 2

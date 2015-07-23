@@ -4,7 +4,7 @@ import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
 from data.data_node import (CompositeNode, ScalarNode, Key, Span,
-                            Position, DataError)
+                            Position)
 
 
 class Loader:
