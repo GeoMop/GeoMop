@@ -41,7 +41,7 @@ class DocumentParser:
             root_node = self._loader.load(self.current_doc)
         except yaml.MarkedYAMLError as yaml_error:
             self._error_line = self._get_error_line_from_yaml_error(yaml_error)
-            doc_lines = self._remove_diff_block_at_error_line()
+            doc_lines = self._remove_diff_blocks()
             self._report_parsing_error(yaml_error)
             try:
                 document = ''.join(doc_lines)
@@ -58,13 +58,15 @@ class DocumentParser:
             self.parsed_doc = self.current_doc
         return root_node
 
-    def _remove_diff_block_at_error_line(self):
+    def _remove_diff_blocks(self):
         """Removes the diff block of code at error position."""
+        # pylint: disable=invalid-name,unused-variable
         parsed_doc_lines = self.parsed_doc.splitlines(keepends=True)
         current_doc_lines = self.current_doc.splitlines(keepends=True)
         self._error_end_pos = None
         sm = difflib.SequenceMatcher(a=current_doc_lines, b=parsed_doc_lines)
-        for tag, cur_start_line, cur_end_line, par_start_line, par_end_line \
+        cur_end_line = 0
+        for tag, cur_start_line, cur_end_line, __, __ \
                 in sm.get_opcodes():
             # comment out edited lines
             if tag == 'replace' or tag == 'delete':
@@ -108,7 +110,6 @@ class DocumentParser:
         self._errors.append(error)
 
     def _get_eof_position(self):
-        # TODO: replace with static? util lib
         eof_line = len(self.current_doc) - 1
         eof_column = len(self.current_doc[eof_line]) - 1
         return dn.Position(eof_line + 1, eof_column + 1)

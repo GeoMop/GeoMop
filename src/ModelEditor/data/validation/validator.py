@@ -157,5 +157,3 @@ class Validator:
         if not isinstance(error, errors.UnknownKey):
             self.valid = False
         self._errors.append((node, error))
-
-
