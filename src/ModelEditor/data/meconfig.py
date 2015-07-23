@@ -4,10 +4,11 @@ import copy
 import config as cfg
 import geomop_dialogs
 from data.import_json import parse_con
-from data.yaml import Loader
+from data.yaml import DocumentParser
 from data.data_node import DataError
 from data.validation.validator import Validator
 from data.format import get_root_input_type_from_file
+import yaml
 
 
 __format_dir__ = os.path.join(
@@ -125,8 +126,8 @@ class MEConfig:
     """array of validation errors"""
     changed = False
     """is file changed"""
-    loader = Loader()
-    """loader for YAML documents"""
+    doc_parser = DocumentParser()
+    """document parser that handles parsing errors"""
     validator = Validator()
     """data validator"""
     root_input_type = None
@@ -323,15 +324,12 @@ class MEConfig:
     def update(cls):
         """reread yaml text and update node tree"""
         cls.errors = []
-        try:
-            cls.root = cls.loader.load(cls.document)
-        except DataError as error:
-            cls.errors.append(error)
-        else:
-            if cls.root_input_type is None or cls.root is None:
-                return
-            cls.validator.validate(cls.root, cls.root_input_type)
-            cls.errors = cls.validator.data_errors
+        cls.root = cls.doc_parser.parse(cls.document)
+        cls.errors = list(cls.doc_parser.errors)
+        if cls.root_input_type is None or cls.root is None:
+            return
+        cls.validator.validate(cls.root, cls.root_input_type)
+        cls.errors.extend(cls.validator.data_errors)
 
     @classmethod
     def update_format(cls):
