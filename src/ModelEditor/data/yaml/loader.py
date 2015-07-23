@@ -34,7 +34,8 @@ class Loader:
     def _create_root_node(self):
         self._parse_next_event()
         root = self._create_node()
-        while root is None and self._event is not None:
+        while (root is None or isinstance(root, ScalarNode))\
+                and self._event is not None:
             # skip non-node events (StreamStart, DocumentStart)
             self._parse_next_event()
             root = self._create_node()

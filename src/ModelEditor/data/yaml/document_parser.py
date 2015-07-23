@@ -42,7 +42,7 @@ class DocumentParser:
             root_node = self._loader.load(self.current_doc)
         except yaml.MarkedYAMLError as yaml_error:
             self._error_line = self._get_error_line_from_yaml_error(yaml_error)
-            doc_lines = self._remove_diff_block_at_position()
+            doc_lines = self._remove_diff_block_at_error_line()
             self._report_parsing_error(yaml_error)
             try:
                 document = ''.join(doc_lines)
@@ -67,13 +67,15 @@ class DocumentParser:
         for tag, cur_start_line, cur_end_line, par_start_line, par_end_line \
                 in sm.get_opcodes():
             # comment out edited lines
-            if cur_start_line >= self._error_line and tag == 'replace':
+            if tag == 'replace' or tag == 'delete':
                 i = cur_start_line
                 while i < cur_end_line:
                     current_doc_lines[i] = '#' + current_doc_lines[i]
                     i += 1
                 self._error_end_pos = dn.Position(cur_end_line + 1, 1)
-                break  # perform just a single change
+                if not (cur_start_line >= self._error_line and cur_end_line < self._error_line):
+                    # show user info on commented out blocks
+                    self._report_modification_ignored(cur_start_line, cur_end_line)
         return current_doc_lines
 
     def _get_error_line_from_yaml_error(self, yaml_error):
@@ -89,6 +91,16 @@ class DocumentParser:
         description = yaml_error.problem
         start_pos = dn.Position(self._error_line + 1, 1)
         span = dn.Span(start=start_pos, end=self._error_end_pos)
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
+    def _report_modification_ignored(self, start_line, end_line):
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.info
+        description = "Modifications ignored. Please fix parsing error(s) first."
+        start_pos = dn.Position(start_line + 1, 1)
+        end_pos = dn.Position(end_line + 1, 1)
+        span = dn.Span(start=start_pos, end=end_pos)
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
 
