@@ -63,24 +63,32 @@ class DocumentParser:
         # pylint: disable=invalid-name,unused-variable
         parsed_doc_lines = self.parsed_doc.splitlines(keepends=True)
         current_doc_lines = self.current_doc.splitlines(keepends=True)
-        self._error_end_pos = None
-        sm = difflib.SequenceMatcher(a=current_doc_lines, b=parsed_doc_lines)
-        cur_end_line = 0
-        for tag, cur_start_line, cur_end_line, __, __ \
-                in sm.get_opcodes():
-            # comment out edited lines
-            if tag == 'replace' or tag == 'delete':
-                i = cur_start_line
-                while i < cur_end_line:
-                    current_doc_lines[i] = '#' + current_doc_lines[i]
-                    i += 1
-                if self._error_end_pos is None and self._error_line < cur_end_line:
-                    # set end mark for parser error
-                    self._error_end_pos = dn.Position(cur_end_line + 1, 1)
-                # show user info on commented out blocks
-                self._report_modification_ignored(cur_start_line, cur_end_line)
-        if self._error_end_pos is None:
-            self._error_end_pos = dn.Position(cur_end_line + 1, 1)
+        if not self.parsed_doc:  # no previous version, invalidate until the end
+            self._error_end_pos = self._get_eof_position()
+            i = self._error_line
+            while i < len(current_doc_lines):
+                current_doc_lines[i] = '#' + current_doc_lines[i]
+                i += 1
+
+        else:  # parsed_doc is not empty - find modifications
+            self._error_end_pos = None
+            sm = difflib.SequenceMatcher(a=current_doc_lines, b=parsed_doc_lines)
+            cur_end_line = 0
+            for tag, cur_start_line, cur_end_line, __, __ \
+                    in sm.get_opcodes():
+                # comment out edited lines
+                if tag == 'replace' or tag == 'delete':
+                    i = cur_start_line
+                    while i < cur_end_line:
+                        current_doc_lines[i] = '#' + current_doc_lines[i]
+                        i += 1
+                    if self._error_end_pos is None and self._error_line < cur_end_line:
+                        # set end mark for parser error
+                        self._error_end_pos = dn.Position(cur_end_line + 1, 1)
+                    # show user info on commented out blocks
+                    self._report_modification_ignored(cur_start_line, cur_end_line)
+            if self._error_end_pos is None:
+                self._error_end_pos = dn.Position(cur_end_line + 1, 1)
         return current_doc_lines
 
     def _get_error_line_from_yaml_error(self, yaml_error):
