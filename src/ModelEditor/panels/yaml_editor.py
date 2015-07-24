@@ -133,16 +133,18 @@ class YamlEditorWidget(QsciScintilla):
         self.markerDeleteAll()
         for error in cfg.errors:
             line = error.span.start.line-1
-            if self.markersAtLine(line) != 0:
-                continue
             if error.severity == dn.DataError.Severity.fatal:
-                self.markerAdd(line, dn.DataError.Severity.fatal.value)
-            if error.severity == dn.DataError.Severity.error:
-                self.markerAdd(line, dn.DataError.Severity.error.value)
+                if self.markersAtLine(line) < (1<<dn.DataError.Severity.fatal.value):
+                    self.markerAdd(line, dn.DataError.Severity.fatal.value)
+            elif error.severity == dn.DataError.Severity.error:
+                if self.markersAtLine(line) < (1<<dn.DataError.Severity.error.value):
+                    self.markerAdd(line, dn.DataError.Severity.error.value)
             elif error.severity == dn.DataError. Severity.warning:
-                self.markerAdd(line, dn.DataError.Severity.warning.value)
+                if self.markersAtLine(line) < (1<<dn.DataError.Severity.warning.value):
+                    self.markerAdd(line, dn.DataError.Severity.warning.value)
             else:
-                self.markerAdd(line, dn.DataError.Severity.info.value)
+                if self.markersAtLine(line) < (1<<dn.DataError.Severity.info.value):
+                    self.markerAdd(line, dn.DataError.Severity.info.value)
 
 class editorPosition():
     """Helper for guarding cursor possition above node"""

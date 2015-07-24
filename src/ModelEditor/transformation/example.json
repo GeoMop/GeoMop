@@ -1,27 +1,29 @@
-"name": "Example file"
-"description": "Template for creating transformation file"
-"old_format": ""
-"new_format": ""
+{
+"name": "Example file",
+"description": "Template for creating transformation file",
+"old_format": "",
+"new_format": "",
 "actions":[
 {
-"action": "delete-key"
-"parameters":[
-"path":""
-]
+"action": "delete-key",
+"parameters":{
+"path": ""
+}
 },
 {
-"action": "move-key"
-"parameters":[
-"source_path":""
+"action": "move-key",
+"parameters":{
+"source_path":"",
 "destination_path":""
-]
+}
 },
 {
-"action": "move-key"
-"parameters":[
-"path":""
-"old_name":""
+"action": "rename-type",
+"parameters":{
+"path":"",
+"old_name":"",
 "new_name":""
-]
+}
 }
 ]
+}

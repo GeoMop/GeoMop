@@ -5,9 +5,12 @@ import config as cfg
 import geomop_dialogs
 from data.import_json import parse_con
 from data.yaml import Loader
+from data.yaml.transformator import Transformator, TransformationFileFormatError
+from dialogs.transformation_detail import TranformationDetailDlg
 from data.data_node import DataError
 from data.validation.validator import Validator
 from data.format import get_root_input_type_from_file
+import PyQt5.QtWidgets as QtWidgets
 
 
 __format_dir__ = os.path.join(
@@ -388,6 +391,26 @@ class MEConfig:
         
     @classmethod
     def transform(cls, file):
-        """save file"""
+        """Run transformation accoding rules in set file"""
         cls.update()
-        cls.update()
+        text=cls.get_transformation_text(file)
+        try:
+            transformator = Transformator(text)
+        except (ValueError, TransformationFileFormatError) as err:
+            if cls.main_window is not None:
+                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't decode transformation file", err)
+            else:
+                raise err
+            return    
+        dialog = TranformationDetailDlg(transformator.name,  transformator.description, 
+                                                             transformator.old_version,  cls.curr_format_file, 
+                                                             transformator.new_version, 
+                                                             transformator.new_version in cls.transformation_files, 
+                                                             cls.main_window)
+        if  QtWidgets.QDialog.Accepted == dialog.exec_():
+            transformator.transform(cls.root, cls.document)
+            if transformator.new_version in cls.transformation_files:
+                cls.set_current_format_file(transformator.new_version)
+            else:
+                cls.update()

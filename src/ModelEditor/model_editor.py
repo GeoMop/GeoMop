@@ -283,6 +283,7 @@ class ModelEditor:
     def _transform(self,  file):
         """Run transformation accoding rules in set file"""
         cfg.update_yaml_file(self._editor.text())
+        cfg.transform( file)
         
         
     def _edit_transformation_file(self,  file):
