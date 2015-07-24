@@ -4,7 +4,7 @@ import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
 from data.data_node import (CompositeNode, ScalarNode, Key, Span,
-                            Position, DataError)
+                            Position)
 
 
 class Loader:
@@ -27,14 +27,15 @@ class Loader:
         try:
             self._event = next(self._events)
         except yaml.MarkedYAMLError as error:
-            raise DataError.from_marked_yaml_error(error)
+            raise error
         except StopIteration:
             self._event = None
 
     def _create_root_node(self):
         self._parse_next_event()
         root = self._create_node()
-        while root is None and self._event is not None:
+        while (root is None or isinstance(root, ScalarNode))\
+                and self._event is not None:
             # skip non-node events (StreamStart, DocumentStart)
             self._parse_next_event()
             root = self._create_node()

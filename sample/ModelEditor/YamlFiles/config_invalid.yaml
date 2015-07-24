@@ -7,8 +7,8 @@
 problem:
   TYPE: SequentialCoupling
   mesh: {mesh_file: input/dual_por.msh}
-  unknown: test  # unknown key -> validation warning
-  primary_equation:
+  unknown: test  # unknown key - validation warning
+  primary_equation:  # validation error - missing key
     TYPE: Steady_MH
     balance: {balance_on: true}
     input_fields:
@@ -19,5 +19,5 @@ problem:
       output_fields: []
       output_stream:
         file: dual_por.pvd
-        time_step: # missing value -> validation error
-    solver: {}  # missing TYPE -> validation error
+        -  # parsing error, info - modification ignored
+        time_step: 3

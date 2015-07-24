@@ -42,7 +42,8 @@ class Validator:
                 span = node.get_child('TYPE').span
             elif (isinstance(error, errors.InvalidOption) or
                   isinstance(error, errors.ValueTooBig) or
-                  isinstance(error, errors.ValueTooSmall)):
+                  isinstance(error, errors.ValueTooSmall) or
+                  isinstance(error, errors.ValidationTypeError)):
                 span = node.span
             elif isinstance(node, dn.ScalarNode):
                 if isinstance(error, errors.ValidationTypeError):
@@ -156,5 +157,3 @@ class Validator:
         if not isinstance(error, errors.UnknownKey):
             self.valid = False
         self._errors.append((node, error))
-
-
