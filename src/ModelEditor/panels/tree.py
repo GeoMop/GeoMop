@@ -66,11 +66,11 @@ class TreeWidget(QtWidgets.QTreeView):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()
         if(model_index.column() == 0 and
-           data.key.section is not None):
-            self.itemSelected.emit(data.key.section.start.column,
-                                   data.key.section.start.line,
-                                   data.key.section.end.column,
-                                   data.key.section.end.line)
+           data.key.span is not None):
+            self.itemSelected.emit(data.key.span.start.column,
+                                   data.key.span.start.line,
+                                   data.key.span.end.column,
+                                   data.key.span.end.line)
         else:
             self.itemSelected.emit(data.span.start.column, data.span.start.line,
                                    data.span.end.column, data.span.end.line)

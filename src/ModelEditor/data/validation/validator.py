@@ -35,9 +35,9 @@ class Validator:
 
         def get_error_span(node, error):
             """Determines the correct position of an error."""
-            span = node.key.section
+            span = node.key.span
             if isinstance(error, errors.UnknownKey):
-                span = node.get_child(error.key).key.section
+                span = node.get_child(error.key).key.span
             elif isinstance(error, errors.InvalidAbstractRecordType):
                 span = node.get_child('TYPE').span
             elif (isinstance(error, errors.InvalidOption) or
@@ -47,7 +47,7 @@ class Validator:
                 span = node.span
             elif isinstance(node, dn.ScalarNode):
                 if isinstance(error, errors.ValidationTypeError):
-                    span = node.key.section
+                    span = node.key.span
                 else:
                     span = node.span
             return span

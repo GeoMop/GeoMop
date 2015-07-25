@@ -24,7 +24,7 @@ class DataNode:
         self.key = key
         """key (name) of this node"""
         if self.key is None:
-            self.key = Key()
+            self.key = TextValue()
         self.input_type = None
         """input type specified by format"""
         self.span = None
@@ -92,8 +92,8 @@ class DataNode:
     def _beginning(self):
         """beginning of node, including its key"""
         beginning = self.span.start
-        if self.key is not None and self.key.section is not None:
-            beginning = self.key.section.start
+        if self.key is not None and self.key.span is not None:
+            beginning = self.key.span.start
         return beginning
 
     @property
@@ -184,13 +184,13 @@ class ScalarNode(DataNode):
         return text
 
 
-class Key:
-    """Represents a key in the tree structure."""
+class TextValue:
+    """Represents a value in the input text."""
     def __init__(self, value=None):
         self.value = value
-        """representation of the key"""
-        self.section = None
-        """:class:`.Section` borders the position of the key"""
+        """the value from input text"""
+        self.span = None
+        """:class:`.Span` specifies the position of value in input text"""
 
 
 class ComparableMixin:
