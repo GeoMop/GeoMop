@@ -1,6 +1,11 @@
 """
 Customized pyyaml constructor for scalar values
 
+This file contains some changes of the original pyyaml library.
+Author of changes: Tomas Krizek
+
+Original license follows
+
 Copyright (c) 2006 Kirill Simonov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
