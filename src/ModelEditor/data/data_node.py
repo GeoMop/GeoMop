@@ -29,6 +29,7 @@ class DataNode:
         """input type specified by format"""
         self.span = None
         """borders the position of this node in input text"""
+        self._options = []
 
     def absolute_path(self, descendant_path=None):
         """return path of node"""
@@ -39,20 +40,20 @@ class DataNode:
         else:
             path = str(self.key.value) + "/" + descendant_path
         return self.parent.absolute_path(path)
-        
+
     @property
     def options(self):
         """possible options to hint in autocomplete"""
-        options = []
-        if DEBUG_MODE:
-            # return start, end position as options
-            options.append("start: {line}:{column}"
-                           .format(line=self.span.start.line,
-                                   column=self.span.start.column))
-            options.append("end: {line}:{column}"
-                           .format(line=self.span.end.line,
-                                   column=self.span.end.column))
+        options = self._options
+        # if DEBUG_MODE and self.span is not None:
+        #     # return start, end position as options
+        #     options = ["start: {start}".format(start=self.span.start),
+        #                "end: {end}".format(end=self.span.end)]
         return options
+
+    @options.setter
+    def options(self, options):
+        self._options = options
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
@@ -71,7 +72,7 @@ class DataNode:
             "  key: {key}\n"
             "  parent: {parent_type} at 0x{parent_address:x}\n"
             "  ref: {ref}\n"
-            "  span: {sline}:{scol}-{eline}:{ecol}\n"
+            "  span: {span}\n"
             "  input_type: {input_type}\n"
         )
         return text.format(
@@ -81,10 +82,7 @@ class DataNode:
             parent_type=type(self.parent).__name__,
             parent_address=id(self.parent),
             ref=self.ref,
-            sline=self.span.start.line,
-            scol=self.span.start.column,
-            eline=self.span.end.line,
-            ecol=self.span.end.column,
+            span=self.span,
             input_type=self.input_type
         )
 
@@ -131,15 +129,6 @@ class CompositeNode(DataNode):
         )
         return text
 
-    @property
-    def options(self):
-        """list of possible record keys for autocomplete"""
-        if not self.explicit_keys:
-            return []
-        if DEBUG_MODE:
-            return super(CompositeNode, self).options
-        raise NotImplementedError
-
     def get_child(self, key):
         """
         Returns a child node for the given key; None if key doesn't
@@ -168,13 +157,6 @@ class ScalarNode(DataNode):
         if self._beginning <= position <= self._end:
             return self
         return None
-
-    @property
-    def options(self):
-        """list of possible values for autocomplete"""
-        if DEBUG_MODE:
-            return super(ScalarNode, self).options
-        raise NotImplementedError
 
     def __str__(self):
         text = super(ScalarNode, self).__str__()
@@ -229,6 +211,9 @@ class Position(ComparableMixin):
             return self.column < other.column
         return False
 
+    def __str__(self):
+        return "[{line}:{column}]".format(line=self.line, column=self.column)
+
 
 class Span:
     """Borders a part of text."""
@@ -239,11 +224,9 @@ class Span:
         """:class:`.Position` indicates the end of the section; exclusive"""
 
     def __str__(self):
-        return "{from_line}:{from_column}-{to_line}:{to_column}".format(
-            from_line=self.start.line,
-            from_column=self.start.column,
-            to_line=self.end.line,
-            to_column=self.end.column
+        return "{start}-{end}".format(
+            start=self.start,
+            end=self.end
         )
 
 
