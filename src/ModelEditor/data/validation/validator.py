@@ -35,9 +35,9 @@ class Validator:
 
         def get_error_span(node, error):
             """Determines the correct position of an error."""
-            span = node.key.section
+            span = node.key.span
             if isinstance(error, errors.UnknownKey):
-                span = node.get_child(error.key).key.section
+                span = node.get_child(error.key).key.span
             elif isinstance(error, errors.InvalidAbstractRecordType):
                 span = node.get_child('TYPE').span
             elif (isinstance(error, errors.InvalidOption) or
@@ -47,7 +47,7 @@ class Validator:
                 span = node.span
             elif isinstance(node, dn.ScalarNode):
                 if isinstance(error, errors.ValidationTypeError):
-                    span = node.key.section
+                    span = node.key.span
                 else:
                     span = node.span
             return span
@@ -66,6 +66,7 @@ class Validator:
         Performs data validation of node with the specified input_type.
 
         Validation is performed recursively on all children nodes as well.
+        Options are added to nodes where applicable (record keys, selection, ...).
 
         Returns True when all data was correctly validated, False otherwise.
         Attribute errors contains a list of occurred errors.
@@ -103,6 +104,8 @@ class Validator:
             self._report_error(message, error)
 
     def _validate_scalar(self, node, input_type):
+        if input_type['base_type'] == 'Selection':
+            self.options = input_type['values']
         try:
             checks.check_scalar(node, input_type)
         except errors.ValidationError as error:
@@ -113,6 +116,7 @@ class Validator:
             self._report_error(node, errors.ValidationTypeError("Expecting type Record"))
             return
         keys = node.children_keys
+        node.options = input_type['keys'].keys()
         keys.extend(input_type['keys'].keys())
         for key in set(keys):
             child = node.get_child(key)

@@ -156,7 +156,7 @@ def test_check_abstractrecord():
                                                   'type3': type3})
     node = dn.CompositeNode(True)
     type_node = dn.ScalarNode()
-    type_node.key = dn.Key()
+    type_node.key = dn.TextValue()
     type_node.key.value = 'TYPE'
     type_node.value = 'type2'
     node.children.append(type_node)

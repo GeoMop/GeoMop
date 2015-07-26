@@ -283,9 +283,9 @@ class editorPosition():
                 self.is_changed = False
             #return origin values of end
             if self.end_line == self.line and self.node is not None:
-                if(self.node.key.section is not None and
+                if(self.node.key.span is not None and
                    type(self.node) != dn.ScalarNode):            
-                    self.end_index = self.node.key.section.end.column-1
+                    self.end_index = self.node.key.span.end.column-1
                 else:
                     self.end_index = self.node.span.end.column-1
             self._save_lines(editor)
@@ -348,9 +348,9 @@ class editorPosition():
         """set new node"""
         self.node = node
         if node is not None:
-            if(node.key.section is not None):            
-                self.begin_index = node.key.section.start.column-1
-                self.begin_line = node.key.section.start.line-1
+            if(node.key.span is not None):
+                self.begin_index = node.key.span.start.column-1
+                self.begin_line = node.key.span.start.line-1
             else:
                 self.begin_index = node.span.start.column-1
                 self.begin_line = node.span.start.line-1

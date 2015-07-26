@@ -8,7 +8,7 @@ from data.yaml import DocumentParser
 from data.yaml.transformator import Transformator, TransformationFileFormatError
 from dialogs.transformation_detail import TranformationDetailDlg
 from data.validation.validator import Validator
-from data.format import get_root_input_type_from_file
+from data.format import get_root_input_type_from_json
 import PyQt5.QtWidgets as QtWidgets
 
 __format_dir__ = os.path.join(
@@ -174,15 +174,13 @@ class MEConfig:
         from os.path import join
         file_name = join(__format_dir__, cls.curr_format_file + ".json")
         try:
-            file_d = open(file_name, 'r')
-            text = file_d.read()
-            file_d.close()
-            return text
+            with open(file_name, 'r') as file_d:
+                return file_d.read()
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
                 err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
                 err_dialog.open_error_dialog(
-                    "Can't open format file '" + cls.curr_format_file +"'" , err)
+                    "Can't open format file '" + cls.curr_format_file + "'", err)
             else:
                 raise err
         return None
@@ -193,15 +191,13 @@ class MEConfig:
         from os.path import join
         file_name = join(__transformation_dir__,  file + ".json")
         try:
-            file_d = open(file_name, 'r')
-            text = file_d.read()
-            file_d.close()
-            return text
+            with open(file_name, 'r') as file_d:
+                return file_d.read()
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
                 err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
                 err_dialog.open_error_dialog(
-                    "Can't open transformation file '" + file +"'" , err)
+                    "Can't open transformation file '" + file + "'", err)
             else:
                 raise err
         return None
@@ -211,7 +207,7 @@ class MEConfig:
         """
         Returns DataNode at given `class::Position` position.
         """
-        #empty file with comment
+        # empty file with comment
         if cls.root is None:
             return None
             
@@ -245,9 +241,8 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         try:
-            file_d = open(file_name, 'r')
-            cls.document = file_d.read()
-            file_d.close()
+            with open(file_name, 'r') as file_d:
+                cls.document = file_d.read()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
@@ -270,9 +265,8 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         try:
-            file_d = open(file_name, 'r')
-            con = file_d.read()
-            file_d.close()
+            with open(file_name, 'r') as file_d:
+                con = file_d.read()
             cls.document = parse_con(con)
             cls.curr_file = None
             cls.update_format()
@@ -303,9 +297,8 @@ class MEConfig:
         if format_file is not None:
             cls.curr_format_file = format_file
         try:
-            file_d = open(file_name, 'r')
-            cls.document = file_d.read()
-            file_d.close()
+            with open(file_name, 'r') as file_d:
+                cls.document = file_d.read()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config. add_recent_file(file_name, cls.curr_format_file)
@@ -336,8 +329,8 @@ class MEConfig:
         """reread json format file and update node tree"""
         if cls.curr_format_file is None:
             return
-        filename = os.path.join(__format_dir__, cls.curr_format_file + '.json')
-        cls.root_input_type = get_root_input_type_from_file(filename)
+        text = cls.get_curr_format_text()
+        cls.root_input_type = get_root_input_type_from_json(text)
         cls.update()
 
     @classmethod
@@ -388,7 +381,7 @@ class MEConfig:
     def transform(cls, file):
         """Run transformation accoding rules in set file"""
         cls.update()
-        text=cls.get_transformation_text(file)
+        text = cls.get_transformation_text(file)
         try:
             transformator = Transformator(text)
         except (ValueError, TransformationFileFormatError) as err:
@@ -398,12 +391,14 @@ class MEConfig:
             else:
                 raise err
             return    
-        dialog = TranformationDetailDlg(transformator.name,  transformator.description, 
-                                                             transformator.old_version,  cls.curr_format_file, 
-                                                             transformator.new_version, 
-                                                             transformator.new_version in cls.transformation_files, 
-                                                             cls.main_window)
-        if  QtWidgets.QDialog.Accepted == dialog.exec_():
+        dialog = TranformationDetailDlg(transformator.name,
+                                        transformator.description,
+                                        transformator.old_version,
+                                        cls.curr_format_file,
+                                        transformator.new_version,
+                                        transformator.new_version in cls.transformation_files,
+                                        cls.main_window)
+        if QtWidgets.QDialog.Accepted == dialog.exec_():
             transformator.transform(cls.root, cls.document)
             if transformator.new_version in cls.transformation_files:
                 cls.set_current_format_file(transformator.new_version)

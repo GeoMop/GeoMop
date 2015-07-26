@@ -3,7 +3,7 @@
 import yaml
 from data.yaml.constructor import construct_scalar
 from data.yaml.resolver import resolve_scalar_tag
-from data.data_node import (CompositeNode, ScalarNode, Key, Span,
+from data.data_node import (CompositeNode, ScalarNode, TextValue, Span,
                             Position)
 
 
@@ -64,9 +64,9 @@ class Loader:
         while not isinstance(self._event, yaml.MappingEndEvent):
             if not isinstance(self._event, yaml.ScalarEvent):
                 raise Exception('Complex keys are not supported for Records')
-            key = Key()
+            key = TextValue()
             key.value = self._event.value
-            key.section = _get_span_from_marks(self._event.start_mark,
+            key.span = _get_span_from_marks(self._event.start_mark,
                                                self._event.end_mark)
             self._parse_next_event()
             child_node = self._create_node(node)  # recursively create children
@@ -88,7 +88,7 @@ class Loader:
         else:
             raise NotImplementedError("Tags with directive not supported yet")
         node = ScalarNode()
-        node.key = Key()
+        node.key = TextValue()
         node.key.value = 'TYPE'
         node.value = tag
         node.span = Span(start, end)
@@ -99,7 +99,7 @@ class Loader:
         start_mark = self._event.start_mark
         self._parse_next_event()
         while not isinstance(self._event, yaml.SequenceEndEvent):
-            key = Key()
+            key = TextValue()
             key.value = len(node.children)
             child_node = self._create_node(node)  # recursively create children
             child_node.key = key

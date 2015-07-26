@@ -8,10 +8,9 @@ Contains format specification class and methods to parse it from JSON.
 import json
 
 
-def get_root_input_type_from_file(filename):
-    """Return the root input type from JSON format file."""
-    with open(filename) as file:
-        return parse_format(json.load(file))
+def get_root_input_type_from_json(data):
+    """Return the root input type from JSON formatted data."""
+    return parse_format(json.loads(data))
 
 
 def parse_format(data):
