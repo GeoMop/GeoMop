@@ -85,9 +85,6 @@ class Validator:
         """
         if node is None:
             raise errors.ValidationError("Invalid node (None)")
-        if node.ref is not None:
-            # TODO implement validation of references
-            raise NotImplementedError
 
         if input_type['base_type'] in Validator.SCALAR:
             self._validate_scalar(node, input_type)
@@ -105,7 +102,7 @@ class Validator:
 
     def _validate_scalar(self, node, input_type):
         if input_type['base_type'] == 'Selection':
-            self.options = input_type['values']
+            node.options = input_type['values']
         try:
             checks.check_scalar(node, input_type)
         except errors.ValidationError as error:

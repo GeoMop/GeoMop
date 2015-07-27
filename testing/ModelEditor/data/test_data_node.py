@@ -77,6 +77,20 @@ def test_parse(request=None):
         cfg.root.children[1].children[1]
         .children[1].children[0].children[1])
 
+    # test absolute_path, get_node_at_path
+    assert cfg.root.get_node_at_path('/') == cfg.root
+    input_fields_node = cfg.root.get_node_at_path('/problem/primary_equation/input_fields')
+    assert input_fields_node == cfg.root.children[1].children[1].children[1]
+    assert input_fields_node.get_node_at_path('.') == input_fields_node
+    assert (input_fields_node.get_node_at_path('./0/r_set') ==
+            input_fields_node.children[0].children[1])
+    assert (input_fields_node.get_node_at_path('/problem/primary_equation/input_fields/0/r_set') ==
+            input_fields_node.children[0].children[1])
+    assert input_fields_node.get_node_at_path('../../..') == cfg.root
+
+    with pytest.raises(LookupError):
+        cfg.root.get_node_at_path('/invalid/path')
+
     # test parser error
     document = (
         "format: ascii\n"
