@@ -1,26 +1,27 @@
 """classes for transport"""
 from enum import Enum
-from data.Instalation import Instalation
 import json
 import abc
 import struct
 import zlib
+import binascii
 
 class ActionType(Enum):
     """Action type"""
+    error = -1
     stop = 0
     installation = 1
 
 class Message:
     """Communication message"""
     def __init__(self, bin = None):
-        self.action_type
+        self.action_type = None
         """type of action"""
-        self.json
+        self.json = None
         """json data for action"""
-        self.len
+        self.len = None
         """length of data"""
-        self.sum
+        self.sum = None
         """control sum"""
         if bin is not None:
             self.unpack(bin)
@@ -32,10 +33,12 @@ class Message:
         sum=zlib.crc32(bin)
         bin = struct.pack('!i' , sum) + bin
         length = len(bin)
-        bin = struct.pack('!i' , length) + bin        
+        bin = struct.pack('!i' , length) + bin
+        return binascii.b2a_base64(bin)
         
-    def unpack(self, bin):
+    def unpack(self, asci):
         """pack data for transport"""
+        bin = binascii.a2b_base64(asci)
         self.len, self.sum, self.action_type = struct.unpack_from("!iii", bin)
         sum = zlib.crc32(bin[struct.calcsize("!ii"):])
         if sum != self.sum:
@@ -54,25 +57,32 @@ class Action():
         """typed action"""
         if type == ActionType.stop:
             self.data = EmptyData()
-        if type == ActionType.installation:
-            self.data = InstallationData(json_data)
-            self.action = InstallationAction(self.data)
+        elif type == ActionType.installation:
+            self.data = EmptyData()
+        elif type == ActionType.ierror:
+            self.data = ErrorData(json_data)
+            self.action = ErrorAction(self.data)
         
     def run(self):
+        """standart action implementation"""
         self.action.run(self.data)
         
-    def pack(self):
-        self.data.parse()
+    def get_message(self):
+        """return message from action"""
+        msg = Message()
+        msg.action_type = self.type
+        msg.json = self.data.pack()
+        return msg
 
-class InstallationAction():
+class ErrorAction():
     """Action data"""
     
     def __init__(self, data):
         pass
         
     def run(self, data):
-        installatin = Instalation()
-        installatin.copy(data.path)
+        # ToDo: log
+        pass
 
 class ActionData(metaclass=abc.ABCMeta):
     """Action data"""
@@ -95,11 +105,11 @@ class EmptyData(ActionData):
         """Data packing"""
         return json.dumps({})
 
-class InstallationData(ActionData):
-    """Action data"""
+class ErrorData(ActionData):
+    """Error data"""
     
     def __init__(self, json_data):
         if json is None:            
-            self.data["path"] = None
+            self.data["msg"] = None
         else:
             self.data = json.loads(json_data)

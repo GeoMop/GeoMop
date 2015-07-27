@@ -1,6 +1,8 @@
 """Classes for handing messages over net"""
 
 import abc
+import pxssh
+import data.transport_data as tdata 
 
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
@@ -24,7 +26,7 @@ class OutputComm(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def install(self,  installation,  path="./"):
         """copy installation"""
-        self.install_path = path
+        pass
         
     @abc.abstractmethod
     def exec_(self,  command):
@@ -32,12 +34,12 @@ class OutputComm(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def send_mess(self,  msg):
+    def send(self,  msg):
         """send json message"""
         pass
         
     @abc.abstractmethod
-    def receive_mess(self):
+    def receive(self):
         """receive json message"""
         pass
         
@@ -55,40 +57,55 @@ class InputComm():
         self.output = output
         """Output Stream"""
 
-    def send_message(self, msg):
+    def send(self, msg):
         """send message to output stream"""
         
-    def receive_message(self):
-        """Receive message from input stream"""
+    def receive(self,  wait=60):
+        """
+        Receive message from input stream
+        
+        Function wait for answer for set time in seconds
+        """
 
 
 class SshOutputComm(OutputComm):
     """Ancestor of communication classes"""
     
-    def __init__(self, host,  name,  password):
+    def __init__(self, host,  name,  password=''):
         super( SshOutputComm, self).__init__(host)
         self.name = name
         """login name for ssh connection"""
         self.password = password
         """password name for ssh connection"""
+        self.ssh = None
+        """Ssh subprocessed instance"""
         
     def connect(self):
         """connect session"""
-    
+        self.ssh = pxssh.pxssh()
+        self.ssh.login(self.host, self.name, self.password)
+
     def disconnect(self):
         """disconnect session"""
-
+        self.ssh.logout()
+        
     def install(self,  installation,  path="./"):
         """copy installation"""
         
     def exec_(self,  command):
         """run command"""
+        self.ssh.sendline(command)
 
-    def send_json(self,  json):
+    def send(self,  json):
         """send json message"""
+        self.ssh.sendline(json)
         
-    def receive_json(self):
+    def receive(self, timeout=60):
         """receive json message"""
-        
+        if self.ssh.prompt(timeout):
+            mess = tdata.Message(self.ssh.before)
+            return mess
+        return None
+
     def get_file(self, file_name):
         """download file from installation folder"""

@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(1, './twoparty/pexpect')
+
 import data.communicator_conf as comconf
 from communication.comunicator import Communicator
 
