@@ -108,6 +108,8 @@ class CompositeNode(DataNode):
         self.explicit_keys = explicit_keys
         """boolean; indicates whether keys are specified (record) or
         implicit (array)"""
+        self.type = None
+        """specifies the type of AbstractRecord"""
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""

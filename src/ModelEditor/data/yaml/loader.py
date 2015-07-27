@@ -43,7 +43,9 @@ class Loader:
 
     def _create_node(self, parent=None):
         node = None
-        if isinstance(self._event, yaml.MappingStartEvent):
+        if hasattr(self._event, 'tag') and self._event.tag is not None:
+            node = self._create_node_by_tag()
+        elif isinstance(self._event, yaml.MappingStartEvent):
             node = self._create_record_node()
         elif isinstance(self._event, yaml.SequenceStartEvent):
             node = self._create_array_node()
@@ -57,8 +59,6 @@ class Loader:
 
     def _create_record_node(self):
         node = CompositeNode(True)
-        if self._event.tag is not None:
-            node.children.append(self._create_type_node())
         start_mark = self._event.start_mark
         self._parse_next_event()
         while not isinstance(self._event, yaml.MappingEndEvent):
@@ -67,7 +67,7 @@ class Loader:
             key = TextValue()
             key.value = self._event.value
             key.span = _get_span_from_marks(self._event.start_mark,
-                                               self._event.end_mark)
+                                            self._event.end_mark)
             self._parse_next_event()
             child_node = self._create_node(node)  # recursively create children
             child_node.key = key
@@ -77,22 +77,44 @@ class Loader:
         node.span = _get_span_from_marks(start_mark, end_mark)
         return node
 
-    def _create_type_node(self):
-        """Creates a TYPE node from tag."""
-        if self._event.tag[0] == '!':
-            tag = self._event.tag[1:]
-            start = Position(self._event.start_mark.line + 1,
-                             self._event.start_mark.column + 2)
-            end = Position(start.line,
-                           start.column + len(tag))
-        else:
-            raise NotImplementedError("Tags with directive not supported yet")
-        node = ScalarNode()
-        node.key = TextValue()
-        node.key.value = 'TYPE'
-        node.value = tag
-        node.span = Span(start, end)
+    def _create_node_by_tag(self):
+        """creates either an abstract record (for app specific tags: !) or
+        scalar value of specified type (yaml tags - !!, tag:yaml.org,2002:)"""
+        if self._event.tag.startswith('tag:yaml.org,2002:'):
+            node = self._create_scalar_node()
+        elif self._event.tag == '!ref':
+            # TODO implement references using !ref tag
+            raise NotImplementedError("References using tags are not implemented yet")
+        else:  # abstract record
+            node = self._create_abstract_record()
         return node
+
+    def _create_abstract_record(self):
+        type_ = self._get_node_type()
+        if isinstance(self._event, yaml.MappingStartEvent):
+            node = self._create_record_node()
+        elif isinstance(self._event, yaml.ScalarEvent):
+            temp_node = self._create_scalar_node()
+            if temp_node.value is None:  # null - should be constructed as mapping instead
+                node = CompositeNode(True)
+                node.span = temp_node.span
+            else:  # keep ScalarNode - might be used for autoconversion
+                node = temp_node
+        node.type = type_
+        return node
+
+    def _get_node_type(self):
+        """Create the node type from tag."""
+        if self._event.tag[0] != '!':
+            raise NotImplementedError("Tags with directive not supported yet")
+        type_ = TextValue()
+        type_.value = self._event.tag[1:]
+        start = Position(self._event.start_mark.line + 1,
+                         self._event.start_mark.column + 2)
+        end = Position(start.line,
+                       start.column + len(type_.value))
+        type_.span = Span(start, end)
+        return type_
 
     def _create_array_node(self):
         node = CompositeNode(False)
@@ -112,7 +134,7 @@ class Loader:
     def _create_scalar_node(self):
         node = ScalarNode()
         tag = self._event.tag
-        if tag is None:
+        if tag is None or not tag.startswith('tag:yaml.org,2002:'):
             tag = resolve_scalar_tag(self._event.value)
         node.value = construct_scalar(self._event.value, tag)
         node.span = _get_span_from_marks(self._event.start_mark,

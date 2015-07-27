@@ -92,13 +92,13 @@ def test_validator():
 
     # validate abstract
     document = (
+        "!record1\n"
         "a1: 1\n"
-        "a2: 1\n"
-        "TYPE: record1")
+        "a2: 1\n")
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is True
 
-    node.get_child('TYPE').value = 'record2'
+    node.type.value = 'record2'
     assert validator.validate(node, it_abstract) is False
 
     document = (
@@ -117,20 +117,20 @@ def test_validator():
 
     # test validate
     document = (
-        "TYPE: record1\n"
+        "!record1\n"
         "a1: 2\n"
         "a2: 1\n")
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is True
 
     document = (
-        "TYPE: record2\n"
+        "!record2\n"
         "b: 2\n")
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is True
 
     document = (
-        "TYPE: record1\n"
+        "!record1\n"
         "a1: 5\n"
         "a2: -1\n"
         "e: 4\n"

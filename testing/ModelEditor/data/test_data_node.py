@@ -1,4 +1,4 @@
-from data.data_node import Position, DataError
+from data.data_node import Position
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 import pytest
@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import QApplication
 import yaml
 
 
-app = QApplication(sys.argv)
-app_not_init = pytest.mark.skipif(not (type(app).__name__ == "QApplication"),
-    reason="App not inicialized")
+APP = QApplication(sys.argv)
+APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),
+                                  reason="App not inicialized")
 
 
 def test_position():
@@ -24,14 +24,14 @@ def test_position():
     assert (Position(2, 1) > Position(1, 2)) is True
 
 
-@app_not_init
-def test_parse(request):
+@APP_NOT_INIT
+def test_parse(request=None):
     mockcfg.set_empty_config()
 
-    def fin_test_config():
-        mockcfg.clean_config()
-
-    request.addfinalizer(fin_test_config)
+    if request is not None:
+        def fin_test_config():
+            mockcfg.clean_config()
+        request.addfinalizer(fin_test_config)
     loader = Loader()
 
     # parse mapping, scalar
@@ -91,8 +91,8 @@ def test_parse(request):
         "  test: 1"
     )
     root = loader.load(document)
-    assert root.children[0].children[0].value == 'SequentialCoupling'
-    assert root.get_node_at_position(Position(1, 11)).value == 'SequentialCoupling'
+    assert root.children[0].type.value == 'SequentialCoupling'
+    assert root.get_node_at_position(Position(1, 11)).type.value == 'SequentialCoupling'
 
 
 def test_resolver():

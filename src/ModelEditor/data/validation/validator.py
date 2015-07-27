@@ -39,7 +39,7 @@ class Validator:
             if isinstance(error, errors.UnknownKey):
                 span = node.get_child(error.key).key.span
             elif isinstance(error, errors.InvalidAbstractRecordType):
-                span = node.get_child('TYPE').span
+                span = node.type.span
             elif (isinstance(error, errors.InvalidOption) or
                   isinstance(error, errors.ValueTooBig) or
                   isinstance(error, errors.ValueTooSmall) or

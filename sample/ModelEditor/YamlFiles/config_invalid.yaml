@@ -4,12 +4,10 @@
 # Does not require autocomplete
 # Editing may break tests
 
-problem:
-  TYPE: SequentialCoupling
+problem: !SequentialCoupling
   mesh: {mesh_file: input/dual_por.msh}
   unknown: test  # unknown key - validation warning
-  primary_equation:  # validation error - missing key
-    TYPE: Steady_MH
+  primary_equation: !Steady_MH  # validation error - missing key
     balance: {balance_on: true}
     input_fields:
         - bc_pressure: {value: 0}
