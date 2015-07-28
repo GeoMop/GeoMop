@@ -58,11 +58,15 @@ modules.ME.rst:
 	sphinx-apidoc -o ./aut -s .rst ../../src/ModelEditor/
 	mv aut/modules.rst aut/ModelEditor.rst
 
+modules.JS.rst:
+	sphinx-apidoc -o ./aut -s .rst ../../src/JobsScheduler/
+	mv aut/modules.rst aut/JobsScheduler.rst
+
 modules.lib.rst: 
 	sphinx-apidoc -o ./aut -s .rst ../../src/lib/
 	mv aut/modules.rst aut/lib.rst
 
-autogen_src: modules.LE.rst modules.lib.rst
+autogen_src: modules.LE.rst modules.lib.rst modules.JS.rst modules.ME.rst
 
 html: autogen_src
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

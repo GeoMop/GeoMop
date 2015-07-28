@@ -14,4 +14,8 @@ cd ../ModelEditor
 export PYTHONPATH=../../src/ModelEditor:../../src/lib:./mock
 py.test-3
 
+cd ../JobsScheduler
+export PYTHONPATH=../../src/JobsScheduler
+py.test-3
+
 cd $CURR_PATH

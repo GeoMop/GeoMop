@@ -20,6 +20,7 @@ Source code documentation
    aut/lib
    aut/LayerEditor
    aut/ModelEditor
+   aut/JobsScheduler
 
 
 Indices and tables
