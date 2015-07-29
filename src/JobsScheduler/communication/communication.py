@@ -2,7 +2,10 @@
 
 import abc
 import pxssh
-import data.transport_data as tdata 
+import fdpexpect
+import pexpect
+import data.transport_data as tdata
+import data.installation as dinstall
 
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
@@ -10,8 +13,8 @@ class OutputComm(metaclass=abc.ABCMeta):
     def __init__(self, host):
         self.host=host
         """ip or dns of host for communication"""
-        self.install_path=None
-        """path where is copied files"""
+        self.installation = dinstall.Installation()
+        """installation where is copied files"""
     
     @abc.abstractmethod
     def connect(self):
@@ -59,6 +62,7 @@ class InputComm():
 
     def send(self, msg):
         """send message to output stream"""
+        self.output.write(msg.pack() + "\n")
         
     def receive(self,  wait=60):
         """
@@ -66,7 +70,10 @@ class InputComm():
         
         Function wait for answer for set time in seconds
         """
-
+        fd = fdpexpect.fdspawn(self.input)
+        txt = fd.read_nonblocking(size=1000, timeout=wait)
+        mess = tdata.Message(txt) 
+        return mess
 
 class SshOutputComm(OutputComm):
     """Ancestor of communication classes"""
@@ -89,21 +96,31 @@ class SshOutputComm(OutputComm):
         """disconnect session"""
         self.ssh.logout()
         
-    def install(self,  installation,  path="./"):
-        """copy installation"""
+    def install(self, path="./"):
+        """make installation"""
+        sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
+        sftp.expect('.*assword:')
+        sftp.sendline(self.password)
+        sftp.expect('.*')
+        res = sftp.expect(['Permission denied','Connected to .*'])
+        if res == 0:
+            sftp.kill(0)
+            raise Exception("Permission denied for user " + self.name) 
+        self.installation.create_install_dir(path, sftp)
+        sftp.close()
         
-    def exec_(self,  command):
-        """run command"""
-        self.ssh.sendline(command)
+    def exec_(self, python_file):
+        """run set python file in ssh"""
+        self.ssh.sendline(self.installation.get_command(python_file))
 
-    def send(self,  json):
+    def send(self,  mess):
         """send json message"""
-        self.ssh.sendline(json)
+        self.ssh.sendline(mess.pack())
         
     def receive(self, timeout=60):
         """receive json message"""
         if self.ssh.prompt(timeout):
-            mess = tdata.Message(self.ssh.before)
+            mess =tdata.Message(self.ssh.before)
             return mess
         return None
 

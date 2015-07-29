@@ -23,15 +23,9 @@ class CommunicatorConfig():
         """Input communication type"""
         self.output_type = OutputCommType.none
         """Output communication type"""
-        self.install_path = False
-        """
-        copy and instal before running to this path
-        
-        None - not install
-        Absoluth path
-        Relative path
-        """
-        self.next_communicator
+        self.install_dir = False
+        """Dir in home, where is copy app. files"""
+        self.next_communicator = ""
         """communicator file that will be start"""
         self.host = "127.0.0.1"
         """Host (ip or dns) for output configuration"""

@@ -13,8 +13,10 @@ class Communicator():
         """class for input communication"""
         self.output = None
         """class for output communication"""
-        self.install_path=None
-        """path where is copied files"""
+        self.install_dir = init_conf.install_dir
+        """Dir in home, where is copy app. files"""
+        self.next_communicator = init_conf.next_communicator
+        """communicator file that will be start"""
         self.sleep_interval = 5
         """interval for reading input (default 5 - 5s)"""
         if action_func is None:
@@ -32,7 +34,7 @@ class Communicator():
         if init_conf.input_type == comconf.InputCommType.std:
             self.input = com.InputComm(sys.stdin, sys.stdin)
         if init_conf.output_type == comconf.OutputCommType.ssh:
-            self.output = com.SshOutputComm(init_conf.uid, init_conf.pwd)
+            self.output = com.SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
     
     def  standart_action_funcion(self, message):
@@ -43,6 +45,14 @@ class Communicator():
         if isinstance(self.output, com.SshOutputComm):
             self.output.disconnect()
     
+    def install(self):
+        """make installation"""
+        self.output.install(self.install_dir)
+        
+    def exec_(self):
+        """run set python file"""
+        self.output.exec_(self.next_communicator)
+        
     def run(self):
         """
         Infinite loop that is interupt by sending stop action by input
@@ -79,8 +89,11 @@ class Communicator():
             time.sleep(self.sleep_interval)
                         
 
-    def send_message(self, action):
-        """send action"""
-        message = action.get_message()
-        self.output.send_mess(message)
-        return action.get_message()
+    def send_message(self, message):
+        """send message to output"""
+        self.output.send(message)
+
+    def receive_message(self):
+        """receive message from output"""
+        mess = self.output.receive()
+        return mess 

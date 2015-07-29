@@ -8,13 +8,14 @@ import binascii
 
 class ActionType(Enum):
     """Action type"""
-    error = -1
-    stop = 0
-    installation = 1
+    error = 0
+    ok = 1
+    stop = 2
+    installation = 3
 
 class Message:
     """Communication message"""
-    def __init__(self, bin = None):
+    def __init__(self, asci = None):
         self.action_type = None
         """type of action"""
         self.json = None
@@ -23,13 +24,13 @@ class Message:
         """length of data"""
         self.sum = None
         """control sum"""
-        if bin is not None:
-            self.unpack(bin)
+        if asci is not None:
+            self.unpack(asci)
     
     def pack(self):
         """pack data for transport"""
         bin = bytes(self.json, "utf-8")
-        bin = struct.pack('!i' , self.action_type) + bin
+        bin = struct.pack('!i' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
         bin = struct.pack('!i' , sum) + bin
         length = len(bin)
@@ -39,7 +40,8 @@ class Message:
     def unpack(self, asci):
         """pack data for transport"""
         bin = binascii.a2b_base64(asci)
-        self.len, self.sum, self.action_type = struct.unpack_from("!iii", bin)
+        self.len, self.sum, action_type = struct.unpack_from("!iii", bin)
+        self.action_type = ActionType(action_type)
         sum = zlib.crc32(bin[struct.calcsize("!ii"):])
         if sum != self.sum:
             raise Exception("Invalid checksum")
@@ -57,9 +59,11 @@ class Action():
         """typed action"""
         if type == ActionType.stop:
             self.data = EmptyData()
+        elif type == ActionType.ok:
+            self.data = EmptyData()
         elif type == ActionType.installation:
             self.data = EmptyData()
-        elif type == ActionType.ierror:
+        elif type == ActionType.error:
             self.data = ErrorData(json_data)
             self.action = ErrorAction(self.data)
         
