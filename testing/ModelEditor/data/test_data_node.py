@@ -1,4 +1,5 @@
 from data.data_node import Position
+import data.data_node as dn
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 import pytest
@@ -107,6 +108,33 @@ def test_parse(request=None):
     root = loader.load(document)
     assert root.children[0].type.value == 'SequentialCoupling'
     assert root.get_node_at_position(Position(1, 11)).type.value == 'SequentialCoupling'
+
+    mockcfg.load_valid_structure_to_config()
+
+    # test get_node_at_path
+    assert cfg.root.get_node_at_path('/') == cfg.root
+    assert (cfg.root.get_node_at_path('/problem/mesh/mesh_file').value ==
+            'input/dual_por.msh')
+    assert (cfg.root.children[0].children[0].get_node_at_path(
+        '../primary_equation/balance/balance_on').value is True)
+
+    # test tag
+    assert cfg.root.children[0].type.value == 'SequentialCoupling'
+    assert cfg.root.children[0].type.span.start.line == 6
+    assert cfg.root.children[0].type.span.start.column == 11
+    assert cfg.root.children[0].type.span.end.line == 6
+    assert cfg.root.children[0].type.span.end.column == 29
+
+    # test ref
+    input_fields = cfg.root.children[0].children[1].children[1]
+    assert input_fields.children[0].children[0].children[0].value == 0
+    assert input_fields.children[2].children[0].children[0].value == 0
+
+    # test empty abstract record
+    node = cfg.root.get_node_at_path('/problem/primary_equation/solver')
+    assert isinstance(node, dn.CompositeNode)
+    assert node.explicit_keys is True
+    assert node.type.value == 'Petsc'
 
 
 def test_resolver():
