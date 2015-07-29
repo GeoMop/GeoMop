@@ -10,6 +10,7 @@ from dialogs.transformation_detail import TranformationDetailDlg
 from data.validation.validator import Validator
 from data.format import get_root_input_type_from_json
 import PyQt5.QtWidgets as QtWidgets
+from data.error_handler import ErrorHandler
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -106,6 +107,8 @@ class _Config:
 
 class MEConfig:
     """Static data class"""
+    error_handler = ErrorHandler()
+    """error handler for reporting and buffering errors"""
     format_files = []
     """Array of format files"""
     transformation_files = []
@@ -126,9 +129,9 @@ class MEConfig:
     """array of validation errors"""
     changed = False
     """is file changed"""
-    doc_parser = DocumentParser()
+    doc_parser = DocumentParser(error_handler)
     """document parser that handles parsing errors"""
-    validator = Validator()
+    validator = Validator(error_handler)
     """data validator"""
     root_input_type = None
     """input type of the whole tree, parsed from format"""
@@ -316,13 +319,13 @@ class MEConfig:
     @classmethod
     def update(cls):
         """reread yaml text and update node tree"""
-        cls.errors = []
+        cls.error_handler.clear()
         cls.root = cls.doc_parser.parse(cls.document)
-        cls.errors = list(cls.doc_parser.errors)
+        cls.errors = cls.error_handler.errors
         if cls.root_input_type is None or cls.root is None:
             return
         cls.validator.validate(cls.root, cls.root_input_type)
-        cls.errors.extend(cls.validator.data_errors)
+        cls.errors = cls.error_handler.errors
 
     @classmethod
     def update_format(cls):

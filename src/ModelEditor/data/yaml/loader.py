@@ -9,11 +9,13 @@ import copy
 
 class Loader:
     """Generates DataNode structure from YAML document."""
-    def __init__(self):
+    def __init__(self, error_handler):
+        """Initializes the loader with ErrorHandler."""
         self._event = None
         self._events = None
         self._document = None
         self._reference_nodes = []
+        self.error_handler = error_handler
 
     def load(self, document):
         """Loads the YAML document and returns the root DataNode."""
@@ -154,12 +156,12 @@ class Loader:
             try:
                 actual_node = link_node.get_node_at_path(link_node.ref)
             except LookupError:
-                # TODO buffer errors
-                raise Exception("Referenced node '{path}' does not exist"
-                                .format(path=link_node.ref))
+                self.error_handler.report_invalid_reference_error(link_node)
+                continue
             else:
                 if actual_node.ref is not None:
-                    raise Exception("Multi-level reference not supported")
+                    self.error_handler.report_multi_reference_error(link_node)
+                    continue
                 reference_node = copy.deepcopy(actual_node)
                 reference_node.ref = link_node.ref
                 reference_node.key = link_node.key

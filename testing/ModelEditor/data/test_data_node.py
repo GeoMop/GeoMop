@@ -8,6 +8,7 @@ import mock_config as mockcfg
 import sys
 from PyQt5.QtWidgets import QApplication
 import yaml
+from data.error_handler import ErrorHandler
 
 
 APP = QApplication(sys.argv)
@@ -27,13 +28,14 @@ def test_position():
 
 @APP_NOT_INIT
 def test_parse(request=None):
+    error_handler = ErrorHandler()
     mockcfg.set_empty_config()
 
     if request is not None:
         def fin_test_config():
             mockcfg.clean_config()
         request.addfinalizer(fin_test_config)
-    loader = Loader()
+    loader = Loader(error_handler)
 
     # parse mapping, scalar
     document = (
@@ -135,6 +137,17 @@ def test_parse(request=None):
     assert isinstance(node, dn.CompositeNode)
     assert node.explicit_keys is True
     assert node.type.value == 'Petsc'
+
+    # test ref errors
+    document = (
+        "- text\n"
+        "- !ref ../0\n"
+        "- !ref ../5\n"
+        "- !ref ../1"
+    )
+    loader.error_handler.clear()
+    root = loader.load(document)
+    assert len(loader.error_handler.errors) == 2
 
 
 def test_resolver():

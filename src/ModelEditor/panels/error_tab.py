@@ -15,7 +15,7 @@ class ErrorWidget(QtWidgets.QListWidget):
     itemSelected = QtCore.pyqtSignal(int, int, int, int)
     """
     .. _item_selected:
-    Sgnal is sent when error item is clicked.
+    Signal is sent when error item is clicked.
     """
 
     def __init__(self):
@@ -24,10 +24,10 @@ class ErrorWidget(QtWidgets.QListWidget):
         self._load_items()
 
     def select_error(self,  line):
-        """Select error accoding line number"""
+        """Select error according line number"""
         for row in range(0,  self.count()):
-            item =  self.item(row)
-            data =item.data(QtCore.Qt.UserRole)
+            item = self.item(row)
+            data = item.data(QtCore.Qt.UserRole)
             if data.span.start.line == line:
                 item.setSelected(True)
                 break
@@ -42,16 +42,16 @@ class ErrorWidget(QtWidgets.QListWidget):
         for error in cfg.errors:
             if error.severity == dn.DataError.Severity.fatal:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("fatal", 24), error.category.value + ": " + error.description) 
+                    icon.get_icon("fatal", 24), error.title + ": " + error.description)
             elif error.severity == dn.DataError.Severity.error:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("error", 24), error.category.value + ": " + error.description) 
+                    icon.get_icon("error", 24), error.title + ": " + error.description)
             elif error.severity == dn.DataError.Severity.warning:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("warning", 24), error.category.value + ": " + error.description) 
+                    icon.get_icon("warning", 24), error.title + ": " + error.description)
             else:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("information", 24), error.category.value + ": " + error.description)
+                    icon.get_icon("information", 24), error.title + ": " + error.description)
             item.setData(QtCore.Qt.UserRole, error)
             self.addItem(item)
             
@@ -60,4 +60,4 @@ class ErrorWidget(QtWidgets.QListWidget):
         item = self.currentItem()
         data = item.data(QtCore.Qt.UserRole)
         self.itemSelected.emit(data.span.start.column, data.span.start.line,
-                                             data.span.end.column, data.span.end.line)
+                               data.span.end.column, data.span.end.line)

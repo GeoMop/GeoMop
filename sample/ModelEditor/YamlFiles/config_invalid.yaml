@@ -12,7 +12,10 @@ problem: !SequentialCoupling
     input_fields:
         - bc_pressure: {value: 0}
           bc_type: {value: dirichlet}
-          r_set: BOUNDARY   
+          r_set: BOUNDARY
+        - !ref ../0
+        - !ref ../1  # reference error - multi-level reference
+        - !ref ../5  # reference error - invalid path
     output:
       output_fields: []
       output_stream:

@@ -69,6 +69,8 @@ class DataNode:
     def get_node_at_path(self, path):
         """returns node at given path"""
         # pylint: disable=no-member
+        if path is None:
+            raise LookupError("No path provided")
         node = self
         if path.startswith(self.absolute_path):  # absolute path
             path = path[len(self.absolute_path):]
@@ -276,8 +278,9 @@ class DataError(Exception):
 
     class Category(Enum):
         """Defines the type of an error."""
-        validation = 'Validation Error'
-        yaml = 'Parsing Error'
+        validation = 'Validation'
+        yaml = 'Parsing'
+        reference = 'Reference'
 
     class Severity(Enum):
         """Severity of an error."""
@@ -296,6 +299,18 @@ class DataError(Exception):
         self.node = node
         """:class:`DataNode` optional; the node where the error occurred"""
         self.severity = severity
+
+    @property
+    def title(self):
+        """title of the error"""
+        severities = {DataError.Severity.info: 'Info',
+                      DataError.Severity.warning: 'Warning',
+                      DataError.Severity.error: 'Error',
+                      DataError.Severity.fatal: 'Fatal Error'}
+        return "{category} {severity}".format(
+            category=self.category.value,
+            severity=severities[self.severity]
+        )
 
     def __str__(self):
         text = "{span} {name}\n{description}"

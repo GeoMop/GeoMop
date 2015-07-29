@@ -8,11 +8,13 @@ Tests for validator
 from data.validation.validator import Validator
 import data.data_node as dn
 from data.yaml import Loader
+from data.error_handler import ErrorHandler
 
 
 def test_validator():
-    loader = Loader()
-    validator = Validator()
+    error_handler = ErrorHandler()
+    loader = Loader(error_handler)
+    validator = Validator(error_handler)
 
     it_int = dict(
         base_type='Integer',
@@ -60,9 +62,10 @@ def test_validator():
     node.value = 2
     assert validator.validate(node, it_int) is True
 
+    error_handler.clear()
     node.value = 4
     assert validator.validate(node, it_int) is False
-    assert len(validator.errors) == 1
+    assert len(error_handler.errors) == 1
 
     # validate record
     document = (
@@ -71,6 +74,7 @@ def test_validator():
     node = loader.load(document)
     assert validator.validate(node, it_record) is True
 
+    error_handler.clear()
     document = (
         "a1: 1\n"
         "a2: 1\n"
@@ -78,17 +82,18 @@ def test_validator():
         "e: 4")
     node = loader.load(document)
     assert validator.validate(node, it_record) is True
-    assert len(validator.errors) == 1
+    assert len(error_handler.errors) == 1
 
     # test array
     document = "[0, 1, 1, 2]"
     node = loader.load(document)
     assert validator.validate(node, it_array) is True
 
+    error_handler.clear()
     document = "[0, 1, 1, 2, -1, 5]"
     node = loader.load(document)
     assert validator.validate(node, it_array) is False
-    assert len(validator.errors) == 3
+    assert len(error_handler.errors) == 3
 
     # validate abstract
     document = (
@@ -129,6 +134,7 @@ def test_validator():
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is True
 
+    error_handler.clear()
     document = (
         "!record1\n"
         "a1: 5\n"
@@ -137,7 +143,7 @@ def test_validator():
         "b: r")
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is False
-    assert len(validator.errors) == 4
+    assert len(error_handler.errors) == 4
 
 if __name__ == '__main__':
     test_validator()
