@@ -4,6 +4,7 @@ import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 
+
 class TreeWidget(QtWidgets.QTreeView):
     """
     Tree widget for viewing yaml file tree structure
@@ -34,15 +35,15 @@ class TreeWidget(QtWidgets.QTreeView):
         self._model = TreeOfNodes(cfg.root)
         self.setModel(self._model)
         self._restore_expanded()
-        
-    def _restore_expanded(self, item = None):
+
+    def _restore_expanded(self, item=None):
         """restore expanded state after init"""
         if item is None:
             item = QtCore.QModelIndex()
         for i in range(0, self._model.rowCount(item)):
             child = self._model.index(i, 0, item)
-            path = child.internalPointer().absolute_path()
-            if  path in self._item_states:
+            path = child.internalPointer().absolute_path
+            if path in self._item_states:
                 if self._item_states[path]:
                     self.expand(child)
                 else:
@@ -51,17 +52,17 @@ class TreeWidget(QtWidgets.QTreeView):
                 self.expand(child)
                 self._item_states[path] = True
             self._restore_expanded(child)
- 
+
     def _item_collapsed(self, model_index):
         """Function for itemColapsed signal"""
-        path = model_index.internalPointer().absolute_path()
+        path = model_index.internalPointer().absolute_path
         self._item_states[path] = False
-        
+
     def _item_expanded(self, model_index):
         """Function for itemExpanded signal"""
-        path = model_index.internalPointer().absolute_path()
+        path = model_index.internalPointer().absolute_path
         self._item_states[path] = True
-        
+
     def _item_clicked(self, model_index):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()
@@ -74,6 +75,7 @@ class TreeWidget(QtWidgets.QTreeView):
         else:
             self.itemSelected.emit(data.span.start.column, data.span.start.line,
                                    data.span.end.column, data.span.end.line)
+
 
 class TreeOfNodes(QtCore.QAbstractItemModel):
     """tree model structure"""
@@ -170,6 +172,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             if 0 <= section and section <= len(self.headers):
                 return QtCore.QVariant(self.headers[section])
         return QtCore.QVariant()
+
 
 class Node:
     """

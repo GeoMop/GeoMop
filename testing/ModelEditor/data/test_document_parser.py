@@ -1,8 +1,9 @@
 import data.yaml.document_parser as dp
+from data.error_handler import ErrorHandler
 
 
 def test_remove_diff_block():
-    document_parser = dp.DocumentParser()
+    document_parser = dp.DocumentParser(ErrorHandler())
     document_parser.current_doc = '\n'.join([
         "a:",
         "  - 0",
@@ -35,7 +36,8 @@ def test_remove_diff_block():
 
 
 def test_parser():
-    document_parser = dp.DocumentParser()
+    error_handler = ErrorHandler()
+    document_parser = dp.DocumentParser(error_handler)
     document = '\n'.join([
         "problem: ",
         "  primary_equation:",
@@ -52,10 +54,11 @@ def test_parser():
         "  primary_equation:",
         "    balance: true"
     ])
+    error_handler.clear()
     root_node = document_parser.parse(document)
     assert (root_node.get_child('problem').get_child('primary_equation')
             .get_child('balance')).value is True
-    assert len(document_parser._errors) == 2
+    assert len(error_handler.errors) == 2
 
     # second edit - correct
     document = '\n'.join([
@@ -64,6 +67,7 @@ def test_parser():
         "  primary_equation:",
         "    balance: true"
     ])
+    error_handler.clear()
     root_node = document_parser.parse(document)
     assert root_node.get_child('output').value == 'test'
 
@@ -74,10 +78,11 @@ def test_parser():
         "  primary_equation:",
         "    balance: true"
     ])
+    error_handler.clear()
     root_node = document_parser.parse(document)
     assert (root_node.get_child('problem').get_child('primary_equation')
             .get_child('balance')).value is True
-    assert len(document_parser._errors) == 2
+    assert len(error_handler.errors) == 2
 
     # fourth edit - another error
     document = '\n'.join([
@@ -87,8 +92,9 @@ def test_parser():
         "    input_fie",
         "    balance: true"
     ])
+    error_handler.clear()
     root_node = document_parser.parse(document)
-    assert len(document_parser._errors) == 3
+    assert len(error_handler.errors) == 3
 
 
 if __name__ == '__main__':

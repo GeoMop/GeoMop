@@ -31,15 +31,22 @@ class DataNode:
         """borders the position of this node in input text"""
         self._options = []
 
-    def absolute_path(self, descendant_path=None):
-        """return path of node"""
+    @property
+    def absolute_path(self):
+        """the absolute path to this node"""
+        return self.generate_absolute_path()
+
+    def generate_absolute_path(self, descendant_path=None):
+        """generates absolute path to this node, used recursively"""
         if self.parent is None:
+            if descendant_path is None:
+                descendant_path = ""
             return "/" + descendant_path
         if descendant_path is None:
             path = str(self.key.value)
         else:
             path = str(self.key.value) + "/" + descendant_path
-        return self.parent.absolute_path(path)
+        return self.parent.generate_absolute_path(path)
 
     @property
     def options(self):
@@ -58,6 +65,30 @@ class DataNode:
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         raise NotImplementedError
+
+    def get_node_at_path(self, path):
+        """returns node at given path"""
+        # pylint: disable=no-member
+        if path is None:
+            raise LookupError("No path provided")
+        node = self
+        if path.startswith(self.absolute_path):  # absolute path
+            path = path[len(self.absolute_path):]
+        elif path.startswith('/'):  # absolute path with different location
+            while node.parent is not None:
+                node = node.parent  # crawl up to root
+
+        for key in path.split('/'):
+            if not key or key == '.':
+                continue
+            elif key == '..':
+                node = node.parent
+                continue
+            if not isinstance(node, CompositeNode) or node.get_child(key) is None:
+                raise LookupError("Node {key} does not exist in {location}"
+                                  .format(key=key, location=node.absolute_path))
+            node = node.get_child(key)
+        return node
 
     @property
     def info_text(self):
@@ -108,6 +139,8 @@ class CompositeNode(DataNode):
         self.explicit_keys = explicit_keys
         """boolean; indicates whether keys are specified (record) or
         implicit (array)"""
+        self.type = None
+        """specifies the type of AbstractRecord"""
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
@@ -138,6 +171,16 @@ class CompositeNode(DataNode):
             if key == child.key.value:
                 return child
         return None
+
+    def set_child(self, node):
+        """sets the specified node as child; replaces the current child
+        with the same key (if it exists)"""
+        for i, child in enumerate(self.children):
+            if child.key.value == node.key.value:
+                self.children[i] = node
+                return
+        # still not ended - new key
+        self.children.append(node)
 
     @property
     def children_keys(self):
@@ -235,8 +278,9 @@ class DataError(Exception):
 
     class Category(Enum):
         """Defines the type of an error."""
-        validation = 'Validation Error'
-        yaml = 'Parsing Error'
+        validation = 'Validation'
+        yaml = 'Parsing'
+        reference = 'Reference'
 
     class Severity(Enum):
         """Severity of an error."""
@@ -256,6 +300,18 @@ class DataError(Exception):
         """:class:`DataNode` optional; the node where the error occurred"""
         self.severity = severity
 
+    @property
+    def title(self):
+        """title of the error"""
+        severities = {DataError.Severity.info: 'Info',
+                      DataError.Severity.warning: 'Warning',
+                      DataError.Severity.error: 'Error',
+                      DataError.Severity.fatal: 'Fatal Error'}
+        return "{category} {severity}".format(
+            category=self.category.value,
+            severity=severities[self.severity]
+        )
+
     def __str__(self):
         text = "{span} {name}\n{description}"
         return text.format(
@@ -263,17 +319,3 @@ class DataError(Exception):
             name=self.category.value,
             description=self.description
         )
-
-    @classmethod
-    def from_marked_yaml_error(cls, yaml_error):
-        """Creates DataError from MarkedYAMLError."""
-        # TODO: deprecate
-        if yaml_error.problem_mark is not None:
-            line = yaml_error.problem_mark.line
-            column = yaml_error.problem_mark.column
-        else:
-            line = yaml_error.context_mark.line
-            column = yaml_error.context_mark.column
-        position = Position(line + 1, column + 1)
-        return DataError(DataError.Category.yaml, DataError.Severity.error,
-                         yaml_error.problem, position)

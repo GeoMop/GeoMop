@@ -1,4 +1,5 @@
-from data.data_node import Position, DataError
+from data.data_node import Position
+import data.data_node as dn
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 import pytest
@@ -7,11 +8,12 @@ import mock_config as mockcfg
 import sys
 from PyQt5.QtWidgets import QApplication
 import yaml
+from data.error_handler import ErrorHandler
 
 
-app = QApplication(sys.argv)
-app_not_init = pytest.mark.skipif(not (type(app).__name__ == "QApplication"),
-    reason="App not inicialized")
+APP = QApplication(sys.argv)
+APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),
+                                  reason="App not inicialized")
 
 
 def test_position():
@@ -24,15 +26,16 @@ def test_position():
     assert (Position(2, 1) > Position(1, 2)) is True
 
 
-@app_not_init
-def test_parse(request):
+@APP_NOT_INIT
+def test_parse(request=None):
+    error_handler = ErrorHandler()
     mockcfg.set_empty_config()
 
-    def fin_test_config():
-        mockcfg.clean_config()
-
-    request.addfinalizer(fin_test_config)
-    loader = Loader()
+    if request is not None:
+        def fin_test_config():
+            mockcfg.clean_config()
+        request.addfinalizer(fin_test_config)
+    loader = Loader(error_handler)
 
     # parse mapping, scalar
     document = (
@@ -77,6 +80,20 @@ def test_parse(request):
         cfg.root.children[1].children[1]
         .children[1].children[0].children[1])
 
+    # test absolute_path, get_node_at_path
+    assert cfg.root.get_node_at_path('/') == cfg.root
+    input_fields_node = cfg.root.get_node_at_path('/problem/primary_equation/input_fields')
+    assert input_fields_node == cfg.root.children[1].children[1].children[1]
+    assert input_fields_node.get_node_at_path('.') == input_fields_node
+    assert (input_fields_node.get_node_at_path('./0/r_set') ==
+            input_fields_node.children[0].children[1])
+    assert (input_fields_node.get_node_at_path('/problem/primary_equation/input_fields/0/r_set') ==
+            input_fields_node.children[0].children[1])
+    assert input_fields_node.get_node_at_path('../../..') == cfg.root
+
+    with pytest.raises(LookupError):
+        cfg.root.get_node_at_path('/invalid/path')
+
     # test parser error
     document = (
         "format: ascii\n"
@@ -91,8 +108,46 @@ def test_parse(request):
         "  test: 1"
     )
     root = loader.load(document)
-    assert root.children[0].children[0].value == 'SequentialCoupling'
-    assert root.get_node_at_position(Position(1, 11)).value == 'SequentialCoupling'
+    assert root.children[0].type.value == 'SequentialCoupling'
+    assert root.get_node_at_position(Position(1, 11)).type.value == 'SequentialCoupling'
+
+    mockcfg.load_valid_structure_to_config()
+
+    # test get_node_at_path
+    assert cfg.root.get_node_at_path('/') == cfg.root
+    assert (cfg.root.get_node_at_path('/problem/mesh/mesh_file').value ==
+            'input/dual_por.msh')
+    assert (cfg.root.children[0].children[0].get_node_at_path(
+        '../primary_equation/balance/balance_on').value is True)
+
+    # test tag
+    assert cfg.root.children[0].type.value == 'SequentialCoupling'
+    assert cfg.root.children[0].type.span.start.line == 6
+    assert cfg.root.children[0].type.span.start.column == 11
+    assert cfg.root.children[0].type.span.end.line == 6
+    assert cfg.root.children[0].type.span.end.column == 29
+
+    # test ref
+    input_fields = cfg.root.children[0].children[1].children[1]
+    assert input_fields.children[0].children[0].children[0].value == 0
+    assert input_fields.children[2].children[0].children[0].value == 0
+
+    # test empty abstract record
+    node = cfg.root.get_node_at_path('/problem/primary_equation/solver')
+    assert isinstance(node, dn.CompositeNode)
+    assert node.explicit_keys is True
+    assert node.type.value == 'Petsc'
+
+    # test ref errors
+    document = (
+        "- text\n"
+        "- !ref ../0\n"
+        "- !ref ../5\n"
+        "- !ref ../1"
+    )
+    loader.error_handler.clear()
+    root = loader.load(document)
+    assert len(loader.error_handler.errors) == 2
 
 
 def test_resolver():

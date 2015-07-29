@@ -9,57 +9,10 @@ class Validator:
     """Handles data structure validation."""
     SCALAR = ['Integer', 'Double', 'Bool', 'String', 'Selection', 'FileName']
 
-    @property
-    def errors(self):
-        """Read-only list of errors that occured udring validation."""
-        return tuple(self._errors)
-
-    @property
-    def data_errors(self):
-        """A list of DataErrors, which can be shown to the user."""
-        severities = {
-            errors.UnknownKey: DataError.Severity.warning,
-            errors.InvalidAbstractRecordType: DataError.Severity.error,
-            errors.InvalidOption: DataError.Severity.error,
-            errors.MissingAbstractRecordType: DataError.Severity.error,
-            errors.MissingKey: DataError.Severity.error,
-            errors.NotEnoughItems: DataError.Severity.error,
-            errors.TooManyItems: DataError.Severity.error,
-            errors.ValidationTypeError: DataError.Severity.error,
-            errors.ValueTooBig: DataError.Severity.error,
-            errors.ValueTooSmall: DataError.Severity.error,
-            errors.ValidationError: DataError.Severity.error
-        }
-        data_errors = []
-        category = DataError.Category.validation
-
-        def get_error_span(node, error):
-            """Determines the correct position of an error."""
-            span = node.key.span
-            if isinstance(error, errors.UnknownKey):
-                span = node.get_child(error.key).key.span
-            elif isinstance(error, errors.InvalidAbstractRecordType):
-                span = node.get_child('TYPE').span
-            elif (isinstance(error, errors.InvalidOption) or
-                  isinstance(error, errors.ValueTooBig) or
-                  isinstance(error, errors.ValueTooSmall) or
-                  isinstance(error, errors.ValidationTypeError)):
-                span = node.span
-            elif isinstance(node, dn.ScalarNode):
-                if isinstance(error, errors.ValidationTypeError):
-                    span = node.key.span
-                else:
-                    span = node.span
-            return span
-
-        for node, error in self._errors:
-            severity = severities[type(error)]
-            description = str(error)
-            span = get_error_span(node, error)
-            data_errors.append(DataError(category, severity, description,
-                                         span, node))
-
-        return data_errors
+    def __init__(self, error_handler):
+        """Initializes the validator with an ErrorHandler."""
+        self.error_handler = error_handler
+        self.valid = True
 
     def validate(self, node, input_type):
         """
@@ -71,10 +24,8 @@ class Validator:
         Returns True when all data was correctly validated, False otherwise.
         Attribute errors contains a list of occurred errors.
         """
-        self._errors = []
         self.valid = True
         self._validate_node(node, input_type)
-        self._errors = self._errors
         return self.valid
 
     def _validate_node(self, node, input_type):
@@ -85,9 +36,6 @@ class Validator:
         """
         if node is None:
             raise errors.ValidationError("Invalid node (None)")
-        if node.ref is not None:
-            # TODO implement validation of references
-            raise NotImplementedError
 
         if input_type['base_type'] in Validator.SCALAR:
             self._validate_scalar(node, input_type)
@@ -105,7 +53,7 @@ class Validator:
 
     def _validate_scalar(self, node, input_type):
         if input_type['base_type'] == 'Selection':
-            self.options = input_type['values']
+            node.options = input_type['values']
         try:
             checks.check_scalar(node, input_type)
         except errors.ValidationError as error:
@@ -150,14 +98,8 @@ class Validator:
         for child in node.children:
             self._validate_node(child, input_type['subtype'])
 
-    def __init__(self):
-        self.valid = True
-        self._errors = []
-
     def _report_error(self, node, error):
-        """
-        Report an error.
-        """
-        if not isinstance(error, errors.UnknownKey):
+        """Reports an error."""
+        invalidate = self.error_handler.report_validation_error(node, error)
+        if invalidate:
             self.valid = False
-        self._errors.append((node, error))
