@@ -1,6 +1,7 @@
 from data.meconfig import MEConfig as cfg
 from data.meconfig import _Config as Config
 from data.yaml import Loader
+from data.error_handler import ErrorHandler
 
 
 def set_empty_config():
@@ -17,19 +18,19 @@ def clean_config():
 def load_complex_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_complex_structure.yaml') as file:
         cfg.document = file.read()
-    loader = Loader()
+    loader = Loader(ErrorHandler())
     cfg.root = loader.load(cfg.document)
 
 
 def load_valid_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_valid.yaml') as file:
         cfg.document = file.read()
-    loader = Loader()
+    loader = Loader(ErrorHandler())
     cfg.root = loader.load(cfg.document)
 
 
 def load_invalid_structure_to_config():
     with open('../../sample/ModelEditor/YamlFiles/config_invalid.yaml') as file:
         cfg.document = file.read()
-    loader = Loader()
+    loader = Loader(ErrorHandler())
     cfg.root = loader.load(cfg.document)

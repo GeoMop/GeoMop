@@ -4,17 +4,18 @@
 # Does not require autocomplete
 # Editing may break tests
 
-problem:
-  TYPE: SequentialCoupling
+problem: !SequentialCoupling
   mesh: {mesh_file: input/dual_por.msh}
   unknown: test  # unknown key - validation warning
-  primary_equation:  # validation error - missing key
-    TYPE: Steady_MH
+  primary_equation: !Steady_MH  # validation error - missing key
     balance: {balance_on: true}
     input_fields:
         - bc_pressure: {value: 0}
           bc_type: {value: dirichlet}
-          r_set: BOUNDARY   
+          r_set: BOUNDARY
+        - !ref ../0
+        - !ref ../1  # reference error - multi-level reference
+        - !ref ../5  # reference error - invalid path
     output:
       output_fields: []
       output_stream:

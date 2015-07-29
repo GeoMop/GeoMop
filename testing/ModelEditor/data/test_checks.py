@@ -155,21 +155,18 @@ def test_check_abstractrecord():
                                                   'type2': type2,
                                                   'type3': type3})
     node = dn.CompositeNode(True)
-    type_node = dn.ScalarNode()
-    type_node.key = dn.TextValue()
-    type_node.key.value = 'TYPE'
-    type_node.value = 'type2'
-    node.children.append(type_node)
+    node.type = dn.TextValue()
+    node.type.value = 'type2'
 
     assert checks.get_abstractrecord_type(node, input_type) == type2
     assert (checks.get_abstractrecord_type(dn.CompositeNode(True),
                                            input_type) == type1)
 
-    type_node.value = 'type3'
+    node.type.value = 'type3'
     assert checks.get_abstractrecord_type(node, input_type_no_default) == type3
     with pytest.raises(errors.MissingAbstractRecordType):
         checks.get_abstractrecord_type(dn.CompositeNode(True), input_type_no_default)
 
-    type_node.value = 'invalid'
+    node.type.value = 'invalid'
     with pytest.raises(errors.InvalidAbstractRecordType):
         checks.get_abstractrecord_type(node, input_type)

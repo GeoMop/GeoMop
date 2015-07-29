@@ -6,7 +6,6 @@ Basic rules for data validation
 """
 
 from data.validation import errors
-import data.data_node as dn
 
 
 def check_scalar(node, input_type):
@@ -108,9 +107,11 @@ def get_abstractrecord_type(node, input_type):
     Returns the concrete TYPE of abstract record. ValidationErrors
     can occur if it is impossible to resolve the type.
     """
-    if not isinstance(node, dn.CompositeNode):
-        raise errors.ValidationTypeError("Expected abstract record instead of scalar")
-    type_node = node.get_child('TYPE')
+    try:
+        type_node = node.type
+    except AttributeError:
+        raise errors.ValidationTypeError("Expected abstract record")
+
     if type_node is None:
         try:
             concrete_type = input_type['default_descendant']
@@ -125,4 +126,3 @@ def get_abstractrecord_type(node, input_type):
     if concrete_type is None:
         raise errors.MissingAbstractRecordType()
     return concrete_type
-
