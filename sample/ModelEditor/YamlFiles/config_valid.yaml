@@ -7,14 +7,11 @@ problem: !SequentialCoupling
   mesh:
     mesh_file: input/dual_por.msh
   primary_equation: !Steady_MH
-    balance:
-      balance_on: true
+    balance: true
     input_fields:
         - !ref ../1  # relative reference to next item in array
-        - bc_pressure:
-            value: 0
-          bc_type:
-            value: dirichlet
+        - bc_pressure: 0
+          bc_type: dirichlet
           r_set: BOUNDARY
         - !ref /problem/primary_equation/input_fields/1  # absolute reference
     output:

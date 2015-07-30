@@ -33,7 +33,7 @@ problem: !SequentialCoupling
           init_conc_immobile: [0.0, 0.0]
           porosity_immobile: 0.25
           r_set: ALL
-      reaction_immobile: ../reaction_mobile
+      reaction_immobile: !ref ../reaction_mobile
       reaction_mobile: !FirstOrderReaction
         reactions:
           - products: B

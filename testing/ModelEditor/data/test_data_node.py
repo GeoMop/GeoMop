@@ -55,7 +55,7 @@ def test_parse(request=None):
 
     # test complex structure
     mockcfg.load_complex_structure_to_config()
-    
+
     # test values - are scalars converted to the correct type?
     assert cfg.root.children[0].children[0].children[0].value is None
     assert cfg.root.children[1].children[1].children[0].value is True
@@ -118,7 +118,7 @@ def test_parse(request=None):
     assert (cfg.root.get_node_at_path('/problem/mesh/mesh_file').value ==
             'input/dual_por.msh')
     assert (cfg.root.children[0].children[0].get_node_at_path(
-        '../primary_equation/balance/balance_on').value is True)
+        '../primary_equation/balance').value is True)
 
     # test tag
     assert cfg.root.children[0].type.value == 'SequentialCoupling'
@@ -129,8 +129,8 @@ def test_parse(request=None):
 
     # test ref
     input_fields = cfg.root.children[0].children[1].children[1]
-    assert input_fields.children[0].children[0].children[0].value == 0
-    assert input_fields.children[2].children[0].children[0].value == 0
+    assert input_fields.children[0].children[0].value == 0
+    assert input_fields.children[2].children[0].value == 0
 
     # test empty abstract record
     node = cfg.root.get_node_at_path('/problem/primary_equation/solver')

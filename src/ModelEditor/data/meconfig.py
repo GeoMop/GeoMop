@@ -11,6 +11,7 @@ from data.validation.validator import Validator
 from data.format import get_root_input_type_from_json
 import PyQt5.QtWidgets as QtWidgets
 from data.error_handler import ErrorHandler
+import data.autoconversion as ac
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -189,10 +190,10 @@ class MEConfig:
         return None
 
     @classmethod
-    def get_transformation_text(cls,  file):
+    def get_transformation_text(cls, file):
         """return transformation file text"""
         from os.path import join
-        file_name = join(__transformation_dir__,  file + ".json")
+        file_name = join(__transformation_dir__, file + ".json")
         try:
             with open(file_name, 'r') as file_d:
                 return file_d.read()
@@ -213,7 +214,7 @@ class MEConfig:
         # empty file with comment
         if cls.root is None:
             return None
-            
+
         return cls.root.get_node_at_position(position)
 
     @classmethod
@@ -324,6 +325,7 @@ class MEConfig:
         cls.errors = cls.error_handler.errors
         if cls.root_input_type is None or cls.root is None:
             return
+        cls.root = ac.autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
         cls.errors = cls.error_handler.errors
 
@@ -379,7 +381,7 @@ class MEConfig:
             cls.changed = True
             return True
         return False
-        
+
     @classmethod
     def transform(cls, file):
         """Run transformation accoding rules in set file"""
@@ -393,7 +395,7 @@ class MEConfig:
                 err_dialog.open_error_dialog("Can't decode transformation file", err)
             else:
                 raise err
-            return    
+            return
         dialog = TranformationDetailDlg(transformator.name,
                                         transformator.description,
                                         transformator.old_version,

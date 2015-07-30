@@ -88,7 +88,7 @@ def check_array(value, input_type):
 def check_record_key(children_keys, key, input_type):
     """Checks a single key within a record."""
     # if key is not found in specifications, it is considered to be valid
-    if key not in input_type['keys'] and key != 'TYPE':
+    if key not in input_type['keys']:
         raise errors.UnknownKey(key, input_type['type_name'])
 
     try:

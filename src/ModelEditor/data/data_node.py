@@ -313,9 +313,9 @@ class DataError(Exception):
         )
 
     def __str__(self):
-        text = "{span} {name}\n{description}"
+        text = "{span} {title}\n{description}"
         return text.format(
             span=self.span,
-            name=self.category.value,
+            title=self.title,
             description=self.description
         )
