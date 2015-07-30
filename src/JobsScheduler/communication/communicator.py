@@ -32,7 +32,7 @@ class Communicator():
             without waiting for processing of communicator above
             """
         if init_conf.input_type == comconf.InputCommType.std:
-            self.input = com.InputComm(sys.stdin, sys.stdin)
+            self.input = com.InputComm(sys.stdin, sys.stdout)
         if init_conf.output_type == comconf.OutputCommType.ssh:
             self.output = com.SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
