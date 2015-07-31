@@ -1,5 +1,6 @@
 """Configuration of communication unit"""
 from enum import Enum
+import logging
 
 class OutputCommType(Enum):
     """Severity of an error."""
@@ -23,8 +24,8 @@ class CommunicatorConfig():
         """Input communication type"""
         self.output_type = OutputCommType.none
         """Output communication type"""
-        self.install_dir = False
-        """Dir in home, where is copy app. files"""
+        self.communicator_name = ""
+        """this communicator name for login file, ..."""
         self.next_communicator = ""
         """communicator file that will be start"""
         self.host = "127.0.0.1"
@@ -33,3 +34,5 @@ class CommunicatorConfig():
         """User for output configuration"""
         self.pwd = ""
         """Password for output configuration"""
+        self.log_level = logging.WARNING
+        """log level for communicator"""

@@ -10,7 +10,6 @@ ccom.output_type = comconf.OutputCommType.ssh
 ccom.next_communicator = "delegator"
 ccom.uid = "test"
 ccom.pwd = "MojeHeslo123"
-ccom.install_dir = "jobs"
 
 comunicator = Communicator(ccom)
 comunicator.install()

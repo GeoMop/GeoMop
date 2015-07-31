@@ -1,6 +1,7 @@
 """Classes for handing messages over net"""
 
 import abc
+import logging
 import pxssh
 import fdpexpect
 import pexpect
@@ -27,7 +28,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def install(self,  installation,  path="./"):
+    def install(self):
         """copy installation"""
         pass
         
@@ -71,7 +72,10 @@ class InputComm():
         Function wait for answer for set time in seconds
         """
         fd = fdpexpect.fdspawn(self.input)
-        txt = fd.read_nonblocking(size=1000, timeout=wait)
+        try:
+            txt = fd.read_nonblocking(size=1000, timeout=wait)
+        except pexpect.TIMEOUT:
+            return None
         mess = tdata.Message(txt) 
         return mess
 
@@ -96,7 +100,7 @@ class SshOutputComm(OutputComm):
         """disconnect session"""
         self.ssh.logout()
         
-    def install(self, path="./"):
+    def install(self):
         """make installation"""
         sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
         sftp.expect('.*assword:')
@@ -106,12 +110,15 @@ class SshOutputComm(OutputComm):
         if res == 0:
             sftp.kill(0)
             raise Exception("Permission denied for user " + self.name) 
-        self.installation.create_install_dir(path, sftp)
+        self.installation.create_install_dir(sftp)
         sftp.close()
         
     def exec_(self, python_file):
         """run set python file in ssh"""
         self.ssh.sendline(self.installation.get_command(python_file))
+        if self.ssh.prompt():
+            mess = str(self.ssh.before, 'utf-8').strip()
+            logging.warning("Exec python file: " + mess) 
 
     def send(self,  mess):
         """send json message"""

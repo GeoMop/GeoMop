@@ -3,7 +3,7 @@ import data.transport_data as tdata
 sys.path.insert(1, './twoparty/pexpect')
 
 import data.communicator_conf as comconf
-from communication.comunicator import Communicator
+from communication.communicator import Communicator
 
 ccom = comconf.CommunicatorConfig()
 ccom.input_type = comconf.InputCommType.std

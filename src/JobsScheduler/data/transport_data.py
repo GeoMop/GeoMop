@@ -27,8 +27,23 @@ class Message:
         if asci is not None:
             self.unpack(asci)
     
+    def __str__(self):
+        """string representation"""
+        if isinstance(self.action_type, ActionType):
+            t = str(self.action_type)[ len(type(self.action_type).__name__):]
+        else:
+            if self.action_type is None:
+                t = "None"
+            else:
+                t = "unknown type"
+        if self.json is None:
+            a = "None"
+        else:
+            a = self.json
+        return "type:{}, action{}".format(t, a)
+    
     def pack(self):
-        """pack data for transport"""
+        """pack data for transport to base64 format"""
         bin = bytes(self.json, "utf-8")
         bin = struct.pack('!i' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
@@ -38,7 +53,7 @@ class Message:
         return binascii.b2a_base64(bin)
         
     def unpack(self, asci):
-        """pack data for transport"""
+        """upack transported data from base 64 format"""
         bin = binascii.a2b_base64(asci)
         self.len, self.sum, action_type = struct.unpack_from("!iii", bin)
         self.action_type = ActionType(action_type)
@@ -96,7 +111,7 @@ class ActionData(metaclass=abc.ABCMeta):
         """Data for json packing"""
     
     def pack(self):
-        """Data packing"""
+        """Data packing to json"""
         return json.dumps(self.data)
 
 class EmptyData(ActionData):
