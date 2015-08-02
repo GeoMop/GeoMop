@@ -11,7 +11,7 @@ import data.installation as dinstall
 class Communicator():
     """Communication class"""
     
-    def __init__(self, init_conf, action_func=None):
+    def __init__(self, init_conf, action_func_before=None, action_func_after=None):
         self.input = None
         """class for input communication"""
         self.output = None
@@ -26,17 +26,27 @@ class Communicator():
         """log level for communicator"""
         self._set_loger(dinstall.Installation.get_result_dir(), 
             self.communicator_name, self.log_level)
-        if action_func is None:
-            self.action_func = self.standart_action_funcion
+        if action_func_before is None:
+            self.action_func_before = self.standart_action_funcion_before
         else:
-            self.action_func = action_func
+            self.action_func_before = action_func_before
             """
-            Function for processing of action in class above
+            Function for processing of action in class above before sending message
             
-            Parameter: Is message object
+            Parameter: Is received message object
             Return: tuple in two Booleans and message. First boolean if action is resend,
             second if is processed in standart way and if message is not None, is ressend
             without waiting for processing of communicator above
+            """
+        if action_func_after is None:
+            self.action_func_after = self.standart_action_funcion_after
+        else:
+            self.action_func_after = action_func_after
+            """
+            Function for processing of action in class above after sending message
+
+            Parameter: Is received message object
+            Return: Message that is return or None
             """
         if init_conf.input_type == comconf.InputCommType.std:
             self.input = com.InputComm(sys.stdin, sys.stdout)
@@ -49,15 +59,21 @@ class Communicator():
         log_file = os.path.join(path, "log_" + name +".log")
         logging.basicConfig(filename=log_file,level=level, 
             format='%(asctime)s %(levelname)s %(message)s')
+        logging.info("Application " + self.communicator_name + " is started")
    
-    def  standart_action_funcion(self, message):
+    def  standart_action_funcion_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
         return True, True, None
+        
+    def  standart_action_funcion_after(self, message):
+        """This function will be set by communicator. This is empty default implementation."""
+        return None
     
     def close(self):
         """Release resorces"""
         if isinstance(self.output, com.SshOutputComm):
             self.output.disconnect()
+        logging.info("Application " + self.communicator_name + " is stopped")
     
     def install(self):
         """make installation"""
@@ -76,17 +92,19 @@ class Communicator():
         stop = False
         while True:
             if self.input is None:
+                logging.fatal("Infinite loop")
                 raise Exception("Infinite loop")
                 break
-            message = self.input.receive(0)
+            message = self.input.receive(1)
             if message is not None:
                 error = False
                 logging.debug("Input message is receive (" + str(message) + ')')
                 if message.action_type == tdata.ActionType.stop:
+                    logging.info("Stop signal is received")
                     stop=True
-                resend,  process, mess = self.action_func(message)
+                resend,  process, mess = self.action_func_before(message)
                 if process:
-                    action=tdata.Action(message.action_type,  message.json_data)
+                    action=tdata.Action(message.action_type,  message.json)
                     action.run
                 if resend and self.output is not None:
                     logging.debug("Message is resent")
@@ -94,6 +112,9 @@ class Communicator():
                 if resend and mess is None:
                     mess = self.output.receive()
                     logging.debug("Answer to resent message is receive (" + str(mess) + ')')
+                mess_after = self.action_func_after(message)
+                if mess_after is not None:
+                    mess = mess_after
                 if mess == None:
                     action=tdata.Action(tdata.ActionType.error)
                     if resend:

@@ -13,6 +13,7 @@ __ins_dir__.append("communication")
 __ins_dir__.append("data")
 __ins_dir__.append('twoparty')
 __root_dir__ = "jobs"
+__python_exec__ = "python3"
 
 class Installation:
     """Files with installation (python files and configuration files) is selected 
@@ -67,16 +68,14 @@ class Installation:
                 #wait 2s after last message
                 end = pexpect_conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                 if end == 0 and len(pexpect_conn.before)>0:
-                    logging.warning("Sftp message(mkdir " + dir + "): " + str(pexpect_conn.before, 'utf-8').strip())
+                    logging.debug("Sftp message(mkdir " + dir + "): " + str(pexpect_conn.before, 'utf-8').strip())
  
     def get_command(self, name):
         """Find install file according to name and return command for running"""
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
-        return "python " + dest_path
-    
-    
+        return __python_exec__ + " " + dest_path
     
     @staticmethod
     def get_result_dir():

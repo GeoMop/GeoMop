@@ -63,7 +63,8 @@ class InputComm():
 
     def send(self, msg):
         """send message to output stream"""
-        self.output.write(msg.pack() + "\n")
+        self.output.write(msg.pack()+"\n")
+        self.output.flush()
         
     def receive(self,  wait=60):
         """
@@ -71,12 +72,16 @@ class InputComm():
         
         Function wait for answer for set time in seconds
         """
-        fd = fdpexpect.fdspawn(self.input)
         try:
-            txt = fd.read_nonblocking(size=1000, timeout=wait)
+            fd = fdpexpect.fdspawn(self.input)
+            txt = fd.read_nonblocking(size=10000, timeout=wait)
         except pexpect.TIMEOUT:
             return None
-        mess = tdata.Message(txt) 
+        try:
+            mess = tdata.Message(txt)
+        except(tdata.MessageError) as err:
+            txt = str(txt, 'utf-8').strip()
+            logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
         return mess
 
 class SshOutputComm(OutputComm):
@@ -95,6 +100,7 @@ class SshOutputComm(OutputComm):
         """connect session"""
         self.ssh = pxssh.pxssh()
         self.ssh.login(self.host, self.name, self.password)
+        self.last_mess = None
 
     def disconnect(self):
         """disconnect session"""
@@ -115,21 +121,47 @@ class SshOutputComm(OutputComm):
         
     def exec_(self, python_file):
         """run set python file in ssh"""
-        self.ssh.sendline(self.installation.get_command(python_file))
+        self.ssh.sendline("cd " + self.installation.copy_path)
         if self.ssh.prompt():
             mess = str(self.ssh.before, 'utf-8').strip()
-            logging.warning("Exec python file: " + mess) 
+            if mess != ("cd " + self.installation.copy_path):
+                logging.warning("Exec python file: " + mess) 
+        self.ssh.sendline(self.installation.get_command(python_file))
+        self.ssh.expect(dinstall.__python_exec__ + ".*\r\n")
+        if len(self.ssh.before)>0:
+            txt = str(self.ssh.before, 'utf-8').strip()
+            logging.warning("Run python file: " + txt)  
 
     def send(self,  mess):
         """send json message"""
-        self.ssh.sendline(mess.pack())
-        
+        m = mess.pack()
+        self.ssh.sendline(m)
+        self.last_mess = m
+
     def receive(self, timeout=60):
         """receive json message"""
-        if self.ssh.prompt(timeout):
-            mess =tdata.Message(self.ssh.before)
+        try:
+            txt = str(self.ssh.read_nonblocking(size=10000, timeout=timeout), 'utf-8').strip()
+        except pexpect.TIMEOUT:
+            return None
+        try:
+            txt += str(self.ssh.read_nonblocking(size=10000, timeout=2), 'utf-8').strip()
+        except pexpect.TIMEOUT:
+            pass
+        if self.last_mess is not None:
+            # delete sended message
+            if self.last_mess == txt [:len(self.last_mess)]:
+                txt = txt[len(self.last_mess):].strip()
+                if len(txt) == 0:                    
+                    self.last_mess = None
+                    return self.receive(timeout)
+        self.last_mess = None
+        try:
+            mess =tdata.Message(txt)
             return mess
+        except(tdata.MessageError) as err:
+            logging.warning("Receive message (" + txt + ") error: " + str(err))
         return None
-
+ 
     def get_file(self, file_name):
         """download file from installation folder"""

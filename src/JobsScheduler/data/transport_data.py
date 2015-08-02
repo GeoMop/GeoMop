@@ -30,7 +30,7 @@ class Message:
     def __str__(self):
         """string representation"""
         if isinstance(self.action_type, ActionType):
-            t = str(self.action_type)[ len(type(self.action_type).__name__):]
+            t = str(self.action_type)[ len(type(self.action_type).__name__)+1:]
         else:
             if self.action_type is None:
                 t = "None"
@@ -44,23 +44,42 @@ class Message:
     
     def pack(self):
         """pack data for transport to base64 format"""
+        import logging
+        logging.debug("json:"+self.json)
         bin = bytes(self.json, "utf-8")
         bin = struct.pack('!i' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
         bin = struct.pack('!i' , sum) + bin
         length = len(bin)
         bin = struct.pack('!i' , length) + bin
-        return binascii.b2a_base64(bin)
+        return str(binascii.b2a_base64(bin),"us-ascii" ).strip()
         
     def unpack(self, asci):
         """upack transported data from base 64 format"""
-        bin = binascii.a2b_base64(asci)
-        self.len, self.sum, action_type = struct.unpack_from("!iii", bin)
-        self.action_type = ActionType(action_type)
+        try:
+            bin = binascii.a2b_base64(asci)
+        except:
+            raise MessageError("Invalid base64 data format")
+        try:
+            self.len, self.sum, action_type = struct.unpack_from("!iii", bin)
+        except(struct.error) as err:
+            raise MessageError("Unpact error: " + str(err))
+        if self.len != (len(bin)-struct.calcsize("!i")):
+            raise MessageError("Invalid data length")
+        try:
+            self.action_type = ActionType(action_type)
+        except:
+            raise MessageError("Invalid action type")
         sum = zlib.crc32(bin[struct.calcsize("!ii"):])
         if sum != self.sum:
-            raise Exception("Invalid checksum")
+            raise MessageError("Invalid checksum")
         self.json = bin[struct.calcsize("!iii"):].decode("utf-8")
+        
+class MessageError(Exception):
+    """Error in nessage format"""
+    
+    def __init__(self, msg):
+        super(MessageError, self).__init__(msg)
 
 class Action():
     """Action entry class"""
@@ -128,7 +147,8 @@ class ErrorData(ActionData):
     """Error data"""
     
     def __init__(self, json_data):
-        if json is None:            
+        self.data={}
+        if json_data is None:            
             self.data["msg"] = None
         else:
             self.data = json.loads(json_data)
