@@ -62,7 +62,9 @@ class JsonEditorDlg(QtWidgets.QDialog):
             self, "Set Json File", file_name, "Json Files (*.json)")
         if json_file[0]:
             new_name = os.path.split(json_file[0])[1][:-5]
+            new_path = os.path.split(json_file[0])[0]
             self._name = new_name
+            self._path = new_path
             self._label_file.setText(self._label_name + ": " + new_name)
             self._save_file()
 

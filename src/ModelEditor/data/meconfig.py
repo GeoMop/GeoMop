@@ -406,7 +406,15 @@ class MEConfig:
                                         transformator.new_version in cls.transformation_files,
                                         cls.main_window)
         if QtWidgets.QDialog.Accepted == dialog.exec_():
-            transformator.transform(cls.root, cls.document)
+            try:
+                cls.document = transformator.transform(cls.document)
+            except TransformationFileFormatError as err:
+                if cls.main_window is not None:
+                    err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
+                    err_dialog.open_error_dialog("Can't decode transformation file", err)
+                else:
+                    raise err
+                return
             if transformator.new_version in cls.transformation_files:
                 cls.set_current_format_file(transformator.new_version)
             else:

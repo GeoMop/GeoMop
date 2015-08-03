@@ -1,0 +1,20 @@
+{
+"name": "Example file",
+"description": "Template for creating transformation file",
+"old_format": "",
+"new_format": "",
+"actions": [
+{
+"action": "delete-key",
+"parameters": {
+"path": "/problem/mesh/mesh_file"
+}
+},
+{
+"action": "delete-key",
+"parameters": {
+"path": "/problem/primary_equation"
+}
+}
+]
+}

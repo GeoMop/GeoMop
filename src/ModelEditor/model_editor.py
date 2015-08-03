@@ -106,25 +106,20 @@ class ModelEditor:
         self._format.addAction(self._edit_format_action)
         
         self._transformation = self._settings_menu.addMenu('&Transformation')
-        self._transformation_group = QtWidgets.QActionGroup(
-            self._mainwindow, exclusive=True)
+        pom_lamda = lambda name: lambda: self._transform(name)
         for frm in cfg.transformation_files:
-            faction = self._transformation_group.addAction(QtWidgets.QAction(
-                frm + " ...", self._mainwindow))
+            faction = QtWidgets.QAction(frm + " ...", self._mainwindow)
             faction.setStatusTip('Transfor format of current document')
             self._transformation.addAction(faction)
-            self._transformation_group.triggered.connect(lambda: self._transform(frm))
+            faction.triggered.connect(pom_lamda(frm))
             
         self._edit_transformation = self._settings_menu.addMenu('&Edit Transformation Rules')
-        self._edit_transformation_group = QtWidgets.QActionGroup(
-            self._mainwindow, exclusive=True)
+        pom_lamda = lambda name: lambda: self._edit_transformation_file(name)
         for frm in cfg.transformation_files:
-            faction = self._edit_transformation_group.addAction(QtWidgets.QAction(
-                frm, self._mainwindow))
+            faction = QtWidgets.QAction(frm, self._mainwindow)
             faction.setStatusTip('Open transformation file')
             self._edit_transformation.addAction(faction)
-            self._edit_transformation_group.triggered.connect(
-                lambda: self._edit_transformation_file(frm))
+            faction.triggered.connect(pom_lamda(frm))
         
         #tab
         self._tab = QtWidgets.QTabWidget()
@@ -284,7 +279,7 @@ class ModelEditor:
         """Run transformation accoding rules in set file"""
         cfg.update_yaml_file(self._editor.text())
         cfg.transform( file)
-        
+        self._reload()
         
     def _edit_transformation_file(self,  file):
         """edit transformation rules in file"""
