@@ -94,6 +94,14 @@ class Transformator:
         except:
             return False
         l1, c1, l2, c2 =self._get_node_pos(node)
+        # try delete with comma after or prev
+        nl2, nc2 = self._next_spread(lines, l2, c2)
+        if nl2 == l2 and nc2 == c2:
+           l1, c1 = self._prev_spred(lines, l1, c1)
+        else:
+            l2 = nl2
+            c2 = nc2
+        # one line
         if l1 == l2 :
             place = re.search('^(\s*)(\S.*\S)(\s*)$', lines[l1])
             if ((len(place.group(1))>=c1) and
@@ -102,6 +110,7 @@ class Transformator:
             else:
                 lines[l1] = lines[l1][:c1] + lines[l1][c2:]
         else:
+            # more lines
             place = re.search('^(\s*)(\S.*\S)(\s*)$', lines[l2])
             if len(place.group(1))>c2:
                 if (len(lines[l2]) - len(place.group(3))) <= c2:
@@ -116,11 +125,46 @@ class Transformator:
             else:
                 lines[l1] = lines[l1][:c1] 
         return True
+    
+    @staticmethod
+    def _next_spread(lines, line, column):
+        """if next no-empty char is comma, return new possition"""
+        old_line = line
+        old_column = column
+        while True:
+            column += 1
+            while len(lines[line]) <= column:
+                column = 0
+                line += 1
+                if line<len(lines):
+                    break
+            if not lines[line][column].isspace():
+                if lines[line][column] == ",":
+                    return line, column
+                break
+        return old_line, old_column
+        
+    @staticmethod    
+    def _prev_spred(lines, line, column):
+        """if previous no-empty char is comma, return new possition"""
+        old_line = line
+        old_column = column
+        while True:
+            column -= 1
+            while  0 > column:
+                line -= 1
+                if line < 0:
+                    break 
+                column = len(lines[line])-1
+            if not lines[line][column].isspace():
+                if lines[line][column] == ",":
+                    return line, column
+                break
+        return old_line, old_column
         
     def _move_key(self, root, lines,  action):
         """Move key transformation"""
         try:
-            node2 = root.get_node_at_path(action['parameters']['destination_path'])
             raise TransformationFileFormatError("Source path (" + 
                 action['parameters']['source_path'] + ") already exist")
         except:
@@ -140,7 +184,8 @@ class Transformator:
         dl1, dc1, dl2, dc2 =self._get_node_pos(node2)
         if parent1.group(1) == parent2.group(1):
             #rename
-            lines[sl1] = lines[sl1][:sc1] + parent2.group(2) + lines[sl1][:sc2]
+            i = node1.key.span.start.line
+            lines[i] = re.sub(parent1.group(2) + "\s*:", parent2.group(2) + ":", lines[i])
             return True
         if not isinstance(node2,  dn.CompositeNode):
             raise TransformationFileFormatError("Parent of destination path (" + 
@@ -151,13 +196,15 @@ class Transformator:
         if sl1 == sl2:
             add.append(intendation + lines[sl1][sc1:sc2])
         else:
-            add.append(intendation + lines[sl1][sc1:])
+            add.append(intendation + lines[sl1][sc1:])            
             for i in range(sl1+1, sl2):
                 intendation2 =  re.search('^(\s*)(\S.*)$', lines[i])
                 add.append(intendation + lines[sl1][len(intendation2.group(1)):])
             intendation2 =  re.search('^(\s*)(\S.*)$', lines[sl2])
             if len(intendation2.group(1)) < sc2:
-                add.append(intendation + lines[sl1][len(intendation2.group(1)):sc2])        
+                add.append(intendation + lines[sl1][len(intendation2.group(1)):sc2])
+        i = node1.key.span.start.line - sl1
+        add[i] = re.sub(parent1.group(2) + "\s*:", parent2.group(2) + ":", add[i])
         if sl2 < dl1 or (sl2 == dl1 and sc2<dc1):            
             # source before dest, first copy 
             intendation2 =  re.search('^(\s*)(\S.*)$', lines[dl2])

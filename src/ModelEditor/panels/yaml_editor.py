@@ -112,7 +112,8 @@ class YamlEditorWidget(QsciScintilla):
                 self.structureChanged.emit(line+1,  index+1)
             else:
                 self.nodeChanged.emit(line+1, index+1)
-        self._pos.make_post_operation(self,  line, index)
+        else:
+            self._pos.make_post_operation(self,  line, index)
         self.cursorChanged.emit(line+1, index+1)
 
     def _text_changed(self):
@@ -173,7 +174,7 @@ class editorPosition():
         """All yaml text before changes"""
         self._last_line = ""
         """last cursor text of line for comparision"""
-        self._last_line_after = ""
+        self._last_line_after = None
         """last after cursor text of line for comparision"""
         self._to_end_line = True
         """Bound max position is to end line"""  
@@ -365,7 +366,6 @@ class editorPosition():
         self.is_changed = False
         self.is_value_changed = False
         self.is_key_changed = False
-        self._save_lines(editor)
         self._to_end_line = self.end_index == len(self._last_line)
         if len(self._last_line) == 0:
             self._to_end_line = True
@@ -373,6 +373,7 @@ class editorPosition():
         if len(self._old_text)+1 == editor.lines():
             self._old_text.append("")
         self.line, self.index = editor.getCursorPosition()
+        self._save_lines(editor)
         if node is not None:
             self._reload_autocompletation(editor)
 

@@ -15,6 +15,7 @@
 "parameters": {
 "source_path": "/problem/mesh/balance",
 "destination_path": "/problem/mesh/balance_new"
+"rewrite": False
 }
 }
 ]

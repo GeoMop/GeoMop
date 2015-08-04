@@ -184,12 +184,12 @@ class ModelEditor:
     def _reload(self):
         """reload panels after structure changes"""
         cfg.update()
-        self._editor.reload()
+        self._editor.reload()        
         self._tree.reload()
         self._err. reload()
         line, index = self._editor.getCursorPosition()
         self._reload_node(line+1, index+1)
-        self._status.showMessage("Document structure is reloaded", 5000)
+        #self._status.showMessage("Document structure is reloaded", 5000)
 
     def _reload_node(self, line, index):
         """reload info after changing node selection"""

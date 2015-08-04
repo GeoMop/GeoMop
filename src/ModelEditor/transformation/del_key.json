@@ -11,9 +11,10 @@
 }
 },
 {
-"action": "delete-key",
-"parameters": {
-"path": "/problem/primary_equation/input_fields"
+"action": "move-key",
+"parameters":{
+"source_path":"/problem/primary_equation/balance",
+"destination_path":"/problem/mesh"
 }
 }
 ]

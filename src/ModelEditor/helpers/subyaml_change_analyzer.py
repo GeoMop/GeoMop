@@ -14,8 +14,8 @@ class SubYamlChangeAnalyzer:
         self._area = copy.deepcopy(area)
         self._line = cursor_line
         self._index = cursor_index
-        if len(self._area[self._line]) == self._index:
-            self._index -= 1 
+        if len(self._area[self._line]) <= self._index:
+            self._index = len(self._area[self._line]) - 1 
 
     @staticmethod
     def get_tag_poss(line, tag):
