@@ -1,8 +1,7 @@
-Tango Icon Library 0.8.90 (tango)
-	link: http://tango.freedesktop.org/Tango_Icon_Library
-	license: Public Domain 
+Iconset: Small & Flat Icons by paomedia (flat)
+	link: http://www.iconarchive.com/show/small-n-flat-icons-by-paomedia.html
+	license: Public Domain
 	License link: http://en.wikipedia.org/wiki/Public_domain
-	formats: svg, png
-	subdirectory: open_icon_library-devel/icons/tango
+	formats: png, ico
 
-error.png, information.png, warning.png, fatal.png - tango
+error.png, information.png, warning.png, fatal.png - flat
