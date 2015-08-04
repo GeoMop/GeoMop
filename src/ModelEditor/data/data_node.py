@@ -294,6 +294,8 @@ class DataError(Exception):
         """:class:`ErrorCategory` the category of error"""
         self.span = span
         """:class:`Span` the position of error"""
+        if self.span is None:
+            self.span = Span(start=Position(1, 1), end=Position(1, 1))
         self.description = description
         """describes the error"""
         self.node = node

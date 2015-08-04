@@ -30,12 +30,13 @@ class ErrorHandler:
 
     @property
     def errors(self):
-        return list(self._errors)
+        return sorted(self._errors, key=lambda error: (
+            error.span.start, -error.severity.value, error.category.value))
 
     def report_parsing_error(self, yaml_error, error_end_pos):
         """reports a YAML error that occurs during parsing"""
         category = dn.DataError.Category.yaml
-        severity = dn.DataError.Severity.error
+        severity = dn.DataError.Severity.fatal
         description = yaml_error.problem
         error_line = get_error_line_from_yaml_error(yaml_error) + 1
         start_pos = dn.Position(error_line, 1)
@@ -84,6 +85,16 @@ class ErrorHandler:
         span = node.span
         error = dn.DataError(category, severity, description, span, node)
         self._errors.append(error)
+
+    def report_invalid_tag_position(self, tag):
+        """Reports an invalid tag position error."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        description = "Invalid position of tag."
+        span = tag.span
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
 
 
 def get_validation_error_span(node, error):

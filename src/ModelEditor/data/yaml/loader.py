@@ -106,6 +106,9 @@ class Loader:
                 node.span = temp_node.span
             else:  # keep ScalarNode - might be used for autoconversion
                 node = temp_node
+        else:
+            self.error_handler.report_invalid_tag_position(type_)
+            return self._create_array_node()
         node.type = type_
         return node
 

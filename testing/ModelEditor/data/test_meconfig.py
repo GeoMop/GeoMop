@@ -142,7 +142,7 @@ def test_meconfig_static(request):
 
     cfg.document = "#test2"
     cfg.changed = True
-    cfg.set_current_format_file('1.8.2')    
+    cfg.set_current_format_file('1.8.2')
 
     cfg.open_file("test.yaml")
     # open file test
@@ -174,7 +174,7 @@ def test_meconfig_static(request):
     # test update_yaml_file 1
     assert cfg.changed == True
     assert cfg.document == "#new test"
-    
+
     cfg.changed = False
     cfg.update_yaml_file("#new test")
     # test update_yaml_file 2
@@ -189,4 +189,4 @@ def test_meconfig_static(request):
     # test document parsing error
     cfg.document = "n: :"
     cfg.update()
-    assert len(cfg.errors) == 2
+    assert len(cfg.errors) == 1
