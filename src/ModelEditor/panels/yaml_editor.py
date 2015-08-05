@@ -74,14 +74,23 @@ class YamlEditorWidget(QsciScintilla):
         
         # Clickable margin 1 for showing markers
         self.setMarginSensitivity(1, True)
+        self.setMarginWidth(1, 20)
+        self.setMarginMarkerMask(1,0xF) 		
         self.markerDefine(icon.get_pixmap("fatal", 16),dn.DataError.Severity.fatal.value)
         self.markerDefine(icon.get_pixmap("error", 16),dn.DataError.Severity.error.value)
         self.markerDefine(icon.get_pixmap("warning", 16),dn.DataError.Severity.warning.value)
         self.markerDefine(icon.get_pixmap("information", 16),dn.DataError.Severity.info.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.fatal.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.error.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.warning.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee1111"), dn.DataError.Severity.info.value)
+        # Nonclickable margin 2 for showing markers
+        self.setMarginWidth(2, 4)
+        self.setMarginMarkerMask(2,0xF0)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4+dn.DataError.Severity.fatal.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4+dn.DataError.Severity.error.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4+dn.DataError.Severity.warning.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4+dn.DataError.Severity.info.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#a50505"), 4+dn.DataError.Severity.fatal.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#ee4c4c"), 4+dn.DataError.Severity.error.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#bb88cc"), 4+dn.DataError.Severity.warning.value)
+        self.setMarkerBackgroundColor(QtGui.QColor("#eedd33"), 4+dn.DataError.Severity.info.value)
 
         #signals
         self.marginClicked.connect(self._margin_clicked)
@@ -126,26 +135,31 @@ class YamlEditorWidget(QsciScintilla):
 
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
-        if self.markersAtLine(line) != 0:
+        if (0xF & self.markersAtLine(line)) != 0:
             self.errorMarginClicked.emit(line+1)
 
     def _reload_margin(self):
-        """Set error icon to margin"""
+        """Set error icon and mark to margin"""
         self.markerDeleteAll()
         for error in cfg.errors:
+            # icon
             line = error.span.start.line-1
-            if error.severity == dn.DataError.Severity.fatal:
-                if self.markersAtLine(line) < (1<<dn.DataError.Severity.fatal.value):
-                    self.markerAdd(line, dn.DataError.Severity.fatal.value)
-            elif error.severity == dn.DataError.Severity.error:
-                if self.markersAtLine(line) < (1<<dn.DataError.Severity.error.value):
-                    self.markerAdd(line, dn.DataError.Severity.error.value)
-            elif error.severity == dn.DataError. Severity.warning:
-                if self.markersAtLine(line) < (1<<dn.DataError.Severity.warning.value):
-                    self.markerAdd(line, dn.DataError.Severity.warning.value)
-            else:
-                if self.markersAtLine(line) < (1<<dn.DataError.Severity.info.value):
-                    self.markerAdd(line, dn.DataError.Severity.info.value)
+            present = 0xF & self.markersAtLine(line)            
+            if present < (1<< error.severity.value):
+                if(present>0):
+                    for i in range(0, 4):
+                        if(present&(1<<i)) == (1<<i):
+                            self.markerDelete(line, i)
+                self.markerAdd(line, error.severity.value)
+            # mark
+            for line in range(error.span.start.line-1, error.span.end.line):
+                present = (0xF0 & self.markersAtLine(line))>>4
+                if present < (1<< error.severity.value):
+                    if(present>0):
+                        for i in range(0, 4):
+                            if(present&(1<<i)) == (1<<i):
+                                self.markerDelete(line, i+4)
+                self.markerAdd(line, error.severity.value+4)
 
 class editorPosition():
     """Helper for guarding cursor possition above node"""
