@@ -165,8 +165,9 @@ class Transformator:
     def _move_key(self, root, lines,  action):
         """Move key transformation"""
         try:
-            raise TransformationFileFormatError("Source path (" + 
-                action['parameters']['source_path'] + ") already exist")
+            parent1 = root.get_node_at_path(action['parameters']['destination_path'])
+            raise TransformationFileFormatError("Destination path (" + 
+                action['parameters']['destination_path'] + ") already exist")
         except:
             pass
         try:
@@ -190,20 +191,33 @@ class Transformator:
         if not isinstance(node2,  dn.CompositeNode):
             raise TransformationFileFormatError("Parent of destination path (" + 
                 action['parameters']['destination_path'] + ") must be abstract record")
-        intendation =  re.search('^(\s*)(\S.*)$', lines[dl1])
-        intendation = intendation.group(1) + '  '
+        intendation1 =  re.search('^(\s*)(\S.*)$', lines[dl1])
+        intendation1 = len(intendation1.group(1)) + 2
         add = []
         if sl1 == sl2:
-            add.append(intendation + lines[sl1][sc1:sc2])
-        else:
-            add.append(intendation + lines[sl1][sc1:])            
+            add.append(intendation1 + lines[sl1][sc1:sc2])
+        else:            
+            add.append(intendation1 * " " + lines[sl1][sc1:])
+            intendation2 = re.search('^(\s*)(\S.*)$', lines[sl1])
+            intendation2 = len(intendation2.group(1))
+            intendation = intendation1 - intendation2
             for i in range(sl1+1, sl2):
-                intendation2 =  re.search('^(\s*)(\S.*)$', lines[i])
-                add.append(intendation + lines[sl1][len(intendation2.group(1)):])
-            intendation2 =  re.search('^(\s*)(\S.*)$', lines[sl2])
+                intendation_test =  re.search('^(\s*)(\S.*)$', lines[i])
+                if intendation==0 or len(intendation_test.group(1))<-intendation:
+                    add.append(lines[i])
+                elif intendation<0:
+                    add.append(lines[i][-intendation:])
+                else:                
+                    add.append(intendation*" " + lines[i])
+            intendation_test = re.search('^(\s*)(\S.*)$', lines[sl2])
             if len(intendation2.group(1)) < sc2:
-                add.append(intendation + lines[sl1][len(intendation2.group(1)):sc2])
-        i = node1.key.span.start.line - sl1
+                if intendation==0 or len(intendation_test.group(1))<-intendation:
+                    add.append(lines[i][:sc2])
+                elif intendation<0:
+                    add.append(lines[i][-intendation:sc2])
+                else:                
+                    add.append(intendation*" " + lines[i][:sc2])
+        i = node1.key.span.start.line - sl1 - 1
         add[i] = re.sub(parent1.group(2) + "\s*:", parent2.group(2) + ":", add[i])
         if sl2 < dl1 or (sl2 == dl1 and sc2<dc1):            
             # source before dest, first copy 

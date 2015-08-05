@@ -5,16 +5,16 @@
 "new_format": "",
 "actions": [
 {
-"action": "delete-key",
-"parameters": {
-"path": "/problem/mesh/mesh_file"
+"action": "move-key",
+"parameters":{
+"source_path":"/problem/primary_equation/input_fields",
+"destination_path":"/problem/mesh/balance"
 }
 },
 {
-"action": "move-key",
-"parameters":{
-"source_path":"/problem/primary_equation/balance",
-"destination_path":"/problem/mesh"
+"action": "delete-key",
+"parameters": {
+"path": "/problem/mesh/mesh_file"
 }
 }
 ]
