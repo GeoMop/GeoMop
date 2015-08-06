@@ -12,6 +12,9 @@ class SubYamlChangeAnalyzer:
     """
     def __init__(self, cursor_line, cursor_index,  area):
         self._area = copy.deepcopy(area)
+        for line in range(0, len(self._area)):
+            if self._area[line][-1:] == "\n":
+                self._area[line] = self._area[line] [0:-1]
         self._line = cursor_line
         self._index = cursor_index
         if len(self._area[self._line]) <= self._index:
@@ -35,6 +38,15 @@ class SubYamlChangeAnalyzer:
         for i in range(0, len(self._area)):
             #key
             index = self.get_tag_poss(self._area[i], ":")
+            if index>-1:
+                # test tag, if exist get it to key
+                key = re.search('^[^:]+:\s+!\S*\s', self._area[i])
+                if key is None:
+                    key = re.search('^[^:]+:\s!+\S*$', self._area[i])
+                    if key is not None:
+                        index=key.end()-1
+                else:
+                    index=key.end()-2
             if  not is_key:                
                 if index > -1:
                     if  self._line<i or (self._line == i and self._index <= index):

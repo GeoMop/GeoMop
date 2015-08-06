@@ -210,7 +210,7 @@ class Transformator:
                 else:                
                     add.append(intendation*" " + lines[i])
             intendation_test = re.search('^(\s*)(\S.*)$', lines[sl2])
-            if len(intendation2.group(1)) < sc2:
+            if len(intendation_test.group(1)) < sc2:
                 if intendation==0 or len(intendation_test.group(1))<-intendation:
                     add.append(lines[i][:sc2])
                 elif intendation<0:
