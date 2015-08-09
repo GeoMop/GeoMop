@@ -151,6 +151,7 @@ class MEConfig:
         else:
             if len(cls.format_files) > 0:
                 cls.curr_format_file = cls.format_files[0]
+        cls.update_format()
 
     @classmethod
     def _read_format_files(cls):
