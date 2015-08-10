@@ -3,7 +3,7 @@ import os
 import copy
 import config as cfg
 import geomop_dialogs
-from data.import_json import parse_con, fix_tags
+from data.import_json import parse_con, fix_tags, rewrite_comments
 from data.yaml import DocumentParser
 from data.yaml.transformator import Transformator, TransformationFileFormatError
 from dialogs.transformation_detail import TranformationDetailDlg
@@ -275,6 +275,8 @@ class MEConfig:
             cls.curr_file = None
             cls.update()
             cls.document = fix_tags(cls.document, cls.root)
+            cls.update()
+            cls.document = rewrite_comments(con, cls.document, cls.root)
             cls.update_format()
             cls.changed = True
             return True

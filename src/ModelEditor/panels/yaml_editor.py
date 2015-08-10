@@ -363,14 +363,10 @@ class editorPosition():
         """set new node"""
         self.node = node
         if node is not None:
-            if(node.key.span is not None):
-                self.begin_index = node.key.span.start.column-1
-                self.begin_line = node.key.span.start.line-1
-            else:
-                self.begin_index = node.span.start.column-1
-                self.begin_line = node.span.start.line-1
-            self.end_index = node.span.end.column-1
-            self.end_line = node.span.end.line-1
+            self.begin_index = node.start.column-1
+            self.begin_line = node.start.line-1
+            self.end_index = node.end.column-1
+            self.end_line = node.end.line-1
             self._key_and_value = type(node) == dn.ScalarNode
         else:
             self.begin_line = 0

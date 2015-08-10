@@ -118,15 +118,15 @@ class DataNode:
         )
 
     @property
-    def _beginning(self):
-        """beginning of node, including its key"""
-        beginning = self.span.start
+    def start(self):
+        """start of node, including its key"""
+        start = self.span.start
         if self.key is not None and self.key.span is not None:
-            beginning = self.key.span.start
-        return beginning
+            start = self.key.span.start
+        return start
 
     @property
-    def _end(self):
+    def end(self):
         return self.span.end
 
 
@@ -145,7 +145,7 @@ class CompositeNode(DataNode):
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         node = None
-        if self._beginning <= position < self._end:
+        if self.start <= position < self.end:
             node = self
             for child in self.children:
                 descendant = child.get_node_at_position(position)
@@ -197,7 +197,7 @@ class ScalarNode(DataNode):
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
-        if self._beginning <= position <= self._end:
+        if self.start <= position <= self.end:
             return self
         return None
 

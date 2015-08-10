@@ -1,5 +1,10 @@
+/*
+Main Comment
+
+Comment in root node
+*/
 {
-  problem = {
+'problem' = {
     TYPE = "SequentialCoupling", 
     description = "Test05 - Steady flow with Dirichlet/Neumann/Newton boundary condition", 
     mesh = {
@@ -7,7 +12,7 @@
     }, 
 // comment
     primary_equation = {
-      TYPE = "Steady_MH", 
+      TYPE = "Steady_MH", // comment 2
       n_schurs = 2, 
 
       input_fields= [
