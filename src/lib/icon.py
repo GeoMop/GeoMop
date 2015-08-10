@@ -5,7 +5,7 @@ import os
 __icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icon")
 
 def get_file(name,  size):
-    """Get file object"""
+    """Get file path to icon from archiv"""
     path = __icon_dir__
     if size == 24:
         path = os.path.join(path, "24x24")
@@ -14,9 +14,9 @@ def get_file(name,  size):
     return os.path.join(path,name + ".png")
 
 def get_icon(name,  size):
-    """Get QIcon object"""
+    """Get QIcon object from icon archiv"""
     return QtGui.QIcon(get_file(name,  size))
     
 def get_pixmap(name,  size):
-    """Get QIcon object"""
+    """Get QPixmap object from icon archiv"""
     return QtGui.QPixmap(get_file(name,  size))

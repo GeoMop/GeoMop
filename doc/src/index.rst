@@ -6,6 +6,8 @@
 Welcome to GeoMop Source Documentation's documentation!
 =======================================================
 
+:doc:`Install GeoMop Instruction <install/installation_guide>`
+
 GeoMop project organization:
   * :doc:`GeoMop Development Procedures (czech) <organization/procedures>`
   * :doc:`GeoMop Development Rules (czech) <organization/rules>`	

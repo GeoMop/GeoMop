@@ -101,6 +101,8 @@ class Transformator:
         else:
             l2 = nl2
             c2 = nc2
+        # try add comments
+        l1, c1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
         # one line
         if l1 == l2 :
             place = re.search('^(\s*)(\S.*\S)(\s*)$', lines[l1])
@@ -194,10 +196,12 @@ class Transformator:
         intendation1 =  re.search('^(\s*)(\S.*)$', lines[dl1])
         intendation1 = len(intendation1.group(1)) + 2
         add = []
+        # try add comments
+        sl1, sc1, sl2, sc2 = self._add_comments(lines, sl1, sc1, sl2, sc2)       
         if sl1 == sl2:
-            add.append(intendation1 + lines[sl1][sc1:sc2])
+            add.append(intendation1*" " + lines[sl1][sc1:sc2])
         else:            
-            add.append(intendation1 * " " + lines[sl1][sc1:])
+            add.append(intendation1*" " + lines[sl1][sc1:])
             intendation2 = re.search('^(\s*)(\S.*)$', lines[sl1])
             intendation2 = len(intendation2.group(1))
             intendation = intendation1 - intendation2
@@ -262,15 +266,42 @@ class Transformator:
             
     @staticmethod
     def _get_node_pos(node):
-        if(node.key.span is not None):
-            c1 = node.key.span.start.column-1
-            l1 = node.key.span.start.line-1
-        else:
-            c1 = node.span.start.column-1
-            l1 = node.span.start.line-1
-        c2 = node.span.end.column-1
-        l2 = node.span.end.line-1
-        return l1, c1, l2, c2
+        """return possition of node in file"""
+        return node.start.line-1, node.start.column-1, \
+            node.end.line-1, node.end.column-1
+        
+    @staticmethod
+    def _add_comments(lines, l1 , c1, l2, c2):
+        """Try find comments before node and add it to node"""
+        nl1=l1;
+        nc1=c1;
+        nl2=l2;
+        nc2=c2;
+        # comments before
+        inten = re.search('^(\s*)(\S+).*$', lines[l1])
+        if inten is not None and len(inten.group(1)) >= c1:
+            while nl1>0:
+                comment = re.search('^(\s*)#\s*(\S+.*)$', lines[nl1-1])
+                if comment is not None:
+                    nl1 -= 1
+                    nc1 = 0
+                else:
+                    break
+        if nl1 != l1:
+            inten = re.search('^(\s*)(\S+).*$', lines[nl1])
+            nc1 = len(inten.group(1))
+        # comments after
+        inten = re.search('^(.*\S)\s*#\s*\S+.*$', lines[l2])
+        if inten is not None and len(inten.group(1)) <= c2:
+            nc2=len(lines[nl2])
+            while nl2<len(lines)-1:
+                comment = re.search('^(\s*)#\s*(\S+.*)$', lines[nl2+1])
+                if comment is not None:
+                    nl2 += 1
+                    nc2=len(lines[nl2]) 
+                else:
+                    break
+        return nl1, nc1, nl2, nc2                
 
 class TransformationFileFormatError(Exception):
     """Represents an error in transformation file"""
