@@ -2,9 +2,7 @@
 
 import abc
 import logging
-import pxssh
-import fdpexpect
-import pexpect
+import sys
 import data.transport_data as tdata
 import data.installation as dinstall
 
@@ -84,84 +82,127 @@ class InputComm():
             logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
         return mess
 
-class SshOutputComm(OutputComm):
-    """Ancestor of communication classes"""
+if sys.platform == "win32":
+    import pyssh
+    class SshOutputComm(OutputComm):
+        """Ancestor of communication classes"""
+        
+        def __init__(self, host,  name,  password=''):
+            super( SshOutputComm, self).__init__(host)
+            self.name = name
+            """login name for ssh connection"""
+            self.password = password
+            """password name for ssh connection"""
+            self.ssh = None
+            """Ssh subprocessed instance"""
+            
+        def connect(self):
+            """connect session"""
+            self.ssh = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
+
+        def disconnect(self):
+            """disconnect session"""
+            
+        def install(self):
+            """make installation"""            
+            self.installation.create_install_dir(self.ssh)
+             
+        def exec_(self, python_file):
+            """run set python file in ssh"""
+
+        def send(self,  mess):
+            """send json message"""
+
+        def receive(self, timeout=60):
+            """receive json message"""
+     
+        def get_file(self, file_name):
+            """download file from installation folder"""
+else:
+    import pxssh
+    import fdpexpect
+    import pexpect
     
-    def __init__(self, host,  name,  password=''):
-        super( SshOutputComm, self).__init__(host)
-        self.name = name
-        """login name for ssh connection"""
-        self.password = password
-        """password name for ssh connection"""
-        self.ssh = None
-        """Ssh subprocessed instance"""
+    class SshOutputComm(OutputComm):
+        """Ancestor of communication classes"""
         
-    def connect(self):
-        """connect session"""
-        self.ssh = pxssh.pxssh()
-        self.ssh.login(self.host, self.name, self.password)
-        self.last_mess = None
+        def __init__(self, host,  name,  password=''):
+            super( SshOutputComm, self).__init__(host)
+            self.name = name
+            """login name for ssh connection"""
+            self.password = password
+            """password name for ssh connection"""
+            self.ssh = None
+            """Ssh subprocessed instance"""
+            
+        def connect(self):
+            """connect session"""
+            self.ssh = pxssh.pxssh()
+            self.ssh.login(self.host, self.name, self.password)
+            self.last_mess = None
 
-    def disconnect(self):
-        """disconnect session"""
-        self.ssh.logout()
-        
-    def install(self):
-        """make installation"""
-        sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
-        sftp.expect('.*assword:')
-        sftp.sendline(self.password)
-        sftp.expect('.*')
-        res = sftp.expect(['Permission denied','Connected to .*'])
-        if res == 0:
-            sftp.kill(0)
-            raise Exception("Permission denied for user " + self.name) 
-        self.installation.create_install_dir(sftp)
-        sftp.close()
-        
-    def exec_(self, python_file):
-        """run set python file in ssh"""
-        self.ssh.sendline("cd " + self.installation.copy_path)
-        if self.ssh.prompt():
-            mess = str(self.ssh.before, 'utf-8').strip()
-            if mess != ("cd " + self.installation.copy_path):
-                logging.warning("Exec python file: " + mess) 
-        self.ssh.sendline(self.installation.get_command(python_file))
-        self.ssh.expect(dinstall.__python_exec__ + ".*\r\n")
-        if len(self.ssh.before)>0:
-            txt = str(self.ssh.before, 'utf-8').strip()
-            logging.warning("Run python file: " + txt)  
+        def disconnect(self):
+            """disconnect session"""
+            self.ssh.logout()
+            
+        def install(self):
+            """make installation"""
+            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
+            sftp.expect('.*assword:')
+            sftp.sendline(self.password)
+            sftp.expect('.*')
+            res = sftp.expect(['Permission denied','Connected to .*'])
+            if res == 0:
+                sftp.kill(0)
+                raise Exception("Permission denied for user " + self.name) 
+            self.installation.create_install_dir(sftp)
+            sftp.close()
+            
+        def exec_(self, python_file):
+            """run set python file in ssh"""
+            self.ssh.sendline("cd " + self.installation.copy_path)
+            if self.ssh.prompt():
+                mess = str(self.ssh.before, 'utf-8').strip()
+                if mess != ("cd " + self.installation.copy_path):
+                    logging.warning("Exec python file: " + mess) 
+            self.ssh.sendline(self.installation.get_command(python_file))
+            self.ssh.expect(dinstall.__python_exec__ + ".*\r\n")
+            if len(self.ssh.before)>0:
+                txt = str(self.ssh.before, 'utf-8').strip()
+                logging.warning("Run python file: " + txt)  
 
-    def send(self,  mess):
-        """send json message"""
-        m = mess.pack()
-        self.ssh.sendline(m)
-        self.last_mess = m
+        def send(self,  mess):
+            """send json message"""
+            m = mess.pack()
+            self.ssh.sendline(m)
+            self.last_mess = m
 
-    def receive(self, timeout=60):
-        """receive json message"""
-        try:
-            txt = str(self.ssh.read_nonblocking(size=10000, timeout=timeout), 'utf-8').strip()
-        except pexpect.TIMEOUT:
+        def receive(self, timeout=60):
+            """receive json message"""
+            try:
+                txt = str(self.ssh.read_nonblocking(size=10000, timeout=timeout), 'utf-8').strip()
+            except pexpect.TIMEOUT:
+                return None
+            try:
+                txt += str(self.ssh.read_nonblocking(size=10000, timeout=2), 'utf-8').strip()
+            except pexpect.TIMEOUT:
+                pass
+            if self.last_mess is not None:
+                # delete sended message
+                if self.last_mess == txt [:len(self.last_mess)]:
+                    txt = txt[len(self.last_mess):].strip()
+                    if len(txt) == 0:                    
+                        self.last_mess = None
+                        return self.receive(timeout)
+            self.last_mess = None
+            try:
+                mess =tdata.Message(txt)
+                return mess
+            except(tdata.MessageError) as err:
+                logging.warning("Receive message (" + txt + ") error: " + str(err))
             return None
-        try:
-            txt += str(self.ssh.read_nonblocking(size=10000, timeout=2), 'utf-8').strip()
-        except pexpect.TIMEOUT:
-            pass
-        if self.last_mess is not None:
-            # delete sended message
-            if self.last_mess == txt [:len(self.last_mess)]:
-                txt = txt[len(self.last_mess):].strip()
-                if len(txt) == 0:                    
-                    self.last_mess = None
-                    return self.receive(timeout)
-        self.last_mess = None
-        try:
-            mess =tdata.Message(txt)
-            return mess
-        except(tdata.MessageError) as err:
-            logging.warning("Receive message (" + txt + ") error: " + str(err))
-        return None
- 
-    def get_file(self, file_name):
-        """download file from installation folder"""
+     
+        def get_file(self, file_name):
+            """download file from installation folder"""
+            
+
