@@ -29,6 +29,8 @@ class DataNode:
         """input type specified by format"""
         self.span = None
         """borders the position of this node in input text"""
+        self.anchor = None
+        """anchor of the node `TextValue`"""
         self._options = []
 
     @property
@@ -60,6 +62,7 @@ class DataNode:
 
     @options.setter
     def options(self, options):
+        """Autocomplete options setter."""
         self._options = options
 
     def get_node_at_position(self, position):
@@ -127,6 +130,7 @@ class DataNode:
 
     @property
     def end(self):
+        """Returns the end of this node."""
         return self.span.end
 
 

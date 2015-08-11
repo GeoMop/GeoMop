@@ -1,3 +1,10 @@
+"""
+Error Handler module for capturing and reporting errors
+that occur when processing the data structure.
+
+Author: Tomas Krizek
+"""
+
 import data.data_node as dn
 from data.validation import errors
 
@@ -30,6 +37,7 @@ class ErrorHandler:
 
     @property
     def errors(self):
+        """Sorted array of errors."""
         return sorted(self._errors, key=lambda error: (
             error.span.start, -error.severity.value, error.category.value))
 
@@ -38,8 +46,8 @@ class ErrorHandler:
         category = dn.DataError.Category.yaml
         severity = dn.DataError.Severity.fatal
         description = yaml_error.problem
-        error_line = get_error_line_from_yaml_error(yaml_error) + 1
-        start_pos = dn.Position(error_line, 1)
+        error_line = get_error_line_from_yaml_error(yaml_error)
+        start_pos = dn.Position(error_line + 1, 1)
         span = dn.Span(start=start_pos, end=error_end_pos)
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
@@ -81,7 +89,7 @@ class ErrorHandler:
         """reports a multi-level reference error"""
         category = dn.DataError.Category.reference
         severity = dn.DataError.Severity.error
-        description = "Multi-level reference not supported"
+        description = "Multi-level reference not supported."
         span = node.span
         error = dn.DataError(category, severity, description, span, node)
         self._errors.append(error)
@@ -95,6 +103,35 @@ class ErrorHandler:
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
 
+    def report_anchor_override(self, anchor, node):
+        """Reports a duplicate anchor."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.info
+        description = "Overriding anchor &{anchor} at {position}.".format(
+            anchor=anchor.value,
+            position=node.anchor.span.start
+        )
+        span = anchor.span
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
+    def report_invalid_mapping_key(self, span):
+        """Reports an invalid (non-scalar) key for mapping."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        description = "Only scalar keys are supported for records."
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
+    def report_undefined_anchor(self, anchor):
+        """Reports an undefined anchor used in alias."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        description = "Anchor &{anchor} is not defined.".format(
+            anchor=anchor.value
+        )
+        error = dn.DataError(category, severity, description, anchor.span)
+        self._errors.append(error)
 
 
 def get_validation_error_span(node, error):
@@ -118,6 +155,7 @@ def get_validation_error_span(node, error):
 
 
 def get_error_line_from_yaml_error(yaml_error):
+    """Returns error line from YAML error."""
     if yaml_error.problem_mark is not None:
         line = yaml_error.problem_mark.line
     else:

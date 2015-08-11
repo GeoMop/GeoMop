@@ -10,12 +10,13 @@ problem: !SequentialCoupling
   primary_equation: !Steady_MH  # validation error - missing key
     balance: true
     input_fields:
-        - bc_pressure: 0
+        - &in1
+          bc_pressure: 0
           bc_type: dirichlet
           r_set: BOUNDARY
-        - !ref ../0
-        - !ref ../1  # reference error - multi-level reference
-        - !ref ../5  # reference error - invalid path
+        - *in1
+        - *in2
+        - *in3
     output:
       output_fields: []
       output_stream:

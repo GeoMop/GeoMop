@@ -1,7 +1,7 @@
 import json
 import re
 import data.data_node as dn
-from data.yaml import DocumentParser
+from data.yaml import Loader
 from data.error_handler import ErrorHandler
 
 class Transformator:
@@ -70,12 +70,12 @@ class Transformator:
     def transform(self, yaml):
         """transform yaml file"""
         error_handler = ErrorHandler()
-        doc_parser = DocumentParser(error_handler)
+        loader = Loader(error_handler)
         changes = True
         for action in self._transformation['actions']:
             if changes:
                 error_handler.clear()
-                root = doc_parser.parse(yaml)
+                root = loader.load(yaml)
                 lines = yaml.splitlines(False)
             if action['action'] == "delete-key":
                 changes = self._delete_key(root, lines,  action)
