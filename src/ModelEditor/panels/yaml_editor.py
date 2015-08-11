@@ -105,7 +105,7 @@ class YamlEditorWidget(QsciScintilla):
     def set_new_node(self, node=None):
         if node is None:
             line, index = self.getCursorPosition()
-            node = cfg.get_data_node(Position(line+1, index+1))        
+            node = cfg.get_data_node(Position(line+1, index+1))
         self._pos.node_init(node, self)
 
     def reload(self):

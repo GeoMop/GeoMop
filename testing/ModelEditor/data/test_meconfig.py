@@ -1,3 +1,7 @@
+"""
+Tests for the meconfig module.
+"""
+
 from data.meconfig import MEConfig as cfg
 from data.meconfig import _Config as Config
 
@@ -185,8 +189,3 @@ def test_meconfig_static(request):
     cfg.document = "n: 1"
     cfg.update()
     assert cfg.root.children[0].value == 1
-
-    # test document parsing error
-    cfg.document = "n: :"
-    cfg.update()
-    assert len(cfg.errors) == 1

@@ -7,7 +7,6 @@ from data.meconfig import MEConfig as cfg
 import mock_config as mockcfg
 import sys
 from PyQt5.QtWidgets import QApplication
-import yaml
 from data.error_handler import ErrorHandler
 
 
@@ -99,8 +98,8 @@ def test_parse(request=None):
         "format: ascii\n"
         "- file: dual_sorp.vtk"
     )
-    with pytest.raises(yaml.MarkedYAMLError):
-        loader.load(document)
+    loader.load(document)
+    assert len(loader.error_handler.errors) == 1
 
     # test tag parsing
     document = (
@@ -140,10 +139,10 @@ def test_parse(request=None):
 
     # test ref errors
     document = (
-        "- text\n"
-        "- !ref ../0\n"
-        "- !ref ../5\n"
-        "- !ref ../1"
+        "- &r text\n"
+        "- *x\n"
+        "- *r\n"
+        "- *y"
     )
     loader.error_handler.clear()
     root = loader.load(document)

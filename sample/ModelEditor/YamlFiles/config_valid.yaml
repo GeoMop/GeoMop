@@ -9,11 +9,12 @@ problem: !SequentialCoupling
   primary_equation: !Steady_MH
     balance: true
     input_fields:
-        - !ref ../1  # relative reference to next item in array
-        - bc_pressure: 0
+        - &in1
+          bc_pressure: 0
           bc_type: dirichlet
           r_set: BOUNDARY
-        - !ref /problem/primary_equation/input_fields/1  # absolute reference
+        - *in1
+        - *in1
     output:
       output_fields: []
       output_stream:

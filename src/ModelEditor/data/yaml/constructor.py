@@ -32,7 +32,7 @@ import datetime
 
 
 def construct_scalar(value, tag):
-    """Constructs a scalar value of the correct python type. """
+    """Constructs a scalar value of the correct python type."""
     if tag not in _CONSTRUCTORS:
         raise Exception('Tag {tag} is not supported for scalar values.'
                         .format(tag=tag))
