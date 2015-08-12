@@ -111,38 +111,26 @@ class Loader:
         """
         # set document to start at start_mark
         lines = self._document.splitlines()
-        document = '\n'.join(lines[start_mark.line:])
-        document = document[start_mark.column:]
+        line_index = start_mark.line
+        line = lines[line_index]
+        line = line[start_mark.column:]  # first line offset
+        expr = '[{symbol}]([a-zA-Z0-9_:-]+)'.format(symbol=symbol)
+        regex = re.compile(expr)
 
-        current_line = start_mark.line
-        current_column = start_mark.column
-        end_line = None
-        end_column = None
-        symbol_found = False
-        space_regex = re.compile(r'\s')
+        match = regex.search(line)
+        if match is not None:  # set correct offset of match
+            start_column = start_mark.column + match.start(1)
+            end_column = start_mark.column + match.end(1)
 
-        # find symbol and the span of the associated value
-        for char in document:
-            if char == symbol:
-                symbol_found = True
-                start_line = current_line
-                start_column = current_column + 1  # exclude position of the symbol itself
-            elif symbol_found:
-                if space_regex.match(char):  # when whitespace is found
-                    end_line = current_line
-                    end_column = current_column
-                    break
-            if char == '\n':
-                current_line += 1
-                current_column = 0
-                continue
-            current_column += 1
+        while match is None and line_index < len(lines) - 1:
+            line_index += 1
+            line = lines[line_index]
+            match = regex.search(line)
 
-        if symbol_found and end_line is None:
-            end_line = current_line
-            end_column = current_column
-        start = dn.Position(start_line + 1, start_column + 1)
-        end = dn.Position(end_line + 1, end_column + 1)
+        start_column = locals().get('start_column', match.start(1))
+        end_column = locals().get('end_column', match.end(1))
+        start = dn.Position(line_index + 1, start_column + 1)
+        end = dn.Position(line_index + 1, end_column + 1)
         return dn.Span(start, end)
 
     def _create_node_by_tag(self, tag):
@@ -205,6 +193,10 @@ class Loader:
             self._next_parse_event()  # value event
             if not key:  # if key is invalid
                 continue
+            elif key.value == '<<':  # handle merge
+                self._perform_merge(key, node)
+                self._next_parse_event()
+                continue
             if self._event is None:
                 break  # something went wrong, abandon ship!
             child_node = self._create_node(node)
@@ -212,7 +204,7 @@ class Loader:
             if child_node is None:  # i.e. unresolved alias
                 continue
             child_node.key = key
-            node.children.append(child_node)
+            node.set_child(child_node)
         if self._event is not None:  # update end_mark when map ends correctly
             end_mark = self._event.end_mark
         elif node.children:
@@ -235,6 +227,35 @@ class Loader:
         key.span = _get_span_from_marks(self._event.start_mark,
                                         self._event.end_mark)
         return key
+
+    def _perform_merge(self, key, node):
+        """Performs merge operation on record node."""
+        if isinstance(self._event, pyyaml.SequenceStartEvent):
+            self._next_parse_event()
+            while (self._event is not None and
+                   not isinstance(self._event, pyyaml.SequenceEndEvent)):
+                self._merge_into_node(key, node)
+                self._next_parse_event()
+        else:
+            self._merge_into_node(key, node)
+
+    def _merge_into_node(self, key, node):
+        """Merges a single alias node into this record node."""
+        # allow only alias nodes to be merged
+        if not isinstance(self._event, pyyaml.AliasEvent):
+            self._create_node(node)  # skip the node to avoid parsing error
+            self.error_handler.report_merge_error(key.span)
+            return
+
+        anchor = self._extract_anchor()
+        if anchor.value not in self.anchors:
+            self.error_handler.report_undefined_anchor(anchor)
+            return
+
+        for child in self.anchors[anchor.value].children:
+            if child.key.value not in node.children_keys:
+                node.set_child(copy.deepcopy(child))
+        return
 
     def _create_array_node(self):
         """Creates an array node."""

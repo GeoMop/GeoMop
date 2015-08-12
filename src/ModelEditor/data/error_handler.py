@@ -133,6 +133,15 @@ class ErrorHandler:
         error = dn.DataError(category, severity, description, anchor.span)
         self._errors.append(error)
 
+    def report_merge_error(self, span):
+        """Reports a merge error."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        description = "Only alias or an array of aliases can be merged."
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
+
 
 def get_validation_error_span(node, error):
     """Determines the correct position of a validation error."""

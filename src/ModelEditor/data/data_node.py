@@ -177,8 +177,12 @@ class CompositeNode(DataNode):
         return None
 
     def set_child(self, node):
-        """sets the specified node as child; replaces the current child
-        with the same key (if it exists)"""
+        """
+        Sets the specified node as child of this node. If the key already
+        exists, the other child node is replaced by this child_node.
+        """
+        node.parent = self
+
         for i, child in enumerate(self.children):
             if child.key.value == node.key.value:
                 self.children[i] = node

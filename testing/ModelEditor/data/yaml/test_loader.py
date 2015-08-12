@@ -109,3 +109,37 @@ def test_alias_errors():
     loader = Loader()
     loader.load(document)
     assert len(loader.error_handler.errors) == 2
+
+
+def test_merge():
+    """Tests merge operator."""
+    # taken from spec: http://yaml.org/type/merge.html
+    document = (
+        "anchors:\n"
+        "  - &CENTER { x: 1, y: 2 }\n"
+        "  - &LEFT { x: 0, y: 2 }\n"
+        "  - &BIG { r: 10 }\n"
+        "  - &SMALL { r: 1 }\n"
+        "maps:\n"
+        "  - # Merge one map\n"
+        "    << : *CENTER\n"
+        "    r: 10\n"
+        "  - # Merge multiple maps\n"
+        "    << : [ *CENTER, *BIG ]\n"
+        "  - # Override\n"
+        "    << : [ *BIG, *LEFT, *SMALL ]\n"
+        "    x: 1\n"
+    )
+    loader = Loader()
+    root = loader.load(document)
+
+    assert root.get_node_at_path('/maps/0/x').value == 1
+    assert root.get_node_at_path('/maps/0/y').value == 2
+    assert root.get_node_at_path('/maps/0/r').value == 10
+    assert root.get_node_at_path('/maps/1/x').value == 1
+    assert root.get_node_at_path('/maps/1/y').value == 2
+    assert root.get_node_at_path('/maps/1/r').value == 10
+    assert root.get_node_at_path('/maps/2/x').value == 1
+    assert root.get_node_at_path('/maps/2/y').value == 2
+    assert root.get_node_at_path('/maps/2/r').value == 10
+
