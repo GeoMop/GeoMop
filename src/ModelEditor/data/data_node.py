@@ -149,7 +149,7 @@ class CompositeNode(DataNode):
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         node = None
-        if self.start <= position < self.end:
+        if self.start <= position <= self.end:
             node = self
             for child in self.children:
                 descendant = child.get_node_at_position(position)
@@ -294,6 +294,7 @@ class DataError(Exception):
         fatal = 3
 
     def __init__(self, category, severity, description, span, node=None):
+        super(DataError, self).__init__(self)
         self.category = category
         """:class:`ErrorCategory` the category of error"""
         self.span = span

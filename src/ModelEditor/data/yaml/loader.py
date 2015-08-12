@@ -166,9 +166,7 @@ class Loader:
         node.span = _get_span_from_marks(self._event.start_mark,
                                          self._event.end_mark)
         if node.value is None:
-            # alter position of the node
-            # TODO does it make sense?
-            node.span.start.column += 1
+            # alter position of empty node (so it can be selected)
             node.span.end.column += 1
         return node
 
@@ -271,7 +269,12 @@ class Loader:
         node = copy.deepcopy(ref)
         node.anchor = anchor
         node.ref = ref
-        # TODO verify or set node.span
+        node.type = None  # do not copy type
+
+        # set correct node.span
+        node.span = copy.deepcopy(node.anchor.span)
+        start = node.span.start
+        node.span.start = dn.Position(start.line, start.column - 1)
         return node
 
     def _register_anchor(self, anchor, node):
