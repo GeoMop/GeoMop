@@ -8,6 +8,7 @@ Author: Tomas Krizek
 import data.data_node as dn
 from data.validation import errors
 
+
 class ErrorHandler:
     """
     Handles errors that can occur during parsing, loading or validation
@@ -97,8 +98,8 @@ class ErrorHandler:
     def report_invalid_tag_position(self, tag):
         """Reports an invalid tag position error."""
         category = dn.DataError.Category.yaml
-        severity = dn.DataError.Severity.error
-        description = "Invalid position of tag."
+        severity = dn.DataError.Severity.info
+        description = "Tag has no effect."
         span = tag.span
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
@@ -141,6 +142,20 @@ class ErrorHandler:
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
 
+    def report_invalid_merge_type(self, span):
+        """Reports invalid merge type."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        description = "Invalid anchor node type. Only Record nodes can be merged."
+        error = dn.DataError(category, severity, description, span)
+        self._errors.append(error)
+
+    def report_construct_scalar_error(self, node, description):
+        """Reports scalar node construction error."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.error
+        error = dn.DataError(category, severity, description, node.span, node)
+        self._errors.append(error)
 
 
 def get_validation_error_span(node, error):

@@ -9,7 +9,7 @@ problem: !SequentialCoupling
   unknown: test  # unknown key - validation warning
   primary_equation: !Steady_MH  # validation error - missing key
     balance: true
-    input_fields:
+    input_fields: !uselss_tag
         - &in1
           bc_pressure: 0
           bc_type: dirichlet

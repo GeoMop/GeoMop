@@ -86,7 +86,7 @@ class Loader:
     def _extract_anchor(self):
         """Extracts `TextValue` of anchor from the current event."""
         value = getattr(self._event, 'anchor', None)
-        if value is None:
+        if value is None or value in ['*', '&']:
             return None
         anchor = dn.TextValue(value)
         symbol = '&'
@@ -98,7 +98,7 @@ class Loader:
     def _extract_tag(self):
         """Extracts `TextValue` of tag from the current event."""
         value = getattr(self._event, 'tag', None)
-        if value is None:
+        if value is None or value == '!':
             return None
         tag = dn.TextValue(value)
         tag.span = self._extract_property_span(self._event.start_mark, '!')
@@ -150,9 +150,13 @@ class Loader:
         tag = self._event.tag
         if tag is None or not tag.startswith('tag:yaml.org,2002:'):
             tag = resolve_scalar_tag(self._event.value)
-        node.value = construct_scalar(self._event.value, tag)
-        node.span = _get_span_from_marks(self._event.start_mark,
-                                         self._event.end_mark)
+        node.span = dn.Span.from_event(self._event)
+        try:
+            node.value = construct_scalar(self._event.value, tag)
+        except Exception as error:
+            description = error.args[0]
+            self.error_handler.report_construct_scalar_error(node, description)
+            return node
         if node.value is None:
             # alter position of empty node (so it can be selected)
             node.span.end.column += 1
@@ -160,6 +164,7 @@ class Loader:
 
     def _create_abstract_record(self, tag):
         """Creates abstract record from parsing events."""
+        invalid_position = False
         tag.value = tag.value[1:]  # remove leading !
         if isinstance(self._event, pyyaml.MappingStartEvent):
             # classic abstract record node
@@ -171,13 +176,17 @@ class Loader:
                 # empty node - construct as mapping
                 node = dn.CompositeNode(True)
                 node.span = temp_node.span
-            else:  # not null - keep ScalarNode (used for autoconversion)
+            else:  # not null - tag has no effect
                 node = temp_node
+                invalid_position = True
         else:
-            # someone tried to use tag for a sequence
+            # someone tried to use tag for a sequence - tag has no effect
+            node = self._create_array_node()
+            invalid_position = True
+        if invalid_position:
             self.error_handler.report_invalid_tag_position(tag)
-            return self._create_array_node()
-        node.type = tag
+        else:
+            node.type = tag
         return node
 
     def _create_record_node(self):
@@ -211,21 +220,19 @@ class Loader:
             end_mark = node.children[-1].span.end
             end_mark.line -= 1
             end_mark.column -= 1
-        node.span = _get_span_from_marks(start_mark, end_mark)
+        node.span = dn.Span.from_marks(start_mark, end_mark)
         return node
 
     def _create_record_key(self):
         """Creates `TextValue` of record key."""
         # check if key is scalar
         if not isinstance(self._event, pyyaml.ScalarEvent):
-            span = _get_span_from_marks(self._event.start_mark,
-                                        self._event.end_mark)
+            span = dn.Span.from_event(self._event)
             self.error_handler.report_invalid_mapping_key(span)
             return None
         key = dn.TextValue()
         key.value = self._event.value
-        key.span = _get_span_from_marks(self._event.start_mark,
-                                        self._event.end_mark)
+        key.span = dn.Span.from_event(self._event)
         return key
 
     def _perform_merge(self, key, node):
@@ -252,7 +259,14 @@ class Loader:
             self.error_handler.report_undefined_anchor(anchor)
             return
 
-        for child in self.anchors[anchor.value].children:
+        anchor_node = self.anchors[anchor.value]
+        # check if anchor_node is a record (mapping)
+        not_composite = not isinstance(anchor_node, dn.CompositeNode)
+        if not_composite or not anchor_node.explicit_keys:
+            self.error_handler.report_invalid_merge_type(anchor.span)
+            return
+
+        for child in anchor_node.children:
             if child.key.value not in node.children_keys:
                 node.set_child(copy.deepcopy(child))
         return
@@ -278,7 +292,7 @@ class Loader:
             end_mark = node.children[-1].span.end
             end_mark.line -= 1
             end_mark.column -= 1
-        node.span = _get_span_from_marks(start_mark, end_mark)
+        node.span = dn.Span.from_marks(start_mark, end_mark)
         return node
 
     def _create_alias_node(self, anchor):
@@ -304,13 +318,6 @@ class Loader:
         if anchor.value in self.anchors:
             self.error_handler.report_anchor_override(anchor, node)
         self.anchors[anchor.value] = node
-
-
-def _get_span_from_marks(start_mark, end_mark):
-    """Returns the `Span` from YAML Marks."""
-    start = dn.Position(start_mark.line + 1, start_mark.column + 1)
-    end = dn.Position(end_mark.line + 1, end_mark.column + 1)
-    return dn.Span(start, end)
 
 
 def get_document_end_position(document):

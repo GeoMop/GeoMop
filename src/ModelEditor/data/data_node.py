@@ -268,6 +268,7 @@ class Position(ComparableMixin):
 
 class Span:
     """Borders a part of text."""
+
     def __init__(self, start=None, end=None):
         self.start = start
         """:class:`.Position` indicates the start of the section; inclusive"""
@@ -279,6 +280,18 @@ class Span:
             start=self.start,
             end=self.end
         )
+
+    @staticmethod
+    def from_event(event):
+        """Constructs `Span` from YAML `event`."""
+        return Span.from_marks(event.start_mark, event.end_mark)
+
+    @staticmethod
+    def from_marks(start_mark, end_mark):
+        """Constructs `Span` from YAML marks."""
+        start = Position(start_mark.line + 1, start_mark.column + 1)
+        end = Position(end_mark.line + 1, end_mark.column + 1)
+        return Span(start, end)
 
 
 class DataError(Exception):
