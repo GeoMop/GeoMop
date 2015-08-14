@@ -1,0 +1,4 @@
+PyYAML==3.11
+demjson==2.2.2
+py==1.4.30
+pytest==2.7.2
