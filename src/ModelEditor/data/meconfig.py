@@ -278,6 +278,11 @@ class MEConfig:
             cls.document = fix_tags(cls.document, cls.root)
             cls.update()
             cls.document = rewrite_comments(con, cls.document, cls.root)
+            cls.update()
+            data={'actions': [{'action': 'move-key-forward', 'parameters': {'path': '/system'}}, 
+                {'action': 'delete-key', 'parameters': {'path': '/system'}}]}
+            transformator = Transformator(None, data)
+            cls.document = transformator.transform(cls.document)
             cls.update_format()
             cls.changed = True
             return True
