@@ -197,7 +197,6 @@ class ModelEditor:
     def _reload(self):
         """reload panels after structure changes"""
         self._reload_icon.setVisible(True)
-        self._reload_icon.repaint()       
         cfg.update()
         self._editor.reload()
         self._tree.reload()

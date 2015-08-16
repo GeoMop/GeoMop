@@ -29,6 +29,8 @@ class DataNode:
         """input type specified by format"""
         self.span = None
         """borders the position of this node in input text"""
+        self.anchor = None
+        """anchor of the node `TextValue`"""
         self._options = []
 
     @property
@@ -60,6 +62,7 @@ class DataNode:
 
     @options.setter
     def options(self, options):
+        """Autocomplete options setter."""
         self._options = options
 
     def get_node_at_position(self, position):
@@ -118,15 +121,16 @@ class DataNode:
         )
 
     @property
-    def _beginning(self):
-        """beginning of node, including its key"""
-        beginning = self.span.start
+    def start(self):
+        """start of node, including its key"""
+        start = self.span.start
         if self.key is not None and self.key.span is not None:
-            beginning = self.key.span.start
-        return beginning
+            start = self.key.span.start
+        return start
 
     @property
-    def _end(self):
+    def end(self):
+        """Returns the end of this node."""
         return self.span.end
 
 
@@ -145,7 +149,7 @@ class CompositeNode(DataNode):
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         node = None
-        if self._beginning <= position < self._end:
+        if self.start <= position <= self.end:
             node = self
             for child in self.children:
                 descendant = child.get_node_at_position(position)
@@ -173,8 +177,12 @@ class CompositeNode(DataNode):
         return None
 
     def set_child(self, node):
-        """sets the specified node as child; replaces the current child
-        with the same key (if it exists)"""
+        """
+        Sets the specified node as child of this node. If the key already
+        exists, the other child node is replaced by this child_node.
+        """
+        node.parent = self
+
         for i, child in enumerate(self.children):
             if child.key.value == node.key.value:
                 self.children[i] = node
@@ -197,7 +205,7 @@ class ScalarNode(DataNode):
 
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
-        if self._beginning <= position <= self._end:
+        if self.start <= position <= self.end:
             return self
         return None
 
@@ -260,6 +268,7 @@ class Position(ComparableMixin):
 
 class Span:
     """Borders a part of text."""
+
     def __init__(self, start=None, end=None):
         self.start = start
         """:class:`.Position` indicates the start of the section; inclusive"""
@@ -271,6 +280,18 @@ class Span:
             start=self.start,
             end=self.end
         )
+
+    @staticmethod
+    def from_event(event):
+        """Constructs `Span` from YAML `event`."""
+        return Span.from_marks(event.start_mark, event.end_mark)
+
+    @staticmethod
+    def from_marks(start_mark, end_mark):
+        """Constructs `Span` from YAML marks."""
+        start = Position(start_mark.line + 1, start_mark.column + 1)
+        end = Position(end_mark.line + 1, end_mark.column + 1)
+        return Span(start, end)
 
 
 class DataError(Exception):
@@ -290,6 +311,7 @@ class DataError(Exception):
         fatal = 3
 
     def __init__(self, category, severity, description, span, node=None):
+        super(DataError, self).__init__(self)
         self.category = category
         """:class:`ErrorCategory` the category of error"""
         self.span = span

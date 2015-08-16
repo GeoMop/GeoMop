@@ -3,8 +3,8 @@ import os
 import copy
 import config as cfg
 import geomop_dialogs
-from data.import_json import parse_con, fix_tags
-from data.yaml import DocumentParser
+from data.import_json import parse_con, fix_tags, rewrite_comments
+from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
 from dialogs.transformation_detail import TranformationDetailDlg
 from data.validation.validator import Validator
@@ -130,8 +130,8 @@ class MEConfig:
     """array of validation errors"""
     changed = False
     """is file changed"""
-    doc_parser = DocumentParser(error_handler)
-    """document parser that handles parsing errors"""
+    loader = Loader(error_handler)
+    """loader of YAML files"""
     validator = Validator(error_handler)
     """data validator"""
     root_input_type = None
@@ -151,6 +151,7 @@ class MEConfig:
         else:
             if len(cls.format_files) > 0:
                 cls.curr_format_file = cls.format_files[0]
+        cls.update_format()
 
     @classmethod
     def _read_format_files(cls):
@@ -275,6 +276,8 @@ class MEConfig:
             cls.curr_file = None
             cls.update()
             cls.document = fix_tags(cls.document, cls.root)
+            cls.update()
+            cls.document = rewrite_comments(con, cls.document, cls.root)
             cls.update_format()
             cls.changed = True
             return True
@@ -323,7 +326,7 @@ class MEConfig:
     def update(cls):
         """reread yaml text and update node tree"""
         cls.error_handler.clear()
-        cls.root = cls.doc_parser.parse(cls.document)
+        cls.root = cls.loader.load(cls.document)
         cls.errors = cls.error_handler.errors
         if cls.root_input_type is None or cls.root is None:
             return

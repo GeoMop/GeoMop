@@ -1,3 +1,7 @@
+"""
+Tests for the meconfig module.
+"""
+
 from data.meconfig import MEConfig as cfg
 from data.meconfig import _Config as Config
 
@@ -87,7 +91,7 @@ def test_meconfig_static(request):
     cfg._read_format_files()
 
     # read format files
-    assert len(cfg.format_files) == 2
+    assert len(cfg.format_files) == 3
     assert 'flow_1.8.2_input_format' in cfg.format_files
     assert '1.8.2' in cfg.format_files
 
@@ -185,8 +189,3 @@ def test_meconfig_static(request):
     cfg.document = "n: 1"
     cfg.update()
     assert cfg.root.children[0].value == 1
-
-    # test document parsing error
-    cfg.document = "n: :"
-    cfg.update()
-    assert len(cfg.errors) == 1

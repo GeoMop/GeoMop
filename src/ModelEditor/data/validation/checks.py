@@ -6,10 +6,13 @@ Basic rules for data validation
 """
 
 from data.validation import errors
+from data import data_node as dn
 
 
 def check_scalar(node, input_type):
     """Checks scalar node value."""
+    if not isinstance(node, dn.ScalarNode):
+        raise errors.ValidationTypeError("Excepting scalar type")
     checks = {
         'Integer': check_integer,
         'Double': check_double,

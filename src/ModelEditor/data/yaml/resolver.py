@@ -62,15 +62,6 @@ _add_implicit_resolver(
     list('yYnNtTfFoO'))
 
 _add_implicit_resolver(
-    'tag:yaml.org,2002:float',
-    re.compile(r'''^(?:[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?
-                |\.[0-9_]+(?:[eE][-+][0-9]+)?
-                |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*
-                |[-+]?\.(?:inf|Inf|INF)
-                |\.(?:nan|NaN|NAN))$''', re.X),
-    list('-+0123456789.'))
-
-_add_implicit_resolver(
     'tag:yaml.org,2002:int',
     re.compile(r'''^(?:[-+]?0b[0-1_]+
                 |[-+]?0[0-7_]+
@@ -78,6 +69,15 @@ _add_implicit_resolver(
                 |[-+]?0x[0-9a-fA-F_]+
                 |[-+]?[1-9][0-9_]*(?::[0-5]?[0-9])+)$''', re.X),
     list('-+0123456789'))
+
+_add_implicit_resolver(
+    'tag:yaml.org,2002:float',
+    re.compile(r'''^(?:[-+]? ( \. [0-9]+ | [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?
+                |\.[0-9_]+(?:[eE][-+][0-9]+)?
+                |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*
+                |[-+]?\.(?:inf|Inf|INF)
+                |\.(?:nan|NaN|NAN))$''', re.X),
+    list('-+0123456789.'))
 
 _add_implicit_resolver(
     'tag:yaml.org,2002:merge',

@@ -1,7 +1,7 @@
 """class represent instalation"""
+import sys
 import os
 import re
-import pexpect
 import logging
 
 __install_dir__ = os.path.split(
@@ -22,53 +22,59 @@ class Installation:
         self.copy_path = None
         """installation file path"""
 
-    def create_install_dir(self, pexpect_conn):
+    def create_install_dir(self, conn):
         """Copy installation files"""
-        pexpect_conn.sendline('pwd')
-        pexpect_conn.expect(".*pwd\r\n")
-        ret = str(pexpect_conn.readline(), 'utf-8').strip()
-        searchObj = re.search( '^(.*):\s(/.*)$',ret)
-        # use / instead join because destination os is linux and is not 
-        # same with current os
-        self.copy_path = searchObj.group(2) + '/' + __root_dir__
-        
-        pexpect_conn.sendline('mkdir ' + __root_dir__)
-        pexpect_conn.expect(".*mkdir " + __root_dir__ + "\r\n")
-        pexpect_conn.expect("sftp> ")
-        if len(pexpect_conn.before)>0:
-            logging.warning("Sftp message (mkdir root): " + str(pexpect_conn.before, 'utf-8').strip())      
-        pexpect_conn.sendline('cd ' + __root_dir__)
-        pexpect_conn.expect('.*cd ' + __root_dir__ + "\r\n")
-        pexpect_conn.expect("sftp> ")
-        if len(pexpect_conn.before)>0:
-            logging.warning("Sftp message (cd root): " + str(pexpect_conn.before, 'utf-8').strip()) 
-        pexpect_conn.sendline('mkdir res')
-        pexpect_conn.expect(".*mkdir res\r\n")
-        pexpect_conn.expect("sftp> ")
-        if len(pexpect_conn.before)>0:
-            logging.warning("Sftp message(mkdir res): " + str(pexpect_conn.before, 'utf-8').strip()) 
-        pexpect_conn.sendline('lcd ' + __install_dir__)
-        pexpect_conn.expect('.*lcd ' + __install_dir__ + "\r\n")
-        for name in __ins_files__:
-            pexpect_conn.sendline('put ' +  __ins_files__[name])
-            pexpect_conn.expect('sftp> put ' + __ins_files__[name] + "\r\n")
-            pexpect_conn.expect("sftp> ")
-            if len(pexpect_conn.before)>0:
-                logging.debug(str(pexpect_conn.before, 'utf-8').strip()) 
-        for dir in __ins_dir__:
-            pexpect_conn.sendline('mkdir ' + dir)
-            pexpect_conn.expect('.*mkdir ' + dir + "\r\n")
-            pexpect_conn.expect("sftp> ")
-            if len(pexpect_conn.before)>0:
-                logging.warning("Sftp message(mkdir " + dir + "): " + str(pexpect_conn.before, 'utf-8').strip())
-            pexpect_conn.sendline('put -r ' +  dir)
-            pexpect_conn.expect('.*put -r ' + dir + "\r\n")
-            end=0
-            while end==0:
-                #wait 2s after last message
-                end = pexpect_conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
-                if end == 0 and len(pexpect_conn.before)>0:
-                    logging.debug("Sftp message(mkdir " + dir + "): " + str(pexpect_conn.before, 'utf-8').strip())
+        if sys.platform == "win32":
+#            import pyssh
+            sftp = self.ssh.create_sftp()
+        else:
+            import pexpect
+            
+            conn.sendline('pwd')
+            conn.expect(".*pwd\r\n")
+            ret = str(conn.readline(), 'utf-8').strip()
+            searchObj = re.search( '^(.*):\s(/.*)$',ret)
+            # use / instead join because destination os is linux and is not 
+            # same with current os
+            self.copy_path = searchObj.group(2) + '/' + __root_dir__
+            
+            conn.sendline('mkdir ' + __root_dir__)
+            conn.expect(".*mkdir " + __root_dir__ + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before)>0:
+                logging.warning("Sftp message (mkdir root): " + str(conn.before, 'utf-8').strip())      
+            conn.sendline('cd ' + __root_dir__)
+            conn.expect('.*cd ' + __root_dir__ + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before)>0:
+                logging.warning("Sftp message (cd root): " + str(conn.before, 'utf-8').strip()) 
+            conn.sendline('mkdir res')
+            conn.expect(".*mkdir res\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before)>0:
+                logging.warning("Sftp message(mkdir res): " + str(conn.before, 'utf-8').strip()) 
+            conn.sendline('lcd ' + __install_dir__)
+            conn.expect('.*lcd ' + __install_dir__ + "\r\n")
+            for name in __ins_files__:
+                conn.sendline('put ' +  __ins_files__[name])
+                conn.expect('sftp> put ' + __ins_files__[name] + "\r\n")
+                conn.expect("sftp> ")
+                if len(conn.before)>0:
+                    logging.debug(str(conn.before, 'utf-8').strip()) 
+            for dir in __ins_dir__:
+                conn.sendline('mkdir ' + dir)
+                conn.expect('.*mkdir ' + dir + "\r\n")
+                conn.expect("sftp> ")
+                if len(conn.before)>0:
+                    logging.warning("Sftp message(mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
+                conn.sendline('put -r ' +  dir)
+                conn.expect('.*put -r ' + dir + "\r\n")
+                end=0
+                while end==0:
+                    #wait 2s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                    if end == 0 and len(conn.before)>0:
+                        logging.debug("Sftp message(mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
  
     def get_command(self, name):
         """Find install file according to name and return command for running"""
