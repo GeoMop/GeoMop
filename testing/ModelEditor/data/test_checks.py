@@ -17,7 +17,7 @@ def test_check_integer():
     input_type = dict(min=0, max=3)
     input_type_inf = dict(min=float('-inf'), max=float('inf'))
 
-    assert checks.check_integer(3, input_type_inf) is not True
+    assert checks.check_integer(3, input_type_inf) is True
     assert checks.check_integer(-2, input_type_inf) is True
 
     with pytest.raises(errors.ValidationTypeError):
