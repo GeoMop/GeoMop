@@ -83,7 +83,7 @@ class InputComm():
         return mess
 
 if sys.platform == "win32":
-    import pyssh
+    import helpers.winssh as wssh
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
         
@@ -93,28 +93,45 @@ if sys.platform == "win32":
             """login name for ssh connection"""
             self.password = password
             """password name for ssh connection"""
-            self.ssh = None
+            self.ssh = wssh.Wssh(self.host, self.name, self.password)
             """Ssh subprocessed instance"""
             
         def connect(self):
             """connect session"""
-            self.ssh = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
-
+            self.ssh.connect()
+            
         def disconnect(self):
             """disconnect session"""
             
         def install(self):
-            """make installation"""            
+            """make installation"""
             self.installation.create_install_dir(self.ssh)
              
         def exec_(self, python_file):
             """run set python file in ssh"""
+            
+            mess = self.ssh.cd(self.installation.copy_path)
+            if mess != "":
+                logging.warning("Exec python file: " + mess) 
+            mess = self.ssh.exec_(self.installation.get_command(python_file))
+            if mess != "":
+                logging.warning("Run python file: " + mess)  
 
         def send(self,  mess):
             """send json message"""
+            m = mess.pack()
+            self.ssh.write(m)
+            self.last_mess = m
 
         def receive(self, timeout=60):
             """receive json message"""
+            txt = self.ssh.read(timeout, self.last_mess)
+            try:
+                mess =tdata.Message(txt)
+                return mess
+            except(tdata.MessageError) as err:
+                logging.warning("Receive message (" + txt + ") error: " + str(err))
+            return None    
      
         def get_file(self, file_name):
             """download file from installation folder"""

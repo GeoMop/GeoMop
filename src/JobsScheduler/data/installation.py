@@ -25,8 +25,7 @@ class Installation:
     def create_install_dir(self, conn):
         """Copy installation files"""
         if sys.platform == "win32":
-#            import pyssh
-            sftp = self.ssh.create_sftp()
+            self.copy_path = "/home/test/jobs"
         else:
             import pexpect
             
