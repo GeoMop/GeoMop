@@ -5,6 +5,7 @@ before_install:
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main"
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu/ trusty universe"
   - sudo apt-get update
+  - sudo apt-get install -fy libqt5designer5 libqt5gui5 libqt5help5 libqt5printsupport5 libqt5widgets5 libqt5scintilla2-11
   - sudo apt-get install -y python3-pyqt5 python3-pyqt5.qsci
 # command to install dependencies
 install: "pip install -r requirements.txt"
