@@ -12,5 +12,4 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - alias py.test-3=py.test
-  - cd testing && ./RunTests.sh
+  - alias py.test-3=py.test && cd testing && ./RunTests.sh
