@@ -10,6 +10,7 @@ before_install:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - alias py.test-3=py.test
 # command to run tests
-script: cd testing && ./RunTests.sh
+script:
+  - alias py.test-3=py.test
+  - cd testing && ./RunTests.sh
