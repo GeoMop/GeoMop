@@ -1,7 +1,10 @@
 """Start script that inicialize main window """
 
 import sys
-sys.path.insert(1, '../lib')
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "lib")
+sys.path.insert(1, __lib_dir__)
+
 import os
 from data.meconfig import MEConfig as cfg
 from dialogs.json_editor import JsonEditorDlg
