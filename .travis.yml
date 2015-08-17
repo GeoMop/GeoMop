@@ -2,6 +2,7 @@ language: python
 python:
   - "3.4"
 before_install:
+  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu/ trusty/main"
   - sudo apt-get update
   - sudo apt-get install python3-pyqt5 python3-pyqt5.qsci
 # command to install dependencies
