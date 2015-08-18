@@ -7,6 +7,8 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -fy libpango-1.0-0 libqt5designer5 libqt5gui5 libqt5help5 libqt5printsupport5 libqt5widgets5 libqt5scintilla2-11
   - sudo apt-get install -y python3-pyqt5 python3-pyqt5.qsci
+  - sudo chmod 755 /usr/lib/python3/dist-packages/PyQt5/*.so
+  - sudo chmod 755 /usr/lib/python3/dist-packages/sip.cpython-34m-x86_64-linux-gnu.so
   - ln -s /usr/lib/python3/dist-packages/PyQt5 /home/travis/virtualenv/python3.4.2/lib/python3.4/site-packages/PyQt5
   - ln -s /usr/lib/python3/dist-packages/sip.cpython-34m-x86_64-linux-gnu.so /home/travis/virtualenv/python3.4.2/lib/python3.4/site-packages/sip.so
 # command to install dependencies
