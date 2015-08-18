@@ -14,16 +14,15 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - export PYTHONPATHTEMP=$PYTHONPATH:/usr/lib/python3/dist-packages
   - cd testing/LayerEditor
-  - export PYTHONPATH=$PYTHONPATHTEMP:../../src/LayerEditor:../../src/lib
+  - export PYTHONPATH=../../src/LayerEditor:../../src/lib
   - py.test
   - cd ../lib
-  - export PYTHONPATH=$PYTHONPATHTEMP:../../src/lib
+  - export PYTHONPATH=../../src/lib
   - py.test
   - cd ../ModelEditor
-  - export PYTHONPATH=$PYTHONPATHTEMP:../../src/ModelEditor:../../src/lib:./mock
+  - export PYTHONPATH=../../src/ModelEditor:../../src/lib:./mock
   - py.test
   - cd ../JobsScheduler
-  - export PYTHONPATH=$PYTHONPATHTEMP:../../src/JobsScheduler
+  - export PYTHONPATH=../../src/JobsScheduler
   - py.test
