@@ -25,7 +25,25 @@ class Installation:
     def create_install_dir(self, conn):
         """Copy installation files"""
         if sys.platform == "win32":
-            self.copy_path = "/home/test/jobs"
+            self.copy_path = conn.pwd() + '/' + __root_dir__
+            res = conn.mkdir(__root_dir__)
+            if len(res)>0:
+                logging.warning("Sftp message (mkdir root): " + res)
+            res = conn.cd(__root_dir__)
+            if len(res)>0:
+                logging.warning("Sftp message (cd root): " + res)
+            res = conn.mkdir('res')
+            if len(res)>0:
+                logging.warning("Sftp message (mkdir res): " + res)
+            conn.set_sftp_paths( __install_dir__, self.copy_path)
+            for name in __ins_files__:
+                res = conn.put(__ins_files__[name]) 
+                if len(res)>0:
+                    logging.warning("Sftp message (put '" + __ins_files__[name] + "'): " + res)
+            for dir in __ins_dir__:
+                res = conn.put_r(dir) 
+                if len(res)>0:
+                    logging.warning("Sftp message (put -r '" + dir + "'): " + res)
         else:
             import pexpect
             

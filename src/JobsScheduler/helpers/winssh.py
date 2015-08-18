@@ -3,6 +3,7 @@ Ssh wrapper for windows abova libssh c library and pyssh-types
 """
 import time
 import pyssh
+import pyssh.exceptions as exc
 import re
 
 class Wssh():
@@ -19,6 +20,10 @@ class Wssh():
         """Ssh subprocessed instance"""
         self.sftp = None
         """Sftp subprocessed instance"""
+        self.sftp_local_path = ""
+        """Sftp local path"""
+        self.sftp_remote_path = ""
+        """Sftp remote path"""
         self._buffer = ""
         self._prefix = ""        
         
@@ -34,6 +39,10 @@ class Wssh():
             self._read_prefix()
             i += 1
         self._clear()
+        
+    def set_sftp_paths(self, local, remote):
+        self.sftp_local_path = local
+        self.sftp_remote_path = remote
 
     def cd(self, dir):
         """ssh cd"""
@@ -52,13 +61,51 @@ class Wssh():
     def mkdir(self, dir):
         """ssh cd"""
         self.ssh.write("mkdir " + dir + "\n")        
-        return _read_filter("mkdir " + dir)
+        return self._read_filter("mkdir " + dir)
 
-    def put(self, file, dest_dir=None):
+    def put(self, file):
         """sftp put"""
+        remote = self.sftp_remote_path + '/' + file
+        local = self.sftp_local_path + '\\' + file
+        try:
+            self.sftp.put(local, remote)
+        except (RuntimeError, exc.ConnectionError) as err:
+            return str(err)
+        return ""
 
-    def put_r(self, dir, dest_dir=None):
+    def put_r(self, dir):
         """sftp put -r"""
+        import os
+        err = []
+        res = self.mkdir(self.sftp_remote_path + '/' + dir) 
+        if len(res) > 0:
+            err.append(res)            
+        for root, dirs, files in os.walk(os.path.join(self.sftp_local_path,  dir)):
+            cdir = root
+            resdir = None
+            ndir = ""
+            while ndir != dir: 
+                [cdir, ndir] = os.path.split(cdir)
+                if resdir is None:
+                    resdir = ndir
+                else:
+                    resdir = ndir + '/' + resdir
+            resdir = self.sftp_remote_path + '/' + resdir
+            for name in dirs:
+                linux_dir = resdir + '/' + name
+                res = self.mkdir(linux_dir) 
+                if len(res) > 0:
+                    err.append(res)                
+            for name in files:
+                remote =resdir + '/' +  name
+                local = os.path.join(root, name)
+                try:
+                    self.sftp.put(local, remote)
+                except (RuntimeError, exc.ConnectionError) as error:
+                    err.append(str(error))
+        if len(err) == 0:
+            return ""
+        return "\n".join(err)            
 
     def exec_(self, command):
         """run async command"""
@@ -96,6 +143,8 @@ class Wssh():
         if echo is not None:
             e = re.match( '(' + echo + '\r\n\x1b]0;)', text)
             if e is None:
+                e = re.match( '(' + echo + '\r\n)', text)
+            if e is None:
                 e = re.match( '(' + echo + ')', text)
             if e is not None:
                 text = text[len(e.group(1)):]
@@ -107,7 +156,7 @@ class Wssh():
                     prefix = re.match( '\s*(' + self._prefix + '\x07\s*)', text)
                 if prefix is not None:
                     text = text[len(prefix.group(1)):]
-            line = re.match('(.*)(\r\nx1b]0;)', text)
+            line = re.match('(.*)(\r\n\x1b]0;)', text)
             if line is None:                    
                 line = prefix = re.match( '(.*)(\r\n)', text)
             if line is None:                    
