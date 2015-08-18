@@ -40,14 +40,34 @@ def _decode_con(con):
 def fix_tags(yaml, root):
     """Replase TYPE and refferences by tags"""
     lines = yaml.splitlines(False)
-    del_lines = traverse_nodes(root, lines)
+    add_anchor = {}
+    anchor_idx = {}
+    del_lines = _traverse_nodes(root, lines, add_anchor, anchor_idx)
     new_lines = []
+    for i in add_anchor:
+        try:
+            anchor = root.get_node_at_path(i)
+            col = anchor.span.start.column-1
+            line = anchor.span.start.line-1
+            if anchor.key.span is not None:
+                col = anchor.key.span.end.column-1
+                line = anchor.key.span.end.line-1
+                if len(lines[line])>col+1:
+                    text = lines[line][:col]
+                    tag = re.search('^(\s+!\S+)',text)
+                    col += tag.group(1)
+            if len(lines[line])>col+1:
+                lines[line] = lines[line][:col] + " &anchor" + str(anchor_idx[i]) + ' ' +  lines[line][col:]
+            else:
+                lines[line] += " &anchor" + str(anchor_idx[i])
+        except:
+            continue
     for i in range(0, len(lines)):
         if i not in del_lines:
-            new_lines.append(lines[i])
+            new_lines.append(lines[i])            
     return "\n".join(new_lines)
  
-def traverse_nodes(node, lines):
+def _traverse_nodes(node, lines, add_anchor, anchor_idx, i=1):
     """
     Traverse node, recursively call function for children,
     resolve type to tag and resolve refferences.
@@ -62,12 +82,17 @@ def traverse_nodes(node, lines):
                 lines[node.key.span.start.line-1] += " !" + child.value
             elif isinstance(child, dn.ScalarNode) and child.key.value == "REF":
                 del_lines.append(child.key.span.start.line-1)
-                lines[node.key.span.start.line-1] += " !ref " + child.value
+                lines[node.key.span.start.line-1] += " *anchor" + str(i)
+                if child.value not in add_anchor:
+                    add_anchor[child.value] = []
+                    anchor_idx[child.value] = i
+                    i += 1
+                add_anchor[child.value].append(child)
             else:
                 if isinstance(child, dn.CompositeNode):
-                    del_lines.extend(traverse_nodes(child, lines))
+                    del_lines.extend(_traverse_nodes(child, lines, add_anchor, anchor_idx, i))
     return del_lines
-    
+  
 class Comment: 
     """Class for one comment"""
 
@@ -132,17 +157,17 @@ class Comments:
                 if key is None:
                     res, col, line = self._read_end_of_block( col, line,  lines, type, False)
                     return col, line
-                new_path = path + "/" + key
-                if not self._exist_path(new_path,  data):
+                new_path = self._get_real_path(path,  key,  data)
+                if new_path is None:
                     res, col, line = self._read_end_of_block( col, line,  lines, type, False)
                     return col, line
                 if comm is not None:
                     self.comments.append(Comment(new_path, comm, False))
                 comm, col, line = self._read_comment(col, line,  lines)
             else:
-                new_path = path + "/" + str(i)
+                new_path = self._get_real_path(path,  str(i),  data)
                 i += 1
-                if not self._exist_path(new_path,  data):
+                if new_path is None:
                     res, col, line = self._read_end_of_block( col, line,  lines, type, False)                        
                     return col, line
             value, col, line = self._read_value(col, line, lines)                
@@ -481,8 +506,8 @@ class Comments:
         if not restricted:
             in_array=0
             in_dict=0
-            while lines[iline][icol] != char or in_array > 1 or in_dict >1:
-                icol, iline = self._find_all_interupt(icol, iline, lines)
+            icol, iline = self._find_all_interupt(icol, iline, lines)
+            while lines[iline][icol] != char or in_array > 0 or in_dict >0:                
                 if len(lines)<=iline:
                     return False, icol, iline
                 if lines[iline][icol] == '{':
@@ -493,12 +518,13 @@ class Comments:
                     in_array += 1
                 if lines[iline][icol] == ']':
                     in_array -= 1
-            icol += 1
-            if len(lines[iline])<= icol:
-                iline += 1
-                col = 0
-                if len(lines)<=iline:                    
-                    return True, icol, iline
+                icol += 1
+                if len(lines[iline])<= icol:
+                    iline += 1
+                    icol = 0
+                    if len(lines)<=iline:                    
+                        return True, icol, iline
+                icol, iline = self._find_all_interupt(icol, iline, lines)
             return True, icol, iline
         if lines[iline][icol] != char:
             return False, col, line
@@ -592,18 +618,29 @@ class Comments:
                 return type, icol, iline
         return None, col,  line
         
-    def _exist_path(self, path,  data):
+    def _get_real_path(self, path, key, data):
         """check path existence in data"""
+        new_path = path + "/" + key
+        if key == "TYPE" or key == "REF":
+            try:
+                node = data.get_node_at_path(path)
+            except:
+                return None
+            return new_path
         try:
-            new_path = path
-            if len(new_path)>4 and new_path[-4:] == "TYPE":
-                new_path = new_path[:-4]
-            if len(new_path)>3 and new_path[-3:] == "REF":
-                new_path = new_path[:-3]
             node = data.get_node_at_path(new_path)
         except:
+            try:                
+                node = data.get_node_at_path(path)
+                if isinstance(node,  dn.CompositeNode) and len(node.children) == 1:
+                    new_path = path + "/0/" + key
+                    node = data.get_node_at_path(new_path)
+                else:
+                    return None
+            except:
+                return None
             return False
-        return node is not None                
+        return new_path               
 
     
     

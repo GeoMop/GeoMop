@@ -3,15 +3,16 @@ import sys
 import os
 import re
 import logging
+import copy
 
 __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
-__ins_dir__ = []
-__ins_dir__.append("communication")
-__ins_dir__.append("data")
-__ins_dir__.append('twoparty')
+__ins_dirs__ = []
+__ins_dirs__.append("communication")
+__ins_dirs__.append("data") 
+__ins_dirs__.append("twoparty") 
 __root_dir__ = "jobs"
 __python_exec__ = "python3"
 
@@ -21,6 +22,10 @@ class Installation:
     def __init__(self):
         self.copy_path = None
         """installation file path"""
+        self.ins_files = copy.deepcopy(__ins_files__)
+        """files to install"""
+        self.ins_dirs = copy.deepcopy(__ins_dirs__)
+        """directories to install"""
 
     def create_install_dir(self, conn):
         """Copy installation files"""
@@ -72,13 +77,13 @@ class Installation:
                 logging.warning("Sftp message(mkdir res): " + str(conn.before, 'utf-8').strip()) 
             conn.sendline('lcd ' + __install_dir__)
             conn.expect('.*lcd ' + __install_dir__ + "\r\n")
-            for name in __ins_files__:
+            for name in self.ins_files:
                 conn.sendline('put ' +  __ins_files__[name])
                 conn.expect('sftp> put ' + __ins_files__[name] + "\r\n")
                 conn.expect("sftp> ")
                 if len(conn.before)>0:
                     logging.debug(str(conn.before, 'utf-8').strip()) 
-            for dir in __ins_dir__:
+            for dir in self.ins_dirs:
                 conn.sendline('mkdir ' + dir)
                 conn.expect('.*mkdir ' + dir + "\r\n")
                 conn.expect("sftp> ")

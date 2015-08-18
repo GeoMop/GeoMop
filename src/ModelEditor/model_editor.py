@@ -1,5 +1,6 @@
 """Start script that inicialize main window """
 
+import os
 import sys
 __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "lib")
