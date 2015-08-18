@@ -41,11 +41,11 @@ class Installation:
             if len(res)>0:
                 logging.warning("Sftp message (mkdir res): " + res)
             conn.set_sftp_paths( __install_dir__, self.copy_path)
-            for name in __ins_files__:
+            for name in self.ins_files:
                 res = conn.put(__ins_files__[name]) 
                 if len(res)>0:
                     logging.warning("Sftp message (put '" + __ins_files__[name] + "'): " + res)
-            for dir in __ins_dir__:
+            for dir in self.ins_dirs:
                 res = conn.put_r(dir) 
                 if len(res)>0:
                     logging.warning("Sftp message (put -r '" + dir + "'): " + res)
