@@ -74,10 +74,13 @@ def fix_tags(yaml, root):
                 if ref_node.span.start < anchor.span.start:
                     if first_ref is None or first_ref.span.start > ref_node.span.start:
                         first_ref = ref_node
-            if ref_node is not None and ref_node.parent is not None and \
-                ref_node.parent.parent is not None and anchor.parent is not None:
-                if ref_node.parent.parent.absolute_path == anchor.parent.absolute_path:
-                    need_move_forward.append(anchor.absolute_path)    
+            if first_ref is not None and first_ref.parent is not None and \
+                first_ref.parent.parent is not None and anchor.parent is not None:
+                anchor_path = anchor.parent.absolute_path
+                ref_path = first_ref.parent.parent.absolute_path
+                if len(anchor_path)<=len(ref_path):
+                    if ref_path[:len(anchor_path)] == anchor_path:
+                        need_move_forward.append(anchor.absolute_path)    
         except:
             continue
     for i in range(0, len(lines)):
@@ -104,11 +107,22 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, del_lines,  i=1):
                 if not lines[node.key.span.start.line-1][-1:].isspace():
                     lines[node.key.span.start.line-1] += " "
                 lines[node.key.span.start.line-1] += "*anchor" + str(i)
-                if child.value not in add_anchor:
-                    add_anchor[child.value] = []
-                    anchor_idx[child.value] = i
+                if child.value not in add_anchor:                    
+                    value = child.value
+                    if len(value)>1 and value[0] == '.':
+                        if value[:3] == '../':
+                            value = "../" + value
+                        else:
+                            value = "." + value
+                        try:
+                            ref_node = child.get_node_at_path(value)
+                            value = ref_node.absolute_path
+                        except LookupError:
+                            pass
+                    add_anchor[value] = []
+                    anchor_idx[value] = i
                     i += 1
-                add_anchor[child.value].append(child)
+                    add_anchor[value].append(child)
             else:
                 if isinstance(child, dn.CompositeNode):
                     i = _traverse_nodes(child, lines, add_anchor, anchor_idx, del_lines, i)
