@@ -8,7 +8,7 @@ from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
 from dialogs.transformation_detail import TranformationDetailDlg
 from data.validation.validator import Validator
-from data.format import get_root_input_type_from_json
+import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets
 from data.error_handler import ErrorHandler
 import data.autoconversion as ac
@@ -279,8 +279,8 @@ class MEConfig:
             cls.update()
             cls.document = rewrite_comments(con, cls.document, cls.root)
             cls.update()
-            data={'actions': [{'action': 'move-key-forward', 'parameters': {'path': '/system'}}, 
-                {'action': 'delete-key', 'parameters': {'path': '/system'}}]}
+            data = {'actions': [{'action': 'move-key-forward', 'parameters': {'path': '/system'}},
+                                {'action': 'delete-key', 'parameters': {'path': '/system'}}]}
             for path in need_move_forward:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
@@ -347,7 +347,8 @@ class MEConfig:
         if cls.curr_format_file is None:
             return
         text = cls.get_curr_format_text()
-        cls.root_input_type = get_root_input_type_from_json(text)
+        cls.root_input_type = fmt.get_root_input_type_from_json(text)
+        fmt.InfoTextGenerator.init(text)
         cls.update()
 
     @classmethod

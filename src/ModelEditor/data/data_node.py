@@ -5,6 +5,7 @@ Contains classes for representing the tree structure of config files.
 """
 
 from enum import Enum
+import data.format as fmt
 
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""
@@ -96,9 +97,12 @@ class DataNode:
     @property
     def info_text(self):
         """help text describing the input type"""
-        if DEBUG_MODE:
-            return str(self).replace("\n", "<br/>")
-        return ''
+        # TODO how to handle abstract/concrete record?
+        try:
+            input_type_id = self.input_type['id']
+        except (TypeError, KeyError):
+            return 'unknown id'
+        return fmt.InfoTextGenerator.get_info_text(input_type_id)
 
     def __str__(self):
         text = (

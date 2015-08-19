@@ -5,12 +5,47 @@ Contains format specification class and methods to parse it from JSON.
 @author: Tomas Krizek
 """
 
+from ist.formatters.json2html import HTMLFormatter
+from ist.ist_formatter_module import ProfilerJSONDecoder
 import json
 
 
 def get_root_input_type_from_json(data):
     """Return the root input type from JSON formatted data."""
     return parse_format(json.loads(data))
+
+
+class InfoTextGenerator:
+    """
+    Generates info_text for `DataNode`.
+    Uses the Flow123d-python-utils ist library.
+    """
+    _input_types = {}
+
+    @classmethod
+    def init(cls, json_text):
+        """Initializes the class with format information."""
+        cls._input_types = {}
+        node_list = json.loads(json_text, encoding="utf-8", cls=ProfilerJSONDecoder)
+        for node in node_list:
+            input_type_id = getattr(node, 'id', None)
+            if input_type_id is not None:
+                cls._input_types[input_type_id] = node
+
+    # TODO cache html
+    @classmethod
+    def get_info_text(cls, input_type_id):
+        """Generate an HTML documentation for the given id of `node.input_type`."""
+        input_type = cls._input_types.get(input_type_id, None)
+        if input_type is None:
+            return ''
+        fmt = HTMLFormatter.get_formatter_for(input_type)
+        try:
+            fmt.format(input_type)
+        except AttributeError:
+            return 'no info_text available'
+        else:
+            return fmt.dump()
 
 
 def parse_format(data):
@@ -31,6 +66,7 @@ def _substitute_ids_with_references(input_types):
     input_type = {}
 
     def _substitute_implementations():
+        """Replaces implementation ids with input_types."""
         impls = {}
         for id_ in input_type['implementations']:
             type_ = input_types[id_]
@@ -38,11 +74,13 @@ def _substitute_ids_with_references(input_types):
         input_type['implementations'] = impls
 
     def _substitute_default_descendant():
+        """Replaces default descendant id with input_type."""
         id_ = input_type.get('default_descendant', None)
         if id_ is not None:
             input_type['default_descendant'] = input_types[id_]
 
     def _substitute_key_type():
+        """Replaces key type with input_type."""
         # pylint: disable=unused-variable, invalid-name
         for __, value in input_type['keys'].items():
             value['type'] = input_types[value['type']]
