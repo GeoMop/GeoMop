@@ -47,8 +47,7 @@ class ErrorHandler:
         category = dn.DataError.Category.yaml
         severity = dn.DataError.Severity.fatal
         description = yaml_error.problem
-        error_line = get_error_line_from_yaml_error(yaml_error)
-        start_pos = dn.Position(error_line + 1, 1)
+        start_pos = dn.Position.from_yaml_error(yaml_error)
         span = dn.Span(start=start_pos, end=error_end_pos)
         error = dn.DataError(category, severity, description, span)
         self._errors.append(error)
@@ -176,12 +175,3 @@ def get_validation_error_span(node, error):
         else:
             span = node.span
     return span
-
-
-def get_error_line_from_yaml_error(yaml_error):
-    """Returns error line from YAML error."""
-    if yaml_error.problem_mark is not None:
-        line = yaml_error.problem_mark.line
-    else:
-        line = yaml_error.context_mark.line
-    return line

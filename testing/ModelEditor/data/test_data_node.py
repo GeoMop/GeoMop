@@ -25,6 +25,17 @@ def test_position():
     assert (Position(2, 1) > Position(1, 2)) is True
 
 
+def test_position_from_document_end():
+    """Tests position initialization from document end."""
+    document = (
+        "format: ascii\n"
+        "file: dual_sorp.vtk"
+    )
+    pos = dn.Position.from_document_end(document)
+    assert pos.line == 2
+    assert pos.column == 20
+
+
 @APP_NOT_INIT
 def test_parse(request=None):
     error_handler = ErrorHandler()

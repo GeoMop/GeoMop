@@ -21,6 +21,7 @@ class Loader:
         self._event_generator = iter([])
         self._document = None
         self._iterate_events = True
+        self._fatal_error_node = None
         self.anchors = {}
         self.error_handler = error_handler
         if self.error_handler is None:
@@ -30,6 +31,7 @@ class Loader:
         """Loads the YAML document and returns the root DataNode."""
         if document is None:
             return None
+        self._fatal_error_node = None
         self._iterate_events = True
         self.anchors = {}
         self._document = document
@@ -39,7 +41,12 @@ class Loader:
         self._next_parse_event()  # DocumentStartEvent
         self._next_parse_event()  # first actual event
 
-        return self._create_node()
+        root = self._create_node()
+        if self._fatal_error_node:
+            if isinstance(root, dn.CompositeNode):
+                # pylint: disable=no-member
+                root.set_child(self._fatal_error_node)
+        return root
 
     def _next_parse_event(self):
         """
@@ -54,8 +61,9 @@ class Loader:
                 # handle parsing error
                 self._event = None
                 self._iterate_events = False
-                end_pos = get_document_end_position(self._document)
+                end_pos = dn.Position.from_document_end(self._document)
                 self.error_handler.report_parsing_error(error, end_pos)
+                self._create_fatal_error_node(error, end_pos)
             except StopIteration:
                 # handle end of parsing events
                 self._event = None
@@ -319,10 +327,14 @@ class Loader:
             self.error_handler.report_anchor_override(anchor, node)
         self.anchors[anchor.value] = node
 
-
-def get_document_end_position(document):
-    """Returns the last `Position` in the document."""
-    lines = document.splitlines()
-    line = len(lines)
-    column = len(lines[line-1])
-    return dn.Position(line, column + 1)
+    def _create_fatal_error_node(self, error, document_end_pos):
+        """
+        Creates a non-existing node in the data tree
+        to wrap the content of the error (span) in a node.
+        """
+        # TODO Isn't this temporary solution?
+        node = dn.ScalarNode()
+        document_start_pos = dn.Position.from_yaml_error(error)
+        node.span = dn.Span(document_start_pos, document_end_pos)
+        node.key = dn.TextValue('fatal_error')
+        self._fatal_error_node = node

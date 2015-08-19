@@ -265,6 +265,27 @@ class Position(ComparableMixin):
     def __str__(self):
         return "[{line}:{column}]".format(line=self.line, column=self.column)
 
+    @staticmethod
+    def from_mark(mark):
+        """Returns a `Position` from YAML mark."""
+        return Position(mark.line + 1, mark.column + 1)
+
+    @staticmethod
+    def from_document_end(document):
+        """Returns the last `Position` in the document."""
+        lines = document.splitlines()
+        line = len(lines)
+        column = len(lines[line-1])
+        return Position(line, column + 1)
+
+    @staticmethod
+    def from_yaml_error(yaml_error):
+        """Returns a `Position` from `MarkedYAMLError`."""
+        if yaml_error.problem_mark is not None:
+            return Position.from_mark(yaml_error.problem_mark)
+        else:
+            return Position.from_mark(yaml_error.context_mark)
+
 
 class Span:
     """Borders a part of text."""
@@ -289,8 +310,8 @@ class Span:
     @staticmethod
     def from_marks(start_mark, end_mark):
         """Constructs `Span` from YAML marks."""
-        start = Position(start_mark.line + 1, start_mark.column + 1)
-        end = Position(end_mark.line + 1, end_mark.column + 1)
+        start = Position.from_mark(start_mark)
+        end = Position.from_mark(end_mark)
         return Span(start, end)
 
 
