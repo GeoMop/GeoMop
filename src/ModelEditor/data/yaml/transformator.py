@@ -132,6 +132,8 @@ class Transformator:
                 action['parameters']['path'] + ") must be abstract record")
         if is_root:
             intendation1=0
+            pl1 = 0
+            pc1 = 0
         else:
             intendation1 =  re.search('^(\s*)(\S.*)$', lines[pl1])        
             intendation1 = len(intendation1.group(1)) + 2
@@ -139,9 +141,6 @@ class Transformator:
         add = self ._copy_value(lines, l1, c1, l2, c2,  intendation1)       
         add = self._fix_placing(add, self._get_type_place(lines, root, parent_node, True))
         pl1, pc1 = self._skip_tar(lines, pl1, pc1, pl2, pc2)
-        int_p = pl1+1
-        if int_p>pl2:
-            int_p = pl2
         self._delete_key(root, lines,  action)
         for i in range(len(add)-1, -1, -1):
             if pc1==0:
@@ -302,6 +301,7 @@ class Transformator:
         l1, c1, l2, c2 = anchor_node.span.start.line-1, anchor_node.span.start.column-1, \
             anchor_node.span.end.line-1, anchor_node.span.end.column-1
         l1, c1 = self._skip_tar(lines, l1, c1, l2, c2)
+        hlpl1, hlpc1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
         dl1, dc1, dl2, dc2 = self._get_node_pos(ref_node)
         intend =  re.search('^(\s*)(\S.*)$', lines[dl1])
         intend = len(intend.group(1)) + 2
@@ -502,7 +502,7 @@ class Transformator:
         inten = re.search('^(\s*)(\S+).*$', lines[l1])
         if inten is not None and len(inten.group(1)) >= c1:
             while nl1>0:
-                comment = re.search('^(\s*)#\s*(\S+.*)$', lines[nl1-1])
+                comment = re.search('^(\s*)#\s*(.*)$', lines[nl1-1])
                 if comment is not None:
                     nl1 -= 1
                     nc1 = 0
@@ -515,13 +515,19 @@ class Transformator:
         inten = re.search('^(.*\S)\s*#\s*\S+.*$', lines[l2])
         if inten is not None and len(inten.group(1)) <= c2:
             nc2=len(lines[nl2])
-            while nl2<len(lines)-1:
-                comment = re.search('^(\s*)#\s*(\S+.*)$', lines[nl2+1])
-                if comment is not None:
-                    nl2 += 1
-                    nc2=len(lines[nl2]) 
-                else:
-                    break
+        # delete all line comment after
+        if c2 == 0:
+            comment = re.search('^(\s*)#\s*(.*)$', lines[nl2-1])
+            if comment is not None:
+                nl2 -= 1
+                nc2=len(lines[nl2])        
+        while nl2 > nl1:
+            comment = re.search('^(\s*)#\s*(.*)$', lines[nl2])
+            if comment is not None:
+                nl2 -= 1
+                nc2=len(lines[nl2]) 
+            else:
+                break
         return nl1, nc1, nl2, nc2                
 
 class TransformationFileFormatError(Exception):

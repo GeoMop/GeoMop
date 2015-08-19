@@ -42,8 +42,11 @@ def fix_tags(yaml, root):
     lines = yaml.splitlines(False)
     add_anchor = {}
     anchor_idx = {}
-    del_lines = _traverse_nodes(root, lines, add_anchor, anchor_idx)
+    del_lines = []
+    _traverse_nodes(root, lines, add_anchor, anchor_idx, del_lines)
     new_lines = []
+    add_lines = {}
+    need_move_forward = []
     for i in add_anchor:
         try:
             anchor = root.get_node_at_path(i)
@@ -53,28 +56,44 @@ def fix_tags(yaml, root):
                 col = anchor.key.span.end.column-1
                 line = anchor.key.span.end.line-1
                 if len(lines[line])>col+1:
-                    text = lines[line][:col]
+                    text = lines[line][col+1:]
                     tag = re.search('^(\s+!\S+)',text)
-                    col += tag.group(1)
+                    if tag is not None:
+                        col += len(tag.group(1))
             if len(lines[line])>col+1:
-                lines[line] = lines[line][:col] + " &anchor" + str(anchor_idx[i]) + ' ' +  lines[line][col:]
+                if col>1 and lines[line][col-2:col] == "- ":
+                    add_lines[line+1] = col * " " + lines[line][col:]
+                    lines[line] = lines[line][:col] + "&anchor" + str(anchor_idx[i])
+                else:
+                    lines[line] = lines[line][:col] + " &anchor" + str(anchor_idx[i]) + ' ' +  lines[line][col:]
             else:
                 lines[line] += " &anchor" + str(anchor_idx[i])
+            # if anchor is in same level as ref and ref is before anchor, rename
+            first_ref = None
+            for ref_node in add_anchor[i]:
+                if ref_node.span.start < anchor.span.start:
+                    if first_ref is None or first_ref.span.start > ref_node.span.start:
+                        first_ref = ref_node
+            if ref_node is not None and ref_node.parent is not None and \
+                ref_node.parent.parent is not None and anchor.parent is not None:
+                if ref_node.parent.parent.absolute_path == anchor.parent.absolute_path:
+                    need_move_forward.append(anchor.absolute_path)    
         except:
             continue
     for i in range(0, len(lines)):
+        if i in add_lines:
+            new_lines.append(add_lines[i]) 
         if i not in del_lines:
             new_lines.append(lines[i])            
-    return "\n".join(new_lines)
+    return "\n".join(new_lines), need_move_forward
  
-def _traverse_nodes(node, lines, add_anchor, anchor_idx, i=1):
+def _traverse_nodes(node, lines, add_anchor, anchor_idx, del_lines,  i=1):
     """
     Traverse node, recursively call function for children,
     resolve type to tag and resolve refferences.
     
     return: array of lines for deleting
     """ 
-    del_lines = []
     if isinstance(node, dn.CompositeNode):
         for child in node.children:
             if isinstance(child, dn.ScalarNode) and child.key.value == "TYPE":
@@ -82,7 +101,9 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, i=1):
                 lines[node.key.span.start.line-1] += " !" + child.value
             elif isinstance(child, dn.ScalarNode) and child.key.value == "REF":
                 del_lines.append(child.key.span.start.line-1)
-                lines[node.key.span.start.line-1] += " *anchor" + str(i)
+                if not lines[node.key.span.start.line-1][-1:].isspace():
+                    lines[node.key.span.start.line-1] += " "
+                lines[node.key.span.start.line-1] += "*anchor" + str(i)
                 if child.value not in add_anchor:
                     add_anchor[child.value] = []
                     anchor_idx[child.value] = i
@@ -90,12 +111,11 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, i=1):
                 add_anchor[child.value].append(child)
             else:
                 if isinstance(child, dn.CompositeNode):
-                    del_lines.extend(_traverse_nodes(child, lines, add_anchor, anchor_idx, i))
-    return del_lines
+                    i = _traverse_nodes(child, lines, add_anchor, anchor_idx, del_lines, i)
+    return i
   
 class Comment: 
     """Class for one comment"""
-
     def __init__(self, path, text, after=False):
         self.path = path
         if len(self.path)>4 and self.path[-4:] == "TYPE":

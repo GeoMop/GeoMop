@@ -1,0 +1,452 @@
+ ~$ python --version
+Python 2.7.6
+ ~$ python3
+Python 3.4.0 (default, Apr 11 2014, 13:05:11) 
+[GCC 4.8.2] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 
+ ~$ apt-get install python3-pip python3-py
+python3-py                       python3-pylibacl-dbg             python3-pyqt5.qtpositioning-dbg  python3-pyside.qtgui
+python3-pyasn1                   python3-pymongo                  python3-pyqt5.qtquick            python3-pyside.qthelp
+python3-pyatspi                  python3-pymongo-ext              python3-pyqt5.qtquick-dbg        python3-pyside.qtnetwork
+python3-pyatspi2                 python3-pyopencl                 python3-pyqt5.qtsensors          python3-pyside.qtopengl
+python3-pyaudio                  python3-pyopencl-dbg             python3-pyqt5.qtsensors-dbg      python3-pyside.qtscript
+python3-pycangjie                python3-pyparsing                python3-pyqt5.qtserialport       python3-pyside.qtsql
+python3-pyclamd                  python3-pyproj                   python3-pyqt5.qtserialport-dbg   python3-pyside.qtsvg
+python3-pycparser                python3-pyqt4                    python3-pyqt5.qtsql              python3-pyside.qttest
+python3-pycuda                   python3-pyqt4-dbg                python3-pyqt5.qtsql-dbg          python3-pyside.qtuitools
+python3-pycuda-dbg               python3-pyqt4.phonon             python3-pyqt5.qtsvg              python3-pyside.qtwebkit
+python3-pycurl                   python3-pyqt4.phonon-dbg         python3-pyqt5.qtsvg-dbg          python3-pyside.qtxml
+python3-pycurl-dbg               python3-pyqt4.qsci               python3-pyqt5.qtwebkit           python3-pysnmp4
+python3-pyeclib                  python3-pyqt4.qtopengl           python3-pyqt5.qtwebkit-dbg       python3-pystache
+python3-pyfits                   python3-pyqt4.qtopengl-dbg       python3-pyqt5.qtx11extras        python3-pytango
+python3-pygments                 python3-pyqt4.qtsql              python3-pyqt5.qtx11extras-dbg    python3-pytest
+python3-pygraph                  python3-pyqt4.qtsql-dbg          python3-pyqt5.qtxmlpatterns      python3-pytest-instafail
+python3-pyicu                    python3-pyqt5                    python3-pyqt5.qtxmlpatterns-dbg  python3-pytools
+python3-pyicu-dbg                python3-pyqt5-dbg                python3-pyro4                    python3-pyudev
+python3-pyinotify                python3-pyqt5.qsci               python3-pyrss2gen                python3-pywapi
+python3-pykde4                   python3-pyqt5.qtmultimedia       python3-pyshp                    python3-pyxattr
+python3-pykde4-dbg               python3-pyqt5.qtmultimedia-dbg   python3-pyside                   python3-pyxattr-dbg
+python3-pykka                    python3-pyqt5.qtopengl           python3-pyside.phonon            
+python3-pylast                   python3-pyqt5.qtopengl-dbg       python3-pyside.qtcore            
+python3-pylibacl                 python3-pyqt5.qtpositioning      python3-pyside.qtdeclarative     
+ ~$ apt-get install python3-pip python3-pyqt5 python3-pyqt5.qsci 
+E: Could not open lock file /var/lib/dpkg/lock - open (13: Permission denied)
+E: Unable to lock the administration directory (/var/lib/dpkg/), are you root?
+ ~$ sudo apt-get install python3-pip python3-pyqt5 python3-pyqt5.qsci 
+[sudo] password for jb: 
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  cabextract cli-common cpp-4.4 fp-units-rtl-2.4.4 fp-utils-2.4.4
+  gcc-4.6-base:i386 gcc-4.7-base gcc-4.7-base:i386 gccxml git-core html2text
+  indicator-application libamd2.2.0 libappindicator1 libappindicator3-1
+  libarchive12 libasn1-8-heimdal:i386 libattica0.3 libbind9-80
+  libboost-date-time-dev libboost-date-time1.46.1 libboost-dev
+  libboost-filesystem-dev libboost-filesystem1.46.1 libboost-graph1.46.1
+  libboost-iostreams-dev libboost-iostreams1.46.1 libboost-math-dev
+  libboost-math1.46.1 libboost-mpi-dev libboost-mpi-python-dev
+  libboost-program-options-dev libboost-python-dev libboost-python1.46.1
+  libboost-regex-dev libboost-regex1.46.1 libboost-serialization-dev
+  libboost-serialization1.46.1 libboost-signals-dev libboost-signals1.46.1
+  libboost-system-dev libboost-system1.46.1 libboost-test1.46.1
+  libboost-thread-dev libboost-thread1.46.1 libboost-wave-dev
+  libboost-wave1.46.1 libcapi20-3 libcapi20-3:i386 libccolamd2.7.1 libcelt0-0
+  libcgns2 libcgraph5 libcholmod1.7.1 libclang-common-dev libcmis-0.2-0
+  libcxsparse2.2.3 libdb5.1:i386 libdconf0 libdns81 libdrm-nouveau1a:i386
+  libdvbpsi7 libebml3 libfftw3-3 libgcr-3-1 libgd2-xpm:i386 libgdu0
+  libgif4:i386 libglew1.5 libglew1.6 libglpk0 libgnome-keyring0:i386
+  libgphoto2-2:i386 libgphoto2-port0:i386 libgrail5 libgssapi3-heimdal:i386
+  libgvpr1 libhcrypto4-heimdal:i386 libheimbase1-heimdal:i386
+  libheimntlm0-heimdal:i386 libhx509-5-heimdal:i386 libieee1284-3:i386
+  libindicator3-7 libindicator7 libisc83 libisccc80 libisccfg82
+  libkadm5clnt-mit8 libkadm5srv-mit8 libkasten1controllers1 libkasten1core1
+  libkasten1gui1 libkasten1okteta1controllers1 libkasten1okteta1core1
+  libkasten1okteta1gui1 libkdb5-6 libkrb5-26-heimdal:i386 libkrb5-dev
+  libkwineffects1abi3 libkwinglutils1 libkwinnvidiahack4 libkworkspace4abi1
+  liblaunchpad-integration-3.0-1 liblcms1:i386 libldap-2.4-2:i386 libllvm3.0
+  libllvm3.0:i386 libllvm3.1 liblwres80 libmagick++4 libmagickcore4
+  libmagickwand4 libmarblewidget13 libmatroska5 libmjpegtools-1.9 libmng1:i386
+  libmpg123-0:i386 libnepomukdatamanagement4 libnepomuksync4 libodbc1
+  libokularcore1abi1 libopenal1:i386 libopencascade-foundation-6.5.0
+  libopencascade-modeling-6.5.0 libparpack2 libpgm-5.1-0 libpthread-stubs0
+  libpython3.2 libqhull5 libroken18-heimdal:i386 librpmio2 libsane:i386
+  libsasl2-2:i386 libsasl2-modules:i386 libsox1b libsublime5 libsvnqt6
+  libtasn1-3:i386 libtiff4:i386 libtiffxx0c2 libumfpack5.4.0 libusb-0.1-4:i386
+  libwind0-heimdal:i386 libx264-120 libxatracker1 libxine1 libxine1-bin
+  libxine1-console libxine1-ffmpeg libxine1-misc-plugins libxine1-x libzmq3
+  linux-headers-3.13.0-36 linux-headers-3.13.0-36-generic
+  linux-headers-3.13.0-40 linux-headers-3.13.0-40-generic
+  linux-headers-3.13.0-43 linux-headers-3.13.0-43-generic
+  linux-headers-3.13.0-44 linux-headers-3.13.0-44-generic
+  linux-headers-3.13.0-45 linux-headers-3.13.0-45-generic
+  linux-headers-3.2.0-68 linux-headers-3.2.0-68-generic
+  linux-image-3.13.0-36-generic linux-image-3.13.0-40-generic
+  linux-image-3.13.0-43-generic linux-image-3.13.0-44-generic
+  linux-image-3.13.0-45-generic linux-image-extra-3.13.0-36-generic
+  linux-image-extra-3.13.0-40-generic linux-image-extra-3.13.0-43-generic
+  linux-image-extra-3.13.0-44-generic linux-image-extra-3.13.0-45-generic
+  octave-miscellaneous octave-optim octave-struct octave3.2-common
+  python-gnupginterface python-pexpect python-simplegeneric python-zmq
+  python3.2 python3.2-minimal qt4-demos tcl8.5-dev tk8.5-dev transcode-utils
+  ttf-umefont units unixodbc update-manager-kde wx-common
+Use 'apt-get autoremove' to remove them.
+The following extra packages will be installed:
+  libpython3-dev libpython3.4 libpython3.4-dev libpython3.4-minimal
+  libpython3.4-stdlib libqt5scintilla2-11 libqt5scintilla2-l10n
+  python-chardet-whl python-colorama-whl python-distlib-whl
+  python-html5lib-whl python-pip-whl python-requests-whl python-setuptools-whl
+  python-six-whl python-urllib3-whl python3-chardet python3-colorama
+  python3-dev python3-distlib python3-html5lib python3-requests
+  python3-setuptools python3-six python3-urllib3 python3-wheel python3.4
+  python3.4-dev python3.4-minimal
+Suggested packages:
+  libqscintilla2-qt5-11 python3-genshi python3-lxml python3-pyqt5-dbg
+  python3.4-venv python3.4-doc
+The following NEW packages will be installed:
+  libpython3-dev libpython3.4-dev libqt5scintilla2-11 libqt5scintilla2-l10n
+  python-chardet-whl python-colorama-whl python-distlib-whl
+  python-html5lib-whl python-pip-whl python-requests-whl python-setuptools-whl
+  python-six-whl python-urllib3-whl python3-chardet python3-colorama
+  python3-dev python3-distlib python3-html5lib python3-pip python3-pyqt5
+  python3-pyqt5.qsci python3-requests python3-setuptools python3-six
+  python3-urllib3 python3-wheel python3.4-dev
+The following packages will be upgraded:
+  libpython3.4 libpython3.4-minimal libpython3.4-stdlib python3.4
+  python3.4-minimal
+5 upgraded, 27 newly installed, 0 to remove and 140 not upgraded.
+Need to get 28.3 MB of archives.
+After this operation, 54.6 MB of additional disk space will be used.
+Do you want to continue? [Y/n] Y
+Get:1 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main libpython3.4 amd64 3.4.3-1ubuntu1~14.04.1 [1,305 kB]
+Get:2 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main python3.4 amd64 3.4.3-1ubuntu1~14.04.1 [178 kB]
+Get:3 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main libpython3.4-stdlib amd64 3.4.3-1ubuntu1~14.04.1 [1,982 kB]
+Get:4 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main python3.4-minimal amd64 3.4.3-1ubuntu1~14.04.1 [1,224 kB]
+Get:5 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main libpython3.4-minimal amd64 3.4.3-1ubuntu1~14.04.1 [463 kB]
+Get:6 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main libpython3.4-dev amd64 3.4.3-1ubuntu1~14.04.1 [17.8 MB]
+Get:7 http://cz.archive.ubuntu.com/ubuntu/ trusty/main libpython3-dev amd64 3.4.0-0ubuntu2 [7,002 B]
+Get:8 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main libqt5scintilla2-l10n all 2.8.1-2ubuntu1 [44.3 kB]
+Get:9 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main libqt5scintilla2-11 amd64 2.8.1-2ubuntu1 [879 kB]
+Get:10 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python-chardet-whl all 2.2.1-2~ubuntu1 [170 kB]
+Get:11 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python-colorama-whl all 0.2.5-0.1ubuntu2 [18.2 kB]
+Get:12 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python-distlib-whl all 0.1.8-1ubuntu1 [140 kB]
+Get:13 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python-html5lib-whl all 0.999-3~ubuntu1 [109 kB]
+Get:14 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python-six-whl all 1.5.2-1ubuntu1 [10.5 kB]
+Get:15 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python-urllib3-whl all 1.7.1-1ubuntu3 [64.0 kB]
+Get:16 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python-requests-whl all 2.2.1-1ubuntu0.3 [227 kB]
+Get:17 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python-setuptools-whl all 3.3-1ubuntu2 [244 kB]
+Get:18 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python-pip-whl all 1.5.4-1ubuntu3 [111 kB]
+Get:19 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-chardet all 2.2.1-2~ubuntu1 [96.5 kB]
+Get:20 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python3-colorama all 0.2.5-0.1ubuntu2 [12.0 kB]
+Get:21 http://cz.archive.ubuntu.com/ubuntu/ trusty-proposed/main python3.4-dev amd64 3.4.3-1ubuntu1~14.04.1 [418 kB]
+Get:22 http://cz.archive.ubuntu.com/ubuntu/ trusty/main python3-dev amd64 3.4.0-0ubuntu2 [1,192 B]
+Get:23 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python3-distlib all 0.1.8-1ubuntu1 [113 kB]
+Get:24 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-six all 1.5.2-1ubuntu1 [8,310 B]
+Get:25 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python3-html5lib all 0.999-3~ubuntu1 [79.7 kB]
+Get:26 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-urllib3 all 1.7.1-1ubuntu3 [39.5 kB]
+Get:27 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-requests all 2.2.1-1ubuntu0.3 [43.0 kB]
+Get:28 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-setuptools all 3.3-1ubuntu2 [144 kB]
+Get:29 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python3-pip all 1.5.4-1ubuntu3 [80.3 kB]
+Get:30 http://cz.archive.ubuntu.com/ubuntu/ trusty/main python3-pyqt5 amd64 5.2.1+dfsg-1ubuntu1 [2,146 kB]
+Get:31 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/universe python3-pyqt5.qsci amd64 2.8.1-2ubuntu1 [161 kB]
+Get:32 http://cz.archive.ubuntu.com/ubuntu/ trusty-updates/main python3-wheel all 0.24.0-1~ubuntu1 [44.8 kB]
+Fetched 28.3 MB in 23s (1,186 kB/s)                                            
+Extracting templates from packages: 100%
+(Reading database ... 562257 files and directories currently installed.)
+Preparing to unpack .../libpython3.4_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking libpython3.4:amd64 (3.4.3-1ubuntu1~14.04.1) over (3.4.0-2ubuntu1) ...
+Preparing to unpack .../python3.4_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking python3.4 (3.4.3-1ubuntu1~14.04.1) over (3.4.0-2ubuntu1) ...
+Preparing to unpack .../libpython3.4-stdlib_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking libpython3.4-stdlib:amd64 (3.4.3-1ubuntu1~14.04.1) over (3.4.0-2ubuntu1) ...
+Preparing to unpack .../python3.4-minimal_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking python3.4-minimal (3.4.3-1ubuntu1~14.04.1) over (3.4.0-2ubuntu1) ...
+Preparing to unpack .../libpython3.4-minimal_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking libpython3.4-minimal:amd64 (3.4.3-1ubuntu1~14.04.1) over (3.4.0-2ubuntu1) ...
+Selecting previously unselected package libpython3.4-dev:amd64.
+Preparing to unpack .../libpython3.4-dev_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking libpython3.4-dev:amd64 (3.4.3-1ubuntu1~14.04.1) ...
+Selecting previously unselected package libpython3-dev:amd64.
+Preparing to unpack .../libpython3-dev_3.4.0-0ubuntu2_amd64.deb ...
+Unpacking libpython3-dev:amd64 (3.4.0-0ubuntu2) ...
+Selecting previously unselected package libqt5scintilla2-l10n.
+Preparing to unpack .../libqt5scintilla2-l10n_2.8.1-2ubuntu1_all.deb ...
+Unpacking libqt5scintilla2-l10n (2.8.1-2ubuntu1) ...
+Selecting previously unselected package libqt5scintilla2-11.
+Preparing to unpack .../libqt5scintilla2-11_2.8.1-2ubuntu1_amd64.deb ...
+Unpacking libqt5scintilla2-11 (2.8.1-2ubuntu1) ...
+Selecting previously unselected package python-chardet-whl.
+Preparing to unpack .../python-chardet-whl_2.2.1-2~ubuntu1_all.deb ...
+Unpacking python-chardet-whl (2.2.1-2~ubuntu1) ...
+Selecting previously unselected package python-colorama-whl.
+Preparing to unpack .../python-colorama-whl_0.2.5-0.1ubuntu2_all.deb ...
+Unpacking python-colorama-whl (0.2.5-0.1ubuntu2) ...
+Selecting previously unselected package python-distlib-whl.
+Preparing to unpack .../python-distlib-whl_0.1.8-1ubuntu1_all.deb ...
+Unpacking python-distlib-whl (0.1.8-1ubuntu1) ...
+Selecting previously unselected package python-html5lib-whl.
+Preparing to unpack .../python-html5lib-whl_0.999-3~ubuntu1_all.deb ...
+Unpacking python-html5lib-whl (0.999-3~ubuntu1) ...
+Selecting previously unselected package python-six-whl.
+Preparing to unpack .../python-six-whl_1.5.2-1ubuntu1_all.deb ...
+Unpacking python-six-whl (1.5.2-1ubuntu1) ...
+Selecting previously unselected package python-urllib3-whl.
+Preparing to unpack .../python-urllib3-whl_1.7.1-1ubuntu3_all.deb ...
+Unpacking python-urllib3-whl (1.7.1-1ubuntu3) ...
+Selecting previously unselected package python-requests-whl.
+Preparing to unpack .../python-requests-whl_2.2.1-1ubuntu0.3_all.deb ...
+Unpacking python-requests-whl (2.2.1-1ubuntu0.3) ...
+Selecting previously unselected package python-setuptools-whl.
+Preparing to unpack .../python-setuptools-whl_3.3-1ubuntu2_all.deb ...
+Unpacking python-setuptools-whl (3.3-1ubuntu2) ...
+Selecting previously unselected package python-pip-whl.
+Preparing to unpack .../python-pip-whl_1.5.4-1ubuntu3_all.deb ...
+Unpacking python-pip-whl (1.5.4-1ubuntu3) ...
+Selecting previously unselected package python3-chardet.
+Preparing to unpack .../python3-chardet_2.2.1-2~ubuntu1_all.deb ...
+Unpacking python3-chardet (2.2.1-2~ubuntu1) ...
+Selecting previously unselected package python3-colorama.
+Preparing to unpack .../python3-colorama_0.2.5-0.1ubuntu2_all.deb ...
+Unpacking python3-colorama (0.2.5-0.1ubuntu2) ...
+Selecting previously unselected package python3.4-dev.
+Preparing to unpack .../python3.4-dev_3.4.3-1ubuntu1~14.04.1_amd64.deb ...
+Unpacking python3.4-dev (3.4.3-1ubuntu1~14.04.1) ...
+Selecting previously unselected package python3-dev.
+Preparing to unpack .../python3-dev_3.4.0-0ubuntu2_amd64.deb ...
+Unpacking python3-dev (3.4.0-0ubuntu2) ...
+Selecting previously unselected package python3-distlib.
+Preparing to unpack .../python3-distlib_0.1.8-1ubuntu1_all.deb ...
+Unpacking python3-distlib (0.1.8-1ubuntu1) ...
+Selecting previously unselected package python3-six.
+Preparing to unpack .../python3-six_1.5.2-1ubuntu1_all.deb ...
+Unpacking python3-six (1.5.2-1ubuntu1) ...
+Selecting previously unselected package python3-html5lib.
+Preparing to unpack .../python3-html5lib_0.999-3~ubuntu1_all.deb ...
+Unpacking python3-html5lib (0.999-3~ubuntu1) ...
+Selecting previously unselected package python3-urllib3.
+Preparing to unpack .../python3-urllib3_1.7.1-1ubuntu3_all.deb ...
+Unpacking python3-urllib3 (1.7.1-1ubuntu3) ...
+Selecting previously unselected package python3-requests.
+Preparing to unpack .../python3-requests_2.2.1-1ubuntu0.3_all.deb ...
+Unpacking python3-requests (2.2.1-1ubuntu0.3) ...
+Selecting previously unselected package python3-setuptools.
+Preparing to unpack .../python3-setuptools_3.3-1ubuntu2_all.deb ...
+Unpacking python3-setuptools (3.3-1ubuntu2) ...
+Selecting previously unselected package python3-pip.
+Preparing to unpack .../python3-pip_1.5.4-1ubuntu3_all.deb ...
+Unpacking python3-pip (1.5.4-1ubuntu3) ...
+Selecting previously unselected package python3-pyqt5.
+Preparing to unpack .../python3-pyqt5_5.2.1+dfsg-1ubuntu1_amd64.deb ...
+Unpacking python3-pyqt5 (5.2.1+dfsg-1ubuntu1) ...
+Selecting previously unselected package python3-pyqt5.qsci.
+Preparing to unpack .../python3-pyqt5.qsci_2.8.1-2ubuntu1_amd64.deb ...
+Unpacking python3-pyqt5.qsci (2.8.1-2ubuntu1) ...
+Selecting previously unselected package python3-wheel.
+Preparing to unpack .../python3-wheel_0.24.0-1~ubuntu1_all.deb ...
+Unpacking python3-wheel (0.24.0-1~ubuntu1) ...
+Processing triggers for mime-support (3.54ubuntu1.1) ...
+Processing triggers for desktop-file-utils (0.22-1ubuntu1) ...
+Processing triggers for man-db (2.6.7.1-1ubuntu1) ...
+Setting up libpython3.4-minimal:amd64 (3.4.3-1ubuntu1~14.04.1) ...
+Setting up libpython3.4-stdlib:amd64 (3.4.3-1ubuntu1~14.04.1) ...
+Setting up libpython3.4:amd64 (3.4.3-1ubuntu1~14.04.1) ...
+Setting up python3.4-minimal (3.4.3-1ubuntu1~14.04.1) ...
+Setting up python3.4 (3.4.3-1ubuntu1~14.04.1) ...
+Setting up libpython3.4-dev:amd64 (3.4.3-1ubuntu1~14.04.1) ...
+Setting up libpython3-dev:amd64 (3.4.0-0ubuntu2) ...
+Setting up libqt5scintilla2-l10n (2.8.1-2ubuntu1) ...
+Setting up libqt5scintilla2-11 (2.8.1-2ubuntu1) ...
+Setting up python-chardet-whl (2.2.1-2~ubuntu1) ...
+Setting up python-colorama-whl (0.2.5-0.1ubuntu2) ...
+Setting up python-distlib-whl (0.1.8-1ubuntu1) ...
+Setting up python-html5lib-whl (0.999-3~ubuntu1) ...
+Setting up python-six-whl (1.5.2-1ubuntu1) ...
+Setting up python-urllib3-whl (1.7.1-1ubuntu3) ...
+Setting up python-requests-whl (2.2.1-1ubuntu0.3) ...
+Setting up python-setuptools-whl (3.3-1ubuntu2) ...
+Setting up python-pip-whl (1.5.4-1ubuntu3) ...
+Setting up python3-chardet (2.2.1-2~ubuntu1) ...
+Setting up python3-colorama (0.2.5-0.1ubuntu2) ...
+Setting up python3.4-dev (3.4.3-1ubuntu1~14.04.1) ...
+Setting up python3-dev (3.4.0-0ubuntu2) ...
+Setting up python3-distlib (0.1.8-1ubuntu1) ...
+Setting up python3-six (1.5.2-1ubuntu1) ...
+Setting up python3-html5lib (0.999-3~ubuntu1) ...
+Setting up python3-urllib3 (1.7.1-1ubuntu3) ...
+Setting up python3-requests (2.2.1-1ubuntu0.3) ...
+Setting up python3-setuptools (3.3-1ubuntu2) ...
+Setting up python3-pip (1.5.4-1ubuntu3) ...
+Setting up python3-pyqt5 (5.2.1+dfsg-1ubuntu1) ...
+Setting up python3-pyqt5.qsci (2.8.1-2ubuntu1) ...
+Setting up python3-wheel (0.24.0-1~ubuntu1) ...
+Processing triggers for libc-bin (2.19-0ubuntu6.6) ...
+ ~$ sudo pip3 install virtualenvwrapper
+Downloading/unpacking virtualenvwrapper
+  Downloading virtualenvwrapper-4.6.0-py2.py3-none-any.whl
+Downloading/unpacking virtualenv-clone (from virtualenvwrapper)
+  Downloading virtualenv-clone-0.2.6.tar.gz
+  Running setup.py (path:/tmp/pip_build_root/virtualenv-clone/setup.py) egg_info for package virtualenv-clone
+    
+Downloading/unpacking stevedore (from virtualenvwrapper)
+  Downloading stevedore-1.7.0-py2.py3-none-any.whl
+Downloading/unpacking virtualenv (from virtualenvwrapper)
+  Downloading virtualenv-13.1.0-py2.py3-none-any.whl (1.7MB): 1.7MB downloaded
+Downloading/unpacking six>=1.9.0 (from stevedore->virtualenvwrapper)
+  Downloading six-1.9.0-py2.py3-none-any.whl
+Downloading/unpacking argparse (from stevedore->virtualenvwrapper)
+  Downloading argparse-1.3.0-py2.py3-none-any.whl
+Downloading/unpacking pbr>=1.3,<2.0 (from stevedore->virtualenvwrapper)
+  Downloading pbr-1.5.0-py2.py3-none-any.whl (87kB): 87kB downloaded
+Installing collected packages: virtualenvwrapper, virtualenv-clone, stevedore, virtualenv, six, argparse, pbr
+  Running setup.py install for virtualenv-clone
+    
+    Installing virtualenv-clone script to /usr/local/bin
+  Found existing installation: six 1.5.2
+    Not uninstalling six at /usr/lib/python3/dist-packages, owned by OS
+Successfully installed virtualenvwrapper virtualenv-clone stevedore virtualenv six argparse pbr
+Cleaning up...
+ ~$ cd workspace/
+ ~/workspace$ vim ~/.bashrc
+ ~/workspace$ mkdir ~/.virtualenvs
+ ~/workspace$ echo WORKON_HOME
+WORKON_HOME
+ ~/workspace$ echo $WORKON_HOME
+
+ ~/workspace$ vim ./geomop_env.sh
+ ~/workspace$ chmod u+x geomop_env.sh 
+ ~/workspace$ ./geomop_env.sh 
+You need to source this script.
+ ~/workspace$ source ./geomop_env.sh 
+You need to source this script.
+ ~/workspace$ mkvirtualenv GeoMop
+Using base prefix '/usr'
+New python executable in GeoMop/bin/python3
+Also creating executable in GeoMop/bin/python
+Installing setuptools, pip, wheel...done.
+(GeoMop) ~/workspace$ deactivate
+ ~/workspace$ mkdir GeoMop
+ ~/workspace$ cd GeoMop/
+ ~/workspace/GeoMop$ workon GeoMop
+(GeoMop) ~/workspace/GeoMop$ ln -s /usr/lib/python3/dist-packages/PyQt5 ~/.virtualenvs/GeoMop/lib/python3.4/PyQt5
+(GeoMop) ~/workspace/GeoMop$ ln -s /usr/lib/python3/dist-packages/sip.cpython-34m-x86_64-linux-gnu.so ~/.virtualenvs/GeoMop/lib/python3.4/sip.so
+(GeoMop) ~/workspace/GeoMop$ pip3 install demjson pyyaml
+Collecting demjson
+  Downloading demjson-2.2.2.tar.gz (130kB)
+    100% |████████████████████████████████| 131kB 753kB/s 
+Collecting pyyaml
+  Downloading PyYAML-3.11.tar.gz (248kB)
+    100% |████████████████████████████████| 249kB 753kB/s 
+Building wheels for collected packages: demjson, pyyaml
+  Running setup.py bdist_wheel for demjson
+  Stored in directory: /home/jb/.cache/pip/wheels/6b/1f/1d/a27598d75bd6120945d90fcfb49947755438cb9c848feea3ac
+  Running setup.py bdist_wheel for pyyaml
+  Stored in directory: /home/jb/.cache/pip/wheels/fa/db/f6/dee55793d344f1706dc4a5a693298f0115241d1085cc212364
+Successfully built demjson pyyaml
+Installing collected packages: demjson, pyyaml
+Successfully installed demjson-2.2.2 pyyaml-3.11
+(GeoMop) ~/workspace/GeoMop$ cd ..
+(GeoMop) ~/workspace$ git clone https://github.com/GeoMop/GeoMop.git
+Cloning into 'GeoMop'...
+remote: Counting objects: 1679, done.
+remote: Total 1679 (delta 0), reused 0 (delta 0), pack-reused 1679
+Receiving objects: 100% (1679/1679), 767.97 KiB | 633.00 KiB/s, done.
+Resolving deltas: 100% (968/968), done.
+Checking connectivity... done.
+(GeoMop) ~/workspace$ cd GeoMop/src/ModelEditor/
+(GeoMop) (master) ~/workspace/GeoMop/src/ModelEditor$ python3 model_editor.py 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+QXcbWindow: Unhandled client message: "_GTK_LOAD_ICONTHEMES" 
+(GeoMop) {master} ~/workspace/GeoMop/src/ModelEditor$ python3 model_editor.py 
+^CTraceback (most recent call last):
+  File "model_editor.py", line 248, in _import_file
+    cfg.import_file(con_file[0])
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/meconfig.py", line 280, in import_file
+    cls.document = rewrite_comments(con, cls.document, cls.root)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 30, in rewrite_comments
+    comments.read_comments_from_con(con, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 120, in read_comments_from_con
+    self._traverse_child(col, line, type, lines, path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 146, in _traverse_child
+    res, col, line = self._read_end_of_block( col, line,  lines, type, False)                        
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 485, in _read_end_of_block
+    icol, iline = self._find_all_interupt(icol, iline, lines)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 280, in _find_all_interupt
+    sep = text.find(ch)
+KeyboardInterrupt
+^CTraceback (most recent call last):
+  File "model_editor.py", line 205, in _hide_reload_icon
+    def _hide_reload_icon(self):
+KeyboardInterrupt
+^CTraceback (most recent call last):
+  File "model_editor.py", line 205, in _hide_reload_icon
+    def _hide_reload_icon(self):
+KeyboardInterrupt
+
+^CTraceback (most recent call last):
+  File "model_editor.py", line 205, in _hide_reload_icon
+    def _hide_reload_icon(self):
+KeyboardInterrupt
+(GeoMop) {master} ~/workspace/GeoMop/src/ModelEditor$ python3 model_editor.py 
+^C
+^[[B
+^C^C
+^[[B^[[B^[[B Traceback (most recent call last):
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/panels/tree.py", line 168, in headerData
+    def headerData(self, section, orientation, role):
+KeyboardInterrupt
+^CTraceback (most recent call last):
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/panels/tree.py", line 168, in headerData
+    def headerData(self, section, orientation, role):
+KeyboardInterrupt
+(GeoMop) {master} ~/workspace/GeoMop/src/ModelEditor$ python3 model_editor.py 
+^CTraceback (most recent call last):
+  File "model_editor.py", line 248, in _import_file
+    cfg.import_file(con_file[0])
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/meconfig.py", line 280, in import_file
+    cls.document = rewrite_comments(con, cls.document, cls.root)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 30, in rewrite_comments
+    comments.read_comments_from_con(con, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 120, in read_comments_from_con
+    self._traverse_child(col, line, type, lines, path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 153, in _traverse_child
+    col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 146, in _traverse_child
+    res, col, line = self._read_end_of_block( col, line,  lines, type, False)                        
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 485, in _read_end_of_block
+    icol, iline = self._find_all_interupt(icol, iline, lines)
+  File "/home/jb/workspace/GeoMop/src/ModelEditor/data/import_json.py", line 285, in _find_all_interupt
+    return index + col,  line + i
+KeyboardInterrupt
+(GeoMop) {master} ~/workspace/GeoMop/src/ModelEditor$ 
+
+Warning: Program '/bin/bash' crashed.
+
+
+

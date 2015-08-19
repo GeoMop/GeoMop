@@ -275,12 +275,14 @@ class MEConfig:
             cls.document = parse_con(con)
             cls.curr_file = None
             cls.update()
-            cls.document = fix_tags(cls.document, cls.root)
+            cls.document, need_move_forward = fix_tags(cls.document, cls.root)
             cls.update()
             cls.document = rewrite_comments(con, cls.document, cls.root)
             cls.update()
             data={'actions': [{'action': 'move-key-forward', 'parameters': {'path': '/system'}}, 
                 {'action': 'delete-key', 'parameters': {'path': '/system'}}]}
+            for path in need_move_forward:
+                data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document)
             cls.update_format()
