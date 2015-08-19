@@ -408,14 +408,16 @@ class MEConfig:
             else:
                 raise err
             return
-        dialog = TranformationDetailDlg(transformator.name,
-                                        transformator.description,
-                                        transformator.old_version,
-                                        cls.curr_format_file,
-                                        transformator.new_version,
-                                        transformator.new_version in cls.transformation_files,
-                                        cls.main_window)
-        if QtWidgets.QDialog.Accepted == dialog.exec_():
+        dialog = None
+        if cls.main_window is not None:
+            dialog = TranformationDetailDlg(transformator.name,
+                                            transformator.description,
+                                            transformator.old_version,
+                                            cls.curr_format_file,
+                                            transformator.new_version,
+                                            transformator.new_version in cls.transformation_files,
+                                            cls.main_window)
+        if  cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:

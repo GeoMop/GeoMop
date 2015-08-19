@@ -78,9 +78,18 @@ def fix_tags(yaml, root):
                 first_ref.parent.parent is not None and anchor.parent is not None:
                 anchor_path = anchor.parent.absolute_path
                 ref_path = first_ref.parent.parent.absolute_path
-                if len(anchor_path)<=len(ref_path):
-                    if ref_path[:len(anchor_path)] == anchor_path:
-                        need_move_forward.append(anchor.absolute_path)    
+                if len(anchor_path)<=len(ref_path) and \
+                    ref_path[:len(anchor_path)] == anchor_path:
+                        need_move_forward.append(anchor.absolute_path)
+                else:
+                    if first_ref.parent.parent.parent is not None and \
+                        anchor.parent.parent is not None:
+                        anchor_path = anchor.parent.parent.absolute_path
+                        ref_path = first_ref.parent.parent.parent.absolute_path
+                        if len(anchor_path)<=len(ref_path) and \
+                            ref_path[:len(anchor_path)] == anchor_path:
+                                need_move_forward.append(anchor.parent.absolute_path)
+                
         except:
             continue
     for i in range(0, len(lines)):
