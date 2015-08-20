@@ -1,5 +1,14 @@
 # encoding: utf-8
-# author:   Jan Hybs
+"""
+JSON to HTML format converter
+
+Part of IST library from Flow123d-python-utils.
+Refactored for Python 3.
+
+author:   Jan Hybs
+minor adjustments by: Tomas Krizek
+"""
+
 import cgi
 from ist.nodes import Integer, String, DescriptionNode, ISTNode, ComplexNode
 from ist.utils.htmltree import htmltree
@@ -67,7 +76,7 @@ class HTMLRecordKeyDefault(object):
 
     def textlangle_format(self, self_default, record_key, record):
         self.html.info('Default value: ')
-        with self.html.open('span', attrib={ 'class': 'item-value chevron header-info skew' }):
+        with self.html.open('span', attrib={'class': 'item-value chevron header-info skew'}):
             if len(str(self_default.value)):
                 self.html.span(self_default.value)
             else:
@@ -77,7 +86,7 @@ class HTMLRecordKeyDefault(object):
 
     def raw_format(self, self_default, record_key, record):
         self.html.info('Default value: ')
-        with self.html.open('span', attrib={ 'class': 'item-value chevron skew' }):
+        with self.html.open('span', attrib={'class': 'item-value chevron skew'}):
             if len(str(self_default.value)):
                 self.html.span(self_default.value)
             else:
@@ -90,11 +99,22 @@ class HTMLInteger(HTMLUniversal):
     Class representing int
     """
     def _format_as_child(self, self_int, record_key, record):
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('Integer ')
-            with self.open('span', attrib={ 'class': 'item-' }):
+            with self.open('span', attrib={'class': 'item-'}):
                 self.span(str(self_int.range))
+
+    def format(self, integer):
+        with self.open('header'):
+            self.h2('Integer')
+            self.description('An integer value.')
+        self.italic('min: ')
+        self.bold(str(integer.range.min))
+        self.tag('br')
+        self.italic('max: ')
+        self.bold(str(integer.range.max))
+        return self
 
 
 class HTMLDouble(HTMLUniversal):
@@ -102,11 +122,22 @@ class HTMLDouble(HTMLUniversal):
     Class representing double
     """
     def _format_as_child(self, self_double, record_key, record):
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('Double ')
-            with self.open('span', attrib={ 'class': 'item-value' }):
+            with self.open('span', attrib={'class': 'item-value'}):
                 self.span(str(self_double.range))
+
+    def format(self, double):
+        with self.open('header'):
+            self.h2('Double')
+            self.description('A floating point value.')
+        self.italic('min: ')
+        self.bold(str(double.range.min))
+        self.tag('br')
+        self.italic('max: ')
+        self.bold(str(double.range.max))
+        return self
 
 
 class HTMLBool(HTMLUniversal):
@@ -114,12 +145,20 @@ class HTMLBool(HTMLUniversal):
     Class representing boolean
     """
     def _format_as_child(self, self_bool, record_key, record):
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.span('Bool (generic)')
 
             self.tag('br')
             HTMLRecordKeyDefault(self).format_as_child(record_key.default, record_key, record)
+
+    def format(self, bool):
+        with self.open('header'):
+            self.h2('Boolean')
+            self.description('A boolean value.')
+        self.italic('accepted values: ')
+        self.bold('true, false')
+        return self
 
 
 class HTMLString(HTMLUniversal):
@@ -127,9 +166,15 @@ class HTMLString(HTMLUniversal):
     Class representing string
     """
     def _format_as_child(self, self_fn, record_key, record):
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.span('String (generic)')
+
+    def format(self, string):
+        with self.open('header'):
+            self.h2('String')
+            self.description('A sequence of characters.')
+        return self
 
 
 class HTMLFileName(HTMLUniversal):
@@ -137,11 +182,17 @@ class HTMLFileName(HTMLUniversal):
     Class representing filename type
     """
     def _format_as_child(self, self_fn, record_key, record):
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('file name')
-            with self.open('span', attrib={ 'class': 'item-value chevron' }):
+            with self.open('span', attrib={'class': 'item-value chevron'}):
                 self.span(self_fn.file_mode)
+
+    def format(self, filename):
+        with self.open('header'):
+            self.h2('FileName')
+            self.description('Path to file.')
+        return self
 
 
 class HTMLArray(HTMLUniversal):
@@ -150,8 +201,8 @@ class HTMLArray(HTMLUniversal):
     """
     def _format_as_child(self, self_array, record_key, record):
         subtype = self_array.subtype.get_reference()
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info(' Array')
                 if str(self_array.range):
                     self.info(' ')
@@ -160,31 +211,30 @@ class HTMLArray(HTMLUniversal):
                 self.span(subtype.get_type())
 
             if issubclass(subtype.__class__, ComplexNode):
-                with self.open('span', attrib={ 'class': 'item-value chevron' }):
+                with self.open('span', attrib={'class': 'item-value chevron'}):
                     self.link(subtype.get_name())
 
             self.tag('br')
             HTMLRecordKeyDefault(self).format_as_child(record_key.default, record_key, record)
 
-            #
-            # if type(subtype) == Integer:
-            # self.span('Array of {subtype} {subrange}'.format(
-            # range=self_array.range, subtype=subtype.input_type,
-            # subrange=subtype.range))
-            # else:
-            # self.span('Array{range} of {subtype}'.format(
-            # range=' ' + str(self_array.range) if not self_array.range.is_pointless() else '',
-            # subtype=subtype.input_type))
-            #
-            # if type(subtype) == String:
-            #         self.span(' (generic)')
-            #
-            #     if issubclass(subtype.__class__, DescriptionNode):
-            #         self.span(': ')
-            #         self.link(subtype.get('type_name', 'name'))  # TODO href
-            #     else:
-            #         # no link
-            #         pass
+    def format(self, array):
+        subtype = array.subtype.get_reference()
+        try:
+            subtype_name = getattr(subtype, subtype.__name_field__, 'items')
+        except (AttributeError, TypeError):
+            subtype_name = 'items'
+        with self.open('header'):
+            self.h2('Array')
+            self.description('An array containing {items}.'.format(items=subtype_name))
+            self.italic('minimum length: ')
+            self.bold(str(array.range.min))
+            self.tag('br')
+            self.italic('maximum length: ')
+            self.bold(str(array.range.max))
+        fmt = HTMLFormatter.get_formatter_for(subtype)
+        fmt.format(subtype)
+        self.add(fmt.current())
+        return self
 
 
 class HTMLSelection(HTMLItemFormatter):
@@ -196,10 +246,10 @@ class HTMLSelection(HTMLItemFormatter):
 
     def format_as_child(self, self_selection, record_key, record):
         self.root.attrib['class'] = 'child-selection'
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('Selection ')
-            with self.open('span', attrib={ 'class': 'item-value chevron' }):
+            with self.open('span', attrib={'class': 'item-value chevron'}):
                 if self_selection.include_in_format():
                     self.link(self_selection.get_name())
                 else:
@@ -219,7 +269,7 @@ class HTMLSelection(HTMLItemFormatter):
             self.h2(selection.name)
             self.description(selection.description)
 
-        with self.open('ul', attrib={ 'class': 'item-list' }):
+        with self.open('ul', attrib={'class': 'item-list'}):
             for selection_value in selection.values:
                 with self.open('li'):
                     self.h3(selection_value.get_name())
@@ -237,10 +287,10 @@ class HTMLAbstractRecord(HTMLItemFormatter):
 
     def format_as_child(self, abstract_record, record_key, record):
         self.root.attrib['class'] = 'child-abstract-record'
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('abstract type ')
-            with self.open('span', attrib={ 'class': 'item-value chevron' }):
+            with self.open('span', attrib={'class': 'item-value chevron'}):
                 if abstract_record.include_in_format():
                     self.link(abstract_record.get_name())
                 else:
@@ -266,7 +316,7 @@ class HTMLAbstractRecord(HTMLItemFormatter):
             self.description(abstract_record.description)
 
         self.italic('Implemented by:')
-        with self.open('ul', attrib={ 'class': 'item-list' }):
+        with self.open('ul', attrib={'class': 'item-list'}):
             for descendant in abstract_record.implementations:
                 reference = descendant.get_reference()
                 with self.open('li'):
@@ -284,10 +334,10 @@ class HTMLRecord(HTMLItemFormatter):
 
     def format_as_child(self, self_record, record_key, record):
         self.root.attrib['class'] = 'child-record'
-        with self.open('div', attrib={ 'class': 'item-key-value' }):
-            with self.open('span', attrib={ 'class': 'item-key' }):
+        with self.open('div', attrib={'class': 'item-key-value'}):
+            with self.open('span', attrib={'class': 'item-key'}):
                 self.info('Record ')
-            with self.open('span', attrib={ 'class': 'item-value chevron' }):
+            with self.open('span', attrib={'class': 'item-value chevron'}):
                 if self_record.include_in_format():
                     self.link(self_record.get_name())
                 else:
@@ -320,7 +370,7 @@ class HTMLRecord(HTMLItemFormatter):
 
             self.description(record.description)
 
-        with self.open('ul', attrib={ 'class': 'item-list' }):
+        with self.open('ul', attrib={'class': 'item-list'}):
             for record_key in record.keys:
 
                 if not record_key.include_in_format():
@@ -452,7 +502,7 @@ class HTMLFormatter(object):
     @staticmethod
     def _add_items(items, html, type=None, reverse=False):
         prev_name = ''
-        with html.open('ul', attrib={ 'class': 'nav-bar' }):
+        with html.open('ul', attrib={'class': 'nav-bar'}):
             for item in items:
                 if issubclass(item.__class__, ComplexNode):
                     # do no format certain objects
@@ -471,9 +521,9 @@ class HTMLFormatter(object):
                         with html.open('a', '', html.generate_href(item.get_name())):
                             if reverse:
                                 html.span(item.get_name())
-                                html.span(item.get_type()[0], attrib={ 'class': 'shortcut-r' })
+                                html.span(item.get_type()[0], attrib={'class': 'shortcut-r'})
                             else:
-                                html.span(item.get_type()[0], attrib={ 'class': 'shortcut' })
+                                html.span(item.get_type()[0], attrib={'class': 'shortcut'})
                                 html.span(item.get_name())
 
     @staticmethod
