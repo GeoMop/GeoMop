@@ -312,7 +312,6 @@ class Loader:
         node = copy.deepcopy(ref)
         node.anchor = anchor
         node.ref = ref
-        node.type = None  # do not copy type
 
         # set correct node.span
         node.span = copy.deepcopy(node.anchor.span)
