@@ -1,3 +1,4 @@
+"""Test application"""
 import sys
 import logging
 sys.path.insert(1, './twoparty/pexpect')

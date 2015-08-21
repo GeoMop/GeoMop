@@ -1,0 +1,14 @@
+Model Editor Source code documentation
+======================================
+
+.. toctree::
+   :maxdepth: 3
+
+   aut/ModelEditor/modules
+
+Indices and tables
+==================
+
+* `Index <genindexME.html>`_
+* `Module Index <py-modindexME.html>`_
+

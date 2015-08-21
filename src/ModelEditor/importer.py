@@ -1,3 +1,28 @@
+"""
+usage:
+    importer.py [-h] 
+    [--transformation-name [TRANSFORMATION_NAME [TRANSFORMATION_NAME ...]]]
+    [--destination-file [DESTINATION_FILE]] --con_file CON_FILE
+
+Parameters::
+  
+    -h, --help            
+        show this help message and exit
+    --transformation-name [TRANSFORMATION_NAME [TRANSFORMATION_NAME ...]]
+        Transformation rules contained in the Model Editor that are processed after import
+    --destination-file [DESTINATION_FILE]
+        The destination file if is different from source file
+    --con_file CON_FILE   
+        Con input file
+
+Description:
+    Importer translate Flow123d con file to yaml format. TYPE parameters is 
+    transformed to tags (!value). Importer try rewrite references to yaml 
+    format and place it to appropriate place. Comments are copied and 
+    place to yaml file.  If is set some transformation rules, they are processed 
+    after import in set order by :mod:`data.yaml.transformator`.
+"""
+
 import os
 import sys
 __lib_dir__ = os.path.join(os.path.split(

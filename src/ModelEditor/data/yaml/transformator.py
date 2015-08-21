@@ -1,3 +1,55 @@
+"""
+File for transformation of yaml files to another version
+
+Actions:
+    - move-key - Move value of set key from source_path to destination_path.
+      Not existing directory of destination_path cause exception. If both path 
+      is same, only key is different, key is renamed. Destination_path placed in 
+      source_path cause exception. If source_path not exist action si skipped. 
+      Refference or anchors is moved and if its relative possition is changed, 
+      result must be fixed by user.
+    - delete-key - Delete key on set path. If key contains anchor or refference,
+      transporter try resolve reference. If path not exist action si skipped.
+    - rename-type - Change tag on set path from old_name to new_name.
+    
+Description:
+    Transformator check se json transformation file. If this file is in bad format,
+    cause exception. After checking is processet action in set order. Repetitional
+    processing this program can cause exception or corrupt data.
+    
+Example::
+
+    {
+        "name": "Example file",
+        "description": "Template for creating transformation file",
+        "old_format": "",
+        "new_format": "",
+        "actions": [
+            {
+                "action": "move-key",
+                "parameters":{
+                    "source_path":"/problem/primary_equation/input_fields",
+                    "destination_path":"/problem/mesh/balance"
+                }
+            },
+            {
+                "action": "delete-key",
+                "parameters": {
+                    "path": "/problem/mesh/mesh_file"
+                }
+            },
+            {
+                "action": "rename-type",
+                "parameters": {
+                    "path": "/problem/primary_equation",
+                    "old_name": "Steady_MH",
+                    "new_name": "SteadyMH"
+                }
+            }
+        ]
+    }
+    
+"""
 import json
 import re
 import data.data_node as dn

@@ -19,8 +19,17 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-sys.path.insert(0, os.path.abspath('../../src/LayerEditor'))
-sys.path.insert(1, os.path.abspath('../../src/lib'))
+sys.path.insert(0, os.path.abspath('../../src/lib'))
+if sys.argv[4] == 'LE':
+  sys.path.insert(1, os.path.abspath('../../src/'))
+elif sys.argv[4] == 'JS':
+  sys.path.insert(1, os.path.abspath('../../src/JobsScheduler/'))
+  sys.path.insert(2, os.path.abspath('../../src/JobsScheduler/twoparty/pexpect'))
+elif sys.argv[4] == 'ME':
+  sys.path.insert(1, os.path.abspath('../../src/ModelEditor'))
+
+print "********************************************"
+print sys.argv[4]
 
 # -- General configuration ------------------------------------------------
 
@@ -36,16 +45,30 @@ extensions = ['sphinx.ext.autodoc']
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
-
+if sys.argv[4] == 'LE':
+  source_suffix = '.rsta'
+  project = u'Layer Editor Source Documentation'
+  # The master toctree document.
+  master_doc = 'indexLE'
+elif sys.argv[4] == 'JS':
+  source_suffix = '.rstb'
+  # The master toctree document.
+  master_doc = 'indexJS'
+  project = u'Jobs Scheduler Source Documentation'
+elif sys.argv[4] == 'ME':
+  source_suffix = '.rstc'
+  # The master toctree document.
+  master_doc = 'indexME'
+  project = u'Model Editor Source Documentation'
+else:
+  source_suffix = '.rst'
+  # The master toctree document.
+  master_doc = 'index'
+  project = u'GeoMop Source Documentation'
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
 
-# The master toctree document.
-master_doc = 'index'
-
 # General information about the project.
-project = u'GeoMop Source Documentation'
 copyright = u'2015, TUL'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -69,6 +92,7 @@ release = '0.0.1'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
+
 exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
