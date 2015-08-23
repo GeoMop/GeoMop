@@ -9,6 +9,7 @@ __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
+__ins_files__['job'] = "job.py"
 __ins_dirs__ = []
 __ins_dirs__.append("communication")
 __ins_dirs__.append("data") 
@@ -26,6 +27,9 @@ class Installation:
         """files to install"""
         self.ins_dirs = copy.deepcopy(__ins_dirs__)
         """directories to install"""
+
+    def local_copy_path(self):
+        self.copy_path = __install_dir__
 
     def create_install_dir(self, conn):
         """Copy installation files"""
@@ -80,9 +84,12 @@ class Installation:
             for name in self.ins_files:
                 conn.sendline('put ' +  __ins_files__[name])
                 conn.expect('sftp> put ' + __ins_files__[name] + "\r\n")
-                conn.expect("sftp> ")
-                if len(conn.before)>0:
-                    logging.debug(str(conn.before, 'utf-8').strip()) 
+                end=0
+                while end==0:
+                    #wait 2s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                    if end == 0 and len(conn.before)>0:
+                        logging.debug("Sftp message(put " + __ins_files__[name]  + "): " + str(conn.before, 'utf-8').strip())
             for dir in self.ins_dirs:
                 conn.sendline('mkdir ' + dir)
                 conn.expect('.*mkdir ' + dir + "\r\n")
@@ -104,6 +111,12 @@ class Installation:
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
         return __python_exec__ + " " + dest_path
+    
+    def get_args(self, name):
+        # use / instead join because destination os is linux and is not 
+        # same with current os
+        dest_path = self.copy_path + '/' + __ins_files__[name]
+        return [__python_exec__,dest_path, "&", "disown"]
     
     @staticmethod
     def get_result_dir():

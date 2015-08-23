@@ -1,6 +1,5 @@
 """Class for communacion"""
 import sys
-import time
 import logging
 import os
 import data.communicator_conf as comconf
@@ -18,8 +17,6 @@ class Communicator():
         """class for output communication"""
         self.next_communicator = init_conf.next_communicator
         """communicator file that will be start"""
-        self.sleep_interval = 5
-        """interval for reading input (default 5 - 5s)"""
         self.communicator_name = init_conf.communicator_name
         """this communicator name for login file, ..."""
         self.log_level = init_conf.log_level        
@@ -50,9 +47,14 @@ class Communicator():
             """
         if init_conf.input_type == comconf.InputCommType.std:
             self.input = com.InputComm(sys.stdin, sys.stdout)
+        elif init_conf.input_type == comconf.InputCommType.socket:
+            self.input = com. SocketInputComm(init_conf.port)
+            
         if init_conf.output_type == comconf.OutputCommType.ssh:
             self.output = com.SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
+        elif init_conf.input_type == comconf.InputCommType.exec_:
+            self.input = com. ExecOutputComm(init_conf.port)
   
     def _set_loger(self,  path, name, level):
         """set logger"""
@@ -82,6 +84,9 @@ class Communicator():
     def exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator)
+        if isinstance(self.output, com.ExecOutputComm):
+            self.output.connect()
+            
         
     def run(self):
         """
@@ -129,8 +134,7 @@ class Communicator():
                 else:
                     logging.debug("Answer is sent (" + str(mess) + ')')
             if stop:
-                break
-            time.sleep(self.sleep_interval)                        
+                break                  
 
     def send_message(self, message):
         """send message to output"""

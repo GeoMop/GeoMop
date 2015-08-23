@@ -5,6 +5,8 @@ import logging
 import sys
 import data.transport_data as tdata
 import data.installation as dinstall
+import socket
+import subprocess
 
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
@@ -81,6 +83,41 @@ class InputComm():
             txt = str(txt, 'utf-8').strip()
             logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
         return mess
+        
+class SocketInputComm(InputComm):
+    """Socket server connection"""
+    
+    def __init__(self, port):
+        super( SocketInputComm).__init__("")
+        self.port = port
+        """port for server communacion"""
+        self.conn
+        """Socket connection"""
+        self. _connect()
+
+    def _connect(self):
+        """connect session"""
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((self.host, self.port))
+        s.listen(1)
+        self.conn, addr = s.accept()
+        logging.info('Connected by ' + addr)
+  
+    def send(self, msg):
+        """send message to output stream"""
+        b = msg.pack().encode('utf-8')
+        self.conn.sendall(b)
+        
+    def receive(self,  wait=60):
+        """
+        Receive message from socket
+        
+        Function wait for answer for set time in seconds
+        """
+        self.conn.settimeout(wait)
+        data = self.conn.recv(1024)
+        mess =str(data)
+        return mess
 
 if sys.platform == "win32":
     import helpers.winssh as wssh
@@ -102,6 +139,7 @@ if sys.platform == "win32":
             
         def disconnect(self):
             """disconnect session"""
+            self.conn.close()
             
         def install(self):
             """make installation"""
@@ -222,4 +260,44 @@ else:
         def get_file(self, file_name):
             """download file from installation folder"""
             
+class ExecOutputComm(OutputComm):
+    """Ancestor of communication classes"""
+    
+    def __init__(self, port):
+        super( ExecOutputComm).__init__("localhost")
+        self.port = port
+        """port for server communacion"""
+        self.conn
+        """Socket connection"""
 
+    def connect(self):
+        """connect session"""
+        self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conn.connect((self.host, self.port))
+         
+    def disconnect(self):
+        """disconnect session"""
+        self.conn.close()
+        
+    def install(self):
+        """make installation"""
+        self.installation.local_copy_path()
+        
+    def exec_(self, python_file):
+        """run set python file in ssh"""
+        subprocess.Popen(self.installation.get_asgs(python_file))
+
+    def send(self,  mess):
+        """send json message"""
+        b = mess.pack().encode('utf-8')
+        self.conn.sendall(b)
+
+    def receive(self, timeout=60):
+        """receive json message"""
+        self.conn.settimeout(timeout)
+        data = self.conn.recv(1024)
+        mess =str(data)
+        return mess
+ 
+    def get_file(self, file_name):
+        """download file from installation folder"""

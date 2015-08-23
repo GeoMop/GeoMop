@@ -13,7 +13,7 @@ ccom.communicator_name = "app"
 ccom.next_communicator = "delegator"
 ccom.uid = "test"
 ccom.pwd = "MojeHeslo123"
-ccom.host = "192.168.56.1"
+ccom.host = "localhost"
 ccom.log_level = logging.DEBUG
 
 comunicator = Communicator(ccom)

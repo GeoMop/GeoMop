@@ -6,14 +6,14 @@ class OutputCommType(Enum):
     """Severity of an error."""
     none = 0
     ssh = 1
-    ssh_screen = 2
+    exec_ = 2
     pbs = 3
     
 class InputCommType(Enum):
     """Severity of an error."""
     none = 0
     std = 1
-    file = 2
+    socket = 2
     pbs = 3
 
 class CommunicatorConfig():
@@ -34,5 +34,7 @@ class CommunicatorConfig():
         """User for output configuration"""
         self.pwd = ""
         """Password for output configuration"""
+        self.port = 5723
+        """port for socket communation"""
         self.log_level = logging.WARNING
         """log level for communicator"""

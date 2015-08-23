@@ -1,4 +1,4 @@
-"""delegator test file"""
+"""multijob test file"""
 
 import sys
 import data.transport_data as tdata
@@ -16,12 +16,8 @@ def  standart_action_funcion(message):
     return False, True, None
 
 ccom = comconf.CommunicatorConfig()
-ccom.communicator_name = "delegator"
+ccom.communicator_name = "multijob"
 ccom.log_level = logging.DEBUG
 ccom.input_type = comconf.InputCommType.std
 comunicator = Communicator(ccom, standart_action_funcion)
-
-comunicator.run()
 comunicator.close()
-
-
