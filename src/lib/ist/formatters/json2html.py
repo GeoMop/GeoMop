@@ -242,7 +242,7 @@ class HTMLSelection(HTMLItemFormatter):
     Class representing Selection node in IST
     """
     def __init__(self):
-        super(HTMLSelection, self).__init__(cls='main-section selection hidden')
+        super(HTMLSelection, self).__init__(cls='main-section selection')
 
     def format_as_child(self, self_selection, record_key, record):
         self.root.attrib['class'] = 'child-selection'
@@ -283,7 +283,7 @@ class HTMLAbstractRecord(HTMLItemFormatter):
     Class representing AbstractRecord node in IST
     """
     def __init__(self):
-        super(HTMLAbstractRecord, self).__init__(cls='main-section abstract-record hidden')
+        super(HTMLAbstractRecord, self).__init__(cls='main-section abstract-record')
 
     def format_as_child(self, abstract_record, record_key, record):
         self.root.attrib['class'] = 'child-abstract-record'
@@ -330,7 +330,7 @@ class HTMLRecord(HTMLItemFormatter):
     Class representing record node in IST
     """
     def __init__(self):
-        super(HTMLRecord, self).__init__(cls='main-section record hidden')
+        super(HTMLRecord, self).__init__(cls='main-section record')
 
     def format_as_child(self, self_record, record_key, record):
         self.root.attrib['class'] = 'child-record'

@@ -7,7 +7,9 @@ Contains format specification class and methods to parse it from JSON.
 
 from ist.formatters.json2html import HTMLFormatter
 from ist.ist_formatter_module import ProfilerJSONDecoder
+from ist.utils.htmltree import htmltree
 import json
+import os
 
 
 def get_root_input_type_from_json(data):
@@ -21,6 +23,7 @@ class InfoTextGenerator:
     Uses the Flow123d-python-utils ist library.
     """
     _input_types = {}
+    RESOURCE_PATH = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], '..', 'lib', 'ist')
 
     @classmethod
     def init(cls, json_text):
@@ -36,16 +39,37 @@ class InfoTextGenerator:
     @classmethod
     def get_info_text(cls, input_type_id):
         """Generate an HTML documentation for the given id of `node.input_type`."""
-        input_type = cls._input_types.get(input_type_id, None)
-        if input_type is None:
-            return ''
-        fmt = HTMLFormatter.get_formatter_for(input_type)
-        try:
-            fmt.format(input_type)
-        except AttributeError:
-            return 'no info_text available'
-        else:
-            return fmt.dump()
+        if input_type_id not in cls._input_types:
+            return "unknown ID"
+
+        html_content = HTMLFormatter.format([cls._input_types[input_type_id]])
+
+        max_cols = 9
+
+        html = htmltree('html')
+        html_body = htmltree('body')
+
+        with html_body.open('div', '', cls='container'):
+            with html_body.open('div', cls='row'):
+                with html_body.open('div', cls='col-md-{:d} input-reference'.format(max_cols)):
+                    with html_body.open('div', cls='row'):
+                        html_body.add(html_content.current())
+
+        html_head = htmltree('head')
+        html_head.style('css/main.css')
+        html_head.style('css/bootstrap.min.css')
+        html_head.style('css/bootstrap-toggle.min.css')
+        html_head.style('css/katex.min.css')
+
+        html_head.script('js/jquery-2.1.3.min.js')
+        html_head.script('js/bootstrap.min.js')
+        html_head.script('js/bootstrap-toggle.min.js')
+        html_head.script('js/katex.min.js')
+        html_head.script('js/main.js')
+
+        html.add(html_head.current())
+        html.add(html_body.current())
+        return html.dump()
 
 
 def parse_format(data):
