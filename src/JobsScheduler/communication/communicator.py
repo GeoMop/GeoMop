@@ -2,6 +2,8 @@
 import sys
 import logging
 import os
+import time
+import threading
 import data.communicator_conf as comconf
 import communication.communication as com
 import data.transport_data as tdata
@@ -21,6 +23,12 @@ class Communicator():
         """this communicator name for login file, ..."""
         self.log_level = init_conf.log_level        
         """log level for communicator"""
+        self._instaled = False        
+        """if installation process of next communicator is finished"""
+        self._install_lock = threading.Lock()
+        """_installed lock"""
+        self._instalation_begined = False        
+        """if installation begined"""
         self._set_loger(dinstall.Installation.get_result_dir(), 
             self.communicator_name, self.log_level)
         if action_func_before is None:
@@ -46,15 +54,17 @@ class Communicator():
             Return: Message that is return or None
             """
         if init_conf.input_type == comconf.InputCommType.std:
-            self.input = com.InputComm(sys.stdin, sys.stdout)
+            self.input = com.StdInputComm(sys.stdin, sys.stdout)
+            self.input.connect()
         elif init_conf.input_type == comconf.InputCommType.socket:
             self.input = com. SocketInputComm(init_conf.port)
+            self.input.connect()
             
         if init_conf.output_type == comconf.OutputCommType.ssh:
             self.output = com.SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
-        elif init_conf.input_type == comconf.InputCommType.exec_:
-            self.input = com. ExecOutputComm(init_conf.port)
+        elif init_conf.output_type == comconf.OutputCommType.exec_:
+            self.output = com. ExecOutputComm(init_conf.port)
   
     def _set_loger(self,  path, name, level):
         """set logger"""
@@ -65,6 +75,30 @@ class Communicator():
    
     def  standart_action_funcion_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.installation:
+            if isinstance(self.output, com.ExecOutputComm):
+                self._instalation_begined = True
+                logging.debug("Installation to local directory")
+                self.install()
+                logging.debug("Run next file")
+                self.exec_()
+                action = tdata.Action(tdata.ActionType.ok)
+                return True, True, None
+            else:
+                if self._instalation_begined:
+                    if self.is_installed():
+                        logging.debug("Installation to remote directory ended")
+                        self.exec_()
+                        return True, True, None
+                    logging.debug("Installation in process signal was sent")
+                else:
+                    logging.debug("Installation to remote directory began")
+                    self._instalation_begined = True
+                    t = threading.Thread(target=self.install)
+                    t.daemon = True
+                    t.start()
+                action = tdata.Action(tdata.ActionType.installation_in_process)
+                return False, False, action
         return True, True, None
         
     def  standart_action_funcion_after(self, message):
@@ -73,21 +107,44 @@ class Communicator():
     
     def close(self):
         """Release resorces"""
-        if isinstance(self.output, com.SshOutputComm):
+        if self.output is not None:
             self.output.disconnect()
+        if self.input is not None:
+            self.input.disconnect()
         logging.info("Application " + self.communicator_name + " is stopped")
     
     def install(self):
         """make installation"""
         self.output.install()
-      
+        self._install_lock.acquire()
+        self._instaled = True
+        self._install_lock.release()
+        
+    def is_installed(self):
+        """if installation process of next communicator is finished"""
+        self._install_lock.acquire()
+        ret = self._instaled
+        self._install_lock.release()
+        return ret
+        
     def exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator)
         if isinstance(self.output, com.ExecOutputComm):
-            self.output.connect()
-            
-        
+            i=0
+            while i<3:
+                try:
+                    self.output.connect()            
+                    break
+                except ConnectionRefusedError as err:
+                    i += 1
+                    time.sleep(1)
+                    if i == 3:
+                        logging.error("Connect error (" + str(err) + ')')
+                except err:
+                    logging.error("Connect error (" + str(err) + ')')
+                    break
+                    
     def run(self):
         """
         Infinite loop that is interupt by sending stop action by input
@@ -145,4 +202,4 @@ class Communicator():
         """receive message from output"""
         mess = self.output.receive()
         logging.debug("Answer to message is receive (" + str(mess) + ')')
-        return mess 
+        return mess    

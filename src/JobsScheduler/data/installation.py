@@ -10,6 +10,7 @@ __install_dir__ = os.path.split(
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
 __ins_files__['job'] = "job.py"
+__ins_files__['multijob'] = "multijob.py"
 __ins_dirs__ = []
 __ins_dirs__.append("communication")
 __ins_dirs__.append("data") 
