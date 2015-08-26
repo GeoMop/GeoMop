@@ -10,6 +10,11 @@ function fixSelection () {
 
 $(function() {
 
+    $('h2').click(function(){
+        $(this).text('clicked');
+        console.log('clicked h2');
+    });
+
     var latex = $('.md-expression');
     latex.each (function (index, element){
       var code = element.innerHTML;

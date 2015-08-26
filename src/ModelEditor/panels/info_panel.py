@@ -22,6 +22,8 @@ class InfoPanelWidget(QWebView):
         """Sets the HTML content of info panel."""
         # TODO: change link location?
         super(InfoPanelWidget, self).setHtml(html, QUrl.fromLocalFile(('/home/sharp/projects/GeoMop/src/lib/ist/')))
+        # temp = self.settings().testAttribute(self.settings().JavascriptEnabled)
+        print("\n\n" + html + "\n\n")
         self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
 
     def navigateTo(self, url):

@@ -58,12 +58,12 @@ class InfoTextGenerator:
         html_head = htmltree('head')
         html_head.style('css/main.css')
         html_head.style('css/bootstrap.min.css')
-        html_head.style('css/bootstrap-toggle.min.css')
+        # html_head.style('css/bootstrap-toggle.min.css')
         html_head.style('css/katex.min.css')
 
         html_head.script('js/jquery-2.1.3.min.js')
         html_head.script('js/bootstrap.min.js')
-        html_head.script('js/bootstrap-toggle.min.js')
+        # html_head.script('js/bootstrap-toggle.min.js')
         html_head.script('js/katex.min.js')
         html_head.script('js/main.js')
 

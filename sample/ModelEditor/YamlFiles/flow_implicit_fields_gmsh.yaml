@@ -26,6 +26,7 @@ problem: !SequentialCoupling
         sigma: 0.05
       - rid: 184
         conductivity: 1
+        anisotropy: 1
     balance: true
     
   secondary_equation: !SoluteTransport_DG
