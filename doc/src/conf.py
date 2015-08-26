@@ -21,7 +21,7 @@ import os
 
 sys.path.insert(0, os.path.abspath('../../src/lib'))
 if sys.argv[4] == 'LE':
-  sys.path.insert(1, os.path.abspath('../../src/'))
+  sys.path.insert(1, os.path.abspath('../../src/LayerEditor'))
 elif sys.argv[4] == 'JS':
   sys.path.insert(1, os.path.abspath('../../src/JobsScheduler/'))
   sys.path.insert(2, os.path.abspath('../../src/JobsScheduler/twoparty/pexpect'))
