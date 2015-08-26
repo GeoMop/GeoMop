@@ -10,7 +10,22 @@ import data.transport_data as tdata
 import data.installation as dinstall
 
 class Communicator():
-    """Communication class"""
+    """
+    Class with communication interface, that provide place for action.
+    Communicator contains:
+      - intput - communacion interface 
+        (:class:`communication.communicationa.InputComm`) 
+        for communacion with previous communicator
+      - input - communacion interface 
+        (:class:`communication.communicationa.OutputComm`) 
+        for communacion with next communicator
+      - function action_func_before, that is possible set by
+        constructor, end is call before resending received data
+        from next communicator 
+      - function action_func_after, that is possible set by
+        constructor, end is call before resending answer received 
+        from previous communicator        
+    """
     
     def __init__(self, init_conf, action_func_before=None, action_func_after=None):
         self.input = None

@@ -17,7 +17,12 @@ class InputCommType(Enum):
     pbs = 3
 
 class CommunicatorConfig():
-    """Communicator Configuration"""
+    """
+    CommunicatorConfiguration contains data for inicialization
+    :class:`communication.communicator.Communicator` class. This
+    data is serialized by gui application and save as file for 
+    later loading by :class:`communication.communicator.Communicator`.
+    """
     
     def __init__(self):
         self.input_type = InputCommType.none

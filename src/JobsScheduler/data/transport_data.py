@@ -15,7 +15,17 @@ class ActionType(Enum):
     installation_in_process = 4
 
 class Message:
-    """Communication message"""
+    """
+    Communication message
+    
+    Message is compose from:
+      - action type
+      - data (:class:`data.transport_data.Action` descendant object in json format)
+      - controll summation
+    Class provide method for pack and unpack type and data.pack,
+    check its len and summation. Data is pack by base64 to ascii
+    text format.    
+    """
     def __init__(self, asci = None):
         self.action_type = None
         """type of action"""
@@ -83,7 +93,14 @@ class MessageError(Exception):
         super(MessageError, self).__init__(msg)
 
 class Action():
-    """Action entry class"""
+    """
+    Action entry class
+    
+    Action descendant represent data types, that is saved as data in
+    :class:`data.transport_data.Message` class. This descendant classes
+    provide implementation of pack funcion, that serve Action for
+    serialization data to message
+    """
     
     def __init__(self,  type, json_data=None):
         self.type = type

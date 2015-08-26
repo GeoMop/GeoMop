@@ -75,3 +75,6 @@ _eric6project/
 #config files
 *.cfg
 src/config/*.yaml
+
+#result files
+src/JobsScheduler/res/
