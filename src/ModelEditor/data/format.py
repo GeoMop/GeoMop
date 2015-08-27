@@ -9,7 +9,6 @@ from ist.formatters.json2html import HTMLFormatter
 from ist.ist_formatter_module import ProfilerJSONDecoder
 from ist.utils.htmltree import htmltree
 import json
-import os
 
 
 def get_root_input_type_from_json(data):
@@ -23,7 +22,6 @@ class InfoTextGenerator:
     Uses the Flow123d-python-utils ist library.
     """
     _input_types = {}
-    RESOURCE_PATH = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], '..', 'lib', 'ist')
 
     @classmethod
     def init(cls, json_text):
@@ -35,7 +33,8 @@ class InfoTextGenerator:
             if input_type_id is not None:
                 cls._input_types[input_type_id] = node
 
-    # TODO cache html
+    # TODO: cache html?
+    # TODO: move html generation to library
     @classmethod
     def get_info_text(cls, input_type_id):
         """Generate an HTML documentation for the given id of `node.input_type`."""
@@ -58,18 +57,16 @@ class InfoTextGenerator:
         html_head = htmltree('head')
         html_head.style('css/main.css')
         html_head.style('css/bootstrap.min.css')
-        # html_head.style('css/bootstrap-toggle.min.css')
         html_head.style('css/katex.min.css')
 
         html_head.script('js/jquery-2.1.3.min.js')
         html_head.script('js/bootstrap.min.js')
-        # html_head.script('js/bootstrap-toggle.min.js')
-        html_head.script('js/katex.min.js')
-        html_head.script('js/main.js')
+        html_body.script('js/katex.min.js')
+        html_body.script('js/main.js')
 
         html.add(html_head.current())
         html.add(html_body.current())
-        return html.dump()
+        return r'<!DOCTYPE html>' + html.dump()
 
 
 def parse_format(data):
@@ -79,7 +76,8 @@ def parse_format(data):
 
     for item in data:
         input_type = _get_input_type(item)
-        input_types[input_type['id']] = input_type  # register by id
+        if input_type is not None:
+            input_types[input_type['id']] = input_type  # register by id
 
     _substitute_ids_with_references(input_types)
     return input_types[root_id]
@@ -123,6 +121,8 @@ def _substitute_ids_with_references(input_types):
 def _get_input_type(data):
     """Returns the input_type data structure that defines an input type
     and its constraints for validation."""
+    if 'id' not in data or 'input_type' not in data:
+        return None
     input_type = dict(
         id=data['id'],
         base_type=data['input_type']
@@ -154,6 +154,7 @@ def _get_input_type(data):
 
 
 def _parse_range(data):
+    """Parses the format range properties - min, max."""
     input_type = {}
     try:
         input_type['min'] = data['range'][0]
