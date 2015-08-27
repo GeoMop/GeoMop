@@ -8,12 +8,21 @@ sys.path.insert(1, './twoparty/pexpect')
 import logging
 import data.communicator_conf as comconf
 from communication.communicator import Communicator
+import data.installation as dinstall
 
 def  mj_action_funcion(message):
     """action function"""
     if message.action_type == tdata.ActionType.installation:
-        subprocess.Popen(comunicator.output.installation.get_asgs("job"))
-        action = tdata.Action(tdata.ActionType.ok)
+        logging.debug("Job apllication began start")
+        try:
+            installation = dinstall.Installation()
+            installation.local_copy_path()           
+            subprocess.Popen(installation.get_args("job"))
+            action = tdata.Action(tdata.ActionType.ok)
+        except(OSError, ValueError) as err:
+            logging.error("Start of job apllication raise error: " + str(err))
+            action=tdata.Action(tdata.ActionType.error)
+            action.action.data["msg"] = "Next communicator can not be run"        
         return False, True, action.get_message()
     return False, True, None
 
