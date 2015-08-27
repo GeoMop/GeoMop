@@ -5,6 +5,7 @@ import abc
 import struct
 import zlib
 import binascii
+import logging
 
 class ActionType(Enum):
     """Action type"""
@@ -139,7 +140,7 @@ class ErrorAction():
         pass
         
     def run(self, data):
-        # ToDo: log
+        logging.error("Error message is received: " + data["msg"])
         pass
 
 class ActionData(metaclass=abc.ABCMeta):

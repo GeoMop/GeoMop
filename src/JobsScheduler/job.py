@@ -9,7 +9,6 @@ from communication.communicator import Communicator
 ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "job"
 ccom.log_level = logging.INFO
-ccom.input_type = comconf.InputCommType.socket
 comunicator = Communicator(ccom)
 logging.info("Start")
 for i in range(0, 30):

@@ -153,12 +153,16 @@ class SocketInputComm(InputComm):
         Function wait for answer for set time in seconds
         """
         self.conn.settimeout(wait)
-        data = self.conn.recv(1024)
-        txt =str(data)
+        try:
+            data = self.conn.recv(1024*1024)
+        except socket.timeout:
+            return None
+        txt =str(data, "us-ascii")
         try:
             mess = tdata.Message(txt)
         except(tdata.MessageError) as err:
             logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
+            return None
         return mess
         
     def disconnect(self):
@@ -294,23 +298,22 @@ else:
             txt = txt.strip()
             lines = txt.splitlines(False)
             txt = None
+            last_mess_processed = False
             for i in range(0, len(lines)):
-                if lines[i][-1:] == "=":
-                    txt = lines[i]
-                    del lines[i]
-                    break
-                    
+                if lines[i][-1:] == "=": 
+                    if self.last_mess is not None and lines[i].strip() == self.last_mess:
+                        last_mess_processed = True
+                        self.last_mess = None
+                    else:
+                        txt = lines[i]
+                        del lines[i]
+                        break                    
             if len(lines) > 0:
                 logging.warning("Error in message:" + "\n".join(lines))
+            if last_mess_processed and txt is None:
+                return self.receive(timeout)
             if txt is None:
                 return None
-            if self.last_mess is not None:
-                # delete sended message
-                if self.last_mess == txt [:len(self.last_mess)]:
-                    txt = txt[len(self.last_mess):].strip()
-                    if len(txt) == 0:                    
-                        self.last_mess = None
-                        return self.receive(timeout)
             self.last_mess = None
             try:
                 mess =tdata.Message(txt)
@@ -351,15 +354,24 @@ class ExecOutputComm(OutputComm):
         subprocess.Popen(self.installation.get_args(python_file))
 
     def send(self,  mess):
-        """send json message"""
+        """send json message"""        
         b = bytes(mess.pack(), "us-ascii")
         self.conn.sendall(b)
 
     def receive(self, timeout=60):
         """receive json message"""
         self.conn.settimeout(timeout)
-        data = self.conn.recv(1024)
-        mess =str(data, "us-ascii")
+        try:
+            data = self.conn.recv(1024*1024)
+        except socket.timeout:
+            return None
+
+        txt =str(data, "us-ascii")
+        try:
+            mess = tdata.Message(txt)
+        except(tdata.MessageError) as err:
+            logging.warning("Error(" + str(err) + ") during parsing output answer: " + txt)
+            return None
         return mess
  
     def get_file(self, file_name):
