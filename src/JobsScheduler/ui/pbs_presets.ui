@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>380</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">PBS presets</string>
+  </property>
+  <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>581</width>
+     <height>361</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTreeWidget" name="treeWidget">
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+      <property name="columnCount">
+       <number>7</number>
+      </property>
+      <column>
+       <property name="text">
+        <string notr="true">Id</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string notr="true">Name</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string notr="true">Walltime</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string notr="true">Nodes</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string notr="true">Procesors per Node</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Memory</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Scratch</string>
+       </property>
+      </column>
+      <item>
+       <property name="text">
+        <string notr="true">2</string>
+       </property>
+       <property name="text">
+        <string notr="true">MultijobBasic</string>
+       </property>
+       <property name="text">
+        <string notr="true">24d</string>
+       </property>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="text">
+        <string>200mb</string>
+       </property>
+       <property name="flags">
+        <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+       <property name="text">
+        <string notr="true">DemandingComputation</string>
+       </property>
+       <property name="text">
+        <string notr="true">15h</string>
+       </property>
+       <property name="text">
+        <string notr="true">5</string>
+       </property>
+       <property name="text">
+        <string notr="true">4</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="text">
+        <string>2gb</string>
+       </property>
+       <property name="flags">
+        <set>ItemIsSelectable|ItemIsEditable|ItemIsDragEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="btnAddNew">
+        <property name="text">
+         <string notr="true">Add New</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnRemoveSelected">
+        <property name="text">
+         <string notr="true">Remove Selected</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnDiscardChanges">
+        <property name="text">
+         <string notr="true">Discard Chages</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnSaveAll">
+        <property name="text">
+         <string notr="true">Save All</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <action name="actionAdd_New">
+   <property name="text">
+    <string>Add New</string>
+   </property>
+   <property name="toolTip">
+    <string>Add new row to SSH presets</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="actionRemove_Selected">
+   <property name="text">
+    <string>Remove Selected</string>
+   </property>
+   <property name="toolTip">
+    <string>Remove selected row, save to apply</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionDischard_Changes">
+   <property name="text">
+    <string>Dischard Changes</string>
+   </property>
+   <property name="toolTip">
+    <string>Dischard all chages made in any row</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionSave_All">
+   <property name="text">
+    <string>Save All</string>
+   </property>
+   <property name="toolTip">
+    <string>Save all chaged SHH presets</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>actionAdd_New</sender>
+   <signal>triggered()</signal>
+   <receiver>btnAddNew</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>94</x>
+     <y>357</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRemove_Selected</sender>
+   <signal>triggered()</signal>
+   <receiver>btnRemoveSelected</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>265</x>
+     <y>357</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDischard_Changes</sender>
+   <signal>triggered()</signal>
+   <receiver>btnDiscardChanges</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>435</x>
+     <y>357</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSave_All</sender>
+   <signal>triggered()</signal>
+   <receiver>btnSaveAll</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>357</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
