@@ -304,6 +304,7 @@ else:
                     if self.last_mess is not None and lines[i].strip() == self.last_mess:
                         last_mess_processed = True
                         self.last_mess = None
+                        del lines[i]
                     else:
                         txt = lines[i]
                         del lines[i]
