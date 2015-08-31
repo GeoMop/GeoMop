@@ -46,6 +46,6 @@ if __name__ == '__main__':
     #
     # timer = QTimer(win)
     # timer.timeout.connect(refreshPage)
-    # timer.start(5000)
+    # timer.start(10000)
 
     sys.exit(app.exec_())
