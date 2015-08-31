@@ -18,4 +18,7 @@ class UiMultijobInfotab(QtWidgets.QTabWidget):
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.addTab(self.tab_2, "")
-        self.setTabText(1, "Tabík")
+
+        # labels
+        self.setTabText(0, "TAB1")
+        self.setTabText(1, "TAB2")

@@ -15,6 +15,7 @@ sys.path.insert(1, __lib_dir__)
 import os
 import PyQt5.QtWidgets as QtWidgets
 from panels.main_window import UiMainWindow
+from dialogs.add_multijob import AddMultiJobDialog
 
 
 class JobsScheduler(object):
@@ -27,7 +28,8 @@ class JobsScheduler(object):
 
         # test action
         self._ui.menu_exit_action.triggered.connect(QtWidgets.qApp.quit)
-
+        self._add_multijob_dlg = AddMultiJobDialog()
+        #print(self._ui.findChild(QtWidgets.QWidget, "tableView"))
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":
