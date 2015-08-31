@@ -86,13 +86,6 @@ class htmltree(object):
         :param attrib: optional attribute
         :return: element
         """
-        with self.open('span', '', { 'class': 'pull-right side-anchor' }):
-            href_attrib = self.generate_href(value)
-            href_attrib.update({ 'title': 'Permalink to this section' })
-            with self.open('a', '', href_attrib):
-                self.span(' ', { 'class': 'glyphicon glyphicon-link', 'aria-hidden': 'true' })
-
-        # attrib.update(self.generate_id(value))
         self.tag('h2', value, attrib, **kwargs)
 
     def h3(self, value='', attrib={ }, **kwargs):
@@ -203,14 +196,16 @@ class htmltree(object):
         """
         return self.tag('li', value, attrib, **kwargs)
 
-    def link(self, target, text='', ns=''):
+    def link(self, target, text='', ns='', attrib={}):
         """
         Method creates link element based on given attributes
         :param target: machine link name
         :param text: link title
         :param ns: namespace for link
         """
-        return self.tag('a', text if text else target, attrib=self.generate_href(target, ns))
+        default_attrib = self.generate_href(target, ns)
+        default_attrib.update(attrib)
+        return self.tag('a', text if text else target, attrib=default_attrib)
 
     def open(self, tag_name, value='', attrib={ }, **kwargs):
         """
@@ -293,6 +288,14 @@ class htmltree(object):
         :param id: id value
         """
         self.root.attrib['id'] = id
+
+    def cls(self, cls):
+        """
+        Method sets class to root element
+        :param id: id value
+        """
+        classes = self.root.attrib.get('class', '')
+        self.root.attrib['class'] = '{} {}'.format(cls, classes)
 
     def generate_id(self, value, sub_value=''):
         """

@@ -6,13 +6,40 @@ Part of IST library from Flow123d-python-utils.
 Refactored for Python 3.
 
 author:   Jan Hybs
-minor adjustments by: Tomas Krizek
+adjustments by: Tomas Krizek
 """
 
 import cgi
 from ist.nodes import Integer, String, DescriptionNode, ISTNode, ComplexNode
-from ist.utils.htmltree import htmltree
 from functools import cmp_to_key
+from ist.utils.htmltree import htmltree
+
+
+
+def get_info_text(input_type, **kwargs):
+    """Generate an HTML documentation for the given `input_type`."""
+    html_content = HTMLFormatter.format(input_type, **kwargs)
+
+    html = htmltree('html')
+    html_body = htmltree('body')
+
+    with html_body.open('div', '', cls='container-fluid fill'):
+        with html_body.open('div', cls='row fill'):
+            html_body.add(html_content.current())
+
+    html_head = htmltree('head')
+    html_head.style('css/bootstrap.min.css')
+    html_head.style('css/katex.min.css')
+    html_head.style('css/main.css')
+
+    html_head.script('js/jquery-2.1.3.min.js')
+    html_head.script('js/bootstrap.min.js')
+    html_body.script('js/katex.min.js')
+    html_body.script('js/main.js')
+
+    html.add(html_head.current())
+    html.add(html_body.current())
+    return r'<!DOCTYPE html>' + html.dump()
 
 
 class HTMLItemFormatter(htmltree):
@@ -105,17 +132,6 @@ class HTMLInteger(HTMLUniversal):
             with self.open('span', attrib={'class': 'item-'}):
                 self.span(str(self_int.range))
 
-    def format(self, integer):
-        with self.open('header'):
-            self.h2('Integer')
-            self.description('An integer value.')
-        self.italic('min: ')
-        self.bold(str(integer.range.min))
-        self.tag('br')
-        self.italic('max: ')
-        self.bold(str(integer.range.max))
-        return self
-
 
 class HTMLDouble(HTMLUniversal):
     """
@@ -127,17 +143,6 @@ class HTMLDouble(HTMLUniversal):
                 self.info('Double ')
             with self.open('span', attrib={'class': 'item-value'}):
                 self.span(str(self_double.range))
-
-    def format(self, double):
-        with self.open('header'):
-            self.h2('Double')
-            self.description('A floating point value.')
-        self.italic('min: ')
-        self.bold(str(double.range.min))
-        self.tag('br')
-        self.italic('max: ')
-        self.bold(str(double.range.max))
-        return self
 
 
 class HTMLBool(HTMLUniversal):
@@ -152,14 +157,6 @@ class HTMLBool(HTMLUniversal):
             self.tag('br')
             HTMLRecordKeyDefault(self).format_as_child(record_key.default, record_key, record)
 
-    def format(self, bool):
-        with self.open('header'):
-            self.h2('Boolean')
-            self.description('A boolean value.')
-        self.italic('accepted values: ')
-        self.bold('true, false')
-        return self
-
 
 class HTMLString(HTMLUniversal):
     """
@@ -169,12 +166,6 @@ class HTMLString(HTMLUniversal):
         with self.open('div', attrib={'class': 'item-key-value'}):
             with self.open('span', attrib={'class': 'item-key'}):
                 self.span('String (generic)')
-
-    def format(self, string):
-        with self.open('header'):
-            self.h2('String')
-            self.description('A sequence of characters.')
-        return self
 
 
 class HTMLFileName(HTMLUniversal):
@@ -187,12 +178,6 @@ class HTMLFileName(HTMLUniversal):
                 self.info('file name')
             with self.open('span', attrib={'class': 'item-value chevron'}):
                 self.span(self_fn.file_mode)
-
-    def format(self, filename):
-        with self.open('header'):
-            self.h2('FileName')
-            self.description('Path to file.')
-        return self
 
 
 class HTMLArray(HTMLUniversal):
@@ -216,25 +201,6 @@ class HTMLArray(HTMLUniversal):
 
             self.tag('br')
             HTMLRecordKeyDefault(self).format_as_child(record_key.default, record_key, record)
-
-    def format(self, array):
-        subtype = array.subtype.get_reference()
-        try:
-            subtype_name = getattr(subtype, subtype.__name_field__, 'items')
-        except (AttributeError, TypeError):
-            subtype_name = 'items'
-        with self.open('header'):
-            self.h2('Array')
-            self.description('An array containing {items}.'.format(items=subtype_name))
-            self.italic('minimum length: ')
-            self.bold(str(array.range.min))
-            self.tag('br')
-            self.italic('maximum length: ')
-            self.bold(str(array.range.max))
-        fmt = HTMLFormatter.get_formatter_for(subtype)
-        fmt.format(subtype)
-        self.add(fmt.current())
-        return self
 
 
 class HTMLSelection(HTMLItemFormatter):
@@ -262,7 +228,7 @@ class HTMLSelection(HTMLItemFormatter):
 
         self.description(record_key.description)
 
-    def format(self, selection):
+    def format(self, selection, **kwargs):
         self.root.attrib['id'] = htmltree.chain_values(selection.get_name())
         self.root.attrib['data-name'] = htmltree.chain_values(selection.get_name())
         with self.open('header'):
@@ -302,7 +268,7 @@ class HTMLAbstractRecord(HTMLItemFormatter):
         self.h(record_key.key, record.get_name())
         self.description(record_key.description)
 
-    def format(self, abstract_record):
+    def format(self, abstract_record, **kwargs):
         self.root.attrib['id'] = htmltree.chain_values(abstract_record.get_name())
         self.root.attrib['data-name'] = htmltree.chain_values(abstract_record.get_name())
         with self.open('header'):
@@ -350,7 +316,12 @@ class HTMLRecord(HTMLItemFormatter):
 
         self.description(record_key.description)
 
-    def format(self, record):
+    def format(self, record, selected=''):
+        if not selected:  # select default key to show
+            if record.reducible_to_key:
+                selected = record.reducible_to_key
+            elif record.keys:
+                selected = record.keys[0].key
         self.root.attrib['id'] = htmltree.chain_values(record.get_name())
         self.root.attrib['data-name'] = htmltree.chain_values(record.get_name())
         reference_list = record.implements
@@ -370,16 +341,24 @@ class HTMLRecord(HTMLItemFormatter):
 
             self.description(record.description)
 
-        with self.open('ul', attrib={'class': 'item-list'}):
+        with self.open('ul', attrib={'class': 'key-list col-md-2 col-sm-3 col-xs-4'}):
             for record_key in record.keys:
-
-                if not record_key.include_in_format():
-                    continue
-
+                title = record_key.key
+                href = '#' + record_key.key
+                attrib = {'class': 'record-key'}
+                if title == selected:
+                    attrib['class'] += ' selected'
                 with self.open('li'):
-                    fmt = HTMLFormatter.get_formatter_for(record_key)
-                    fmt.format(record_key, record)
-                    self.add(fmt.current())
+                    self.link(href, title, attrib=attrib)
+
+        for record_key in record.keys:
+            attrib = {'class': 'key-description col-md-10 col-sm-9 col-xs-8'}
+            if record_key.key != selected:
+                attrib['class'] += ' hidden'
+            with self.open('div', attrib=attrib):
+                fmt = HTMLFormatter.get_formatter_for(record_key)
+                fmt.format(record_key, record)
+                self.add(fmt.current())
 
 
 class HTMLRecordKey(HTMLItemFormatter):
@@ -389,7 +368,7 @@ class HTMLRecordKey(HTMLItemFormatter):
     def __init__(self):
         super(HTMLRecordKey, self).__init__(cls='record-key')
 
-    def format(self, record_key, record):
+    def format(self, record_key, record, **kwargs):
         reference = record_key.type.get_reference()
 
         # try to grab formatter and format type and default value based on reference type
@@ -421,30 +400,28 @@ class HTMLFormatter(object):
     }
 
     @staticmethod
-    def format(items):
+    def format(item, **kwargs):
         """
         Formats given items to HTML format
-        :param items: json items
+        :param item: format items
         :return: html div element containing all given elements
         """
         html = htmltree('div')
         html.id('input-reference')
+        html.cls('fill')
 
-        for item in items:
-            # format only IST nodes
-            if issubclass(item.__class__, ISTNode):
+        if issubclass(item.__class__, ISTNode):
+            # do no format certain objects
+            if not item.include_in_format():
+                return
 
-                # do no format certain objects
-                if not item.include_in_format():
-                    continue
-
-                try:
-                    fmt = HTMLFormatter.get_formatter_for(item)
-                    fmt.format(item)
-                    html.add(fmt.current())
-                except Exception as e:
-                    # print e
-                    continue
+        fmt = HTMLFormatter.get_formatter_for(item)
+        try:
+            fmt.format(item, **kwargs)
+        except AttributeError:
+            html.span('Missing format() for {}'.format(type(fmt)))
+        else:
+            html.add(fmt.current())
 
         return html
 

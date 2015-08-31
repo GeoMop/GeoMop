@@ -4,10 +4,39 @@
 #
 import json, datetime
 
-from ist.formatters.json2html import HTMLFormatter
+from ist.formatters.json2html import HTMLFormatter, get_info_text
 from ist.formatters.json2latex import LatexFormatter
 from ist.nodes import TypedList
 from ist.utils.htmltree import htmltree
+
+
+class InfoTextGenerator:
+    """
+    Generates info_text for `DataNode`.
+    """
+    _input_types = {}
+
+    @classmethod
+    def init(cls, json_text):
+        """Initializes the class with format information."""
+        cls._input_types = {}
+        node_list = json.loads(json_text, encoding="utf-8", cls=ProfilerJSONDecoder)
+        for node in node_list:
+            input_type_id = getattr(node, 'id', None)
+            if input_type_id is not None:
+                cls._input_types[input_type_id] = node
+
+    @classmethod
+    def get_info_text(cls, input_type, **kwargs):
+        """Generate an HTML documentation for the given id of `node.input_type`."""
+        input_type_id = input_type['id']
+        if input_type_id not in cls._input_types:
+            return "unknown ID"
+        input_type = cls._input_types[input_type_id]
+        while input_type.__type__ == 'Array':  # array workaround
+            input_type = input_type.subtype.get_reference()
+
+        return get_info_text(input_type, **kwargs)
 
 
 class ProfilerJSONDecoder(json.JSONDecoder):

@@ -1,3 +1,17 @@
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+.fill {
+  min-height: 100%;
+  height: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
 .record, .abstract-record, .selection {
   /*border-bottom: 1px solid #999;*/
 }
@@ -8,6 +22,8 @@ h1 {
 
 #input-reference {
   margin: 0 0 0 0; /*150px*/;
+  
+    min-height: 100%;
 }
 
 #input-reference h3 {
@@ -29,7 +45,7 @@ h1 {
     /*font-weight: bold;*/
 }
 
-.record:before {
+/*.record:before {
     content: "RECORD";
 }
 .abstract-record:before {
@@ -37,12 +53,17 @@ h1 {
 }
 .selection:before {
     content: "SELECTION";
-}
+}*/
 
 header {
   background: rgba(250, 250, 250, .5);
-  padding: 5px 5px 5px 15px;
-  margin-bottom: 10px;
+  padding: 5px;
+}
+
+header p {
+	display: inline;
+	margin: 0px;
+	margin-left: 50px;
 }
 
 h3 {
@@ -170,9 +191,11 @@ ul.nav-bar li {
     float: right;
 }
 
-
 body h2 {
-    margin: 5px 0;
+    margin: 5px 5px 5px 0px;
+    font-size: 1.3em;
+    font-weight: bold;
+    display: inline;
 }
 
 body h3 {
@@ -224,15 +247,4 @@ body h3 {
 
 .abstract-record em {
     padding-left: 10px;
-}
-
-
-body .abc-list {
-  text-align: right;
-  padding-right: 0
-}
-
-body .tree-list {
-  text-align: left;
-  padding-left: 0;
 }

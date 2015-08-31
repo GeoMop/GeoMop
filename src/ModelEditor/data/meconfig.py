@@ -12,6 +12,7 @@ import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets
 from data.error_handler import ErrorHandler
 import data.autoconversion as ac
+from ist import InfoTextGenerator
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
@@ -348,7 +349,7 @@ class MEConfig:
             return
         text = cls.get_curr_format_text()
         cls.root_input_type = fmt.get_root_input_type_from_json(text)
-        fmt.InfoTextGenerator.init(text)
+        InfoTextGenerator.init(text)
         cls.update()
 
     @classmethod
