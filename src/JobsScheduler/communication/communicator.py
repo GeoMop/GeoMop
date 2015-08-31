@@ -80,6 +80,9 @@ class Communicator():
             self.output.connect()
         elif init_conf.output_type == comconf.OutputCommType.exec_:
             self.output = com. ExecOutputComm(init_conf.port)
+            
+        if init_conf.output_type != comconf.OutputCommType.none:
+            self.output.set_install_params(init_conf.python_exec,  init_conf.scl_enable_exec)
   
     def _set_loger(self,  path, name, level):
         """set logger"""

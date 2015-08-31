@@ -16,7 +16,6 @@ __ins_dirs__.append("communication")
 __ins_dirs__.append("data") 
 __ins_dirs__.append("twoparty") 
 __root_dir__ = "jobs"
-__python_exec__ = "python3"
 
 class Installation:
     """Files with installation (python files and configuration files) is selected 
@@ -28,8 +27,18 @@ class Installation:
         """files to install"""
         self.ins_dirs = copy.deepcopy(__ins_dirs__)
         """directories to install"""
+        self.python_exec = "python3"
+        """Python exec command"""
+        self.scl_enable_exec = None
+        """Enable python exec over scl """
+        
+    def set_install_params(self, python_exec,  scl_enable_exec):
+        """Set install specific settings"""
+        self.python_exec = python_exec
+        self.scl_enable_exec = scl_enable_exec
 
     def local_copy_path(self):
+        """Set copy path for local installation"""
         self.copy_path = __install_dir__
 
     def create_install_dir(self, conn):
@@ -55,8 +64,8 @@ class Installation:
                 if len(res)>0:
                     logging.warning("Sftp message (put -r '" + dir + "'): " + res)
         else:
-            import pexpect
-            
+            import pexpect            
+           
             conn.sendline('pwd')
             conn.expect(".*pwd\r\n")
             ret = str(conn.readline(), 'utf-8').strip()
@@ -111,13 +120,13 @@ class Installation:
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
-        return __python_exec__ + " " + dest_path
+        return self.python_exec + " " + dest_path
     
     def get_args(self, name):
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
-        return [__python_exec__,dest_path, "&", "disown"]
+        return [self.python_exec,dest_path, "&", "disown"]
     
     @staticmethod
     def get_result_dir():

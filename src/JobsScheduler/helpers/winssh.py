@@ -84,6 +84,7 @@ class Wssh():
             cdir = root
             resdir = None
             ndir = ""
+            # prepare resource linux dir name
             while ndir != dir: 
                 [cdir, ndir] = os.path.split(cdir)
                 if resdir is None:
@@ -91,11 +92,13 @@ class Wssh():
                 else:
                     resdir = ndir + '/' + resdir
             resdir = self.sftp_remote_path + '/' + resdir
+            # create dirs
             for name in dirs:
                 linux_dir = resdir + '/' + name
                 res = self.mkdir(linux_dir) 
                 if len(res) > 0:
-                    err.append(res)                
+                    err.append(res)
+            # copy files
             for name in files:
                 remote =resdir + '/' +  name
                 local = os.path.join(root, name)
@@ -137,9 +140,10 @@ class Wssh():
         self._buffer = ""
 
     def _read_filter(self, echo=None):
-        """read text without echo and prefix from std in"""
+        """read text without echo and ssh terminal prefix from std in"""
         text = self._read()
         res = []
+        # delete echo
         if echo is not None:
             e = re.match( '(' + echo + '\r\n\x1b]0;)', text)
             if e is None:
@@ -148,14 +152,17 @@ class Wssh():
                 e = re.match( '(' + echo + ')', text)
             if e is not None:
                 text = text[len(e.group(1)):]
+                
         while len(text) > 0:
             prefix = True
+            # delete empty chars and prefix
             while prefix is not None:
                 prefix = re.match( '\s*(' + self._prefix + '\$\s*)', text)
                 if prefix is None:
                     prefix = re.match( '\s*(' + self._prefix + '\x07\s*)', text)
                 if prefix is not None:
                     text = text[len(prefix.group(1)):]
+            # parse message
             line = re.match('(.*)(\r\n\x1b]0;)', text)
             if line is None:                    
                 line = prefix = re.match( '(.*)(\r\n)', text)

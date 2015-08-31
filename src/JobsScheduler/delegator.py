@@ -2,6 +2,8 @@
 
 import sys
 sys.path.insert(1, './twoparty/pexpect')
+if sys.version_info[0] != 3 or sys.version_info[1] < 4:
+    sys.path.insert(2, './twoparty/enum')
 
 import logging
 import data.communicator_conf as comconf

@@ -7,6 +7,7 @@ import data.transport_data as tdata
 import data.installation as dinstall
 import socket
 import subprocess
+import re
 
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
@@ -16,6 +17,9 @@ class OutputComm(metaclass=abc.ABCMeta):
         """ip or dns of host for communication"""
         self.installation = dinstall.Installation()
         """installation where is copied files"""
+    
+    def set_install_params(self, python_exec,  scl_enable_exec):
+        self.installation.set_install_params(python_exec,  scl_enable_exec)
     
     @abc.abstractmethod
     def connect(self):
@@ -193,6 +197,10 @@ if sys.platform == "win32":
             
         def install(self):
             """make installation"""
+            if self.installation.scl_enable_exec is not None:
+                mess = self.ssh.exec_("scl enable " +  self.installation.scl_enable_exec + " bash")
+                if mess != "":
+                    logging.warning("Enable scl error: " + mess) 
             self.installation.create_install_dir(self.ssh)
              
         def exec_(self, python_file):
@@ -252,6 +260,11 @@ else:
             
         def install(self):
             """make installation"""
+            if self.installation.scl_enable_exec is not None:
+                self.ssh.sendline("scl enable " +  self.installation.scl_enable_exec + " bash")
+                self.ssh.expect(".*scl enable " +  self.installation.scl_enable_exec + " bash\r\n")
+                if len(self.ssh.before)>0:
+                    logging.warning("Sftp message (scl enable): " + str(self.ssh.before, 'utf-8').strip())                    
             sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
             sftp.expect('.*assword:')
             sftp.sendline(self.password)
@@ -271,10 +284,17 @@ else:
                 if mess != ("cd " + self.installation.copy_path):
                     logging.warning("Exec python file: " + mess) 
             self.ssh.sendline(self.installation.get_command(python_file))
-            self.ssh.expect(dinstall.__python_exec__ + ".*\r\n")
-            if len(self.ssh.before)>0:
-                txt = str(self.ssh.before, 'utf-8').strip()
-                logging.warning("Run python file: " + txt)  
+            self.ssh.expect( self.installation.python_exec + ".*\r\n")
+            
+            lines = str(self.ssh.after, 'utf-8').splitlines(False)            
+            del lines[0]
+            error_lines = []
+            for line in lines:
+                line = self.strip_pexpect_echo( line.strip())
+                if len(line)>0:
+                    error_lines.append(line)
+            if len(error_lines)>0:
+                logging.warning("Run python file: " + "\n".join( error_lines)) 
 
         def send(self,  mess):
             """send json message"""
@@ -295,26 +315,41 @@ else:
                     txt += str(self.ssh.read_nonblocking(size=10000, timeout=2), 'utf-8')
                 except pexpect.TIMEOUT:
                     timeout = True
+                    
             txt = txt.strip()
             lines = txt.splitlines(False)
             txt = None
             last_mess_processed = False
+            
+            # parse message, delete echo
+            error_lines = []
+            ready = False
             for i in range(0, len(lines)):
-                if lines[i][-1:] == "=": 
-                    if self.last_mess is not None and lines[i].strip() == self.last_mess:
+                line = self.strip_pexpect_echo( lines[i].strip())
+                if not ready and lines[i][-1:] == "=": 
+                    #base64 text
+                    if self.last_mess is not None and line == self.last_mess:
+                        #echo
                         last_mess_processed = True
                         self.last_mess = None
-                        del lines[i]
                     else:
-                        txt = lines[i]
-                        del lines[i]
-                        break                    
-            if len(lines) > 0:
-                logging.warning("Error in message:" + "\n".join(lines))
+                        # message
+                        txt = line
+                        ready = True
+                else:
+                    if len(line)>0:
+                        error_lines.append(line)
+   
+            if len( error_lines) > 0:
+                logging.warning("Ballast in message:" + "\n".join( error_lines))
+            
+            #only echo, tray again
             if last_mess_processed and txt is None:
                 return self.receive(timeout)
+             
             if txt is None:
                 return None
+                
             self.last_mess = None
             try:
                 mess =tdata.Message(txt)
@@ -325,6 +360,16 @@ else:
      
         def get_file(self, file_name):
             """download file from installation folder"""
+        
+        @staticmethod
+        def strip_pexpect_echo(txt):
+            """strip pexpect echo"""
+            pex_echo = re.match( '(\[PEXPECT\]\$\s*)', txt)
+            if pex_echo is not None:
+                if  len(pex_echo.group(1)) == len(txt):
+                        return ""
+                txt = txt[len(pex_echo.group(1)):]
+            return txt
             
 class ExecOutputComm(OutputComm):
     """Ancestor of communication classes"""
