@@ -57,11 +57,26 @@ class YamlEditorWidget(QsciScintilla):
         self.setAutoIndent(True)
         self.setIndentationGuides(True)
         self.setIndentationsUseTabs(False)
+        self.setBackspaceUnindents(True)
+        self.setTabIndents(True)
         self.setTabWidth(2)
         self.setUtf8(True)
 
+        # text wrapping
+        self.setWrapMode(QsciScintilla.WrapWord)
+        self.setWrapIndentMode(QsciScintilla.WrapIndentIndented)
+        self.setWrapVisualFlags(QsciScintilla.WrapFlagNone, QsciScintilla.WrapFlagByBorder)
+
+        # colors
         self._lexer.setColor(QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
         self._lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        self.setIndentationGuidesBackgroundColor(QtGui.QColor("#e5e5e5"))
+        self.setIndentationGuidesForegroundColor(QtGui.QColor("#e5e5e5"))
+        self.setCaretLineBackgroundColor(QtGui.QColor("#f8f8f8"))
+        self.setMatchedBraceBackgroundColor(QtGui.QColor("#feffa8"))
+        self.setMatchedBraceForegroundColor(QtGui.QColor("#0000ff"))
+        self.setUnmatchedBraceBackgroundColor(QtGui.QColor("#fff2f0"))
+        self.setUnmatchedBraceForegroundColor(QtGui.QColor("#ff0000"))
 
         # Completetion
         self._api = QsciAPIs(self._lexer)
@@ -411,3 +426,31 @@ class editorPosition():
             self._last_line_after = None
         else:
             self._last_line_after = editor.text(self.line + 1)
+
+
+    # TODO: functions to implement
+    """
+        autoCompleteFromAPI
+          - could it be used somehow?
+        findFirst
+        findNext
+        findFirstInSelection
+        replace
+
+        editing:
+          - copy
+          - cut
+          - paste
+
+        additional:
+          - indent
+          - unindent
+
+        overcome setText():
+          - selectAll
+          - replaceSelectedText
+
+        history:
+          - undo
+          - redo
+    """
