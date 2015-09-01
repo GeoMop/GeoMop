@@ -1,3 +1,8 @@
+"""
+Module contains customized QScintilla editor.
+"""
+
+
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 import helpers.subyaml_change_analyzer as analyzer
@@ -111,6 +116,17 @@ class YamlEditorWidget(QsciScintilla):
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self._pos = editorPosition()
+
+    def setText(self, text, keep_history=False):
+        """
+        Sets editor text. Editor history is preserved if `keep_history` is set to True.
+        """
+        if keep_history:
+            # replace all text instead
+            self.selectAll()
+            self.replaceSelectedText(text)
+        else:
+            super(YamlEditorWidget, self).setText(text)
 
     def mark_selected(self, start_column, start_row, end_column, end_row):
         """mark area as selected and set cursor to end position"""
@@ -315,7 +331,7 @@ class editorPosition():
             # return origin values of end
             if self.end_line == self.line and self.node is not None:
                 if (self.node.key.span is not None and
-                        type(self.node) != dn.ScalarNode):
+                        not isinstance(self.node, dn.ScalarNode)):
                     self.end_index = self.node.key.span.end.column - 1
                 else:
                     self.end_index = self.node.span.end.column - 1
@@ -383,7 +399,7 @@ class editorPosition():
             self.begin_line = node.start.line - 1
             self.end_index = node.end.column - 1
             self.end_line = node.end.line - 1
-            self._key_and_value = type(node) == dn.ScalarNode
+            self._key_and_value = isinstance(node, dn.ScalarNode)
         else:
             self.begin_line = 0
             self.begin_index = 0
@@ -432,10 +448,12 @@ class editorPosition():
     """
         autoCompleteFromAPI
           - could it be used somehow?
-        findFirst
-        findNext
-        findFirstInSelection
-        replace
+
+        find/reaplce:
+          - findFirst
+          - findNext
+          - findFirstInSelection
+          - replace
 
         editing:
           - copy
@@ -445,10 +463,6 @@ class editorPosition():
         additional:
           - indent
           - unindent
-
-        overcome setText():
-          - selectAll
-          - replaceSelectedText
 
         history:
           - undo

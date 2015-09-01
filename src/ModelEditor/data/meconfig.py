@@ -398,7 +398,7 @@ class MEConfig:
 
     @classmethod
     def transform(cls, file):
-        """Run transformation accoding rules in set file"""
+        """Run transformation according rules in set file"""
         cls.update()
         text = cls.get_transformation_text(file)
         try:
@@ -419,7 +419,7 @@ class MEConfig:
                                             transformator.new_version,
                                             transformator.new_version in cls.transformation_files,
                                             cls.main_window)
-        if  cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
+        if cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:
