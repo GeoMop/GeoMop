@@ -1,7 +1,0 @@
-[typecheck]
-ignored-modules=PyQt5
-ignored-classes=
-[master]
-init-hook='sys.path.append("../lib")'
-[messages control]
-disable = W0201, F0401, C0103

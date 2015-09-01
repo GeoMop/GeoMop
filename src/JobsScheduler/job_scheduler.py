@@ -12,10 +12,10 @@ __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "lib")
 sys.path.insert(1, __lib_dir__)
 
-import os
 import PyQt5.QtWidgets as QtWidgets
-from panels.main_window import UiMainWindow
-from dialogs.add_multijob import AddMultiJobDialog
+from ui.main_window import MainWindow
+from ui.dialogs.multijob import MultiJobDialog
+from ui.dialogs.presets import SshPresets
 
 
 class JobsScheduler(object):
@@ -24,12 +24,9 @@ class JobsScheduler(object):
     def __init__(self):
         """Initialization of UI"""
         self._app = QtWidgets.QApplication(sys.argv)
-        self._ui = UiMainWindow()
-
-        # test action
-        self._ui.menu_exit_action.triggered.connect(QtWidgets.qApp.quit)
-        self._add_multijob_dlg = AddMultiJobDialog()
-        #print(self._ui.findChild(QtWidgets.QWidget, "tableView"))
+        self._main_window = MainWindow()
+        self._add_mj_dlg = MultiJobDialog(self._main_window)
+        self._ssh_presets_dlg = SshPresets(self._main_window)
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":

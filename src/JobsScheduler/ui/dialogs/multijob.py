@@ -1,50 +1,83 @@
 # -*- coding: utf-8 -*-
 """
-Add new MultiJob dialog
+MultiJob dialogs
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 from PyQt5 import QtCore, QtWidgets
-from dialogs.dialogs import UiFormDialog
+
+from ui.dialogs.dialogs import UiFormDialog
 
 
-class AddMultiJobDialog(QtWidgets.QDialog):
+class MultiJobDialog(QtWidgets.QDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.ui = UiAddMultiJobDialog()
+    PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
+                       objectName="AddMultiJobDialog",
+                       windowTitle="Job Scheduler - Add new MultiJob",
+                       title="Add new MultiJob",
+                       subtitle="Please select details to schedule set of "
+                                "tasks for computation.")
+
+    PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
+                        objectName="EditMultiJobDialog",
+                        windowTitle="Job Scheduler - Edit MultiJob",
+                        title="Edit MultiJob",
+                        subtitle="Change desired parameters and press SAVE to "
+                                 "apply changes.")
+    PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
+                        objectName="CopyMultiJobDialog",
+                        windowTitle="Job Scheduler - Copy MultiJob",
+                        title="Copy MultiJob",
+                        subtitle="Change desired parameters and press SAVE to "
+                                 "apply changes.")
+
+    def __init__(self, parent=None, purpose=PURPOSE_ADD):
+        super(MultiJobDialog, self).__init__(parent)
+        self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
-        self.__connect_slots__()
+
+        self._purpose_ = None
+        self.set_purpose(purpose)
+
+        self._connect_slots_()
         self.show()
 
-    def __connect_slots__(self):
+    def set_purpose(self, purpose):
+        self._purpose_ = purpose
+        self.setObjectName(purpose["objectName"])
+        self.setWindowTitle(purpose["windowTitle"])
+
+        # title label
+        self.ui.titleLabel.setText(purpose["title"])
+
+        # subtitle label
+        self.ui.subtitleLabel.setText(purpose["subtitle"])
+
+    def get_data(self):
+        pass
+
+    def set_data(self, data):
+        pass
+
+    def _connect_slots_(self):
         # QtCore.QMetaObject.connectSlotsByName(self)
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
 
 
-class UiAddMultiJobDialog(UiFormDialog):
+class UiMultiJobDialog(UiFormDialog):
     """
-    Dialog UI or UI extensions of basic dialog.
+    UI extensions of form dialog.
     """
-
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
 
         # dialog properties
-        dialog.setObjectName("AddMultiJobDialog")
-        dialog.setWindowTitle("Add new MultiJob")
         dialog.resize(500, 440)
 
-        # title label
-        self.titleLabel.setText("Add new MultiJob")
-
-        # subtitle label
-        self.subtitleLabel.setText("Please select details to schedule set of "
-                                   "tasks for computation.")
         # form layout
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -67,21 +100,21 @@ class UiAddMultiJobDialog(UiFormDialog):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                   self.analysisLabel)
 
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.rowSplit = QtWidgets.QHBoxLayout()
+        self.rowSplit.setObjectName("rowSplit")
         self.analysisLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.analysisLineEdit.setPlaceholderText("Select Analysis folder "
                                                  "path")
         self.analysisLineEdit.setObjectName("analysisLineEdit")
         self.analysisLineEdit.setProperty("clearButtonEnabled", True)
-        self.horizontalLayout_3.addWidget(self.analysisLineEdit)
+        self.rowSplit.addWidget(self.analysisLineEdit)
         self.toolButton = QtWidgets.QToolButton(self.mainVerticalLayoutWidget)
         self.toolButton.setObjectName("toolButton")
         self.toolButton.setText("...")
-        self.horizontalLayout_3.addWidget(self.toolButton)
+        self.rowSplit.addWidget(self.toolButton)
         self.formLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole,
-                                  self.horizontalLayout_3)
+                                  self.rowSplit)
 
         # 3 row
         self.descriptionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
