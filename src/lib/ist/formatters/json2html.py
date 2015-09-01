@@ -228,18 +228,29 @@ class HTMLSelection(HTMLItemFormatter):
 
         self.description(record_key.description)
 
-    def format(self, selection, **kwargs):
+    def format(self, selection, selected='', **kwargs):
         self.root.attrib['id'] = htmltree.chain_values(selection.get_name())
         self.root.attrib['data-name'] = htmltree.chain_values(selection.get_name())
         with self.open('header'):
             self.h2(selection.name)
             self.description(selection.description)
 
-        with self.open('ul', attrib={'class': 'item-list'}):
+        with self.open('ul', attrib={'class': 'key-list col-md-2 col-sm-3 col-xs-4'}):
             for selection_value in selection.values:
+                title = selection_value.get_name()
+                href = '#' + title
+                attrib = {'class': 'record-key'}
+                if title == selected:
+                    attrib['class'] += ' selected'
                 with self.open('li'):
-                    self.h3(selection_value.get_name())
-                    self.description(selection_value.description)
+                    self.link(href, title, attrib=attrib)
+
+        for selection_value in selection.values:
+            attrib = {'class': 'key-description col-md-10 col-sm-9 col-xs-8'}
+            if selection_value.get_name() != selected:
+                attrib['class'] += ' hidden'
+            with self.open('div', attrib=attrib):
+                self.description(selection_value.description)
 
         return self
 
