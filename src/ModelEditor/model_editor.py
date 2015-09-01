@@ -17,6 +17,7 @@ import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
 import icon
 
+
 class ModelEditor:
     """Model editor main class"""
 
@@ -30,6 +31,22 @@ class ModelEditor:
         # load config
         cfg.init(self._mainwindow)
         self._update_document_name()
+
+        # tab
+        self._tab = QtWidgets.QTabWidget()
+        self._info = panels.info_panel.InfoPanelWidget()
+        self._err = panels.error_tab.ErrorWidget()
+        self._tab.addTab(self._info, "Structure Info")
+        self._tab.addTab(self._err, "Messages")
+
+        # splitters
+        self._vsplitter = QtWidgets.QSplitter(
+            QtCore.Qt.Vertical, self._hsplitter)
+        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)
+        self._tree = panels.tree.TreeWidget()
+        self._vsplitter.addWidget(self._editor)
+        self._vsplitter.addWidget(self._tab)
+        self._hsplitter.insertWidget(0, self._tree)
 
         # menu
         # file
@@ -81,11 +98,27 @@ class ModelEditor:
 
         self._file_menu.addSeparator()
 
-        self._exit_action = QtWidgets.QAction('&Exit', self._mainwindow)
+        self._exit_action = QtWidgets.QAction('E&xit', self._mainwindow)
         self._exit_action.setShortcut('Ctrl+Q')
         self._exit_action.setStatusTip('Exit application')
         self._exit_action.triggered.connect(QtWidgets.qApp.quit)
         self._file_menu.addAction(self._exit_action)
+
+        # Edit menu
+        self._edit_menu = menubar.addMenu('&Edit')
+        self._edit_menu.aboutToShow.connect(self._refresh_undo_redo_availability)
+
+        self._undo_action = QtWidgets.QAction('&Undo', self._mainwindow)
+        self._undo_action.setShortcut('Ctrl+Z')
+        self._undo_action.setStatusTip('Undo document changes')
+        self._undo_action.triggered.connect(self._editor.undo)
+        self._edit_menu.addAction(self._undo_action)
+
+        self._redo_action = QtWidgets.QAction('&Redo', self._mainwindow)
+        self._redo_action.setShortcut('Ctrl+Y')
+        self._redo_action.setStatusTip('Redo document changes')
+        self._redo_action.triggered.connect(self._editor.redo)
+        self._edit_menu.addAction(self._redo_action)
 
         # Settings
         self._settings_menu = menubar.addMenu('&Settings')
@@ -124,22 +157,6 @@ class ModelEditor:
             faction.setStatusTip('Open transformation file')
             self._edit_transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
-
-        # tab
-        self._tab = QtWidgets.QTabWidget()
-        self._info = panels.info_panel.InfoPanelWidget()
-        self._err = panels.error_tab.ErrorWidget()
-        self._tab.addTab(self._info, "Structure Info")
-        self._tab.addTab(self._err, "Messages")
-
-        # splitters
-        self._vsplitter = QtWidgets.QSplitter(
-            QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)
-        self._tree = panels.tree.TreeWidget()
-        self._vsplitter.addWidget(self._editor)
-        self._vsplitter.addWidget(self._tab)
-        self._hsplitter.insertWidget(0, self._tree)
 
         # status bar
         self._column = QtWidgets.QLabel()
@@ -377,6 +394,12 @@ class ModelEditor:
                 else:
                     self._save_file()
         return True
+
+    def _refresh_undo_redo_availability(self):
+        """Enables or disables undo and redo actions based on their availability in editor."""
+        self._undo_action.setEnabled(self._editor.isUndoAvailable())
+        self._redo_action.setEnabled(self._editor.isRedoAvailable())
+
 
     def main(self):
         """go"""
