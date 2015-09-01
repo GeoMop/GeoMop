@@ -4,7 +4,6 @@ Contains format specification class and methods to parse it from JSON.
 
 @author: Tomas Krizek
 """
-
 import json
 
 
@@ -20,7 +19,8 @@ def parse_format(data):
 
     for item in data:
         input_type = _get_input_type(item)
-        input_types[input_type['id']] = input_type  # register by id
+        if input_type is not None:
+            input_types[input_type['id']] = input_type  # register by id
 
     _substitute_ids_with_references(input_types)
     return input_types[root_id]
@@ -31,6 +31,7 @@ def _substitute_ids_with_references(input_types):
     input_type = {}
 
     def _substitute_implementations():
+        """Replaces implementation ids with input_types."""
         impls = {}
         for id_ in input_type['implementations']:
             type_ = input_types[id_]
@@ -38,11 +39,13 @@ def _substitute_ids_with_references(input_types):
         input_type['implementations'] = impls
 
     def _substitute_default_descendant():
+        """Replaces default descendant id with input_type."""
         id_ = input_type.get('default_descendant', None)
         if id_ is not None:
             input_type['default_descendant'] = input_types[id_]
 
     def _substitute_key_type():
+        """Replaces key type with input_type."""
         # pylint: disable=unused-variable, invalid-name
         for __, value in input_type['keys'].items():
             value['type'] = input_types[value['type']]
@@ -61,6 +64,8 @@ def _substitute_ids_with_references(input_types):
 def _get_input_type(data):
     """Returns the input_type data structure that defines an input type
     and its constraints for validation."""
+    if 'id' not in data or 'input_type' not in data:
+        return None
     input_type = dict(
         id=data['id'],
         base_type=data['input_type']
@@ -92,6 +97,7 @@ def _get_input_type(data):
 
 
 def _parse_range(data):
+    """Parses the format range properties - min, max."""
     input_type = {}
     try:
         input_type['min'] = data['range'][0]

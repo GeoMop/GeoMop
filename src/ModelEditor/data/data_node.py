@@ -5,6 +5,7 @@ Contains classes for representing the tree structure of config files.
 """
 
 from enum import Enum
+from ist import InfoTextGenerator
 
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""
@@ -96,9 +97,15 @@ class DataNode:
     @property
     def info_text(self):
         """help text describing the input type"""
-        if DEBUG_MODE:
-            return str(self).replace("\n", "<br/>")
-        return ''
+        try:
+            input_type = self.parent.input_type
+        except (TypeError, KeyError, AttributeError):
+            try:
+                input_type = self.input_type
+            except (TypeError, KeyError, AttributeError):
+                return 'unknown id'
+
+        return InfoTextGenerator.get_info_text(input_type, selected=self.key.value)
 
     def __str__(self):
         text = (
@@ -215,6 +222,15 @@ class ScalarNode(DataNode):
             value=self.value
         )
         return text
+
+    @property
+    def info_text(self):
+        """help text describing the input type"""
+        if self.input_type and self.input_type['base_type'] == 'Selection':
+            input_type = self.input_type
+            return InfoTextGenerator.get_info_text(input_type, selected=self.value)
+        else:
+            return super(ScalarNode, self).info_text
 
 
 class TextValue:
