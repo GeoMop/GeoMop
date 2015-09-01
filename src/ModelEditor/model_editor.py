@@ -48,9 +48,10 @@ class ModelEditor:
         self._vsplitter.addWidget(self._tab)
         self._hsplitter.insertWidget(0, self._tree)
 
-        # menu
-        # file
+        # Menu bar
         menubar = self._mainwindow.menuBar()
+
+        # File menu
         self._file_menu = menubar.addMenu('&File')
 
         self._new_file_action = QtWidgets.QAction(
@@ -120,7 +121,7 @@ class ModelEditor:
         self._redo_action.triggered.connect(self._editor.redo)
         self._edit_menu.addAction(self._redo_action)
 
-        # Settings
+        # Settings menu
         self._settings_menu = menubar.addMenu('&Settings')
         self._format = self._settings_menu.addMenu('&Format')
         self._format_group = QtWidgets.QActionGroup(
@@ -213,13 +214,13 @@ class ModelEditor:
 
     def _reload(self):
         """reload panels after structure changes"""
-        self._reload_icon.setVisible(True)
         cfg.update()
         self._editor.reload()
         self._tree.reload()
         self._err.reload()
         line, index = self._editor.getCursorPosition()
         self._reload_node(line+1, index+1)
+        self._reload_icon.setVisible(True)
         self._reload_icon_timer.start(700)
 
     def _hide_reload_icon(self):

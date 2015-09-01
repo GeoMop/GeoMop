@@ -117,6 +117,9 @@ class YamlEditorWidget(QsciScintilla):
         self.textChanged.connect(self._text_changed)
         self._pos = editorPosition()
 
+        # begin undo
+        self.beginUndoAction()
+
     def setText(self, text, keep_history=False):
         """
         Sets editor text. Editor history is preserved if `keep_history` is set to True.
@@ -126,7 +129,9 @@ class YamlEditorWidget(QsciScintilla):
             self.selectAll()
             self.replaceSelectedText(text)
         else:
+            self.endUndoAction()
             super(YamlEditorWidget, self).setText(text)
+            self.beginUndoAction()
 
     def mark_selected(self, start_column, start_row, end_column, end_row):
         """mark area as selected and set cursor to end position"""
@@ -140,6 +145,8 @@ class YamlEditorWidget(QsciScintilla):
 
     def reload(self):
         """reload data from config"""
+        self.endUndoAction()
+        self.beginUndoAction()
         if cfg.document != self.text():
             self.setText(cfg.document)
         self._reload_margin()
