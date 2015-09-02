@@ -98,15 +98,12 @@ class Communicator():
                 self._instalation_begined = True
                 logging.debug("Installation to local directory")
                 self.install()
-                logging.debug("Run next file")
-                self.exec_()
                 action = tdata.Action(tdata.ActionType.ok)
                 return True, True, None
             else:
                 if self._instalation_begined:
                     if self.is_installed():
                         logging.debug("Installation to remote directory ended")
-                        self.exec_()
                         return True, True, None
                     logging.debug("Installation in process signal was sent")
                 else:
@@ -134,6 +131,8 @@ class Communicator():
     def install(self):
         """make installation"""
         self.output.install()
+        logging.debug("Run next file")
+        self.exec_()
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
