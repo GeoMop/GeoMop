@@ -14,8 +14,10 @@ import panels.info_panel
 import panels.error_tab
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
+from PyQt5.Qsci import QsciScintilla
 from data.data_node import Position
 import icon
+import helpers.keyboard_shortcuts as shortcuts
 
 
 class ModelEditor:
@@ -91,7 +93,7 @@ class ModelEditor:
         self._file_menu.addSeparator()
 
         self._import_file_action = QtWidgets.QAction(
-            '&import File ...', self._mainwindow)
+            '&Import File ...', self._mainwindow)
         self._import_file_action.setShortcut('Ctrl+I')
         self._import_file_action.setStatusTip('Import model from old con formatted file')
         self._import_file_action.triggered.connect(self._import_file)
@@ -107,19 +109,53 @@ class ModelEditor:
 
         # Edit menu
         self._edit_menu = menubar.addMenu('&Edit')
-        self._edit_menu.aboutToShow.connect(self._refresh_undo_redo_availability)
+        self._edit_menu.aboutToShow.connect(self._refresh_edit_menu)
 
         self._undo_action = QtWidgets.QAction('&Undo', self._mainwindow)
-        self._undo_action.setShortcut('Ctrl+Z')
+        self._undo_action.setShortcut(shortcuts.SCINTILLA['UNDO'].key_sequence)
         self._undo_action.setStatusTip('Undo document changes')
         self._undo_action.triggered.connect(self._editor.undo)
         self._edit_menu.addAction(self._undo_action)
 
         self._redo_action = QtWidgets.QAction('&Redo', self._mainwindow)
-        self._redo_action.setShortcut('Ctrl+Y')
+        self._redo_action.setShortcut(shortcuts.SCINTILLA['REDO'].key_sequence)
         self._redo_action.setStatusTip('Redo document changes')
         self._redo_action.triggered.connect(self._editor.redo)
         self._edit_menu.addAction(self._redo_action)
+
+        self._edit_menu.addSeparator()
+
+        self._cut_action = QtWidgets.QAction('Cu&t', self._mainwindow)
+        self._cut_action.setShortcut(shortcuts.SCINTILLA['CUT'].key_sequence)
+        self._cut_action.setStatusTip('Cut to clipboard')
+        self._cut_action.triggered.connect(self._editor.cut)
+        self._edit_menu.addAction(self._cut_action)
+
+        self._copy_action = QtWidgets.QAction('&Copy', self._mainwindow)
+        self._copy_action.setShortcut(shortcuts.SCINTILLA['COPY'].key_sequence)
+        self._copy_action.setStatusTip('Copy to clipboard')
+        self._copy_action.triggered.connect(self._editor.copy)
+        self._edit_menu.addAction(self._copy_action)
+
+        self._paste_action = QtWidgets.QAction('&Paste', self._mainwindow)
+        self._paste_action.setShortcut(shortcuts.SCINTILLA['PASTE'].key_sequence)
+        self._paste_action.setStatusTip('Paste from clipboard')
+        self._paste_action.triggered.connect(self._editor.paste)
+        self._edit_menu.addAction(self._paste_action)
+
+        self._edit_menu.addSeparator()
+
+        self._indent_action = QtWidgets.QAction('Indent Block', self._mainwindow)
+        self._indent_action.setShortcut(shortcuts.SCINTILLA['INDENT'].key_sequence)
+        self._indent_action.setStatusTip('Indents the selected lines')
+        self._indent_action.triggered.connect(self._editor.indent)
+        self._edit_menu.addAction(self._indent_action)
+
+        self._unindent_action = QtWidgets.QAction('Unindent Block', self._mainwindow)
+        self._unindent_action.setShortcut(shortcuts.SCINTILLA['UNINDENT'].key_sequence)
+        self._unindent_action.setStatusTip('Unindents the selected lines')
+        self._unindent_action.triggered.connect(self._editor.unindent)
+        self._edit_menu.addAction(self._unindent_action)
 
         # Settings menu
         self._settings_menu = menubar.addMenu('&Settings')
@@ -147,7 +183,7 @@ class ModelEditor:
         pom_lamda = lambda name: lambda: self._transform(name)
         for frm in cfg.transformation_files:
             faction = QtWidgets.QAction(frm + " ...", self._mainwindow)
-            faction.setStatusTip('Transfor format of current document')
+            faction.setStatusTip('Transform format of current document')
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
 
@@ -396,10 +432,13 @@ class ModelEditor:
                     self._save_file()
         return True
 
-    def _refresh_undo_redo_availability(self):
-        """Enables or disables undo and redo actions based on their availability in editor."""
+    def _refresh_edit_menu(self):
+        """Enables or disables edit menu actions based on their availability."""
         self._undo_action.setEnabled(self._editor.isUndoAvailable())
         self._redo_action.setEnabled(self._editor.isRedoAvailable())
+        self._cut_action.setEnabled(self._editor.hasSelectedText())
+        self._copy_action.setEnabled(self._editor.hasSelectedText())
+
 
 
     def main(self):

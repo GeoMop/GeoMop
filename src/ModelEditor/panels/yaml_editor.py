@@ -12,6 +12,9 @@ from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 import icon
+from contextlib import ContextDecorator
+from PyQt5.QtCore import QObject, pyqtSignal
+import helpers.keyboard_shortcuts as shortcuts
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -29,17 +32,20 @@ class YamlEditorWidget(QsciScintilla):
     .. _cursor_changed:
     Signal is sent when cursor position is changed.
     """
+
     nodeChanged = QtCore.pyqtSignal(int, int)
     """
     .. _node_changed:
     Signal is sent when node below cursor position is changed.
     """
+
     structureChanged = QtCore.pyqtSignal(int, int)
     """
     .. _structure_changed:
     Signal is sent when node structure document is changed.
     Reload and check is need
     """
+
     errorMarginClicked = QtCore.pyqtSignal(int)
     """
     .. _error_margin_clicked:
@@ -48,8 +54,17 @@ class YamlEditorWidget(QsciScintilla):
     parameter: line number in text document
     """
 
+
     def __init__(self, parent=None):
         super(YamlEditorWidget, self).__init__(parent)
+
+        self.reload_chunk = ReloadChunk()
+        """
+        reload chunk is a context manager used to make multiple text changes without
+        triggering a reload function
+        """
+
+        self.reload_chunk.onExit.connect(self.textChanged)
 
         appearance.set_default_appearens(self)
 
@@ -117,6 +132,10 @@ class YamlEditorWidget(QsciScintilla):
         self.textChanged.connect(self._text_changed)
         self._pos = editorPosition()
 
+        # disable QScintilla keyboard shorcuts to handle them in Qt
+        for name, shortcut in shortcuts.SCINTILLA.items():
+            self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
+
         # begin undo
         self.beginUndoAction()
 
@@ -164,11 +183,12 @@ class YamlEditorWidget(QsciScintilla):
 
     def _text_changed(self):
         """Function for textChanged signal"""
-        self._pos.new_array_line_completation(self)
-        self._pos.spec_char_completation(self)
-        if not self._pos.fix_bounds(self):
-            line, index = self.getCursorPosition()
-            self.structureChanged.emit(line + 1, index + 1)
+        if not self.reload_chunk.freeze_reload:
+            self._pos.new_array_line_completation(self)
+            self._pos.spec_char_completation(self)
+            if not self._pos.fix_bounds(self):
+                line, index = self.getCursorPosition()
+                self.structureChanged.emit(line + 1, index + 1)
 
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
@@ -197,6 +217,134 @@ class YamlEditorWidget(QsciScintilla):
                             if (present & (1 << i)) == (1 << i):
                                 self.markerDelete(line, i + 4)
                 self.markerAdd(line, error.severity.value + 4)
+
+    def keyPressEvent(self, event):
+        """Modifies behavior when Tab is pressed."""
+        if event.type() != QtCore.QEvent.KeyPress:
+            return
+
+        actions = {
+            shortcuts.SCINTILLA['INDENT']: self.indent,
+            shortcuts.SCINTILLA['UNINDENT']: self.unindent,
+            shortcuts.SCINTILLA['CUT']: self.cut,
+            shortcuts.SCINTILLA['COPY']: self.copy,
+            shortcuts.SCINTILLA['PASTE']: self.paste,
+            shortcuts.SCINTILLA['UNDO']: self.undo,
+            shortcuts.SCINTILLA['REDO']: self.redo,
+        }
+
+        for shortcut, action in actions.items():
+            if shortcut.matches_keyEvent(event):
+                action()
+                event.accept()
+                return
+
+        return super(YamlEditorWidget, self).keyPressEvent(event)
+
+    def indent(self):
+        """Indents the selected lines."""
+        with self.reload_chunk:
+            from_line, from_col, to_line, to_col = self.getSelection()
+            if from_line == -1 and to_line == -1:  # no selection -> insert spaces
+                spaces = ''.join([' ' * self.tabWidth()])
+                self.insertAtCursor(spaces)
+            else:  # text selected -> perform indent
+                for line in range(from_line, to_line + 1):
+                    super(YamlEditorWidget, self).indent(line)
+                from_col += self.tabWidth()
+                to_col += self.tabWidth()
+                self.setSelection(from_line, from_col, to_line, to_col)
+
+    def unindent(self):
+        """Unindents the selected lines."""
+        from_line, from_col, to_line, to_col = self.getSelection()
+        if from_line == -1 and to_line == -1:  # no selection -> unindent current line
+            line, col = self.getCursorPosition()
+            from_line = to_line = line
+            super(YamlEditorWidget, self).unindent(line)
+            self.setCursorPosition(line, col - self.tabWidth())
+        else:  # selection -> unindent selected lines
+            for line in range(from_line, to_line + 1):
+                super(YamlEditorWidget, self).unindent(line)
+            from_col -= self.tabWidth()
+            to_col -= self.tabWidth()
+            self.setSelection(from_line, from_col, to_line, to_col)
+
+    def insertAtCursor(self, text):
+        """Inserts `text` at cursor position and moves the cursor to the end of inserted text."""
+        line, col = self.getCursorPosition()
+        self.insertAt(text, line, col)
+        text_lines = text.splitlines()
+        cursor_line = line + len(text_lines) - 1
+        if line == cursor_line:
+            cursor_col = col + len(text_lines[0])
+        else:
+            cursor_col = len(text_lines[-1])
+        self.setCursorPosition(cursor_line, cursor_col)
+
+    def undo(self):
+        """Moves back in editing history by a single reload."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).undo()
+
+    def redo(self):
+        """Moves forth in editing history by a single reload."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).redo()
+
+    def copy(self):
+        """Copy to clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).copy()
+
+    def cut(self):
+        """Cut to clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).cut()
+
+    def paste(self):
+        """Paste from clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).paste()
+
+    def contextMenuEvent(self, event):
+        """Override default context menu of Scintilla."""
+        return
+
+
+class ReloadChunk(ContextDecorator, QObject):
+    """
+    Class represents a sequence of editor changes that are clumped together to form a single
+    reload event. Note that reload should be prevented from occurring while
+    `ReloadChunk.freeze_reload` is set to True.
+
+    This class is used by the `YamlEditorWidget` class using the with statement::
+
+        reload_chunk = ReloadChunk()
+        with reload_chunk:
+            # perform multiple changes
+            # reload_chunk.freeze_reload prevents reload changes during editing
+        # upon exit, onExit event is triggered (can be connected to textChanged)
+    """
+
+    onEnter = pyqtSignal()
+    """signal is triggered when reload chunk is opened"""
+
+    onExit = pyqtSignal()
+    """signal is triggered when reload chunk is closed"""
+
+    freeze_reload = False
+    """indicates whether reload function should be frozen"""
+
+    def __enter__(self):
+        self.freeze_reload = True
+        self.onEnter.emit()
+        return self
+
+    def __exit__(self, *exc):
+        self.freeze_reload = False
+        self.onExit.emit()
+        return False
 
 
 class editorPosition():
@@ -456,22 +604,20 @@ class editorPosition():
         autoCompleteFromAPI
           - could it be used somehow?
 
-        find/reaplce:
+        find/replace:
           - findFirst
           - findNext
           - findFirstInSelection
           - replace
 
         editing:
-          - copy
           - cut
+          - copy
           - paste
 
         additional:
           - indent
           - unindent
+          - comment toggle
 
-        history:
-          - undo
-          - redo
     """
