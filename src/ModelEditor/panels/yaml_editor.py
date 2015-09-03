@@ -15,6 +15,8 @@ import icon
 from contextlib import ContextDecorator
 from PyQt5.QtCore import QObject, pyqtSignal
 import helpers.keyboard_shortcuts as shortcuts
+import re
+from PyQt5.QtWidgets import QMenu, QAction
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -64,8 +66,6 @@ class YamlEditorWidget(QsciScintilla):
         triggering a reload function
         """
 
-        self.reload_chunk.onExit.connect(self.textChanged)
-
         appearance.set_default_appearens(self)
 
         # Set Yaml lexer
@@ -74,6 +74,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setLexer(self._lexer)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
+        # editor behavior
         self.setAutoIndent(True)
         self.setIndentationGuides(True)
         self.setIndentationsUseTabs(False)
@@ -114,6 +115,7 @@ class YamlEditorWidget(QsciScintilla):
         self.markerDefine(icon.get_pixmap("error", 16), dn.DataError.Severity.error.value)
         self.markerDefine(icon.get_pixmap("warning", 16), dn.DataError.Severity.warning.value)
         self.markerDefine(icon.get_pixmap("information", 16), dn.DataError.Severity.info.value)
+
         # Nonclickable margin 2 for showing markers
         self.setMarginWidth(2, 4)
         self.setMarginMarkerMask(2, 0xF0)
@@ -127,6 +129,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setMarkerBackgroundColor(QtGui.QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
 
         # signals
+        self.reload_chunk.onExit.connect(self._reload_chunk_onExit)
         self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
@@ -190,6 +193,11 @@ class YamlEditorWidget(QsciScintilla):
                 line, index = self.getCursorPosition()
                 self.structureChanged.emit(line + 1, index + 1)
 
+    def _reload_chunk_onExit(self):
+        """Emits a structure change upon closing a reload chunk."""
+        line, index = self.getCursorPosition()
+        self.structureChanged.emit(line + 1, index + 1)
+
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
         if (0xF & self.markersAtLine(line)) != 0:
@@ -219,7 +227,7 @@ class YamlEditorWidget(QsciScintilla):
                 self.markerAdd(line, error.severity.value + 4)
 
     def keyPressEvent(self, event):
-        """Modifies behavior when Tab is pressed."""
+        """Modifies behavior to handle custom keyboard shortcuts."""
         if event.type() != QtCore.QEvent.KeyPress:
             return
 
@@ -231,6 +239,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.SCINTILLA['PASTE']: self.paste,
             shortcuts.SCINTILLA['UNDO']: self.undo,
             shortcuts.SCINTILLA['REDO']: self.redo,
+            shortcuts.SCINTILLA['COMMENT']: self.comment,
         }
 
         for shortcut, action in actions.items():
@@ -306,6 +315,37 @@ class YamlEditorWidget(QsciScintilla):
         """Paste from clipboard."""
         with self.reload_chunk:
             super(YamlEditorWidget, self).paste()
+
+    def comment(self):
+        """(Un)Comments the selected lines."""
+        with self.reload_chunk:
+            from_line, from_col, to_line, to_col = self.getSelection()
+            if from_line == -1 and to_line == -1:  # no selection -> current line
+                cur_line, cur_col = self.getCursorPosition()
+                from_line = to_line = cur_line
+
+            # prepare lines with and without comment
+            is_comment = True
+            comment_re = re.compile(r'(\s*)# ?(.*)')
+            lines_without_comment = []
+            lines_with_comment = []
+            for line in range(from_line, to_line + 1):
+                text = self.text(line).splitlines()[0]
+                match = comment_re.match(text)
+                lines_with_comment.append('# ' + text)
+                if not match:
+                    is_comment = False
+                else:
+                    lines_without_comment.append(match.group(1) + match.group(2))
+
+            # replace the selection with the toggled comment
+            self.setSelection(from_line, 0, to_line + 1, 0)  # select entire text
+            if is_comment:  # check if comment is applied to all lines
+                lines_without_comment.append('')
+                self.replaceSelectedText('\n'.join(lines_without_comment))
+            else:  # not a comment already - prepend all lines with '# '
+                lines_with_comment.append('')
+                self.replaceSelectedText('\n'.join(lines_with_comment))
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""

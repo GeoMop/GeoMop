@@ -85,4 +85,5 @@ SCINTILLA = {
     'REDO': KeyboardShortcut('Ctrl+Y'),
     'INDENT': KeyboardShortcut('Tab'),
     'UNINDENT': KeyboardShortcut('Shift+Tab'),
+    'COMMENT': KeyboardShortcut('Ctrl+/'),
 }

@@ -157,6 +157,14 @@ class ModelEditor:
         self._unindent_action.triggered.connect(self._editor.unindent)
         self._edit_menu.addAction(self._unindent_action)
 
+        self._edit_menu.addSeparator()
+
+        self._comment_action = QtWidgets.QAction('Toggle Comment', self._mainwindow)
+        self._comment_action.setShortcut(shortcuts.SCINTILLA['COMMENT'].key_sequence)
+        self._comment_action.setStatusTip('Toggles Comment for the selected lines')
+        self._comment_action.triggered.connect(self._editor.comment)
+        self._edit_menu.addAction(self._comment_action)
+
         # Settings menu
         self._settings_menu = menubar.addMenu('&Settings')
         self._format = self._settings_menu.addMenu('&Format')
