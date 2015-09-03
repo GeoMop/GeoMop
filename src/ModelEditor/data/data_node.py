@@ -69,6 +69,12 @@ class DataNode:
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         raise NotImplementedError
+        
+    def is_child_on_line(self, line):
+        """
+        Return if in set line is some child
+        """
+        return False
 
     def get_node_at_path(self, path):
         """returns node at given path"""
@@ -196,6 +202,15 @@ class CompositeNode(DataNode):
                 return
         # still not ended - new key
         self.children.append(node)
+        
+    def is_child_on_line(self, line):
+        """
+        Return if in set line is some child
+        """
+        for child in self.children:
+            if child.start.line <= line and child.end.line >= line: 
+                return True
+        return False
 
     @property
     def children_keys(self):
