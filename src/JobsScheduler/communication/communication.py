@@ -9,6 +9,8 @@ import socket
 import subprocess
 import re
 
+__MAX_OPEN_PORTS__=200
+
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
     
@@ -98,7 +100,11 @@ class StdInputComm(InputComm):
 
     def connect(self):
         """connect session"""
-        pass
+        try:
+            fd = fdpexpect.fdspawn(self.input)
+            fd.read_nonblocking(size=10000, timeout=0)
+        except pexpect.TIMEOUT:
+            pass
 
     def send(self, msg):
         """send message to output stream"""
@@ -111,6 +117,7 @@ class StdInputComm(InputComm):
         
         Function wait for answer for set time in seconds
         """
+        mess = None
         try:
             fd = fdpexpect.fdspawn(self.input)
             txt = fd.read_nonblocking(size=10000, timeout=wait)
@@ -138,10 +145,25 @@ class SocketInputComm(InputComm):
         """Socket connection"""
 
     def connect(self):
-        """connect session"""
+        """connect session and send port number over stdout"""
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("", self.port))
+        ok = False
+        i = 0
+        while not ok:
+            try:
+                s.bind(("", self.port + i))
+                ok = True
+                sys.stdout.write("PORT:--" + str(self.port + i) + "--\n")
+                sys.stdout.flush()
+            except OSError as err:
+                if err.errno == 98:
+                    i += 1
+                    if __MAX_OPEN_PORTS__< i:
+                        raise Exception("Max open ports number is exceed")
+                else:
+                    raise err
         s.listen(1)
+        self.port += i
         self.conn, addr = s.accept()
         logging.debug("Server is listened on port" + str(self.port) +" by " + str(addr)) 
   
@@ -397,8 +419,15 @@ class ExecOutputComm(OutputComm):
         
     def exec_(self, python_file):
         """run set python file in ssh"""
-        subprocess.Popen(self.installation.get_args(python_file))
-
+        process = subprocess.Popen(self.installation.get_args(python_file), 
+            stdout=subprocess.PIPE)
+        # wait for port number
+        out = process.stdout.readline()
+        port = re.match( 'PORT:--(\d+)--', str(out, 'utf-8'))
+        if port is not None:
+            logging.debug("Next communicator return socket port:" + port.group(1)) 
+            self.port = int(port.group(1))
+ 
     def send(self,  mess):
         """send json message"""        
         b = bytes(mess.pack(), "us-ascii")

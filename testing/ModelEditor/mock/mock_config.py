@@ -6,8 +6,8 @@ from data.error_handler import ErrorHandler
 
 def set_empty_config():
     Config.SERIAL_FILE = "ModelEditorData_test"
-    cfg.init(None)
     cfg.config = Config()
+    cfg.init(None)
 
 
 def clean_config():

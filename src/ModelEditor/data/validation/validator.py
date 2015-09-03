@@ -37,6 +37,7 @@ class Validator:
         if node is None:
             raise errors.ValidationError("Invalid node (None)")
 
+        node.input_type = input_type
         if input_type['base_type'] in Validator.SCALAR:
             self._validate_scalar(node, input_type)
         elif input_type['base_type'] == 'Record':
@@ -52,6 +53,7 @@ class Validator:
             self._report_error(message, error)
 
     def _validate_scalar(self, node, input_type):
+        """Validates a Scalar node."""
         if input_type['base_type'] == 'Selection':
             node.options = input_type['values']
         try:
@@ -60,6 +62,7 @@ class Validator:
             self._report_error(node, error)
 
     def _validate_record(self, node, input_type):
+        """Validates a Record node."""
         if not isinstance(node, dn.CompositeNode) or not node.explicit_keys:
             self._report_error(node, errors.ValidationTypeError("Expecting type Record"))
             return
@@ -80,14 +83,17 @@ class Validator:
                     self._validate_node(child, child_input_type)
 
     def _validate_abstract(self, node, input_type):
+        """Validates an AbtractRecord node."""
         try:
             concrete_type = checks.get_abstractrecord_type(node, input_type)
         except errors.ValidationError as error:
             self._report_error(node, error)
         else:
+            node.input_type = concrete_type
             self._validate_record(node, concrete_type)
 
     def _validate_array(self, node, input_type):
+        """Validates an Array node."""
         if not isinstance(node, dn.CompositeNode) or node.explicit_keys:
             self._report_error(node, errors.ValidationTypeError("Expecting type Array"))
             return
