@@ -16,7 +16,7 @@ from contextlib import ContextDecorator
 from PyQt5.QtCore import QObject, pyqtSignal
 import helpers.keyboard_shortcuts as shortcuts
 import re
-from PyQt5.QtWidgets import QMenu, QAction
+from widgets.menus import EditMenu
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -240,6 +240,8 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.SCINTILLA['UNDO']: self.undo,
             shortcuts.SCINTILLA['REDO']: self.redo,
             shortcuts.SCINTILLA['COMMENT']: self.comment,
+            shortcuts.SCINTILLA['DELETE']: self.delete,
+            shortcuts.SCINTILLA['SELECT_ALL']: self.selectAll,
         }
 
         for shortcut, action in actions.items():
@@ -316,6 +318,15 @@ class YamlEditorWidget(QsciScintilla):
         with self.reload_chunk:
             super(YamlEditorWidget, self).paste()
 
+    def delete(self):
+        """Deletes selected text."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).removeSelectedText()
+
+    def selectAll(self):
+        """Selects the entire text."""
+        super(YamlEditorWidget, self).selectAll()
+
     def comment(self):
         """(Un)Comments the selected lines."""
         with self.reload_chunk:
@@ -330,7 +341,7 @@ class YamlEditorWidget(QsciScintilla):
             lines_without_comment = []
             lines_with_comment = []
             for line in range(from_line, to_line + 1):
-                text = self.text(line).splitlines()[0]
+                text = self.text(line).replace('\n', '')
                 match = comment_re.match(text)
                 lines_with_comment.append('# ' + text)
                 if not match:
@@ -349,7 +360,9 @@ class YamlEditorWidget(QsciScintilla):
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
-        return
+        context_menu = EditMenu(self)
+        context_menu.exec_(event.globalPos())
+        event.accept()
 
 
 class ReloadChunk(ContextDecorator, QObject):
@@ -649,15 +662,4 @@ class editorPosition():
           - findNext
           - findFirstInSelection
           - replace
-
-        editing:
-          - cut
-          - copy
-          - paste
-
-        additional:
-          - indent
-          - unindent
-          - comment toggle
-
     """

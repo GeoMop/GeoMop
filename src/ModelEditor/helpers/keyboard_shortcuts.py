@@ -17,6 +17,7 @@ class KeyboardShortcut:
         'SHIFT': QsciScintilla.SCMOD_SHIFT << 16,
         'ALT': QsciScintilla.SCMOD_ALT << 16,
         'TAB': QsciScintilla.SCK_TAB,
+        'DELETE': QsciScintilla.SCK_DELETE,
     }
 
     __QT_MODIFIERS = {
@@ -26,7 +27,8 @@ class KeyboardShortcut:
     }
 
     __QT_KEYS = {
-        'TAB': Qt.Key_Tab
+        'TAB': Qt.Key_Tab,
+        'DELETE': Qt.Key_Delete,
     }
 
     def __init__(self, shortcut):
@@ -86,4 +88,6 @@ SCINTILLA = {
     'INDENT': KeyboardShortcut('Tab'),
     'UNINDENT': KeyboardShortcut('Shift+Tab'),
     'COMMENT': KeyboardShortcut('Ctrl+/'),
+    'DELETE': KeyboardShortcut('Delete'),
+    'SELECT_ALL': KeyboardShortcut('Ctrl+A'),
 }
