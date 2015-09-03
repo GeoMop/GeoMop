@@ -89,15 +89,19 @@ class MultiJobDialog(QtWidgets.QDialog):
                 self.ui.numberOfProcessesSpinBox.minimum())
 
     def _connect_slots_(self):
-        # QtCore.QMetaObject.connectSlotsByName(self)
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
+        self.ui.analysisPushButton.clicked.connect(
+            lambda: self.ui.analysisLineEdit.setText(
+                self.ui.analysisFolderPicker.getExistingDirectory
+                (self, directory=self.ui.analysisLineEdit.text())))
 
 
 class UiMultiJobDialog(UiFormDialog):
     """
     UI extensions of form dialog.
     """
+
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
 
@@ -139,7 +143,6 @@ class UiMultiJobDialog(UiFormDialog):
         self.analysisLabel.setText("Analysis:")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                   self.analysisLabel)
-
         self.rowSplit = QtWidgets.QHBoxLayout()
         self.rowSplit.setObjectName("rowSplit")
         self.analysisLineEdit = QtWidgets.QLineEdit(
@@ -149,10 +152,16 @@ class UiMultiJobDialog(UiFormDialog):
         self.analysisLineEdit.setObjectName("analysisLineEdit")
         self.analysisLineEdit.setProperty("clearButtonEnabled", True)
         self.rowSplit.addWidget(self.analysisLineEdit)
-        self.toolButton = QtWidgets.QToolButton(self.mainVerticalLayoutWidget)
-        self.toolButton.setObjectName("toolButton")
-        self.toolButton.setText("...")
-        self.rowSplit.addWidget(self.toolButton)
+        self.analysisPushButton = QtWidgets.QPushButton(
+            self.mainVerticalLayoutWidget)
+        self.analysisPushButton.setObjectName("analysisPushButton")
+        self.analysisPushButton.setText("Browse")
+        self.rowSplit.addWidget(self.analysisPushButton)
+        self.analysisFolderPicker = QtWidgets.QFileDialog(
+            self.mainVerticalLayoutWidget)
+        self.analysisPushButton.setObjectName("analysisFolderPicker")
+        self.analysisFolderPicker.setFileMode(QtWidgets.QFileDialog.Directory)
+        self.analysisFolderPicker.setOption(QtWidgets.QFileDialog.ShowDirsOnly)
         self.formLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole,
                                   self.rowSplit)
 

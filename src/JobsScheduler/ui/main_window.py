@@ -47,27 +47,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mj_dlg.show()
 
     def _handle_edit_multijob_action(self):
-        self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_EDIT)
-        index = self.ui.multiJobOverview.indexOfTopLevelItem(
-            self.ui.multiJobOverview.currentItem())
-        self.mj_dlg.set_data(list(self.data.multi_jobs[index]))
-        self.mj_dlg.show()
+        if self.data.multi_jobs:
+            self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_EDIT)
+            index = self.ui.multiJobOverview.indexOfTopLevelItem(
+                self.ui.multiJobOverview.currentItem())
+            self.mj_dlg.set_data(list(self.data.multi_jobs[index]))
+            self.mj_dlg.show()
 
     def _handle_copy_multijob_action(self):
-        self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_COPY)
-        index = self.ui.multiJobOverview.indexOfTopLevelItem(
-            self.ui.multiJobOverview.currentItem())
-        data = list(self.data.multi_jobs[index])
-        data[0] = None
-        data[1] = "Copy of " + data[1]
-        self.mj_dlg.set_data(data)
-        self.mj_dlg.show()
+        if self.data.multi_jobs:
+            self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_COPY)
+            index = self.ui.multiJobOverview.indexOfTopLevelItem(
+                self.ui.multiJobOverview.currentItem())
+            data = list(self.data.multi_jobs[index])
+            data[0] = None
+            data[1] = "Copy of " + data[1]
+            self.mj_dlg.set_data(data)
+            self.mj_dlg.show()
 
     def _handle_delete_multijob_action(self):
-        index = self.ui.multiJobOverview.indexOfTopLevelItem(
-            self.ui.multiJobOverview.currentItem())
-        self.data.multi_jobs.pop(index)
-        self.ui.multiJobOverview.set_data(self.data.multi_jobs)
+        if self.data.multi_jobs:
+            index = self.ui.multiJobOverview.indexOfTopLevelItem(
+                self.ui.multiJobOverview.currentItem())
+            self.data.multi_jobs.pop(index)
+            self.ui.multiJobOverview.set_data(self.data.multi_jobs)
 
     def handle_multijob_dialog(self):
         data = self.mj_dlg.get_data()
