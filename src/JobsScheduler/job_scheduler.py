@@ -15,7 +15,7 @@ sys.path.insert(1, __lib_dir__)
 import PyQt5.QtWidgets as QtWidgets
 from ui.main_window import MainWindow
 from ui.dialogs.multijob import MultiJobDialog
-from ui.dialogs.presets import SshPresets
+from ui.dialogs.ssh_presets import SshPresets
 
 
 class JobsScheduler(object):
@@ -25,8 +25,7 @@ class JobsScheduler(object):
         """Initialization of UI"""
         self._app = QtWidgets.QApplication(sys.argv)
         self._main_window = MainWindow()
-        self._add_mj_dlg = MultiJobDialog(self._main_window)
-        self._ssh_presets_dlg = SshPresets(self._main_window)
+        self._main_window.show()
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":
