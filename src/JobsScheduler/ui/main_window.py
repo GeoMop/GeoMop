@@ -43,7 +43,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
-        self.mj_dlg.set_data(None)
         self.mj_dlg.show()
 
     def _handle_edit_multijob_action(self):
@@ -72,9 +71,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.multi_jobs.pop(index)
             self.ui.multiJobOverview.set_data(self.data.multi_jobs)
 
-    def handle_multijob_dialog(self):
-        data = self.mj_dlg.get_data()
-        if not data[0]:
+    def handle_multijob_dialog(self, purpose, data):
+        if purpose != MultiJobDialog.PURPOSE_EDIT:
             data[0] = str(uuid.uuid4())
             self.data.multi_jobs.append(data)
         else:

@@ -14,6 +14,10 @@ class MultiJobDialog(QtWidgets.QDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
+    # Dialog purpose
+    purpose = None
+
+    # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddMultiJobDialog",
                        windowTitle="Job Scheduler - Add new MultiJob",
@@ -27,6 +31,7 @@ class MultiJobDialog(QtWidgets.QDialog):
                         title="Edit MultiJob",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
+
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyMultiJobDialog",
                         windowTitle="Job Scheduler - Copy MultiJob",
@@ -34,26 +39,26 @@ class MultiJobDialog(QtWidgets.QDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD):
+    # Overwrite with custom accept
+    accepted = QtCore.pyqtSignal(dict, list)
+
+    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(MultiJobDialog, self).__init__(parent)
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
+        self.set_purpose(purpose, data)
+        self._connect_slots()
 
-        self._purpose_ = None
-        self.set_purpose(purpose)
+    def accept(self):
+        super(MultiJobDialog, self).accept()
+        self.accepted.emit(self.purpose, self.get_data())
 
-        self._connect_slots_()
-
-    def set_purpose(self, purpose):
-        # there should be reset to form if already accepted
-        self._purpose_ = purpose
+    def set_purpose(self, purpose=None, data=None):
+        self.set_data(data)
+        self.purpose = purpose
         self.setObjectName(purpose["objectName"])
         self.setWindowTitle(purpose["windowTitle"])
-
-        # title label
         self.ui.titleLabel.setText(purpose["title"])
-
-        # subtitle label
         self.ui.subtitleLabel.setText(purpose["subtitle"])
 
     def get_data(self):
@@ -88,7 +93,7 @@ class MultiJobDialog(QtWidgets.QDialog):
             self.ui.numberOfProcessesSpinBox.setValue(
                 self.ui.numberOfProcessesSpinBox.minimum())
 
-    def _connect_slots_(self):
+    def _connect_slots(self):
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
         self.ui.analysisPushButton.clicked.connect(
