@@ -5,7 +5,7 @@ __author__ = 'Tomas Krizek'
 
 
 from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtGui import QKeySequence, QKeyEvent
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import Qt
 
 
@@ -90,4 +90,6 @@ SCINTILLA = {
     'COMMENT': KeyboardShortcut('Ctrl+/'),
     'DELETE': KeyboardShortcut('Delete'),
     'SELECT_ALL': KeyboardShortcut('Ctrl+A'),
+    'FIND': KeyboardShortcut('Ctrl+F'),
+    'REPLACE': KeyboardShortcut('Ctrl+H'),
 }

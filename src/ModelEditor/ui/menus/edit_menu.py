@@ -8,14 +8,15 @@ __author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import QMenu, QAction
 import helpers.keyboard_shortcuts as shortcuts
+from dialogs import FindDialog
 
 
 class EditMenu(QMenu):
     """Menu with editing actions."""
 
-    def __init__(self, editor, title='&Edit'):
+    def __init__(self, parent, editor, title='&Edit'):
         """Initializes the class."""
-        super(EditMenu, self).__init__()
+        super(EditMenu, self).__init__(parent)
 
         self._editor = editor
         self.aboutToShow.connect(self._check_action_availability)
@@ -111,3 +112,49 @@ class EditMenu(QMenu):
         self.cut_action.setEnabled(self._editor.hasSelectedText())
         self.copy_action.setEnabled(self._editor.hasSelectedText())
         self.delete_action.setEnabled(self._editor.hasSelectedText())
+
+
+class MainEditMenu(EditMenu):
+    """
+    Represents the main windows edit menu.
+    Contains some extra features compared to `EditMenu`.
+    """
+
+    def __init__(self, parent, editor, title='&Edit'):
+        """Initializes the class."""
+        self.parent = parent
+        self._editor = editor
+        self.findAction = None
+        self.findDialog = None
+        super(MainEditMenu, self).__init__(parent, editor, title)
+
+    def initActions(self):
+        """Initializes the actions."""
+        super(MainEditMenu, self).initActions()
+
+        self.find_action = QAction('&Find', self)
+        self.find_action.setShortcut(shortcuts.SCINTILLA['FIND'].key_sequence)
+        self.find_action.setStatusTip('Searches the document')
+        self.find_action.triggered.connect(self.on_find_action)
+
+    def initMenu(self):
+        """Initializes the menu user interface."""
+        super(MainEditMenu, self).initMenu()
+        self.addSeparator()
+        self.addAction(self.find_action)
+
+    def on_find_action(self):
+        """Handles the find action."""
+        if not self.findDialog or not self.findDialog.isVisible():
+            self.findDialog = FindDialog(self.parent)
+            self.findDialog.findRequested.connect(self._editor.findRequested)
+
+            # move the dialog to top right position of editor
+            top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
+            pos_x = top_right_editor.x() - FindDialog.WIDTH - 1
+            pos_y = top_right_editor.y() + 1
+            self.findDialog.move(pos_x, pos_y)
+
+            self.findDialog.show()
+
+        self.findDialog.activateWindow()

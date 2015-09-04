@@ -16,7 +16,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
 import icon
-from widgets.menus import EditMenu
+from ui.menus import MainEditMenu
 
 
 class ModelEditor:
@@ -43,7 +43,7 @@ class ModelEditor:
         # splitters
         self._vsplitter = QtWidgets.QSplitter(
             QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)
+        self._editor = panels.yaml_editor.YamlEditorWidget(self._mainwindow)
         self._tree = panels.tree.TreeWidget()
         self._vsplitter.addWidget(self._editor)
         self._vsplitter.addWidget(self._tab)
@@ -107,7 +107,7 @@ class ModelEditor:
         self._file_menu.addAction(self._exit_action)
 
         # Edit menu
-        self._edit_menu = EditMenu(self._editor)
+        self._edit_menu = MainEditMenu(self._mainwindow, self._editor)
         menubar.addMenu(self._edit_menu)
 
         # Settings menu

@@ -13,10 +13,10 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 import icon
 from contextlib import ContextDecorator
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import helpers.keyboard_shortcuts as shortcuts
 import re
-from widgets.menus import EditMenu
+from ui.menus import EditMenu
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -247,7 +247,6 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut, action in actions.items():
             if shortcut.matches_keyEvent(event):
                 action()
-                event.accept()
                 return
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
@@ -358,9 +357,18 @@ class YamlEditorWidget(QsciScintilla):
                 lines_with_comment.append('')
                 self.replaceSelectedText('\n'.join(lines_with_comment))
 
+    @pyqtSlot(str, bool, bool, bool)
+    def findRequested(self, search_term, is_regex, is_case_sensitive, is_word):
+        """Handles a find requested event."""
+        cur_line, cur_col = self.getCursorPosition()
+        self.setSelection(cur_line, cur_col, cur_line, cur_col)
+        self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
+                       index=cur_col)
+
+
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
-        context_menu = EditMenu(self)
+        context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
 
@@ -658,8 +666,5 @@ class editorPosition():
           - could it be used somehow?
 
         find/replace:
-          - findFirst
-          - findNext
-          - findFirstInSelection
           - replace
     """
