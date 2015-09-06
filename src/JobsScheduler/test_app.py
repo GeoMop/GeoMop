@@ -4,7 +4,7 @@ import logging
 sys.path.insert(1, './twoparty/pexpect')
 
 import data.communicator_conf as comconf
-from communication.communicator import Communicator
+from communication import Communicator
 import data.transport_data as tdata
 
 ccom = comconf.CommunicatorConfig()

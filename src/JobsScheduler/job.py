@@ -6,7 +6,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 import time
 import logging
 import data.communicator_conf as comconf
-from communication.communicator import Communicator
+from communication import Communicator
 
 ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "job"

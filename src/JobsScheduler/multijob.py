@@ -10,15 +10,15 @@ import data.transport_data as tdata
 
 import logging
 import data.communicator_conf as comconf
-from communication.communicator import Communicator
-import data.installation as dinstall
+from communication import Communicator
+from communication import Installation
 
 def  mj_action_funcion(message):
     """action function"""
     if message.action_type == tdata.ActionType.installation:
         logging.debug("Job apllication began start")
         try:
-            installation = dinstall.Installation()
+            installation = Installation()
             installation.local_copy_path()           
             subprocess.Popen(installation.get_args("job"))
             action = tdata.Action(tdata.ActionType.ok)
