@@ -25,6 +25,9 @@ class UiFormDialog(object):
             self.mainVerticalLayoutWidget)
         self.mainVerticalLayout.setObjectName("mainVerticalLayout")
 
+        # labels
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum,
+                                           QtWidgets.QSizePolicy.Maximum)
         # title label
         self.titleLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         title_font = QtGui.QFont()
@@ -34,6 +37,8 @@ class UiFormDialog(object):
         self.titleLabel.setFont(title_font)
         self.titleLabel.setObjectName("titleLabel")
         self.titleLabel.setText("Title")
+        self.titleLabel.setSizePolicy(sizePolicy)
+        # self.titleLabel.setWordWrap(True)
         self.mainVerticalLayout.addWidget(self.titleLabel)
 
         # subtitle label
@@ -43,6 +48,8 @@ class UiFormDialog(object):
         self.subtitleLabel.setFont(subtitle_font)
         self.subtitleLabel.setObjectName("subtitleLabel")
         self.subtitleLabel.setText("Subtitle text")
+        self.subtitleLabel.setSizePolicy(sizePolicy)
+        # self.subtitleLabel.setWordWrap(True)
         self.mainVerticalLayout.addWidget(self.subtitleLabel)
 
         # divider

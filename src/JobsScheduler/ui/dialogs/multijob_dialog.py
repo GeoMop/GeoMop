@@ -47,7 +47,14 @@ class MultiJobDialog(QtWidgets.QDialog):
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
         self.set_purpose(purpose, data)
-        self._connect_slots()
+
+        # connect slots
+        self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
+        self.ui.analysisPushButton.clicked.connect(
+            lambda: self.ui.analysisLineEdit.setText(
+                self.ui.analysisFolderPicker.getExistingDirectory
+                (self, directory=self.ui.analysisLineEdit.text())))
 
     def accept(self):
         super(MultiJobDialog, self).accept()
@@ -92,14 +99,6 @@ class MultiJobDialog(QtWidgets.QDialog):
             self.ui.logLevelComboBox.setCurrentIndex(0)
             self.ui.numberOfProcessesSpinBox.setValue(
                 self.ui.numberOfProcessesSpinBox.minimum())
-
-    def _connect_slots(self):
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
-        self.ui.analysisPushButton.clicked.connect(
-            lambda: self.ui.analysisLineEdit.setText(
-                self.ui.analysisFolderPicker.getExistingDirectory
-                (self, directory=self.ui.analysisLineEdit.text())))
 
 
 class UiMultiJobDialog(UiFormDialog):

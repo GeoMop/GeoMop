@@ -23,8 +23,7 @@ class SshPresets(QtWidgets.QDialog):
         self._connect_slots_()
         self.show()
 
-    def _connect_slots_(self):
-        # QtCore.QMetaObject.connectSlotsByName(self)
+    def _connect_slots(self):
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
 
