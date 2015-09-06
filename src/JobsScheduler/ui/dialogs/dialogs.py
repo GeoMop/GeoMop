@@ -86,8 +86,8 @@ class UiPresetsDialog(object):
     """
     def setup_ui(self, dialog):
         # dialog properties
-        dialog.setObjectName("PresetDialog")
-        dialog.setWindowTitle("Preset dialog")
+        dialog.setObjectName("PresetsDialog")
+        dialog.setWindowTitle("Presets dialog")
         dialog.setModal(True)
 
         # main dialog layout
@@ -120,6 +120,11 @@ class UiPresetsDialog(object):
         self.btnAdd.setObjectName("btnAdd")
         self.buttonLayout.addWidget(self.btnAdd)
 
+        self.btnEdit = QtWidgets.QPushButton(dialog)
+        self.btnEdit.setText("Edit")
+        self.btnEdit.setObjectName("btnEdit")
+        self.buttonLayout.addWidget(self.btnEdit)
+
         self.btnCopy = QtWidgets.QPushButton(dialog)
         self.btnCopy.setText("Copy")
         self.btnCopy.setObjectName("btnCopy")
@@ -145,8 +150,7 @@ class UiPresetsDialog(object):
             self.mainVerticalLayoutWidget)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Close |
-            QtWidgets.QDialogButtonBox.SaveAll)
+            QtWidgets.QDialogButtonBox.Close)
         self.buttonBox.setObjectName("buttonBox")
         self.mainVerticalLayout.addWidget(self.buttonBox)
 

@@ -9,7 +9,9 @@ Main window module
 from PyQt5 import QtCore, QtWidgets
 from ui.panels.multijob_overview import MultiJobOverview
 from ui.panels.multijob_infotab import MultiJobInfoTab
-from ui.dialogs.multijob import MultiJobDialog
+from ui.dialogs.multijob_dialog import MultiJobDialog
+from ui.dialogs.ssh_presets import SshPresets
+from ui.dialogs.pbs_presets import PbsPresets
 import uuid
 
 
@@ -37,6 +39,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
+
+        # ssh presets
+        self.ssh_presets_dlg = SshPresets(self, self.data.shh_presets)
+        self.ui.actionSshPresets.triggered.connect(
+            self.ssh_presets_dlg.show)
+
+        # ssh presets
+        self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
+        self.ui.actionPbsPresets.triggered.connect(
+            self.pbs_presets_dlg.show)
 
         # set data
         self.ui.multiJobOverview.set_data(self.data.multi_jobs)
@@ -85,8 +97,8 @@ class MainWindow(QtWidgets.QMainWindow):
 class DataMainWindow(object):
     def __init__(self):
         self.multi_jobs = list()
-        #self.pbs_presets
-        #self.shh_presets
+        self.shh_presets = list()
+        self.pbs_presets = list()
 
 
 class UiMainWindow(object):
@@ -172,14 +184,14 @@ class UiMainWindow(object):
         self.actionResources.setText("Resources")
         self.actionResources.setShortcut("Shift+R")
         self.actionResources.setObjectName("actionResources")
-        self.actionSSH_Connections = QtWidgets.QAction(main_window)
-        self.actionSSH_Connections.setText("SSH Connections")
-        self.actionSSH_Connections.setShortcut("Shift+S")
-        self.actionSSH_Connections.setObjectName("actionSSH_Connections")
-        self.actionPBSs = QtWidgets.QAction(main_window)
-        self.actionPBSs.setText("PBSs")
-        self.actionPBSs.setShortcut("Shift+P")
-        self.actionPBSs.setObjectName("actionPBSs")
+        self.actionSshPresets = QtWidgets.QAction(main_window)
+        self.actionSshPresets.setText("SSH Connections")
+        self.actionSshPresets.setShortcut("Shift+S")
+        self.actionSshPresets.setObjectName("actionSshPresets")
+        self.actionPbsPresets = QtWidgets.QAction(main_window)
+        self.actionPbsPresets.setText("PBS Presets")
+        self.actionPbsPresets.setShortcut("Shift+P")
+        self.actionPbsPresets.setObjectName("actionPbsPresets")
 
         self.actionRun = QtWidgets.QAction(main_window)
         self.actionRun.setText("Run")
@@ -209,8 +221,8 @@ class UiMainWindow(object):
         self.menuMultiJob.addAction(self.actionPause)
         self.menuMultiJob.addAction(self.actionStop)
         self.menuMultiJob.addAction(self.actionRestart)
-        self.menuSettings.addAction(self.actionSSH_Connections)
-        self.menuSettings.addAction(self.actionPBSs)
+        self.menuSettings.addAction(self.actionSshPresets)
+        self.menuSettings.addAction(self.actionPbsPresets)
         self.menuSettings.addAction(self.actionResources)
         self.menubar.addAction(self.menuMenu.menuAction())
         self.menubar.addAction(self.menuMultiJob.menuAction())
