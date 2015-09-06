@@ -185,6 +185,8 @@ class editorPosition():
         """Is value changed"""
         self.is_key_changed = False
         """Is key changed"""
+        self.last_key_type = None
+        """last key type possition changed"""
         self._old_text = [""]
         """All yaml text before changes"""
         self._last_line = ""
@@ -193,12 +195,12 @@ class editorPosition():
         """last after cursor text of line for comparison"""
         self._to_end_line = True
         """Bound max position is to end line"""
-        self._key_and_value = False
-        """Bound max position is to end line"""
         self._new_array_item = False
         """make new array item operation"""
         self._spec_char = ""
         """make special char operation"""
+        self.fatal = False
+        """fatal error node"""
 
     def new_array_line_completation(self, editor):
         """New line was added"""
@@ -221,8 +223,6 @@ class editorPosition():
             self._new_array_item = False
         if self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
-            if self._spec_char == " ":
-                editor.setCursorPosition(line, index + 1)
             self._spec_char = ""
 
     def spec_char_completation(self, editor):
@@ -240,8 +240,6 @@ class editorPosition():
                     self._spec_char = "'"
                 if new_line[index] == '{':
                     self._spec_char = "}"
-                if new_line[index] == ':' or new_line[index] == ',':
-                    self._spec_char = " "
 
     def new_pos(self, editor, line, index):
         """
@@ -259,15 +257,20 @@ class editorPosition():
             anal = self._init_analyzer(editor, line, index)
             pos_type = anal.get_pos_type()
             # value or key changed and cursor is in opposite
-            if self._key_and_value and self.begin_line == self.line:
-                if pos_type is analyzer.PosType.in_key:
-                    if self.is_value_changed:
+            if pos_type is analyzer.PosType.in_key:
+                if self.is_value_changed:
+                    return True
+                if self.last_key_type is not None:
+                    new_key_type = anal.get_key_pos_type()
+                    if new_key_type != self.last_key_type:
                         return True
             if pos_type is analyzer.PosType.in_value:
-                if self.is_key_changed:
+                if self.is_key_changed or self.last_key_type is not None:
+                    return True                
+            if pos_type is analyzer.PosType.in_inner:
+                if  self.node.is_child_on_line(line+1):
                     return True
-            if pos_type is not analyzer.PosType.in_inner:
-                return False
+            return False
         return True
 
     def fix_bounds(self, editor):
@@ -339,17 +342,24 @@ class editorPosition():
             else:
                 self.end_index += len(new_line) - len(self._last_line)
         self._save_lines(editor)
-        anal = self._init_analyzer(editor, self.line, self.index)
-        # value and key changed and cursor is in opposite
+        anal = self._init_analyzer(editor, self.line, self.index)        
+        # value or key changed and cursor is in opposite
         pos_type = anal.get_pos_type()
-        if self._key_and_value and self.begin_line == self.line:
-            if pos_type is analyzer.PosType.in_key:
-                self.is_key_changed = True
-                if self.is_value_changed:
-                    return False
+        if pos_type is analyzer.PosType.in_key:
+            self.is_key_changed = True
+            if self.is_value_changed:                    
+                return False
+            new_key_type = anal.get_key_pos_type()
+            if self.last_key_type is None:
+                self.last_key_type = new_key_type
+            elif self.last_key_type != new_key_type:
+                return False
         if pos_type is analyzer.PosType.in_value:
             self.is_value_changed = True
             if self.is_key_changed:
+                return False
+        if  self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0:
+            if anal.is_base_struct(new_line):
                 return False
         return True
 
@@ -368,7 +378,6 @@ class editorPosition():
             self.begin_line = node.start.line - 1
             self.end_index = node.end.column - 1
             self.end_line = node.end.line - 1
-            self._key_and_value = type(node) == dn.ScalarNode
         else:
             self.begin_line = 0
             self.begin_index = 0
@@ -377,6 +386,7 @@ class editorPosition():
         self.is_changed = False
         self.is_value_changed = False
         self.is_key_changed = False
+        self.last_key_type = None
         self._to_end_line = self.end_index == len(self._last_line)
         if len(self._last_line) == 0:
             self._to_end_line = True

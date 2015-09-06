@@ -28,13 +28,6 @@ def test_json():
     # uncomment function
     assert anal.uncomment(test[0]) == "key: [86, 95, 12]"
     assert anal.uncomment("key: [86, 95, 12]     # json 1.r") == "key: [86, 95, 12]"
-    # key change function
-    assert anal.key_changed("key: [86]") is False
-    assert anal.key_changed("key2: [86, 95, 12] # json 1.r") is True
-    # value change function
-    assert anal.value_changed("key2: [86, 95, 12] # json 1.r") is False
-    assert anal.value_changed("key2: [86, 95, 12]") is False
-    assert anal.value_changed("key: [86, 95] # json 1.r") is True
     # identation
     assert SubYamlChangeAnalyzer.indent_changed("test1","test2") is False
     assert SubYamlChangeAnalyzer.indent_changed("   test1","  test2") is True
@@ -77,7 +70,7 @@ def test_multiline():
     anal=SubYamlChangeAnalyzer(line, index, test)
     #key possition
     assert anal.get_pos_type() is PosType.in_key
-    index = 6
+    index = 7
     anal=SubYamlChangeAnalyzer(line, index, test)
     #value possition 1
     assert anal.get_pos_type() is PosType.in_value
@@ -113,3 +106,32 @@ def test_multiline():
     anal=SubYamlChangeAnalyzer(line, index, test)    
     #value possition 6    
     assert anal.get_pos_type() is PosType.in_value
+
+def test_key_area():
+    test = ["key: !test # tag test","oooo"]
+    line = 0
+    index = 7
+    anal=SubYamlChangeAnalyzer(line, index, test)
+    #init class
+    assert anal._area[0] == test[0]
+    #tag possition
+    assert anal.get_pos_type() is PosType.in_key
+    assert anal.get_key_pos_type() is KeyType.tag
+    line = 1
+    index = 0
+    anal=SubYamlChangeAnalyzer(line, index, test)
+    #value possition
+    assert anal.get_pos_type() is PosType.in_value
+    test = ["key: !tag &anchor # anchor test","oooo"]
+    line = 0
+    index = 9
+    anal=SubYamlChangeAnalyzer(line, index, test)
+    #tag possition
+    assert anal.get_pos_type() is PosType.in_key
+    assert anal.get_key_pos_type() is KeyType.tag
+    line = 0
+    index = 12
+    anal=SubYamlChangeAnalyzer(line, index, test)
+    #anchor possition
+    assert anal.get_pos_type() is PosType.in_key
+    assert anal.get_key_pos_type() is KeyType.anch        

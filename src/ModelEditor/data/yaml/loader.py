@@ -46,6 +46,7 @@ class Loader:
             if isinstance(root, dn.CompositeNode):
                 # pylint: disable=no-member
                 root.set_child(self._fatal_error_node)
+                root.span.end = self._fatal_error_node.end
         return root
 
     def _next_parse_event(self):
