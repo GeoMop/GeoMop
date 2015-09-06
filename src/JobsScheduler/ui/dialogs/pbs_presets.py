@@ -8,11 +8,11 @@ Presets dialogs
 from PyQt5 import QtWidgets, QtCore
 
 from ui.dialogs.dialogs import UiPresetsDialog
-from ui.dialogs.ssh_dialog import SshDialog
+from ui.dialogs.pbs_dialog import PbsDialog
 import uuid
 
 
-class SshPresets(QtWidgets.QDialog):
+class PbsPresets(QtWidgets.QDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -20,12 +20,12 @@ class SshPresets(QtWidgets.QDialog):
     presets_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None, presets=None):
-        super(SshPresets, self).__init__(parent)
-        self.ui = UiSshPresets()
+        super(PbsPresets, self).__init__(parent)
+        self.ui = UiPbsPresets()
         self.ui.setup_ui(self)
 
         self. presets = presets
-        self.presets_dlg = SshDialog()
+        self.presets_dlg = PbsDialog()
 
         # connect slots
         self.ui.buttonBox.accepted.connect(self.accept)
@@ -48,12 +48,12 @@ class SshPresets(QtWidgets.QDialog):
                                                                  str(item))
 
     def _handle_add_preset_action(self):
-        self.presets_dlg.set_purpose(SshDialog.PURPOSE_ADD)
+        self.presets_dlg.set_purpose(PbsDialog.PURPOSE_ADD)
         self.presets_dlg.show()
 
     def _handle_edit_preset_action(self):
         if self.presets:
-            self.presets_dlg.set_purpose(SshDialog.PURPOSE_EDIT)
+            self.presets_dlg.set_purpose(PbsDialog.PURPOSE_EDIT)
             index = self.ui.presets.indexOfTopLevelItem(
                 self.ui.presets.currentItem())
             self.presets_dlg.set_data(list(self.presets[index]))
@@ -61,7 +61,7 @@ class SshPresets(QtWidgets.QDialog):
 
     def _handle_copy_preset_action(self):
         if self.presets:
-            self.presets_dlg.set_purpose(SshDialog.PURPOSE_COPY)
+            self.presets_dlg.set_purpose(PbsDialog.PURPOSE_COPY)
             index = self.ui.presets.indexOfTopLevelItem(
                 self.ui.presets.currentItem())
             data = list(self.presets[index])
@@ -78,7 +78,7 @@ class SshPresets(QtWidgets.QDialog):
             self.presets_changed.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
-        if purpose != SshDialog.PURPOSE_EDIT:
+        if purpose != PbsDialog.PURPOSE_EDIT:
             data[0] = str(uuid.uuid4())
             self.presets.append(data)
         else:
@@ -88,7 +88,7 @@ class SshPresets(QtWidgets.QDialog):
         self.presets_changed.emit(self.presets)
 
 
-class UiSshPresets(UiPresetsDialog):
+class UiPbsPresets(UiPresetsDialog):
     """
     UI extensions of presets dialog.
     """
@@ -97,5 +97,5 @@ class UiSshPresets(UiPresetsDialog):
 
         # dialog properties
         dialog.resize(680, 510)
-        dialog.setObjectName("SshPresetsDialog")
-        dialog.setWindowTitle("SSH Presets")
+        dialog.setObjectName("PbsPresetsDialog")
+        dialog.setWindowTitle("PBS Presets")
