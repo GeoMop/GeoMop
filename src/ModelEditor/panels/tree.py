@@ -20,15 +20,52 @@ class TreeWidget(QtWidgets.QTreeView):
 
     def __init__(self):
         QtWidgets.QTreeView.__init__(self)
-        self.showColumn(2)
+        self.showColumn(3)
         self._model = TreeOfNodes(cfg.root)
         self.setModel(self._model)
-        self.setMinimumSize(150, 450)
+        self.setMinimumSize(350, 450)
+        self.setColumnWidth(0, 190)
+        self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
         self.clicked.connect(self._item_clicked)
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
         self._item_states = {}
+
+        stylesheet = """
+
+QTreeView {
+    background-color: #fbfbfb;
+    alternate-background-color: #fdfdfd;
+}
+
+
+QTreeView::branch:has-siblings:!adjoins-item {
+    border-image: url(../lib/icon/other/stylesheet-vline.png) 0;
+}
+
+QTreeView::branch:has-siblings:adjoins-item {
+    border-image: url(../lib/icon/other/stylesheet-branch-more.png) 0;
+}
+
+QTreeView::branch:!has-children:!has-siblings:adjoins-item {
+    border-image: url(../lib/icon/other/stylesheet-branch-end.png) 0;
+}
+
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings {
+        border-image: none;
+        image: url(../lib/icon/other/stylesheet-branch-closed.png);
+}
+
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings  {
+        border-image: none;
+        image: url(../lib/icon/other/stylesheet-branch-open.png);
+}
+"""
+
+        self.setStyleSheet(stylesheet)
 
     def reload(self):
         """start of reload data from config"""
