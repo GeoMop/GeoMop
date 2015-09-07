@@ -103,15 +103,21 @@ class DataNode:
     @property
     def info_text(self):
         """help text describing the input type"""
-        try:
-            input_type = self.parent.input_type
-        except (TypeError, KeyError, AttributeError):
-            try:
-                input_type = self.input_type
-            except (TypeError, KeyError, AttributeError):
+        if self.parent is None or self.parent.input_type is None:
+            if self.input_type is None:
                 return 'unknown id'
-
-        return InfoTextGenerator.get_info_text(input_type, selected=self.key.value)
+            return InfoTextGenerator.get_info_text(self.input_type, selected=self.key.value)
+        return InfoTextGenerator.get_info_text(self.parent.input_type, selected=self.key.value)    
+#        Vraci ti ti None, a dal to spadne, prosim oprav to a smaz muj kod, nevim co ten tvuj dela a nelibi se mi
+#        try:
+#            input_type = self.parent.input_type            
+#        except (TypeError, KeyError, AttributeError):
+#            try:
+#                input_type = self.input_type
+#            except (TypeError, KeyError, AttributeError):
+#                return 'unknown id'
+#
+#        return InfoTextGenerator.get_info_text(input_type, selected=self.key.value)
 
     def __str__(self):
         text = (
