@@ -2,6 +2,7 @@
 Module contains customized QScintilla editor.
 """
 
+# pylint: disable=invalid-name,no-name-in-module
 
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
@@ -9,7 +10,7 @@ import helpers.subyaml_change_analyzer as analyzer
 from helpers.editor_appearance import EditorAppearance as appearance
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
-import PyQt5.QtGui as QtGui
+from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
 import icon
 from contextlib import ContextDecorator
@@ -89,15 +90,15 @@ class YamlEditorWidget(QsciScintilla):
         self.setWrapVisualFlags(QsciScintilla.WrapFlagNone, QsciScintilla.WrapFlagByBorder)
 
         # colors
-        self._lexer.setColor(QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
-        self._lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
-        self.setIndentationGuidesBackgroundColor(QtGui.QColor("#e5e5e5"))
-        self.setIndentationGuidesForegroundColor(QtGui.QColor("#e5e5e5"))
-        self.setCaretLineBackgroundColor(QtGui.QColor("#f8f8f8"))
-        self.setMatchedBraceBackgroundColor(QtGui.QColor("#feffa8"))
-        self.setMatchedBraceForegroundColor(QtGui.QColor("#0000ff"))
-        self.setUnmatchedBraceBackgroundColor(QtGui.QColor("#fff2f0"))
-        self.setUnmatchedBraceForegroundColor(QtGui.QColor("#ff0000"))
+        self._lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self._lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        self.setIndentationGuidesBackgroundColor(QColor("#e5e5e5"))
+        self.setIndentationGuidesForegroundColor(QColor("#e5e5e5"))
+        self.setCaretLineBackgroundColor(QColor("#f8f8f8"))
+        self.setMatchedBraceBackgroundColor(QColor("#feffa8"))
+        self.setMatchedBraceForegroundColor(QColor("#0000ff"))
+        self.setUnmatchedBraceBackgroundColor(QColor("#fff2f0"))
+        self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # Completetion
         self._api = QsciAPIs(self._lexer)
@@ -123,10 +124,10 @@ class YamlEditorWidget(QsciScintilla):
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.error.value)
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.warning.value)
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.info.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#a50505"), 4 + dn.DataError.Severity.fatal.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee4c4c"), 4 + dn.DataError.Severity.error.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#FFAC30"), 4 + dn.DataError.Severity.warning.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
+        self.setMarkerBackgroundColor(QColor("#a50505"), 4 + dn.DataError.Severity.fatal.value)
+        self.setMarkerBackgroundColor(QColor("#ee4c4c"), 4 + dn.DataError.Severity.error.value)
+        self.setMarkerBackgroundColor(QColor("#FFAC30"), 4 + dn.DataError.Severity.warning.value)
+        self.setMarkerBackgroundColor(QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
 
         # signals
         self.reload_chunk.onExit.connect(self._reload_chunk_onExit)
@@ -136,7 +137,7 @@ class YamlEditorWidget(QsciScintilla):
         self._pos = editorPosition()
 
         # disable QScintilla keyboard shorcuts to handle them in Qt
-        for name, shortcut in shortcuts.SCINTILLA.items():
+        for __, shortcut in shortcuts.SCINTILLA.items():
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
         # begin undo
@@ -292,6 +293,15 @@ class YamlEditorWidget(QsciScintilla):
             cursor_col = len(text_lines[-1])
         self.setCursorPosition(cursor_line, cursor_col)
 
+    def setSelectionFromCursor(self, length):
+        """Selects `length` characters to the right from cursor."""
+        cur_line, cur_col = self.getCursorPosition()
+        self.setSelection(cur_line, cur_col, cur_line, cur_col + length)
+
+    def clearSelection(self):
+        """Clears current selection."""
+        self.setSelectionFromCursor(0)
+
     def undo(self):
         """Moves back in editing history by a single reload."""
         with self.reload_chunk:
@@ -321,8 +331,7 @@ class YamlEditorWidget(QsciScintilla):
         """Deletes selected text."""
         with self.reload_chunk:
             if not self.hasSelectedText():  # select a single character
-                cur_line, cur_col = self.getCursorPosition()
-                self.setSelection(cur_line, cur_col, cur_line, cur_col + 1)
+                self.setSelectionFromCursor(1)
             super(YamlEditorWidget, self).removeSelectedText()
 
     def selectAll(self):
@@ -362,12 +371,32 @@ class YamlEditorWidget(QsciScintilla):
 
     @pyqtSlot(str, bool, bool, bool)
     def findRequested(self, search_term, is_regex, is_case_sensitive, is_word):
-        """Handles a find requested event."""
+        """Handles find requested event."""
         cur_line, cur_col = self.getCursorPosition()
-        self.setSelection(cur_line, cur_col, cur_line, cur_col)
+        self.clearSelection()
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
 
+    @pyqtSlot(str, str, bool, bool, bool)
+    def replaceRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+        """Handles replace requested event."""
+        with self.reload_chunk:
+            if self.hasSelectedText():
+                self.replaceSelectedText(replacement)
+
+            self.findRequested(search_term, is_regex, is_case_sensitive, is_word)
+
+    @pyqtSlot(str, str, bool, bool, bool)
+    def replaceAllRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+        """Handles replace all requested event."""
+        with self.reload_chunk:
+            cursor = self.setCursorPosition(0, 0)
+            self.clearSelection()
+            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
+
+            while self.hasSelectedText():
+                self.replaceSelectedText(replacement)
+                self.findNext()
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
@@ -661,13 +690,3 @@ class editorPosition():
             self._last_line_after = None
         else:
             self._last_line_after = editor.text(self.line + 1)
-
-
-    # TODO: functions to implement
-    """
-        autoCompleteFromAPI
-          - could it be used somehow?
-
-        find/replace:
-          - replace
-    """

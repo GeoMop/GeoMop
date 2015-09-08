@@ -2,4 +2,4 @@
 
 __author__ = 'Tomas Krizek'
 
-from .search_dialogs import FindDialog
+from .search_dialogs import FindDialog, ReplaceDialog

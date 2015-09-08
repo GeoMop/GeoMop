@@ -8,7 +8,7 @@ __author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import QMenu, QAction
 import helpers.keyboard_shortcuts as shortcuts
-from dialogs import FindDialog
+from dialogs import FindDialog, ReplaceDialog
 
 
 class EditMenu(QMenu):
@@ -124,37 +124,67 @@ class MainEditMenu(EditMenu):
         """Initializes the class."""
         self.parent = parent
         self._editor = editor
-        self.findAction = None
-        self.findDialog = None
+        self.find_action = None
+        self.find_dialog = None
+        self.replace_action = None
+        self.replace_dialog = None
         super(MainEditMenu, self).__init__(parent, editor, title)
 
     def initActions(self):
         """Initializes the actions."""
         super(MainEditMenu, self).initActions()
 
-        self.find_action = QAction('&Find', self)
+        self.find_action = QAction('&Find...', self)
         self.find_action.setShortcut(shortcuts.SCINTILLA['FIND'].key_sequence)
         self.find_action.setStatusTip('Searches the document')
         self.find_action.triggered.connect(self.on_find_action)
+
+        self.replace_action = QAction('&Replace...', self)
+        self.replace_action.setShortcut(shortcuts.SCINTILLA['REPLACE'].key_sequence)
+        self.replace_action.setStatusTip('Replaces a string with another within the document')
+        self.replace_action.triggered.connect(self.on_replace_action)
 
     def initMenu(self):
         """Initializes the menu user interface."""
         super(MainEditMenu, self).initMenu()
         self.addSeparator()
         self.addAction(self.find_action)
+        self.addAction(self.replace_action)
 
     def on_find_action(self):
         """Handles the find action."""
-        if not self.findDialog or not self.findDialog.isVisible():
-            self.findDialog = FindDialog(self.parent)
-            self.findDialog.findRequested.connect(self._editor.findRequested)
+        self._editor.clearSelection()
+
+        if not self.find_dialog or not self.find_dialog.isVisible():
+            self.find_dialog = FindDialog(self.parent)
+            self.find_dialog.findRequested.connect(self._editor.findRequested)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
             pos_x = top_right_editor.x() - FindDialog.WIDTH - 1
             pos_y = top_right_editor.y() + 1
-            self.findDialog.move(pos_x, pos_y)
+            self.find_dialog.move(pos_x, pos_y)
 
-            self.findDialog.show()
+            self.find_dialog.show()
 
-        self.findDialog.activateWindow()
+        self.find_dialog.activateWindow()
+
+    def on_replace_action(self):
+        """Handles the replace action."""
+        self._editor.clearSelection()
+
+        if not self.replace_dialog or not self.replace_dialog.isVisible():
+            self.replace_dialog = ReplaceDialog(self.parent)
+            self.replace_dialog.findRequested.connect(self._editor.findRequested)
+            self.replace_dialog.replaceRequested.connect(self._editor.replaceRequested)
+            self.replace_dialog.replaceAllRequested.connect(self._editor.replaceAllRequested)
+
+            # move the dialog to top right position of editor
+            top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
+            pos_x = top_right_editor.x() - ReplaceDialog.WIDTH - 1
+            pos_y = top_right_editor.y() + 1
+            self.replace_dialog.move(pos_x, pos_y)
+
+            self.replace_dialog.show()
+
+        self.replace_dialog.activateWindow()
