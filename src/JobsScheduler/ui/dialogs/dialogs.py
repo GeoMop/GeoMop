@@ -8,6 +8,65 @@ Basic dialogs templates
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
+class FormDialog(QtWidgets.QDialog):
+    """
+    Dialog executive code with bindings and other functionality.
+    """
+    # Dialog purpose
+    purpose = None
+
+    # Purposes of dialog by action
+    PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
+                       objectName="AddDialog",
+                       windowTitle="Job Scheduler - Add",
+                       title="Add",
+                       subtitle="Please select details.")
+
+    PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
+                        objectName="Edit Dialog",
+                        windowTitle="Job Scheduler - Edit",
+                        title="Edit",
+                        subtitle="Change desired parameters and press SAVE to "
+                                 "apply changes.")
+
+    PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
+                        objectName="CopyDialog",
+                        windowTitle="Job Scheduler - Copy",
+                        title="Copy",
+                        subtitle="Change desired parameters and press SAVE to "
+                                 "apply changes.")
+
+    # Default Copy name prefix
+    COPY_PREFIX = "Copy of"
+
+    # Custom accept signal
+    accepted = QtCore.pyqtSignal(dict, list)
+
+    def accept(self):
+        super(FormDialog, self).accept()
+        self.accepted.emit(self.purpose, self.get_data())
+
+    def set_purpose(self, purpose=None, data=None):
+        self.set_data(data)
+        self.purpose = purpose
+        self.setObjectName(purpose["objectName"])
+        self.setWindowTitle(purpose["windowTitle"])
+        self.ui.titleLabel.setText(purpose["title"])
+        self.ui.subtitleLabel.setText(purpose["subtitle"])
+
+    def get_data(self):
+        """
+        Get data from form fields as list.
+        """
+        pass
+
+    def set_data(self, data=None):
+        """
+        Set data to form fields from list.
+        """
+        pass
+
+
 class UiFormDialog(object):
     """
     UI of basic form dialog.
@@ -80,6 +139,23 @@ class UiFormDialog(object):
         dialog.setLayout(self.mainVerticalLayout)
 
 
+class PresetsDialog(QtWidgets.QDialog):
+    """
+    Dialog executive code with bindings and other functionality.
+    """
+    presets = None
+    presets_changed = QtCore.pyqtSignal(list)
+
+    def _reload_view(self, presets):
+        self.ui.presets.clear()
+        if presets:
+            for row_id, row in enumerate(presets):
+                QtWidgets.QTreeWidgetItem(self.ui.presets)
+                for col_id, item in enumerate(row):
+                    self.ui.presets.topLevelItem(row_id).setText(col_id,
+                                                                 str(item))
+
+
 class UiPresetsDialog(object):
     """
     UI of basic form dialog.
@@ -103,10 +179,9 @@ class UiPresetsDialog(object):
 
         self.presets = QtWidgets.QTreeWidget(dialog)
         self.presets.setAlternatingRowColors(True)
-        self.presets.setColumnCount(2)
         self.presets.setObjectName("presets")
-        self.presets.headerItem().setText(0, "Name")
-        self.presets.headerItem().setText(1, "Description")
+        self.presets.setHeaderLabels(["Id", "Name", "Description"])
+        self.presets.setColumnHidden(0, True)
 
         # add presets to layout
         self.horizontalLayout.addWidget(self.presets)

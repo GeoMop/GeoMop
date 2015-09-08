@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
 
-class SshDialog(FormDialog):
+class ResourceDialog(FormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -37,7 +37,7 @@ class SshDialog(FormDialog):
                                  "apply changes.")
 
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(SshDialog, self).__init__(parent)
+        super(ResourceDialog, self).__init__(parent)
         self.ui = UiSshDialog()
         self.ui.setup_ui(self)
         self.set_purpose(purpose, data)

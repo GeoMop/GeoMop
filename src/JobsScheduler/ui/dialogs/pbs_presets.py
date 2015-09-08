@@ -5,19 +5,15 @@ Presets dialogs
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtWidgets, QtCore
-
-from ui.dialogs.dialogs import UiPresetsDialog
+from ui.dialogs.dialogs import UiPresetsDialog, PresetsDialog
 from ui.dialogs.pbs_dialog import PbsDialog
 import uuid
 
 
-class PbsPresets(QtWidgets.QDialog):
+class PbsPresets(PresetsDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
-    presets = None
-    presets_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None, presets=None):
         super(PbsPresets, self).__init__(parent)
@@ -38,15 +34,6 @@ class PbsPresets(QtWidgets.QDialog):
         self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
         self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
-    def _reload_view(self, presets):
-        self.ui.presets.clear()
-        if presets:
-            for row_id, row in enumerate(presets):
-                QtWidgets.QTreeWidgetItem(self.ui.presets)
-                for col_id, item in enumerate(row[1:]):
-                    self.ui.presets.topLevelItem(row_id).setText(col_id,
-                                                                 str(item))
-
     def _handle_add_preset_action(self):
         self.presets_dlg.set_purpose(PbsDialog.PURPOSE_ADD)
         self.presets_dlg.show()
@@ -66,7 +53,7 @@ class PbsPresets(QtWidgets.QDialog):
                 self.ui.presets.currentItem())
             data = list(self.presets[index])
             data[0] = None
-            data[1] = "Copy of " + data[1]
+            data[1] = PbsDialog.COPY_PREFIX + " " + data[1]
             self.presets_dlg.set_data(data)
             self.presets_dlg.show()
 

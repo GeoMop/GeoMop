@@ -19,6 +19,8 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     Jobs Scheduler main window class
     """
+    multijobs_changed = QtCore.pyqtSignal(list)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = DataMainWindow()
@@ -39,19 +41,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
+        self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
+        self.multijobs_changed.connect(self.data.save_mj)
 
         # ssh presets
         self.ssh_presets_dlg = SshPresets(self, self.data.shh_presets)
         self.ui.actionSshPresets.triggered.connect(
             self.ssh_presets_dlg.show)
+        self.ssh_presets_dlg.presets_changed.connect(self.data.save_ssh)
 
         # ssh presets
         self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
         self.ui.actionPbsPresets.triggered.connect(
             self.pbs_presets_dlg.show)
+        self.pbs_presets_dlg.presets_changed.connect(self.data.save_pbs)
 
-        # set data
-        self.ui.multiJobOverview.set_data(self.data.multi_jobs)
+        # ssh presets
+        self.resource_presets_dlg = PbsPresets(self,
+                                               self.data.resources_presets)
+        self.ui.actionResourcesPresets.triggered.connect(
+            self.resource_presets_dlg.show)
+        self.resource_presets_dlg.presets_changed.connect(
+            self.data.save_resources)
+
+        # reload view
+        self.ui.multiJobOverview.reload_view(self.data.multijobs)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -81,7 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
             index = self.ui.multiJobOverview.indexOfTopLevelItem(
                 self.ui.multiJobOverview.currentItem())
             self.data.multi_jobs.pop(index)
-            self.ui.multiJobOverview.set_data(self.data.multi_jobs)
+            self.multijobs_changed.emit(self.data.multi_jobs)
 
     def handle_multijob_dialog(self, purpose, data):
         if purpose != MultiJobDialog.PURPOSE_EDIT:
@@ -91,14 +105,46 @@ class MainWindow(QtWidgets.QMainWindow):
             for i, item in enumerate(self.data.multi_jobs):
                 if item[0] == data[0]:
                     self.data.multi_jobs[i] = data
-        self.ui.multiJobOverview.set_data(self.data.multi_jobs)
+        self.multijobs_changed.emit(self.data.multi_jobs)
 
 
 class DataMainWindow(object):
+    MJ_DIR = "mj"
+    SSH_DIR = "ssh"
+    PBS_DIR = "pbs"
+    RESOURCE_DIR = "resource"
+
+    multijobs = list()
+    shh_presets = list()
+    pbs_presets = list()
+    resources_presets = list()
+
     def __init__(self):
-        self.multi_jobs = list()
-        self.shh_presets = list()
-        self.pbs_presets = list()
+        pass
+        # self.multijobs = cfg.get_config_file("list", self.MJ_DIR)
+        # self.shh_presets = cfg.get_config_file("list", self.SSH_DIR)
+        # self.pbs_presets = cfg.get_config_file("list", self.PBS_DIR)
+        # self.pbs_presets = cfg.get_config_file("list", self.RESOURCE_DIR)
+
+    def save_mj(self):
+        print("Mj saved")
+        # cfg.save_config_file("list", self.multijobs, self.MJ_DIR)
+
+    def save_ssh(self, ssh):
+        print("Ssh saved")
+        # cfg.save_config_file("list", self.multi_jobs, self.SSH_DIR)
+
+    def save_pbs(self, pbs):
+        print("Pbs saved")
+        # cfg.save_config_file("list", self.multi_jobs, self.PBS_DIR)
+
+    def save_resources(self, pbs):
+        print("Resource saved")
+        # cfg.save_config_file("list", self.multi_jobs, self.RESOURCE_DIR)
+
+    def save_all(self, mj, ssh, pbs, resource):
+        print("All saved")
+        pass
 
 
 class UiMainWindow(object):
@@ -180,10 +226,10 @@ class UiMainWindow(object):
         self.actionDeleteMultiJob.setShortcut("Alt+D")
         self.actionDeleteMultiJob.setObjectName("actionDeleteMultiJob")
 
-        self.actionResources = QtWidgets.QAction(main_window)
-        self.actionResources.setText("Resources")
-        self.actionResources.setShortcut("Shift+R")
-        self.actionResources.setObjectName("actionResources")
+        self.actionResourcesPresets = QtWidgets.QAction(main_window)
+        self.actionResourcesPresets.setText("Resources")
+        self.actionResourcesPresets.setShortcut("Shift+R")
+        self.actionResourcesPresets.setObjectName("actionResources")
         self.actionSshPresets = QtWidgets.QAction(main_window)
         self.actionSshPresets.setText("SSH Connections")
         self.actionSshPresets.setShortcut("Shift+S")
@@ -223,7 +269,7 @@ class UiMainWindow(object):
         self.menuMultiJob.addAction(self.actionRestart)
         self.menuSettings.addAction(self.actionSshPresets)
         self.menuSettings.addAction(self.actionPbsPresets)
-        self.menuSettings.addAction(self.actionResources)
+        self.menuSettings.addAction(self.actionResourcesPresets)
         self.menubar.addAction(self.menuMenu.menuAction())
         self.menubar.addAction(self.menuMultiJob.menuAction())
         self.menubar.addAction(self.menuSettings.menuAction())

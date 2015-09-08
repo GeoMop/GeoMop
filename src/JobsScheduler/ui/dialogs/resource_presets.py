@@ -6,7 +6,7 @@ Presets dialogs
 """
 
 from ui.dialogs.dialogs import UiPresetsDialog, PresetsDialog
-from ui.dialogs.ssh_dialog import SshDialog
+from ui.dialogs.resource_dialog import ResourceDialog
 import uuid
 
 
@@ -21,7 +21,7 @@ class SshPresets(PresetsDialog):
         self.ui.setup_ui(self)
 
         self. presets = presets
-        self.presets_dlg = SshDialog()
+        self.presets_dlg = ResourceDialog()
 
         # connect slots
         self.ui.buttonBox.accepted.connect(self.accept)
@@ -35,12 +35,12 @@ class SshPresets(PresetsDialog):
         self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
     def _handle_add_preset_action(self):
-        self.presets_dlg.set_purpose(SshDialog.PURPOSE_ADD)
+        self.presets_dlg.set_purpose(ResourceDialog.PURPOSE_ADD)
         self.presets_dlg.show()
 
     def _handle_edit_preset_action(self):
         if self.presets:
-            self.presets_dlg.set_purpose(SshDialog.PURPOSE_EDIT)
+            self.presets_dlg.set_purpose(ResourceDialog.PURPOSE_EDIT)
             index = self.ui.presets.indexOfTopLevelItem(
                 self.ui.presets.currentItem())
             self.presets_dlg.set_data(list(self.presets[index]))
@@ -48,12 +48,12 @@ class SshPresets(PresetsDialog):
 
     def _handle_copy_preset_action(self):
         if self.presets:
-            self.presets_dlg.set_purpose(SshDialog.PURPOSE_COPY)
+            self.presets_dlg.set_purpose(ResourceDialog.PURPOSE_COPY)
             index = self.ui.presets.indexOfTopLevelItem(
                 self.ui.presets.currentItem())
             data = list(self.presets[index])
             data[0] = None
-            data[1] = SshDialog.COPY_PREFIX + " " + data[1]
+            data[1] = ResourceDialog.COPY_PREFIX + " " + data[1]
             self.presets_dlg.set_data(data)
             self.presets_dlg.show()
 
@@ -65,7 +65,7 @@ class SshPresets(PresetsDialog):
             self.presets_changed.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
-        if purpose != SshDialog.PURPOSE_EDIT:
+        if purpose != ResourceDialog.PURPOSE_EDIT:
             data[0] = str(uuid.uuid4())
             self.presets.append(data)
         else:

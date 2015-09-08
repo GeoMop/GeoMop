@@ -7,10 +7,10 @@ MultiJob dialogs
 
 from PyQt5 import QtCore, QtWidgets
 
-from ui.dialogs.dialogs import UiFormDialog
+from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
 
-class PbsDialog(QtWidgets.QDialog):
+class PbsDialog(FormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
