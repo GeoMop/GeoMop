@@ -6,13 +6,9 @@ __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "lib")
 sys.path.insert(1, __lib_dir__)
 
-import os
 from data.meconfig import MEConfig as cfg
 from dialogs.json_editor import JsonEditorDlg
-import panels.yaml_editor
-import panels.tree
-import panels.info_panel
-import panels.error_tab
+import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
@@ -70,16 +66,16 @@ class ModelEditor:
         self._recent_group = QtWidgets.QActionGroup(
             self._mainwindow, exclusive=True)
         self._update_recent_files(0)
-        
+
         self._file_menu.addSeparator()
-        
+
         self._import_file_action = QtWidgets.QAction(
             '&import File ...', self._mainwindow)
         self._import_file_action.setShortcut('Ctrl+I')
         self._import_file_action.setStatusTip('Import model from old con formatted file')
         self._import_file_action.triggered.connect(self._import_file)
         self._file_menu.addAction(self._import_file_action)
-        
+
         self._file_menu.addSeparator()
 
         self._exit_action = QtWidgets.QAction('&Exit', self._mainwindow)
@@ -100,16 +96,16 @@ class ModelEditor:
             self._format.addAction(faction)
             faction.setChecked(cfg.curr_format_file == frm)
         self._format_group.triggered.connect(self._format_checked)
-        
+
         self._format.addSeparator()
-        
+
         self._edit_format_action = QtWidgets.QAction(
             '&Edit Format File ...', self._mainwindow)
         self._edit_format_action.setShortcut('Ctrl+E')
         self._edit_format_action.setStatusTip('Edit format file in Json Editor')
-        self._edit_format_action.triggered.connect( self._edit_format)
+        self._edit_format_action.triggered.connect(self._edit_format)
         self._format.addAction(self._edit_format_action)
-        
+
         self._transformation = self._settings_menu.addMenu('&Transformation')
         pom_lamda = lambda name: lambda: self._transform(name)
         for frm in cfg.transformation_files:
@@ -117,7 +113,7 @@ class ModelEditor:
             faction.setStatusTip('Transfor format of current document')
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
-            
+
         self._edit_transformation = self._settings_menu.addMenu('&Edit Transformation Rules')
         pom_lamda = lambda name: lambda: self._edit_transformation_file(name)
         for frm in cfg.transformation_files:
@@ -125,19 +121,21 @@ class ModelEditor:
             faction.setStatusTip('Open transformation file')
             self._edit_transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
-        
+
         # tab
         self._tab = QtWidgets.QTabWidget()
-        self._info = panels.info_panel.InfoPanelWidget()        
-        self._err = panels.error_tab.ErrorWidget()
+        self._info = panels.InfoPanelWidget()
+        self._err = panels.ErrorWidget()
+        self._debug_tab = panels.DebugPanelWidget()
         self._tab.addTab(self._info, "Structure Info")
         self._tab.addTab(self._err, "Messages")
+        self._tab.addTab(self._debug_tab, "Debug")
 
         # splitters
         self._vsplitter = QtWidgets.QSplitter(
             QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)       
-        self._tree = panels.tree.TreeWidget()
+        self._editor = panels.YamlEditorWidget(self._vsplitter)
+        self._tree = panels.TreeWidget()
         self._vsplitter.addWidget(self._editor)
         self._vsplitter.addWidget(self._tab)
         self._hsplitter.insertWidget(0, self._tree)
@@ -157,7 +155,7 @@ class ModelEditor:
         self._status.addPermanentWidget(self._column)
         self._mainwindow.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
-        
+
         # signals
         self._err.itemSelected.connect(self._item_selected)
         self._tree.itemSelected.connect(self._item_selected)
@@ -169,22 +167,22 @@ class ModelEditor:
         # show
         self._mainwindow.show()
         self._editor.setFocus()
-    
+
     def _cursor_changed(self, line, column):
         """Editor node change signal"""
         self._column.setText("Line: {:5d}  Pos: {:3d}".format(line, column))
-    
+
     def _node_changed(self, line, column):
         """Editor node change signal"""
         self._reload_node(line, column)
-        
+
     def _structure_changed(self, line, column):
         """Editor structure change signal"""
         if cfg.update_yaml_file(self._editor.text()):
             self._reload()
         else:
-            self._reload_node(line, column)            
-    
+            self._reload_node(line, column)
+
     def _item_selected(self, start_column, start_row, end_column, end_row):
         """Click tree item action mark relative area in editor"""
         self._editor.setFocus()
@@ -216,7 +214,8 @@ class ModelEditor:
         self._editor.set_new_node(node)
         if node is not None:
             self._info.setHtml(node.info_text)
-        
+        self._debug_tab.show_data_node(node)
+
     def _new_file(self):
         """new file menu action"""
         if not self._save_old_file():
@@ -294,19 +293,19 @@ class ModelEditor:
             return True
         return False
 
-    def _transform(self,  file):
+    def _transform(self, file):
         """Run transformation according rules in set file"""
         cfg.update_yaml_file(self._editor.text())
         cfg.transform(file)
         self._reload()
 
-    def _edit_transformation_file(self,  file):
+    def _edit_transformation_file(self, file):
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
             import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file, 
-                                "Transformation rules:", text, self._mainwindow )
+            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file,
+                                "Transformation rules:", text, self._mainwindow)
             dlg.exec_()
 
     def _format_checked(self):

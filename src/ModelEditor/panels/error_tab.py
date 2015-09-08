@@ -1,4 +1,7 @@
 """Error widget panel module"""
+
+# pylint: disable=no-member
+
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
@@ -23,9 +26,9 @@ class ErrorWidget(QtWidgets.QListWidget):
         self.clicked.connect(self._item_clicked)
         self._load_items()
 
-    def select_error(self,  line):
+    def select_error(self, line):
         """Select error according line number"""
-        for row in range(0,  self.count()):
+        for row in range(0, self.count()):
             item = self.item(row)
             data = item.data(QtCore.Qt.UserRole)
             if data.span.start.line == line:
@@ -54,7 +57,7 @@ class ErrorWidget(QtWidgets.QListWidget):
                     icon.get_icon("information", 24), error.title + ": " + error.description)
             item.setData(QtCore.Qt.UserRole, error)
             self.addItem(item)
-            
+
     def _item_clicked(self, model_index):
         """Function for itemSelected signal"""
         item = self.currentItem()
