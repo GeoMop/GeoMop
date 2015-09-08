@@ -3,6 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
+import helpers
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -31,40 +32,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
         self._item_states = {}
-
-        stylesheet = """
-
-QTreeView {
-    background-color: #fbfbfb;
-    alternate-background-color: #fdfdfd;
-}
-
-
-QTreeView::branch:has-siblings:!adjoins-item {
-    border-image: url(../lib/icon/other/stylesheet-vline.png) 0;
-}
-
-QTreeView::branch:has-siblings:adjoins-item {
-    border-image: url(../lib/icon/other/stylesheet-branch-more.png) 0;
-}
-
-QTreeView::branch:!has-children:!has-siblings:adjoins-item {
-    border-image: url(../lib/icon/other/stylesheet-branch-end.png) 0;
-}
-
-QTreeView::branch:has-children:!has-siblings:closed,
-QTreeView::branch:closed:has-children:has-siblings {
-        border-image: none;
-        image: url(../lib/icon/other/stylesheet-branch-closed.png);
-}
-
-QTreeView::branch:open:has-children:!has-siblings,
-QTreeView::branch:open:has-children:has-siblings  {
-        border-image: none;
-        image: url(../lib/icon/other/stylesheet-branch-open.png);
-}
-"""
-
+        stylesheet = helpers.load_stylesheet('tree')
         self.setStyleSheet(stylesheet)
 
     def reload(self):
