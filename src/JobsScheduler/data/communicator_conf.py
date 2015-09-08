@@ -22,6 +22,10 @@ class PbsConfig():
     """
     def __init__(self):
         """init"""
+        self.name = None
+        """name as unique job identifier for files"""
+        self.with_socket =False
+        """Initialize communication over socket"""
 
 class CommunicatorConfig():
     """
@@ -58,5 +62,5 @@ class CommunicatorConfig():
         """Python exec command"""
         self.scl_enable_exec = None
         """Enable python exec set name over scl """
-        self.qsub = PbsConfig
+        self.pbs = None
         """Pbs settings class :class:`data.communicator_conf.PbsConfig` """

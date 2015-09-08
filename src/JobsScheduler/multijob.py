@@ -32,8 +32,8 @@ def  mj_action_funcion(message):
 ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "multijob"
 ccom.log_level = logging.DEBUG
-ccom.input_type = comconf.InputCommType.socket
-comunicator = Communicator(ccom, mj_action_funcion)
+ccom.input_type = comconf.InputCommType.pbs
+comunicator = Communicator(ccom, None, mj_action_funcion)
 comunicator.run()
 comunicator.close()
 

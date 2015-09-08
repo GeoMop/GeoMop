@@ -1,65 +1,70 @@
 import logging
-import data.transport_data as tdata
-import socket
 import subprocess
 import re
+import helpers.pbs as pbs
+import time
 from communication.exec_output_comm import ExecOutputComm
 
-class PbsOutputComm( ExecOutputComm):
-    """Ancestor of communication classes"""
+class PbsOutputComm(ExecOutputComm):
+    """Communication over PBS"""
     
-    def __init__(self, port):
-        super(ExecOutputComm, self).__init__("localhost")
-        self.port = port
-        """port for server communacion"""
-        self.conn = None
-        """Socket connection"""
-
-    def connect(self):
-        """connect session"""
-        self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.conn.connect((self.host, self.port))
-        logging.debug("Client is connected to " + self.host + ":" + str(self.port)) 
-         
-    def disconnect(self):
-        """disconnect session"""
-        self.conn.close()
-        
-    def install(self):
-        """make installation"""
-        self.installation.local_copy_path()
+    def __init__(self, port, pbs_config):
+        super(PbsOutputComm, self).__init__(port)
+        self.config = pbs_config
+        """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
+        self.jobid = None
+        """Id for job identification"""
         
     def exec_(self, python_file):
         """run set python file in ssh"""
-        process = subprocess.Popen(self.installation.get_args(python_file), 
+        hlp = pbs.Pbs(self.config) 
+        hlp.prepare_file(self.installation.get_command_only(python_file), self.installation.get_interpreter())      
+        process = subprocess.Popen(hlp.get_qsub_args(), 
             stdout=subprocess.PIPE)
-        # wait for port number
+        # wait for jobid
         out = process.stdout.readline()
-        port = re.match( 'PORT:--(\d+)--', str(out, 'utf-8'))
-        if port is not None:
-            logging.debug("Next communicator return socket port:" + port.group(1)) 
-            self.port = int(port.group(1))
- 
+        job  = re.match( '(\d+)', str(out, 'utf-8'))
+        if job is not None:
+            self.jobid  =  int(job.group(1))
+            logging.debug("Job is queued (id:" + job.group(1) + ")")
+            if self.config.with_socket:
+                i = 0
+                while(i<1800):
+                    lines = hlp.get_outpup()
+                    time.sleep(1)
+                    if lines is not None and len(lines) >= 2:
+                        lines = hlp.get_outpup()
+                        break
+                    i += 1
+                host = re.match( 'HOST:--(\d+)--',  lines[0])
+                if host is not None:
+                    logging.debug("Next communicator return socket host:" + host.group(1)) 
+                    self.host = host.group(1)
+                port = re.match( 'PORT:--(\d+)--', lines[1])
+                if port is not None:
+                    logging.debug("Next communicator return socket port:" + port.group(1)) 
+                    self.port = int(port.group(1))
+
+         
+    def connect(self):
+        """connect session"""
+        if self.config.with_socket:
+            super(PbsOutputComm, self).connect()
+         
+    def disconnect(self):
+        """disconnect session"""
+        if self.config.with_socket:
+            super(PbsOutputComm, self).diconnect()
+        hlp = pbs.Pbs(self.config) 
+        error = hlp.get_errors()
+        logging.warning("Error output contains error:" + error) 
+        
     def send(self,  mess):
         """send json message"""        
-        b = bytes(mess.pack(), "us-ascii")
-        self.conn.sendall(b)
+        if self.config.with_socket:
+            super(PbsOutputComm, self).send(mess)
 
     def receive(self, timeout=60):
         """receive json message"""
-        self.conn.settimeout(timeout)
-        try:
-            data = self.conn.recv(1024*1024)
-        except socket.timeout:
-            return None
-
-        txt =str(data, "us-ascii")
-        try:
-            mess = tdata.Message(txt)
-        except(tdata.MessageError) as err:
-            logging.warning("Error(" + str(err) + ") during parsing output answer: " + txt)
-            return None
-        return mess
- 
-    def get_file(self, file_name):
-        """download file from installation folder"""
+        if self.config.with_socket:
+            return super(PbsOutputComm, self).receive(timeout)

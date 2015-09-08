@@ -86,7 +86,10 @@ else:
 
         def disconnect(self):
             """disconnect session"""
-            self.ssh.logout()
+            try:
+                self.ssh.logout()
+            except:
+                pass
             
         def install(self):
             """make installation"""

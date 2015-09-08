@@ -32,9 +32,11 @@ class Communicator():
         from previous communicator        
     """
     
-    def __init__(self, init_conf, action_func_before=None, action_func_after=None):
+    def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None):
         self.input = None
         """class for input communication"""
+        self.id = id
+        """Prefix that is added after log"""
         self.output = None
         """class for output communication"""
         self.next_communicator = init_conf.next_communicator
@@ -76,22 +78,30 @@ class Communicator():
         if init_conf.input_type == comconf.InputCommType.std:
             self.input =StdInputComm(sys.stdin, sys.stdout)
             self.input.connect()
+        elif init_conf.input_type == comconf.InputCommType.pbs:
+            self.input = PbsInputComm(init_conf.port)
+            self.input.connect()
         elif init_conf.input_type == comconf.InputCommType.socket:
             self.input = SocketInputComm(init_conf.port)
             self.input.connect()
-            
+    
         if init_conf.output_type == comconf.OutputCommType.ssh:
             self.output = SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
+        elif init_conf.output_type == comconf.OutputCommType.pbs:
+            self.output = PbsOutputComm(init_conf.port, init_conf.pbs)            
         elif init_conf.output_type == comconf.OutputCommType.exec_:
             self.output = ExecOutputComm(init_conf.port)
-            
+        
         if init_conf.output_type != comconf.OutputCommType.none:
             self.output.set_install_params(init_conf.python_exec,  init_conf.scl_enable_exec)
   
     def _set_loger(self,  path, name, level):
         """set logger"""
-        log_file = os.path.join(path, "log_" + name +".log")
+        if self.id is None:
+            log_file = os.path.join(path, "log_" + name +".log")
+        else:
+            log_file = os.path.join(path, "log_" + name + "_" + self.id + ".log")
         logging.basicConfig(filename=log_file,level=level, 
             format='%(asctime)s %(levelname)s %(message)s')
         logging.info("Application " + self.communicator_name + " is started")
@@ -99,7 +109,8 @@ class Communicator():
     def  standart_action_funcion_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.installation:
-            if isinstance(self.output, ExecOutputComm):
+            if isinstance(self.output, ExecOutputComm) and \
+                not isinstance(self.output, PbsOutputComm):
                 self._instalation_begined = True
                 logging.debug("Installation to local directory")
                 self.install()
@@ -118,7 +129,7 @@ class Communicator():
                     t.daemon = True
                     t.start()
                 action = tdata.Action(tdata.ActionType.installation_in_process)
-                return False, False, action
+                return False, False, action.get_message()
         return True, True, None
         
     def  standart_action_funcion_after(self, message):
@@ -169,8 +180,19 @@ class Communicator():
                     
     def run(self):
         """
-        Infinite loop that is interupt by sending stop action by input
+        Infinite loop that is interupt by sending stop action by input,
+        that send all messages to next communicator by standart
+        way.
         
+        1. receive message
+        2. func self.action_func_before
+        3. resend message to next communicator
+        4. receve message from next communicator 
+        5. func self.action_func_after
+        6. answer
+        
+        Redefine self.action_func_before and self.action_func_after for
+        advanced actions.
         Use send_action instead, if you want work in real time
         """
         stop = False
