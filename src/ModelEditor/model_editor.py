@@ -6,7 +6,6 @@ __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "lib")
 sys.path.insert(1, __lib_dir__)
 
-import os
 from data.meconfig import MEConfig as cfg
 from dialogs.json_editor import JsonEditorDlg
 import panels.yaml_editor
@@ -17,6 +16,8 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
 import icon
+from ui.menus import MainEditMenu
+
 
 class ModelEditor:
     """Model editor main class"""
@@ -32,9 +33,26 @@ class ModelEditor:
         cfg.init(self._mainwindow)
         self._update_document_name()
 
-        # menu
-        # file
+        # tab
+        self._tab = QtWidgets.QTabWidget()
+        self._info = panels.info_panel.InfoPanelWidget()
+        self._err = panels.error_tab.ErrorWidget()
+        self._tab.addTab(self._info, "Structure Info")
+        self._tab.addTab(self._err, "Messages")
+
+        # splitters
+        self._vsplitter = QtWidgets.QSplitter(
+            QtCore.Qt.Vertical, self._hsplitter)
+        self._editor = panels.yaml_editor.YamlEditorWidget(self._mainwindow)
+        self._tree = panels.tree.TreeWidget()
+        self._vsplitter.addWidget(self._editor)
+        self._vsplitter.addWidget(self._tab)
+        self._hsplitter.insertWidget(0, self._tree)
+
+        # Menu bar
         menubar = self._mainwindow.menuBar()
+
+        # File menu
         self._file_menu = menubar.addMenu('&File')
 
         self._new_file_action = QtWidgets.QAction(
@@ -70,25 +88,29 @@ class ModelEditor:
         self._recent_group = QtWidgets.QActionGroup(
             self._mainwindow, exclusive=True)
         self._update_recent_files(0)
-        
+
         self._file_menu.addSeparator()
-        
+
         self._import_file_action = QtWidgets.QAction(
-            '&import File ...', self._mainwindow)
+            '&Import File ...', self._mainwindow)
         self._import_file_action.setShortcut('Ctrl+I')
         self._import_file_action.setStatusTip('Import model from old con formatted file')
         self._import_file_action.triggered.connect(self._import_file)
         self._file_menu.addAction(self._import_file_action)
-        
+
         self._file_menu.addSeparator()
 
-        self._exit_action = QtWidgets.QAction('&Exit', self._mainwindow)
+        self._exit_action = QtWidgets.QAction('E&xit', self._mainwindow)
         self._exit_action.setShortcut('Ctrl+Q')
         self._exit_action.setStatusTip('Exit application')
         self._exit_action.triggered.connect(QtWidgets.qApp.quit)
         self._file_menu.addAction(self._exit_action)
 
-        # Settings
+        # Edit menu
+        self._edit_menu = MainEditMenu(self._mainwindow, self._editor)
+        menubar.addMenu(self._edit_menu)
+
+        # Settings menu
         self._settings_menu = menubar.addMenu('&Settings')
         self._format = self._settings_menu.addMenu('&Format')
         self._format_group = QtWidgets.QActionGroup(
@@ -100,24 +122,24 @@ class ModelEditor:
             self._format.addAction(faction)
             faction.setChecked(cfg.curr_format_file == frm)
         self._format_group.triggered.connect(self._format_checked)
-        
+
         self._format.addSeparator()
-        
+
         self._edit_format_action = QtWidgets.QAction(
             '&Edit Format File ...', self._mainwindow)
         self._edit_format_action.setShortcut('Ctrl+E')
         self._edit_format_action.setStatusTip('Edit format file in Json Editor')
-        self._edit_format_action.triggered.connect( self._edit_format)
+        self._edit_format_action.triggered.connect(self._edit_format)
         self._format.addAction(self._edit_format_action)
-        
+
         self._transformation = self._settings_menu.addMenu('&Transformation')
         pom_lamda = lambda name: lambda: self._transform(name)
         for frm in cfg.transformation_files:
             faction = QtWidgets.QAction(frm + " ...", self._mainwindow)
-            faction.setStatusTip('Transfor format of current document')
+            faction.setStatusTip('Transform format of current document')
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
-            
+
         self._edit_transformation = self._settings_menu.addMenu('&Edit Transformation Rules')
         pom_lamda = lambda name: lambda: self._edit_transformation_file(name)
         for frm in cfg.transformation_files:
@@ -125,22 +147,6 @@ class ModelEditor:
             faction.setStatusTip('Open transformation file')
             self._edit_transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
-        
-        # tab
-        self._tab = QtWidgets.QTabWidget()
-        self._info = panels.info_panel.InfoPanelWidget()        
-        self._err = panels.error_tab.ErrorWidget()
-        self._tab.addTab(self._info, "Structure Info")
-        self._tab.addTab(self._err, "Messages")
-
-        # splitters
-        self._vsplitter = QtWidgets.QSplitter(
-            QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._vsplitter)       
-        self._tree = panels.tree.TreeWidget()
-        self._vsplitter.addWidget(self._editor)
-        self._vsplitter.addWidget(self._tab)
-        self._hsplitter.insertWidget(0, self._tree)
 
         # status bar
         self._column = QtWidgets.QLabel()
@@ -157,7 +163,7 @@ class ModelEditor:
         self._status.addPermanentWidget(self._column)
         self._mainwindow.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
-        
+
         # signals
         self._err.itemSelected.connect(self._item_selected)
         self._tree.itemSelected.connect(self._item_selected)
@@ -169,22 +175,22 @@ class ModelEditor:
         # show
         self._mainwindow.show()
         self._editor.setFocus()
-    
+
     def _cursor_changed(self, line, column):
         """Editor node change signal"""
         self._column.setText("Line: {:5d}  Pos: {:3d}".format(line, column))
-    
+
     def _node_changed(self, line, column):
         """Editor node change signal"""
         self._reload_node(line, column)
-        
+
     def _structure_changed(self, line, column):
         """Editor structure change signal"""
         if cfg.update_yaml_file(self._editor.text()):
             self._reload()
         else:
-            self._reload_node(line, column)            
-    
+            self._reload_node(line, column)
+
     def _item_selected(self, start_column, start_row, end_column, end_row):
         """Click tree item action mark relative area in editor"""
         self._editor.setFocus()
@@ -197,13 +203,13 @@ class ModelEditor:
 
     def _reload(self):
         """reload panels after structure changes"""
-        self._reload_icon.setVisible(True)
         cfg.update()
         self._editor.reload()
         self._tree.reload()
         self._err.reload()
         line, index = self._editor.getCursorPosition()
         self._reload_node(line+1, index+1)
+        self._reload_icon.setVisible(True)
         self._reload_icon_timer.start(700)
 
     def _hide_reload_icon(self):
@@ -216,7 +222,7 @@ class ModelEditor:
         self._editor.set_new_node(node)
         if node is not None:
             self._info.setHtml(node.info_text)
-        
+
     def _new_file(self):
         """new file menu action"""
         if not self._save_old_file():
@@ -294,19 +300,21 @@ class ModelEditor:
             return True
         return False
 
-    def _transform(self,  file):
+    def _transform(self, file):
         """Run transformation according rules in set file"""
         cfg.update_yaml_file(self._editor.text())
         cfg.transform(file)
+        # synchronize cfg document with editor text
+        self._editor.setText(cfg.document, keep_history=True)
         self._reload()
 
-    def _edit_transformation_file(self,  file):
+    def _edit_transformation_file(self, file):
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
             import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file, 
-                                "Transformation rules:", text, self._mainwindow )
+            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file,
+                                "Transformation rules:", text, self._mainwindow)
             dlg.exec_()
 
     def _format_checked(self):
@@ -376,6 +384,8 @@ class ModelEditor:
                 else:
                     self._save_file()
         return True
+
+
 
     def main(self):
         """go"""
