@@ -5,19 +5,24 @@ import os
 import time
 import threading
 import data.communicator_conf as comconf
-import communication.communication as com
 import data.transport_data as tdata
-import data.installation as dinstall
+from communication.std_input_comm import StdInputComm
+from  communication.socket_input_comm import SocketInputComm
+from  communication.ssh_output_comm import SshOutputComm
+from  communication.exec_output_comm import  ExecOutputComm
+from  communication.installation import  Installation
+from  communication.pbs_output_comm import PbsOutputComm
+from  communication.pbs_input_comm import PbsInputComm
 
 class Communicator():
     """
     Class with communication interface, that provide place for action.
     Communicator contains:
       - intput - communacion interface 
-        (:class:`communication.communicationa.InputComm`) 
+        (:class:`communication.communication.InputComm`) 
         for communacion with previous communicator
       - input - communacion interface 
-        (:class:`communication.communicationa.OutputComm`) 
+        (:class:`communication.communication.OutputComm`) 
         for communacion with next communicator
       - function action_func_before, that is possible set by
         constructor, end is call before resending received data
@@ -44,7 +49,7 @@ class Communicator():
         """_installed lock"""
         self._instalation_begined = False        
         """if installation begined"""
-        self._set_loger(dinstall.Installation.get_result_dir(), 
+        self._set_loger(Installation.get_result_dir(), 
             self.communicator_name, self.log_level)
         if action_func_before is None:
             self.action_func_before = self.standart_action_funcion_before
@@ -69,17 +74,17 @@ class Communicator():
             Return: Message that is return or None
             """
         if init_conf.input_type == comconf.InputCommType.std:
-            self.input = com.StdInputComm(sys.stdin, sys.stdout)
+            self.input =StdInputComm(sys.stdin, sys.stdout)
             self.input.connect()
         elif init_conf.input_type == comconf.InputCommType.socket:
-            self.input = com. SocketInputComm(init_conf.port)
+            self.input = SocketInputComm(init_conf.port)
             self.input.connect()
             
         if init_conf.output_type == comconf.OutputCommType.ssh:
-            self.output = com.SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
+            self.output = SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
             self.output.connect()
         elif init_conf.output_type == comconf.OutputCommType.exec_:
-            self.output = com. ExecOutputComm(init_conf.port)
+            self.output = ExecOutputComm(init_conf.port)
             
         if init_conf.output_type != comconf.OutputCommType.none:
             self.output.set_install_params(init_conf.python_exec,  init_conf.scl_enable_exec)
@@ -94,7 +99,7 @@ class Communicator():
     def  standart_action_funcion_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.installation:
-            if isinstance(self.output, com.ExecOutputComm):
+            if isinstance(self.output, ExecOutputComm):
                 self._instalation_begined = True
                 logging.debug("Installation to local directory")
                 self.install()
@@ -132,7 +137,7 @@ class Communicator():
         """make installation"""
         self.output.install()
         logging.debug("Run next file")
-        self.exec_()
+        self._exec_()
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
@@ -144,10 +149,10 @@ class Communicator():
         self._install_lock.release()
         return ret
         
-    def exec_(self):
+    def _exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator)
-        if isinstance(self.output, com.ExecOutputComm):
+        if isinstance(self.output, ExecOutputComm):
             i=0
             while i<3:
                 try:

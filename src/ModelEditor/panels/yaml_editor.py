@@ -17,6 +17,7 @@ class YamlEditorWidget(QsciScintilla):
         :ref:`cursorChanged <cursor_changed>`
         :ref:`nodeChanged <node_changed>`
         :ref:`structureChanged <structure_changed>`
+        :ref:`elementChanged <element_changed>`
         :ref:`errorMarginClicked <error_margin_clicked>`
     """
     cursorChanged = QtCore.pyqtSignal(int, int)
@@ -34,6 +35,11 @@ class YamlEditorWidget(QsciScintilla):
     .. _structure_changed:
     Signal is sent when node structure document is changed.
     Reload and check is need
+    """
+    elementChanged = QtCore.pyqtSignal(int, int)
+    """
+    .. _element_changed:
+    Signal is sent when yaml elemt below cursor is changed.
     """
     errorMarginClicked = QtCore.pyqtSignal(int)
     """
@@ -112,9 +118,13 @@ class YamlEditorWidget(QsciScintilla):
         if cfg.document != self.text():
             self.setText(cfg.document)
         self._reload_margin()
+        
+    def get_curr_element_type(self):
+        return self._pos.cursore_type_position.value
 
     def _cursor_position_changed(self, line, index):
         """Function for cursorPositionChanged signal"""
+        old_cursore_type_position = self._pos.cursore_type_position
         if self._pos.new_pos(self, line, index):
             if self._pos.is_changed:
                 self.structureChanged.emit(line + 1, index + 1)
@@ -122,6 +132,9 @@ class YamlEditorWidget(QsciScintilla):
                 self.nodeChanged.emit(line + 1, index + 1)
         else:
             self._pos.make_post_operation(self, line, index)
+            if old_cursore_type_position != self._pos.cursore_type_position:
+                self.elementChanged.emit(self._pos.cursore_type_position.value, 
+                    old_cursore_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
 
     def _text_changed(self):
@@ -201,6 +214,8 @@ class editorPosition():
         """make special char operation"""
         self.fatal = False
         """fatal error node"""
+        self.cursore_type_position = None
+        """Type of yaml structure below cursor"""
 
     def new_array_line_completation(self, editor):
         """New line was added"""
@@ -253,9 +268,16 @@ class editorPosition():
         self._save_lines(editor)
         if not (self.begin_line > line or self.end_line < line or
                 (line == self.begin_line and self.begin_index > index) or
-                (line == self.end_line and self.end_index < index)):
+                (line == self.end_line and self.end_index < index)):            
+            
+            # set cursore_type_position
             anal = self._init_analyzer(editor, line, index)
             pos_type = anal.get_pos_type()
+            key_type = None
+            if pos_type is analyzer.PosType.in_key:
+                key_type = anal.get_key_pos_type()
+            self.cursore_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
+            
             # value or key changed and cursor is in opposite
             if pos_type is analyzer.PosType.in_key:
                 if self.is_value_changed:
@@ -342,7 +364,10 @@ class editorPosition():
             else:
                 self.end_index += len(new_line) - len(self._last_line)
         self._save_lines(editor)
-        anal = self._init_analyzer(editor, self.line, self.index)        
+        
+        # for delete  is index <> self.index
+        line, index = editor.getCursorPosition()
+        anal = self._init_analyzer(editor, line, index)        
         # value or key changed and cursor is in opposite
         pos_type = anal.get_pos_type()
         if pos_type is analyzer.PosType.in_key:
@@ -397,13 +422,20 @@ class editorPosition():
         self._save_lines(editor)
         if node is not None:
             self._reload_autocompletation(editor)
+        # set cursore_type_position
+        anal = self._init_analyzer(editor, self.line, self.index)
+        pos_type = anal.get_pos_type()
+        key_type = None
+        if pos_type is analyzer.PosType.in_key:
+            key_type = anal.get_key_pos_type()
+        self.cursore_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""
-        in_line = self.line - self.begin_line
-        in_index = self.index
-        if self.line == self.begin_line:
-            in_index = self.index - self.begin_index
+        in_line = line - self.begin_line
+        in_index = index
+        if line == self.begin_line:
+            in_index = index - self.begin_index
         area = []
         for i in range(self.begin_line, self.end_line + 1):
             text = editor.text(i)

@@ -16,6 +16,13 @@ class InputCommType(Enum):
     socket = 2
     pbs = 3
 
+class PbsConfig():
+    """
+    Class for configuration qsub command
+    """
+    def __init__(self):
+        """init"""
+
 class CommunicatorConfig():
     """
     CommunicatorConfiguration contains data for inicialization
@@ -40,10 +47,16 @@ class CommunicatorConfig():
         self.pwd = ""
         """Password for output configuration"""
         self.port = 5723
-        """port for socket communation"""
+        """
+        First port for the socket communation with this communicator. 
+        If this port has the use of another application, socket connection
+        is set to next port in order.
+        """
         self.log_level = logging.WARNING
         """log level for communicator"""
         self.python_exec = "python3"
         """Python exec command"""
         self.scl_enable_exec = None
         """Enable python exec set name over scl """
+        self.qsub = PbsConfig
+        """Pbs settings class :class:`data.communicator_conf.PbsConfig` """
