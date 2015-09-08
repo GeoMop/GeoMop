@@ -3,6 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
+import helpers
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -20,15 +21,19 @@ class TreeWidget(QtWidgets.QTreeView):
 
     def __init__(self):
         QtWidgets.QTreeView.__init__(self)
-        self.showColumn(2)
+        self.showColumn(3)
         self._model = TreeOfNodes(cfg.root)
         self.setModel(self._model)
-        self.setMinimumSize(150, 450)
+        self.setMinimumSize(350, 450)
+        self.setColumnWidth(0, 190)
+        self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
         self.clicked.connect(self._item_clicked)
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
         self._item_states = {}
+        stylesheet = helpers.load_stylesheet('tree')
+        self.setStyleSheet(stylesheet)
 
     def reload(self):
         """start of reload data from config"""
