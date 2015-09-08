@@ -320,6 +320,9 @@ class YamlEditorWidget(QsciScintilla):
     def delete(self):
         """Deletes selected text."""
         with self.reload_chunk:
+            if not self.hasSelectedText():  # select a single character
+                cur_line, cur_col = self.getCursorPosition()
+                self.setSelection(cur_line, cur_col, cur_line, cur_col + 1)
             super(YamlEditorWidget, self).removeSelectedText()
 
     def selectAll(self):
