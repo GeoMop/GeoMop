@@ -2,11 +2,12 @@
 Info Panel Widget
 
 This module contains a widget that shows info text with QWebView.
-
-Author: Tomas Krizek
 """
 
-# from PyQt5.QtWidgets import QWidget, QSizePolicy
+# pylint: disable=no-name-in-module,no-member
+
+__author__ = 'Tomas Krizek'
+
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
 import os
@@ -42,7 +43,6 @@ class InfoPanelWidget(QWebView):
         # height = event.size().height()
         # width = event.size().width()
         self.page().setViewportSize(event.size())
-
 
 
 if __name__ == '__main__':

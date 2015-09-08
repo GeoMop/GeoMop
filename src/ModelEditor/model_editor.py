@@ -8,10 +8,7 @@ sys.path.insert(1, __lib_dir__)
 
 from data.meconfig import MEConfig as cfg
 from dialogs.json_editor import JsonEditorDlg
-import panels.yaml_editor
-import panels.tree
-import panels.info_panel
-import panels.error_tab
+import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
@@ -33,18 +30,20 @@ class ModelEditor:
         cfg.init(self._mainwindow)
         self._update_document_name()
 
-        # tab
+                # tab
         self._tab = QtWidgets.QTabWidget()
-        self._info = panels.info_panel.InfoPanelWidget()
-        self._err = panels.error_tab.ErrorWidget()
+        self._info = panels.InfoPanelWidget()
+        self._err = panels.ErrorWidget()
+        self._debug_tab = panels.DebugPanelWidget()
         self._tab.addTab(self._info, "Structure Info")
         self._tab.addTab(self._err, "Messages")
+        self._tab.addTab(self._debug_tab, "Debug")
 
         # splitters
         self._vsplitter = QtWidgets.QSplitter(
             QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.yaml_editor.YamlEditorWidget(self._mainwindow)
-        self._tree = panels.tree.TreeWidget()
+        self._editor = panels.YamlEditorWidget(self._vsplitter)
+        self._tree = panels.TreeWidget()
         self._vsplitter.addWidget(self._editor)
         self._vsplitter.addWidget(self._tab)
         self._hsplitter.insertWidget(0, self._tree)
@@ -222,6 +221,7 @@ class ModelEditor:
         self._editor.set_new_node(node)
         if node is not None:
             self._info.setHtml(node.info_text)
+        self._debug_tab.show_data_node(node)
 
     def _new_file(self):
         """new file menu action"""
@@ -384,8 +384,6 @@ class ModelEditor:
                 else:
                     self._save_file()
         return True
-
-
 
     def main(self):
         """go"""

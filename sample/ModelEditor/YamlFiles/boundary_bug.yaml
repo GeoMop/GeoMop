@@ -1,0 +1,3 @@
+problem: !SequentialCoupling
+  primary_equation: !Steady_MH
+    balance: true
