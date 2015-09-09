@@ -7,6 +7,7 @@ Contains classes for representing the tree structure of config files.
 __author__ = 'Tomas Krizek'
 
 from enum import Enum
+
 from ist import InfoTextGenerator
 
 DEBUG_MODE = True

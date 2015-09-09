@@ -12,10 +12,7 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
 import os
 
-# TODO: move css, fix path
-__html_root_path__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-    "..", 'common', 'ist', 'html_root') + os.path.sep
+__html_root_path__ = os.path.join(os.getcwd(), 'resources', 'ist_html') + os.path.sep
 
 
 class InfoPanelWidget(QWebView):
@@ -25,14 +22,14 @@ class InfoPanelWidget(QWebView):
         """Initializes the class."""
         super(InfoPanelWidget, self).__init__(parent)
         self._html_root_url = QUrl.fromLocalFile(__html_root_path__)
-        self.linkClicked.connect(self.navigateTo)
+        self.linkClicked.connect(self.navigate_to)
         self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
 
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
 
-    def navigateTo(self, url_):
+    def navigate_to(self, url_):
         """Navigates to given URL."""
         # TODO: is support for links needed?
         print('navigate-to: ' + url_.toString())
@@ -65,4 +62,5 @@ if __name__ == '__main__':
         timer.start(5000)
 
         sys.exit(app.exec_())
+
     main()

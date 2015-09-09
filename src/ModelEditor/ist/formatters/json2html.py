@@ -28,14 +28,14 @@ def get_info_text(input_type, **kwargs):
             html_body.add(html_content.current())
 
     html_head = htmltree('head')
-    html_head.style('css/bootstrap.min.css')
-    html_head.style('css/katex.min.css')
-    html_head.style('css/main.css')
+    html_head.style('bootstrap.min.css')
+    html_head.style('katex.min.css')
+    html_head.style('main.css')
 
-    html_head.script('js/jquery-2.1.3.min.js')
-    html_head.script('js/bootstrap.min.js')
-    html_body.script('js/katex.min.js')
-    html_body.script('js/main.js')
+    html_head.script('jquery-2.1.3.min.js')
+    html_head.script('bootstrap.min.js')
+    html_body.script('katex.min.js')
+    html_body.script('main.js')
 
     html.add(html_head.current())
     html.add(html_body.current())
