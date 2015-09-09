@@ -73,22 +73,44 @@ class KeyboardShortcut:
                 except TypeError:
                     return None
 
-    def matches_key_kvent(self, event):
+    def matches_key_event(self, event):
         """Returns True if the keyboard shortcut matches given `QKeyEvent`."""
         return event.modifiers() == self.qt_modifiers and event.key() == self.qt_key
 
 
-SCINTILLA = {
-    'COPY': KeyboardShortcut('Ctrl+C'),
-    'PASTE': KeyboardShortcut('Ctrl+V'),
-    'CUT': KeyboardShortcut('Ctrl+X'),
-    'UNDO': KeyboardShortcut('Ctrl+Z'),
-    'REDO': KeyboardShortcut('Ctrl+Y'),
-    'INDENT': KeyboardShortcut('Tab'),
-    'UNINDENT': KeyboardShortcut('Shift+Tab'),
-    'COMMENT': KeyboardShortcut('Ctrl+/'),
-    'DELETE': KeyboardShortcut('Delete'),
-    'SELECT_ALL': KeyboardShortcut('Ctrl+A'),
-    'FIND': KeyboardShortcut('Ctrl+F'),
-    'REPLACE': KeyboardShortcut('Ctrl+H'),
-}
+COPY = KeyboardShortcut('Ctrl+C')
+PASTE = KeyboardShortcut('Ctrl+V')
+CUT = KeyboardShortcut('Ctrl+X')
+UNDO = KeyboardShortcut('Ctrl+Z')
+REDO = KeyboardShortcut('Ctrl+Y')
+INDENT = KeyboardShortcut('Tab')
+UNINDENT = KeyboardShortcut('Shift+Tab')
+COMMENT = KeyboardShortcut('Ctrl+/')
+DELETE = KeyboardShortcut('Delete')
+SELECT_ALL = KeyboardShortcut('Ctrl+A')
+FIND = KeyboardShortcut('Ctrl+F')
+REPLACE = KeyboardShortcut('Ctrl+H')
+NEW_FILE = KeyboardShortcut('Ctrl+N')
+OPEN_FILE = KeyboardShortcut('Ctrl+O')
+SAVE_FILE = KeyboardShortcut('Ctrl+S')
+SAVE_FILE_AS = KeyboardShortcut('Ctrl+Shift+S')
+IMPORT_FILE = KeyboardShortcut('Ctrl+I')
+EXIT = KeyboardShortcut('Ctrl+Q')
+EDIT_FORMAT = KeyboardShortcut('Ctrl+E')
+
+
+"""
+shortcuts to be disabled in default scintilla behavior
+"""
+SCINTILLA_DISABLE = [
+    COPY,
+    PASTE,
+    CUT,
+    UNDO,
+    REDO,
+    INDENT,
+    UNINDENT,
+    COMMENT,
+    DELETE,
+    SELECT_ALL
+]

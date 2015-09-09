@@ -142,7 +142,7 @@ class YamlEditorWidget(QsciScintilla):
         self._pos = editorPosition()
 
         # disable QScintilla keyboard shorcuts to handle them in Qt
-        for __, shortcut in shortcuts.SCINTILLA.items():
+        for shortcut in shortcuts.SCINTILLA_DISABLE:
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
         # begin undo
@@ -245,20 +245,20 @@ class YamlEditorWidget(QsciScintilla):
             return
 
         actions = {
-            shortcuts.SCINTILLA['INDENT']: self.indent,
-            shortcuts.SCINTILLA['UNINDENT']: self.unindent,
-            shortcuts.SCINTILLA['CUT']: self.cut,
-            shortcuts.SCINTILLA['COPY']: self.copy,
-            shortcuts.SCINTILLA['PASTE']: self.paste,
-            shortcuts.SCINTILLA['UNDO']: self.undo,
-            shortcuts.SCINTILLA['REDO']: self.redo,
-            shortcuts.SCINTILLA['COMMENT']: self.comment,
-            shortcuts.SCINTILLA['DELETE']: self.delete,
-            shortcuts.SCINTILLA['SELECT_ALL']: self.selectAll,
+            shortcuts.INDENT: self.indent,
+            shortcuts.UNINDENT: self.unindent,
+            shortcuts.CUT: self.cut,
+            shortcuts.COPY: self.copy,
+            shortcuts.PASTE: self.paste,
+            shortcuts.UNDO: self.undo,
+            shortcuts.REDO: self.redo,
+            shortcuts.COMMENT: self.comment,
+            shortcuts.DELETE: self.delete,
+            shortcuts.SELECT_ALL: self.selectAll,
         }
 
         for shortcut, action in actions.items():
-            if shortcut.matches_key_kvent(event):
+            if shortcut.matches_key_event(event):
                 action()
                 return
 

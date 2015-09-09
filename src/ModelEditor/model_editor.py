@@ -13,7 +13,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position
 import icon
-from ui.menus import MainEditMenu
+from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 
 
 class ModelEditor:
@@ -50,102 +50,13 @@ class ModelEditor:
 
         # Menu bar
         menubar = self._mainwindow.menuBar()
-
-        # File menu
-        self._file_menu = menubar.addMenu('&File')
-
-        self._new_file_action = QtWidgets.QAction(
-            '&New File ...', self._mainwindow)
-        self._new_file_action.setShortcut('Ctrl+N')
-        self._new_file_action.setStatusTip('New model yaml file')
-        self._new_file_action.triggered.connect(self._new_file)
-        self._file_menu.addAction(self._new_file_action)
-
-        self._open_file_action = QtWidgets.QAction(
-            '&Open File ...', self._mainwindow)
-        self._open_file_action.setShortcut('Ctrl+O')
-        self._open_file_action.setStatusTip('Open model yaml file')
-        self._open_file_action.triggered.connect(self._open_file)
-        self._file_menu.addAction(self._open_file_action)
-
-        self._save_file_action = QtWidgets.QAction(
-            '&Save File', self._mainwindow)
-        self._save_file_action.setShortcut('Ctrl+S')
-        self._save_file_action.setStatusTip('Save model yaml file')
-        self._save_file_action.triggered.connect(self._save_file)
-        self._file_menu.addAction(self._save_file_action)
-
-        self._save_as_action = QtWidgets.QAction(
-            'Save &As ...', self._mainwindow)
-        self._save_as_action.setShortcut('Ctrl+A')
-        self._save_as_action.setStatusTip('Save model yaml file as')
-        self._save_as_action.triggered.connect(self._save_as)
-        self._file_menu.addAction(self._save_as_action)
-
-        self._recent_file_signal_connect = False
-        self._recent = self._file_menu.addMenu('Open &Recent Files')
-        self._recent_group = QtWidgets.QActionGroup(
-            self._mainwindow, exclusive=True)
-        self._update_recent_files(0)
-
-        self._file_menu.addSeparator()
-
-        self._import_file_action = QtWidgets.QAction(
-            '&Import File ...', self._mainwindow)
-        self._import_file_action.setShortcut('Ctrl+I')
-        self._import_file_action.setStatusTip('Import model from old con formatted file')
-        self._import_file_action.triggered.connect(self._import_file)
-        self._file_menu.addAction(self._import_file_action)
-
-        self._file_menu.addSeparator()
-
-        self._exit_action = QtWidgets.QAction('E&xit', self._mainwindow)
-        self._exit_action.setShortcut('Ctrl+Q')
-        self._exit_action.setStatusTip('Exit application')
-        self._exit_action.triggered.connect(QtWidgets.qApp.quit)
-        self._file_menu.addAction(self._exit_action)
-
-        # Edit menu
+        self._file_menu = MainFileMenu(self._mainwindow, self)
+        self.update_recent_files(0)
         self._edit_menu = MainEditMenu(self._mainwindow, self._editor)
+        self._settings_menu = MainSettingsMenu(self._mainwindow, self)
+        menubar.addMenu(self._file_menu)
         menubar.addMenu(self._edit_menu)
-
-        # Settings menu
-        self._settings_menu = menubar.addMenu('&Settings')
-        self._format = self._settings_menu.addMenu('&Format')
-        self._format_group = QtWidgets.QActionGroup(
-            self._mainwindow, exclusive=True)
-        for frm in cfg.format_files:
-            faction = self._format_group.addAction(QtWidgets.QAction(
-                frm, self._mainwindow, checkable=True))
-            faction.setStatusTip('Choose format file for current document')
-            self._format.addAction(faction)
-            faction.setChecked(cfg.curr_format_file == frm)
-        self._format_group.triggered.connect(self._format_checked)
-
-        self._format.addSeparator()
-
-        self._edit_format_action = QtWidgets.QAction(
-            '&Edit Format File ...', self._mainwindow)
-        self._edit_format_action.setShortcut('Ctrl+E')
-        self._edit_format_action.setStatusTip('Edit format file in Json Editor')
-        self._edit_format_action.triggered.connect(self._edit_format)
-        self._format.addAction(self._edit_format_action)
-
-        self._transformation = self._settings_menu.addMenu('&Transformation')
-        pom_lamda = lambda name: lambda: self._transform(name)
-        for frm in cfg.transformation_files:
-            faction = QtWidgets.QAction(frm + " ...", self._mainwindow)
-            faction.setStatusTip('Transform format of current document')
-            self._transformation.addAction(faction)
-            faction.triggered.connect(pom_lamda(frm))
-
-        self._edit_transformation = self._settings_menu.addMenu('&Edit Transformation Rules')
-        pom_lamda = lambda name: lambda: self._edit_transformation_file(name)
-        for frm in cfg.transformation_files:
-            faction = QtWidgets.QAction(frm, self._mainwindow)
-            faction.setStatusTip('Open transformation file')
-            self._edit_transformation.addAction(faction)
-            faction.triggered.connect(pom_lamda(frm))
+        menubar.addMenu(self._settings_menu)
 
         # status bar
         self._column = QtWidgets.QLabel()
@@ -223,17 +134,17 @@ class ModelEditor:
             self._info.setHtml(node.info_text)
         self._debug_tab.show_data_node(node)
 
-    def _new_file(self):
+    def new_file(self):
         """new file menu action"""
         if not self._save_old_file():
             return
         cfg.new_file()
         self._reload()
-        self._update_recent_files(0)
+        self.update_recent_files(0)
         self._update_document_name()
         self._status.showMessage("New file is opened", 5000)
 
-    def _open_file(self):
+    def open_file(self):
         """open file menu action"""
         if not self._save_old_file():
             return
@@ -243,11 +154,11 @@ class ModelEditor:
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
             self._reload()
-            self._update_recent_files()
+            self.update_recent_files()
             self._update_document_name()
             self._status.showMessage("File '" + yaml_file[0] + "' is opened", 5000)
 
-    def _import_file(self):
+    def import_file(self):
         """import con file menu action"""
         if not self._save_old_file():
             return
@@ -257,11 +168,11 @@ class ModelEditor:
         if con_file[0]:
             cfg.import_file(con_file[0])
             self._reload()
-            self._update_recent_files()
+            self.update_recent_files()
             self._update_document_name()
             self._status.showMessage("File '" + con_file[0] + "' is imported", 5000)
 
-    def _open_recent(self, action):
+    def open_recent(self, action):
         """open recent file menu action"""
         if action.text() == cfg.curr_file:
             return
@@ -269,19 +180,19 @@ class ModelEditor:
             return
         cfg.open_recent_file(action.text())
         self._reload()
-        self._update_recent_files()
+        self.update_recent_files()
         self._update_document_name()
         self._status.showMessage("File '" + action.text() + "' is opened", 5000)
 
-    def _save_file(self):
+    def save_file(self):
         """save file menu action"""
         if cfg.curr_file is None:
-            return self._save_as()
+            return self.save_as()
         cfg.update_yaml_file(self._editor.text())
         cfg.save_file()
         self._status.showMessage("File is saved", 5000)
 
-    def _save_as(self):
+    def save_as(self):
         """save file menu action"""
         cfg.update_yaml_file(self._editor.text())
         if cfg.curr_file is None:
@@ -294,13 +205,13 @@ class ModelEditor:
 
         if yaml_file[0]:
             cfg.save_as(yaml_file[0])
-            self._update_recent_files()
+            self.update_recent_files()
             self._update_document_name()
             self._status.showMessage("File is saved", 5000)
             return True
         return False
 
-    def _transform(self, file):
+    def transform(self, file):
         """Run transformation according rules in set file"""
         cfg.update_yaml_file(self._editor.text())
         cfg.transform(file)
@@ -308,7 +219,7 @@ class ModelEditor:
         self._editor.setText(cfg.document, keep_history=True)
         self._reload()
 
-    def _edit_transformation_file(self, file):
+    def edit_transformation_file(self, file):
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
@@ -317,17 +228,16 @@ class ModelEditor:
                                 "Transformation rules:", text, self._mainwindow)
             dlg.exec_()
 
-    def _format_checked(self):
-        """format checked file menu action"""
-        action = self._format_group.checkedAction()
-        if cfg.curr_format_file == action.text():
+    def select_format(self, filename):
+        """Selects format file by filename."""
+        if cfg.curr_format_file == filename:
             return
-        cfg.curr_format_file = action.text()
+        cfg.curr_format_file = filename
         cfg.update_format()
         self._reload()
         self._status.showMessage("Format of file is changed", 5000)
 
-    def _edit_format(self):
+    def edit_format(self):
         """Open selected format file in Json Editor"""
         text = cfg.get_curr_format_text()
         if text is not None:
@@ -336,23 +246,8 @@ class ModelEditor:
                                 "Format", text, self._mainwindow)
             dlg.exec_()
 
-    def _update_recent_files(self, from_row=1):
-        """update recent file in menu"""
-        if self._recent_file_signal_connect:
-            self._recent_group.triggered.disconnect()
-            self._recent_file_signal_connect = False
-        for action in self._recent_group.actions():
-            self._recent_group.removeAction(action)
-        if len(cfg.config.recent_files) < from_row+1:
-            self._recent.setEnabled(False)
-            return
-        self._recent.setEnabled(True)
-        for i in range(from_row, len(cfg.config.recent_files)):
-            reaction = self._recent_group.addAction(QtWidgets.QAction(
-                cfg.config.recent_files[i], self._mainwindow, checkable=True))
-            self._recent.addAction(reaction)
-        self._recent_group.triggered.connect(self._open_recent)
-        self._recent_file_signal_connect = True
+    def update_recent_files(self, from_row=1):
+        self._file_menu.update_recent_files(from_row)
 
     def _update_document_name(self):
         """Update document title (add file name)"""
@@ -380,9 +275,9 @@ class ModelEditor:
                 return False
             if reply == QtWidgets.QMessageBox.Yes:
                 if cfg.curr_file is None:
-                    return self._save_as()
+                    return self.save_as()
                 else:
-                    self._save_file()
+                    self.save_file()
         return True
 
     def main(self):
