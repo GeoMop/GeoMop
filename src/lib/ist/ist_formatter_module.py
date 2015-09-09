@@ -28,6 +28,8 @@ class InfoTextGenerator:
     @classmethod
     def get_info_text(cls, input_type, **kwargs):
         """Generate an HTML documentation for the given id of `node.input_type`."""
+        if input_type is None:
+            return "unknown input_type"
         input_type_id = input_type['id']
         if input_type_id not in cls._input_types:
             return "unknown ID"

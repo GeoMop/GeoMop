@@ -1,12 +1,23 @@
+"""
+Module contains customized QScintilla editor.
+"""
+
+# pylint: disable=invalid-name,no-name-in-module
+
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 import helpers.subyaml_change_analyzer as analyzer
 from helpers.editor_appearance import EditorAppearance as appearance
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
-import PyQt5.QtGui as QtGui
+from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
 import icon
+from contextlib import ContextDecorator
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+import helpers.keyboard_shortcuts as shortcuts
+import re
+from ui.menus import EditMenu
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -25,11 +36,13 @@ class YamlEditorWidget(QsciScintilla):
     .. _cursor_changed:
     Signal is sent when cursor position is changed.
     """
+
     nodeChanged = QtCore.pyqtSignal(int, int)
     """
     .. _node_changed:
     Signal is sent when node below cursor position is changed.
     """
+
     structureChanged = QtCore.pyqtSignal(int, int)
     """
     .. _structure_changed:
@@ -49,8 +62,15 @@ class YamlEditorWidget(QsciScintilla):
     parameter: line number in text document
     """
 
+
     def __init__(self, parent=None):
         super(YamlEditorWidget, self).__init__(parent)
+
+        self.reload_chunk = ReloadChunk()
+        """
+        reload chunk is a context manager used to make multiple text changes without
+        triggering a reload function
+        """
 
         appearance.set_default_appearens(self)
 
@@ -60,14 +80,30 @@ class YamlEditorWidget(QsciScintilla):
         self.setLexer(self._lexer)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
+        # editor behavior
         self.setAutoIndent(True)
         self.setIndentationGuides(True)
         self.setIndentationsUseTabs(False)
+        self.setBackspaceUnindents(True)
+        self.setTabIndents(True)
         self.setTabWidth(2)
         self.setUtf8(True)
 
-        self._lexer.setColor(QtGui.QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
-        self._lexer.setPaper(QtGui.QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        # text wrapping
+        self.setWrapMode(QsciScintilla.WrapWord)
+        self.setWrapIndentMode(QsciScintilla.WrapIndentIndented)
+        self.setWrapVisualFlags(QsciScintilla.WrapFlagNone, QsciScintilla.WrapFlagByBorder)
+
+        # colors
+        self._lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self._lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        self.setIndentationGuidesBackgroundColor(QColor("#e5e5e5"))
+        self.setIndentationGuidesForegroundColor(QColor("#e5e5e5"))
+        self.setCaretLineBackgroundColor(QColor("#f8f8f8"))
+        self.setMatchedBraceBackgroundColor(QColor("#feffa8"))
+        self.setMatchedBraceForegroundColor(QColor("#0000ff"))
+        self.setUnmatchedBraceBackgroundColor(QColor("#fff2f0"))
+        self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # Completetion
         self._api = QsciAPIs(self._lexer)
@@ -85,6 +121,7 @@ class YamlEditorWidget(QsciScintilla):
         self.markerDefine(icon.get_pixmap("error", 16), dn.DataError.Severity.error.value)
         self.markerDefine(icon.get_pixmap("warning", 16), dn.DataError.Severity.warning.value)
         self.markerDefine(icon.get_pixmap("information", 16), dn.DataError.Severity.info.value)
+
         # Nonclickable margin 2 for showing markers
         self.setMarginWidth(2, 4)
         self.setMarginMarkerMask(2, 0xF0)
@@ -92,16 +129,37 @@ class YamlEditorWidget(QsciScintilla):
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.error.value)
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.warning.value)
         self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.info.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#a50505"), 4 + dn.DataError.Severity.fatal.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#ee4c4c"), 4 + dn.DataError.Severity.error.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#FFAC30"), 4 + dn.DataError.Severity.warning.value)
-        self.setMarkerBackgroundColor(QtGui.QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
+        self.setMarkerBackgroundColor(QColor("#a50505"), 4 + dn.DataError.Severity.fatal.value)
+        self.setMarkerBackgroundColor(QColor("#ee4c4c"), 4 + dn.DataError.Severity.error.value)
+        self.setMarkerBackgroundColor(QColor("#FFAC30"), 4 + dn.DataError.Severity.warning.value)
+        self.setMarkerBackgroundColor(QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
 
         # signals
+        self.reload_chunk.onExit.connect(self._reload_chunk_onExit)
         self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self._pos = editorPosition()
+
+        # disable QScintilla keyboard shorcuts to handle them in Qt
+        for __, shortcut in shortcuts.SCINTILLA.items():
+            self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
+
+        # begin undo
+        self.beginUndoAction()
+
+    def setText(self, text, keep_history=False):
+        """
+        Sets editor text. Editor history is preserved if `keep_history` is set to True.
+        """
+        if keep_history:
+            # replace all text instead
+            self.selectAll()
+            self.replaceSelectedText(text)
+        else:
+            self.endUndoAction()
+            super(YamlEditorWidget, self).setText(text)
+            self.beginUndoAction()
 
     def mark_selected(self, start_column, start_row, end_column, end_row):
         """mark area as selected and set cursor to end position"""
@@ -115,6 +173,8 @@ class YamlEditorWidget(QsciScintilla):
 
     def reload(self):
         """reload data from config"""
+        self.endUndoAction()
+        self.beginUndoAction()
         if cfg.document != self.text():
             self.setText(cfg.document)
         self._reload_margin()
@@ -139,11 +199,17 @@ class YamlEditorWidget(QsciScintilla):
 
     def _text_changed(self):
         """Function for textChanged signal"""
-        self._pos.new_array_line_completation(self)
-        self._pos.spec_char_completation(self)
-        if not self._pos.fix_bounds(self):
-            line, index = self.getCursorPosition()
-            self.structureChanged.emit(line + 1, index + 1)
+        if not self.reload_chunk.freeze_reload:
+            self._pos.new_array_line_completation(self)
+            self._pos.spec_char_completation(self)
+            if not self._pos.fix_bounds(self):
+                line, index = self.getCursorPosition()
+                self.structureChanged.emit(line + 1, index + 1)
+
+    def _reload_chunk_onExit(self):
+        """Emits a structure change upon closing a reload chunk."""
+        line, index = self.getCursorPosition()
+        self.structureChanged.emit(line + 1, index + 1)
 
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
@@ -172,6 +238,218 @@ class YamlEditorWidget(QsciScintilla):
                             if (present & (1 << i)) == (1 << i):
                                 self.markerDelete(line, i + 4)
                 self.markerAdd(line, error.severity.value + 4)
+
+    def keyPressEvent(self, event):
+        """Modifies behavior to handle custom keyboard shortcuts."""
+        if event.type() != QtCore.QEvent.KeyPress:
+            return
+
+        actions = {
+            shortcuts.SCINTILLA['INDENT']: self.indent,
+            shortcuts.SCINTILLA['UNINDENT']: self.unindent,
+            shortcuts.SCINTILLA['CUT']: self.cut,
+            shortcuts.SCINTILLA['COPY']: self.copy,
+            shortcuts.SCINTILLA['PASTE']: self.paste,
+            shortcuts.SCINTILLA['UNDO']: self.undo,
+            shortcuts.SCINTILLA['REDO']: self.redo,
+            shortcuts.SCINTILLA['COMMENT']: self.comment,
+            shortcuts.SCINTILLA['DELETE']: self.delete,
+            shortcuts.SCINTILLA['SELECT_ALL']: self.selectAll,
+        }
+
+        for shortcut, action in actions.items():
+            if shortcut.matches_keyEvent(event):
+                action()
+                return
+
+        return super(YamlEditorWidget, self).keyPressEvent(event)
+
+    def indent(self):
+        """Indents the selected lines."""
+        with self.reload_chunk:
+            from_line, from_col, to_line, to_col = self.getSelection()
+            if from_line == -1 and to_line == -1:  # no selection -> insert spaces
+                spaces = ''.join([' ' * self.tabWidth()])
+                self.insertAtCursor(spaces)
+            else:  # text selected -> perform indent
+                for line in range(from_line, to_line + 1):
+                    super(YamlEditorWidget, self).indent(line)
+                from_col += self.tabWidth()
+                to_col += self.tabWidth()
+                self.setSelection(from_line, from_col, to_line, to_col)
+
+    def unindent(self):
+        """Unindents the selected lines."""
+        from_line, from_col, to_line, to_col = self.getSelection()
+        if from_line == -1 and to_line == -1:  # no selection -> unindent current line
+            line, col = self.getCursorPosition()
+            from_line = to_line = line
+            super(YamlEditorWidget, self).unindent(line)
+            self.setCursorPosition(line, col - self.tabWidth())
+        else:  # selection -> unindent selected lines
+            for line in range(from_line, to_line + 1):
+                super(YamlEditorWidget, self).unindent(line)
+            from_col -= self.tabWidth()
+            to_col -= self.tabWidth()
+            self.setSelection(from_line, from_col, to_line, to_col)
+
+    def insertAtCursor(self, text):
+        """Inserts `text` at cursor position and moves the cursor to the end of inserted text."""
+        line, col = self.getCursorPosition()
+        self.insertAt(text, line, col)
+        text_lines = text.splitlines()
+        cursor_line = line + len(text_lines) - 1
+        if line == cursor_line:
+            cursor_col = col + len(text_lines[0])
+        else:
+            cursor_col = len(text_lines[-1])
+        self.setCursorPosition(cursor_line, cursor_col)
+
+    def setSelectionFromCursor(self, length):
+        """Selects `length` characters to the right from cursor."""
+        cur_line, cur_col = self.getCursorPosition()
+        self.setSelection(cur_line, cur_col, cur_line, cur_col + length)
+
+    def clearSelection(self):
+        """Clears current selection."""
+        self.setSelectionFromCursor(0)
+
+    def undo(self):
+        """Moves back in editing history by a single reload."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).undo()
+
+    def redo(self):
+        """Moves forth in editing history by a single reload."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).redo()
+
+    def copy(self):
+        """Copy to clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).copy()
+
+    def cut(self):
+        """Cut to clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).cut()
+
+    def paste(self):
+        """Paste from clipboard."""
+        with self.reload_chunk:
+            super(YamlEditorWidget, self).paste()
+
+    def delete(self):
+        """Deletes selected text."""
+        with self.reload_chunk:
+            if not self.hasSelectedText():  # select a single character
+                self.setSelectionFromCursor(1)
+            super(YamlEditorWidget, self).removeSelectedText()
+
+    def selectAll(self):
+        """Selects the entire text."""
+        super(YamlEditorWidget, self).selectAll()
+
+    def comment(self):
+        """(Un)Comments the selected lines."""
+        with self.reload_chunk:
+            from_line, from_col, to_line, to_col = self.getSelection()
+            if from_line == -1 and to_line == -1:  # no selection -> current line
+                cur_line, cur_col = self.getCursorPosition()
+                from_line = to_line = cur_line
+
+            # prepare lines with and without comment
+            is_comment = True
+            comment_re = re.compile(r'(\s*)# ?(.*)')
+            lines_without_comment = []
+            lines_with_comment = []
+            for line in range(from_line, to_line + 1):
+                text = self.text(line).replace('\n', '')
+                match = comment_re.match(text)
+                lines_with_comment.append('# ' + text)
+                if not match:
+                    is_comment = False
+                else:
+                    lines_without_comment.append(match.group(1) + match.group(2))
+
+            # replace the selection with the toggled comment
+            self.setSelection(from_line, 0, to_line + 1, 0)  # select entire text
+            if is_comment:  # check if comment is applied to all lines
+                lines_without_comment.append('')
+                self.replaceSelectedText('\n'.join(lines_without_comment))
+            else:  # not a comment already - prepend all lines with '# '
+                lines_with_comment.append('')
+                self.replaceSelectedText('\n'.join(lines_with_comment))
+
+    @pyqtSlot(str, bool, bool, bool)
+    def findRequested(self, search_term, is_regex, is_case_sensitive, is_word):
+        """Handles find requested event."""
+        cur_line, cur_col = self.getCursorPosition()
+        self.clearSelection()
+        self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
+                       index=cur_col)
+
+    @pyqtSlot(str, str, bool, bool, bool)
+    def replaceRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+        """Handles replace requested event."""
+        with self.reload_chunk:
+            if self.hasSelectedText():
+                self.replaceSelectedText(replacement)
+
+            self.findRequested(search_term, is_regex, is_case_sensitive, is_word)
+
+    @pyqtSlot(str, str, bool, bool, bool)
+    def replaceAllRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+        """Handles replace all requested event."""
+        with self.reload_chunk:
+            cursor = self.setCursorPosition(0, 0)
+            self.clearSelection()
+            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
+
+            while self.hasSelectedText():
+                self.replaceSelectedText(replacement)
+                self.findNext()
+
+    def contextMenuEvent(self, event):
+        """Override default context menu of Scintilla."""
+        context_menu = EditMenu(self, self)
+        context_menu.exec_(event.globalPos())
+        event.accept()
+
+
+class ReloadChunk(ContextDecorator, QObject):
+    """
+    Class represents a sequence of editor changes that are clumped together to form a single
+    reload event. Note that reload should be prevented from occurring while
+    `ReloadChunk.freeze_reload` is set to True.
+
+    This class is used by the `YamlEditorWidget` class using the with statement::
+
+        reload_chunk = ReloadChunk()
+        with reload_chunk:
+            # perform multiple changes
+            # reload_chunk.freeze_reload prevents reload changes during editing
+        # upon exit, onExit event is triggered (can be connected to textChanged)
+    """
+
+    onEnter = pyqtSignal()
+    """signal is triggered when reload chunk is opened"""
+
+    onExit = pyqtSignal()
+    """signal is triggered when reload chunk is closed"""
+
+    freeze_reload = False
+    """indicates whether reload function should be frozen"""
+
+    def __enter__(self):
+        self.freeze_reload = True
+        self.onEnter.emit()
+        return self
+
+    def __exit__(self, *exc):
+        self.freeze_reload = False
+        self.onExit.emit()
+        return False
 
 
 class editorPosition():
@@ -325,7 +603,7 @@ class editorPosition():
             # return origin values of end
             if self.end_line == self.line and self.node is not None:
                 if (self.node.key.span is not None and
-                        type(self.node) != dn.ScalarNode):
+                        not isinstance(self.node, dn.ScalarNode)):
                     self.end_index = self.node.key.span.end.column - 1
                 else:
                     self.end_index = self.node.span.end.column - 1
