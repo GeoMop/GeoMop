@@ -53,12 +53,12 @@ if __name__ == '__main__':
         win.setUrl(url)
         win.show()
 
-        def refreshPage():
+        def refresh_page():
             """Page refresh for debugging purposes."""
             win.setUrl(url)
 
         timer = QTimer(win)
-        timer.timeout.connect(refreshPage)
+        timer.timeout.connect(refresh_page)
         timer.start(5000)
 
         sys.exit(app.exec_())

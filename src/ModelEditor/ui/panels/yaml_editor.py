@@ -139,7 +139,7 @@ class YamlEditorWidget(QsciScintilla):
         self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
-        self._pos = editorPosition()
+        self._pos = EditorPosition()
 
         # disable QScintilla keyboard shorcuts to handle them in Qt
         for shortcut in shortcuts.SCINTILLA_DISABLE:
@@ -270,7 +270,7 @@ class YamlEditorWidget(QsciScintilla):
             from_line, from_col, to_line, to_col = self.getSelection()
             if from_line == -1 and to_line == -1:  # no selection -> insert spaces
                 spaces = ''.join([' ' * self.tabWidth()])
-                self.insertAtCursor(spaces)
+                self.insert_at_cursor(spaces)
             else:  # text selected -> perform indent
                 for line in range(from_line, to_line + 1):
                     super(YamlEditorWidget, self).indent(line)
@@ -293,7 +293,7 @@ class YamlEditorWidget(QsciScintilla):
             to_col -= self.tabWidth()
             self.setSelection(from_line, from_col, to_line, to_col)
 
-    def insertAtCursor(self, text):
+    def insert_at_cursor(self, text):
         """Inserts `text` at cursor position and moves the cursor to the end of inserted text."""
         line, col = self.getCursorPosition()
         self.insertAt(text, line, col)
@@ -305,14 +305,14 @@ class YamlEditorWidget(QsciScintilla):
             cursor_col = len(text_lines[-1])
         self.setCursorPosition(cursor_line, cursor_col)
 
-    def setSelectionFromCursor(self, length):
+    def set_selection_from_cursor(self, length):
         """Selects `length` characters to the right from cursor."""
         cur_line, cur_col = self.getCursorPosition()
         self.setSelection(cur_line, cur_col, cur_line, cur_col + length)
 
-    def clearSelection(self):
+    def clear_selection(self):
         """Clears current selection."""
-        self.setSelectionFromCursor(0)
+        self.set_selection_from_cursor(0)
 
     def undo(self):
         """Moves back in editing history by a single reload."""
@@ -343,12 +343,8 @@ class YamlEditorWidget(QsciScintilla):
         """Deletes selected text."""
         with self.reload_chunk:
             if not self.hasSelectedText():  # select a single character
-                self.setSelectionFromCursor(1)
+                self.set_selection_from_cursor(1)
             super(YamlEditorWidget, self).removeSelectedText()
-
-    def selectAll(self):
-        """Selects the entire text."""
-        super(YamlEditorWidget, self).selectAll()
 
     def comment(self):
         """(Un)Comments the selected lines."""
@@ -382,27 +378,28 @@ class YamlEditorWidget(QsciScintilla):
                 self.replaceSelectedText('\n'.join(lines_with_comment))
 
     @pyqtSlot(str, bool, bool, bool)
-    def findRequested(self, search_term, is_regex, is_case_sensitive, is_word):
+    def on_find_requested(self, search_term, is_regex, is_case_sensitive, is_word):
         """Handles find requested event."""
         cur_line, cur_col = self.getCursorPosition()
-        self.clearSelection()
+        self.clear_selection()
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
 
     @pyqtSlot(str, str, bool, bool, bool)
-    def replaceRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+    def on_replace_requested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
         """Handles replace requested event."""
         with self.reload_chunk:
             if self.hasSelectedText():
                 self.replaceSelectedText(replacement)
 
-            self.findRequested(search_term, is_regex, is_case_sensitive, is_word)
+            self.on_find_requested(search_term, is_regex, is_case_sensitive, is_word)
 
     @pyqtSlot(str, str, bool, bool, bool)
-    def replaceAllRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
+    def on_replace_all_requested(self, search_term, replacement, is_regex, is_case_sensitive,
+                                 is_word):
         """Handles replace all requested event."""
         with self.reload_chunk:
-            self.clearSelection()
+            self.clear_selection()
             self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
 
             while self.hasSelectedText():
@@ -451,7 +448,7 @@ class ReloadChunk(ContextDecorator, QObject):
         return False
 
 
-class editorPosition():
+class EditorPosition:
     """Helper for guarding cursor position above node"""
 
     def __init__(self):
