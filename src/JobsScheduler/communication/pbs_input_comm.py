@@ -14,7 +14,7 @@ class PbsInputComm(SocketInputComm):
     def connect(self):
         """connect session and send port number over stdout"""
         
-        host = os.environ.get('SGE_O_HOST')
+        host = os.environ.get('HOSTNAME')
         sys.stdout.write("HOST:--" + str(host) + "--\n")
         sys.stdout.flush()
         logging.debug("Server host is:" + host) 

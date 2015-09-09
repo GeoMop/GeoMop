@@ -36,7 +36,7 @@ class PbsOutputComm(ExecOutputComm):
                         lines = hlp.get_outpup()
                         break
                     i += 1
-                host = re.match( 'HOST:--(\d+)--',  lines[0])
+                host = re.match( 'HOST:--(\S+)--',  lines[0])
                 if host is not None:
                     logging.debug("Next communicator return socket host:" + host.group(1)) 
                     self.host = host.group(1)
