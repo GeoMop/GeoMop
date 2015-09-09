@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 GeoMop model auto-conversion module
 
 Ensures auto-conversion of data for specified format.
-
-@author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
 
 from copy import deepcopy
 from data import data_node as dn

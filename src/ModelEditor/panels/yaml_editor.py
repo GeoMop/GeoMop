@@ -2,7 +2,7 @@
 Module contains customized QScintilla editor.
 """
 
-# pylint: disable=invalid-name,no-name-in-module
+# pylint: disable=invalid-name
 
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
@@ -106,7 +106,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # Completetion
-        self._api = QsciAPIs(self._lexer)
+        self.api = QsciAPIs(self._lexer)
         self.setAutoCompletionSource(QsciScintilla.AcsAPIs)
         self.setAutoCompletionThreshold(1)
 
@@ -178,7 +178,7 @@ class YamlEditorWidget(QsciScintilla):
         if cfg.document != self.text():
             self.setText(cfg.document)
         self._reload_margin()
-        
+
     def get_curr_element_type(self):
         return self._pos.cursore_type_position.value
 
@@ -193,8 +193,8 @@ class YamlEditorWidget(QsciScintilla):
         else:
             self._pos.make_post_operation(self, line, index)
             if old_cursore_type_position != self._pos.cursore_type_position:
-                self.elementChanged.emit(self._pos.cursore_type_position.value, 
-                    old_cursore_type_position.value)
+                self.elementChanged.emit(self._pos.cursore_type_position.value,
+                                         old_cursore_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
 
     def _text_changed(self):
@@ -258,7 +258,7 @@ class YamlEditorWidget(QsciScintilla):
         }
 
         for shortcut, action in actions.items():
-            if shortcut.matches_keyEvent(event):
+            if shortcut.matches_key_kvent(event):
                 action()
                 return
 
@@ -353,9 +353,9 @@ class YamlEditorWidget(QsciScintilla):
     def comment(self):
         """(Un)Comments the selected lines."""
         with self.reload_chunk:
-            from_line, from_col, to_line, to_col = self.getSelection()
+            from_line, __, to_line, __ = self.getSelection()
             if from_line == -1 and to_line == -1:  # no selection -> current line
-                cur_line, cur_col = self.getCursorPosition()
+                cur_line, __ = self.getCursorPosition()
                 from_line = to_line = cur_line
 
             # prepare lines with and without comment
@@ -402,7 +402,6 @@ class YamlEditorWidget(QsciScintilla):
     def replaceAllRequested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
         """Handles replace all requested event."""
         with self.reload_chunk:
-            cursor = self.setCursorPosition(0, 0)
             self.clearSelection()
             self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
 
@@ -522,7 +521,7 @@ class editorPosition():
         """if is added special char, set text for completation else empty string"""
         new_line = editor.text(self.line)
         if len(self._last_line) + 1 == len(new_line):
-            line, index = editor.getCursorPosition()
+            __, index = editor.getCursorPosition()
             if len(new_line) > index:
                 self._spec_char = ""
                 if new_line[index] == '[':
@@ -546,8 +545,8 @@ class editorPosition():
         self._save_lines(editor)
         if not (self.begin_line > line or self.end_line < line or
                 (line == self.begin_line and self.begin_index > index) or
-                (line == self.end_line and self.end_index < index)):            
-            
+                (line == self.end_line and self.end_index < index)):
+
             # set cursore_type_position
             anal = self._init_analyzer(editor, line, index)
             pos_type = anal.get_pos_type()
@@ -555,7 +554,7 @@ class editorPosition():
             if pos_type is analyzer.PosType.in_key:
                 key_type = anal.get_key_pos_type()
             self.cursore_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
-            
+
             # value or key changed and cursor is in opposite
             if pos_type is analyzer.PosType.in_key:
                 if self.is_value_changed:
@@ -566,7 +565,7 @@ class editorPosition():
                         return True
             if pos_type is analyzer.PosType.in_value:
                 if self.is_key_changed or self.last_key_type is not None:
-                    return True                
+                    return True
             if pos_type is analyzer.PosType.in_inner:
                 if  self.node.is_child_on_line(line+1):
                     return True
@@ -642,15 +641,15 @@ class editorPosition():
             else:
                 self.end_index += len(new_line) - len(self._last_line)
         self._save_lines(editor)
-        
+
         # for delete  is index <> self.index
         line, index = editor.getCursorPosition()
-        anal = self._init_analyzer(editor, line, index)        
+        anal = self._init_analyzer(editor, line, index)
         # value or key changed and cursor is in opposite
         pos_type = anal.get_pos_type()
         if pos_type is analyzer.PosType.in_key:
             self.is_key_changed = True
-            if self.is_value_changed:                    
+            if self.is_value_changed:
                 return False
             new_key_type = anal.get_key_pos_type()
             if self.last_key_type is None:
@@ -668,10 +667,10 @@ class editorPosition():
 
     def _reload_autocompletation(self, editor):
         """New line was added"""
-        editor._api.clear()
+        editor.api.clear()
         for option in self.node.options:
-            editor._api.add(option)
-        editor._api.prepare()
+            editor.api.add(option)
+        editor.api.prepare()
 
     def node_init(self, node, editor):
         """set new node"""

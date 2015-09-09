@@ -2,9 +2,9 @@
 Module contains dialogs for search functions - find and replace.
 """
 
-__author__ = 'Tomas Krizek'
+# pylint: disable=invalid-name
 
-# pylint: disable=no-member,invalid-name
+__author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QGridLayout)
@@ -32,64 +32,64 @@ class FindDialog(QDialog):
         super(FindDialog, self).__init__(parent)
         self.setWindowTitle(title)
 
-        self.findLabel = None
-        self.findLineEdit = None
-        self.csCheckBox = None
-        self.reCheckBox = None
-        self.woCheckBox = None
-        self.findButton = None
-        self.closeButton = None
+        self.find_label = None
+        self.find_line_edit = None
+        self.cs_check_box = None
+        self.re_check_box = None
+        self.wo_check_box = None
+        self.find_button = None
+        self.close_button = None
 
-        self.initComponents()
-        self.initLayout()
+        self.init_components()
+        self.init_layout()
 
-    def initComponents(self):
+    def init_components(self):
         """Initializes the user interface components."""
-        self.findLabel = QLabel('Search for: ')
-        self.findLineEdit = QLineEdit()
-        self.csCheckBox = QCheckBox('Match case')
-        self.reCheckBox = QCheckBox('Regular expression')
-        self.woCheckBox = QCheckBox('Match entire word only')
-        self.findButton = QPushButton('Find')
-        self.findButton.setDefault(True)
-        self.findButton.clicked.connect(self.accept)
-        self.closeButton = QPushButton('Close')
-        self.closeButton.clicked.connect(self.close)
+        self.find_label = QLabel('Search for: ')
+        self.find_line_edit = QLineEdit()
+        self.cs_check_box = QCheckBox('Match case')
+        self.re_check_box = QCheckBox('Regular expression')
+        self.wo_check_box = QCheckBox('Match entire word only')
+        self.find_button = QPushButton('Find')
+        self.find_button.setDefault(True)
+        self.find_button.clicked.connect(self.accept)
+        self.close_button = QPushButton('Close')
+        self.close_button.clicked.connect(self.close)
 
-    def initLayout(self):
+    def init_layout(self):
         """Initializes the layout of widget."""
-        searchLayout = QHBoxLayout()
-        searchLayout.addWidget(self.findLabel)
-        searchLayout.addWidget(self.findLineEdit)
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(self.find_label)
+        search_layout.addWidget(self.find_line_edit)
 
-        buttonLayout = QHBoxLayout()
-        buttonLayout.addStretch()
-        buttonLayout.addWidget(self.closeButton)
-        buttonLayout.addWidget(self.findButton)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.close_button)
+        button_layout.addWidget(self.find_button)
 
-        mainLayout = QVBoxLayout()
-        mainLayout.addLayout(searchLayout)
-        mainLayout.addWidget(self.csCheckBox)
-        mainLayout.addWidget(self.reCheckBox)
-        mainLayout.addWidget(self.woCheckBox)
-        mainLayout.addLayout(buttonLayout)
-        self.setLayout(mainLayout)
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(search_layout)
+        main_layout.addWidget(self.cs_check_box)
+        main_layout.addWidget(self.re_check_box)
+        main_layout.addWidget(self.wo_check_box)
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
 
         self.setFixedSize(FindDialog.WIDTH, FindDialog.HEIGHT)
 
     def accept(self):
         """Handles a find confirmation."""
-        search_term = self.findLineEdit.text()
-        is_case_sensitive = self.csCheckBox.isChecked()
-        is_regex = self.reCheckBox.isChecked()
-        is_word = self.woCheckBox.isChecked()
+        search_term = self.find_line_edit.text()
+        is_case_sensitive = self.cs_check_box.isChecked()
+        is_regex = self.re_check_box.isChecked()
+        is_word = self.wo_check_box.isChecked()
         self.findRequested.emit(search_term, is_regex, is_case_sensitive, is_word)
 
     def activateWindow(self):
         """Activates the window and sets the focus."""
         super(FindDialog, self).activateWindow()
-        self.findLineEdit.selectAll()
-        self.findLineEdit.setFocus()
+        self.find_line_edit.selectAll()
+        self.find_line_edit.setFocus()
 
 
 class ReplaceDialog(FindDialog):
@@ -101,7 +101,7 @@ class ReplaceDialog(FindDialog):
     HEIGHT = 180
     """height of the dialog"""
 
-    replaceRequested = pyqtSignal(str, str, bool, bool, bool)
+    replace_request = pyqtSignal(str, str, bool, bool, bool)
     """
     Signal is triggered when the replace button is clicked.
     Parameters: search term (str), replacement text (str), is regular expression (bool),
@@ -109,7 +109,7 @@ class ReplaceDialog(FindDialog):
     When signal is triggered, current selection should be replaced with the replacement text.
     """
 
-    replaceAllRequested = pyqtSignal(str, str, bool, bool, bool)
+    replace_all_request = pyqtSignal(str, str, bool, bool, bool)
     """
     Signal is triggered when the replace all button is clicked.
     Parameters: search term (str), replace text (str), is regular expression (bool),
@@ -120,74 +120,77 @@ class ReplaceDialog(FindDialog):
 
     def __init__(self, parent, title='Replace'):
         """Initializes the class."""
-        self.replaceLabel = None
-        self.replaceLineEdit = None
-        self.replaceButton = None
-        self.replaceAllButton = None
+        self.replace_label = None
+        self.replace_line_edit = None
+        self.replace_button = None
+        self.replace_all_button = None
 
         super(ReplaceDialog, self).__init__(parent, title)
 
-    def initComponents(self):
+    def init_components(self):
         """Initializes the components."""
-        super(ReplaceDialog, self).initComponents()
-        self.replaceLabel = QLabel('Replace with: ')
-        self.replaceLineEdit = QLineEdit()
-        self.replaceButton = QPushButton('Replace')
-        self.replaceButton.clicked.connect(self.replace)
-        self.replaceAllButton = QPushButton('Replace All')
-        self.replaceAllButton.clicked.connect(self.replaceAll)
+        super(ReplaceDialog, self).init_components()
+        self.replace_label = QLabel('Replace with: ')
+        self.replace_line_edit = QLineEdit()
+        self.replace_button = QPushButton('Replace')
+        self.replace_button.clicked.connect(self.replace)
+        self.replace_all_button = QPushButton('Replace All')
+        self.replace_all_button.clicked.connect(self.replace_all)
 
-    def initLayout(self):
+    def init_layout(self):
         """Initializes the layout."""
-        replaceLayout = QGridLayout()
-        replaceLayout.addWidget(self.findLabel, 0, 0)
-        replaceLayout.addWidget(self.findLineEdit, 0, 1)
-        replaceLayout.addWidget(self.replaceLabel, 1, 0)
-        replaceLayout.addWidget(self.replaceLineEdit, 1, 1)
+        replace_layout = QGridLayout()
+        replace_layout.addWidget(self.find_label, 0, 0)
+        replace_layout.addWidget(self.find_line_edit, 0, 1)
+        replace_layout.addWidget(self.replace_label, 1, 0)
+        replace_layout.addWidget(self.replace_line_edit, 1, 1)
 
-        buttonLayout = QHBoxLayout()
-        buttonLayout.addStretch()
-        buttonLayout.addWidget(self.closeButton)
-        buttonLayout.addWidget(self.replaceAllButton)
-        buttonLayout.addWidget(self.replaceButton)
-        buttonLayout.addWidget(self.findButton)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.close_button)
+        button_layout.addWidget(self.replace_all_button)
+        button_layout.addWidget(self.replace_button)
+        button_layout.addWidget(self.find_button)
 
-        mainLayout = QVBoxLayout()
-        mainLayout.addLayout(replaceLayout)
-        mainLayout.addWidget(self.csCheckBox)
-        mainLayout.addWidget(self.reCheckBox)
-        mainLayout.addWidget(self.woCheckBox)
-        mainLayout.addLayout(buttonLayout)
-        self.setLayout(mainLayout)
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(replace_layout)
+        main_layout.addWidget(self.cs_check_box)
+        main_layout.addWidget(self.re_check_box)
+        main_layout.addWidget(self.wo_check_box)
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
 
         self.setFixedSize(ReplaceDialog.WIDTH, ReplaceDialog.HEIGHT)
 
     def replace(self):
         """Handles replace action."""
-        search_term = self.findLineEdit.text()
-        replacement_text = self.replaceLineEdit.text()
-        is_case_sensitive = self.csCheckBox.isChecked()
-        is_regex = self.reCheckBox.isChecked()
-        is_word = self.woCheckBox.isChecked()
-        self.replaceRequested.emit(search_term, replacement_text, is_regex,
-                                   is_case_sensitive, is_word)
+        search_term = self.find_line_edit.text()
+        replacement_text = self.replace_line_edit.text()
+        is_case_sensitive = self.cs_check_box.isChecked()
+        is_regex = self.re_check_box.isChecked()
+        is_word = self.wo_check_box.isChecked()
+        self.replace_request.emit(search_term, replacement_text, is_regex,
+                                  is_case_sensitive, is_word)
 
-    def replaceAll(self):
-        """Handles reaplceAll action."""
-        search_term = self.findLineEdit.text()
-        replacement_text = self.replaceLineEdit.text()
-        is_case_sensitive = self.csCheckBox.isChecked()
-        is_regex = self.reCheckBox.isChecked()
-        is_word = self.woCheckBox.isChecked()
-        self.replaceAllRequested.emit(search_term, replacement_text, is_regex,
+    def replace_all(self):
+        """Handles replace all action."""
+        search_term = self.find_line_edit.text()
+        replacement_text = self.replace_line_edit.text()
+        is_case_sensitive = self.cs_check_box.isChecked()
+        is_regex = self.re_check_box.isChecked()
+        is_word = self.wo_check_box.isChecked()
+        self.replace_all_request.emit(search_term, replacement_text, is_regex,
                                       is_case_sensitive, is_word)
 
 
 if __name__ == '__main__':
-    import sys
-    from PyQt5.QtWidgets import QApplication
+    def main():
+        """"Launches widget."""
+        import sys
+        from PyQt5.QtWidgets import QApplication
 
-    app = QApplication(sys.argv)
-    dialog = ReplaceDialog(None)
-    dialog.show()
-    sys.exit(app.exec_())
+        app = QApplication(sys.argv)
+        dialog = ReplaceDialog(None)
+        dialog.show()
+        sys.exit(app.exec_())
+    main()

@@ -1,9 +1,9 @@
 """
 Error Handler module for capturing and reporting errors
 that occur when processing the data structure.
-
-Author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
 
 import data.data_node as dn
 from data.validation import errors

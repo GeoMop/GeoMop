@@ -1,8 +1,9 @@
 """Validator for Flow123D data structure"""
 
+__author__ = 'Tomas Krizek'
+
 from data.validation import errors, checks
 import data.data_node as dn
-from data.data_node import DataError
 
 
 class Validator:

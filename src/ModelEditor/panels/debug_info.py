@@ -4,8 +4,6 @@ Module contains widget that shows debug information.
 
 __author__ = 'Tomas Krizek'
 
-# pylint: disable=invalid-name,no-member
-
 from PyQt5.QtWidgets import QTextEdit
 
 

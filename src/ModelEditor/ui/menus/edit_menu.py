@@ -2,9 +2,9 @@
 Module contains an edit menu widget.
 """
 
-__author__ = 'Tomas Krizek'
+# pylint: disable=invalid-name
 
-# pylint: disable=no-member,invalid-name
+__author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import QMenu, QAction
 import helpers.keyboard_shortcuts as shortcuts
@@ -176,8 +176,8 @@ class MainEditMenu(EditMenu):
         if not self.replace_dialog or not self.replace_dialog.isVisible():
             self.replace_dialog = ReplaceDialog(self.parent)
             self.replace_dialog.findRequested.connect(self._editor.findRequested)
-            self.replace_dialog.replaceRequested.connect(self._editor.replaceRequested)
-            self.replace_dialog.replaceAllRequested.connect(self._editor.replaceAllRequested)
+            self.replace_dialog.replace_request.connect(self._editor.replaceRequested)
+            self.replace_dialog.replace_all_request.connect(self._editor.replaceAllRequested)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())

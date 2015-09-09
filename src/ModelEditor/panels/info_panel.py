@@ -4,7 +4,7 @@ Info Panel Widget
 This module contains a widget that shows info text with QWebView.
 """
 
-# pylint: disable=no-name-in-module,no-member
+# pylint: disable=invalid-name
 
 __author__ = 'Tomas Krizek'
 
@@ -17,7 +17,6 @@ __html_root_path__ = os.path.join(
     "..", 'lib', 'ist', 'html_root') + os.path.sep
 
 
-# pylint: disable=invalid-name
 class InfoPanelWidget(QWebView):
     """Widget for displaying HTML info text."""
 
@@ -40,28 +39,29 @@ class InfoPanelWidget(QWebView):
     def resizeEvent(self, event):
         """Handle window resize."""
         super(InfoPanelWidget, self).resizeEvent(event)
-        # height = event.size().height()
-        # width = event.size().width()
         self.page().setViewportSize(event.size())
 
 
 if __name__ == '__main__':
-    import sys
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtCore import QTimer
+    def main():
+        """Launches the widget."""
+        import sys
+        from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtCore import QTimer
 
-    app = QApplication(sys.argv)
-    url = QUrl.fromLocalFile(__html_root_path__ + 'katex_example.html')
-    win = InfoPanelWidget()
-    win.setUrl(url)
-    win.show()
-
-    # for debugging purposes
-    def refreshPage():
+        app = QApplication(sys.argv)
+        url = QUrl.fromLocalFile(__html_root_path__ + 'katex_example.html')
+        win = InfoPanelWidget()
         win.setUrl(url)
+        win.show()
 
-    timer = QTimer(win)
-    timer.timeout.connect(refreshPage)
-    timer.start(5000)
+        def refreshPage():
+            """Page refresh for debugging purposes."""
+            win.setUrl(url)
 
-    sys.exit(app.exec_())
+        timer = QTimer(win)
+        timer.timeout.connect(refreshPage)
+        timer.start(5000)
+
+        sys.exit(app.exec_())
+    main()

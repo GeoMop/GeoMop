@@ -1,8 +1,8 @@
 """
-Keyboard shorcuts helper.
+Keyboard shortcuts helper.
 """
-__author__ = 'Tomas Krizek'
 
+__author__ = 'Tomas Krizek'
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtGui import QKeySequence
@@ -39,7 +39,6 @@ class KeyboardShortcut:
         self.scintilla_code = self._get_scintilla_code()
         self.qt_modifiers = self._get_qt_modifiers()
 
-
     def _get_scintilla_code(self):
         """Returns Scintilla key code."""
         code = 0
@@ -74,7 +73,7 @@ class KeyboardShortcut:
                 except TypeError:
                     return None
 
-    def matches_keyEvent(self, event):
+    def matches_key_kvent(self, event):
         """Returns True if the keyboard shortcut matches given `QKeyEvent`."""
         return event.modifiers() == self.qt_modifiers and event.key() == self.qt_key
 

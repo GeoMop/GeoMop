@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Contains format specification class and methods to parse it from JSON.
-
-@author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
+
 import json
 
 

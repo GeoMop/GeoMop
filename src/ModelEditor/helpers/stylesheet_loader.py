@@ -19,7 +19,7 @@ def load_stylesheet(name):
 
     path = __stylesheet_dir__ + name
     if os.path.isfile(path):
-        with open(path, 'r') as file_:
+        with open(path) as file_:
             return file_.read()
 
     return ''

@@ -1,8 +1,8 @@
 """
 Package for generating DataNode structure from YAML document.
-
-Author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
 
 import yaml as pyyaml
 from data.yaml.constructor import construct_scalar

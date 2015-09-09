@@ -1,4 +1,7 @@
 """Model dialog static parameters"""
+
+__author__ = ['Pavel Richter', 'Tomas Krizek']
+
 import os
 import copy
 import config as cfg
@@ -6,7 +9,7 @@ import geomop_dialogs
 from data.import_json import parse_con, fix_tags, rewrite_comments
 from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
-from dialogs.transformation_detail import TranformationDetailDlg
+from dialogs import TranformationDetailDlg
 from data.validation.validator import Validator
 import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets

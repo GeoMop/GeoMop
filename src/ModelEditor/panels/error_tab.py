@@ -1,12 +1,11 @@
 """Error widget panel module"""
 
-# pylint: disable=no-member
-
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 import icon
+
 
 class ErrorWidget(QtWidgets.QListWidget):
     """

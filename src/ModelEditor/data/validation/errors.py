@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 GeoMop Model
 
 Errors of data validation
-
-@author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
 
 
 class ValidationError(Exception):
