@@ -14,7 +14,8 @@ try:
 except:
     raise Exception('Cannot create config directory')
 
-def get_config_file(name, dir = None):
+
+def get_config_file(name, dir=None):
     """
     Get config object from file Name.cfg in config directory
 
@@ -26,7 +27,7 @@ def get_config_file(name, dir = None):
             return None
     else:
         directory = __config_dir__
-    file_name = os.path.join( directory, name+'.yaml')
+    file_name = os.path.join(directory, name+'.yaml')
     try:
         yaml_file = open(file_name, 'r')
     except (FileNotFoundError, IOError):
@@ -35,7 +36,8 @@ def get_config_file(name, dir = None):
     yaml_file.close()
     return config
 
-def save_config_file(name, config, dir = None):
+
+def save_config_file(name, config, dir=None):
     """Save config object to file Name.cfg in config directory"""
     if dir is not None:
         directory = os.path.join(__config_dir__, dir)
@@ -43,7 +45,7 @@ def save_config_file(name, config, dir = None):
             if not os.path.isdir(directory):
                 os.makedirs(directory)
         except:
-            raise Exception('Cannot create config directory: ' + dir)        
+            raise Exception('Cannot create config directory: ' + dir)
     else:
         directory = __config_dir__
     file_name = os.path.join(directory, name+'.yaml')
@@ -51,7 +53,8 @@ def save_config_file(name, config, dir = None):
     yaml.dump(config, yaml_file)
     yaml_file.close()
 
-def delete_config_file(name, dir = None):
+
+def delete_config_file(name, dir=None):
     """
     Delete config file Name.cfg from config directory
      """

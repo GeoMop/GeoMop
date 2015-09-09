@@ -59,11 +59,11 @@ modules.ME.rst:
 modules.JS.rst:
 	sphinx-apidoc -o ./aut/JobsScheduler -s .rstb ../../src/JobsScheduler/
 
-modules.lib.rst: 
-	sphinx-apidoc -o ./aut -s .rst ../../src/lib/
+modules.common.rst: 
+	sphinx-apidoc -o ./aut -s .rst ../../src/common/
 
 
-autogen_src: modules.LE.rst modules.lib.rst modules.JS.rst modules.ME.rst
+autogen_src: modules.LE.rst modules.common.rst modules.JS.rst modules.ME.rst
 
 html: autogen_src
 	$(SPHINXBUILD) -b html -t LE $(ALLSPHINXOPTS) $(BUILDDIR)/html
