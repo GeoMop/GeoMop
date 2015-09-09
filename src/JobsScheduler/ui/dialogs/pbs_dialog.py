@@ -14,8 +14,6 @@ class PbsDialog(FormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
-    # Dialog purpose
-    purpose = None
 
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
@@ -38,9 +36,6 @@ class PbsDialog(FormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    # Overwrite with custom accept
-    accepted = QtCore.pyqtSignal(dict, list)
-
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(PbsDialog, self).__init__(parent)
         self.ui = UiPbsDialog()
@@ -50,18 +45,6 @@ class PbsDialog(FormDialog):
         # connect slots
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
-
-    def accept(self):
-        super(PbsDialog, self).accept()
-        self.accepted.emit(self.purpose, self.get_data())
-
-    def set_purpose(self, purpose=None, data=None):
-        self.set_data(data)
-        self.purpose = purpose
-        self.setObjectName(purpose["objectName"])
-        self.setWindowTitle(purpose["windowTitle"])
-        self.ui.titleLabel.setText(purpose["title"])
-        self.ui.subtitleLabel.setText(purpose["subtitle"])
 
     def get_data(self):
         data = list()

@@ -7,15 +7,13 @@ MultiJob dialogs
 
 from PyQt5 import QtCore, QtWidgets
 
-from ui.dialogs.dialogs import UiFormDialog
+from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
 
-class MultiJobDialog(QtWidgets.QDialog):
+class MultiJobDialog(FormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
-    # Dialog purpose
-    purpose = None
 
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
@@ -39,9 +37,6 @@ class MultiJobDialog(QtWidgets.QDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    # Overwrite with custom accept
-    accepted = QtCore.pyqtSignal(dict, list)
-
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(MultiJobDialog, self).__init__(parent)
         self.ui = UiMultiJobDialog()
@@ -55,18 +50,6 @@ class MultiJobDialog(QtWidgets.QDialog):
             lambda: self.ui.analysisLineEdit.setText(
                 self.ui.analysisFolderPicker.getExistingDirectory
                 (self, directory=self.ui.analysisLineEdit.text())))
-
-    def accept(self):
-        super(MultiJobDialog, self).accept()
-        self.accepted.emit(self.purpose, self.get_data())
-
-    def set_purpose(self, purpose=None, data=None):
-        self.set_data(data)
-        self.purpose = purpose
-        self.setObjectName(purpose["objectName"])
-        self.setWindowTitle(purpose["windowTitle"])
-        self.ui.titleLabel.setText(purpose["title"])
-        self.ui.subtitleLabel.setText(purpose["subtitle"])
 
     def get_data(self):
         data = list()

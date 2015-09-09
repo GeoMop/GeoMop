@@ -5,7 +5,7 @@ MultiJob dialogs
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 
 from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
