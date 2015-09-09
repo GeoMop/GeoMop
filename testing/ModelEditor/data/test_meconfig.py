@@ -35,7 +35,7 @@ def test_config(request):
     assert cfg.config.format_files[0] == "test_format_file_new_1"
     assert len(cfg.config.format_files) == 1
 
-    cfg.config.add_recent_file("test_file2", "test_format_file2")
+    cfg.config.add_recent_file("test_file2", "1.8.2")
     cfg.config.add_recent_file("test_file3", "test_format_file3")
     # add 3 files
     assert len(cfg.config.format_files) == 3
@@ -44,18 +44,18 @@ def test_config(request):
     assert cfg.config.recent_files[2] == "test_file1"
     assert cfg.config.format_files[2] == "test_format_file_new_1"
 
-    cfg.config.add_recent_file("test_file2", "test_format_file2")
+    cfg.config.add_recent_file("test_file2", "1.8.2")
     # move 2 to first line
     assert len(cfg.config.format_files) == 3
     assert cfg.config.recent_files[0] == "test_file2"
-    assert cfg.config.format_files[0] == "test_format_file2"
+    assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.config.recent_files[1] == "test_file3"
     assert cfg.config.format_files[1] == "test_format_file3"
     assert cfg.config.recent_files[2] == "test_file1"
     assert cfg.config.format_files[2] == "test_format_file_new_1"
     # test get_format_file function
     assert cfg.config.get_format_file("test_file1") == "test_format_file_new_1"
-    assert cfg.config.get_format_file("test_file2") == "test_format_file2"
+    assert cfg.config.get_format_file("test_file2") == "1.8.2"
 
     config. update_last_data_dir("/home/test.yaml")
     # test update_last_data_dir
@@ -69,7 +69,7 @@ def test_config(request):
     # save config
     assert len(cfg.config.format_files) == 3
     assert cfg.config.recent_files[0] == "test_file2"
-    assert cfg.config.format_files[0] == "test_format_file2"
+    assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.config.recent_files[1] == "test_file3"
     assert cfg.config.format_files[1] == "test_format_file3"
     assert cfg.config.recent_files[2] == "test_file1"
@@ -91,17 +91,16 @@ def test_meconfig_static(request):
     cfg._read_format_files()
 
     # read format files
-    assert len(cfg.format_files) == 4
-    assert 'flow_1.8.2_input_format' in cfg.format_files
+    assert len(cfg.format_files) == 1
     assert '1.8.2' in cfg.format_files
 
     cfg.curr_format_file = None
-    cfg.set_current_format_file('flow_1.8.2_input_format')
+    cfg.set_current_format_file('1.8.2')
     # good name
-    assert cfg.curr_format_file == 'flow_1.8.2_input_format'
+    assert cfg.curr_format_file == '1.8.2'
     cfg.set_current_format_file('bad_name')
     # bad name
-    assert cfg.curr_format_file == 'flow_1.8.2_input_format'
+    assert cfg.curr_format_file == '1.8.2'
 
     cfg.document = "#test"
     cfg.changed = True
@@ -115,7 +114,7 @@ def test_meconfig_static(request):
     cfg.document = "#test"
     cfg.changed = True
     cfg.curr_file = "test.yaml"
-    cfg.config.add_recent_file("test.yaml", "flow_1.8.2_input_format")
+    cfg.config.add_recent_file("test.yaml", "1.8.2")
     cfg.save_file()
 
     def fin_test_static():
@@ -130,7 +129,7 @@ def test_meconfig_static(request):
     assert cfg.changed is False
     assert cfg.curr_file == "test.yaml"
     assert cfg.config.recent_files[0] == "test.yaml"
-    assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
+    assert cfg.config.format_files[0] == "1.8.2"
 
     cfg.document = "#test2"
     cfg.changed = True
@@ -140,9 +139,9 @@ def test_meconfig_static(request):
     assert cfg.changed is False
     assert cfg.curr_file == "test2.yaml"
     assert cfg.config.recent_files[0] == "test2.yaml"
-    assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
+    assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.config.recent_files[1] == "test.yaml"
-    assert cfg.config.format_files[1] == "flow_1.8.2_input_format"
+    assert cfg.config.format_files[1] == "1.8.2"
 
     cfg.document = "#test2"
     cfg.changed = True
@@ -154,7 +153,7 @@ def test_meconfig_static(request):
     assert cfg.curr_file == "test.yaml"
     assert cfg.document == "#test"
     assert cfg.config.recent_files[1] == "test2.yaml"
-    assert cfg.config.format_files[1] == "flow_1.8.2_input_format"
+    assert cfg.config.format_files[1] == "1.8.2"
     assert cfg.config.recent_files[0] == "test.yaml"
     assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.curr_format_file == '1.8.2'
@@ -169,10 +168,10 @@ def test_meconfig_static(request):
     assert cfg.curr_file == "test2.yaml"
     assert cfg.document == "#test2"
     assert cfg.config.recent_files[0] == "test2.yaml"
-    assert cfg.config.format_files[0] == "flow_1.8.2_input_format"
+    assert cfg.config.format_files[0] == "1.8.2"
     assert cfg.config.recent_files[1] == "test.yaml"
     assert cfg.config.format_files[1] == "1.8.2"
-    assert cfg.curr_format_file == 'flow_1.8.2_input_format'
+    assert cfg.curr_format_file == '1.8.2'
 
     cfg.update_yaml_file("#new test")
     # test update_yaml_file 1
