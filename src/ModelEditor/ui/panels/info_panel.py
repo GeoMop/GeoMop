@@ -12,9 +12,10 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
 import os
 
+# TODO: move css, fix path
 __html_root_path__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-    "..", 'lib', 'ist', 'html_root') + os.path.sep
+    "..", 'common', 'ist', 'html_root') + os.path.sep
 
 
 class InfoPanelWidget(QWebView):

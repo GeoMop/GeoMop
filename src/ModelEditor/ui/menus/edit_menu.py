@@ -8,7 +8,7 @@ __author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import QMenu, QAction
 import helpers.keyboard_shortcuts as shortcuts
-from dialogs import FindDialog, ReplaceDialog
+from ui.dialogs import FindDialog, ReplaceDialog
 
 
 class EditMenu(QMenu):

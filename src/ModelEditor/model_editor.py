@@ -3,12 +3,12 @@
 import os
 import sys
 __lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "lib")
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.insert(1, __lib_dir__)
 
 from data.meconfig import MEConfig as cfg
-from dialogs.json_editor import JsonEditorDlg
-import panels
+from ui.dialogs.json_editor import JsonEditorDlg
+from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data.data_node import Position

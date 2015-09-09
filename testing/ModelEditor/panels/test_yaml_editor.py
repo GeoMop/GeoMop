@@ -4,7 +4,7 @@ Tests for YamlEditor
 __author__ = 'Tomas Krizek'
 
 
-from panels.yaml_editor import YamlEditorWidget
+from ui.panels.yaml_editor import YamlEditorWidget
 
 
 def test_insertAtCursor_single_line():

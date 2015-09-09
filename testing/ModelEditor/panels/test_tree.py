@@ -1,10 +1,12 @@
 import sys
-from panels.tree import *
+
+import pytest
+
+from ui.panels.tree import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtTest import QTest
-import pytest
 import mock_config as mockcfg
 
 app = QApplication(sys.argv)

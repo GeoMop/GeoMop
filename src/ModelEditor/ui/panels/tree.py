@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
-import helpers
+import util
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -32,7 +32,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
         self._item_states = {}
-        stylesheet = helpers.load_stylesheet('tree')
+        stylesheet = util.load_stylesheet('tree')
         self.setStyleSheet(stylesheet)
 
     def reload(self):

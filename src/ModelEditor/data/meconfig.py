@@ -4,12 +4,13 @@ __author__ = ['Pavel Richter', 'Tomas Krizek']
 
 import os
 import copy
+
 import config as cfg
 import geomop_dialogs
 from data.import_json import parse_con, fix_tags, rewrite_comments
 from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
-from dialogs import TranformationDetailDlg
+from ui.dialogs import TranformationDetailDlg
 from data.validation.validator import Validator
 import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets
@@ -18,9 +19,9 @@ import data.autoconversion as ac
 from ist import InfoTextGenerator
 
 __format_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "format")
 __transformation_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "transformation")
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "transformation")
 
 class _Config:
     """Class for ModelEditor serialization"""

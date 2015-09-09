@@ -6,10 +6,7 @@ __author__ = 'Tomas Krizek'
 
 import os
 
-# TODO: move resources folder
-__stylesheet_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-    "..", 'lib', 'resources', 'css') + os.path.sep
+__stylesheet_dir__ = os.path.join(os.getcwd(), 'resources', 'css') + os.path.sep
 
 
 def load_stylesheet(name):
