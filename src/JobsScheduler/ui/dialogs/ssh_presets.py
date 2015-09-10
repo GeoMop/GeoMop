@@ -21,6 +21,7 @@ class SshPresets(PresetsDialog):
         self.ui.setup_ui(self)
 
         self. presets = presets
+        self._reload_view(self.presets)
         self.presets_dlg = SshDialog()
 
         # connect slots

@@ -12,6 +12,7 @@ from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.ssh_presets import SshPresets
 from ui.dialogs.pbs_presets import PbsPresets
+import config as cfg
 import uuid
 
 
@@ -72,40 +73,40 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mj_dlg.show()
 
     def _handle_edit_multijob_action(self):
-        if self.data.multi_jobs:
+        if self.data.multijobs:
             self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_EDIT)
             index = self.ui.multiJobOverview.indexOfTopLevelItem(
                 self.ui.multiJobOverview.currentItem())
-            self.mj_dlg.set_data(list(self.data.multi_jobs[index]))
+            self.mj_dlg.set_data(list(self.data.multijobs[index]))
             self.mj_dlg.show()
 
     def _handle_copy_multijob_action(self):
-        if self.data.multi_jobs:
+        if self.data.multijobs:
             self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_COPY)
             index = self.ui.multiJobOverview.indexOfTopLevelItem(
                 self.ui.multiJobOverview.currentItem())
-            data = list(self.data.multi_jobs[index])
+            data = list(self.data.multijobs[index])
             data[0] = None
             data[1] = "Copy of " + data[1]
             self.mj_dlg.set_data(data)
             self.mj_dlg.show()
 
     def _handle_delete_multijob_action(self):
-        if self.data.multi_jobs:
+        if self.data.multijobs:
             index = self.ui.multiJobOverview.indexOfTopLevelItem(
                 self.ui.multiJobOverview.currentItem())
-            self.data.multi_jobs.pop(index)
-            self.multijobs_changed.emit(self.data.multi_jobs)
+            self.data.multijobs.pop(index)
+            self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
         if purpose != MultiJobDialog.PURPOSE_EDIT:
             data[0] = str(uuid.uuid4())
-            self.data.multi_jobs.append(data)
+            self.data.multijobs.append(data)
         else:
-            for i, item in enumerate(self.data.multi_jobs):
+            for i, item in enumerate(self.data.multijobs):
                 if item[0] == data[0]:
-                    self.data.multi_jobs[i] = data
-        self.multijobs_changed.emit(self.data.multi_jobs)
+                    self.data.multijobs[i] = data
+        self.multijobs_changed.emit(self.data.multijobs)
 
 
 class DataMainWindow(object):
@@ -114,33 +115,35 @@ class DataMainWindow(object):
     PBS_DIR = "pbs"
     RESOURCE_DIR = "resource"
 
-    multijobs = list()
-    shh_presets = list()
-    pbs_presets = list()
-    resources_presets = list()
-
     def __init__(self):
-        pass
-        # self.multijobs = cfg.get_config_file("list", self.MJ_DIR)
-        # self.shh_presets = cfg.get_config_file("list", self.SSH_DIR)
-        # self.pbs_presets = cfg.get_config_file("list", self.PBS_DIR)
-        # self.pbs_presets = cfg.get_config_file("list", self.RESOURCE_DIR)
+        self.multijobs = cfg.get_config_file("list", self.MJ_DIR)
+        if not self.multijobs:
+            self.multijobs = list()
+        self.shh_presets = cfg.get_config_file("list", self.SSH_DIR)
+        if not self.shh_presets:
+            self.shh_presets = list()
+        self.pbs_presets = cfg.get_config_file("list", self.PBS_DIR)
+        if not self.pbs_presets:
+            self.pbs_presets = list()
+        self.resources_presets = cfg.get_config_file("list", self.RESOURCE_DIR)
+        if not self.resources_presets:
+            self.resources_presets = list()
 
     def save_mj(self):
         print("Mj saved")
-        # cfg.save_config_file("list", self.multijobs, self.MJ_DIR)
+        cfg.save_config_file("list", self.multijobs, self.MJ_DIR)
 
-    def save_ssh(self, ssh):
+    def save_ssh(self):
         print("Ssh saved")
-        # cfg.save_config_file("list", self.multi_jobs, self.SSH_DIR)
+        cfg.save_config_file("list", self.shh_presets, self.SSH_DIR)
 
-    def save_pbs(self, pbs):
+    def save_pbs(self):
         print("Pbs saved")
-        # cfg.save_config_file("list", self.multi_jobs, self.PBS_DIR)
+        cfg.save_config_file("list", self.pbs_presets, self.PBS_DIR)
 
-    def save_resources(self, pbs):
+    def save_resources(self):
         print("Resource saved")
-        # cfg.save_config_file("list", self.multi_jobs, self.RESOURCE_DIR)
+        cfg.save_config_file("list", self.resources_presets, self.RESOURCE_DIR)
 
     def save_all(self, mj, ssh, pbs, resource):
         print("All saved")

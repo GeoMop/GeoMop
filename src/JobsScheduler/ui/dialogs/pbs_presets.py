@@ -20,7 +20,8 @@ class PbsPresets(PresetsDialog):
         self.ui = UiPbsPresets()
         self.ui.setup_ui(self)
 
-        self. presets = presets
+        self.presets = presets
+        self._reload_view(self.presets)
         self.presets_dlg = PbsDialog()
 
         # connect slots
