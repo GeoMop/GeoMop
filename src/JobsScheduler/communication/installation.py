@@ -10,9 +10,10 @@ __install_dir__ = os.path.split(
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
 __ins_files__['job'] = "job.py"
-__ins_files__['multijob'] = "multijob_dialog.py"
+__ins_files__['multijob'] = "multijob.py"
 __ins_dirs__ = []
 __ins_dirs__.append("communication")
+__ins_dirs__.append("helpers")
 __ins_dirs__.append("data") 
 __ins_dirs__.append("twoparty") 
 __root_dir__ = "jobs"
@@ -127,7 +128,15 @@ class Installation:
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
         return [self.python_exec,dest_path, "&", "disown"]
-    
+        
+    def get_interpreter(self):
+        """return python interpreter with path"""
+        return self.python_exec
+
+    def get_command_only(self, name):
+        """return command with path"""
+        return  self.copy_path + '/' + __ins_files__[name]
+
     @staticmethod
     def get_result_dir():
         """Return dir for savings results"""

@@ -9,7 +9,7 @@ Start script that initializes main window
 import os
 import sys
 __lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "lib")
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets

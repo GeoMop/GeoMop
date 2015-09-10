@@ -1,7 +1,11 @@
 [typecheck]
-ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore
-ignored-classes=YamlEditorWidget,TreeWidget,TreeOfNodes
+ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore,PyQt5.QtGui,PyQt5.Qsci,PyQt5.QtWebKitWidgets
+ignored-classes=YamlEditorWidget,TreeWidget,TreeOfNodes,TranformationDetailDlg,FindDialog,ReplaceDialog,JsonEditorDlg,DebugPanelWidget,ErrorWidget,InfoPanelWidget,EditMenu,MainEditMenu,MainFileMenu,MainSettingsMenu
 [master]
 init-hook='sys.path.append("../lib")'
 [messages control]
 disable = R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,R0915,C1001,W1001,E1002,E1001,E1004
+[basic]
+good-names:i,j,k,ex,Run,_,__
+[variables]
+dummy-variables-rgx:_$|dummy|__$

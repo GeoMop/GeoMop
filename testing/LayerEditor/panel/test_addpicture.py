@@ -1,11 +1,13 @@
 import sys
-from panels.addpicture import *
-from panels.addpicture import _AddPictureData as Data
+import os
+import pytest
+
+from ui.panels.addpicture import _AddPictureData as Data
+from ui.panels import AddPictureWidget
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtTest import QTest
-import pytest
 
 app = QApplication(sys.argv)
 app_not_init = pytest.mark.skipif( not (type(app).__name__=="QApplication"), 

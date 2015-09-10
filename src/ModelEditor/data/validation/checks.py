@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 Basic rules for data validation
-
-@author: Tomas Krizek
 """
+
+__author__ = 'Tomas Krizek'
+
+# pylint: disable=unused-argument
 
 from data.validation import errors
 from data import data_node as dn
@@ -49,7 +50,6 @@ def check_double(value, input_type):
     return True
 
 
-# pylint: disable=unused-argument
 def check_bool(value, input_type):
     """Checks if value is a boolean."""
     if not isinstance(value, bool):

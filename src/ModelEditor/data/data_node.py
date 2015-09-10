@@ -4,7 +4,10 @@ Data Node package
 Contains classes for representing the tree structure of config files.
 """
 
+__author__ = 'Tomas Krizek'
+
 from enum import Enum
+
 from ist import InfoTextGenerator
 
 DEBUG_MODE = True
@@ -69,7 +72,7 @@ class DataNode:
     def get_node_at_position(self, position):
         """Retrieves DataNode at specified position."""
         raise NotImplementedError
-        
+
     def is_child_on_line(self, line):
         """
         Return if in set line is some child
@@ -107,17 +110,7 @@ class DataNode:
             if self.input_type is None:
                 return 'unknown id'
             return InfoTextGenerator.get_info_text(self.input_type, selected=self.key.value)
-        return InfoTextGenerator.get_info_text(self.parent.input_type, selected=self.key.value)    
-#        Vraci ti ti None, a dal to spadne, prosim oprav to a smaz muj kod, nevim co ten tvuj dela a nelibi se mi
-#        try:
-#            input_type = self.parent.input_type            
-#        except (TypeError, KeyError, AttributeError):
-#            try:
-#                input_type = self.input_type
-#            except (TypeError, KeyError, AttributeError):
-#                return 'unknown id'
-#
-#        return InfoTextGenerator.get_info_text(input_type, selected=self.key.value)
+        return InfoTextGenerator.get_info_text(self.parent.input_type, selected=self.key.value)
 
     def __str__(self):
         text = (
@@ -208,13 +201,13 @@ class CompositeNode(DataNode):
                 return
         # still not ended - new key
         self.children.append(node)
-        
+
     def is_child_on_line(self, line):
         """
         Return if in set line is some child
         """
         for child in self.children:
-            if child.start.line <= line and child.end.line >= line: 
+            if child.start.line <= line and child.end.line >= line:
                 return True
         return False
 

@@ -3,15 +3,15 @@
 CURR_PATH=$(pwd)
 
 cd LayerEditor
-export PYTHONPATH=../../src/LayerEditor:../../src/lib
+export PYTHONPATH=../../src/LayerEditor:../../src/common
 py.test-3
 
-cd ../lib
-export PYTHONPATH=../../src/lib
+cd ../common
+export PYTHONPATH=../../src/common
 py.test-3
 
 cd ../ModelEditor
-export PYTHONPATH=../../src/ModelEditor:../../src/lib:./mock
+export PYTHONPATH=../../src/ModelEditor:../../src/common:./mock
 py.test-3
 
 cd ../JobsScheduler

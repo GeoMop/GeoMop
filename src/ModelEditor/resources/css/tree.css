@@ -1,0 +1,28 @@
+QTreeView {
+  background-color: #fbfbfb;
+  alternate-background-color: #fdfdfd;
+}
+
+QTreeView::branch:has-siblings:!adjoins-item {
+  border-image: url(resources/img/branch-vline.png) 0;
+}
+
+QTreeView::branch:has-siblings:adjoins-item {
+  border-image: url(resources/img/branch-more.png) 0;
+}
+
+QTreeView::branch:!has-children:!has-siblings:adjoins-item {
+  border-image: url(resources/img/branch-end.png) 0;
+}
+
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings {
+  border-image: none;
+  image: url(resources/img/branch-closed.png);
+}
+
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings  {
+  border-image: none;
+  image: url(resources/img/branch-open.png);
+}

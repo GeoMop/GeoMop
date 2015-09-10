@@ -1,1 +1,5 @@
-__author__ = 'sharp'
+"""
+Module for data structure validation
+"""
+
+__author__ = 'Tomas Krizek'

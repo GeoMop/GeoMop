@@ -1,12 +1,16 @@
 """Model dialog static parameters"""
+
+__author__ = ['Pavel Richter', 'Tomas Krizek']
+
 import os
 import copy
+
 import config as cfg
 import geomop_dialogs
 from data.import_json import parse_con, fix_tags, rewrite_comments
 from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
-from dialogs.transformation_detail import TranformationDetailDlg
+from ui.dialogs import TranformationDetailDlg
 from data.validation.validator import Validator
 import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets
@@ -15,9 +19,9 @@ import data.autoconversion as ac
 from ist import InfoTextGenerator
 
 __format_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "format")
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "format")
 __transformation_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "transformation")
+    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "transformation")
 
 class _Config:
     """Class for ModelEditor serialization"""
@@ -398,7 +402,7 @@ class MEConfig:
 
     @classmethod
     def transform(cls, file):
-        """Run transformation accoding rules in set file"""
+        """Run transformation according rules in set file"""
         cls.update()
         text = cls.get_transformation_text(file)
         try:
@@ -419,7 +423,7 @@ class MEConfig:
                                             transformator.new_version,
                                             transformator.new_version in cls.transformation_files,
                                             cls.main_window)
-        if  cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
+        if cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:

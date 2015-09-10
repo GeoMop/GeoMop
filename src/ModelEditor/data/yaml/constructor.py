@@ -1,30 +1,5 @@
 """
-Customized pyyaml constructor for scalar values
-
-This file contains some changes of the original pyyaml library.
-Author of changes: Tomas Krizek
-
-Original license follows
-
-Copyright (c) 2006 Kirill Simonov
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Customized PyYAML Constructor
 """
 
 import re
@@ -39,7 +14,9 @@ def construct_scalar(value, tag):
     return _CONSTRUCTORS[tag](value)
 
 
+# pylint: disable=unused-argument
 def _construct_yaml_null(value):
+    """YAML constructor for null."""
     return None
 
 
@@ -54,10 +31,12 @@ _BOOL_VALUES = {
 
 
 def _construct_yaml_bool(value):
+    """YAML constructor for bool."""
     return _BOOL_VALUES[value.lower()]
 
 
 def _construct_yaml_int(value):
+    """YAML constructor for integer."""
     sign = +1
     if value[0] == '-':
         sign = -1
@@ -85,6 +64,7 @@ def _construct_yaml_int(value):
 
 
 def _construct_yaml_float(value):
+    """YAML constructor for float."""
     value = value.lower()
     sign = +1
     if value[0] == '-':
@@ -122,6 +102,7 @@ _TIMESTAMP_REGEX = re.compile((
 
 
 def _construct_yaml_timestamp(value):
+    """YAML constructor for timestamp."""
     match = _TIMESTAMP_REGEX.match(value)
     values = match.groupdict()
     year = int(values['year'])
@@ -152,6 +133,7 @@ def _construct_yaml_timestamp(value):
 
 
 def _construct_yaml_str(value):
+    """YAML constructor for string."""
     return str(value)
 
 

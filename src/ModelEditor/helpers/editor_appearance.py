@@ -1,14 +1,19 @@
+"""
+Editor appearance manager.
+"""
+
 from PyQt5.Qsci import QsciScintilla
 import PyQt5.QtGui as QtGui
 
+
 class EditorAppearance:
     """Unique editors appearance class"""
-    
+
     DEFAULT_FONT = QtGui.QFont()
-    
+
     def __init__(self):
         pass
-    
+
     @classmethod
     def set_default_appearens(cls, editor):
         """Set default applicatin editor appearents"""
@@ -28,7 +33,7 @@ class EditorAppearance:
         # the current position
         #
         editor.setBraceMatching(QsciScintilla.SloppyBraceMatch)
-        
+
         # Don't want to see the horizontal scrollbar at all
         # Use raw message to Scintilla here (all messages are documented
         # here: http://www.scintilla.org/ScintillaDoc.html)
