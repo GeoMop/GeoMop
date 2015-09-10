@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-MultiJob dialogs
+SSH dialog
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 from PyQt5 import QtWidgets
+from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 
-from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
-
-class SshDialog(FormDialog):
+class SshDialog(AbstractFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -38,13 +37,17 @@ class SshDialog(FormDialog):
 
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(SshDialog, self).__init__(parent)
+        # setup specific UI
         self.ui = UiSshDialog()
         self.ui.setup_ui(self)
+
+        # set purpose
         self.set_purpose(purpose, data)
 
         # connect slots
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+        # connect generic presets slots (must be called after UI setup)
+        super(SshDialog, self)._connect_slots()
+        # specific slots
         self.ui.showPushButton.pressed.connect(
             lambda: self.ui.passwordLineEdit.setEchoMode(
                 QtWidgets.QLineEdit.Normal))

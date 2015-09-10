@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-MultiJob dialogs
+Multijob dialog
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 from PyQt5 import QtCore, QtWidgets
+from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 
-from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
-
-class MultiJobDialog(FormDialog):
+class MultiJobDialog(AbstractFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """

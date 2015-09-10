@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-MultiJob dialogs
+Pbs dialog
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 from PyQt5 import QtCore, QtWidgets
+from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 
-from ui.dialogs.dialogs import UiFormDialog, FormDialog
 
-
-class PbsDialog(FormDialog):
+class PbsDialog(AbstractFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -38,13 +37,17 @@ class PbsDialog(FormDialog):
 
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(PbsDialog, self).__init__(parent)
+        # setup specific UI
         self.ui = UiPbsDialog()
         self.ui.setup_ui(self)
+
+        # set purpose
         self.set_purpose(purpose, data)
 
         # connect slots
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+        # connect generic presets slots (must be called after UI setup)
+        super(PbsDialog, self)._connect_slots()
+        # specific slots
 
     def get_data(self):
         data = list()
