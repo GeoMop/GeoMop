@@ -45,6 +45,12 @@ class SshDialog(FormDialog):
         # connect slots
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
+        self.ui.showPushButton.pressed.connect(
+            lambda: self.ui.passwordLineEdit.setEchoMode(
+                QtWidgets.QLineEdit.Normal))
+        self.ui.showPushButton.released.connect(
+            lambda: self.ui.passwordLineEdit.setEchoMode(
+                QtWidgets.QLineEdit.Password))
 
     def get_data(self):
         data = list()
@@ -161,11 +167,19 @@ class UiSshDialog(UiFormDialog):
         self.passwordLabel.setText("Password:")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
+        self.rowSplit = QtWidgets.QHBoxLayout()
+        self.rowSplit.setObjectName("rowSplit")
         self.passwordLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.passwordLineEdit.setObjectName("passwordLineEdit")
         self.passwordLineEdit.setPlaceholderText("User password")
         self.passwordLineEdit.setProperty("clearButtonEnabled", True)
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.passwordLineEdit)
+        self.rowSplit.addWidget(self.passwordLineEdit)
+        self.showPushButton = QtWidgets.QPushButton(
+            self.mainVerticalLayoutWidget)
+        self.showPushButton.setObjectName("showPushButton")
+        self.showPushButton.setText("Show")
+        self.rowSplit.addWidget(self.showPushButton)
+        self.formLayout.setLayout(5, QtWidgets.QFormLayout.FieldRole,
+                                  self.rowSplit)
