@@ -5,8 +5,10 @@ Library for work with state of GeoMops applications
 import os
 import yaml
 
-__config_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "config")
+if 'APPDATA' in os.environ:
+    __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
+else:
+    __config_dir__ = os.path.join(os.environ['HOME'], '.GeoMop')
 
 try:
     if not os.path.isdir(__config_dir__):
