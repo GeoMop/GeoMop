@@ -117,12 +117,18 @@ class SubYamlChangeAnalyzer:
         while dist == -1:
             i += 1
             if i >= len(self._area):
+                space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
+                if space_after is not None:
+                    return i-1, space_after.end(1)-1
                 return i, 0
             is_dist, dist = self.get_key_area(self._area[i])
             if is_dist:
                 if dist != -1:
                     return i, dist-1
             else:
+                space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
+                if space_after is not None:
+                    return i-1, space_after.end(1)-1
                 return i, 0
 
     def get_key_pos_type(self):
@@ -148,7 +154,6 @@ class SubYamlChangeAnalyzer:
                 dist += key.end(1)
                 break
 
-        next_line = False
         while i <= self._line:
             if next_line:
                 i += 1
@@ -159,15 +164,15 @@ class SubYamlChangeAnalyzer:
                     continue
                 dist = 0
                 next_line = False
-            for char in ['!', '&', '<<: *', '*']:
+            next_line = True
+            for char in ['!', '&', '<<: \*', '\*']:
                 index = line.find(char)
                 if index > -1:
                     area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
                     if area is not None:
                         # area is all line
                         if self._line == i:
-                            return self. _get_type_from_char(char)
-                        next_line = True
+                            return self. _get_type_from_char(char)                        
                         break
                     else:
                         area = re.match(r'\s*(' + char + r'\S+\s+)\S', line)
@@ -177,6 +182,7 @@ class SubYamlChangeAnalyzer:
                             line = line[area.end(1):]
                             dist += area.end(1)
                             type_ = self. _get_type_from_char(char)
+                            next_line = False
                             break
         return type_
 
@@ -227,7 +233,7 @@ class SubYamlChangeAnalyzer:
         if area is not None:
             # empty line
             return True, -1
-        for char in ['!', '&', '<<: *', '*']:
+        for char in ['!', '&', '<<: \*', '\*']:
             index = line.find(char)
             if index > -1:
                 area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
@@ -245,20 +251,27 @@ class SubYamlChangeAnalyzer:
                     return True, dist + dist2
         return False, 0
 
-    @staticmethod
-    def is_base_struct(line):
-        """return if is in line created base structure for evaluation"""
+    @classmethod
+    def is_base_struct(cls, line):
+        """
+        Return if is in line base structure for evaluation
+        
+        If line was empty, and now is there base structure, reload is needed
+        """
         patterns = [
-            r'#\s*\S',
-            r'\S\s*:\s+\S',
-            r'<<:\s*\S',
-            r'{\s*\S',
-            r'\[\s*\S',
-            r'-\s+\S',
-            r'\S\s*,\s*\S'
+            r'\s*\S+\s*:',
+            r'\s*!\S+\s',
+            r'\s*&\S+\s',
+            r'\s\*\S+\s',
+            r'\s*-\s+',
+            r'.*<<:\s+\*',
+            r'.*\S+\s*,'
+            r'.*\S+\s*\}'
+            r'.*\S+\s*\]'
         ]
+        line =  cls.uncomment(line)
         for pat in patterns:
-            area = re.search(pat, line)
+            area = re.match(pat, line)
             if area is not None:
                 return True
         return False
