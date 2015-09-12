@@ -192,9 +192,10 @@ class YamlEditorWidget(QsciScintilla):
                 self.nodeChanged.emit(line + 1, index + 1)
         else:
             self._pos.make_post_operation(self, line, index)
-            if old_cursore_type_position != self._pos.cursore_type_position:
-                self.elementChanged.emit(self._pos.cursore_type_position.value,
-                                         old_cursore_type_position.value)
+            if old_cursore_type_position != self._pos.cursore_type_position and \
+                old_cursore_type_position is not None:
+                    self.elementChanged.emit(self._pos.cursore_type_position.value,
+                                         old_cursore_type_position.value)               
         self.cursorChanged.emit(line + 1, index + 1)
 
     def _text_changed(self):
@@ -535,8 +536,6 @@ class EditorPosition:
         Update position and return true if isn't cursor above node
         or is in inner structure
         """
-        if self.node is None:
-            return True
         self.line = line
         self.index = index
         self._save_lines(editor)
@@ -563,7 +562,7 @@ class EditorPosition:
             if pos_type is analyzer.PosType.in_value:
                 if self.is_key_changed or self.last_key_type is not None:
                     return True
-            if pos_type is analyzer.PosType.in_inner:
+            if pos_type is analyzer.PosType.in_inner and self.node is not None:
                 if  self.node.is_child_on_line(line+1):
                     return True
             return False
@@ -575,8 +574,6 @@ class EditorPosition:
 
         return:False if recount is unsuccessful, and reload is needed
         """
-        if self.node is None:
-            return False
         # lines count changed
         if editor.lines() != len(self._old_text):
             return False
@@ -610,7 +607,7 @@ class EditorPosition:
             return True
         # find change area
         self.is_changed = True
-        end_pos = 0
+        end_pos = 1
         before_pos = 0
         if len(self._last_line) != 0 and len(new_line) != 0:
             while new_line[before_pos] == self._last_line[before_pos]:
@@ -653,17 +650,27 @@ class EditorPosition:
                 self.last_key_type = new_key_type
             elif self.last_key_type != new_key_type:
                 return False
+        # evaluate value changes
         if pos_type is analyzer.PosType.in_value:
-            self.is_value_changed = True
+            added_text =  new_line[before_pos:len(new_line)-end_pos+1]
+            if not added_text.isspace() and added_text not in ['&', '*', '!']:
+                self.is_value_changed = True
             if self.is_key_changed:
                 return False
         if  self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0:
-            if anal.is_base_struct(new_line):
-                return False
+            if pos_type is analyzer.PosType.in_key:
+                # if added text is space, reload
+                if new_line[before_pos:len(new_line)-end_pos+1].isspace():
+                    return False
+            else:
+                if anal. is_base_struct(new_line):
+                    return False
         return True
 
     def _reload_autocompletation(self, editor):
         """New line was added"""
+        if self.node is None:
+            return False
         editor.api.clear()
         for option in self.node.options:
             editor.api.add(option)
@@ -672,16 +679,17 @@ class EditorPosition:
     def node_init(self, node, editor):
         """set new node"""
         self.node = node
+        self.line, self.index = editor.getCursorPosition()
         if node is not None:
             self.begin_index = node.start.column - 1
             self.begin_line = node.start.line - 1
             self.end_index = node.end.column - 1
             self.end_line = node.end.line - 1
         else:
-            self.begin_line = 0
-            self.begin_index = 0
-            self.end_line = 0
-            self.end_index = 0
+            self.begin_line = self.line
+            self.begin_index = self.index
+            self.end_line = self.line
+            self.end_index = self.index
         self.is_changed = False
         self.is_value_changed = False
         self.is_key_changed = False
@@ -692,7 +700,6 @@ class EditorPosition:
         self._old_text = cfg.document.splitlines(False)
         if len(self._old_text) + 1 == editor.lines():
             self._old_text.append("")
-        self.line, self.index = editor.getCursorPosition()
         self._save_lines(editor)
         if node is not None:
             self._reload_autocompletation(editor)
