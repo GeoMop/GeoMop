@@ -147,7 +147,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # begin undo
         self.beginUndoAction()
-
+        
     def setText(self, text, keep_history=False):
         """
         Sets editor text. Editor history is preserved if `keep_history` is set to True.
@@ -412,7 +412,6 @@ class YamlEditorWidget(QsciScintilla):
         context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
-
 
 class ReloadChunk(ContextDecorator, QObject):
     """

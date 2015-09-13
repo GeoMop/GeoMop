@@ -21,20 +21,20 @@ class ModelEditor:
 
     def __init__(self):
         # main window
-        self._app = QtWidgets.QApplication(sys.argv)
-        self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self._app = QtWidgets.QApplication(sys.argv)       
         self._mainwindow = QtWidgets.QMainWindow()
-        self._mainwindow.setCentralWidget(self._hsplitter)
+        self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self._mainwindow)
+        self._mainwindow.setCentralWidget(self._hsplitter)        
 
         # load config
         cfg.init(self._mainwindow)
         self._update_document_name()
-
-                # tab
-        self._tab = QtWidgets.QTabWidget()
-        self._info = panels.InfoPanelWidget()
-        self._err = panels.ErrorWidget()
-        self._debug_tab = panels.DebugPanelWidget()
+        
+        # tab
+        self._tab = QtWidgets.QTabWidget( self._hsplitter)
+        self._info = panels.InfoPanelWidget(self._tab)
+        self._err = panels.ErrorWidget(self._tab)
+        self._debug_tab = panels.DebugPanelWidget(self._tab)
         self._tab.addTab(self._info, "Structure Info")
         self._tab.addTab(self._err, "Messages")
         self._tab.addTab(self._debug_tab, "Debug")
@@ -43,7 +43,7 @@ class ModelEditor:
         self._vsplitter = QtWidgets.QSplitter(
             QtCore.Qt.Vertical, self._hsplitter)
         self._editor = panels.YamlEditorWidget(self._vsplitter)
-        self._tree = panels.TreeWidget()
+        self._tree = panels.TreeWidget(self._vsplitter)
         self._vsplitter.addWidget(self._editor)
         self._vsplitter.addWidget(self._tab)
         self._hsplitter.insertWidget(0, self._tree)
@@ -59,11 +59,11 @@ class ModelEditor:
         menubar.addMenu(self._settings_menu)
 
         # status bar
-        self._column = QtWidgets.QLabel()
+        self._column = QtWidgets.QLabel(self._mainwindow)
         self._column.setFrameStyle(QtWidgets.QFrame.StyledPanel)
 
-        self._reload_icon = QtWidgets.QLabel()
-        self._reload_icon.setPixmap(icon.get_icon("refresh", 16).pixmap(16))
+        self._reload_icon = QtWidgets.QLabel(self._mainwindow)
+        self._reload_icon.setPixmap(icon.get_pixmap("refresh", 16))
         self._reload_icon.setVisible(False)
         self._reload_icon_timer = QtCore.QTimer()
         self._reload_icon_timer.timeout.connect(self._hide_reload_icon)
@@ -85,6 +85,8 @@ class ModelEditor:
         # show
         self._mainwindow.show()
         self._editor.setFocus()
+        
+        self.i=0
 
     def _cursor_changed(self, line, column):
         """Editor node change signal"""
@@ -113,8 +115,11 @@ class ModelEditor:
 
     def _reload(self):
         """reload panels after structure changes"""
+        self.i += 1
+        if self.i == 5:
+            self._editor._repaint = False
         self._reload_icon.setVisible(True)
-        self._reload_icon.repaint()
+        self._reload_icon.repaint()       
         cfg.update()
         self._editor.reload()
         self._tree.reload()

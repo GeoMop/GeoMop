@@ -14,22 +14,22 @@ class TranformationDetailDlg(QtWidgets.QDialog):
         self.setWindowTitle("Transformation Summary")
         errors = []
 
-        grid = QtWidgets.QGridLayout()
+        grid = QtWidgets.QGridLayout(self)
 
-        l_name = QtWidgets.QLabel("Name:")
-        l_name_v = QtWidgets.QLabel(name)
+        l_name = QtWidgets.QLabel("Name:", self)
+        l_name_v = QtWidgets.QLabel(name, self)
         l_name_v.setFrameStyle(QtWidgets.QFrame.Sunken)
         grid.addWidget(l_name, 0, 0)
         grid.addWidget(l_name_v, 0, 1)
 
-        l_description = QtWidgets.QLabel("Description:")
-        l_description_v = QtWidgets.QLabel(description)
+        l_description = QtWidgets.QLabel("Description:", self)
+        l_description_v = QtWidgets.QLabel(description, self)
         l_description_v.setFrameStyle(QtWidgets.QFrame.Sunken)
         grid.addWidget(l_description, 1, 0)
         grid.addWidget(l_description_v, 1, 1)
 
-        l_old_version = QtWidgets.QLabel("Old Version:")
-        l_old_version_v = QtWidgets.QLabel(v1)
+        l_old_version = QtWidgets.QLabel("Old Version:", self)
+        l_old_version_v = QtWidgets.QLabel(v1, self)
         l_old_version_v.setFrameStyle(QtWidgets.QFrame.Sunken)
         if v1 != orig_v1:
             pal = QtGui.QPalette(l_old_version_v.palette())
@@ -41,8 +41,8 @@ class TranformationDetailDlg(QtWidgets.QDialog):
         grid.addWidget(l_old_version, 2, 0)
         grid.addWidget(l_old_version_v, 2, 1)
 
-        l_new_version = QtWidgets.QLabel("New Version:")
-        l_new_version_v = QtWidgets.QLabel(v2)
+        l_new_version = QtWidgets.QLabel("New Version:", self)
+        l_new_version_v = QtWidgets.QLabel(v2, self)
         l_new_version_v.setFrameStyle(QtWidgets.QFrame.Sunken)
         if not is_v2:
             pal = QtGui.QPalette(l_new_version_v.palette())
@@ -55,7 +55,7 @@ class TranformationDetailDlg(QtWidgets.QDialog):
 
         new_line = 4
         if len(errors) > 0:
-            err = QtWidgets.QLabel("\n".join(errors))
+            err = QtWidgets.QLabel("\n".join(errors), self)
             err.setFrameStyle(QtWidgets.QFrame.Sunken)
             pal = QtGui.QPalette(err.palette())
             pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(QtCore.Qt.red))
@@ -63,9 +63,9 @@ class TranformationDetailDlg(QtWidgets.QDialog):
             grid.addWidget(err, new_line, 0, 1, 2)
             new_line += 1
 
-        self._tranform_button = QtWidgets.QPushButton("Transform file")
+        self._tranform_button = QtWidgets.QPushButton("Transform file", self)
         self._tranform_button.clicked.connect(self.accept)
-        self._cancel_button = QtWidgets.QPushButton("Cancel")
+        self._cancel_button = QtWidgets.QPushButton("Cancel", self)
         self._cancel_button.clicked.connect(self.reject)
 
         button_box = QtWidgets.QDialogButtonBox()
