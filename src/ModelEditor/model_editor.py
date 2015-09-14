@@ -65,7 +65,7 @@ class ModelEditor:
         self._reload_icon = QtWidgets.QLabel(self._mainwindow)
         self._reload_icon.setPixmap(icon.get_pixmap("refresh", 16))
         self._reload_icon.setVisible(False)
-        self._reload_icon_timer = QtCore.QTimer()
+        self._reload_icon_timer = QtCore.QTimer(self._mainwindow)
         self._reload_icon_timer.timeout.connect(self._hide_reload_icon)
 
         self._status = self._mainwindow.statusBar()
@@ -85,8 +85,6 @@ class ModelEditor:
         # show
         self._mainwindow.show()
         self._editor.setFocus()
-        
-        self.i=0
 
     def _cursor_changed(self, line, column):
         """Editor node change signal"""
@@ -115,12 +113,11 @@ class ModelEditor:
 
     def _reload(self):
         """reload panels after structure changes"""
-        self.i += 1
-        if self.i == 5:
-            self._editor._repaint = False
         self._reload_icon.setVisible(True)
-        self._reload_icon.repaint()       
+        self._reload_icon.update()
+        self._editor.setUpdatesEnabled(False)
         cfg.update()
+        self._editor.setUpdatesEnabled(True)
         self._editor.reload()
         self._tree.reload()
         self._err.reload()

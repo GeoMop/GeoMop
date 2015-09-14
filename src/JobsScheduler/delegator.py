@@ -22,7 +22,11 @@ ccom.pbs.name = "mj"
 
 comunicator = Communicator(ccom)
 
-comunicator.run()
+logging.error("Name: " + __name__)
+
+if __name__ != "delegator":
+    # no doc generation
+    comunicator.run()
 comunicator.close()
 
 

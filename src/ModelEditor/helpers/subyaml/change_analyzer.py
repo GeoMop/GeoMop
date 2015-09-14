@@ -3,11 +3,11 @@ from enum import Enum
 import re
 import copy
 
-class SubYamlChangeAnalyzer:
+class ChangeAnalyzer:
     """
-    Alalize partial yaml text for change character report
+    Analyze partial yaml text for change character report
 
-    Description: This quick party text analizing is use only for dicision
+    Description: This quick party text analyzing is use only for dicision
     if next more expensive text parsing is requard.
     """
     def __init__(self, cursor_line, cursor_index, area):

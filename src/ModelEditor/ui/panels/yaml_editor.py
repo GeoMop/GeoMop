@@ -6,7 +6,7 @@ Module contains customized QScintilla editor.
 
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
-import helpers.subyaml_change_analyzer as analyzer
+import helpers.subyaml as analyzer
 from helpers.editor_appearance import EditorAppearance as appearance
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
@@ -504,7 +504,7 @@ class EditorPosition:
         if self._new_array_item and editor.lines() > line:
             pre_line = editor.text(self.line - 1)
             new_line = editor.text(self.line)
-            if not analyzer.SubYamlChangeAnalyzer.indent_changed(new_line + 'x', pre_line):
+            if not analyzer.ChangeAnalyzer.indent_changed(new_line + 'x', pre_line):
                 arr_index = pre_line.find("- ")
                 if self.index == len(new_line) and self.index == arr_index:
                     editor.insertAt("- ", line, index)
@@ -583,11 +583,11 @@ class EditorPosition:
             return False
         new_line = editor.text(self.line)
         # if indentation change
-        if analyzer.SubYamlChangeAnalyzer.indent_changed(new_line, self._old_text[self.line]):
+        if analyzer.ChangeAnalyzer.indent_changed(new_line, self._old_text[self.line]):
             return False
         # line unchanged
-        new_line_un = analyzer.SubYamlChangeAnalyzer.uncomment(new_line)
-        old_line_un = analyzer.SubYamlChangeAnalyzer.uncomment(self._old_text[self.line])
+        new_line_un = analyzer.ChangeAnalyzer.uncomment(new_line)
+        old_line_un = analyzer.ChangeAnalyzer.uncomment(self._old_text[self.line])
         if (new_line == self._old_text[self.line] or
                 old_line_un == new_line_un):
             if self.begin_line == self.end_line:
@@ -725,7 +725,7 @@ class EditorPosition:
                 text = text[self.begin_index:]
             area.append(text)
         assert in_line < len(area)
-        return analyzer.SubYamlChangeAnalyzer(in_line, in_index, area)
+        return analyzer.ChangeAnalyzer(in_line, in_index, area)
 
     def _save_lines(self, editor):
         self._last_line = editor.text(self.line)
