@@ -34,6 +34,8 @@ ccom.communicator_name = "multijob"
 ccom.log_level = logging.DEBUG
 ccom.input_type = comconf.InputCommType.pbs
 comunicator = Communicator(ccom, None, mj_action_funcion)
-comunicator.run()
+if __name__ != "multijob":
+    # no doc generation
+    comunicator.run()
 comunicator.close()
 
