@@ -7,6 +7,7 @@ Main window module
 """
 
 from PyQt5 import QtCore, QtWidgets
+from ui.actions.main_window_actions import *
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_overview import MultiJobOverview
 from ui.panels.multijob_infotab import MultiJobInfoTab
@@ -166,99 +167,53 @@ class UiMainWindow(object):
 
         self.centralwidget = QtWidgets.QWidget(main_window)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.verticalLayout = QtWidgets.QVBoxLayout()
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.mainVerticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.mainVerticalLayout.setObjectName("mainVerticalLayout")
 
-        # MultiJob Overview panel
-        self.multiJobOverview = MultiJobOverview(self.centralwidget)
-        self.verticalLayout.addWidget(self.multiJobOverview)
+        # actions
+        self.actionExit = ActionExit(main_window)
 
-        # MultiJobInfoTab panel
-        self.multiJobInfoTab = MultiJobInfoTab(self.centralwidget)
-        self.verticalLayout.addWidget(self.multiJobInfoTab)
+        self.actionAddMultiJob = ActionAddMultiJob(main_window)
+        self.actionEditMultiJob = ActionEditMultiJob(main_window)
+        self.actionCopyMultiJob = ActionCopyMultiJob(main_window)
+        self.actionDeleteMultiJob = ActionDeleteMultiJob(main_window)
+        # ----
+        self.actionRunMultiJob = ActionRunMultiJob(main_window)
+        self.actionPauseMultiJob = ActionPauseMultiJob(main_window)
+        self.actionStopMultiJob = ActionStopMultiJob(main_window)
+        self.actionRestartMultiJob = ActionRestartMultiJob(main_window)
 
-        self.verticalLayout_2.addLayout(self.verticalLayout)
-        main_window.setCentralWidget(self.centralwidget)
+        self.actionSshPresets = ActionSshPresets(main_window)
+        self.actionPbsPresets = ActionPbsPresets(main_window)
+        self.actionResourcesPresets = ActionResourcesPresets(main_window)
 
-        # MenuBar
-        self.menubar = MainWindowMenuBar(main_window)
-        main_window.setMenuBar(self.menubar)
-
-        self.actionExit = QtWidgets.QAction(main_window)
-        self.actionExit.setText("Exit")
-        self.actionExit.setShortcut("Ctrl+Q")
-        self.actionExit.setObjectName("actionExit")
-
-        # Add MultiJob action
-        self.actionAddMultiJob = QtWidgets.QAction(main_window)
-        self.actionAddMultiJob.setText("Add")
-        self.actionAddMultiJob.setShortcut("Alt+A")
-        self.actionAddMultiJob.setObjectName("actionAddMultiJob")
-
-        # Edit MultiJob action
-        self.actionEditMultiJob = QtWidgets.QAction(main_window)
-        self.actionEditMultiJob.setText("Edit")
-        self.actionEditMultiJob.setShortcut("Alt+E")
-        self.actionEditMultiJob.setObjectName("actionEditMultiJob")
-
-        # Copy MultiJob action
-        self.actionCopyMultiJob = QtWidgets.QAction(main_window)
-        self.actionCopyMultiJob.setText("Copy")
-        self.actionCopyMultiJob.setShortcut("Alt+C")
-        self.actionCopyMultiJob.setObjectName("actionCopyMultiJob")
-
-        # Delete MultiJob action
-        self.actionDeleteMultiJob = QtWidgets.QAction(main_window)
-        self.actionDeleteMultiJob.setText("Delete")
-        self.actionDeleteMultiJob.setShortcut("Alt+D")
-        self.actionDeleteMultiJob.setObjectName("actionDeleteMultiJob")
-
-        self.actionResourcesPresets = QtWidgets.QAction(main_window)
-        self.actionResourcesPresets.setText("Resources")
-        self.actionResourcesPresets.setShortcut("Shift+R")
-        self.actionResourcesPresets.setObjectName("actionResources")
-
-        self.actionSshPresets = QtWidgets.QAction(main_window)
-        self.actionSshPresets.setText("SSH Connections")
-        self.actionSshPresets.setShortcut("Shift+S")
-        self.actionSshPresets.setObjectName("actionSshPresets")
-
-        self.actionPbsPresets = QtWidgets.QAction(main_window)
-        self.actionPbsPresets.setText("PBS Presets")
-        self.actionPbsPresets.setShortcut("Shift+P")
-        self.actionPbsPresets.setObjectName("actionPbsPresets")
-
-        self.actionRun = QtWidgets.QAction(main_window)
-        self.actionRun.setText("Run")
-        self.actionRun.setShortcut("Alt+R")
-        self.actionRun.setObjectName("actionRun")
-        self.actionStop = QtWidgets.QAction(main_window)
-        self.actionStop.setText("Stop")
-        self.actionStop.setShortcut("Alt+S")
-        self.actionStop.setObjectName("actionStop")
-        self.actionPause = QtWidgets.QAction(main_window)
-        self.actionPause.setText("Pause")
-        self.actionPause.setShortcut("Alt+P")
-        self.actionPause.setObjectName("actionPause")
-        self.actionRestart = QtWidgets.QAction(main_window)
-        self.actionRestart.setText("Restart")
-        self.actionRestart.setShortcut("Alt+R")
-        self.actionRestart.setObjectName("actionRestart")
+        # menuBar
+        self.menuBar = MainWindowMenuBar(main_window)
+        main_window.setMenuBar(self.menuBar)
 
         # bind actions to menus
-        self.menubar.menu.addAction(self.actionExit)
-        self.menubar.multiJob.addAction(self.actionAddMultiJob)
-        self.menubar.multiJob.addAction(self.actionEditMultiJob)
-        self.menubar.multiJob.addAction(self.actionCopyMultiJob)
-        self.menubar.multiJob.addAction(self.actionDeleteMultiJob)
-        self.menubar.multiJob.addSeparator()
-        self.menubar.multiJob.addAction(self.actionRun)
-        self.menubar.multiJob.addAction(self.actionPause)
-        self.menubar.multiJob.addAction(self.actionStop)
-        self.menubar.multiJob.addAction(self.actionRestart)
-        self.menubar.settings.addAction(self.actionSshPresets)
-        self.menubar.settings.addAction(self.actionPbsPresets)
-        self.menubar.settings.addAction(self.actionResourcesPresets)
+        self.menuBar.menu.addAction(self.actionExit)
+        self.menuBar.multiJob.addAction(self.actionAddMultiJob)
+        self.menuBar.multiJob.addAction(self.actionEditMultiJob)
+        self.menuBar.multiJob.addAction(self.actionCopyMultiJob)
+        self.menuBar.multiJob.addAction(self.actionDeleteMultiJob)
+        self.menuBar.multiJob.addSeparator()
+        self.menuBar.multiJob.addAction(self.actionRunMultiJob)
+        self.menuBar.multiJob.addAction(self.actionPauseMultiJob)
+        self.menuBar.multiJob.addAction(self.actionStopMultiJob)
+        self.menuBar.multiJob.addAction(self.actionRestartMultiJob)
+        self.menuBar.settings.addAction(self.actionSshPresets)
+        self.menuBar.settings.addAction(self.actionPbsPresets)
+        self.menuBar.settings.addAction(self.actionResourcesPresets)
+
+        # multiJob Overview panel
+        self.multiJobOverview = MultiJobOverview(self.centralwidget)
+        self.mainVerticalLayout.addWidget(self.multiJobOverview)
+
+        # multiJobInfoTab panel
+        self.multiJobInfoTab = MultiJobInfoTab(self.centralwidget)
+        self.mainVerticalLayout.addWidget(self.multiJobInfoTab)
+
+        # set central widget
+        main_window.setCentralWidget(self.centralwidget)
 
