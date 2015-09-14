@@ -7,6 +7,7 @@ Main window module
 """
 
 from PyQt5 import QtCore, QtWidgets
+from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_overview import MultiJobOverview
 from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -180,26 +181,11 @@ class UiMainWindow(object):
 
         self.verticalLayout_2.addLayout(self.verticalLayout)
         main_window.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(main_window)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1014, 27))
-        self.menubar.setObjectName("menubar")
-        self.menuMenu = QtWidgets.QMenu(self.menubar)
-        self.menuMenu.setTitle("Menu")
-        self.menuMenu.setObjectName("menuMenu")
-        self.menuMultiJob = QtWidgets.QMenu(self.menubar)
-        self.menuMultiJob.setTitle("MultiJob")
-        self.menuMultiJob.setObjectName("menuMultiJob")
-        self.menuSettings = QtWidgets.QMenu(self.menubar)
-        self.menuSettings.setTitle("Settings")
-        self.menuSettings.setObjectName("menuSettings")
+
+        # MenuBar
+        self.menubar = MainWindowMenuBar(main_window)
         main_window.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(main_window)
-        self.statusbar.setObjectName("statusbar")
-        main_window.setStatusBar(self.statusbar)
-        self.toolBar = QtWidgets.QToolBar(main_window)
-        self.toolBar.setWindowTitle("toolBar")
-        self.toolBar.setObjectName("toolBar")
-        main_window.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+
         self.actionExit = QtWidgets.QAction(main_window)
         self.actionExit.setText("Exit")
         self.actionExit.setShortcut("Ctrl+Q")
@@ -233,10 +219,12 @@ class UiMainWindow(object):
         self.actionResourcesPresets.setText("Resources")
         self.actionResourcesPresets.setShortcut("Shift+R")
         self.actionResourcesPresets.setObjectName("actionResources")
+
         self.actionSshPresets = QtWidgets.QAction(main_window)
         self.actionSshPresets.setText("SSH Connections")
         self.actionSshPresets.setShortcut("Shift+S")
         self.actionSshPresets.setObjectName("actionSshPresets")
+
         self.actionPbsPresets = QtWidgets.QAction(main_window)
         self.actionPbsPresets.setText("PBS Presets")
         self.actionPbsPresets.setShortcut("Shift+P")
@@ -260,20 +248,17 @@ class UiMainWindow(object):
         self.actionRestart.setObjectName("actionRestart")
 
         # bind actions to menus
-        self.menuMenu.addAction(self.actionExit)
-        self.menuMultiJob.addAction(self.actionAddMultiJob)
-        self.menuMultiJob.addAction(self.actionEditMultiJob)
-        self.menuMultiJob.addAction(self.actionCopyMultiJob)
-        self.menuMultiJob.addAction(self.actionDeleteMultiJob)
-        self.menuMultiJob.addSeparator()
-        self.menuMultiJob.addAction(self.actionRun)
-        self.menuMultiJob.addAction(self.actionPause)
-        self.menuMultiJob.addAction(self.actionStop)
-        self.menuMultiJob.addAction(self.actionRestart)
-        self.menuSettings.addAction(self.actionSshPresets)
-        self.menuSettings.addAction(self.actionPbsPresets)
-        self.menuSettings.addAction(self.actionResourcesPresets)
-        self.menubar.addAction(self.menuMenu.menuAction())
-        self.menubar.addAction(self.menuMultiJob.menuAction())
-        self.menubar.addAction(self.menuSettings.menuAction())
+        self.menubar.menu.addAction(self.actionExit)
+        self.menubar.multiJob.addAction(self.actionAddMultiJob)
+        self.menubar.multiJob.addAction(self.actionEditMultiJob)
+        self.menubar.multiJob.addAction(self.actionCopyMultiJob)
+        self.menubar.multiJob.addAction(self.actionDeleteMultiJob)
+        self.menubar.multiJob.addSeparator()
+        self.menubar.multiJob.addAction(self.actionRun)
+        self.menubar.multiJob.addAction(self.actionPause)
+        self.menubar.multiJob.addAction(self.actionStop)
+        self.menubar.multiJob.addAction(self.actionRestart)
+        self.menubar.settings.addAction(self.actionSshPresets)
+        self.menubar.settings.addAction(self.actionPbsPresets)
+        self.menubar.settings.addAction(self.actionResourcesPresets)
 
