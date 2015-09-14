@@ -20,8 +20,8 @@ class ErrorWidget(QtWidgets.QListWidget):
     Signal is sent when error item is clicked.
     """
 
-    def __init__(self):
-        QtWidgets.QListWidget.__init__(self)
+    def __init__(self, parent=None):
+        super(ErrorWidget, self).__init__(parent)
         self.clicked.connect(self._item_clicked)
         self._load_items()
 

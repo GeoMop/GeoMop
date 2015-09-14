@@ -19,8 +19,8 @@ class TreeWidget(QtWidgets.QTreeView):
     Sgnal is sent when  tree item is clicked.
     """
 
-    def __init__(self):
-        QtWidgets.QTreeView.__init__(self)
+    def __init__(self, parent=None):
+        super(TreeWidget, self).__init__(parent)
         self.showColumn(3)
         self._model = TreeOfNodes(cfg.root)
         self.setModel(self._model)

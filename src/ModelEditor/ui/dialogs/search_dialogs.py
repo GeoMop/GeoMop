@@ -45,15 +45,15 @@ class FindDialog(QDialog):
 
     def init_components(self):
         """Initializes the user interface components."""
-        self.find_label = QLabel('Search for: ')
-        self.find_line_edit = QLineEdit()
-        self.cs_check_box = QCheckBox('Match case')
-        self.re_check_box = QCheckBox('Regular expression')
-        self.wo_check_box = QCheckBox('Match entire word only')
-        self.find_button = QPushButton('Find')
+        self.find_label = QLabel('Search for: ', self)
+        self.find_line_edit = QLineEdit(self)
+        self.cs_check_box = QCheckBox('Match case', self)
+        self.re_check_box = QCheckBox('Regular expression', self)
+        self.wo_check_box = QCheckBox('Match entire word only', self)
+        self.find_button = QPushButton('Find', self)
         self.find_button.setDefault(True)
         self.find_button.clicked.connect(self.accept)
-        self.close_button = QPushButton('Close')
+        self.close_button = QPushButton('Close', self)
         self.close_button.clicked.connect(self.close)
 
     def init_layout(self):
@@ -67,7 +67,7 @@ class FindDialog(QDialog):
         button_layout.addWidget(self.close_button)
         button_layout.addWidget(self.find_button)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.addLayout(search_layout)
         main_layout.addWidget(self.cs_check_box)
         main_layout.addWidget(self.re_check_box)
