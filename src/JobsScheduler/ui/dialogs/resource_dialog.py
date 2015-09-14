@@ -38,7 +38,7 @@ class ResourceDialog(AbstractFormDialog):
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(ResourceDialog, self).__init__(parent)
         # setup specific UI
-        self.ui = UiSshDialog()
+        self.ui = UiResourceDialog()
         self.ui.setup_ui(self)
 
         # set purpose
@@ -53,6 +53,10 @@ class ResourceDialog(AbstractFormDialog):
         data = list()
         data.append(self.ui.idLineEdit.text())
         data.append(self.ui.nameLineEdit.text())
+        data.append("ssh://" +
+                    self.ui.userLineEdit.text() + "@" +
+                    self.ui.hostLineEdit.text() + ":" +
+                    str(self.ui.portSpinBox.value()))
         data.append(self.ui.hostLineEdit.text())
         data.append(self.ui.portSpinBox.value())
         data.append(self.ui.userLineEdit.text())
@@ -63,10 +67,10 @@ class ResourceDialog(AbstractFormDialog):
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
-            self.ui.hostLineEdit.setText(data[2])
-            self.ui.portSpinBox.setValue(data[3])
-            self.ui.userLineEdit.setText(data[4])
-            self.ui.passwordLineEdit.setText(data[5])
+            self.ui.hostLineEdit.setText(data[3])
+            self.ui.portSpinBox.setValue(data[4])
+            self.ui.userLineEdit.setText(data[5])
+            self.ui.passwordLineEdit.setText(data[6])
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -76,7 +80,7 @@ class ResourceDialog(AbstractFormDialog):
             self.ui.passwordLineEdit.clear()
 
 
-class UiSshDialog(UiFormDialog):
+class UiResourceDialog(UiFormDialog):
     """
     UI extensions of form dialog.
     """

@@ -175,7 +175,8 @@ class AbstractPresetsDialog(QtWidgets.QDialog):
             self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_EDIT)
             index = self.ui.presets.indexOfTopLevelItem(
                 self.ui.presets.currentItem())
-            self.presets_dlg.set_data(list(self.presets[index]))
+            data = list(self.presets[index])
+            self.presets_dlg.set_data(data)
             self.presets_dlg.show()
 
     def _handle_copy_preset_action(self):

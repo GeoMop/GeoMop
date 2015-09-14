@@ -53,6 +53,11 @@ class PbsDialog(AbstractFormDialog):
         data = list()
         data.append(self.ui.idLineEdit.text())
         data.append(self.ui.nameLineEdit.text())
+        data.append(self.ui.walltimeLineEdit.text() + ", " +
+                    str(self.ui.nodesSpinBox.value()) + ", " +
+                    str(self.ui.ppnSpinBox.value()) + ", " +
+                    self.ui.memoryLineEdit.text() + ", " +
+                    self.ui.scratchLineEdit.text())
         data.append(self.ui.walltimeLineEdit.text())
         data.append(self.ui.nodesSpinBox.value())
         data.append(self.ui.ppnSpinBox.value())
@@ -64,11 +69,11 @@ class PbsDialog(AbstractFormDialog):
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
-            self.ui.walltimeLineEdit.setText(data[2])
-            self.ui.nodesSpinBox.setValue(data[3])
-            self.ui.ppnSpinBox.setValue(data[4])
-            self.ui.memoryLineEdit.setText(data[5])
-            self.ui.scratchLineEdit.setText(data[6])
+            self.ui.walltimeLineEdit.setText(data[3])
+            self.ui.nodesSpinBox.setValue(data[4])
+            self.ui.ppnSpinBox.setValue(data[5])
+            self.ui.memoryLineEdit.setText(data[6])
+            self.ui.scratchLineEdit.setText(data[7])
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
