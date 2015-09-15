@@ -10,7 +10,7 @@
 !define PYTHON_MAJOR   "3"
 !define PYTHON_MINOR   "4"
 
-# THe following are derived from the above.
+# The following are derived from the above.
 !define PYTHON_VERS    "${PYTHON_MAJOR}.${PYTHON_MINOR}"
 !define PYTHON_HK      "Software\Python\PythonCore\${PYTHON_VERS}\InstallPath"
 !define PYTHON_HK_64   "Software\Wow6432Node\Python\PythonCore\${PYTHON_VERS}\InstallPath"
@@ -21,10 +21,14 @@
 !include LogicLib.nsh
 
 
-Name "GeoMop"
-Caption "GeoMop Setup"
+# Read version information from file.
+!searchparse /file "${GIT_DIR}\.version" '' VERSION ''
+
+
+Name "GeoMop ${VERSION}"
+Caption "GeoMop ${VERSION} Setup"
 InstallDir "$PROGRAMFILES\GeoMop"
-OutFile "${GIT_DIR}\dist\geomop_x86.exe"
+OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86.exe"
 
 # Registry key to check for directory (so if you install again, it will 
 # overwrite the old one automatically)
