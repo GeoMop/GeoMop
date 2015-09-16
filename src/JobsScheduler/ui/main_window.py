@@ -22,7 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     Jobs Scheduler main window class
     """
-    multijobs_changed = QtCore.pyqtSignal(list)
+    multijobs_changed = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -67,6 +67,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resource_presets_dlg.presets_changed.connect(
             self.data.save_resources)
 
+        # connect exit action
+        self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
+
         # reload view
         self.ui.multiJobOverview.reload_view(self.data.multijobs)
 
@@ -76,60 +79,57 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_edit_multijob_action(self):
         if self.data.multijobs:
-            self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_EDIT)
-            index = self.ui.multiJobOverview.indexOfTopLevelItem(
-                self.ui.multiJobOverview.currentItem())
-            self.mj_dlg.set_data(list(self.data.multijobs[index]))
+            self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_EDIT)
+            key = self.ui.multiJobOverview.currentItem().text(0)
+            data = list(self.data.multijobs[key])  # list to make a copy
+            data.insert(0, key)  # insert id
+            self.mj_dlg.set_data(tuple(data))
             self.mj_dlg.show()
 
     def _handle_copy_multijob_action(self):
         if self.data.multijobs:
-            self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_COPY)
-            index = self.ui.multiJobOverview.indexOfTopLevelItem(
-                self.ui.multiJobOverview.currentItem())
-            data = list(self.data.multijobs[index])
-            data[0] = None
-            data[1] = "Copy of " + data[1]
-            self.mj_dlg.set_data(data)
+            self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_COPY)
+            key = self.ui.multiJobOverview.currentItem().text(0)
+            data = list(self.data.multijobs[key])
+            data.insert(0, None)  # insert empty id
+            data[1] = self.mj_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
+            self.mj_dlg.set_data(tuple(data))
             self.mj_dlg.show()
 
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
-            index = self.ui.multiJobOverview.indexOfTopLevelItem(
-                self.ui.multiJobOverview.currentItem())
-            self.data.multijobs.pop(index)
+            key = self.ui.multiJobOverview.currentItem().text(0)
+            self.data.multijobs.pop(key)  # delete by key
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
-        if purpose != MultiJobDialog.PURPOSE_EDIT:
-            data[0] = str(uuid.uuid4())
-            self.data.multijobs.append(data)
+        if purpose != self.mj_dlg.PURPOSE_EDIT:
+            key = str(uuid.uuid1())
+            self.data.multijobs[key] = list(data[1:])
         else:
-            for i, item in enumerate(self.data.multijobs):
-                if item[0] == data[0]:
-                    self.data.multijobs[i] = data
+            self.data.multijobs[data[0]] = list(data[1:])
         self.multijobs_changed.emit(self.data.multijobs)
 
 
 class DataMainWindow(object):
-    MJ_DIR = "mj"
-    SSH_DIR = "ssh"
-    PBS_DIR = "pbs"
-    RESOURCE_DIR = "resource"
+    MJ_DIR = "mjwewdw"
+    SSH_DIR = "sswqeqwehdw"
+    PBS_DIR = "pbswqedw"
+    RESOURCE_DIR = "resowqeqweurcedw"
 
     def __init__(self):
         self.multijobs = cfg.get_config_file("list", self.MJ_DIR)
         if not self.multijobs:
-            self.multijobs = list()
+            self.multijobs = dict()
         self.shh_presets = cfg.get_config_file("list", self.SSH_DIR)
         if not self.shh_presets:
-            self.shh_presets = list()
+            self.shh_presets = dict()
         self.pbs_presets = cfg.get_config_file("list", self.PBS_DIR)
         if not self.pbs_presets:
-            self.pbs_presets = list()
+            self.pbs_presets = dict()
         self.resources_presets = cfg.get_config_file("list", self.RESOURCE_DIR)
         if not self.resources_presets:
-            self.resources_presets = list()
+            self.resources_presets = dict()
 
     def save_mj(self):
         print("Mj saved")

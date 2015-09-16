@@ -34,14 +34,20 @@ class AbstractFormDialog(QtWidgets.QDialog):
                         title="Copy",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
+
+    PURPOSE_DELETE = dict(purposeType="PURPOSE_DELETE",
+                          objectName="DeleteDialog",
+                          windowTitle="Job Scheduler - Delete",
+                          title="delete",
+                          subtitle="This should not happen.")
+
+    # Default Copy name prefix
+    PURPOSE_COPY_PREFIX = "Copy of"
     # Default dialog purpose
     purpose = PURPOSE_ADD
 
-    # Default Copy name prefix
-    COPY_PREFIX = "Copy of"
-
     # Custom accept signal
-    accepted = QtCore.pyqtSignal(dict, list)
+    accepted = QtCore.pyqtSignal(dict, tuple)
 
     def accept(self):
         super(AbstractFormDialog, self).accept()
@@ -65,14 +71,14 @@ class AbstractFormDialog(QtWidgets.QDialog):
 
     def get_data(self):
         """
-        Get data from form fields as list.
+        Get data from form fields as tuple.
         (To be overridden in child)
         """
         pass
 
     def set_data(self, data=None):
         """
-        Set data to form fields from list.
+        Set data to form fields from tuple.
         (To be overridden in child)
         """
         pass
@@ -154,57 +160,53 @@ class AbstractPresetsDialog(QtWidgets.QDialog):
     """
     Presets Dialog executive code with bindings and other functionality.
     """
-    presets = list()
-    presets_changed = QtCore.pyqtSignal(list)
+    presets = dict()
+    presets_changed = QtCore.pyqtSignal(dict)
 
-    def _reload_view(self, presets):
+    def _reload_view(self, data):
         self.ui.presets.clear()
-        if presets:
-            for row_id, row in enumerate(presets):
-                QtWidgets.QTreeWidgetItem(self.ui.presets)
-                for col_id, item in enumerate(row[0:3]):
-                    self.ui.presets.topLevelItem(row_id).setText(col_id,
-                                                                 str(item))
+        if data:
+            for key in data:
+                row = QtWidgets.QTreeWidgetItem(self.ui.presets)
+                row.setText(0, str(key))
+                for col_id, item in enumerate(data[key][0:2]):
+                    row.setText(col_id + 1, str(item))
 
     def _handle_add_preset_action(self):
         self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_ADD)
         self.presets_dlg.show()
 
     def _handle_edit_preset_action(self):
-        if self.presets:
+        if self.presets and self.ui.presets.currentItem():
             self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_EDIT)
-            index = self.ui.presets.indexOfTopLevelItem(
-                self.ui.presets.currentItem())
-            data = list(self.presets[index])
-            self.presets_dlg.set_data(data)
+            key = self.ui.presets.currentItem().text(0)
+            data = list(self.presets[key])  # list to make a copy
+            data.insert(0, key)  # insert id
+            self.presets_dlg.set_data(tuple(data))
             self.presets_dlg.show()
 
     def _handle_copy_preset_action(self):
-        if self.presets:
+        if self.presets and self.ui.presets.currentItem():
             self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_COPY)
-            index = self.ui.presets.indexOfTopLevelItem(
-                self.ui.presets.currentItem())
-            data = list(self.presets[index])
-            data[0] = None
-            data[1] = self.presets_dlg.COPY_PREFIX + " " + data[1]
-            self.presets_dlg.set_data(data)
+            key = self.ui.presets.currentItem().text(0)
+            data = list(self.presets[key])
+            data.insert(0, None)  # insert empty id
+            data[1] = self.presets_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
+            self.presets_dlg.set_data(tuple(data))
             self.presets_dlg.show()
 
     def _handle_delete_preset_action(self):
-        if self.presets:
-            index = self.ui.presets.indexOfTopLevelItem(
-                self.ui.presets.currentItem())
-            self.presets.pop(index)
+        if self.presets and self.ui.presets.currentItem():
+            key = self.ui.presets.currentItem().text(0)
+            self.presets.pop(key)  # delete by key
             self.presets_changed.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
         if purpose != self.presets_dlg.PURPOSE_EDIT:
-            data[0] = str(uuid.uuid4())
-            self.presets.append(data)
+            key = str(uuid.uuid1())
+            self.presets[key] = list(data[1:])
         else:
-            for i, item in enumerate(self.presets):
-                if item[0] == data[0]:
-                    self.presets[i] = data
+            self.presets[data[0]] = list(data[1:])
         self.presets_changed.emit(self.presets)
 
     def _connect_slots(self):
@@ -249,6 +251,7 @@ class UiPresetsDialog(object):
         self.presets.setObjectName("presets")
         self.presets.setHeaderLabels(["Id", "Name", "Description"])
         self.presets.setColumnHidden(0, True)
+        self.presets.setSortingEnabled(True)
 
         # add presets to layout
         self.horizontalLayout.addWidget(self.presets)

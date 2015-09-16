@@ -38,27 +38,30 @@ class MultiJobDialog(AbstractFormDialog):
 
     def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
         super(MultiJobDialog, self).__init__(parent)
+        # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
+
+        # set purpose and data
         self.set_purpose(purpose, data)
 
         # connect slots
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+        # connect generic presets slots (must be called after UI setup)
+        super(MultiJobDialog, self)._connect_slots()
+        # specific slots
         self.ui.analysisPushButton.clicked.connect(
             lambda: self.ui.analysisLineEdit.setText(
                 self.ui.analysisFolderPicker.getExistingDirectory
                 (self, directory=self.ui.analysisLineEdit.text())))
 
     def get_data(self):
-        data = list()
-        data.append(self.ui.idLineEdit.text())
-        data.append(self.ui.nameLineEdit.text())
-        data.append(self.ui.analysisLineEdit.text())
-        data.append(self.ui.descriptionTextEdit.toPlainText())
-        data.append(self.ui.resourceComboBox.currentText())
-        data.append(self.ui.logLevelComboBox.currentText())
-        data.append(self.ui.numberOfProcessesSpinBox.value())
+        data = (self.ui.idLineEdit.text(),
+                self.ui.nameLineEdit.text(),
+                self.ui.analysisLineEdit.text(),
+                self.ui.descriptionTextEdit.toPlainText(),
+                self.ui.resourceComboBox.currentText(),
+                self.ui.logLevelComboBox.currentText(),
+                self.ui.numberOfProcessesSpinBox.value())
         return data
 
     def set_data(self, data=None):

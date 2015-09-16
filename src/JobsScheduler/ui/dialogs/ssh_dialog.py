@@ -56,18 +56,16 @@ class SshDialog(AbstractFormDialog):
                 QtWidgets.QLineEdit.Password))
 
     def get_data(self):
-        data = list()
-        data.append(self.ui.idLineEdit.text())
-        data.append(self.ui.nameLineEdit.text())
-        data.append("ssh://" +
-                    self.ui.userLineEdit.text() + "@" +
-                    self.ui.hostLineEdit.text() + ":" +
-                    str(self.ui.portSpinBox.value()))
-        data.append(self.ui.hostLineEdit.text())
-        data.append(self.ui.portSpinBox.value())
-        data.append(self.ui.userLineEdit.text())
-        data.append(self.ui.passwordLineEdit.text())
-        return data
+        return (self.ui.idLineEdit.text(),
+                self.ui.nameLineEdit.text(),
+                ("ssh://" +
+                 self.ui.userLineEdit.text() + "@" +
+                 self.ui.hostLineEdit.text() + ":" +
+                 str(self.ui.portSpinBox.value())),
+                self.ui.hostLineEdit.text(),
+                self.ui.portSpinBox.value(),
+                self.ui.userLineEdit.text(),
+                self.ui.passwordLineEdit.text())
 
     def set_data(self, data=None):
         if data:
