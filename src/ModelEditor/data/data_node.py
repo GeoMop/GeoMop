@@ -9,7 +9,6 @@ __author__ = 'Tomas Krizek'
 from enum import Enum
 from ist import InfoTextGenerator
 from helpers.subyaml import CursorType
-from data.format import is_scalar
 
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""

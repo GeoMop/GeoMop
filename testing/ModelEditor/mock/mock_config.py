@@ -1,7 +1,7 @@
 from data.meconfig import MEConfig as cfg
 from data.meconfig import _Config as Config
 from data.yaml import Loader
-from data.error_handler import ErrorHandler
+from data import ErrorHandler
 
 
 def set_empty_config():

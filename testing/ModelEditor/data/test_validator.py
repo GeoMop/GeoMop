@@ -8,7 +8,7 @@ Tests for validator
 from data.validation.validator import Validator
 import data.data_node as dn
 from data.yaml import Loader
-from data.error_handler import ErrorHandler
+from data import ErrorHandler
 
 
 def test_validator():

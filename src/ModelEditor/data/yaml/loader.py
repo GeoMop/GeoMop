@@ -4,13 +4,15 @@ Package for generating DataNode structure from YAML document.
 
 __author__ = 'Tomas Krizek'
 
-import yaml as pyyaml
-from data.yaml.constructor import construct_scalar
-from data.yaml.resolver import resolve_scalar_tag
-from data.error_handler import ErrorHandler
-from data import data_node as dn
 import re
 import copy
+
+import yaml as pyyaml
+
+from data.yaml.constructor import construct_scalar
+from data.yaml.resolver import resolve_scalar_tag
+from data import ErrorHandler
+from data import data_node as dn
 
 
 class Loader:

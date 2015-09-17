@@ -14,7 +14,7 @@ from ui.dialogs import TranformationDetailDlg
 from data.validation.validator import Validator
 import data.format as fmt
 import PyQt5.QtWidgets as QtWidgets
-from data.error_handler import ErrorHandler
+from data import ErrorHandler
 import data.autoconversion as ac
 from ist import InfoTextGenerator
 

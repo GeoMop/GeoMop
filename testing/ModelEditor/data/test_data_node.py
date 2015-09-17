@@ -1,14 +1,15 @@
+import sys
+
+import pytest
+
 from data.data_node import Position
 import data.data_node as dn
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
-import pytest
 from data.meconfig import MEConfig as cfg
 import mock_config as mockcfg
-import sys
 from PyQt5.QtWidgets import QApplication
-from data.error_handler import ErrorHandler
-
+from data import ErrorHandler
 
 APP = QApplication(sys.argv)
 APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),

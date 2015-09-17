@@ -2,4 +2,6 @@
 Module for handling data structure.
 """
 
-__authot__ = 'Tomas Krizek'
+__author__ = 'Tomas Krizek'
+
+from .error_handler import ErrorHandler

@@ -55,9 +55,10 @@ Example::
 
 import json
 import re
+
 import data.data_node as dn
 from data.yaml import Loader
-from data.error_handler import ErrorHandler
+from data import ErrorHandler
 
 
 class Transformator:
