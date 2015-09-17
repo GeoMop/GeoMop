@@ -11,23 +11,30 @@ import uuid
 
 class DataContainer(object):
     MJ_DIR = "mj"
+    MJ_FILENAME = "mj.yaml"
     SSH_DIR = "ssh"
+    SSH_FILENAME = "ssh.yaml"
     PBS_DIR = "pbs"
+    PBS_FILENAME = "pbs.yaml"
     RESOURCE_DIR = "resource"
+    RESOURCE_FILENAME = "resource.yaml"
 
     def __init__(self, cfg):
         self.cfg = cfg
-        self.multijobs = self.cfg.get_config_file("mj.yaml", self.MJ_DIR)
+        self.multijobs = self.cfg\
+            .get_config_file(self.MJ_FILENAME, self.MJ_DIR)
         if not self.multijobs:
             self.multijobs = dict()
-        self.shh_presets = self.cfg.get_config_file("ssh.yaml", self.SSH_DIR)
+        self.shh_presets = self\
+            .cfg.get_config_file(self.SSH_FILENAME, self.SSH_DIR)
         if not self.shh_presets:
             self.shh_presets = dict()
-        self.pbs_presets = self.cfg.get_config_file("pbs.yaml", self.PBS_DIR)
+        self.pbs_presets = self\
+            .cfg.get_config_file(self.PBS_FILENAME, self.PBS_DIR)
         if not self.pbs_presets:
             self.pbs_presets = dict()
-        self.resources_presets = self.cfg.get_config_file("resources.yaml",
-                                                          self.RESOURCE_DIR)
+        self.resources_presets = self\
+            .cfg.get_config_file(self.RESOURCE_FILENAME, self.RESOURCE_DIR)
         if not self.resources_presets:
             self.resources_presets = dict()
 
