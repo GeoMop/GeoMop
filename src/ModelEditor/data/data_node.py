@@ -108,37 +108,39 @@ class DataNode:
 
     def get_info_text(self, cursor_type=CursorType.value):
         """Returns help text describing the input type based on cursor_type."""
-        node = self
-        parent = node.parent
         input_type = None
         selected = None
+
+        # crawl up to the first "real" node (present in text structure)
+        prev_node = self
+        node = self
+        while node.origin != Origin.structure:
+            prev_node = node
+            node = node.parent
+
+        # select input_type based on cursor_type
         if cursor_type == CursorType.key.value:
-            while node.origin != Origin.structure:
-                node = parent
-                parent = node.parent
-            if parent is not None and parent.input_type is not None:
-                input_type = parent.input_type
+            if node.parent is not None and node.parent.input_type is not None:
+                input_type = node.parent.input_type
                 selected = node.key.value
         elif cursor_type == CursorType.tag.value:
-            # TODO: select abstract record somehow
-            pass
+            if node.parent is not None and node.parent.input_type is not None:
+                input_type = node.parent.input_type['keys'][node.key.value]['type']
+                selected = getattr(node, 'type', None)
         else:  # default behavior - for value and others
-            prev_node = node
-            node = node
-            while node.origin != Origin.structure:
-                prev_node = node
-                node = node.parent
             input_type = node.input_type
             if node.input_type and node.input_type['base_type'] == 'Selection':
                 selected = prev_node.value
             else:
                 selected = prev_node.key.value
+
         if input_type is None:
-            # unknown node -> show closes available parent input type
+            # unknown node -> show closest available parent input type
             while node is not None and node.input_type is None:
-                node = parent
+                node = node.parent
             input_type = node.input_type
 
+        # show info for Record, Selection or AbstractRecord that is in input structure
         while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']
                or node.origin != Origin.structure):
             prev_node = node
