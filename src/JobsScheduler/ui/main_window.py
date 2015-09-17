@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Main window module
@@ -7,6 +6,7 @@ Main window module
 """
 
 from PyQt5 import QtCore, QtWidgets
+from data.data_container import DataContainer
 from ui.actions.main_window_actions import *
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_overview import MultiJobOverview
@@ -14,8 +14,6 @@ from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.ssh_presets import SshPresets
 from ui.dialogs.pbs_presets import PbsPresets
-import config as cfg
-import uuid
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -24,9 +22,9 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, data=None):
         super().__init__(parent)
-        self.data = DataMainWindow()
+        self.data = data
 
         # setup UI
         self.ui = UiMainWindow()
@@ -104,52 +102,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_multijob_dialog(self, purpose, data):
         if purpose != self.mj_dlg.PURPOSE_EDIT:
-            key = str(uuid.uuid1())
+            key = DataContainer.uuid()
             self.data.multijobs[key] = list(data[1:])
         else:
             self.data.multijobs[data[0]] = list(data[1:])
         self.multijobs_changed.emit(self.data.multijobs)
-
-
-class DataMainWindow(object):
-    MJ_DIR = "mjwewdw"
-    SSH_DIR = "sswqeqwehdw"
-    PBS_DIR = "pbswqedw"
-    RESOURCE_DIR = "resowqeqweurcedw"
-
-    def __init__(self):
-        self.multijobs = cfg.get_config_file("list", self.MJ_DIR)
-        if not self.multijobs:
-            self.multijobs = dict()
-        self.shh_presets = cfg.get_config_file("list", self.SSH_DIR)
-        if not self.shh_presets:
-            self.shh_presets = dict()
-        self.pbs_presets = cfg.get_config_file("list", self.PBS_DIR)
-        if not self.pbs_presets:
-            self.pbs_presets = dict()
-        self.resources_presets = cfg.get_config_file("list", self.RESOURCE_DIR)
-        if not self.resources_presets:
-            self.resources_presets = dict()
-
-    def save_mj(self):
-        print("Mj saved")
-        cfg.save_config_file("list", self.multijobs, self.MJ_DIR)
-
-    def save_ssh(self):
-        print("Ssh saved")
-        cfg.save_config_file("list", self.shh_presets, self.SSH_DIR)
-
-    def save_pbs(self):
-        print("Pbs saved")
-        cfg.save_config_file("list", self.pbs_presets, self.PBS_DIR)
-
-    def save_resources(self):
-        print("Resource saved")
-        cfg.save_config_file("list", self.resources_presets, self.RESOURCE_DIR)
-
-    def save_all(self, mj, ssh, pbs, resource):
-        print("All saved")
-        pass
 
 
 class UiMainWindow(object):

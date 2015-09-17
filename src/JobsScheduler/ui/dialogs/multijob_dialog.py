@@ -7,6 +7,7 @@ Multijob dialog
 
 from PyQt5 import QtCore, QtWidgets
 from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
+import logging
 
 
 class MultiJobDialog(AbstractFormDialog):
@@ -191,21 +192,18 @@ class UiMultiJobDialog(UiFormDialog):
         self.logLevelComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.logLevelComboBox.setObjectName("logLevelComboBox")
-        """
-        Python Logging module levels
-            CRITICAL    50
-            ERROR       40
-            WARNING     30
-            INFO        20
-            DEBUG       10
-            NOTSET      0
-        """
-        self.logLevelComboBox.addItem("NOTSET", "0")
-        self.logLevelComboBox.addItem("DEBUG", "10")
-        self.logLevelComboBox.addItem("INFO", "20")
-        self.logLevelComboBox.addItem("WARNING", "30")
-        self.logLevelComboBox.addItem("ERROR", "40")
-        self.logLevelComboBox.addItem("CRITICAL", "50")
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.NOTSET),
+                                      logging.NOTSET)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.DEBUG),
+                                      logging.DEBUG)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.INFO),
+                                      logging.INFO)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.WARNING),
+                                      logging.WARNING)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.ERROR),
+                                      logging.ERROR)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.CRITICAL),
+                                      logging.CRITICAL)
         self.logLevelComboBox.setCurrentIndex(0)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.logLevelComboBox)
