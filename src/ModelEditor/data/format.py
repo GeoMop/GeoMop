@@ -26,6 +26,14 @@ def parse_format(data):
     return input_types[root_id]
 
 
+SCALAR = ['Integer', 'Double', 'Bool', 'String', 'Selection', 'FileName']
+
+
+def is_scalar(input_type):
+    """Returns True if input_type is scalar."""
+    return input_type['base_type'] in SCALAR
+
+
 def _substitute_ids_with_references(input_types):
     """Replaces ids or type names with python object references."""
     input_type = {}

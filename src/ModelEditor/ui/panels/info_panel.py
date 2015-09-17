@@ -25,6 +25,10 @@ class InfoPanelWidget(QWebView):
         self.linkClicked.connect(self.navigate_to)
         self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
 
+    def update_from_node(self, node, cursor_type=None):
+        """Updates the info text for the given node and cursor_type."""
+        self.setHtml(node.get_info_text(cursor_type))
+
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
