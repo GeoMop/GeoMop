@@ -4,11 +4,11 @@ __author__ = 'Tomas Krizek'
 
 from data.validation import errors, checks
 import data.data_node as dn
+from data.format import is_scalar
 
 
 class Validator:
     """Handles data structure validation."""
-    SCALAR = ['Integer', 'Double', 'Bool', 'String', 'Selection', 'FileName']
 
     def __init__(self, error_handler):
         """Initializes the validator with an ErrorHandler."""
@@ -39,7 +39,7 @@ class Validator:
             raise errors.ValidationError("Invalid node (None)")
 
         node.input_type = input_type
-        if input_type['base_type'] in Validator.SCALAR:
+        if is_scalar(input_type):
             self._validate_scalar(node, input_type)
         elif input_type['base_type'] == 'Record':
             self._validate_record(node, input_type)
