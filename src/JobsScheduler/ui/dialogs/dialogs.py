@@ -6,7 +6,7 @@ Basic dialogs templates
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from data.data_container import DataContainer
+from data.data_structures import ID
 
 
 class AbstractFormDialog(QtWidgets.QDialog):
@@ -203,7 +203,7 @@ class AbstractPresetsDialog(QtWidgets.QDialog):
 
     def handle_presets_dialog(self, purpose, data):
         if purpose != self.presets_dlg.PURPOSE_EDIT:
-            key = DataContainer.uuid()
+            key = ID.id()
             self.presets[key] = list(data[1:])
         else:
             self.presets[data[0]] = list(data[1:])

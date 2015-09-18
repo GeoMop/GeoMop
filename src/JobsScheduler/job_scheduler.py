@@ -10,7 +10,6 @@ Start script that initializes main window
 import sys
 import os
 # sys.path.append("../common")
-from data.data_container import DataContainer
 
 __lib_dir__ = os.path.join(
     os.path.split(
@@ -20,8 +19,8 @@ sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets
 from ui.main_window import MainWindow
+from data.data_structures import DataContainer
 import logging
-import config as cfg
 
 
 class JobsScheduler(object):
@@ -38,7 +37,7 @@ class JobsScheduler(object):
         # qt app setup
         self._app = QtWidgets.QApplication(sys.argv)
         # data container with config handler inserted
-        self._data = DataContainer(cfg)
+        self._data = DataContainer()
         # qt UI
         self._main_window = MainWindow(data=self._data)
         # show UI

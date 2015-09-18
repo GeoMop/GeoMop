@@ -5,8 +5,8 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore, QtWidgets
-from data.data_container import DataContainer
+from PyQt5 import QtCore
+from data.data_structures import ID
 from ui.actions.main_window_actions import *
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_overview import MultiJobOverview
@@ -43,27 +43,29 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
-        self.multijobs_changed.connect(self.data.save_mj)
+        self.multijobs_changed.connect(self.data.multijobs.save)
 
         # ssh presets
-        self.ssh_presets_dlg = SshPresets(self, self.data.shh_presets)
+        self.ssh_presets_dlg = SshPresets(self, self.data.ssh_presets)
         self.ui.actionSshPresets.triggered.connect(
             self.ssh_presets_dlg.show)
-        self.ssh_presets_dlg.presets_changed.connect(self.data.save_ssh)
+        self.ssh_presets_dlg.presets_changed.connect(
+            self.data.ssh_presets.save)
 
-        # ssh presets
+        # pbs presets
         self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
         self.ui.actionPbsPresets.triggered.connect(
             self.pbs_presets_dlg.show)
-        self.pbs_presets_dlg.presets_changed.connect(self.data.save_pbs)
+        self.pbs_presets_dlg.presets_changed.connect(
+            self.data.pbs_presets.save)
 
-        # ssh presets
+        # resource presets
         self.resource_presets_dlg = PbsPresets(self,
                                                self.data.resources_presets)
         self.ui.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
         self.resource_presets_dlg.presets_changed.connect(
-            self.data.save_resources)
+            self.data.resources_presets.save)
 
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
@@ -102,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_multijob_dialog(self, purpose, data):
         if purpose != self.mj_dlg.PURPOSE_EDIT:
-            key = DataContainer.uuid()
+            key = ID.id()
             self.data.multijobs[key] = list(data[1:])
         else:
             self.data.multijobs[data[0]] = list(data[1:])
