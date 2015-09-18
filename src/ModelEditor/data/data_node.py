@@ -7,8 +7,9 @@ Contains classes for representing the tree structure of config files.
 __author__ = 'Tomas Krizek'
 
 from enum import Enum
-
 from ist import InfoTextGenerator
+from helpers.subyaml import CursorType
+from data.format import is_scalar
 
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""
@@ -35,6 +36,8 @@ class DataNode:
         """borders the position of this node in input text"""
         self.anchor = None
         """anchor of the node `TextValue`"""
+        self.origin = Origin.structure
+        """indicates how node was created"""
         self._options = []
 
     @property
@@ -103,14 +106,48 @@ class DataNode:
             node = node.get_child(key)
         return node
 
-    @property
-    def info_text(self):
-        """help text describing the input type"""
-        if self.parent is None or self.parent.input_type is None:
-            if self.input_type is None:
-                return 'unknown id'
-            return InfoTextGenerator.get_info_text(self.input_type, selected=self.key.value)
-        return InfoTextGenerator.get_info_text(self.parent.input_type, selected=self.key.value)
+    def get_info_text(self, cursor_type=CursorType.value):
+        """Returns help text describing the input type based on cursor_type."""
+        input_type = None
+        selected = None
+
+        # crawl up to the first "real" node (present in text structure)
+        prev_node = self
+        node = self
+        while node.origin != Origin.structure:
+            prev_node = node
+            node = node.parent
+
+        # select input_type based on cursor_type
+        if cursor_type == CursorType.key.value:
+            if node.parent is not None and node.parent.input_type is not None:
+                input_type = node.parent.input_type
+                selected = node.key.value
+        elif cursor_type == CursorType.tag.value:
+            if node.parent is not None and node.parent.input_type is not None:
+                input_type = node.parent.input_type['keys'][node.key.value]['type']
+                selected = getattr(node, 'type', None)
+        else:  # default behavior - for value and others
+            input_type = node.input_type
+            if node.input_type and node.input_type['base_type'] == 'Selection':
+                selected = prev_node.value
+            else:
+                selected = prev_node.key.value
+
+        if input_type is None:
+            # unknown node -> show closest available parent input type
+            while node is not None and node.input_type is None:
+                node = node.parent
+            input_type = node.input_type
+
+        # show info for Record, Selection or AbstractRecord that is in input structure
+        while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']
+               or node.origin != Origin.structure):
+            prev_node = node
+            node = node.parent
+            input_type = node.input_type
+            selected = prev_node.key.value
+        return InfoTextGenerator.get_info_text(input_type, selected=selected)
 
     def __str__(self):
         text = (
@@ -236,15 +273,6 @@ class ScalarNode(DataNode):
             value=self.value
         )
         return text
-
-    @property
-    def info_text(self):
-        """help text describing the input type"""
-        if self.input_type and self.input_type['base_type'] == 'Selection':
-            input_type = self.input_type
-            return InfoTextGenerator.get_info_text(input_type, selected=self.value)
-        else:
-            return super(ScalarNode, self).info_text
 
 
 class TextValue:
@@ -394,3 +422,10 @@ class DataError(Exception):
             title=self.title,
             description=self.description
         )
+
+
+class Origin(Enum):
+    """The origin of data node."""
+    structure = 1
+    ac_array = 2
+    ac_reducible_to_key = 3

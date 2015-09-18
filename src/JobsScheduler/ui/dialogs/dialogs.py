@@ -6,6 +6,8 @@ Basic dialogs templates
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import logging
+
 from data.data_structures import ID
 
 
@@ -38,7 +40,7 @@ class AbstractFormDialog(QtWidgets.QDialog):
     PURPOSE_DELETE = dict(purposeType="PURPOSE_DELETE",
                           objectName="DeleteDialog",
                           windowTitle="Job Scheduler - Delete",
-                          title="delete",
+                          title="Delete",
                           subtitle="This should not happen.")
 
     # Default Copy name prefix
@@ -51,6 +53,7 @@ class AbstractFormDialog(QtWidgets.QDialog):
 
     def accept(self):
         super(AbstractFormDialog, self).accept()
+        logging.info('%s accepted.', self.__class__.__name__)
         self.accepted.emit(self.purpose, self.get_data())
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
@@ -207,6 +210,7 @@ class AbstractPresetsDialog(QtWidgets.QDialog):
             self.presets[key] = list(data[1:])
         else:
             self.presets[data[0]] = list(data[1:])
+        logging.info('%s handled.', self.__class__.__name__)
         self.presets_changed.emit(self.presets)
 
     def _connect_slots(self):

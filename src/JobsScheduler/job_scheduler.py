@@ -34,6 +34,7 @@ class JobsScheduler(object):
                             datefmt='%d.%m.%Y|%H:%M:%S',
                             format='%(asctime)s|%(levelname)s: %(message)s',
                             level=logging.DEBUG)
+        logging.info('==== %s started ====', self.__class__.__name__)
         # qt app setup
         self._app = QtWidgets.QApplication(sys.argv)
         # data container with config handler inserted
