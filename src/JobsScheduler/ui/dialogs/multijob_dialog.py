@@ -6,8 +6,9 @@ Multijob dialog
 """
 
 from PyQt5 import QtCore, QtWidgets
-from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 import logging
+
+from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 
 
 class MultiJobDialog(AbstractFormDialog):
@@ -37,14 +38,16 @@ class MultiJobDialog(AbstractFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
+    def __init__(self, parent=None, purpose=PURPOSE_ADD, resources=None,
+                 data=None):
         super(MultiJobDialog, self).__init__(parent)
         # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
 
-        # set purpose and data
+        # set purpose, data and resources
         self.set_purpose(purpose, data)
+        self.set_resources(resources)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
@@ -55,12 +58,20 @@ class MultiJobDialog(AbstractFormDialog):
                 self.ui.analysisFolderPicker.getExistingDirectory
                 (self, directory=self.ui.analysisLineEdit.text())))
 
+    def set_resources(self, resources):
+        self.ui.resourceComboBox.clear()
+        if resources:
+            # sort dict
+            for idx in sorted(resources, key=resources.get, reverse=False):
+                self.ui.resourceComboBox.addItem(resources[idx][0], idx)
+
     def get_data(self):
         data = (self.ui.idLineEdit.text(),
                 self.ui.nameLineEdit.text(),
                 self.ui.analysisLineEdit.text(),
                 self.ui.descriptionTextEdit.toPlainText(),
-                self.ui.resourceComboBox.currentText(),
+                self.ui.resourceComboBox.itemData(
+                    self.ui.resourceComboBox.currentIndex()),
                 self.ui.logLevelComboBox.currentText(),
                 self.ui.numberOfProcessesSpinBox.value())
         return data
@@ -72,7 +83,7 @@ class MultiJobDialog(AbstractFormDialog):
             self.ui.analysisLineEdit.setText(data[2])
             self.ui.descriptionTextEdit.setText(data[3])
             self.ui.resourceComboBox.setCurrentIndex(
-                self.ui.resourceComboBox.findText(data[4]))
+                self.ui.resourceComboBox.findData(data[4]))
             self.ui.logLevelComboBox.setCurrentIndex(
                 self.ui.logLevelComboBox.findText(data[5]))
             self.ui.numberOfProcessesSpinBox.setValue(data[6])
@@ -81,8 +92,8 @@ class MultiJobDialog(AbstractFormDialog):
             self.ui.nameLineEdit.clear()
             self.ui.analysisLineEdit.clear()
             self.ui.descriptionTextEdit.clear()
-            self.ui.resourceComboBox.setCurrentIndex(-1)
-            self.ui.logLevelComboBox.setCurrentIndex(0)
+            self.ui.resourceComboBox.setCurrentIndex(0)
+            self.ui.logLevelComboBox.setCurrentIndex(1)
             self.ui.numberOfProcessesSpinBox.setValue(
                 self.ui.numberOfProcessesSpinBox.minimum())
 

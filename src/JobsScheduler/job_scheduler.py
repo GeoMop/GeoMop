@@ -41,8 +41,12 @@ class JobsScheduler(object):
         self._data = DataContainer()
         # qt UI
         self._main_window = MainWindow(data=self._data)
+        logging.info('==== %s drawn ====',
+                     self._main_window.__class__.__name__)
         # show UI
         self._main_window.show()
+        logging.info('==== %s shown ====',
+                     self._main_window.__class__.__name__)
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":

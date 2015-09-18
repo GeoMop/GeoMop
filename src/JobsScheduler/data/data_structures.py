@@ -5,9 +5,10 @@ JobScheduler data structures
 @contact: jan.gabriel@tul.cz
 """
 
-import config as cfg
 import logging
 import uuid
+
+import config as cfg
 
 
 class ID(object):
@@ -64,6 +65,7 @@ class DataContainer(object):
 
     def __init__(self):
         self.load_all()
+        self.fill_mock_data()
 
     def __del__(self):
         self.save_all()
@@ -92,3 +94,9 @@ class DataContainer(object):
         if not self.resources_presets:
             self.resources_presets = ResourcesData()
         logging.info('Everything loaded successfully!')
+
+    def fill_mock_data(self):
+        self.resources_presets["klic"] = ["Jmeno", "Data"]
+        self.resources_presets["klic1"] = ["Jmeno1", "Data"]
+        self.resources_presets["klic2"] = ["Zuzan", "Data"]
+        self.resources_presets["klic3"] = ["Altos", "Data"]

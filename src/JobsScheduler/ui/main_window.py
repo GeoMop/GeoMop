@@ -5,7 +5,8 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
+
 from data.data_structures import ID
 from ui.actions.main_window_actions import *
 from ui.menus.main_window_menus import MainWindowMenuBar
@@ -31,8 +32,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setup_ui(self)
 
         # init dialogs
+        self.mj_dlg = MultiJobDialog(self,
+                                     resources=self.data.resources_presets)
+        self.ssh_presets_dlg = SshPresets(self, self.data.ssh_presets)
+        self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
+        self.resource_presets_dlg = PbsPresets(self,
+                                               self.data.resources_presets)
         # multijob dialog
-        self.mj_dlg = MultiJobDialog(self)
         self.ui.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
         self.ui.actionEditMultiJob.triggered.connect(
@@ -44,24 +50,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
         self.multijobs_changed.connect(self.data.multijobs.save)
+        self.pbs_presets_dlg.presets_changed.connect(
+            self.mj_dlg.set_resources)
 
         # ssh presets
-        self.ssh_presets_dlg = SshPresets(self, self.data.ssh_presets)
         self.ui.actionSshPresets.triggered.connect(
             self.ssh_presets_dlg.show)
         self.ssh_presets_dlg.presets_changed.connect(
             self.data.ssh_presets.save)
 
         # pbs presets
-        self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
         self.ui.actionPbsPresets.triggered.connect(
             self.pbs_presets_dlg.show)
         self.pbs_presets_dlg.presets_changed.connect(
             self.data.pbs_presets.save)
 
         # resource presets
-        self.resource_presets_dlg = PbsPresets(self,
-                                               self.data.resources_presets)
         self.ui.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
         self.resource_presets_dlg.presets_changed.connect(
