@@ -13,14 +13,14 @@ GeoMop project organization:
   * :doc:`GeoMop Development Rules (czech) <organization/rules>`	
 	
 GeoMob Modules code documentation
-=========================
+=================================
 
 * `Model Editor <indexME.html>`_
 * `Layer Editor <indexLE.html>`_
 * `Jobs Scheduler <indexJS.html>`_
 
-GeoMob Lib code documentation
-=========================
+GeoMob Common code documentation
+================================
 
 .. toctree::
    :maxdepth: 3

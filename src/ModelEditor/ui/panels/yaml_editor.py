@@ -504,7 +504,7 @@ class EditorPosition:
         if self._new_array_item and editor.lines() > line:
             pre_line = editor.text(self.line - 1)
             new_line = editor.text(self.line)
-            if not analyzer.ChangeAnalyzer.indent_changed(new_line + 'x', pre_line):
+            if not analyzer.LineAnalyzer.indent_changed(new_line + 'x', pre_line):
                 arr_index = pre_line.find("- ")
                 if self.index == len(new_line) and self.index == arr_index:
                     editor.insertAt("- ", line, index)
@@ -580,14 +580,16 @@ class EditorPosition:
         if (self._last_line_after is not None and
                 editor.lines() > self.line and
                 self._last_line_after != editor.text(self.line + 1)):
-            return False
+             if not ((self._last_line_after.isspace() or len(self._last_line_after)>0) and
+                (editor.text(self.line + 1) or len(editor.text(self.line + 1))>0)):
+                return False
         new_line = editor.text(self.line)
         # if indentation change
-        if analyzer.ChangeAnalyzer.indent_changed(new_line, self._old_text[self.line]):
+        if analyzer.LineAnalyzer.indent_changed(new_line, self._old_text[self.line]):
             return False
         # line unchanged
-        new_line_un = analyzer.ChangeAnalyzer.uncomment(new_line)
-        old_line_un = analyzer.ChangeAnalyzer.uncomment(self._old_text[self.line])
+        new_line_un = analyzer.LineAnalyzer.uncomment(new_line)
+        old_line_un = analyzer.LineAnalyzer.uncomment(self._old_text[self.line])
         if (new_line == self._old_text[self.line] or
                 old_line_un == new_line_un):
             if self.begin_line == self.end_line:
@@ -606,19 +608,7 @@ class EditorPosition:
             return True
         # find change area
         self.is_changed = True
-        end_pos = 1
-        before_pos = 0
-        if len(self._last_line) != 0 and len(new_line) != 0:
-            while new_line[before_pos] == self._last_line[before_pos]:
-                before_pos += 1
-                if (len(new_line) == before_pos or
-                        len(self._last_line) == before_pos):
-                    break
-            while new_line[-end_pos] == self._last_line[-end_pos]:
-                end_pos += 1
-                if (len(new_line) == end_pos or
-                        len(self._last_line) == end_pos):
-                    break
+        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(new_line, self._last_line)
         # changes outside bounds
         if (self.begin_line == self.line and
                 before_pos < self.begin_index):
@@ -664,6 +654,12 @@ class EditorPosition:
             else:
                 if anal. is_base_struct(new_line):
                     return False
+        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(new_line, self._old_text[self.line])
+        if self.node is not None and self.node.is_jsonchild_on_line(self.line+1):
+            if anal.is_basejson_struct(new_line[before_pos:len(new_line)-end_pos+1]):
+                return False
+        if anal.is_fulljson_struct(new_line[before_pos:len(new_line)-end_pos+1]):
+            return False
         return True
 
     def _reload_autocompletation(self, editor):

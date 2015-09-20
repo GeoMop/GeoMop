@@ -241,7 +241,7 @@ class Transformator:
             l2 = nl2
             c2 = nc2
         # try add comments
-        l1, c1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
+        # l1, c1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
         # one line
         if l1 == l2:
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l1])
