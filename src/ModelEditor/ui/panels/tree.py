@@ -32,6 +32,8 @@ class TreeWidget(QtWidgets.QTreeView):
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
         self._item_states = {}
+        self.setRootIsDecorated(True)
+        self.setIndentation(10)
         stylesheet = util.load_stylesheet('tree')
         self.setStyleSheet(stylesheet)
 

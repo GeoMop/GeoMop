@@ -50,19 +50,18 @@ class PbsDialog(AbstractFormDialog):
         # specific slots
 
     def get_data(self):
-        data = list()
-        data.append(self.ui.idLineEdit.text())
-        data.append(self.ui.nameLineEdit.text())
-        data.append(self.ui.walltimeLineEdit.text() + ", " +
-                    str(self.ui.nodesSpinBox.value()) + ", " +
-                    str(self.ui.ppnSpinBox.value()) + ", " +
-                    self.ui.memoryLineEdit.text() + ", " +
-                    self.ui.scratchLineEdit.text())
-        data.append(self.ui.walltimeLineEdit.text())
-        data.append(self.ui.nodesSpinBox.value())
-        data.append(self.ui.ppnSpinBox.value())
-        data.append(self.ui.memoryLineEdit.text())
-        data.append(self.ui.scratchLineEdit.text())
+        data = (self.ui.idLineEdit.text(),
+                self.ui.nameLineEdit.text(),
+                (self.ui.walltimeLineEdit.text() + ", " +  # description
+                 str(self.ui.nodesSpinBox.value()) + ", " +
+                 str(self.ui.ppnSpinBox.value()) + ", " +
+                 self.ui.memoryLineEdit.text() + ", " +
+                 self.ui.scratchLineEdit.text()),
+                self.ui.walltimeLineEdit.text(),
+                self.ui.nodesSpinBox.value(),
+                self.ui.ppnSpinBox.value(),
+                self.ui.memoryLineEdit.text(),
+                self.ui.scratchLineEdit.text())
         return data
 
     def set_data(self, data=None):

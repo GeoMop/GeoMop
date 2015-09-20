@@ -111,6 +111,7 @@ def _expand_value_to_array(node, dim):
             array_node.input_type = node.input_type
             node.input_type = array_node.input_type['subtype']
         array_node.children.append(node)
+        array_node.origin = dn.Origin.ac_array
         node = array_node
         dim -= 1
     return node
@@ -136,6 +137,7 @@ def _expand_reducible_to_key(node, input_type):
     record_node = dn.CompositeNode(True, node.key, node.parent)
     record_node.span = node.span
     node.parent = record_node
+    node.origin = dn.Origin.ac_reducible_to_key
     node.key = dn.TextValue(key)
     if node.input_type is not None:
         record_node.input_type = node.input_type

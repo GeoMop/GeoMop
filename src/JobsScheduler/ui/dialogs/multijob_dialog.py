@@ -6,6 +6,8 @@ Multijob dialog
 """
 
 from PyQt5 import QtCore, QtWidgets
+import logging
+
 from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
 
 
@@ -36,29 +38,42 @@ class MultiJobDialog(AbstractFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
+    def __init__(self, parent=None, purpose=PURPOSE_ADD, resources=None,
+                 data=None):
         super(MultiJobDialog, self).__init__(parent)
+        # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
+
+        # set purpose, data and resources
         self.set_purpose(purpose, data)
+        self.set_resources(resources)
 
         # connect slots
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+        # connect generic presets slots (must be called after UI setup)
+        super(MultiJobDialog, self)._connect_slots()
+        # specific slots
         self.ui.analysisPushButton.clicked.connect(
             lambda: self.ui.analysisLineEdit.setText(
                 self.ui.analysisFolderPicker.getExistingDirectory
                 (self, directory=self.ui.analysisLineEdit.text())))
 
+    def set_resources(self, resources):
+        self.ui.resourceComboBox.clear()
+        if resources:
+            # sort dict
+            for idx in sorted(resources, key=resources.get, reverse=False):
+                self.ui.resourceComboBox.addItem(resources[idx][0], idx)
+
     def get_data(self):
-        data = list()
-        data.append(self.ui.idLineEdit.text())
-        data.append(self.ui.nameLineEdit.text())
-        data.append(self.ui.analysisLineEdit.text())
-        data.append(self.ui.descriptionTextEdit.toPlainText())
-        data.append(self.ui.resourceComboBox.currentText())
-        data.append(self.ui.logLevelComboBox.currentText())
-        data.append(self.ui.numberOfProcessesSpinBox.value())
+        data = (self.ui.idLineEdit.text(),
+                self.ui.nameLineEdit.text(),
+                self.ui.analysisLineEdit.text(),
+                self.ui.descriptionTextEdit.toPlainText(),
+                self.ui.resourceComboBox.itemData(
+                    self.ui.resourceComboBox.currentIndex()),
+                self.ui.logLevelComboBox.currentText(),
+                self.ui.numberOfProcessesSpinBox.value())
         return data
 
     def set_data(self, data=None):
@@ -68,7 +83,7 @@ class MultiJobDialog(AbstractFormDialog):
             self.ui.analysisLineEdit.setText(data[2])
             self.ui.descriptionTextEdit.setText(data[3])
             self.ui.resourceComboBox.setCurrentIndex(
-                self.ui.resourceComboBox.findText(data[4]))
+                self.ui.resourceComboBox.findData(data[4]))
             self.ui.logLevelComboBox.setCurrentIndex(
                 self.ui.logLevelComboBox.findText(data[5]))
             self.ui.numberOfProcessesSpinBox.setValue(data[6])
@@ -77,8 +92,8 @@ class MultiJobDialog(AbstractFormDialog):
             self.ui.nameLineEdit.clear()
             self.ui.analysisLineEdit.clear()
             self.ui.descriptionTextEdit.clear()
-            self.ui.resourceComboBox.setCurrentIndex(-1)
-            self.ui.logLevelComboBox.setCurrentIndex(0)
+            self.ui.resourceComboBox.setCurrentIndex(0)
+            self.ui.logLevelComboBox.setCurrentIndex(1)
             self.ui.numberOfProcessesSpinBox.setValue(
                 self.ui.numberOfProcessesSpinBox.minimum())
 
@@ -188,21 +203,18 @@ class UiMultiJobDialog(UiFormDialog):
         self.logLevelComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.logLevelComboBox.setObjectName("logLevelComboBox")
-        """
-        Python Logging module levels
-            CRITICAL    50
-            ERROR       40
-            WARNING     30
-            INFO        20
-            DEBUG       10
-            NOTSET      0
-        """
-        self.logLevelComboBox.addItem("NOTSET", "0")
-        self.logLevelComboBox.addItem("DEBUG", "10")
-        self.logLevelComboBox.addItem("INFO", "20")
-        self.logLevelComboBox.addItem("WARNING", "30")
-        self.logLevelComboBox.addItem("ERROR", "40")
-        self.logLevelComboBox.addItem("CRITICAL", "50")
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.NOTSET),
+                                      logging.NOTSET)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.DEBUG),
+                                      logging.DEBUG)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.INFO),
+                                      logging.INFO)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.WARNING),
+                                      logging.WARNING)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.ERROR),
+                                      logging.ERROR)
+        self.logLevelComboBox.addItem(logging.getLevelName(logging.CRITICAL),
+                                      logging.CRITICAL)
         self.logLevelComboBox.setCurrentIndex(0)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.logLevelComboBox)

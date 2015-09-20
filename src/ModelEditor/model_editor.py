@@ -81,6 +81,7 @@ class ModelEditor:
         self._editor.cursorChanged.connect(self._cursor_changed)
         self._editor.structureChanged.connect(self._structure_changed)
         self._editor.errorMarginClicked.connect(self._error_margin_clicked)
+        self._editor.elementChanged.connect(self._on_element_changed)
 
         # show
         self._mainwindow.show()
@@ -134,8 +135,16 @@ class ModelEditor:
         node = cfg.get_data_node(Position(line, index))
         self._editor.set_new_node(node)
         if node is not None:
-            self._info.setHtml(node.info_text)
+            cursor_type = self._editor.cursor_type_position
+            self._info.update_from_node(node, cursor_type)
         self._debug_tab.show_data_node(node)
+
+    def _on_element_changed(self, new_cursor_type, old_cursor_type):
+        """Updates info_text if cursor_type has changed."""
+        line, index = self._editor.getCursorPosition()
+        node = cfg.get_data_node(Position(line + 1, index + 1))
+        if node is not None:
+            self._info.update_from_node(node, new_cursor_type)
 
     def new_file(self):
         """new file menu action"""

@@ -180,11 +180,11 @@ class YamlEditorWidget(QsciScintilla):
         self._reload_margin()
 
     def get_curr_element_type(self):
-        return self._pos.cursore_type_position.value
+        return self._pos.cursor_type_position.value
 
     def _cursor_position_changed(self, line, index):
         """Function for cursorPositionChanged signal"""
-        old_cursore_type_position = self._pos.cursore_type_position
+        old_cursor_type_position = self._pos.cursor_type_position
         if self._pos.new_pos(self, line, index):
             if self._pos.is_changed:
                 self.structureChanged.emit(line + 1, index + 1)
@@ -192,11 +192,16 @@ class YamlEditorWidget(QsciScintilla):
                 self.nodeChanged.emit(line + 1, index + 1)
         else:
             self._pos.make_post_operation(self, line, index)
-            if old_cursore_type_position != self._pos.cursore_type_position and \
-                old_cursore_type_position is not None:
-                    self.elementChanged.emit(self._pos.cursore_type_position.value,
-                                         old_cursore_type_position.value)               
+            if old_cursor_type_position != self._pos.cursor_type_position and \
+                    old_cursor_type_position is not None:
+                self.elementChanged.emit(self._pos.cursor_type_position.value,
+                                         old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
+
+    @property
+    def cursor_type_position(self):
+        """Returns cursor type of current position."""
+        return self._pos.cursor_type_position.value
 
     def _text_changed(self):
         """Function for textChanged signal"""
@@ -488,7 +493,7 @@ class EditorPosition:
         """make special char operation"""
         self.fatal = False
         """fatal error node"""
-        self.cursore_type_position = None
+        self.cursor_type_position = None
         """Type of yaml structure below cursor"""
 
     def new_array_line_completation(self, editor):
@@ -542,13 +547,13 @@ class EditorPosition:
                 (line == self.begin_line and self.begin_index > index) or
                 (line == self.end_line and self.end_index < index)):
 
-            # set cursore_type_position
+            # set cursor_type_position
             anal = self._init_analyzer(editor, line, index)
             pos_type = anal.get_pos_type()
             key_type = None
             if pos_type is analyzer.PosType.in_key:
                 key_type = anal.get_key_pos_type()
-            self.cursore_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
+            self.cursor_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
 
             # value or key changed and cursor is in opposite
             if pos_type is analyzer.PosType.in_key:
@@ -704,7 +709,7 @@ class EditorPosition:
         key_type = None
         if pos_type is analyzer.PosType.in_key:
             key_type = anal.get_key_pos_type()
-        self.cursore_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
+        self.cursor_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

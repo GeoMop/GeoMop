@@ -15,14 +15,14 @@ class MultiJobOverview(QtWidgets.QTreeWidget):
         self.setHeaderLabels(["Id", "Name", "Insert Time", "Run Time",
                               "Run Interval", "Status"])
         self.setColumnHidden(0, True)
+        self.setSortingEnabled(True)
 
     def reload_view(self, data):
-        # clear data
         self.clear()
         if data:
-        # populate with data
-            for row_id, row in enumerate(data):
-                QtWidgets.QTreeWidgetItem(self)
-                for col_id, item in enumerate(row):
-                    self.topLevelItem(row_id).setText(col_id, str(item))
+            for key in data:
+                row = QtWidgets.QTreeWidgetItem(self)
+                row.setText(0, str(key))
+                for col_id, item in enumerate(data[key][0:2]):
+                    row.setText(col_id + 1, str(item))
 
