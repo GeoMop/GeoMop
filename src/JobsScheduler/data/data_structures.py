@@ -30,8 +30,10 @@ class PersistentDict(dict):
         cfg.save_config_file(self.NAME, dict(self.items()), self.DIR)
         logging.info('%s saved successfully.', self.__class__.__name__)
 
-    def load(self):
+    def load(self, clear=True):
         tmp = cfg.get_config_file(self.NAME, self.DIR)
+        if clear:
+            self.clear()
         if tmp:
             self.update(tmp.items())
         logging.info('%s loaded successfully.', self.__class__.__name__)
