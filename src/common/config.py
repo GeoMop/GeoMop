@@ -3,6 +3,7 @@ Library for work with state of GeoMops applications
 """
 
 import os
+
 import yaml
 
 if 'APPDATA' in os.environ:
@@ -17,14 +18,14 @@ except:
     raise Exception('Cannot create config directory')
 
 
-def get_config_file(name, dir=None):
+def get_config_file(name, directory=None):
     """
     Get config object from file Name.cfg in config directory
 
     return: Config object or None (if file not exist)
     """
-    if dir is not None:
-        directory = os.path.join(__config_dir__, dir)
+    if directory is not None:
+        directory = os.path.join(__config_dir__, directory)
         if not os.path.isdir(directory):
             return None
     else:
@@ -39,15 +40,15 @@ def get_config_file(name, dir=None):
     return config
 
 
-def save_config_file(name, config, dir=None):
+def save_config_file(name, config, directory=None):
     """Save config object to file Name.cfg in config directory"""
-    if dir is not None:
-        directory = os.path.join(__config_dir__, dir)
+    if directory is not None:
+        directory = os.path.join(__config_dir__, directory)
         try:
             if not os.path.isdir(directory):
                 os.makedirs(directory)
         except:
-            raise Exception('Cannot create config directory: ' + dir)
+            raise Exception('Cannot create config directory: ' + directory)
     else:
         directory = __config_dir__
     file_name = os.path.join(directory, name+'.yaml')
@@ -56,12 +57,12 @@ def save_config_file(name, config, dir=None):
     yaml_file.close()
 
 
-def delete_config_file(name, dir=None):
+def delete_config_file(name, directory=None):
     """
     Delete config file Name.cfg from config directory
      """
-    if dir is not None:
-        directory = os.path.join(__config_dir__, dir)
+    if directory is not None:
+        directory = os.path.join(__config_dir__, directory)
         if not os.path.isdir(directory):
             return
     else:
