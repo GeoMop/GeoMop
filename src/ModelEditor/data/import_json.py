@@ -6,7 +6,7 @@ This file contains the parsing functions for configuration files of Flow123d.
 Currently supports .con format (as specified by Flow123d manual v1.8.2).
 """
 import yaml
-import json
+import demjson
 import re
 import data.data_node as dn
 from enum import Enum
@@ -37,8 +37,7 @@ def _decode_con(con):
     """Reads .con format and returns read data in form of dicts and lists."""
     pattern = re.compile(r"\s?=\s?")
     con = pattern.sub(':', con)
-    js = json.JSONDecoder(strict=False)
-    return js.decode(con)
+    return demjson.decode(con)
 
 
 def fix_tags(yaml, root):

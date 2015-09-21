@@ -7,6 +7,7 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 import data.data_node as dn
 import helpers.subyaml as analyzer
+from helpers.subyaml_types import PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
 from data.data_node import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
@@ -551,22 +552,22 @@ class EditorPosition:
             anal = self._init_analyzer(editor, line, index)
             pos_type = anal.get_pos_type()
             key_type = None
-            if pos_type is analyzer.PosType.in_key:
+            if pos_type is PosType.in_key:
                 key_type = anal.get_key_pos_type()
-            self.cursor_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
+            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
 
             # value or key changed and cursor is in opposite
-            if pos_type is analyzer.PosType.in_key:
+            if pos_type is PosType.in_key:
                 if self.is_value_changed:
                     return True
                 if self.last_key_type is not None:
                     new_key_type = anal.get_key_pos_type()
                     if new_key_type != self.last_key_type:
                         return True
-            if pos_type is analyzer.PosType.in_value:
+            if pos_type is PosType.in_value:
                 if self.is_key_changed or self.last_key_type is not None:
                     return True
-            if pos_type is analyzer.PosType.in_inner and self.node is not None:
+            if pos_type is PosType.in_inner and self.node is not None:
                 if  self.node.is_child_on_line(line+1):
                     return True
             return False
@@ -635,7 +636,7 @@ class EditorPosition:
         anal = self._init_analyzer(editor, line, index)
         # value or key changed and cursor is in opposite
         pos_type = anal.get_pos_type()
-        if pos_type is analyzer.PosType.in_key:
+        if pos_type is PosType.in_key:
             self.is_key_changed = True
             if self.is_value_changed:
                 return False
@@ -645,14 +646,14 @@ class EditorPosition:
             elif self.last_key_type != new_key_type:
                 return False
         # evaluate value changes
-        if pos_type is analyzer.PosType.in_value:
+        if pos_type is PosType.in_value:
             added_text =  new_line[before_pos:len(new_line)-end_pos+1]
             if not added_text.isspace() and added_text not in ['&', '*', '!']:
                 self.is_value_changed = True
             if self.is_key_changed:
                 return False
         if  self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0:
-            if pos_type is analyzer.PosType.in_key:
+            if pos_type is PosType.in_key:
                 # if added text is space, reload
                 if new_line[before_pos:len(new_line)-end_pos+1].isspace():
                     return False
@@ -707,9 +708,9 @@ class EditorPosition:
         anal = self._init_analyzer(editor, self.line, self.index)
         pos_type = anal.get_pos_type()
         key_type = None
-        if pos_type is analyzer.PosType.in_key:
+        if pos_type is PosType.in_key:
             key_type = anal.get_key_pos_type()
-        self.cursor_type_position = analyzer.CursorType.get_cursor_type(pos_type, key_type)
+        self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""
