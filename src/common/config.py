@@ -8,7 +8,7 @@ import yaml
 if 'APPDATA' in os.environ:
     __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
 else:
-    __config_dir__ = os.path.join(os.environ['HOME'], '.GeoMop')
+    __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
 
 try:
     if not os.path.isdir(__config_dir__):

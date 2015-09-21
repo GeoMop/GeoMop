@@ -32,6 +32,8 @@ while not installed:
     action = mess.action_type
     if mess.action_type != tdata.ActionType.installation_in_process:
         installed = True
+    if __name__ == "test_app":
+        break
 
 action = tdata.Action(tdata.ActionType.stop)
 message = action.get_message()

@@ -17,6 +17,7 @@ import PyQt5.QtWidgets as QtWidgets
 from data.error_handler import ErrorHandler
 import data.autoconversion as ac
 from ist import InfoTextGenerator
+from helpers.subyaml import StructureAnalyzer
 
 __format_dir__ = os.path.join(
     os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "format")
@@ -344,7 +345,9 @@ class MEConfig:
             return
         cls.root = ac.autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
+        StructureAnalyzer.add_node_info(cls.document, cls.root, cls.error_handler)
         cls.errors = cls.error_handler.errors
+        
 
     @classmethod
     def update_format(cls):

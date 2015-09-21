@@ -2,6 +2,7 @@
 from enum import Enum
 import re
 import copy
+from helpers.subyaml.line_analyzer import LineAnalyzer
 
 class ChangeAnalyzer:
     """
@@ -20,16 +21,6 @@ class ChangeAnalyzer:
         if len(self._area[self._line]) <= self._index:
             self._index = len(self._area[self._line]) - 1
 
-    @staticmethod
-    def get_char_poss(line, tag):
-        """Return possition of tag ended by space or new line"""
-        index = line.find(tag + " ")
-        if index == -1:
-            index = line.find(tag)
-            if index > -1 and len(line) != (index+1):
-                return -1
-        return index
-
     def get_pos_type(self):
         """return line type enum value"""
         is_key = False
@@ -38,15 +29,15 @@ class ChangeAnalyzer:
         i = 0
         while i < len(self._area):
             # key
-            index = self.get_char_poss(self._area[i], ":")
+            index = LineAnalyzer.get_char_poss(self._area[i], ":")
             if not is_key:
                 if index > -1:
                     nline, nindex = self._get_key_area(i)
-                    if self._line < nline or (self._line == nline and self._index <= nindex):
+                    if self._line < nline or (self._line == nline and self._index < nindex):
                         return PosType.in_key
                     i = nline
                 is_key = True
-                if self.get_char_poss(self._area[i][index+1:], ":") > -1:
+                if LineAnalyzer.get_char_poss(self._area[i][index+1:], ":") > -1:
                     inner = True
             else:
                 if index > -1:
@@ -109,7 +100,7 @@ class ChangeAnalyzer:
     def _get_key_area(self, line):
         """get new line and index for init object"""
         i = line
-        is_dist, dist = self.get_key_area(self._area[i])
+        is_dist, dist =  LineAnalyzer.get_key_area(self._area[i])
         if not is_dist:
             return line, 0
         if dist != -1:
@@ -121,7 +112,7 @@ class ChangeAnalyzer:
                 if space_after is not None:
                     return i-1, space_after.end(1)-1
                 return i, 0
-            is_dist, dist = self.get_key_area(self._area[i])
+            is_dist, dist =  LineAnalyzer.get_after_key_area(self._area[i])
             if is_dist:
                 if dist != -1:
                     return i, dist-1
@@ -139,7 +130,7 @@ class ChangeAnalyzer:
 
         next_line = False
         while i <= self._line:
-            line = self.uncomment(self._area[i])
+            line =  LineAnalyzer.uncomment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
             if key is not None:
                 if self._line == i:
@@ -159,7 +150,7 @@ class ChangeAnalyzer:
                 i += 1
                 if i > self._line:
                     return type_
-                line = self.uncomment(self._area[i])
+                line =  LineAnalyzer.uncomment(self._area[i])
                 if line.isspace() or len(line) == 0:
                     continue
                 dist = 0
@@ -200,59 +191,42 @@ class ChangeAnalyzer:
         else:
             return KeyType.key
 
-    @classmethod
-    def get_key_area(cls, line):
+    @staticmethod
+    def is_basejson_struct(add):
         """
-        get key area for one line
-
-        return if is, end_of_area (-1 end of line)
+        Return if is in line json base structure for evaluation
+        
+        If line has new json structure added in json node, reload is needed
         """
-        key = re.match(r'[^:]+:\s*$', line)
-        if key is not None:
-            return True, -1
-        key = re.match(r'([^:]+:\s)', line)
-        if key is not None:
-            dist = key.end(1)
-            res, dist2 = cls.get_after_key_area(line[dist:])
-            if not res:
-                return True, dist
-            if dist2 == -1:
-                return True, -1
-            return True, dist + dist2
-        return False, 0
-
-    @classmethod
-    def get_after_key_area(cls, line):
+        patterns = [
+            r'\s*\S+,\s*',
+            r'\s*,\S+\s*'
+        ]
+        for pat in patterns:
+            area = re.search(pat, add)
+            if area is not None:
+                return True
+        return False
+        
+    @staticmethod
+    def is_fulljson_struct(add):
         """
-        Test if line begin with special areas (tag, ref, anchor)
-
-        return if is, end_of_arrea (-1 end of line)
+        Return if is in line json base structure for evaluation
+        
+        If line has new json structure, reload is needed
         """
-        line = cls.uncomment(line)
-        area = re.match(r'\s*$', line)
-        if area is not None:
-            # empty line
-            return True, -1
-        for char in ['!', '&', '<<: \*', '\*']:
-            index = line.find(char)
-            if index > -1:
-                area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
-                if area is not None:
-                    # area is all line
-                    return True, -1
-                area = re.match(r'\s*(' + char + r'\S+\s+)\S', line)
-                if area is not None:
-                    dist = area.end(1)
-                    res, dist2 = cls.get_after_key_area(line[dist:])
-                    if not res:
-                        return True, dist
-                    if dist2 == -1:
-                        return True, -1
-                    return True, dist + dist2
-        return False, 0
-
-    @classmethod
-    def is_base_struct(cls, line):
+        patterns = [
+            r'\[.+\]',
+            r'\{.+\}'
+        ]
+        for pat in patterns:
+            area = re.search(pat, add)
+            if area is not None:
+                return True
+        return False
+    
+    @staticmethod
+    def is_base_struct(line):
         """
         Return if is in line base structure for evaluation
         
@@ -269,36 +243,12 @@ class ChangeAnalyzer:
             r'.*\S+\s*\}'
             r'.*\S+\s*\]'
         ]
-        line =  cls.uncomment(line)
+        line =  LineAnalyzer.uncomment(line)
         for pat in patterns:
             area = re.match(pat, line)
             if area is not None:
                 return True
         return False
-
-
-    @staticmethod
-    def uncomment(line):
-        """return line witout comments"""
-        comment = re.search(r'^(.*\S)\s*#.*$', line)
-        if comment:
-            return comment.group(1)
-        else:
-            return line
-
-    @staticmethod
-    def indent_changed(new_row, old_row):
-        """compare intendation two rows"""
-        if old_row.isspace() or len(old_row) == 0:
-            return False
-        old_value = re.search(r'^\s*\S', old_row)
-        new_value = re.search(r'^\s*\S', new_row)
-        if not old_value and not new_value:
-            return False
-        if not old_value or not new_value:
-            return True
-        return not len(old_value.group(0)) == len(new_value.group(0))
-
 
 class PosType(Enum):
     comment = 1
@@ -313,7 +263,6 @@ class KeyType(Enum):
     ref = 3
     ref_a = 4
     anch = 5
-
 
 class CursorType(Enum):
     key = 1

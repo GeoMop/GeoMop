@@ -156,6 +156,13 @@ class ErrorHandler:
         error = dn.DataError(category, severity, description, node.span, node)
         self._errors.append(error)
 
+    def report_multiline_flow(self, node):
+        """Reports scalar node construction error."""
+        category = dn.DataError.Category.yaml
+        severity = dn.DataError.Severity.info
+        description = "Multiline flow style usage is not recommended."
+        error = dn.DataError(category, severity, description, node.span, node)
+        self._errors.append(error)
 
 def get_validation_error_span(node, error):
     """Determines the correct position of a validation error."""

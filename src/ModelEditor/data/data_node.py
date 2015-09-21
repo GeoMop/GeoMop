@@ -36,6 +36,10 @@ class DataNode:
         """borders the position of this node in input text"""
         self.anchor = None
         """anchor of the node `TextValue`"""
+        self.is_flow = False
+        """outer structure of the node is in flow format"""
+        self.delimiters = None
+        """Outer border of node, span start point to first delimiter and to second"""
         self.origin = Origin.structure
         """indicates how node was created"""
         self._options = []
@@ -81,6 +85,12 @@ class DataNode:
         Return if in set line is some child
         """
         return False
+        
+    def is_jsonchild_on_line(self, line):
+        """
+        Return if in set line is some json child
+        """
+        return self.is_flow
 
     def get_node_at_path(self, path):
         """returns node at given path"""
@@ -246,6 +256,17 @@ class CompositeNode(DataNode):
         for child in self.children:
             if child.start.line <= line and child.end.line >= line:
                 return True
+        return False
+        
+    def is_jsonchild_on_line(self, line):
+        """
+        Return if in set line is some json child
+        """
+        for child in self.children:
+            if child.start.line <= line and child.end.line >= line:
+                if child.is_flow:
+                    return True
+                return child.is_jsonchild_on_line(line)
         return False
 
     @property
