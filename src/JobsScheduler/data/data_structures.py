@@ -69,15 +69,12 @@ class DataContainer(object):
         self.load_all()
         self.fill_mock_data()
 
-    def __del__(self):
-        self.save_all()
-
     def save_all(self):
         self.multijobs.save()
         self.ssh_presets.save()
         self.pbs_presets.save()
         self.resources_presets.save()
-        logging.info('Everything saved successfully!')
+        logging.info('==== Everything saved successfully! ====')
 
     def load_all(self):
         self.multijobs.load()
@@ -95,7 +92,7 @@ class DataContainer(object):
         self.resources_presets.load()
         if not self.resources_presets:
             self.resources_presets = ResourcesData()
-        logging.info('Everything loaded successfully!')
+        logging.info('==== Everything loaded successfully! ====')
 
     def fill_mock_data(self):
         self.resources_presets["klic"] = ["Jmeno", "Data"]
