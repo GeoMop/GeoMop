@@ -1,6 +1,7 @@
 from enum import Enum
 from helpers.subyaml.line_analyzer import LineAnalyzer
-from data.data_node import Position, CompositeNode
+from data import Position, CompositeNode
+
 
 class NodeAnalyzer:
     """

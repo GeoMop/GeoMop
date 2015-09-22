@@ -1,0 +1,23 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    # Unexpected (and ignored) tag triggers 901.
+    input_fields: !InputFields
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        # Invalid tag triggers 310.
+        format: !test
+        file: dual_por.pvd
+        time_step: 0.5
+    # Missing tag triggers 310.
+    solver: #!Petsc
+      a_tol: 1.0e-07
+    
+  

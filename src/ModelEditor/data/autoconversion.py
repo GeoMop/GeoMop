@@ -7,7 +7,9 @@ Ensures auto-conversion of data for specified format.
 __author__ = 'Tomas Krizek'
 
 from copy import deepcopy
-from data import data_node as dn
+
+from .data_node import CompositeNode, NodeOrigin
+from .util import TextValue
 
 
 def autoconvert(node, input_type):
@@ -45,7 +47,7 @@ def _autoconvert_crawl(node, input_type):
                 return
         _autoconvert_crawl(node, it_concrete)
     elif input_type['base_type'] == 'Array':
-        if not isinstance(node, dn.CompositeNode):
+        if not isinstance(node, CompositeNode):
             return
         children = list(node.children)
         node.children.clear()
@@ -54,7 +56,7 @@ def _autoconvert_crawl(node, input_type):
             node.set_child(ac_child)
             _autoconvert_crawl(ac_child, input_type['subtype'])
     elif input_type['base_type'] == 'Record':
-        if not isinstance(node, dn.CompositeNode):
+        if not isinstance(node, CompositeNode):
             return
         children = list(node.children)
         node.children.clear()
@@ -80,8 +82,8 @@ def _get_autoconverted(node, input_type):
     """
     if input_type is None:
         return node
-    is_array = isinstance(node, dn.CompositeNode) and not node.explicit_keys
-    is_record = isinstance(node, dn.CompositeNode) and node.explicit_keys
+    is_array = isinstance(node, CompositeNode) and not node.explicit_keys
+    is_record = isinstance(node, CompositeNode) and node.explicit_keys
     if input_type['base_type'] == 'Array' and not is_array:
         dim = _get_expected_array_dimension(input_type)
         return _expand_value_to_array(node, dim)
@@ -103,15 +105,15 @@ def _get_expected_array_dimension(input_type):
 def _expand_value_to_array(node, dim):
     """Expands node value to specified dimension."""
     while dim > 0:
-        array_node = dn.CompositeNode(False, node.key, node.parent)
+        array_node = CompositeNode(False, node.key, node.parent)
         array_node.span = node.span
         node.parent = array_node
-        node.key = dn.TextValue('0')
+        node.key = TextValue('0')
         if node.input_type is not None:
             array_node.input_type = node.input_type
             node.input_type = array_node.input_type['subtype']
         array_node.children.append(node)
-        array_node.origin = dn.Origin.ac_array
+        array_node.origin = NodeOrigin.ac_array
         node = array_node
         dim -= 1
     return node
@@ -134,11 +136,11 @@ def _expand_reducible_to_key(node, input_type):
     if key is None:
         return node
 
-    record_node = dn.CompositeNode(True, node.key, node.parent)
+    record_node = CompositeNode(True, node.key, node.parent)
     record_node.span = node.span
     node.parent = record_node
-    node.origin = dn.Origin.ac_reducible_to_key
-    node.key = dn.TextValue(key)
+    node.origin = NodeOrigin.ac_reducible_to_key
+    node.key = TextValue(key)
     if node.input_type is not None:
         record_node.input_type = node.input_type
         node.input_type = child_input_type['keys'][key]['type']

@@ -4,4 +4,6 @@ Module for YAML parsing.
 
 __author__ = 'Tomas Krizek'
 
-from data.yaml.loader import Loader
+from .loader import Loader
+from .transformator import Transformator, TransformationFileFormatError
+

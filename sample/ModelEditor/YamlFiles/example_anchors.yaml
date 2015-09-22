@@ -1,0 +1,21 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: &file input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+          # Referencing a non-existent anchor triggers 501.
+        - *input_field0
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        # Re-using an existing anchor is possible, but it
+        # triggers 902. *file now points to a new value.
+        file: &file dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07

@@ -1,0 +1,22 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07
+    # In theory, YAML allows complex record keys.
+    # For this editor, keys always have to be scalar values.
+    # Using a Record or an Array as a key will trigger
+    # error 102.
+    {description: 2}: Text

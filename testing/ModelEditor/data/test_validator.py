@@ -8,11 +8,11 @@ Tests for validator
 from data.validation.validator import Validator
 import data.data_node as dn
 from data.yaml import Loader
-from data.error_handler import ErrorHandler
+from helpers import NotificationHandler
 
 
 def test_validator():
-    error_handler = ErrorHandler()
+    error_handler = NotificationHandler()
     loader = Loader(error_handler)
     validator = Validator(error_handler)
 
@@ -65,7 +65,7 @@ def test_validator():
     error_handler.clear()
     node.value = 4
     assert validator.validate(node, it_int) is False
-    assert len(error_handler.errors) == 1
+    assert len(error_handler.notifications) == 1
 
     # validate record
     document = (
@@ -82,7 +82,7 @@ def test_validator():
         "e: 4")
     node = loader.load(document)
     assert validator.validate(node, it_record) is True
-    assert len(error_handler.errors) == 1
+    assert len(error_handler.notifications) == 1
 
     # test array
     document = "[0, 1, 1, 2]"
@@ -93,7 +93,7 @@ def test_validator():
     document = "[0, 1, 1, 2, -1, 5]"
     node = loader.load(document)
     assert validator.validate(node, it_array) is False
-    assert len(error_handler.errors) == 3
+    assert len(error_handler.notifications) == 3
 
     # validate abstract
     document = (
@@ -143,7 +143,7 @@ def test_validator():
         "b: r")
     node = loader.load(document)
     assert validator.validate(node, it_abstract) is False
-    assert len(error_handler.errors) == 4
+    assert len(error_handler.notifications) == 4
 
 if __name__ == '__main__':
     test_validator()

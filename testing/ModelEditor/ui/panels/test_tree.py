@@ -9,17 +9,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtTest import QTest
 import mock_config as mockcfg
 
-app = QApplication(sys.argv)
-app_not_init = pytest.mark.skipif( not (type(app).__name__=="QApplication"),
-    reason="App not inicialized")
 signal_is_send = None
 x=None
 
-def test_loadApp():
-    #test inicializace qt applikace
-    assert  type(app).__name__=="QApplication"
-
-@app_not_init
 def test_loadPanel(request):
     global  signal_is_send,  x
 

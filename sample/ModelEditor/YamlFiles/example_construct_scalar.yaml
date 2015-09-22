@@ -1,0 +1,21 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    # You can explicitly define how a value should be parsed
+    # with standard yaml tags (they start with !!). When
+    # used incorrectly, it will trigger error 505 and error
+    # 302 along with it.
+    balance: !!bool maybe
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07

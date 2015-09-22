@@ -1,0 +1,22 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+      - region: IMPLICIT_BOUNDARY
+        flow_old_bcd_file: ./input/test2.fbc
+        # Maximum value exceeded triggers 304.
+      - rid: 4800000000
+        conductivity: 10
+        sigma: 0.05
+    output:
+      output_fields:
+        # Non-existent selection option triggers 305.
+        - pressure_p2
+      output_stream:
+        file: dual_por.pvd
+        # Minimum value not reached triggers 303.
+        time_step: -0.5
+    solver: !Petsc
+      a_tol: 1.0e-07

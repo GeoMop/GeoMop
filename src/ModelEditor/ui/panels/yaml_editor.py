@@ -5,11 +5,11 @@ Module contains customized QScintilla editor.
 # pylint: disable=invalid-name
 
 from data.meconfig import MEConfig as cfg
-import data.data_node as dn
+from data import ScalarNode
 import helpers.subyaml as analyzer
-from helpers.subyaml_types import PosType, CursorType
+from data import PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
-from data.data_node import Position
+from data import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
@@ -19,6 +19,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import helpers.keyboard_shortcuts as shortcuts
 import re
 from ui.menus import EditMenu
+from helpers import Notification
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -118,22 +119,22 @@ class YamlEditorWidget(QsciScintilla):
         self.setMarginSensitivity(1, True)
         self.setMarginWidth(1, 20)
         self.setMarginMarkerMask(1, 0xF)
-        self.markerDefine(icon.get_pixmap("fatal", 16), dn.DataError.Severity.fatal.value)
-        self.markerDefine(icon.get_pixmap("error", 16), dn.DataError.Severity.error.value)
-        self.markerDefine(icon.get_pixmap("warning", 16), dn.DataError.Severity.warning.value)
-        self.markerDefine(icon.get_pixmap("information", 16), dn.DataError.Severity.info.value)
+        self.markerDefine(icon.get_pixmap("fatal", 16), Notification.Severity.fatal.value)
+        self.markerDefine(icon.get_pixmap("error", 16), Notification.Severity.error.value)
+        self.markerDefine(icon.get_pixmap("warning", 16), Notification.Severity.warning.value)
+        self.markerDefine(icon.get_pixmap("information", 16), Notification.Severity.info.value)
 
         # Nonclickable margin 2 for showing markers
         self.setMarginWidth(2, 4)
         self.setMarginMarkerMask(2, 0xF0)
-        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.fatal.value)
-        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.error.value)
-        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.warning.value)
-        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + dn.DataError.Severity.info.value)
-        self.setMarkerBackgroundColor(QColor("#a50505"), 4 + dn.DataError.Severity.fatal.value)
-        self.setMarkerBackgroundColor(QColor("#ee4c4c"), 4 + dn.DataError.Severity.error.value)
-        self.setMarkerBackgroundColor(QColor("#FFAC30"), 4 + dn.DataError.Severity.warning.value)
-        self.setMarkerBackgroundColor(QColor("#3399FF"), 4 + dn.DataError.Severity.info.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + Notification.Severity.fatal.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + Notification.Severity.error.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + Notification.Severity.warning.value)
+        self.markerDefine(QsciScintilla.SC_MARK_FULLRECT, 4 + Notification.Severity.info.value)
+        self.setMarkerBackgroundColor(QColor("#a50505"), 4 + Notification.Severity.fatal.value)
+        self.setMarkerBackgroundColor(QColor("#ee4c4c"), 4 + Notification.Severity.error.value)
+        self.setMarkerBackgroundColor(QColor("#FFAC30"), 4 + Notification.Severity.warning.value)
+        self.setMarkerBackgroundColor(QColor("#3399FF"), 4 + Notification.Severity.info.value)
 
         # signals
         self.reload_chunk.onExit.connect(self._reload_chunk_onExit)
@@ -148,7 +149,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # begin undo
         self.beginUndoAction()
-        
+
     def setText(self, text, keep_history=False):
         """
         Sets editor text. Editor history is preserved if `keep_history` is set to True.
@@ -167,6 +168,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setSelection(start_row - 1, start_column - 1, end_row - 1, end_column - 1)
 
     def set_new_node(self, node=None):
+        """Sets new node."""
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
@@ -181,6 +183,7 @@ class YamlEditorWidget(QsciScintilla):
         self._reload_margin()
 
     def get_curr_element_type(self):
+        """Return current element `CursorType` value."""
         return self._pos.cursor_type_position.value
 
     def _cursor_position_changed(self, line, index):
@@ -220,13 +223,14 @@ class YamlEditorWidget(QsciScintilla):
 
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
+        # pylint: disable=unused-argument
         if (0xF & self.markersAtLine(line)) != 0:
             self.errorMarginClicked.emit(line + 1)
 
     def _reload_margin(self):
         """Set error icon and mark to margin"""
         self.markerDeleteAll()
-        for error in cfg.errors:
+        for error in cfg.notifications:
             # icon
             line = error.span.start.line - 1
             present = 0xF & self.markersAtLine(line)
@@ -603,7 +607,7 @@ class EditorPosition:
             # return origin values of end
             if self.end_line == self.line and self.node is not None:
                 if (self.node.key.span is not None and
-                        not isinstance(self.node, dn.ScalarNode)):
+                        not isinstance(self.node, ScalarNode)):
                     self.end_index = self.node.key.span.end.column - 1
                 else:
                     self.end_index = self.node.span.end.column - 1
@@ -647,7 +651,7 @@ class EditorPosition:
                 return False
         # evaluate value changes
         if pos_type is PosType.in_value:
-            added_text =  new_line[before_pos:len(new_line)-end_pos+1]
+            added_text = new_line[before_pos:len(new_line)-end_pos+1]
             if not added_text.isspace() and added_text not in ['&', '*', '!']:
                 self.is_value_changed = True
             if self.is_key_changed:
@@ -730,6 +734,7 @@ class EditorPosition:
         return analyzer.ChangeAnalyzer(in_line, in_index, area)
 
     def _save_lines(self, editor):
+        """Saves lines."""
         self._last_line = editor.text(self.line)
         if editor.lines() == self.line + 1:
             self._last_line_after = None

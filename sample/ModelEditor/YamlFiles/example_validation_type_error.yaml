@@ -1,0 +1,19 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    # Invalid type triggers 302.
+    balance: []
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        # 0,5 is parsed as a string. Type mismatch triggers 302.
+        time_step: 0,5
+    solver: !Petsc
+      a_tol: 1.0e-07

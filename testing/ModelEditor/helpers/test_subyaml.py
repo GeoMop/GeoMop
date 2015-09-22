@@ -1,4 +1,5 @@
 from helpers.subyaml import *
+from data import PosType, KeyType
 
 def test_json():
     test = ["key: [86, 95, 12] # json 1.r"]

@@ -108,7 +108,7 @@ def test_alias_errors():
     )
     loader = Loader()
     loader.load(document)
-    assert len(loader.error_handler.errors) == 2
+    assert len(loader.notification_handler.notifications) == 2
 
 
 def test_merge():

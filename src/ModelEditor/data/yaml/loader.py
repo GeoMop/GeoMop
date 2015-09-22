@@ -4,28 +4,31 @@ Package for generating DataNode structure from YAML document.
 
 __author__ = 'Tomas Krizek'
 
-import yaml as pyyaml
-from data.yaml.constructor import construct_scalar
-from data.yaml.resolver import resolve_scalar_tag
-from data.error_handler import ErrorHandler
-from data import data_node as dn
 import re
 import copy
+import yaml as pyyaml
+
+from .constructor import construct_scalar
+from .resolver import resolve_scalar_tag
+from ..util import TextValue
+from ..locators import Position, Span
+from ..data_node import ScalarNode, CompositeNode
+from helpers import Notification, NotificationHandler
 
 
 class Loader:
     """Generates DataNode structure from YAML document."""
-    def __init__(self, error_handler=None):
-        """Initializes the loader with ErrorHandler."""
+    def __init__(self, notification_handler=None):
+        """Initializes the loader with NotificationHandler."""
         self._event = None
         self._event_generator = iter([])
         self._document = None
         self._iterate_events = True
         self._fatal_error_node = None
         self.anchors = {}
-        self.error_handler = error_handler
-        if self.error_handler is None:
-            self.error_handler = ErrorHandler()
+        self.notification_handler = notification_handler
+        if self.notification_handler is None:
+            self.notification_handler = NotificationHandler()
 
     def load(self, document):
         """Loads the YAML document and returns the root DataNode."""
@@ -43,7 +46,7 @@ class Loader:
 
         root = self._create_node()
         if self._fatal_error_node:
-            if isinstance(root, dn.CompositeNode):
+            if isinstance(root, CompositeNode):
                 # pylint: disable=no-member
                 root.set_child(self._fatal_error_node)
                 root.span.end = self._fatal_error_node.end
@@ -62,9 +65,11 @@ class Loader:
                 # handle parsing error
                 self._event = None
                 self._iterate_events = False
-                end_pos = dn.Position.from_document_end(self._document)
-                self.error_handler.report_parsing_error(error, end_pos)
-                self._create_fatal_error_node(error, end_pos)
+                start_pos = Position.from_yaml_error(error)
+                self._create_fatal_error_node(start_pos)
+                notification = Notification.from_name('SyntaxFatalError')
+                notification.span = self._fatal_error_node.span
+                self.notification_handler.report(notification)
             except StopIteration:
                 # handle end of parsing events
                 self._event = None
@@ -97,7 +102,7 @@ class Loader:
         value = getattr(self._event, 'anchor', None)
         if value is None or value in ['*', '&']:
             return None
-        anchor = dn.TextValue(value)
+        anchor = TextValue(value)
         symbol = '&'
         if isinstance(self._event, pyyaml.AliasEvent):
             symbol = '*'
@@ -109,7 +114,7 @@ class Loader:
         value = getattr(self._event, 'tag', None)
         if value is None or value == '!':
             return None
-        tag = dn.TextValue(value)
+        tag = TextValue(value)
         tag.span = self._extract_property_span(self._event.start_mark, '!')
         return tag
 
@@ -138,9 +143,9 @@ class Loader:
 
         start_column = locals().get('start_column', match.start(1))
         end_column = locals().get('end_column', match.end(1))
-        start = dn.Position(line_index + 1, start_column + 1)
-        end = dn.Position(line_index + 1, end_column + 1)
-        return dn.Span(start, end)
+        start = Position(line_index + 1, start_column + 1)
+        end = Position(line_index + 1, end_column + 1)
+        return Span(start, end)
 
     def _create_node_by_tag(self, tag):
         """
@@ -155,16 +160,17 @@ class Loader:
 
     def _create_scalar_node(self):
         """Creates a ScalarNode."""
-        node = dn.ScalarNode()
+        node = ScalarNode()
         tag = self._event.tag
         if tag is None or not tag.startswith('tag:yaml.org,2002:'):
             tag = resolve_scalar_tag(self._event.value)
-        node.span = dn.Span.from_event(self._event)
+        node.span = Span.from_event(self._event)
         try:
             node.value = construct_scalar(self._event.value, tag)
         except Exception as error:
-            description = error.args[0]
-            self.error_handler.report_construct_scalar_error(node, description)
+            notification = Notification.from_name('ConstructScalarError', error.args[0])
+            notification.span = node.span
+            self.notification_handler.report(notification)
             return node
         if node.value is None:
             # alter position of empty node (so it can be selected)
@@ -183,7 +189,7 @@ class Loader:
             temp_node = self._create_scalar_node()
             if temp_node.value is None:
                 # empty node - construct as mapping
-                node = dn.CompositeNode(True)
+                node = CompositeNode(True)
                 node.span = temp_node.span
             else:  # not null - tag has no effect
                 node = temp_node
@@ -193,14 +199,16 @@ class Loader:
             node = self._create_array_node()
             invalid_position = True
         if invalid_position:
-            self.error_handler.report_invalid_tag_position(tag)
+            notification = Notification.from_name('UselessTag', tag.value)
+            notification.span = tag.span
+            self.notification_handler.report(notification)
         else:
             node.type = tag
         return node
 
     def _create_record_node(self):
         """Creates a record node."""
-        node = dn.CompositeNode(True)
+        node = CompositeNode(True)
         start_mark = self._event.start_mark
         end_mark = self._event.end_mark
         self._next_parse_event()
@@ -229,19 +237,24 @@ class Loader:
             end_mark = node.children[-1].span.end
             end_mark.line -= 1
             end_mark.column -= 1
-        node.span = dn.Span.from_marks(start_mark, end_mark)
+        node.span = Span.from_marks(start_mark, end_mark)
         return node
 
     def _create_record_key(self):
         """Creates `TextValue` of record key."""
         # check if key is scalar
         if not isinstance(self._event, pyyaml.ScalarEvent):
-            span = dn.Span.from_event(self._event)
-            self.error_handler.report_invalid_mapping_key(span)
+            start_pos = Position.from_mark(self._event.start_mark)
+            self._create_fatal_error_node(start_pos)
+            notification = Notification.from_name('ComplexRecordKey')
+            notification.span = self._fatal_error_node.span
+            self.notification_handler.report(notification)
+            self._event = None
+            self._iterate_events = False
             return None
-        key = dn.TextValue()
+        key = TextValue()
         key.value = self._event.value
-        key.span = dn.Span.from_event(self._event)
+        key.span = Span.from_event(self._event)
         return key
 
     def _perform_merge(self, key, node):
@@ -250,29 +263,35 @@ class Loader:
             self._next_parse_event()
             while (self._event is not None and
                    not isinstance(self._event, pyyaml.SequenceEndEvent)):
-                self._merge_into_node(key, node)
+                self._merge_into_node(node)
                 self._next_parse_event()
         else:
-            self._merge_into_node(key, node)
+            self._merge_into_node(node)
 
-    def _merge_into_node(self, key, node):
+    def _merge_into_node(self, node):
         """Merges a single alias node into this record node."""
         # allow only alias nodes to be merged
         if not isinstance(self._event, pyyaml.AliasEvent):
-            self._create_node(node)  # skip the node to avoid parsing error
-            self.error_handler.report_merge_error(key.span)
+            temp = self._create_node(node)  # skip the node to avoid parsing error
+            notification = Notification.from_name('NoReferenceToMerge')
+            notification.span = temp.span
+            self.notification_handler.report(notification)
             return
 
         anchor = self._extract_anchor()
         if anchor.value not in self.anchors:
-            self.error_handler.report_undefined_anchor(anchor)
+            notification = Notification.from_name('UndefinedAnchor', anchor.value)
+            notification.span = anchor.span
+            self.notification_handler.report(notification)
             return
 
         anchor_node = self.anchors[anchor.value]
         # check if anchor_node is a record (mapping)
-        not_composite = not isinstance(anchor_node, dn.CompositeNode)
+        not_composite = not isinstance(anchor_node, CompositeNode)
         if not_composite or not anchor_node.explicit_keys:
-            self.error_handler.report_invalid_merge_type(anchor.span)
+            notification = Notification.from_name('InvalidReferenceForMerge', anchor.value)
+            notification.span = anchor.span
+            self.notification_handler.report(notification)
             return
 
         for child in anchor_node.children:
@@ -282,13 +301,13 @@ class Loader:
 
     def _create_array_node(self):
         """Creates an array node."""
-        node = dn.CompositeNode(False)
+        node = CompositeNode(False)
         start_mark = self._event.start_mark
         end_mark = self._event.end_mark
         self._next_parse_event()
         while (self._event is not None and
                not isinstance(self._event, pyyaml.SequenceEndEvent)):
-            key = dn.TextValue(str(len(node.children)))
+            key = TextValue(str(len(node.children)))
             child_node = self._create_node(node)
             self._next_parse_event()
             if child_node is None:  # i.e. unresolved alias
@@ -301,13 +320,15 @@ class Loader:
             end_mark = node.children[-1].span.end
             end_mark.line -= 1
             end_mark.column -= 1
-        node.span = dn.Span.from_marks(start_mark, end_mark)
+        node.span = Span.from_marks(start_mark, end_mark)
         return node
 
     def _create_alias_node(self, anchor):
         """Creates an alias node."""
         if anchor.value not in self.anchors:
-            self.error_handler.report_undefined_anchor(anchor)
+            notification = Notification.from_name('UndefinedAnchor', anchor.value)
+            notification.span = anchor.span
+            self.notification_handler.report(notification)
             return None
         ref = self.anchors[anchor.value]
         node = copy.deepcopy(ref)
@@ -317,24 +338,26 @@ class Loader:
         # set correct node.span
         node.span = copy.deepcopy(node.anchor.span)
         start = node.span.start
-        node.span.start = dn.Position(start.line, start.column - 1)
+        node.span.start = Position(start.line, start.column - 1)
         return node
 
     def _register_anchor(self, anchor, node):
         """Registers an anchor to a node."""
         node.anchor = anchor
         if anchor.value in self.anchors:
-            self.error_handler.report_anchor_override(anchor, node)
+            notification = Notification.from_name('OverridingAnchor', anchor.value)
+            notification.span = anchor.span
+            self.notification_handler.report(notification)
         self.anchors[anchor.value] = node
 
-    def _create_fatal_error_node(self, error, document_end_pos):
+    def _create_fatal_error_node(self, start_pos):
         """
         Creates a non-existing node in the data tree
         to wrap the content of the error (span) in a node.
         """
         # TODO Isn't this temporary solution?
-        node = dn.ScalarNode()
-        document_start_pos = dn.Position.from_yaml_error(error)
-        node.span = dn.Span(document_start_pos, document_end_pos)
-        node.key = dn.TextValue('fatal_error')
+        node = ScalarNode()
+        end_pos = Position.from_document_end(self._document)
+        node.span = Span(start_pos, end_pos)
+        node.key = TextValue('fatal_error')
         self._fatal_error_node = node

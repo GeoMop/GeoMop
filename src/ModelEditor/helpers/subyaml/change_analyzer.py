@@ -1,15 +1,18 @@
 """Helper for yaml text editor"""
-from helpers.subyaml_types import PosType, KeyType
+
+from enum import Enum
 import re
 import copy
 from helpers.subyaml.line_analyzer import LineAnalyzer
+from data import KeyType, PosType
+
 
 class ChangeAnalyzer:
     """
     Analyze partial yaml text for change character report
 
-    Description: This quick party text analyzing is use only for dicision
-    if next more expensive text parsing is requard.
+    Description: This quick party text analyzing is use only for decision
+    if next more expensive text parsing is required.
     """
     def __init__(self, cursor_line, cursor_index, area):
         self._area = copy.deepcopy(area)
@@ -130,7 +133,7 @@ class ChangeAnalyzer:
 
         next_line = False
         while i <= self._line:
-            line =  LineAnalyzer.uncomment(self._area[i])
+            line = LineAnalyzer.uncomment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
             if key is not None:
                 if self._line == i:
@@ -150,20 +153,20 @@ class ChangeAnalyzer:
                 i += 1
                 if i > self._line:
                     return type_
-                line =  LineAnalyzer.uncomment(self._area[i])
+                line = LineAnalyzer.uncomment(self._area[i])
                 if line.isspace() or len(line) == 0:
                     continue
                 dist = 0
                 next_line = False
             next_line = True
-            for char in ['!', '&', '<<: \*', '\*']:
+            for char in ['!', '&', r'<<: \*', r'\*']:
                 index = line.find(char)
                 if index > -1:
                     area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
                     if area is not None:
                         # area is all line
                         if self._line == i:
-                            return self. _get_type_from_char(char)                        
+                            return self. _get_type_from_char(char)
                         break
                     else:
                         area = re.match(r'\s*(' + char + r'\S+\s+)\S', line)
@@ -229,7 +232,7 @@ class ChangeAnalyzer:
     def is_base_struct(line):
         """
         Return if is in line base structure for evaluation
-        
+
         If line was empty, and now is there base structure, reload is needed
         """
         patterns = [
@@ -243,7 +246,7 @@ class ChangeAnalyzer:
             r'.*\S+\s*\}'
             r'.*\S+\s*\]'
         ]
-        line =  LineAnalyzer.uncomment(line)
+        line = LineAnalyzer.uncomment(line)
         for pat in patterns:
             area = re.match(pat, line)
             if area is not None:

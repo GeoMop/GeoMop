@@ -1,5 +1,6 @@
 import re
 
+
 class LineAnalyzer:
     """
     Anayze partial yaml line

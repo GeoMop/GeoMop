@@ -1,44 +1,24 @@
-from data.data_node import Position
+import sys
+
+import pytest
+
 import data.data_node as dn
+from data import Position
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
-import pytest
 from data.meconfig import MEConfig as cfg
 import mock_config as mockcfg
-import sys
 from PyQt5.QtWidgets import QApplication
-from data.error_handler import ErrorHandler
-
+from helpers import NotificationHandler
 
 APP = QApplication(sys.argv)
 APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),
                                   reason="App not inicialized")
 
 
-def test_position():
-    assert (Position(1, 1) == Position(1, 1)) is True
-    assert (Position(1, 1) < Position(1, 1)) is False
-    assert (Position(1, 1) <= Position(1, 1)) is True
-    assert (Position(1, 1) > Position(1, 2)) is False
-    assert (Position(1, 2) >= Position(1, 2)) is True
-    assert (Position(2, 1) <= Position(1, 2)) is False
-    assert (Position(2, 1) > Position(1, 2)) is True
-
-
-def test_position_from_document_end():
-    """Tests position initialization from document end."""
-    document = (
-        "format: ascii\n"
-        "file: dual_sorp.vtk"
-    )
-    pos = dn.Position.from_document_end(document)
-    assert pos.line == 2
-    assert pos.column == 20
-
-
 @APP_NOT_INIT
 def test_parse(request=None):
-    error_handler = ErrorHandler()
+    error_handler = NotificationHandler()
     mockcfg.set_empty_config()
 
     if request is not None:
@@ -110,7 +90,7 @@ def test_parse(request=None):
         "- file: dual_sorp.vtk"
     )
     loader.load(document)
-    assert len(loader.error_handler.errors) == 1
+    assert len(loader.notification_handler.notifications) == 1
 
     # test tag parsing
     document = (
@@ -155,9 +135,9 @@ def test_parse(request=None):
         "- *r\n"
         "- *y"
     )
-    loader.error_handler.clear()
+    loader.notification_handler.clear()
     root = loader.load(document)
-    assert len(loader.error_handler.errors) == 2
+    assert len(loader.notification_handler.notifications) == 2
 
 
 def test_resolver():
