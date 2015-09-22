@@ -2,17 +2,18 @@
 
 __author__ = 'Tomas Krizek'
 
-from data.validation import errors, checks
-import data.data_node as dn
-from data.format import is_scalar
+from . import checks
+from ..data_node import CompositeNode
+from ..format import is_scalar
+from helpers import Notification
 
 
 class Validator:
     """Handles data structure validation."""
 
-    def __init__(self, error_handler):
-        """Initializes the validator with an ErrorHandler."""
-        self.error_handler = error_handler
+    def __init__(self, notification_handler):
+        """Initializes the validator with a NotificationHandler."""
+        self.notification_handler = notification_handler
         self.valid = True
 
     def validate(self, node, input_type):
@@ -36,7 +37,7 @@ class Validator:
         Method verifies node recursively. All descendant nodes are checked.
         """
         if node is None:
-            raise errors.ValidationError("Invalid node (None)")
+            raise Notification.from_name('ValidationError', 'Invalid node (None)')
 
         node.input_type = input_type
         if is_scalar(input_type):
@@ -48,10 +49,9 @@ class Validator:
         elif input_type['base_type'] == 'Array':
             self._validate_array(node, input_type)
         else:
-            message = "Format error: Unknown input_type {input_type})"
-            message = message.format(input_type=input_type['base_type'])
-            error = errors.ValidationError(message)
-            self._report_error(message, error)
+            notification = Notification.from_name('InputTypeNotSupported',
+                                                  input_type['base_type'])
+            self._report_notification(notification)
 
     def _validate_scalar(self, node, input_type):
         """Validates a Scalar node."""
@@ -59,13 +59,19 @@ class Validator:
             node.options = input_type['values']
         try:
             checks.check_scalar(node, input_type)
-        except errors.ValidationError as error:
-            self._report_error(node, error)
+        except Notification as notification:
+            if notification.name in ['InvalidSelectionOption', 'ValueTooBig', 'ValueTooSmall']:
+                notification.span = node.span
+            else:
+                notification.span = node.key.span
+            self._report_notification(notification)
 
     def _validate_record(self, node, input_type):
         """Validates a Record node."""
-        if not isinstance(node, dn.CompositeNode) or not node.explicit_keys:
-            self._report_error(node, errors.ValidationTypeError("Expecting type Record"))
+        if not isinstance(node, CompositeNode) or not node.explicit_keys:
+            notification = Notification.from_name('ValidationTypeError', 'Record')
+            notification.span = node.key.span
+            self._report_notification(notification)
             return
         keys = node.children_keys
         node.options = input_type['keys'].keys()
@@ -74,10 +80,12 @@ class Validator:
             child = node.get_child(key)
             try:
                 checks.check_record_key(node.children_keys, key, input_type)
-            except errors.ValidationError as error:
-                self._report_error(node, error)
-                if isinstance(error, errors.UnknownKey):
-                    continue
+            except Notification as notification:
+                if notification.name == 'UnknownRecordKey':
+                    notification.span = child.key.span
+                else:
+                    notification.span = node.key.span
+                self._report_notification(notification)
             else:
                 if child is not None:
                     child_input_type = input_type['keys'][key]['type']
@@ -87,26 +95,33 @@ class Validator:
         """Validates an AbtractRecord node."""
         try:
             concrete_type = checks.get_abstractrecord_type(node, input_type)
-        except errors.ValidationError as error:
-            self._report_error(node, error)
+        except Notification as notification:
+            if notification.name == 'InvalidAbstractRecordType':
+                notification.span = node.type.span
+            else:
+                notification.span = node.key.span
+            self._report_notification(notification)
         else:
             node.input_type = concrete_type
             self._validate_record(node, concrete_type)
 
     def _validate_array(self, node, input_type):
         """Validates an Array node."""
-        if not isinstance(node, dn.CompositeNode) or node.explicit_keys:
-            self._report_error(node, errors.ValidationTypeError("Expecting type Array"))
+        if not isinstance(node, CompositeNode) or node.explicit_keys:
+            notification = Notification.from_name('ValidationTypeError', 'Array')
+            notification.span = node.key.span
+            self._report_notification(notification)
             return
         try:
             checks.check_array(node.children, input_type)
-        except errors.ValidationError as error:
-            self._report_error(node, error)
+        except Notification as notification:
+            notification.span = node.key.span
+            self._report_notification(notification)
         for child in node.children:
             self._validate_node(child, input_type['subtype'])
 
-    def _report_error(self, node, error):
-        """Reports an error."""
-        invalidate = self.error_handler.report_validation_error(node, error)
-        if invalidate:
+    def _report_notification(self, notification):
+        """Reports a notification."""
+        if notification.severity.value >= Notification.Severity.error.value:
             self.valid = False
+        self.notification_handler.report(notification)

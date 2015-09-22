@@ -3,8 +3,8 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
-import data.data_node as dn
 import icon
+import helpers.notifications.notification as ntf
 
 
 class ErrorWidget(QtWidgets.QListWidget):
@@ -41,19 +41,19 @@ class ErrorWidget(QtWidgets.QListWidget):
 
     def _load_items(self):
         """load errors"""
-        for error in cfg.errors:
-            if error.severity == dn.DataError.Severity.fatal:
+        for error in cfg.notifications:
+            if error.severity == ntf.Notification.Severity.fatal:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("fatal", 24), error.title + ": " + error.description)
-            elif error.severity == dn.DataError.Severity.error:
+                    icon.get_icon("fatal", 24), str(error))
+            elif error.severity == ntf.Notification.Severity.error:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("error", 24), error.title + ": " + error.description)
-            elif error.severity == dn.DataError.Severity.warning:
+                    icon.get_icon("error", 24), str(error))
+            elif error.severity == ntf.Notification.Severity.warning:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("warning", 24), error.title + ": " + error.description)
+                    icon.get_icon("warning", 24), str(error))
             else:
                 item = QtWidgets.QListWidgetItem(
-                    icon.get_icon("information", 24), error.title + ": " + error.description)
+                    icon.get_icon("information", 24), str(error))
             item.setData(QtCore.Qt.UserRole, error)
             self.addItem(item)
 

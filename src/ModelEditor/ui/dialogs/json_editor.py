@@ -1,7 +1,6 @@
 """
 JSON editor dialog.
 """
-
 import os
 import geomop_dialogs
 from helpers import EditorAppearance as appearance
@@ -9,6 +8,7 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.Qsci import QsciScintilla, QsciLexerJavaScript
 
 class JsonEditorDlg(QtWidgets.QDialog):
+    """Dialog widget for JsonEditor."""
 
     def __init__(self, path, name, label_name, json, parent=None):
         super(JsonEditorDlg, self).__init__(parent)
@@ -17,9 +17,9 @@ class JsonEditorDlg(QtWidgets.QDialog):
         self._name = name
         self._label_name = label_name
         self.orig_text = json
- 
+
         self._label_file = QtWidgets.QLabel(label_name + ": " + name, self)
-        self._save_button = QtWidgets.QPushButton("Save ...",self)
+        self._save_button = QtWidgets.QPushButton("Save ...", self)
         self._save_button.clicked.connect(self._save_file)
         self._save_as_button = QtWidgets.QPushButton("Save as...", self)
         self._save_as_button.clicked.connect(self._save_as_file)
@@ -36,13 +36,13 @@ class JsonEditorDlg(QtWidgets.QDialog):
         self._editor.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
         self._editor.setMinimumSize(600, 450)
         self._editor.setText(json)
-        
+
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self._label_file)
         button_layout.addWidget(self._save_button)
         button_layout.addWidget(self._save_as_button)
         button_layout.addWidget(self._cancel_button)
-        
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.addLayout(button_layout)
         layout.addWidget(self._editor)

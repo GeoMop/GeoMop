@@ -1,14 +1,16 @@
 """Helper for yaml text editor"""
-from enum import Enum
+
 import re
 import copy
+from enum import Enum
+
 
 class ChangeAnalyzer:
     """
     Analyze partial yaml text for change character report
 
-    Description: This quick party text analyzing is use only for dicision
-    if next more expensive text parsing is requard.
+    Description: This quick party text analyzing is use only for decision
+    if next more expensive text parsing is required.
     """
     def __init__(self, cursor_line, cursor_index, area):
         self._area = copy.deepcopy(area)
@@ -22,7 +24,7 @@ class ChangeAnalyzer:
 
     @staticmethod
     def get_char_poss(line, tag):
-        """Return possition of tag ended by space or new line"""
+        """Return position of tag ended by space or new line"""
         index = line.find(tag + " ")
         if index == -1:
             index = line.find(tag)
@@ -165,14 +167,14 @@ class ChangeAnalyzer:
                 dist = 0
                 next_line = False
             next_line = True
-            for char in ['!', '&', '<<: \*', '\*']:
+            for char in ['!', '&', r'<<: \*', r'\*']:
                 index = line.find(char)
                 if index > -1:
                     area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
                     if area is not None:
                         # area is all line
                         if self._line == i:
-                            return self. _get_type_from_char(char)                        
+                            return self. _get_type_from_char(char)
                         break
                     else:
                         area = re.match(r'\s*(' + char + r'\S+\s+)\S', line)
@@ -233,7 +235,7 @@ class ChangeAnalyzer:
         if area is not None:
             # empty line
             return True, -1
-        for char in ['!', '&', '<<: \*', '\*']:
+        for char in ['!', '&', r'<<: \*', r'\*']:
             index = line.find(char)
             if index > -1:
                 area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
@@ -255,7 +257,7 @@ class ChangeAnalyzer:
     def is_base_struct(cls, line):
         """
         Return if is in line base structure for evaluation
-        
+
         If line was empty, and now is there base structure, reload is needed
         """
         patterns = [
@@ -269,7 +271,7 @@ class ChangeAnalyzer:
             r'.*\S+\s*\}'
             r'.*\S+\s*\]'
         ]
-        line =  cls.uncomment(line)
+        line = cls.uncomment(line)
         for pat in patterns:
             area = re.match(pat, line)
             if area is not None:
@@ -279,7 +281,7 @@ class ChangeAnalyzer:
 
     @staticmethod
     def uncomment(line):
-        """return line witout comments"""
+        """return line without comments"""
         comment = re.search(r'^(.*\S)\s*#.*$', line)
         if comment:
             return comment.group(1)
@@ -301,6 +303,7 @@ class ChangeAnalyzer:
 
 
 class PosType(Enum):
+    """Position type in input text."""
     comment = 1
     in_key = 2
     in_value = 3
@@ -308,6 +311,7 @@ class PosType(Enum):
 
 
 class KeyType(Enum):
+    """Key position type in `DataNode`."""
     key = 1
     tag = 2
     ref = 3
@@ -316,6 +320,7 @@ class KeyType(Enum):
 
 
 class CursorType(Enum):
+    """Cursor position type in text."""
     key = 1
     tag = 2
     ref = 3

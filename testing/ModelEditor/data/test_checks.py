@@ -9,8 +9,9 @@ Tests for basic validation checks.
 
 import pytest
 
-from data.validation import errors, checks
+from data.validation import checks
 import data.data_node as dn
+from helpers import Notification
 
 
 def test_check_integer():
@@ -20,21 +21,30 @@ def test_check_integer():
     assert checks.check_integer(3, input_type_inf) is True
     assert checks.check_integer(-2, input_type_inf) is True
 
-    with pytest.raises(errors.ValidationTypeError):
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer(2.5, input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer("3", input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer({}, input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer([], input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
     assert checks.check_integer(3, input_type) is True
     assert checks.check_integer(2, input_type) is True
     assert checks.check_integer(0, input_type) is True
 
-    with pytest.raises(errors.ValueTooSmall):
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer(-1, input_type)
+    assert excinfo.value.name == 'ValueTooSmall'
 
-    with pytest.raises(errors.ValueTooBig):
+    with pytest.raises(Notification) as excinfo:
         checks.check_integer(5, input_type)
+    assert excinfo.value.name == 'ValueTooBig'
 
 
 def test_check_double():
@@ -44,20 +54,21 @@ def test_check_double():
     assert checks.check_double(3.14, input_type_inf) is True
     assert checks.check_double(-2, input_type_inf) is True  # accepts int
 
-    with pytest.raises(errors.ValidationTypeError):
+    with pytest.raises(Notification) as excinfo:
         checks.check_double("3.14", input_type)
-        checks.check_double({}, input_type)
-        checks.check_double([], input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
     assert checks.check_double(3.14, input_type) is True
     assert checks.check_double(2.5, input_type) is True
     assert checks.check_double(0, input_type) is True
 
-    with pytest.raises(errors.ValueTooSmall):
+    with pytest.raises(Notification) as excinfo:
         checks.check_double(-1.3, input_type)
+    assert excinfo.value.name == 'ValueTooSmall'
 
-    with pytest.raises(errors.ValueTooBig):
+    with pytest.raises(Notification) as excinfo:
         checks.check_double(5, input_type)
+    assert excinfo.value.name == 'ValueTooBig'
 
 
 def test_check_bool():
@@ -65,23 +76,18 @@ def test_check_bool():
     assert checks.check_bool(True, input_type) is True
     assert checks.check_bool(False, input_type) is True
 
-    with pytest.raises(errors.ValidationTypeError):
-        checks.check_bool(0, input_type)
-        checks.check_bool(1, input_type)
-        checks.check_bool("1", input_type)
-        checks.check_bool("false", input_type)
+    with pytest.raises(Notification) as excinfo:
         checks.check_bool({}, input_type)
-        checks.check_bool([], input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
 
 def test_check_string():
     input_type = dict()
     assert checks.check_string("abc", input_type) is True
 
-    with pytest.raises(errors.ValidationTypeError):
-        checks.check_string(0, input_type)
+    with pytest.raises(Notification) as excinfo:
         checks.check_string({}, input_type)
-        checks.check_string([], input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
 
 def test_check_selection():
@@ -91,18 +97,18 @@ def test_check_selection():
     assert checks.check_selection('b', input_type) is True
     assert checks.check_selection('c', input_type) is True
 
-    with pytest.raises(errors.InvalidOption):
-        assert checks.check_selection('d', input_type)
+    with pytest.raises(Notification) as excinfo:
+        checks.check_selection('d', input_type)
+    assert excinfo.value.name == 'InvalidSelectionOption'
 
 
 def test_check_filename():
     input_type = dict()
     assert checks.check_filename("abc", input_type) is True
 
-    with pytest.raises(errors.ValidationTypeError):
-        checks.check_filename(0, input_type)
+    with pytest.raises(Notification) as excinfo:
         checks.check_filename({}, input_type)
-        checks.check_filename([], input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
 
 def test_check_array():
@@ -113,14 +119,17 @@ def test_check_array():
     assert checks.check_array([None]*1, input_type) is True
     assert checks.check_array([None]*5, input_type) is True
 
-    with pytest.raises(errors.ValidationTypeError):
+    with pytest.raises(Notification) as excinfo:
         checks.check_array(None, input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
-    with pytest.raises(errors.NotEnoughItems):
+    with pytest.raises(Notification) as excinfo:
         checks.check_array([], input_type)
+    assert excinfo.value.name == 'NotEnoughItems'
 
-    with pytest.raises(errors.TooManyItems):
+    with pytest.raises(Notification) as excinfo:
         checks.check_array([None]*6, input_type)
+    assert excinfo.value.name == 'TooManyItems'
 
 
 def test_check_record_key():
@@ -138,11 +147,13 @@ def test_check_record_key():
     assert checks.check_record_key(['a1'], 'c', input_type) is True
     assert checks.check_record_key(['a1'], 'd', input_type) is True
 
-    with pytest.raises(errors.UnknownKey):
+    with pytest.raises(Notification) as excinfo:
         checks.check_record_key('unknown', 'unknown', input_type)
+    assert excinfo.value.name == 'UnknownRecordKey'
 
-    with pytest.raises(errors.MissingKey):
+    with pytest.raises(Notification) as excinfo:
         checks.check_record_key(['a1'], 'a2', input_type)
+    assert excinfo.value.name == 'MissingObligatoryKey'
 
 
 def test_check_abstractrecord():
@@ -164,9 +175,11 @@ def test_check_abstractrecord():
 
     node.type.value = 'type3'
     assert checks.get_abstractrecord_type(node, input_type_no_default) == type3
-    with pytest.raises(errors.MissingAbstractRecordType):
+    with pytest.raises(Notification) as excinfo:
         checks.get_abstractrecord_type(dn.CompositeNode(True), input_type_no_default)
+    assert excinfo.value.name == 'MissingAbstractRecordType'
 
     node.type.value = 'invalid'
-    with pytest.raises(errors.InvalidAbstractRecordType):
+    with pytest.raises(Notification) as excinfo:
         checks.get_abstractrecord_type(node, input_type)
+    assert excinfo.value.name == 'InvalidAbstractRecordType'

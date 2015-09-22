@@ -7,6 +7,8 @@ Contains classes for representing the tree structure of config files.
 __author__ = 'Tomas Krizek'
 
 from enum import Enum
+
+from .util import TextValue
 from ist import InfoTextGenerator
 from helpers.subyaml import CursorType
 
@@ -35,7 +37,7 @@ class DataNode:
         """borders the position of this node in input text"""
         self.anchor = None
         """anchor of the node `TextValue`"""
-        self.origin = Origin.structure
+        self.origin = NodeOrigin.structure
         """indicates how node was created"""
         self._options = []
 
@@ -107,13 +109,14 @@ class DataNode:
 
     def get_info_text(self, cursor_type=CursorType.value):
         """Returns help text describing the input type based on cursor_type."""
+        # pylint: disable=no-member
         input_type = None
         selected = None
 
         # crawl up to the first "real" node (present in text structure)
         prev_node = self
         node = self
-        while node.origin != Origin.structure:
+        while node.origin != NodeOrigin.structure:
             prev_node = node
             node = node.parent
 
@@ -141,7 +144,7 @@ class DataNode:
 
         # show info for Record, Selection or AbstractRecord that is in input structure
         while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']
-               or node.origin != Origin.structure):
+               or node.origin != NodeOrigin.structure):
             prev_node = node
             node = node.parent
             input_type = node.input_type
@@ -274,156 +277,7 @@ class ScalarNode(DataNode):
         return text
 
 
-class TextValue:
-    """Represents a value in the input text."""
-    def __init__(self, value=None):
-        self.value = value
-        """the value from input text"""
-        self.span = None
-        """:class:`.Span` specifies the position of value in input text"""
-
-
-class ComparableMixin:
-    """
-    Utility class -- implements other rich comparison operators
-    based on < (less than).
-    """
-    def __eq__(self, other):
-        return not self < other and not other < self
-
-    def __ne__(self, other):
-        return self < other or other < self
-
-    def __gt__(self, other):
-        return other < self
-
-    def __ge__(self, other):
-        return not self < other
-
-    def __le__(self, other):
-        return not other < self
-
-
-class Position(ComparableMixin):
-    """Marks a cursor position in text."""
-    def __init__(self, line=None, column=None):
-        self.line = line
-        """line number; starts from 1"""
-        self.column = column
-        """column number; starts from 1"""
-
-    def __lt__(self, other):
-        if self.line < other.line:
-            return True
-        elif self.line == other.line:
-            return self.column < other.column
-        return False
-
-    def __str__(self):
-        return "[{line}:{column}]".format(line=self.line, column=self.column)
-
-    @staticmethod
-    def from_mark(mark):
-        """Returns a `Position` from YAML mark."""
-        return Position(mark.line + 1, mark.column + 1)
-
-    @staticmethod
-    def from_document_end(document):
-        """Returns the last `Position` in the document."""
-        lines = document.splitlines()
-        line = len(lines)
-        column = len(lines[line-1])
-        return Position(line, column + 1)
-
-    @staticmethod
-    def from_yaml_error(yaml_error):
-        """Returns a `Position` from `MarkedYAMLError`."""
-        if yaml_error.problem_mark is not None:
-            return Position.from_mark(yaml_error.problem_mark)
-        else:
-            return Position.from_mark(yaml_error.context_mark)
-
-
-class Span:
-    """Borders a part of text."""
-
-    def __init__(self, start=None, end=None):
-        self.start = start
-        """:class:`.Position` indicates the start of the section; inclusive"""
-        self.end = end
-        """:class:`.Position` indicates the end of the section; exclusive"""
-
-    def __str__(self):
-        return "{start}-{end}".format(
-            start=self.start,
-            end=self.end
-        )
-
-    @staticmethod
-    def from_event(event):
-        """Constructs `Span` from YAML `event`."""
-        return Span.from_marks(event.start_mark, event.end_mark)
-
-    @staticmethod
-    def from_marks(start_mark, end_mark):
-        """Constructs `Span` from YAML marks."""
-        start = Position.from_mark(start_mark)
-        end = Position.from_mark(end_mark)
-        return Span(start, end)
-
-
-class DataError(Exception):
-    """Represents an error that occurs while working with data."""
-
-    class Category(Enum):
-        """Defines the type of an error."""
-        validation = 'Validation'
-        yaml = 'Parsing'
-        reference = 'Reference'
-
-    class Severity(Enum):
-        """Severity of an error."""
-        info = 0
-        warning = 1
-        error = 2
-        fatal = 3
-
-    def __init__(self, category, severity, description, span, node=None):
-        super(DataError, self).__init__(self)
-        self.category = category
-        """:class:`ErrorCategory` the category of error"""
-        self.span = span
-        """:class:`Span` the position of error"""
-        if self.span is None:
-            self.span = Span(start=Position(1, 1), end=Position(1, 1))
-        self.description = description
-        """describes the error"""
-        self.node = node
-        """:class:`DataNode` optional; the node where the error occurred"""
-        self.severity = severity
-
-    @property
-    def title(self):
-        """title of the error"""
-        severities = {DataError.Severity.info: 'Info',
-                      DataError.Severity.warning: 'Warning',
-                      DataError.Severity.error: 'Error',
-                      DataError.Severity.fatal: 'Fatal Error'}
-        return "{category} {severity}".format(
-            category=self.category.value,
-            severity=severities[self.severity]
-        )
-
-    def __str__(self):
-        text = "{span} {title}\n{description}"
-        return text.format(
-            span=self.span,
-            title=self.title,
-            description=self.description
-        )
-
-
-class Origin(Enum):
+class NodeOrigin(Enum):
     """The origin of data node."""
     structure = 1
     ac_array = 2

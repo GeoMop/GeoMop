@@ -5,11 +5,13 @@ GeomMop configuration file parsers
 This file contains the parsing functions for configuration files of Flow123d.
 Currently supports .con format (as specified by Flow123d manual v1.8.2).
 """
+
 import yaml
 import demjson
 import re
-import data.data_node as dn
 from enum import Enum
+
+from .data_node import ScalarNode, CompositeNode
 
 
 def parse_con(con):
@@ -110,12 +112,12 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, del_lines, i=1):
 
     return: array of lines for deleting
     """
-    if isinstance(node, dn.CompositeNode):
+    if isinstance(node, CompositeNode):
         for child in node.children:
-            if isinstance(child, dn.ScalarNode) and child.key.value == "TYPE":
+            if isinstance(child, ScalarNode) and child.key.value == "TYPE":
                 del_lines.append(child.key.span.start.line-1)
                 lines[node.key.span.start.line-1] += " !" + child.value
-            elif isinstance(child, dn.ScalarNode) and child.key.value == "REF":
+            elif isinstance(child, ScalarNode) and child.key.value == "REF":
                 del_lines.append(child.key.span.start.line-1)
                 if not lines[node.key.span.start.line-1][-1:].isspace():
                     lines[node.key.span.start.line-1] += " "
@@ -137,7 +139,7 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, del_lines, i=1):
                     i += 1
                     add_anchor[value].append(child)
             else:
-                if isinstance(child, dn.CompositeNode):
+                if isinstance(child, CompositeNode):
                     i = _traverse_nodes(child, lines, add_anchor, anchor_idx, del_lines, i)
     return i
 
@@ -680,7 +682,7 @@ class Comments:
         except:
             try:
                 node = data.get_node_at_path(path)
-                if isinstance(node, dn.CompositeNode) and len(node.children) == 1:
+                if isinstance(node, CompositeNode) and len(node.children) == 1:
                     new_path = path + "/0/" + key
                     node = data.get_node_at_path(new_path)
                 else:

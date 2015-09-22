@@ -4,24 +4,26 @@ __author__ = ['Pavel Richter', 'Tomas Krizek']
 
 import os
 import copy
+import PyQt5.QtWidgets as QtWidgets
 
 import config as cfg
 import geomop_dialogs
-from data.import_json import parse_con, fix_tags, rewrite_comments
-from data.yaml import Loader
-from data.yaml.transformator import Transformator, TransformationFileFormatError
 from ui.dialogs import TranformationDetailDlg
-from data.validation.validator import Validator
-import data.format as fmt
-import PyQt5.QtWidgets as QtWidgets
-from data import ErrorHandler
-import data.autoconversion as ac
+from helpers import NotificationHandler
 from ist import InfoTextGenerator
 
-__format_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "format")
-__transformation_dir__ = os.path.join(
-    os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "resources", "transformation")
+from .import_json import parse_con, fix_tags, rewrite_comments
+from .yaml import Loader
+from .yaml import Transformator, TransformationFileFormatError
+from .validation import Validator
+from .format import get_root_input_type_from_json
+from .autoconversion import autoconvert
+
+__resource_dir__ = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
+                                'resources')
+__format_dir__ = os.path.join(__resource_dir__, 'format')
+__transformation_dir__ = os.path.join(__resource_dir__, 'transformation')
+
 
 class _Config:
     """Class for ModelEditor serialization"""
@@ -113,7 +115,7 @@ class _Config:
 
 class MEConfig:
     """Static data class"""
-    error_handler = ErrorHandler()
+    notification_handler = NotificationHandler()
     """error handler for reporting and buffering errors"""
     format_files = []
     """Array of format files"""
@@ -131,13 +133,13 @@ class MEConfig:
     """text set by editor after significant changing"""
     main_window = None
     """parent of dialogs"""
-    errors = []
+    notifications = []
     """array of validation errors"""
     changed = False
     """is file changed"""
-    loader = Loader(error_handler)
+    loader = Loader(notification_handler)
     """loader of YAML files"""
-    validator = Validator(error_handler)
+    validator = Validator(notification_handler)
     """data validator"""
     root_input_type = None
     """input type of the whole tree, parsed from format"""
@@ -337,14 +339,14 @@ class MEConfig:
     @classmethod
     def update(cls):
         """reread yaml text and update node tree"""
-        cls.error_handler.clear()
+        cls.notification_handler.clear()
         cls.root = cls.loader.load(cls.document)
-        cls.errors = cls.error_handler.errors
+        cls.notifications = cls.notification_handler.notifications
         if cls.root_input_type is None or cls.root is None:
             return
-        cls.root = ac.autoconvert(cls.root, cls.root_input_type)
+        cls.root = autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
-        cls.errors = cls.error_handler.errors
+        cls.notifications = cls.notification_handler.notifications
 
     @classmethod
     def update_format(cls):
@@ -352,7 +354,7 @@ class MEConfig:
         if cls.curr_format_file is None:
             return
         text = cls.get_curr_format_text()
-        cls.root_input_type = fmt.get_root_input_type_from_json(text)
+        cls.root_input_type = get_root_input_type_from_json(text)
         InfoTextGenerator.init(text)
         cls.update()
 
