@@ -138,9 +138,12 @@ class DataNode:
 
         if input_type is None:
             # unknown node -> show closest available parent input type
-            while node is not None and node.input_type is None:
+            while node.parent is not None and node.input_type is None:
                 node = node.parent
             input_type = node.input_type
+
+        if input_type is None:
+            return ''
 
         # show info for Record, Selection or AbstractRecord that is in input structure
         while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']

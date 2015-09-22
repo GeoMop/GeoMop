@@ -65,11 +65,10 @@ class Loader:
                 # handle parsing error
                 self._event = None
                 self._iterate_events = False
-                end_pos = Position.from_document_end(self._document)
-                self._create_fatal_error_node(error, end_pos)
-                notification = Notification.from_name('SyntaxFatalError')
                 start_pos = Position.from_yaml_error(error)
-                notification.span = Span(start_pos, end_pos)
+                self._create_fatal_error_node(start_pos)
+                notification = Notification.from_name('SyntaxFatalError')
+                notification.span = self._fatal_error_node.span
                 self.notification_handler.report(notification)
             except StopIteration:
                 # handle end of parsing events
@@ -245,9 +244,13 @@ class Loader:
         """Creates `TextValue` of record key."""
         # check if key is scalar
         if not isinstance(self._event, pyyaml.ScalarEvent):
-            notification = Notification.from_name('ComplexMappingKey')
-            notification.span = Span.from_event(self._event)
+            start_pos = Position.from_mark(self._event.start_mark)
+            self._create_fatal_error_node(start_pos)
+            notification = Notification.from_name('ComplexRecordKey')
+            notification.span = self._fatal_error_node.span
             self.notification_handler.report(notification)
+            self._event = None
+            self._iterate_events = False
             return None
         key = TextValue()
         key.value = self._event.value
@@ -260,18 +263,18 @@ class Loader:
             self._next_parse_event()
             while (self._event is not None and
                    not isinstance(self._event, pyyaml.SequenceEndEvent)):
-                self._merge_into_node(key, node)
+                self._merge_into_node(node)
                 self._next_parse_event()
         else:
-            self._merge_into_node(key, node)
+            self._merge_into_node(node)
 
-    def _merge_into_node(self, key, node):
+    def _merge_into_node(self, node):
         """Merges a single alias node into this record node."""
         # allow only alias nodes to be merged
         if not isinstance(self._event, pyyaml.AliasEvent):
-            self._create_node(node)  # skip the node to avoid parsing error
-            notification = Notification.from_name('InvalidMergeNode')
-            notification = key.span
+            temp = self._create_node(node)  # skip the node to avoid parsing error
+            notification = Notification.from_name('NoReferenceToMerge')
+            notification.span = temp.span
             self.notification_handler.report(notification)
             return
 
@@ -286,7 +289,7 @@ class Loader:
         # check if anchor_node is a record (mapping)
         not_composite = not isinstance(anchor_node, CompositeNode)
         if not_composite or not anchor_node.explicit_keys:
-            notification = Notification.from_name('InvalidAnchorTypeForMerge', anchor.value)
+            notification = Notification.from_name('InvalidReferenceForMerge', anchor.value)
             notification.span = anchor.span
             self.notification_handler.report(notification)
             return
@@ -347,14 +350,14 @@ class Loader:
             self.notification_handler.report(notification)
         self.anchors[anchor.value] = node
 
-    def _create_fatal_error_node(self, error, document_end_pos):
+    def _create_fatal_error_node(self, start_pos):
         """
         Creates a non-existing node in the data tree
         to wrap the content of the error (span) in a node.
         """
         # TODO Isn't this temporary solution?
         node = ScalarNode()
-        document_start_pos = Position.from_yaml_error(error)
-        node.span = Span(document_start_pos, document_end_pos)
+        end_pos = Position.from_document_end(self._document)
+        node.span = Span(start_pos, end_pos)
         node.key = TextValue('fatal_error')
         self._fatal_error_node = node
