@@ -47,7 +47,7 @@ class MultiJobDialog(AbstractFormDialog):
 
         # set purpose, data and resources
         self.set_purpose(purpose, data)
-        self.set_resources(resources)
+        self.set_resource_presets(resources)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
@@ -64,7 +64,7 @@ class MultiJobDialog(AbstractFormDialog):
         if new_dir:
             self.ui.analysisLineEdit.setText(new_dir)
 
-    def set_resources(self, resources):
+    def set_resource_presets(self, resources):
         self.ui.resourceComboBox.clear()
         if resources:
             # sort dict by list, not sure how it works

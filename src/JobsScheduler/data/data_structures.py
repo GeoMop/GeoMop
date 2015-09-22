@@ -63,17 +63,17 @@ class DataContainer(object):
     multijobs = MultiJobData()
     ssh_presets = SshData()
     pbs_presets = PbsData()
-    resources_presets = ResourcesData()
+    resource_presets = ResourcesData()
 
     def __init__(self):
         self.load_all()
-        self.fill_mock_data()
+        # self.fill_mock_data()
 
     def save_all(self):
         self.multijobs.save()
         self.ssh_presets.save()
         self.pbs_presets.save()
-        self.resources_presets.save()
+        self.resource_presets.save()
         logging.info('==== Everything saved successfully! ====')
 
     def load_all(self):
@@ -89,13 +89,10 @@ class DataContainer(object):
         if not self.pbs_presets:
             self.pbs_presets = PbsData()
 
-        self.resources_presets.load()
-        if not self.resources_presets:
-            self.resources_presets = ResourcesData()
+        self.resource_presets.load()
+        if not self.resource_presets:
+            self.resource_presets = ResourcesData()
         logging.info('==== Everything loaded successfully! ====')
 
     def fill_mock_data(self):
-        self.resources_presets["klic"] = ["Jmeno", "Data"]
-        self.resources_presets["klic1"] = ["Jmeno1", "Data"]
-        self.resources_presets["klic2"] = ["Zuzan", "Data"]
-        self.resources_presets["klic3"] = ["Altos", "Data"]
+        pass
