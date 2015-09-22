@@ -1,0 +1,23 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07
+    # Invalid offset of key "description" is a syntax error.
+    # It causes 101 - a fatal error than the editor can not
+    # recover from.
+    # Always fix error 101 before attempting to fix other errors.
+   description: Test
+    anything: else

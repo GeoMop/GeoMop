@@ -1,0 +1,24 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+    sets:
+      - name: array_example
+        # Array is not large enough - triggers 306.
+        intersection: [a]
+      - name: array_example2
+        # Array is too large - triggers 307.
+        intersection: [a, b, c]
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+        - bc_pressure: 0
+          bc_type: dirichlet
+          r_set: BOUNDARY
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: &solver !Petsc
+      a_tol: 1.0e-07

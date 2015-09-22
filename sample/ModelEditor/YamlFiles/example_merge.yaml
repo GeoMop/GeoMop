@@ -1,0 +1,40 @@
+problem: !SequentialCoupling
+  mesh:
+    mesh_file: input/dual_por.msh
+  primary_equation: !Steady_MH
+    balance: true
+    input_fields:
+        - &first
+          bc_pressure: &cant_merge 0
+          bc_type: dirichlet
+        - &second
+        # Using the "<<:" merge operator will copy the content
+        # of the references node to this node. Any keys can
+        # be explicitly overwritten.
+          <<: *first
+          bc_pressure: 1
+          r_set: BOUNDARY
+        - &third
+          <<: *second
+          bc_type: neumann
+        # It is possible to merge multiple references. The latter
+        # references will not overwrite formerly defined keys.
+        # Keys can still be explicitly overwritten.
+        - <<: [*first, *second]
+          bc_pressure: 3
+        # When merging, the reference has to be a Record node.
+        # Any other references will trigger 504.
+        - <<: *cant_merge
+          bc_type: neumann
+        # If there is no reference or an array of references
+        # in the merge operator, it triggers 503.
+        - <<: 42
+          bc_type: neumann
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07
