@@ -2,7 +2,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from data.meconfig import MEConfig as cfg
-import data.data_node as dn
+from data import ScalarNode, CompositeNode
 import util
 
 
@@ -199,21 +199,21 @@ class Node:
         """return row index for node"""
         if node.parent is None:
             return None
-        if isinstance(node, dn.CompositeNode):
+        if isinstance(node, CompositeNode):
             return node.parent.children.index(node)
         return None
 
     @staticmethod
     def count_child_rows(node):
         """return count of children for node"""
-        if isinstance(node, dn.CompositeNode):
+        if isinstance(node, CompositeNode):
             return len(node.children)
         return 0
 
     @staticmethod
     def get_child(node, row):
         """return child in row row for node"""
-        if isinstance(node, dn.CompositeNode):
+        if isinstance(node, CompositeNode):
             if len(node.children) > row:
                 return node.children[row]
         return None
@@ -223,6 +223,6 @@ class Node:
         """return text displyed in tree in set column for node"""
         if column == 0:
             return node.key.value
-        if isinstance(node, dn.ScalarNode) and column == 1:
+        if isinstance(node, ScalarNode) and column == 1:
             return str(node.value)
         return ""
