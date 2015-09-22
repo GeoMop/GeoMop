@@ -6,14 +6,11 @@ import os
 import copy
 
 import config as cfg
-import geomop_dialogs
 from data.import_json import parse_con, fix_tags, rewrite_comments
 from data.yaml import Loader
 from data.yaml.transformator import Transformator, TransformationFileFormatError
-from ui.dialogs import TranformationDetailDlg
 from data.validation.validator import Validator
 import data.format as fmt
-import PyQt5.QtWidgets as QtWidgets
 from data.error_handler import ErrorHandler
 import data.autoconversion as ac
 from ist import InfoTextGenerator
@@ -189,8 +186,7 @@ class MEConfig:
                 return file_d.read()
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog(
+                cls._report_error(
                     "Can't open format file '" + cls.curr_format_file + "'", err)
             else:
                 raise err
@@ -206,8 +202,7 @@ class MEConfig:
                 return file_d.read()
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog(
+                cls._report_error(
                     "Can't open transformation file '" + file + "'", err)
             else:
                 raise err
@@ -262,8 +257,7 @@ class MEConfig:
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't open file", err)
+                cls._report_error("Can't open file", err)
             else:
                 raise err
         return False
@@ -296,14 +290,12 @@ class MEConfig:
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't open import file", err)
+                cls._report_error("Can't open import file", err)
             else:
                 raise err
         except Exception as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't import file from con format", err)
+                cls._report_error("Can't import file from con format", err)
             else:
                 raise err
         return False
@@ -329,8 +321,7 @@ class MEConfig:
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't open file", err)
+                cls._report_error("Can't open file", err)
             else:
                 raise err
         return False
@@ -371,8 +362,7 @@ class MEConfig:
             cls.changed = False
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't save file", err)
+                cls._report_error("Can't save file", err)
             else:
                 raise err
 
@@ -389,8 +379,7 @@ class MEConfig:
             cls.changed = False
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't save file", err)
+                cls._report_error("Can't save file", err)
             else:
                 raise err
 
@@ -412,13 +401,16 @@ class MEConfig:
             transformator = Transformator(text)
         except (ValueError, TransformationFileFormatError) as err:
             if cls.main_window is not None:
-                err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                err_dialog.open_error_dialog("Can't decode transformation file", err)
+                cls._report_error("Can't decode transformation file", err)
             else:
                 raise err
             return
         dialog = None
+        res = True
         if cls.main_window is not None:
+            from ui.dialogs import TranformationDetailDlg
+            import PyQt5.QtWidgets as QtWidgets
+            
             dialog = TranformationDetailDlg(transformator.name,
                                             transformator.description,
                                             transformator.old_version,
@@ -426,13 +418,13 @@ class MEConfig:
                                             transformator.new_version,
                                             transformator.new_version in cls.transformation_files,
                                             cls.main_window)
-        if cls.main_window is None or QtWidgets.QDialog.Accepted == dialog.exec_():
+            res = QtWidgets.QDialog.Accepted == dialog.exec_()
+        if res :
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:
                 if cls.main_window is not None:
-                    err_dialog = geomop_dialogs.GMErrorDialog(cls.main_window)
-                    err_dialog.open_error_dialog("Can't decode transformation file", err)
+                    cls._report_error("Can't decode transformation file", err)
                 else:
                     raise err
                 return
@@ -440,3 +432,9 @@ class MEConfig:
                 cls.set_current_format_file(transformator.new_version)
             else:
                 cls.update()
+                
+    @classmethod
+    def _report_error(cls, mess,  err):
+        from geomop_dialogs import GMErrorDialog
+        err_dialog = GMErrorDialog(cls.main_window)
+        err_dialog.open_error_dialog(mess, err)

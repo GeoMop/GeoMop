@@ -182,16 +182,16 @@ class Comments:
         lines = text.splitlines(False)
         col = 0
         line = 0
-        while True:
-            comm, col, line = self._read_comment(col, line, lines)
-            if comm is not None:
-                self.comments.append(Comment('/', comm, False))
-            else:
-                break
+        comm, col, line = self._read_comments(col, line, lines)
+        if comm is not None:
+            self.comments.append(Comment('/', comm, False))
         type_, col, line = self._read_start_of_block(col, line, lines)
         if type_ is None:
             return text
         self._traverse_child(col, line, type_, lines, path, data)
+        comm, col, line = self._read_comments(col, line, lines, False)
+        if comm is not None:
+            self.comments.append(Comment('/', comm, True))
 
     def _traverse_child(self, col, line, type_, lines, path, data):
         """process all data in level and call recursively itself for next children"""
@@ -200,7 +200,7 @@ class Comments:
             return col, line
         i = 0
         while line < (len(lines)-1) or col < (len(lines[len(lines)-1])):
-            comm, col, line = self._read_comment(col, line, lines)
+            comm, col, line = self._read_comments(col, line, lines)
             if type_ == self.BlokType.dict:
                 key, col, line = self._read_key(col, line, lines)
                 if key is None:
@@ -212,7 +212,7 @@ class Comments:
                     return col, line
                 if comm is not None:
                     self.comments.append(Comment(new_path, comm, False))
-                comm, col, line = self._read_comment(col, line, lines)
+                comm, col, line = self._read_comments(col, line, lines)
             else:
                 new_path = self._get_real_path(path, str(i), data)
                 i += 1
@@ -227,15 +227,18 @@ class Comments:
                 col, line = self._traverse_child(col, line, child_type, lines, new_path, data)
             else:
                 value, col, line = self._read_value(col, line, lines)
-            comm, col, line = self._read_comment(col, line, lines)
+            comm, col, line = self._read_comments(col, line, lines)
             if comm is not None:
                 self.comments.append(Comment(new_path, comm, True))
             res, col, line = self._read_end_of_block(col, line, lines, type_)
             if res:
+                comm, col, line = self._read_comments(col, line, lines, True)
+                if comm is not None:
+                    self.comments.append(Comment(new_path, comm, True))
                 return col, line
             res, col, line = self._read_sep(col, line, lines)
             if res:
-                comm, col, line = self._read_comment(col, line, lines, True)
+                comm, col, line = self._read_comments(col, line, lines, True)
                 if comm is not None:
                     self.comments.append(Comment(new_path, comm, True))
             else:
@@ -445,9 +448,24 @@ class Comments:
                 return self._trim(value), 0, line+i
             txt = lines[line+i]
 
-    def _read_comment(self, col, line, lines, only_after=False):
+    def _read_comments(self, col, line, lines, only_after=False):
         """
-        find key in text
+        read all comments in text        
+        """
+        ret  = None
+        while True:
+            comm, col, line = self._read_comment(col, line, lines, only_after)
+            if comm is not None:
+                if ret is None:
+                    ret = comm
+                else:
+                    ret += "\n" + comm 
+            else:
+                return ret, col, line
+
+    def _read_comment(self, col, line, lines, only_after):
+        """
+        find comment in text
 
         return comment (success) or None and new line and column
         """
@@ -667,25 +685,24 @@ class Comments:
         return None, col, line
 
     def _get_real_path(self, path, key, data):
-        """check path existence in data"""
-        new_path = path + "/" + key
-        if key == "TYPE" or key == "REF":
-            try:
-                node = data.get_node_at_path(path)
-            except:
-                return None
-            return new_path
-        try:
-            node = data.get_node_at_path(new_path)
-        except:
-            try:
-                node = data.get_node_at_path(path)
-                if isinstance(node, dn.CompositeNode) and len(node.children) == 1:
-                    new_path = path + "/0/" + key
-                    node = data.get_node_at_path(new_path)
-                else:
+        """check path existence in data"""        
+        if key != "TYPE" and key != "REF":
+            path += "/" + key
+        node = data
+        for key in path.split('/'):
+            autoconversion = True
+            while autoconversion:
+                if not key:
+                    # go to next key
+                    break
+                if not isinstance(node, dn.CompositeNode):
                     return None
-            except:
-                return None
-            return False
-        return new_path
+                if node.get_child(key) is None:
+                    if len(node.children) == 1 and node.children[0].origin != dn.Origin.structure:
+                        node = node.children[0]                        
+                    else:
+                        return None
+                else:
+                    node = node.get_child(key)
+                    autoconversion = False
+        return node.absolute_path
