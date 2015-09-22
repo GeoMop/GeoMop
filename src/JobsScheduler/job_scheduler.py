@@ -1,53 +1,60 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Start script that initializes main window
+Start script that initializes main window and runs APP
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
-# import common directory to path
 import sys
 import os
-# sys.path.append("../common")
-
-__lib_dir__ = os.path.join(
-    os.path.split(
-        os.path.dirname(
-            os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
+import logging
 
 import PyQt5.QtWidgets as QtWidgets
 from ui.main_window import MainWindow
 from data.data_structures import DataContainer
-import logging
 
 
 class JobsScheduler(object):
     """Jobs Scheduler main class"""
 
-    def __init__(self):
+    def __init__(self, args):
         """Initialization of UI with executive code"""
-        # logging setup on STDOUT or to FILE
-        logging.basicConfig(#filename='jobscheduler.log',
-                            stream=sys.stdout,
-                            datefmt='%d.%m.%Y|%H:%M:%S',
-                            format='%(asctime)s|%(levelname)s: %(message)s',
-                            level=logging.DEBUG)
-        logging.info('==== %s started ====', self.__class__.__name__)
-        # qt app setup
-        self._app = QtWidgets.QApplication(sys.argv)
-        # data container with config handler inserted
+        # log app init
+        logging.info('==== %s initialization ====', self.__class__.__name__)
+
+        # setup qt app
+        self._app = QtWidgets.QApplication(args)
+
+        # load data container
         self._data = DataContainer()
-        # qt UI
+
+        # setup qt UI
         self._main_window = MainWindow(data=self._data)
-        logging.info('==== %s drawn ====',
-                     self._main_window.__class__.__name__)
+
+    def run(self):
+        """Run app and show UI"""
+
         # show UI
         self._main_window.show()
-        logging.info('==== %s shown ====',
-                     self._main_window.__class__.__name__)
+
+        # log app start
+        logging.info('==== %s is running  ====', self.__class__.__name__)
+
+        # execute app
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":
-    APP = JobsScheduler()
+    # import common directory to path (should be in __init__)
+    sys.path.append(".." + os.pathsep + "common")
+
+    # logging setup on STDOUT or to FILE
+    logging.basicConfig(  # filename='jobscheduler.log',
+                          stream=sys.stdout,
+                          datefmt='%d.%m.%Y|%H:%M:%S',
+                          format='%(asctime)s|%(levelname)s: %(message)s',
+                          level=logging.DEBUG)
+
+    # init and run APP
+    APP = JobsScheduler(sys.argv)
+    APP.run()

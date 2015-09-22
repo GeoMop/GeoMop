@@ -9,6 +9,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from data.data_structures import ID
 from ui.actions.main_window_actions import *
+from ui.dialogs.resource_presets import ResourcePresets
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_overview import MultiJobOverview
 from ui.panels.multijob_infotab import MultiJobInfoTab
@@ -33,11 +34,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(self,
-                                     resources=self.data.resources_presets)
+                                     resources=self.data.resource_presets)
         self.ssh_presets_dlg = SshPresets(self, self.data.ssh_presets)
         self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
-        self.resource_presets_dlg = PbsPresets(self,
-                                               self.data.resources_presets)
+        self.resource_presets_dlg = ResourcePresets(self,
+                                                    presets=self.data.resource_presets,
+                                                    pbs=self.data.pbs_presets,
+                                                    ssh=self.data.ssh_presets)
+
         # multijob dialog
         self.ui.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
@@ -51,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
         self.multijobs_changed.connect(self.data.multijobs.save)
         self.pbs_presets_dlg.presets_changed.connect(
-            self.mj_dlg.set_resources)
+            self.mj_dlg.set_resource_presets)
 
         # ssh presets
         self.ui.actionSshPresets.triggered.connect(
@@ -69,7 +73,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
         self.resource_presets_dlg.presets_changed.connect(
-            self.data.resources_presets.save)
+            self.data.resource_presets.save)
+        self.pbs_presets_dlg.presets_changed.connect(
+            self.resource_presets_dlg.presets_dlg.set_pbs_presets)
+        self.ssh_presets_dlg.presets_changed.connect(
+            self.resource_presets_dlg.presets_dlg.set_ssh_presets)
 
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)

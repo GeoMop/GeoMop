@@ -14,7 +14,7 @@ class ResourcePresets(AbstractPresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent=None, presets=None):
+    def __init__(self, parent=None, presets=None, pbs=None, ssh=None):
         super(ResourcePresets, self).__init__(parent)
 
         # setup preset specific UI
@@ -27,6 +27,8 @@ class ResourcePresets(AbstractPresetsDialog):
 
         # set custom dialog
         self.presets_dlg = ResourceDialog()
+        self.presets_dlg.set_pbs_presets(pbs)
+        self.presets_dlg.set_ssh_presets(ssh)
 
         # connect generic presets slots (must be called after UI setup)
         super(ResourcePresets, self)._connect_slots()

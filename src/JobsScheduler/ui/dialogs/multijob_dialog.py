@@ -47,21 +47,27 @@ class MultiJobDialog(AbstractFormDialog):
 
         # set purpose, data and resources
         self.set_purpose(purpose, data)
-        self.set_resources(resources)
+        self.set_resource_presets(resources)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super(MultiJobDialog, self)._connect_slots()
         # specific slots
-        self.ui.analysisPushButton.clicked.connect(
-            lambda: self.ui.analysisLineEdit.setText(
-                self.ui.analysisFolderPicker.getExistingDirectory
-                (self, directory=self.ui.analysisLineEdit.text())))
+        self.ui.analysisPushButton.clicked.connect(self.handle_dir_picking)
 
-    def set_resources(self, resources):
+    def handle_dir_picking(self):
+        old_dir = self.ui.analysisLineEdit.text()
+        new_dir = self.ui.analysisFolderPicker \
+            .getExistingDirectory(self,
+                                  caption="Please select Analysis directory",
+                                  directory=old_dir)
+        if new_dir:
+            self.ui.analysisLineEdit.setText(new_dir)
+
+    def set_resource_presets(self, resources):
         self.ui.resourceComboBox.clear()
         if resources:
-            # sort dict
+            # sort dict by list, not sure how it works
             for idx in sorted(resources, key=resources.get, reverse=False):
                 self.ui.resourceComboBox.addItem(resources[idx][0], idx)
 
@@ -156,7 +162,7 @@ class UiMultiJobDialog(UiFormDialog):
         self.analysisPushButton = QtWidgets.QPushButton(
             self.mainVerticalLayoutWidget)
         self.analysisPushButton.setObjectName("analysisPushButton")
-        self.analysisPushButton.setText("Browse")
+        self.analysisPushButton.setText("&Browse")
         self.rowSplit.addWidget(self.analysisPushButton)
         self.analysisFolderPicker = QtWidgets.QFileDialog(
             self.mainVerticalLayoutWidget)
