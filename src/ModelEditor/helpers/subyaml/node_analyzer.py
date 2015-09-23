@@ -1,7 +1,6 @@
-from enum import Enum
 from helpers.subyaml.line_analyzer import LineAnalyzer
 from data import Position, CompositeNode
-
+from data import NodeStructureType
 
 class NodeAnalyzer:
     """
@@ -107,10 +106,3 @@ class NodeAnalyzer:
                 else:
                     return Position(i+1, 1)
         return start_pos
-
-class NodeStructureType(Enum):
-    scalar = 1
-    array = 2
-    dict = 3
-    json_array = 4
-    json_dict = 5

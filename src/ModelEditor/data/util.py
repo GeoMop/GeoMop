@@ -6,7 +6,6 @@ __author__ = 'Tomas Krizek'
 
 from enum import Enum
 
-
 class TextValue:
     """Represents a value in the input text."""
     def __init__(self, value=None):
@@ -14,7 +13,6 @@ class TextValue:
         """the value from input text"""
         self.span = None
         """:class:`.Span` specifies the position of value in input text"""
-
 
 class PosType(Enum):
     comment = 1
@@ -53,3 +51,10 @@ class CursorType(Enum):
         if pos_type is PosType.in_value:
             return CursorType.value
         return CursorType.other
+
+class NodeStructureType(Enum):
+    scalar = 1
+    array = 2
+    dict = 3
+    json_array = 4
+    json_dict = 5

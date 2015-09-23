@@ -1,6 +1,5 @@
 """Helper for yaml text editor"""
 
-from enum import Enum
 import re
 import copy
 from helpers.subyaml.line_analyzer import LineAnalyzer
@@ -113,7 +112,7 @@ class ChangeAnalyzer:
             if i >= len(self._area):
                 space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
                 if space_after is not None:
-                    return i-1, space_after.end(1)-1
+                    return i-1, space_after.end(1)
                 return i, 0
             is_dist, dist =  LineAnalyzer.get_after_key_area(self._area[i])
             if is_dist:
@@ -122,7 +121,7 @@ class ChangeAnalyzer:
             else:
                 space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
                 if space_after is not None:
-                    return i-1, space_after.end(1)-1
+                    return i-1, space_after.end(1)
                 return i, 0
 
     def get_key_pos_type(self):

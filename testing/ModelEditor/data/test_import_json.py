@@ -133,45 +133,45 @@ def test_read_comment():
     line = 0
     col = 0
     lines = ["    // test ooo"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # common comment 1
     assert comment == "test ooo" and line ==1 and col == 0
     line = 0
     col = 0
     lines = ["    // test:ooo"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # common comment 2
     assert comment == "test:ooo" and line ==1 and col == 0
     line = 0
     col = 6
     lines = ["a1,a2 /*test:ooo,test2:uuu*/,a3"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # common comment 3
     assert comment == "test:ooo,test2:uuu" and line ==0 and col == 28
     line = 0
     col = 0
     lines = ["    /*test:ooo,test2:uuu*/, /*a3*/,    //re566{}[]po/*opu*/"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # common comment 4
     assert comment == "test:ooo,test2:uuu" and line ==0 and col == 26
     col += 1
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # common comment 5
     assert comment == "a3" and line ==0 and col == 34
     col += 1
-    comment, col, line = comments. _read_comment(col, line, lines)    
+    comment, col, line = comments. _read_comment(col, line, lines, False)    
     # common comment 6
     assert comment == "re566{}[]po/*opu*/" and line ==1 and col == 0
     line = 0
     col = 0
     lines = ["","   /*","test:","      ooo,","   test2:uuu","*/, /*a3*/,    //re566{}[]po/*opu*/"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # multiline comment
     assert comment == "test:\n      ooo,\n   test2:uuu" and line ==5 and col == 2
     line = 0
     col = 0
     lines = ["test //test"]
-    comment, col, line = comments. _read_comment(col, line, lines)
+    comment, col, line = comments. _read_comment(col, line, lines, False)
     # no comment
     assert comment is None and line == 0 and col == 0
     

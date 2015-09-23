@@ -189,6 +189,7 @@ class YamlEditorWidget(QsciScintilla):
     def _cursor_position_changed(self, line, index):
         """Function for cursorPositionChanged signal"""
         old_cursor_type_position = self._pos.cursor_type_position
+        old_pred_parent = self._pos.pred_parent
         if self._pos.new_pos(self, line, index):
             if self._pos.is_changed:
                 self.structureChanged.emit(line + 1, index + 1)
@@ -196,11 +197,16 @@ class YamlEditorWidget(QsciScintilla):
                 self.nodeChanged.emit(line + 1, index + 1)
         else:
             self._pos.make_post_operation(self, line, index)
-            if old_cursor_type_position != self._pos.cursor_type_position and \
-                    old_cursor_type_position is not None:
+            if (old_cursor_type_position != self._pos.cursor_type_position and \
+                    old_cursor_type_position is not None) or \
+               (self._pos.pred_parent != old_pred_parent):
                 self.elementChanged.emit(self._pos.cursor_type_position.value,
                                          old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
+
+    @property
+    def pred_parent(self):
+        return self._pos.pred_parent
 
     @property
     def cursor_type_position(self):
@@ -500,6 +506,7 @@ class EditorPosition:
         """fatal error node"""
         self.cursor_type_position = None
         """Type of yaml structure below cursor"""
+        self.pred_parent = None
 
     def new_array_line_completation(self, editor):
         """New line was added"""

@@ -12,6 +12,7 @@ from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from data import Position
+from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 
@@ -141,6 +142,10 @@ class ModelEditor:
 
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
+        if self._editor.pred_parent is not None:
+            self._info.update_from_node(self._editor.pred_parent, 
+                                        CursorType.key.value)
+            return
         line, index = self._editor.getCursorPosition()
         node = cfg.get_data_node(Position(line + 1, index + 1))
         if node is not None:
