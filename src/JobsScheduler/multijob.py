@@ -19,6 +19,7 @@ def  mj_action_funcion(message):
         logging.debug("Job apllication began start")
         try:
             installation = Installation()
+            installation.set_install_params("/opt/python/bin/python3.3", None)
             installation.local_copy_path()           
             subprocess.Popen(installation.get_args("job"))
             action = tdata.Action(tdata.ActionType.ok)
