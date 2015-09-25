@@ -9,8 +9,8 @@ if sys.platform == "win32":
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
         
-        def __init__(self, host,  name,  password=''):
-            super( SshOutputComm, self).__init__(host)
+        def __init__(self, host, mj_name, name,  password=''):
+            super( SshOutputComm, self).__init__(host, mj_name)
             self.name = name
             """login name for ssh connection"""
             self.password = password
@@ -69,8 +69,8 @@ else:
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
         
-        def __init__(self, host,  name,  password=''):
-            super( SshOutputComm, self).__init__(host)
+        def __init__(self, host, mj_name,  name,  password=''):
+            super( SshOutputComm, self).__init__(host, mj_name)
             self.name = name
             """login name for ssh connection"""
             self.password = password

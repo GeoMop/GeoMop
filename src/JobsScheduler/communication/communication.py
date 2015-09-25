@@ -6,10 +6,10 @@ import communication.installation as dinstall
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
     
-    def __init__(self, host):
+    def __init__(self, host, mj_name):
         self.host=host
         """ip or dns of host for communication"""
-        self.installation = dinstall.Installation()
+        self.installation = dinstall.Installation(mj_name)
         """installation where is copied files"""
     
     def set_install_params(self, python_exec,  scl_enable_exec):

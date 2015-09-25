@@ -8,8 +8,8 @@ from communication.communication import OutputComm
 class ExecOutputComm(OutputComm):
     """Ancestor of communication classes"""
     
-    def __init__(self, port):
-        super(ExecOutputComm, self).__init__("localhost")
+    def __init__(self, mj_name, port):
+        super(ExecOutputComm, self).__init__("localhost", mj_name)
         self.port = port
         """port for server communacion"""
         self.conn = None

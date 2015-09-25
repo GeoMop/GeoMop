@@ -11,14 +11,15 @@ from communication import Communicator
 
 ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "delegator"
-ccom.next_communicator = "multijob"
+ccom.next_communicator = "mj_service"
 ccom.log_level = logging.DEBUG
 ccom.input_type = comconf.InputCommType.std
-ccom.output_type = comconf.OutputCommType.pbs
-ccom.pbs = comconf.PbsConfig()
-ccom.python_exec = "/opt/python/bin/python3.3"
-ccom.pbs.with_socket = True
-ccom.pbs.name = "mj"
+#ccom.output_type = comconf.OutputCommType.pbs
+#ccom.pbs = comconf.PbsConfig()
+#ccom.python_exec = "/opt/python/bin/python3.3"
+#ccom.pbs.with_socket = True
+#ccom.pbs.name = "mj_service"
+ccom.output_type = comconf.OutputCommType.exec_
 
 comunicator = Communicator(ccom)
 

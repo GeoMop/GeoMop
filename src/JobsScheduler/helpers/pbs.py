@@ -4,25 +4,27 @@ class Pbs():
     """
     Class for configuration qsub command
     """
-    def __init__(self, config):
+    def __init__(self, mj_path, config):
         """init"""
         self.config = config
         """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
+        self. mj_path = mj_path
+        """folder name for multijob data"""
         
     def prepare_file(self, command, interpreter=None, args=[]):
         """Open and construct shell file for pbs starting"""
         if not os.path.isdir(self.config.name):
             os.makedirs(self.config.name)
         
-        f = open(self.config.name  + "/com.qsub", 'w')
+        f = open(self.mj_path + "/" + self.config.name  + "/com.qsub", 'w')
         f.write ('#!/bin/bash\n')
         f.write ('#\n')
         f.write ('#$ -cwd')
         f.write ('#$ -j y\n')
         f.write ('#$ -S /bin/bash\n')
         f.write ('#$ -terse\n')
-        f.write ('#$ -o ' + self.config.name + '/pbs_output\n')
-        f.write ('#$ -e ' + self.config.name + '/pbs_error\n')
+        f.write ('#$ -o ' + self.mj_path + "/" + self.config.name + '/pbs_output\n')
+        f.write ('#$ -e ' + self.mj_path + "/" + self.config.name + '/pbs_error\n')
         f.write ('#\n')
         f.write ('\n')
         line = ""
@@ -37,19 +39,19 @@ class Pbs():
         f.close()
         
     def get_qsub_args(self):
-        return ["qsub", "-pe", "orte", "1", self.config.name + "/com.qsub"]
+        return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         
     def get_outpup(self):
-        if  os.path.isfile(self.config.name + "/pbs_output"):
-            f = open(self.config.name + "/pbs_output", 'r')
+        if  os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_output"):
+            f = open(self.mj_path + "/" + self.config.name + "/pbs_output", 'r')
             lines = f.read().splitlines(False)
             f.close()
             return lines
         return None
     
     def get_errors(self):
-        if  os.path.isfile(self.config.name + "/pbs_error"):
-            f = open(self.config.name + "/pbs_error", 'r')
+        if  os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_error"):
+            f = open(self.mj_path + "/" + self.config.name + "/pbs_error", 'r')
             error = f.read()
             f.close()
             return error

@@ -8,8 +8,8 @@ from communication.exec_output_comm import ExecOutputComm
 class PbsOutputComm(ExecOutputComm):
     """Communication over PBS"""
     
-    def __init__(self, port, pbs_config):
-        super(PbsOutputComm, self).__init__(port)
+    def __init__(self, mj_name, port, pbs_config):
+        super(PbsOutputComm, self).__init__(port, mj_name)
         self.config = pbs_config
         """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
         self.jobid = None
@@ -17,7 +17,7 @@ class PbsOutputComm(ExecOutputComm):
         
     def exec_(self, python_file):
         """run set python file in ssh"""
-        hlp = pbs.Pbs(self.config) 
+        hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config) 
         hlp.prepare_file(self.installation.get_command_only(python_file), self.installation.get_interpreter())      
         process = subprocess.Popen(hlp.get_qsub_args(), 
             stdout=subprocess.PIPE)

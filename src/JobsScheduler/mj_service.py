@@ -18,8 +18,8 @@ def  mj_action_funcion(message):
     if message.action_type == tdata.ActionType.installation:
         logging.debug("Job apllication began start")
         try:
-            installation = Installation()
-            installation.set_install_params("/opt/python/bin/python3.3", None)
+            installation = Installation(ccom.mj_name)
+            #installation.set_install_params("/opt/python/bin/python3.3", None)
             installation.local_copy_path()           
             subprocess.Popen(installation.get_args("job"))
             action = tdata.Action(tdata.ActionType.ok)
@@ -31,9 +31,10 @@ def  mj_action_funcion(message):
     return False, True, None
 
 ccom = comconf.CommunicatorConfig()
-ccom.communicator_name = "multijob"
+ccom.communicator_name = "mj_service"
 ccom.log_level = logging.DEBUG
-ccom.input_type = comconf.InputCommType.pbs
+#ccom.input_type = comconf.InputCommType.pbs
+ccom.input_type = comconf.InputCommType.socket
 comunicator = Communicator(ccom, None, mj_action_funcion)
 if __name__ != "multijob":
     # no doc generation

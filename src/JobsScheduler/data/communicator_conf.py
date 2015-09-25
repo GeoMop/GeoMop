@@ -36,6 +36,8 @@ class CommunicatorConfig():
     """
     
     def __init__(self):
+        self.mj_name = "mj"
+        """folder name for multijob data"""
         self.input_type = InputCommType.none
         """Input communication type"""
         self.output_type = OutputCommType.none

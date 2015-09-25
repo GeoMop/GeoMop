@@ -57,6 +57,11 @@ class Wssh():
         """ssh pwd"""
         self.ssh.write("pwd\n")        
         return self._read_filter("pwd")
+        
+    def rmdir(self, dir):
+        """ssh rm"""
+        self.ssh.write("rm -rf " + dir + "\n")        
+        return self._read_filter("rm -rf " + dir)
     
     def mkdir(self, dir):
         """ssh cd"""

@@ -51,7 +51,7 @@ class Communicator():
         """_installed lock"""
         self._instalation_begined = False        
         """if installation begined"""
-        self._set_loger(Installation.get_result_dir(), 
+        self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
             self.communicator_name, self.log_level)
         if action_func_before is None:
             self.action_func_before = self.standart_action_funcion_before
@@ -86,12 +86,12 @@ class Communicator():
             self.input.connect()
     
         if init_conf.output_type == comconf.OutputCommType.ssh:
-            self.output = SshOutputComm(init_conf.host, init_conf.uid, init_conf.pwd)
+            self.output = SshOutputComm(init_conf.host, init_conf.mj_name, init_conf.uid, init_conf.pwd)
             self.output.connect()
         elif init_conf.output_type == comconf.OutputCommType.pbs:
-            self.output = PbsOutputComm(init_conf.port, init_conf.pbs)            
+            self.output = PbsOutputComm(init_conf.mj_name, init_conf.port, init_conf.pbs)            
         elif init_conf.output_type == comconf.OutputCommType.exec_:
-            self.output = ExecOutputComm(init_conf.port)
+            self.output = ExecOutputComm(init_conf.mj_name, init_conf.port)
         
         if init_conf.output_type != comconf.OutputCommType.none:
             self.output.set_install_params(init_conf.python_exec,  init_conf.scl_enable_exec)
