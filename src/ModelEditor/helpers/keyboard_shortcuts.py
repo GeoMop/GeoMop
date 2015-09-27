@@ -18,17 +18,19 @@ class KeyboardShortcut:
         'ALT': QsciScintilla.SCMOD_ALT << 16,
         'TAB': QsciScintilla.SCK_TAB,
         'DELETE': QsciScintilla.SCK_DELETE,
+        'ENTER': QsciScintilla.SCK_RETURN,
     }
 
     __QT_MODIFIERS = {
         'CTRL': Qt.ControlModifier,
         'SHIFT': Qt.ShiftModifier,
-        'ALT': Qt.AltModifier
+        'ALT': Qt.AltModifier,
     }
 
     __QT_KEYS = {
         'TAB': Qt.Key_Tab,
         'DELETE': Qt.Key_Delete,
+        'ENTER': Qt.Key_Return,
     }
 
     def __init__(self, shortcut):
@@ -87,6 +89,7 @@ INDENT = KeyboardShortcut('Tab')
 UNINDENT = KeyboardShortcut('Shift+Tab')
 COMMENT = KeyboardShortcut('Ctrl+/')
 DELETE = KeyboardShortcut('Delete')
+ENTER = KeyboardShortcut('Enter')
 SELECT_ALL = KeyboardShortcut('Ctrl+A')
 FIND = KeyboardShortcut('Ctrl+F')
 REPLACE = KeyboardShortcut('Ctrl+H')
@@ -112,5 +115,6 @@ SCINTILLA_DISABLE = [
     UNINDENT,
     COMMENT,
     DELETE,
-    SELECT_ALL
+    SELECT_ALL,
+    ENTER,
 ]
