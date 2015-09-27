@@ -8,13 +8,13 @@ __author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QGridLayout)
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 
 class FindDialog(QDialog):
     """Dialog for editor searching."""
 
-    findRequested = pyqtSignal(str, bool, bool, bool)
+    find_request = pyqtSignal(str, bool, bool, bool)
     """
     Signal is triggered when the find button is clicked.
     Parameters: search term (str), is regular expression (bool), is case sensitive (bool),
@@ -42,11 +42,13 @@ class FindDialog(QDialog):
 
         self.init_components()
         self.init_layout()
+        self.set_default_text_color()
 
     def init_components(self):
         """Initializes the user interface components."""
         self.find_label = QLabel('Search for: ', self)
         self.find_line_edit = QLineEdit(self)
+        self.find_line_edit.textChanged.connect(self.set_default_text_color)
         self.cs_check_box = QCheckBox('Match case', self)
         self.re_check_box = QCheckBox('Regular expression', self)
         self.wo_check_box = QCheckBox('Match entire word only', self)
@@ -55,6 +57,13 @@ class FindDialog(QDialog):
         self.find_button.clicked.connect(self.accept)
         self.close_button = QPushButton('Close', self)
         self.close_button.clicked.connect(self.close)
+
+        self.setTabOrder(self.find_line_edit, self.cs_check_box)
+        self.setTabOrder(self.cs_check_box, self.re_check_box)
+        self.setTabOrder(self.re_check_box, self.wo_check_box)
+        self.setTabOrder(self.wo_check_box, self.find_button)
+        self.setTabOrder(self.find_button, self.close_button)
+        self.setTabOrder(self.close_button, self.find_line_edit)
 
     def init_layout(self):
         """Initializes the layout of widget."""
@@ -83,13 +92,22 @@ class FindDialog(QDialog):
         is_case_sensitive = self.cs_check_box.isChecked()
         is_regex = self.re_check_box.isChecked()
         is_word = self.wo_check_box.isChecked()
-        self.findRequested.emit(search_term, is_regex, is_case_sensitive, is_word)
+        self.find_request.emit(search_term, is_regex, is_case_sensitive, is_word)
 
     def activateWindow(self):
         """Activates the window and sets the focus."""
         super(FindDialog, self).activateWindow()
         self.find_line_edit.selectAll()
         self.find_line_edit.setFocus()
+
+    def set_default_text_color(self):
+        """Sets the text color to default."""
+        self.find_line_edit.setStyleSheet("color: black;")
+
+    @pyqtSlot()
+    def on_not_found(self):
+        """Sets the text color to error color."""
+        self.find_line_edit.setStyleSheet("color: red;")
 
 
 class ReplaceDialog(FindDialog):

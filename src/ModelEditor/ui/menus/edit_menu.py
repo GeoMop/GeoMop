@@ -153,9 +153,13 @@ class MainEditMenu(EditMenu):
         """Handles the find action."""
         self._editor.clear_selection()
 
+        if self.replace_dialog:
+            self.replace_dialog.close()
+
         if not self.find_dialog or not self.find_dialog.isVisible():
             self.find_dialog = FindDialog(self.parent)
-            self.find_dialog.findRequested.connect(self._editor.on_find_requested)
+            self.find_dialog.find_request.connect(self._editor.on_find_requested)
+            self._editor.not_found.connect(self.find_dialog.on_not_found)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
@@ -171,11 +175,15 @@ class MainEditMenu(EditMenu):
         """Handles the replace action."""
         self._editor.clear_selection()
 
+        if self.find_dialog:
+            self.find_dialog.close()
+
         if not self.replace_dialog or not self.replace_dialog.isVisible():
             self.replace_dialog = ReplaceDialog(self.parent)
-            self.replace_dialog.findRequested.connect(self._editor.on_find_requested)
+            self.replace_dialog.find_request.connect(self._editor.on_find_requested)
             self.replace_dialog.replace_request.connect(self._editor.on_replace_requested)
             self.replace_dialog.replace_all_request.connect(self._editor.on_replace_all_requested)
+            self._editor.not_found.connect(self.replace_dialog.on_not_found)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())

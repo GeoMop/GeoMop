@@ -63,6 +63,10 @@ class YamlEditorWidget(QsciScintilla):
 
     parameter: line number in text document
     """
+    not_found = QtCore.pyqtSignal()
+    """
+    Signal is sent when search fails to find anything.
+    """
 
     def __init__(self, parent=None):
         super(YamlEditorWidget, self).__init__(parent)
@@ -414,6 +418,8 @@ class YamlEditorWidget(QsciScintilla):
         self.clear_selection()
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
+        if not self.hasSelectedText():
+            self.not_found.emit()
 
     @pyqtSlot(str, str, bool, bool, bool)
     def on_replace_requested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
@@ -431,7 +437,8 @@ class YamlEditorWidget(QsciScintilla):
         with self.reload_chunk:
             self.clear_selection()
             self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
-
+            if not self.hasSelectedText():
+                self.not_found.emit()
             while self.hasSelectedText():
                 self.replaceSelectedText(replacement)
                 self.findNext()
