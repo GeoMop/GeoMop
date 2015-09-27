@@ -15,6 +15,7 @@ from data import Position
 from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
+import argparse
 
 
 class ModelEditor:
@@ -32,13 +33,15 @@ class ModelEditor:
         self._update_document_name()
         
         # tab
-        self._tab = QtWidgets.QTabWidget( self._hsplitter)
+        self._tab = QtWidgets.QTabWidget(self._hsplitter)
         self._info = panels.InfoPanelWidget(self._tab)
         self._err = panels.ErrorWidget(self._tab)
-        self._debug_tab = panels.DebugPanelWidget(self._tab)
         self._tab.addTab(self._info, "Structure Info")
         self._tab.addTab(self._err, "Messages")
-        self._tab.addTab(self._debug_tab, "Debug")
+
+        if cfg.config.DEBUG_MODE:
+            self._debug_tab = panels.DebugPanelWidget(self._tab)
+            self._tab.addTab(self._debug_tab, "Debug")
 
         # splitters
         self._vsplitter = QtWidgets.QSplitter(
@@ -302,4 +305,12 @@ class ModelEditor:
         self._app.exec_()
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+            description='ModelEditor')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    args = parser.parse_args()
+
+    if args.debug:
+        cfg.config.DEBUG_MODE = True
+
     ModelEditor().main()
