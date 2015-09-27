@@ -75,7 +75,7 @@ class StructureAnalyzer:
                     node.children[len(node.children) - 1].separators.end.line):
                 notification = Notification.from_name('MultiLineFlow')
                 notification.span = node.span
-                notification_handler.report(node)
+                notification_handler.report(notification)
         elif node_type == NodeStructureType.array:
             cls._split_children(lines, node, cls._get_array_separator)
         for child in node.children:
