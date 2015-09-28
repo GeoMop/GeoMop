@@ -19,7 +19,7 @@ class NodeAnalyzer:
     def get_node_structure_type(self):
         """Get node structure type :class:`helpers.subyaml.node_analyzer.NodeStructureType`"""
         if isinstance(self._node,  CompositeNode):
-            if self._node.explicit_keys:
+            if not self._node.explicit_keys:
                 json_start = self.get_start_inner_json_tag()
                 if json_start is not None:
                      return NodeStructureType.json_array

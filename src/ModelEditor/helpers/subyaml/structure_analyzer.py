@@ -77,13 +77,13 @@ class StructureAnalyzer:
                 notification.span = node.span
                 notification_handler.report(node)
         elif node_type == NodeStructureType.array:
-            cls._split_children(lines, node, cls._get_array_separator)
+            cls._split_children(lines, node, cls._get_array_separator, False)
         for child in node.children:
             if isinstance(child, CompositeNode):
                 cls._analyze_node(lines, child, notification_handler)
 
     @classmethod
-    def _split_children(cls, lines, node, func):
+    def _split_children(cls, lines, node, func, is_flow=True):
         """Find and write separators (borders) positions between nodes"""
         if len(node.children) > 0:
             na = NodeAnalyzer(lines, node)
@@ -92,7 +92,7 @@ class StructureAnalyzer:
                 end_pos = func(lines, node.children[0].end, node.end)
             else:
                 end_pos = func(lines, node.children[0].end,  node.children[1].start)
-            node.children[0].is_flow = True
+            node.children[0].is_flow = is_flow
             node.children[0].separators = Span(start_pos, end_pos)
         for i in range(1, len(node.children)-1):
             start_pos = end_pos
