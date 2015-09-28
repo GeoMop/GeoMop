@@ -67,12 +67,12 @@ class StructureAnalyzer:
                 node_type == NodeStructureType.json_dict:
             cls._split_children(lines, node, cls._get_json_separator)
             if (len(node.children) > 0 and
-                    node.children[0].separators is not None and
-                    node.children[0].separators.start is not None and
-                    node.children[len(node.children) - 1].separators is not None and
-                    node.children[len(node.children) - 1].separators.end is not None and
-                    node.children[0].separators.start.line <
-                    node.children[len(node.children) - 1].separators.end.line):
+                    node.children[0].delimiters is not None and
+                    node.children[0].delimiters.start is not None and
+                    node.children[len(node.children) - 1].delimiters is not None and
+                    node.children[len(node.children) - 1].delimiters.end is not None and
+                    node.children[0].delimiters.start.line <
+                    node.children[len(node.children) - 1].delimiters.end.line):
                 notification = Notification.from_name('MultiLineFlow')
                 notification.span = node.span
                 notification_handler.report(notification)
@@ -89,18 +89,24 @@ class StructureAnalyzer:
             na = NodeAnalyzer(lines, node)
             start_pos = func(lines, na.get_node_key_end(), node.children[0].start)
             if len(node.children) == 1:
-                end_pos = func(lines, node.children[0].end, node.end)
+                if is_flow:
+                    end_pos = func(lines, node.children[0].end, node.end)
+                else:
+                    end_pos = node.children[0].end
             else:
                 end_pos = func(lines, node.children[0].end,  node.children[1].start)
             node.children[0].is_flow = is_flow
-            node.children[0].separators = Span(start_pos, end_pos)
+            node.children[0].delimiters = Span(start_pos, end_pos)
         for i in range(1, len(node.children)-1):
             start_pos = end_pos
             end_pos = func(lines, node.children[i].end,  node.children[i+1].start)
-            node.children[i].is_flow = True
-            node.children[i].separators = Span(start_pos, end_pos)
+            node.children[i].is_flow = is_flow
+            node.children[i].delimiters = Span(start_pos, end_pos)
         if len(node.children) > 1:
             start_pos = end_pos
-            end_pos = func(lines, node.children[len(node.children)-1].end,  node.end)
-            node.children[len(node.children)-1].is_flow = True
-            node.children[len(node.children)-1].separators = Span(start_pos, end_pos)
+            if is_flow:
+                end_pos = func(lines, node.children[len(node.children)-1].end,  node.end)
+            else:
+                end_pos = node.children[len(node.children)-1].end
+            node.children[len(node.children)-1].is_flow = is_flow
+            node.children[len(node.children)-1].delimiters = Span(start_pos, end_pos)

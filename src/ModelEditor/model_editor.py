@@ -141,7 +141,8 @@ class ModelEditor:
         if node is not None:
             cursor_type = self._editor.cursor_type_position
             self._info.update_from_node(node, cursor_type)
-        self._debug_tab.show_data_node(node)
+        if cfg.config.DEBUG_MODE:
+            self._debug_tab.show_data_node(node)
 
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
