@@ -31,12 +31,13 @@ class MainSettingsMenu(QMenu):
 
         self._format.addSeparator()
 
-        self._edit_format_action = QAction(
-            '&Edit Format File ...', self)
-        self._edit_format_action.setShortcut(shortcuts.EDIT_FORMAT.key_sequence)
-        self._edit_format_action.setStatusTip('Edit format file in Json Editor')
-        self._edit_format_action.triggered.connect(self._model_editor.edit_format)
-        self._format.addAction(self._edit_format_action)
+        if cfg.config.DEBUG_MODE:
+            self._edit_format_action = QAction(
+                '&Edit Format File ...', self)
+            self._edit_format_action.setShortcut(shortcuts.EDIT_FORMAT.key_sequence)
+            self._edit_format_action.setStatusTip('Edit format file in Json Editor')
+            self._edit_format_action.triggered.connect(self._model_editor.edit_format)
+            self._format.addAction(self._edit_format_action)
 
         self._transformation = self.addMenu('&Transformation')
         pom_lamda = lambda name: lambda: self._model_editor.transform(name)
@@ -46,13 +47,14 @@ class MainSettingsMenu(QMenu):
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
 
-        self._edit_transformation = self.addMenu('&Edit Transformation Rules')
-        pom_lamda = lambda name: lambda: self._model_editor.edit_transformation_file(name)
-        for frm in cfg.transformation_files:
-            faction = QAction(frm, self)
-            faction.setStatusTip('Open transformation file')
-            self._edit_transformation.addAction(faction)
-            faction.triggered.connect(pom_lamda(frm))
+        if cfg.config.DEBUG_MODE:
+            self._edit_transformation = self.addMenu('&Edit Transformation Rules')
+            pom_lamda = lambda name: lambda: self._model_editor.edit_transformation_file(name)
+            for frm in cfg.transformation_files:
+                faction = QAction(frm, self)
+                faction.setStatusTip('Open transformation file')
+                self._edit_transformation.addAction(faction)
+                faction.triggered.connect(pom_lamda(frm))
 
     def _format_checked(self):
         """Format checked action handler."""

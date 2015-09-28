@@ -63,7 +63,10 @@ class YamlEditorWidget(QsciScintilla):
 
     parameter: line number in text document
     """
-
+    not_found = QtCore.pyqtSignal()
+    """
+    Signal is sent when search fails to find anything.
+    """
 
     def __init__(self, parent=None):
         super(YamlEditorWidget, self).__init__(parent)
@@ -83,7 +86,6 @@ class YamlEditorWidget(QsciScintilla):
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
         # editor behavior
-        self.setAutoIndent(True)
         self.setIndentationGuides(True)
         self.setIndentationsUseTabs(False)
         self.setBackspaceUnindents(True)
@@ -143,7 +145,7 @@ class YamlEditorWidget(QsciScintilla):
         self.textChanged.connect(self._text_changed)
         self._pos = EditorPosition()
 
-        # disable QScintilla keyboard shorcuts to handle them in Qt
+        # disable QScintilla keyboard shortcuts to handle them in Qt
         for shortcut in shortcuts.SCINTILLA_DISABLE:
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
@@ -272,6 +274,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
+            shortcuts.ENTER: self.add_new_line,
         }
 
         for shortcut, action in actions.items():
@@ -283,17 +286,17 @@ class YamlEditorWidget(QsciScintilla):
 
     def indent(self):
         """Indents the selected lines."""
-        with self.reload_chunk:
-            from_line, from_col, to_line, to_col = self.getSelection()
-            if from_line == -1 and to_line == -1:  # no selection -> insert spaces
-                spaces = ''.join([' ' * self.tabWidth()])
-                self.insert_at_cursor(spaces)
-            else:  # text selected -> perform indent
+        from_line, from_col, to_line, to_col = self.getSelection()
+        if from_line == -1 and to_line == -1:  # no selection -> insert spaces
+            spaces = ''.join([' ' * self.tabWidth()])
+            self.insert_at_cursor(spaces)
+        else:  # text selected -> perform indent
+            with self.reload_chunk:
                 for line in range(from_line, to_line + 1):
                     super(YamlEditorWidget, self).indent(line)
-                from_col += self.tabWidth()
-                to_col += self.tabWidth()
-                self.setSelection(from_line, from_col, to_line, to_col)
+            from_col += self.tabWidth()
+            to_col += self.tabWidth()
+            self.setSelection(from_line, from_col, to_line, to_col)
 
     def unindent(self):
         """Unindents the selected lines."""
@@ -315,7 +318,8 @@ class YamlEditorWidget(QsciScintilla):
         line, col = self.getCursorPosition()
         self.insertAt(text, line, col)
         text_lines = text.splitlines()
-        cursor_line = line + len(text_lines) - 1
+        line_count = len(re.findall(r'[\n]', text))
+        cursor_line = line + line_count
         if line == cursor_line:
             cursor_col = col + len(text_lines[0])
         else:
@@ -358,10 +362,23 @@ class YamlEditorWidget(QsciScintilla):
 
     def delete(self):
         """Deletes selected text."""
-        with self.reload_chunk:
-            if not self.hasSelectedText():  # select a single character
-                self.set_selection_from_cursor(1)
-            super(YamlEditorWidget, self).removeSelectedText()
+        if not self.hasSelectedText():  # select a single character
+            self.set_selection_from_cursor(1)
+        super(YamlEditorWidget, self).removeSelectedText()
+
+    def add_new_line(self):
+        """Adds new line to the text."""
+        # Manually adding indent to new line instead of using self.setAutoIndent(True) to control
+        # undo/redo chunks.
+        indent = ''
+        line, __ = self.getCursorPosition()
+        line_text = self.text(line)
+        indent_regex = r'^([\t ]+)'
+        indent_match = re.search(indent_regex, line_text)
+        if indent_match is not None:
+            indent = indent_match.group(1)
+        new_line = '\n' + indent
+        self.insert_at_cursor(new_line)
 
     def comment(self):
         """(Un)Comments the selected lines."""
@@ -401,6 +418,8 @@ class YamlEditorWidget(QsciScintilla):
         self.clear_selection()
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
+        if not self.hasSelectedText():
+            self.not_found.emit()
 
     @pyqtSlot(str, str, bool, bool, bool)
     def on_replace_requested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
@@ -418,7 +437,8 @@ class YamlEditorWidget(QsciScintilla):
         with self.reload_chunk:
             self.clear_selection()
             self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
-
+            if not self.hasSelectedText():
+                self.not_found.emit()
             while self.hasSelectedText():
                 self.replaceSelectedText(replacement)
                 self.findNext()

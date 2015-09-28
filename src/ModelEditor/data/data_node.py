@@ -125,7 +125,7 @@ class DataNode:
         # crawl up to the first "real" node (present in text structure)
         prev_node = self
         node = self
-        while node.origin != NodeOrigin.structure:
+        while node.origin == NodeOrigin.ac_array:
             prev_node = node
             node = node.parent
 
@@ -156,7 +156,7 @@ class DataNode:
 
         # show info for Record, Selection or AbstractRecord that is in input structure
         while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']
-               or node.origin != NodeOrigin.structure):
+               or node.origin == NodeOrigin.ac_array):
             prev_node = node
             node = node.parent
             input_type = node.input_type
