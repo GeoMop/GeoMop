@@ -1,6 +1,7 @@
 """Tree widget panel module"""
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
+from PyQt5.QtGui import QColor
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, CompositeNode
 import util
@@ -73,15 +74,23 @@ class TreeWidget(QtWidgets.QTreeView):
     def _item_clicked(self, model_index):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()
-        if(model_index.column() == 0 and
-           data.key.span is not None):
-            self.itemSelected.emit(data.key.span.start.column,
-                                   data.key.span.start.line,
-                                   data.key.span.end.column,
-                                   data.key.span.end.line)
-        else:
-            self.itemSelected.emit(data.span.start.column, data.span.start.line,
-                                   data.span.end.column, data.span.end.line)
+        if model_index.column() == 0 and data.key.span is not None:  # key
+            span = data.key.span
+        elif (model_index.column() == 1 and isinstance(data, CompositeNode) and
+                  data.type is not None):  # AbstractRecord type
+            span = data.type.span
+        else:  # entire node (value)
+            span = data.span
+            # if an array is clicked, select the "- " as well
+            is_array_member = (data.parent is not None and
+                               isinstance(data.parent, CompositeNode) and
+                               data.parent.explicit_keys is False)
+            has_delimiters = data.is_flow is False and data.delimiters is not None
+            if is_array_member and has_delimiters:
+                span = data.delimiters
+
+        self.itemSelected.emit(span.start.column, span.start.line,
+                               span.end.column, span.end.line)
 
 
 class TreeOfNodes(QtCore.QAbstractItemModel):
@@ -140,12 +149,17 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
         @param parentindex: the parentindex to extract the data from
         @param role: the data accessing role the view requests from the model
         """
+        column = node.column()
+        data = node.internalPointer()
         if role == QtCore.Qt.DisplayRole:
-            column = node.column()
-            node = node.internalPointer()
-            return Node.data(node, column)
-        if role == QtCore.Qt.SizeHintRole:
+            return Node.data(data, column)
+        elif role == QtCore.Qt.SizeHintRole:
             return QtCore.QSize(120, 20)
+        elif role == QtCore.Qt.ForegroundRole:
+            if column == 1 and isinstance(data, CompositeNode) and data.type is not None:
+                # AbstractRecord type
+                return QColor(QtCore.Qt.darkMagenta)
+            return QColor(QtCore.Qt.black)
 
     # virtual function
     # pylint: disable=C0103
@@ -176,7 +190,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
         """set header parameters"""
         if(orientation == QtCore.Qt.Horizontal and
            role == QtCore.Qt.DisplayRole):
-            if 0 <= section and section <= len(self.headers):
+            if 0 <= section <= len(self.headers):
                 return QtCore.QVariant(self.headers[section])
         return QtCore.QVariant()
 
@@ -220,9 +234,12 @@ class Node:
 
     @staticmethod
     def data(node, column):
-        """return text displyed in tree in set column for node"""
+        """return text displayed in tree in set column for node"""
         if column == 0:
             return node.key.value
-        if isinstance(node, ScalarNode) and column == 1:
-            return str(node.value)
+        if column == 1:
+            if isinstance(node, ScalarNode):
+                return str(node.value)
+            elif isinstance(node, CompositeNode) and node.type is not None:
+                return str(node.type.value)
         return ""
