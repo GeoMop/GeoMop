@@ -92,6 +92,12 @@ class TreeWidget(QtWidgets.QTreeView):
         self.itemSelected.emit(span.start.column, span.start.line,
                                span.end.column, span.end.line)
 
+    def select_data_node(self, data_node):
+        """Sets the selection to the given `DataNode`."""
+        # find index of data_node
+        # call setCurrentIndex on model
+        pass
+
 
 class TreeOfNodes(QtCore.QAbstractItemModel):
     """tree model structure"""
@@ -114,7 +120,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             parent = parent.internalPointer()
         if parent is None:
             return QtCore.QModelIndex()
-        child = Node. get_child(parent, row)
+        child = Node.get_child(parent, row)
         if child is None:
             return QtCore.QModelIndex()
         return self.createIndex(row, column, child)
@@ -157,8 +163,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             return QtCore.QSize(120, 20)
         elif role == QtCore.Qt.ForegroundRole:
             if column == 1 and isinstance(data, CompositeNode) and data.type is not None:
-                # AbstractRecord type
-                return QColor(QtCore.Qt.darkMagenta)
+                return QColor(QtCore.Qt.darkMagenta)  # AbstractRecord type
             return QColor(QtCore.Qt.black)
 
     # virtual function
@@ -193,6 +198,11 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             if 0 <= section <= len(self.headers):
                 return QtCore.QVariant(self.headers[section])
         return QtCore.QVariant()
+
+    def find_data_node(self, data_node):
+        """Looks up the data_node and returns its model."""
+        root_dn = self.root.internalPointer()
+        raise NotImplementedError
 
 
 class Node:

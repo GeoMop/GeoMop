@@ -63,9 +63,14 @@ class YamlEditorWidget(QsciScintilla):
 
     parameter: line number in text document
     """
-    not_found = QtCore.pyqtSignal()
+    notFound = QtCore.pyqtSignal()
     """
     Signal is sent when search fails to find anything.
+    """
+    nodeSelected = QtCore.pyqtSignal(int, int)
+    """
+    Signal is sent when a node is selected, for example by clicking on the margin.
+    Parameters ale line, column.
     """
 
     def __init__(self, parent=None):
@@ -116,6 +121,9 @@ class YamlEditorWidget(QsciScintilla):
 
         # not too small
         self.setMinimumSize(600, 450)
+
+        # Clickable margin 0 to select node in tree
+        self.setMarginSensitivity(0, True)
 
         # Clickable margin 1 for showing markers
         self.setMarginSensitivity(1, True)
@@ -232,8 +240,15 @@ class YamlEditorWidget(QsciScintilla):
     def _margin_clicked(self, margin, line, modifiers):
         """Margin clicked signal"""
         # pylint: disable=unused-argument
-        if (0xF & self.markersAtLine(line)) != 0:
+        line_has_error = (0xF & self.markersAtLine(line)) != 0
+        if line_has_error and margin == 1:  # display error
             self.errorMarginClicked.emit(line + 1)
+        else:  # select node in tree
+            line_text = self.text(line)
+            column = len(line_text) - len(line_text.lstrip()) + 1
+            line += 1
+            # TODO: handle empty lines
+            self.nodeSelected.emit(line, column)
 
     def _reload_margin(self):
         """Set error icon and mark to margin"""
@@ -419,7 +434,7 @@ class YamlEditorWidget(QsciScintilla):
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
         if not self.hasSelectedText():
-            self.not_found.emit()
+            self.notFound.emit()
 
     @pyqtSlot(str, str, bool, bool, bool)
     def on_replace_requested(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
@@ -438,7 +453,7 @@ class YamlEditorWidget(QsciScintilla):
             self.clear_selection()
             self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
             if not self.hasSelectedText():
-                self.not_found.emit()
+                self.notFound.emit()
             while self.hasSelectedText():
                 self.replaceSelectedText(replacement)
                 self.findNext()
@@ -448,6 +463,7 @@ class YamlEditorWidget(QsciScintilla):
         context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
+
 
 class ReloadChunk(ContextDecorator, QObject):
     """
