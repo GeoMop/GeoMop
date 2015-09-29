@@ -280,7 +280,7 @@ _NOTIFICATIONS = [
         'name': 'MultiLineFlow',
         'description': 'Flow style is used across multiple lines.',
         'message': 'Using flow style across multiple lines is not recommended',
-        'example': 'example_flow_style.yaml'  # TODO: create example
+        'example': 'example_flow_style.yaml'
     },
 ]
 
