@@ -42,6 +42,8 @@ class DataNode:
         """Outer border of node, span start point to first delimiter and to second"""
         self.origin = NodeOrigin.structure
         """indicates how node was created"""
+        self.hidden = False
+        """whether node is hidden in tree structure"""
         self._options = []
 
     @property
@@ -278,6 +280,11 @@ class CompositeNode(DataNode):
         """Returns all children keys."""
         return [child.key.value for child in self.children]
 
+    @property
+    def visible_children(self):
+        """Returns a list of all visible children nodes."""
+        return [child for child in self.children if child.hidden is False]
+
 
 class ScalarNode(DataNode):
     """Represents a scalar node in the tree structure."""
@@ -305,3 +312,4 @@ class NodeOrigin(Enum):
     structure = 1
     ac_array = 2
     ac_reducible_to_key = 3
+    error = 4

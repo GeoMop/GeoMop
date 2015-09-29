@@ -214,22 +214,22 @@ class Node:
         if node.parent is None:
             return None
         if isinstance(node, CompositeNode):
-            return node.parent.children.index(node)
+            return node.parent.visible_children.index(node)
         return None
 
     @staticmethod
     def count_child_rows(node):
         """return count of children for node"""
         if isinstance(node, CompositeNode):
-            return len(node.children)
+            return len(node.visible_children)
         return 0
 
     @staticmethod
     def get_child(node, row):
         """return child in row row for node"""
         if isinstance(node, CompositeNode):
-            if len(node.children) > row:
-                return node.children[row]
+            if len(node.visible_children) > row:
+                return node.visible_children[row]
         return None
 
     @staticmethod

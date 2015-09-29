@@ -78,8 +78,7 @@ class Validator:
         node.options = input_type['keys'].keys()
         keys.extend(input_type['keys'].keys())
         for key in set(keys):
-            # TODO: is this a temporary workaround?
-            if key == 'fatal_error':
+            if node.origin == NodeOrigin.error:
                 continue
             child = node.get_child(key)
             try:
