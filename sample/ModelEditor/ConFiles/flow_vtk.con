@@ -1,3 +1,4 @@
+// test comm
 {
   problem = {
     TYPE = "SequentialCoupling", 
@@ -103,13 +104,13 @@
           input_fields = { REF="../../reaction_mobile/input_fields" },
           output_fields = []
         }
-      },
+      }, // reaction_term
       
       output_stream = { 
         file = "transport.pvd", 
-        format = { TYPE = "vtk", variant = "ascii" },
+        format = { TYPE = "vtk", variant = "ascii" }, // format
         time_step = 1e5    
-      }
+      } // os
     } // secondary_equation
   } // problem  
 }

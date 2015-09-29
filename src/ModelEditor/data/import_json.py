@@ -7,12 +7,29 @@ Currently supports .con format (as specified by Flow123d manual v1.8.2).
 """
 
 import yaml
-import demjson
 import re
 from enum import Enum
-
+import json
+from collections import OrderedDict
 from .data_node import ScalarNode, CompositeNode, NodeOrigin
 
+def _represent_ordereddict(dumper, data):
+    value = []
+
+    for item_key, item_value in data.items():
+        node_key = dumper.represent_data(item_key)
+        node_value = dumper.represent_data(item_value)
+
+        value.append((node_key, node_value))
+
+    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+    
+def _ordereddict_constructor(loader, node):
+    try:
+        omap = loader.construct_yaml_omap(node)
+        return OrderedDict(*omap)
+    except yaml.constructor.ConstructorError:
+        return loader.construct_yaml_seq(node)
 
 def parse_con(con):
     """
@@ -21,6 +38,8 @@ def parse_con(con):
     Returns the yaml text structure.
     """
     data = _decode_con(con)
+    yaml.add_constructor(u'tag:yaml.org,2002:seq', _ordereddict_constructor)
+    yaml.add_representer(OrderedDict, _represent_ordereddict)
     data = yaml.dump(data, default_flow_style=False, indent=2)
     return data
 
@@ -37,10 +56,15 @@ def rewrite_comments(con, yaml, data):
 
 def _decode_con(con):
     """Reads .con format and returns read data in form of dicts and lists."""
-    pattern = re.compile(r"\s?=\s?")
-    con = pattern.sub(':', con)
-    return demjson.decode(con)
-
+    pattern = re.compile(r"//.*")
+    con = pattern.sub(r'', con)
+    pattern = re.compile(r"/\*.*?\*/", re.DOTALL)
+    con = pattern.sub(r'', con)   
+    pattern = re.compile(r"^([^\s\[\{,=]+)\s*=\s*")
+    con = pattern.sub(r'"\2" : ', con)
+    pattern = re.compile(r"([\s\[\{,=])([^\s\[\{,=]+)\s*=\s*")
+    con = pattern.sub(r'\1"\2" : ', con)
+    return json.loads(con, object_pairs_hook=OrderedDict)
 
 def fix_tags(yaml, root):
     """Replase TYPE and refferences by tags"""
@@ -159,11 +183,17 @@ class Comment:
         """Array of comments"""
         self.pos = None
         """position in associated file"""
+        self.inden_line = None
+        """line for computation of indentation"""
 
     def set_yaml_position(self, data):
         """set position in yaml file"""
         node = data.get_node_at_path(self.path)
-        self.pos = node.start
+        if self.after:
+            self.pos = node.end
+        else:
+            self.pos = node.start
+        self.inden_line = node.start.line-1
 
 
 class Comments:
@@ -236,7 +266,7 @@ class Comments:
             if res:
                 comm, col, line = self._read_comments(col, line, lines, True)
                 if comm is not None:
-                    self.comments.append(Comment(new_path, comm, True))
+                    self.comments.append(Comment(path, comm, True))
                 return col, line
             res, col, line = self._read_sep(col, line, lines)
             if res:
@@ -257,25 +287,38 @@ class Comments:
             ok = True
             for i in range(1, len(self.comments)):
                 if self.comments[i].pos.line == self.comments[i-1].pos.line:
-                    if self.comments[i-1].after:
-                        self.comments[i].rows.extend(self.comments[i-1].rows)
-                        del self.comments[i-1]
-                    else:
-                        self.comments[i-1].rows.extend(self.comments[i].rows)
-                        del self.comments[i]
-                    ok = False
-                    break
+                    # first after - reverse order
+                    if self.comments[i-1].after and not self.comments[i].after:
+                        pom = self.comments[i-1]
+                        self.comments[i-1] = self.comments[i]
+                        self.comments[i] = pom
+                        ok = False
+                        break
+                    elif self.comments[i].after and \
+                           len(self.comments[i-1].path) > len(self.comments[i].path):
+                        # first parent - reverse order
+                        pom = self.comments[i-1]
+                        self.comments[i-1] = self.comments[i]
+                        self.comments[i] = pom
+                        ok = False
+                        break
 
     def write_to_yaml(self, yaml):
         """return yaml text with comments"""
         lines = yaml.splitlines(False)
         for comment in self.comments:
-            intend = re.search(r'^(\s*)(\S.*)$', lines[comment.pos.line-1])
+            intend = re.search(r'^(\s*)(\S.*)$', lines[comment.inden_line])
             if comment.after:
-                if (len(lines[comment.pos.line])-1) <= comment.pos.column:
-                    lines[comment.pos.line] += " # " + comment.rows[0]
-                else:
-                    lines.insert(comment.pos.line, intend.group(1) + "# " + comment.rows[0])
+                    if (len(lines[comment.pos.line-1])-1) <= comment.pos.column:
+                        if len(lines) <= comment.pos.line:
+                            lines.append(intend.group(1) + "# " + comment.rows[0])
+                        else:
+                            lines.insert(comment.pos.line, intend.group(1) + "# " + comment.rows[0])
+                    else:
+                        if len(lines) <= comment.pos.line-1:
+                            lines.append(intend.group(1) + "# " + comment.rows[0])
+                        else:
+                            lines.insert(comment.pos.line-1, intend.group(1) + "# " + comment.rows[0])
             else:
                 lines.insert(comment.pos.line-1, intend.group(1) + "# " + comment.rows[0])
             for i in range(1, len(comment.rows)):
