@@ -159,7 +159,7 @@ class MainEditMenu(EditMenu):
         if not self.find_dialog or not self.find_dialog.isVisible():
             self.find_dialog = FindDialog(self.parent)
             self.find_dialog.find_request.connect(self._editor.on_find_requested)
-            self._editor.not_found.connect(self.find_dialog.on_not_found)
+            self._editor.notFound.connect(self.find_dialog.on_not_found)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
@@ -183,7 +183,7 @@ class MainEditMenu(EditMenu):
             self.replace_dialog.find_request.connect(self._editor.on_find_requested)
             self.replace_dialog.replace_request.connect(self._editor.on_replace_requested)
             self.replace_dialog.replace_all_request.connect(self._editor.on_replace_all_requested)
-            self._editor.not_found.connect(self.replace_dialog.on_not_found)
+            self._editor.notFound.connect(self.replace_dialog.on_not_found)
 
             # move the dialog to top right position of editor
             top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
