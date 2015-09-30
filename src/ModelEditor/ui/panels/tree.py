@@ -29,6 +29,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self.setColumnWidth(0, 190)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.clicked.connect(self._item_clicked)
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
@@ -94,9 +95,10 @@ class TreeWidget(QtWidgets.QTreeView):
 
     def select_data_node(self, data_node):
         """Sets the selection to the given `DataNode`."""
-        # find index of data_node
-        # call setCurrentIndex on model
-        pass
+        row = Node.row(data_node)
+        index = self._model.createIndex(row, 0, data_node)
+        self.selectionModel().select(index, QtCore.QItemSelectionModel.ClearAndSelect)
+        self.scrollTo(index, QtWidgets.QAbstractItemView.PositionAtCenter)
 
 
 class TreeOfNodes(QtCore.QAbstractItemModel):
@@ -199,11 +201,6 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
                 return QtCore.QVariant(self.headers[section])
         return QtCore.QVariant()
 
-    def find_data_node(self, data_node):
-        """Looks up the data_node and returns its model."""
-        root_dn = self.root.internalPointer()
-        raise NotImplementedError
-
 
 class Node:
     """
@@ -223,7 +220,7 @@ class Node:
         """return row index for node"""
         if node.parent is None:
             return None
-        if isinstance(node, CompositeNode):
+        if isinstance(node.parent, CompositeNode):
             return node.parent.children.index(node)
         return None
 

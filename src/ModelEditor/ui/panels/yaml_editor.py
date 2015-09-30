@@ -245,9 +245,11 @@ class YamlEditorWidget(QsciScintilla):
             self.errorMarginClicked.emit(line + 1)
         else:  # select node in tree
             line_text = self.text(line)
-            column = len(line_text) - len(line_text.lstrip()) + 1
+            first_char = re.match(r'\s*(-\s+)?\S', line_text)
+            if not first_char:  # ignore empty lines
+                return
+            column = len(first_char.group()) + 1
             line += 1
-            # TODO: handle empty lines
             self.nodeSelected.emit(line, column)
 
     def _reload_margin(self):
