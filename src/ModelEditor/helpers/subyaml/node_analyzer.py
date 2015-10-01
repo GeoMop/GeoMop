@@ -1,5 +1,5 @@
 from helpers.subyaml.line_analyzer import LineAnalyzer
-from data import Position, CompositeNode
+from data import Position, CompositeNode, NodeOrigin
 from data import NodeStructureType
 
 class NodeAnalyzer:
@@ -107,6 +107,43 @@ class NodeAnalyzer:
                     return Position(i+1, 1)
         return start_pos
         
-        def get_parent_for_unfinished(self, line, index, line_text):
-            """return parent node for unfinished node"""
+    def get_root_node(self):
+        """get root node"""
+        if self._node is None:
             return None
+        node = self._node
+        while node.parent is not None:
+            node = node.parent
+        return node
+   
+    def get_prev_node(self, line):
+        """Get node before line"""
+        l=line-1
+        root = self.get_root_node()
+        if root is None:
+            return None
+        old_node = root.get_node_at_position(Position(line+1, 0))
+        node = None
+        while node == old_node or node is None:
+            if l<0:
+                return None
+            node =  root.get_node_at_position(Position(l+1, len(self._lines[l])-1))
+            l = -1
+        return node            
+    
+    def get_parent_for_unfinished(self, line, index, line_text):
+        """return parent node for unfinished node"""
+        node = self.get_prev_node(line)
+        if node is None:
+            return None
+        indent = LineAnalyzer.get_indent(line_text)
+        if line_text.isspace():
+            indent = index
+        while True:
+            if node.parent is None:
+                return node
+            prev_indent=LineAnalyzer.get_indent(self._lines[node.start.line-1])
+            if prev_indent < indent and self._node.origin != NodeOrigin.error:
+                return node
+            node = node.parent 
+        return None

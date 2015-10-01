@@ -5,7 +5,7 @@ Module contains customized QScintilla editor.
 # pylint: disable=invalid-name
 
 from data.meconfig import MEConfig as cfg
-from data import ScalarNode
+from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
 from data import PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
@@ -216,7 +216,13 @@ class YamlEditorWidget(QsciScintilla):
 
     @property
     def pred_parent(self):
+        """return parent node for new created node (if node already exist in structure, return None)"""
         return self._pos.pred_parent
+        
+    @property
+    def curr_node(self):
+        """return current node"""
+        return self._pos.node
 
     @property
     def cursor_type_position(self):
@@ -606,8 +612,13 @@ class EditorPosition:
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
                 (self.node is not None and self.node.origin == NodeOrigin.error):
-                na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                if self.node is not None:
+                    na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                else:
+                    na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
                 self.pred_parent = na.get_parent_for_unfinished(line, index, editor.text(line))
+            else:
+                self.pred_parent = None
 
             # value or key changed and cursor is in opposite
             if pos_type is PosType.in_key:
@@ -765,6 +776,15 @@ class EditorPosition:
         if pos_type is PosType.in_key:
             key_type = anal.get_key_pos_type()
         self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
+        
+        self.pred_parent = None
+        if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
+            (self.node is not None and self.node.origin == NodeOrigin.error):
+            if self.node is not None:
+                na = analyzer.NodeAnalyzer(self._old_text, self.node)
+            else:
+                na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+            self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

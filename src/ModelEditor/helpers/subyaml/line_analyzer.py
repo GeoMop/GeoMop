@@ -121,3 +121,15 @@ class LineAnalyzer:
         if not old_value or not new_value:
             return True
         return not len(old_value.group(0)) == len(new_value.group(0))
+        
+    @staticmethod
+    def get_indent(row):
+        """return intendation of row"""
+        if row.isspace():
+            return len(row)
+        value = re.search(r'^(\s*-\s)', row)
+        if not value :
+            value = re.search(r'^(\s+)\S', row)
+        if not value :
+            return 0
+        return len(value.group(1))
