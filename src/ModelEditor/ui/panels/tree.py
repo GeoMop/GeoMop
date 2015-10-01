@@ -29,6 +29,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self.setColumnWidth(0, 190)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.clicked.connect(self._item_clicked)
         self.collapsed.connect(self._item_collapsed)
         self.expanded.connect(self._item_expanded)
@@ -92,6 +93,15 @@ class TreeWidget(QtWidgets.QTreeView):
         self.itemSelected.emit(span.start.column, span.start.line,
                                span.end.column, span.end.line)
 
+    def select_data_node(self, data_node):
+        """Sets the selection to the given `DataNode`."""
+        row = Node.row(data_node)
+        if row is None:
+            return
+        index = self._model.createIndex(row, 0, data_node)
+        self.selectionModel().select(index, QtCore.QItemSelectionModel.ClearAndSelect)
+        self.scrollTo(index, QtWidgets.QAbstractItemView.PositionAtCenter)
+
 
 class TreeOfNodes(QtCore.QAbstractItemModel):
     """tree model structure"""
@@ -114,7 +124,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             parent = parent.internalPointer()
         if parent is None:
             return QtCore.QModelIndex()
-        child = Node. get_child(parent, row)
+        child = Node.get_child(parent, row)
         if child is None:
             return QtCore.QModelIndex()
         return self.createIndex(row, column, child)
@@ -157,8 +167,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             return QtCore.QSize(120, 20)
         elif role == QtCore.Qt.ForegroundRole:
             if column == 1 and isinstance(data, CompositeNode) and data.type is not None:
-                # AbstractRecord type
-                return QColor(QtCore.Qt.darkMagenta)
+                return QColor(QtCore.Qt.darkMagenta)  # AbstractRecord type
             return QColor(QtCore.Qt.black)
 
     # virtual function
@@ -213,23 +222,23 @@ class Node:
         """return row index for node"""
         if node.parent is None:
             return None
-        if isinstance(node, CompositeNode):
-            return node.parent.children.index(node)
+        if isinstance(node.parent, CompositeNode) and node in node.parent.visible_children:
+            return node.parent.visible_children.index(node)
         return None
 
     @staticmethod
     def count_child_rows(node):
         """return count of children for node"""
         if isinstance(node, CompositeNode):
-            return len(node.children)
+            return len(node.visible_children)
         return 0
 
     @staticmethod
     def get_child(node, row):
         """return child in row row for node"""
         if isinstance(node, CompositeNode):
-            if len(node.children) > row:
-                return node.children[row]
+            if len(node.visible_children) > row:
+                return node.visible_children[row]
         return None
 
     @staticmethod

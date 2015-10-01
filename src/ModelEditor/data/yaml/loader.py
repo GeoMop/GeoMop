@@ -12,7 +12,7 @@ from .constructor import construct_scalar
 from .resolver import resolve_scalar_tag
 from ..util import TextValue
 from ..locators import Position, Span
-from ..data_node import ScalarNode, CompositeNode
+from ..data_node import ScalarNode, CompositeNode, NodeOrigin
 from helpers import Notification, NotificationHandler
 
 
@@ -355,9 +355,10 @@ class Loader:
         Creates a non-existing node in the data tree
         to wrap the content of the error (span) in a node.
         """
-        # TODO Isn't this temporary solution?
         node = ScalarNode()
         end_pos = Position.from_document_end(self._document)
         node.span = Span(start_pos, end_pos)
         node.key = TextValue('fatal_error')
+        node.origin = NodeOrigin.error
+        node.hidden = True
         self._fatal_error_node = node

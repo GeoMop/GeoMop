@@ -86,6 +86,7 @@ class ModelEditor:
         self._editor.structureChanged.connect(self._structure_changed)
         self._editor.errorMarginClicked.connect(self._error_margin_clicked)
         self._editor.elementChanged.connect(self._on_element_changed)
+        self._editor.nodeSelected.connect(self._on_node_selected)
 
         # show
         self._mainwindow.show()
@@ -154,6 +155,11 @@ class ModelEditor:
         node = cfg.get_data_node(Position(line + 1, index + 1))
         if node is not None:
             self._info.update_from_node(node, new_cursor_type)
+
+    def _on_node_selected(self, line, column):
+        """Handles nodeSelected event from editor."""
+        node = cfg.get_data_node(Position(line, column))
+        self._tree.select_data_node(node)
 
     def new_file(self):
         """new file menu action"""
