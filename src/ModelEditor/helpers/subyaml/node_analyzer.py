@@ -106,3 +106,7 @@ class NodeAnalyzer:
                 else:
                     return Position(i+1, 1)
         return start_pos
+        
+        def get_parent_for_unfinished(self, line, index, line_text):
+            """return parent node for unfinished node"""
+            return None

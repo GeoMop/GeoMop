@@ -585,7 +585,11 @@ class EditorPosition:
             key_type = None
             if pos_type is PosType.in_key:
                 key_type = anal.get_key_pos_type()
-            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
+            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
+            if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
+                (self.node is not None and self.node.origin == NodeOrigin.error):
+                na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                self.pred_parent = na.get_parent_for_unfinished(line, index, editor.text(line))
 
             # value or key changed and cursor is in opposite
             if pos_type is PosType.in_key:
@@ -691,7 +695,8 @@ class EditorPosition:
             else:
                 if anal. is_base_struct(new_line):
                     return False
-        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(new_line, self._old_text[self.line])
+        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(
+                                              new_line, self._old_text[self.line])
         if self.node is not None and self.node.is_jsonchild_on_line(self.line+1):
             if anal.is_basejson_struct(new_line[before_pos:len(new_line)-end_pos+1]):
                 return False
