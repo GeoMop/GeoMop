@@ -15,6 +15,7 @@ class MultiJobOverview(QtWidgets.QTreeWidget):
         self.setHeaderLabels(["Id", "Name", "Insert Time", "Run Time",
                               "Run Interval", "Status"])
         self.setColumnHidden(0, True)
+        self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
 
     def reload_view(self, data):

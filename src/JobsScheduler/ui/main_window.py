@@ -5,7 +5,7 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 
 from data.data_structures import ID
 from ui.actions.main_window_actions import *
@@ -33,14 +33,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setup_ui(self)
 
         # init dialogs
-        self.mj_dlg = MultiJobDialog(self,
+        self.mj_dlg = MultiJobDialog(parent=self,
                                      resources=self.data.resource_presets)
-        self.ssh_presets_dlg = SshPresets(self, self.data.ssh_presets)
-        self.pbs_presets_dlg = PbsPresets(self, self.data.pbs_presets)
-        self.resource_presets_dlg = ResourcePresets(self,
-                                                    presets=self.data.resource_presets,
-                                                    pbs=self.data.pbs_presets,
-                                                    ssh=self.data.ssh_presets)
+        self.ssh_presets_dlg = SshPresets(parent=self,
+                                          presets=self.data.ssh_presets)
+        self.pbs_presets_dlg = PbsPresets(parent=self,
+                                          presets=self.data.pbs_presets)
+        self.resource_presets_dlg \
+            = ResourcePresets(parent=self,
+                              presets=self.data.resource_presets,
+                              pbs=self.data.pbs_presets,
+                              ssh=self.data.ssh_presets)
 
         # multijob dialog
         self.ui.actionAddMultiJob.triggered.connect(
@@ -54,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
         self.multijobs_changed.connect(self.data.multijobs.save)
-        self.pbs_presets_dlg.presets_changed.connect(
+        self.resource_presets_dlg.presets_changed.connect(
             self.mj_dlg.set_resource_presets)
 
         # ssh presets

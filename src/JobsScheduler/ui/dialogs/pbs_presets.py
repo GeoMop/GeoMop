@@ -5,11 +5,11 @@ Pbs preset
 @contact: jan.gabriel@tul.cz
 """
 
-from ui.dialogs.dialogs import UiPresetsDialog, AbstractPresetsDialog
+from ui.dialogs.dialogs import UiPresetsDialog, APresetsDialog
 from ui.dialogs.pbs_dialog import PbsDialog
 
 
-class PbsPresets(AbstractPresetsDialog):
+class PbsPresets(APresetsDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -26,7 +26,7 @@ class PbsPresets(AbstractPresetsDialog):
         self._reload_view(self.presets)
 
         # set custom dialog
-        self.presets_dlg = PbsDialog()
+        self.presets_dlg = PbsDialog(parent=self)
 
         # connect generic presets slots (must be called after UI setup)
         super(PbsPresets, self)._connect_slots()

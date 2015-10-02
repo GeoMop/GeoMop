@@ -7,10 +7,10 @@ Resource dialog
 
 from PyQt5 import QtWidgets
 
-from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
+from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
 
-class ResourceDialog(AbstractFormDialog):
+class ResourceDialog(AFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """

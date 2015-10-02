@@ -5,13 +5,14 @@ Basic dialogs templates
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 import logging
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from data.data_structures import ID
 
 
-class AbstractFormDialog(QtWidgets.QDialog):
+class AFormDialog(QtWidgets.QDialog):
     """
     Form dialog executive code with bindings and other functionality.
     """
@@ -52,7 +53,7 @@ class AbstractFormDialog(QtWidgets.QDialog):
     accepted = QtCore.pyqtSignal(dict, tuple)
 
     def accept(self):
-        super(AbstractFormDialog, self).accept()
+        super(AFormDialog, self).accept()
         logging.info('%s accepted.', self.__class__.__name__)
         self.accepted.emit(self.purpose, self.get_data())
 
@@ -159,7 +160,7 @@ class UiFormDialog(object):
         dialog.setLayout(self.mainVerticalLayout)
 
 
-class AbstractPresetsDialog(QtWidgets.QDialog):
+class APresetsDialog(QtWidgets.QDialog):
     """
     Presets Dialog executive code with bindings and other functionality.
     """

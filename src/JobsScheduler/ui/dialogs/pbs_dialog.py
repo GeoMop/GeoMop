@@ -6,10 +6,11 @@ Pbs dialog
 """
 
 from PyQt5 import QtCore, QtWidgets
-from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
+
+from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
 
-class PbsDialog(AbstractFormDialog):
+class PbsDialog(AFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """

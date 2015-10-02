@@ -5,13 +5,14 @@ Multijob dialog
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtCore, QtWidgets
 import logging
 
-from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
+from PyQt5 import QtCore, QtWidgets
+
+from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
 
-class MultiJobDialog(AbstractFormDialog):
+class MultiJobDialog(AFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """

@@ -6,10 +6,11 @@ SSH dialog
 """
 
 from PyQt5 import QtWidgets
-from ui.dialogs.dialogs import UiFormDialog, AbstractFormDialog
+
+from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
 
-class SshDialog(AbstractFormDialog):
+class SshDialog(AFormDialog):
     """
     Dialog executive code with bindings and other functionality.
     """

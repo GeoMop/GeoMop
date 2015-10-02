@@ -5,11 +5,11 @@ Resource preset
 @contact: jan.gabriel@tul.cz
 """
 
-from ui.dialogs.dialogs import UiPresetsDialog, AbstractPresetsDialog
+from ui.dialogs.dialogs import UiPresetsDialog, APresetsDialog
 from ui.dialogs.resource_dialog import ResourceDialog
 
 
-class ResourcePresets(AbstractPresetsDialog):
+class ResourcePresets(APresetsDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -26,7 +26,7 @@ class ResourcePresets(AbstractPresetsDialog):
         self._reload_view(self.presets)
 
         # set custom dialog
-        self.presets_dlg = ResourceDialog()
+        self.presets_dlg = ResourceDialog(parent=self)
         self.presets_dlg.set_pbs_presets(pbs)
         self.presets_dlg.set_ssh_presets(ssh)
 
