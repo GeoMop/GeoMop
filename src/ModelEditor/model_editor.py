@@ -16,6 +16,7 @@ from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 import argparse
+from ist import InfoTextGenerator
 
 
 class ModelEditor:
@@ -87,6 +88,9 @@ class ModelEditor:
         self._editor.errorMarginClicked.connect(self._error_margin_clicked)
         self._editor.elementChanged.connect(self._on_element_changed)
         self._editor.nodeSelected.connect(self._on_node_selected)
+
+        # set default info text
+        self._info.setHtml(InfoTextGenerator.get_info_text(cfg.root_input_type))
 
         # show
         self._mainwindow.show()
