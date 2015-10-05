@@ -87,9 +87,27 @@ else:
         def disconnect(self):
             """disconnect session"""
             try:
-                self.ssh.logout()
-            except:
-                pass
+                try:
+                    #prompt from exec
+                    self.ssh.read_nonblocking(size=10000, timeout=10)
+                except pexpect.TIMEOUT:
+                    pass
+                self.ssh.sendline("cd ..")
+                if self.ssh.prompt():
+                    mess = str(self.ssh.before, 'utf-8').strip()
+                    if mess != ("cd .."):
+                        logging.warning("Cd before logout fail: " + mess)
+                try:
+                    self.ssh.logout()
+                except pexpect.TIMEOUT:
+                    # sometimes first logout fails
+                    self.ssh.sendline("pwd")
+                    try:
+                        self.ssh.logout()
+                    except Exception as err:
+                        logging.warning("Ssh logout error: " +   str(err))
+            except Exception as err:
+                logging.warning("Ssh error before logout: " +   str(err))
             
         def install(self):
             """make installation"""

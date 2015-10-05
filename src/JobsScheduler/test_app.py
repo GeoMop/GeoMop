@@ -24,22 +24,7 @@ ccom.log_level = logging.DEBUG
 comunicator = Communicator(ccom)
 comunicator.install()
 
-installed = False
-while not installed:
-    action = tdata.Action(tdata.ActionType.installation)
-    message = action.get_message()
-    comunicator.send_message(message)
-    mess = comunicator.receive_message()
-    action = mess.action_type
-    if mess.action_type != tdata.ActionType.installation_in_process:
-        installed = True
-    if __name__ == "test_app":
-        break
-
+comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))
 time.sleep(30)
-
-action = tdata.Action(tdata.ActionType.stop)
-message = action.get_message()
-comunicator.send_message(message)
-mess = comunicator.receive_message()
+mess = comunicator.send_long_action(tdata.Action(tdata.ActionType.stop))
 comunicator.close()
