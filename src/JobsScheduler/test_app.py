@@ -26,5 +26,9 @@ comunicator.install()
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))
 time.sleep(30)
+
+comunicator.send_long_action(tdata.Action(tdata.ActionType.download_res))
+comunicator.download()
+
 mess = comunicator.send_long_action(tdata.Action(tdata.ActionType.stop))
 comunicator.close()

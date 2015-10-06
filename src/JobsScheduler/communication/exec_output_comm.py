@@ -66,5 +66,6 @@ class ExecOutputComm(OutputComm):
             return None
         return mess
  
-    def get_file(self, file_name):
-        """download file from installation folder"""
+    def download_result(self):
+        """download result files from installation folder"""
+        return True

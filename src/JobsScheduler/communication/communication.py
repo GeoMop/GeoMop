@@ -46,8 +46,8 @@ class OutputComm(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod
-    def get_file(self, file_name):
-        """download file from installation folder"""
+    def download_result(self):
+        """download result files from installation folder"""
         pass
 
 class InputComm(metaclass=abc.ABCMeta):

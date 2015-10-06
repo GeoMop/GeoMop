@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import threading
+
 import data.communicator_conf as comconf
 import data.transport_data as tdata
 from communication.std_input_comm import StdInputComm
@@ -33,7 +34,7 @@ class Communicator():
         constructor, end is call before resending answer received 
         from previous communicator        
     """
-    
+  
     def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None):
         self.input = None
         """class for input communication"""
@@ -51,6 +52,10 @@ class Communicator():
         """if installation process of next communicator is finished"""
         self._install_lock = threading.Lock()
         """_installed lock"""
+        self._download_processed = tdata.ProcessType.ready        
+        """Download of result files is processed"""
+        self._download_processed_lock = threading.Lock()
+        """_download_processed lock"""
         self._instalation_begined = False
         """if installation begined"""
         self.stop = False
@@ -134,6 +139,16 @@ class Communicator():
                     t.start()
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, False, action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
+            if isinstance(self.output, SshOutputComm):
+                processed = False
+                self._download_processed_lock.acquire()
+                if self._download_processed == tdata.ProcessType.processed:
+                    processed = True
+                self._download_processed_lock.release()
+                if processed:
+                    #action will be processed in after funcion
+                    return False, False, None
         return True, True, None
         
     def  standart_action_funcion_after(self, message,  response):
@@ -146,6 +161,35 @@ class Communicator():
             self.stop =True
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
+            if response is None or \
+                response.action_type != tdata.ActionType.action_in_process:
+                # waiting to the next communicator is not needed
+                if isinstance(self.output, SshOutputComm):
+                    processed = False
+                    start = False
+                    self._download_processed_lock.acquire()
+                    if self._download_processed == tdata.ProcessType.ready:
+                        processed = True
+                        start = True
+                        self._download_processed = tdata.ProcessType.processed
+                    elif self._download_processed == tdata.ProcessType.processed:
+                        processed = True
+                    else:
+                        self._download_processed = tdata.ProcessType.ready
+                    self._download_processed_lock.release()    
+                    if start:
+                        t = threading.Thread(target=self.download)
+                        t.daemon = True
+                        t.start()
+                    if processed:
+                        action = tdata.Action(tdata.ActionType.action_in_process)
+                        return False, False, action.get_message()                
+                    return True, True, None
+                else:
+                    self.download()
+                    self._download_processed = tdata.ProcessType.ready
+                    return True, True, None
         return None
         
     
@@ -167,6 +211,15 @@ class Communicator():
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
+        
+    def download(self):
+        """download result files"""
+        logging.debug("Start downloading result files")
+        self.output.download_result()
+        logging.debug("End downloading result files")
+        self._download_processed_lock.acquire()
+        self._download_processed = tdata.ProcessType.finished
+        self._download_processed_lock.release()
         
     def is_installed(self):
         """if installation process of next communicator is finished"""
