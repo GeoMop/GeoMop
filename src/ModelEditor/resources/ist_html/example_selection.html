@@ -11,49 +11,51 @@
 
 <body>
     <div class="container-fluid fill">
-        <section class="record row" id="record-container">
+        <section class="row record">
             <header>
                 <h2>DarcyMHOutput</h2>
                 <p class="description">Parameters of MH output.</p>
             </header>
             <div class="key-list col-md-4 col-sm-4 col-xs-4">
                 <div class="item-list">
-                    <a class="record-key" href="#darcymhoutput-output_stream">output_stream</a>
-                    <a class="record-key selected" href="#darcymhoutput-output_fields">output_fields</a>
-                    <a class="record-key" href="#darcymhoutput-compute_errors">compute_errors</a>
-                    <a class="record-key" href="#darcymhoutput-raw_flow_output">raw_flow_output</a>
+                    <a href="#">output_stream</a>
+                    <a class="selected" href="#">output_fields</a>
+                    <a href="#">compute_errors</a>
+                    <a href="#">raw_flow_output</a>
                 </div>
             </div>
             <div class="key-description col-md-4 col-sm-4 col-xs-4">
-                    <h3><span>output_fields</span></h3>
-                    <div class="item-key-value"><span class="leading-text">Default value: </span><span class="item-value chevron header-info skew"><span>OBLIGATORY</span></span>
+                <header>
+                    <h3>output_fields</h3>
+                    <div class="small"><span class="leading-text">Default value: </span><span class="chevron skew"><span>OBLIGATORY</span></span>
                     </div>
-                    <p class="description">List of fields to write to output file.</p>
+                </header>
+                <p class="description">List of fields to write to output file.</p>
             </div>
-            <div class="key-type selection col-md-4 col-sm-4 col-xs-4">
-                <div class="item-key-value"><span class="item-key"><span class="leading-text"> Array</span><span class="leading-text"> </span><span>[0, UINT32 MAX]</span><span class="leading-text"> of </span>
+            <div class="key-type col-md-4 col-sm-4 col-xs-4 scalar">
+                <div class="small"><span class="leading-text"> Array</span><span class="leading-text"> </span><span>[0, UINT32 MAX]</span><span class="leading-text"> of </span></div>
                 <header>
                     <h2>DarcyMHOutput_Selection</h2>
                     <p class="description">Selection of fields available for output.</p>
                 </header>
-                <p class="description"><div class="item-key-value"><span class="leading-text">velocity_p0: </span>Output of the field velocity_p0 <span class="md-expression">{$[ms^{-1}]$}</span>.</p>
+                <p><span class="leading-text">velocity_p0: </span>Output of the field velocity_p0 <span class="md-expression">{$[ms^{-1}]$}</span>.</p>
                 <div class="item-list">
-                    <a class="record-key" href="#darcymhoutput_selection-anisotropy">anisotropy</a>
-                    <a class="record-key" href="#darcymhoutput_selection-cross_section">cross_section</a>
-                    <a class="record-key" href="#darcymhoutput_selection-conductivity">conductivity</a>
-                    <a class="record-key" href="#darcymhoutput_selection-sigma">sigma</a>
-                    <a class="record-key" href="#darcymhoutput_selection-water_source_density">water_source_density</a>
-                    <a class="record-key" href="#darcymhoutput_selection-init_pressure">init_pressure</a>
-                    <a class="record-key" href="#darcymhoutput_selection-storativity">storativity</a>
-                    <a class="record-key" href="#darcymhoutput_selection-pressure_p0">pressure_p0</a>
-                    <a class="record-key" href="#darcymhoutput_selection-pressure_p1">pressure_p1</a>
-                    <a class="record-key" href="#darcymhoutput_selection-piezo_head_p0">piezo_head_p0</a>
-                    <a class="record-key selected" href="#darcymhoutput_selection-velocity_p0">velocity_p0</a>
-                    <a class="record-key" href="#darcymhoutput_selection-subdomain">subdomain</a>
-                    <a class="record-key" href="#darcymhoutput_selection-region_id">region_id</a>
-                    <a class="record-key" href="#darcymhoutput_selection-pressure_diff">pressure_diff</a>
-                    <a class="record-key" href="#darcymhoutput_selection-velocity_diff">velocity_diff</a>
-                    <a class="record-key" href="#darcymhoutput_selection-div_diff">div_diff</a>
+                    <a href="#">anisotropy</a>
+                    <a href="#">cross_section</a>
+                    <a href="#">conductivity</a>
+                    <a href="#">sigma</a>
+                    <a href="#">water_source_density</a>
+                    <a href="#">init_pressure</a>
+                    <a href="#">storativity</a>
+                    <a href="#">pressure_p0</a>
+                    <a href="#">pressure_p1</a>
+                    <a href="#">piezo_head_p0</a>
+                    <a class="selected" href="#">velocity_p0</a>
+                    <a href="#">subdomain</a>
+                    <a href="#">region_id</a>
+                    <a href="#">pressure_diff</a>
+                    <a href="#">velocity_diff</a>
+                    <a href="#">div_diff</a>
                 </div>
             </div>
         </section>

@@ -32,16 +32,5 @@ $(document).ready(function() {
 
     katex.render (code, element, { displayMode: false });
   });
-
-  $('a').click(function(event){
-    var show_id = $(this).attr('href');
-    var hide_id = $('.key-list a.selected').attr('href');
-
-    $(hide_id).addClass('hidden');
-    $(show_id).removeClass('hidden');
-    $('.key-list a.selected').removeClass('selected');
-    $(this).addClass('selected');
-
-    event.preventDefault();
-  });
+  
 });

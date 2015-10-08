@@ -11,6 +11,12 @@ html, body {
     display: none;
 }
 
+body>div>section:last-child {
+    /* hack to extend the color to the end of info_text */
+    padding-bottom: 32000px;
+    margin-bottom: -32000px;
+}
+
 section {
     padding: 5px;
 }
@@ -37,18 +43,22 @@ h3 small {
 }
 
 header {
-    border-bottom: 1px solid #CCC;
     margin-bottom: 3px;
 }
 
-header .description {
-    font-style: italic;
+header p {
+    margin: 0px;
 }
 
-header p {
+div.container-fluid>section>header {
+    border-bottom: 1px solid #CCC;
+}
+
+div.container-fluid>section>header p {
 	display: inline;
 	margin: 0px;
 	margin-left: 50px;
+    font-style: italic;
 }
 
 .skew {
@@ -116,12 +126,10 @@ a.selected {
     opacity: 0.9;
 }
 
-/*.item-key-value {
-    text-align: right;
+.small {
     font-size: 0.9em;
     line-height: 16px;
-    float: right;
-}*/
+}
 
 .chevron:before {
     content: " <";
@@ -164,24 +172,20 @@ a.selected {
 }
 
 
-/*     SELECTION    */
-.selection {
+/*     SCALAR    */
+.scalar {
     background: #F0DCF2;
 }
-.selection h2, .abstract-record h3, .selection a {
+.scalar h2, .scalar h3, .scalar a {
     color: #9A2DA6;
 }
-.selection a:hover {
+.scalar a:hover {
     color: #7B2384;
 }
 
 
 .key-type {
     margin: 0px;
-    /*padding: 0px 0px 0px 5px;*/
-}
-.key-type header {
-    border: none;
 }
 .key-type section {
     padding: 0px;
@@ -196,17 +200,8 @@ a.selected {
 }
 
 
-#record-container {
-    /* hack to extend the color to the end of info_text */
-    padding-bottom: 32000px;
-    margin-bottom: -32000px;
-}
 
 
 .key-list, .key-description, .key-type {
     padding: 5px;
-}
-
-#record-container .key-type section {
-    padding: 0px;
 }

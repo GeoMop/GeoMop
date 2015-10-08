@@ -31,10 +31,10 @@
                 <div class="item-list">
                     <a href="#">TYPE</a>
                     <a href="#">n_schurs</a>
-                    <a href="#">solver</a>
+                    <a class="selected" href="#">solver</a>
                     <a href="#">output</a>
                     <a href="#">mortar_method</a>
-                    <a class="selected" href="#">balance</a>
+                    <a href="#">balance</a>
                     <a href="#">bc_piezo_head</a>
                     <a href="#">init_piezo_head</a>
                     <a href="#">flow_old_bcd_file</a>
@@ -43,18 +43,21 @@
             </div>
             <div class="key-description col-md-4 col-sm-4 col-xs-4">
                 <header>
-                    <h3><span>balance</span></h3>
+                    <h3>solver</h3>
                     <div class="small"><span class="leading-text">Default value: </span><span class="chevron skew"><span>OBLIGATORY</span></span>
                     </div>
                 </header>
-                <p class="description">Settings for computing mass balance.</p>
+                <p class="description">Linear solver for MH problem.</p>
             </div>
-            <div class="key-type col-md-4 col-sm-4 col-xs-4 record">
+            <div class="key-type col-md-4 col-sm-4 col-xs-4 abstract-record">
                 <header>
-                    <h2>Balance</h2>
-                    <div class="small"><span class="leading-text">Constructible from key: </span><span class="chevron skew"><span>balance_on</span></span></div>
+                    <h2>LinSys</h2>
+                    <p class="description">Linear solver setting.</p>
                 </header>
-                <p class="description">Balance of a conservative quantity, boundary fluxes and sources.</p>
+                <ul class="implementation-list">
+                    <li><a href="#">Petsc</a><span class="leading-text"> - </span><span>Solver setting.</span></li>
+                    <li><a href="#">Bddc</a><span class="leading-text"> - </span><span>Solver setting.</span></li>
+                </ul>
             </div>
         </section>
     </div>
