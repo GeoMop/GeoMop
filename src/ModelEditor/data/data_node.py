@@ -163,7 +163,7 @@ class DataNode:
             node = node.parent
             input_type = node.input_type
             selected = prev_node.key.value
-        return InfoTextGenerator.get_info_text(input_type, selected=selected)
+        return InfoTextGenerator.get_info_text(input_type['id'], selected_key=selected)
 
     def __str__(self):
         text = (

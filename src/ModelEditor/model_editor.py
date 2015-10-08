@@ -90,7 +90,7 @@ class ModelEditor:
         self._editor.nodeSelected.connect(self._on_node_selected)
 
         # set default info text
-        self._info.setHtml(InfoTextGenerator.get_info_text(cfg.root_input_type))
+        self._info.setHtml(InfoTextGenerator.get_info_text(cfg.root_input_type['id']))
 
         # show
         self._mainwindow.show()
