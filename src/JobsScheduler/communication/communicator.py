@@ -89,18 +89,26 @@ class Communicator():
         elif init_conf.input_type == comconf.InputCommType.socket:
             self.input = SocketInputComm(init_conf.port)
             self.input.connect()
-    
-        if init_conf.output_type == comconf.OutputCommType.ssh:
-            self.output = SshOutputComm(init_conf.host, init_conf.mj_name, init_conf.uid, init_conf.pwd)
-            self.output.connect()
-        elif init_conf.output_type == comconf.OutputCommType.pbs:
-            self.output = PbsOutputComm(init_conf.mj_name, init_conf.port, init_conf.pbs)            
-        elif init_conf.output_type == comconf.OutputCommType.exec_:
-            self.output = ExecOutputComm(init_conf.mj_name, init_conf.port)
+            
+        init_conf.output_type
         
-        if init_conf.output_type != comconf.OutputCommType.none:
+        if init_conf.output_type == comconf.OutputCommType.none:
+            self.output = self.get_output(self, init_conf)
+        else:
             self.output.set_install_params(init_conf.python_exec,  init_conf.scl_enable_exec)
-  
+
+    def get_output(self, conf):
+        """Inicialize output using defined type"""
+        output = None
+        if conf.output_type == comconf.OutputCommType.ssh:
+            output = SshOutputComm(conf.host, conf.mj_name, conf.uid, conf.pwd)
+            output.connect()
+        elif conf.output_type == comconf.OutputCommType.pbs:
+            self.output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)            
+        elif conf.output_type == comconf.OutputCommType.exec_:
+            self.output = ExecOutputComm(conf.mj_name, conf.port)
+        return output
+
     def _set_loger(self,  path, name, level):
         """set logger"""
         if self.id is None:
@@ -146,8 +154,7 @@ class Communicator():
             self.stop =True
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
-        return None
-        
+        return None        
     
     def close(self):
         """Release resorces"""
