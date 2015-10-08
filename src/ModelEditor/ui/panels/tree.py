@@ -90,8 +90,9 @@ class TreeWidget(QtWidgets.QTreeView):
             if is_array_member and has_delimiters:
                 span = data.delimiters
 
-        self.itemSelected.emit(span.start.column, span.start.line,
-                               span.end.column, span.end.line)
+        if span.start is not None and span.end is not None:
+            self.itemSelected.emit(span.start.column, span.start.line,
+                                   span.end.column, span.end.line)
 
     def select_data_node(self, data_node):
         """Sets the selection to the given `DataNode`."""

@@ -30,7 +30,7 @@ class InfoPanelWidget(QWebView):
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
-        print(html + '\n\n')
+        print('\n\n' + html)
 
     def resizeEvent(self, event):
         """Handle window resize."""

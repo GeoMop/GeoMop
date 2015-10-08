@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="bootstrap.min.css" media="screen" rel="stylesheet" type="text/css">
+    <link href="katex.min.css" media="screen" rel="stylesheet" type="text/css">
+    <link href="main.css" media="screen" rel="stylesheet" type="text/css">
+    <script src="jquery-2.1.3.min.js" type="text/javascript"></script>
+    <script src="bootstrap.min.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="container-fluid fill">
+        <div class="row fill">
+            <div class="fill " id="input-reference">
+                <section class="main-section selection" data-name="darcymhoutput_selection" id="darcymhoutput_selection">
+                    <header>
+                        <h2>DarcyMHOutput_Selection</h2>
+                        <p class="description">Selection of fields available for output.</p>
+                    </header>
+                    <ul class="key-list col-md-2 col-sm-3 col-xs-4">
+                        <li><a class="record-key" href="#darcymhoutput_selection-anisotropy">anisotropy</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-cross_section">cross_section</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-conductivity">conductivity</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-sigma">sigma</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-water_source_density">water_source_density</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-init_pressure">init_pressure</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-storativity">storativity</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-pressure_p0">pressure_p0</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-pressure_p1">pressure_p1</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-piezo_head_p0">piezo_head_p0</a></li>
+                        <li><a class="record-key selected" href="#darcymhoutput_selection-velocity_p0">velocity_p0</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-subdomain">subdomain</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-region_id">region_id</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-pressure_diff">pressure_diff</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-velocity_diff">velocity_diff</a></li>
+                        <li><a class="record-key" href="#darcymhoutput_selection-div_diff">div_diff</a></li>
+                    </ul>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-anisotropy">
+                        <p class="description">Output of the field anisotropy <span class="md-expression">{$[-]$}</span> (Anisotropy of the conductivity tensor.).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-cross_section">
+                        <p class="description">Output of the field cross_section <span class="md-expression">{$[m^{3-d}]$}</span> (Complement dimension parameter (cross section for 1D, thickness for 2D).).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-conductivity">
+                        <p class="description">Output of the field conductivity <span class="md-expression">{$[ms^{-1}]$}</span> (Isotropic conductivity scalar.).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-sigma">
+                        <p class="description">Output of the field sigma <span class="md-expression">{$[-]$}</span> (Transition coefficient between dimensions.).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-water_source_density">
+                        <p class="description">Output of the field water_source_density <span class="md-expression">{$[s^{-1}]$}</span> (Water source density.).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-init_pressure">
+                        <p class="description">Output of the field init_pressure <span class="md-expression">{$[m]$}</span> (Initial condition as pressure).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-storativity">
+                        <p class="description">Output of the field storativity <span class="md-expression">{$[m^{-1}]$}</span> (Storativity.).</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-pressure_p0">
+                        <p class="description">Output of the field pressure_p0 <span class="md-expression">{$[m]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-pressure_p1">
+                        <p class="description">Output of the field pressure_p1 <span class="md-expression">{$[m]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-piezo_head_p0">
+                        <p class="description">Output of the field piezo_head_p0 <span class="md-expression">{$[m]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8" id="darcymhoutput_selection-velocity_p0">
+                        <p class="description">Output of the field velocity_p0 <span class="md-expression">{$[ms^{-1}]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-subdomain">
+                        <p class="description">Output of the field subdomain <span class="md-expression">{$[-]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-region_id">
+                        <p class="description">Output of the field region_id <span class="md-expression">{$[-]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-pressure_diff">
+                        <p class="description">Output of the field pressure_diff <span class="md-expression">{$[m]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-velocity_diff">
+                        <p class="description">Output of the field velocity_diff <span class="md-expression">{$[ms^{-1}]$}</span>.</p>
+                    </div>
+                    <div class="key-description col-md-10 col-sm-9 col-xs-8 hidden" id="darcymhoutput_selection-div_diff">
+                        <p class="description">Output of the field div_diff <span class="md-expression">{$[s^{-1}]$}</span>.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <script src="katex.min.js" type="text/javascript"></script>
+    <script src="main.js" type="text/javascript"></script>
+</body>
+
+</html>
