@@ -22,8 +22,6 @@ class InfoPanelWidget(QWebView):
         """Initializes the class."""
         super(InfoPanelWidget, self).__init__(parent)
         self._html_root_url = QUrl.fromLocalFile(__html_root_path__)
-        self.linkClicked.connect(self.navigate_to)
-        self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
 
     def update_from_node(self, node, cursor_type=None):
         """Updates the info text for the given node and cursor_type."""
@@ -32,11 +30,7 @@ class InfoPanelWidget(QWebView):
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
-
-    def navigate_to(self, url_):
-        """Navigates to given URL."""
-        # TODO: is support for links needed?
-        print('navigate-to: ' + url_.toString())
+        print(html + '\n\n')
 
     def resizeEvent(self, event):
         """Handle window resize."""

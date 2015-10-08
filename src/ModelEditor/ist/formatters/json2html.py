@@ -238,15 +238,16 @@ class HTMLSelection(HTMLItemFormatter):
         with self.open('ul', attrib={'class': 'key-list col-md-2 col-sm-3 col-xs-4'}):
             for selection_value in selection.values:
                 title = selection_value.get_name()
-                href = '#' + title
                 attrib = {'class': 'record-key'}
                 if title == selected:
                     attrib['class'] += ' selected'
                 with self.open('li'):
-                    self.link(href, title, attrib=attrib)
+                    self.link(title, title, ns=self.root.attrib['id'], attrib=attrib)
 
         for selection_value in selection.values:
+            id_ = htmltree.generate_id(selection_value.get_name(), self.root.attrib['id'])
             attrib = {'class': 'key-description col-md-10 col-sm-9 col-xs-8'}
+            attrib.update(id_)
             if selection_value.get_name() != selected:
                 attrib['class'] += ' hidden'
             with self.open('div', attrib=attrib):
@@ -355,15 +356,16 @@ class HTMLRecord(HTMLItemFormatter):
         with self.open('ul', attrib={'class': 'key-list col-md-2 col-sm-3 col-xs-4'}):
             for record_key in record.keys:
                 title = record_key.key
-                href = '#' + record_key.key
                 attrib = {'class': 'record-key'}
                 if title == selected:
                     attrib['class'] += ' selected'
                 with self.open('li'):
-                    self.link(href, title, attrib=attrib)
+                    self.link(record_key.key, title, ns=record.get_name(), attrib=attrib)
 
         for record_key in record.keys:
+            id_ = htmltree.generate_id(record_key.key, self.root.attrib['id'])
             attrib = {'class': 'key-description col-md-10 col-sm-9 col-xs-8'}
+            attrib.update(id_)
             if record_key.key != selected:
                 attrib['class'] += ' hidden'
             with self.open('div', attrib=attrib):

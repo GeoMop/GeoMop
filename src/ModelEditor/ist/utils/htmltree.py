@@ -65,7 +65,7 @@ class htmltree(object):
         :return:
         """
         if subtitle:
-            with self.open(level, '', self.generate_id(title, subtitle)):
+            with self.open(level, ''):
                 if not hide_subtitle:
                     with self.open('small'):
                         self.tag('a', subtitle + '', self.generate_href(subtitle))
@@ -297,7 +297,8 @@ class htmltree(object):
         classes = self.root.attrib.get('class', '')
         self.root.attrib['class'] = '{} {}'.format(cls, classes)
 
-    def generate_id(self, value, sub_value=''):
+    @staticmethod
+    def generate_id(value, sub_value=''):
         """
         Method generates dict with id based on given value and sub_value
         :param value: id main value
@@ -306,7 +307,8 @@ class htmltree(object):
         """
         return { 'id': htmltree.chain_values(value, sub_value) }
 
-    def generate_href(self, value, sub_value=''):
+    @staticmethod
+    def generate_href(value, sub_value=''):
         """
         Method generates dict with href based on given value and sub_value
         :param value: href main value
