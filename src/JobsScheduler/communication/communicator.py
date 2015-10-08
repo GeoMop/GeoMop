@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import threading
+
 import data.communicator_conf as comconf
 import data.transport_data as tdata
 from communication.std_input_comm import StdInputComm
@@ -13,6 +14,8 @@ from  communication.exec_output_comm import  ExecOutputComm
 from  communication.installation import  Installation
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
+
+LONG_MESSAGE_TIMEOUT=600
 
 class Communicator():
     """
@@ -31,7 +34,7 @@ class Communicator():
         constructor, end is call before resending answer received 
         from previous communicator        
     """
-    
+  
     def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None):
         self.input = None
         """class for input communication"""
@@ -49,8 +52,15 @@ class Communicator():
         """if installation process of next communicator is finished"""
         self._install_lock = threading.Lock()
         """_installed lock"""
-        self._instalation_begined = False        
+        self._download_processed = tdata.ProcessType.ready        
+        """Download of result files is processed"""
+        self._download_processed_lock = threading.Lock()
+        """_download_processed lock"""
+        self._instalation_begined = False
         """if installation begined"""
+        self.stop = False
+        """Stop processing of run function"""
+        
         self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
             self.communicator_name, self.log_level)
         if action_func_before is None:
@@ -114,7 +124,6 @@ class Communicator():
                 self._instalation_begined = True
                 logging.debug("Installation to local directory")
                 self.install()
-                action = tdata.Action(tdata.ActionType.ok)
                 return True, True, None
             else:
                 if self._instalation_begined:
@@ -128,18 +137,68 @@ class Communicator():
                     t = threading.Thread(target=self.install)
                     t.daemon = True
                     t.start()
-                action = tdata.Action(tdata.ActionType.installation_in_process)
+                action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, False, action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
+            if isinstance(self.output, SshOutputComm):
+                processed = False
+                self._download_processed_lock.acquire()
+                if self._download_processed == tdata.ProcessType.processed:
+                    processed = True
+                self._download_processed_lock.release()
+                if processed:
+                    #action will be processed in after funcion
+                    return False, False, None
         return True, True, None
         
-    def  standart_action_funcion_after(self, message):
+    def  standart_action_funcion_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.stop:
+            if response is not None and \
+                response.action_type == tdata.ActionType.action_in_process:
+                return response
+            logging.info("Stop signal is received")
+            self.stop =True
+            action = tdata.Action(tdata.ActionType.ok)
+            return action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
+            if response is None or \
+                response.action_type != tdata.ActionType.action_in_process:
+                # waiting to the next communicator is not needed
+                if isinstance(self.output, SshOutputComm):
+                    processed = False
+                    start = False
+                    self._download_processed_lock.acquire()
+                    if self._download_processed == tdata.ProcessType.ready:
+                        processed = True
+                        start = True
+                        self._download_processed = tdata.ProcessType.processed
+                    elif self._download_processed == tdata.ProcessType.processed:
+                        processed = True
+                    else:
+                        self._download_processed = tdata.ProcessType.ready
+                    self._download_processed_lock.release()    
+                    if start:
+                        t = threading.Thread(target=self.download)
+                        t.daemon = True
+                        t.start()
+                    if processed:
+                        action = tdata.Action(tdata.ActionType.action_in_process)
+                        return False, False, action.get_message()                
+                    return True, True, None
+                else:
+                    self.download()
+                    self._download_processed = tdata.ProcessType.ready
+                    return True, True, None
         return None
+        
     
     def close(self):
         """Release resorces"""
+        time.sleep(1)
         if self.output is not None:
             self.output.disconnect()
+        time.sleep(1)
         if self.input is not None:
             self.input.disconnect()
         logging.info("Application " + self.communicator_name + " is stopped")
@@ -152,6 +211,15 @@ class Communicator():
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
+        
+    def download(self):
+        """download result files"""
+        logging.debug("Start downloading result files")
+        self.output.download_result()
+        logging.debug("End downloading result files")
+        self._download_processed_lock.acquire()
+        self._download_processed = tdata.ProcessType.finished
+        self._download_processed_lock.release()
         
     def is_installed(self):
         """if installation process of next communicator is finished"""
@@ -195,19 +263,17 @@ class Communicator():
         advanced actions.
         Use send_action instead, if you want work in real time
         """
-        stop = False
-        while True:
+        self.stop = False
+        while not self.stop:
             if self.input is None:
                 logging.fatal("Infinite loop")
                 raise Exception("Infinite loop")
                 break
             message = self.input.receive(1)
+            mess = None
             if message is not None:
                 error = False
                 logging.debug("Input message is receive (" + str(message) + ')')
-                if message.action_type == tdata.ActionType.stop:
-                    logging.info("Stop signal is received")
-                    stop=True
                 resend,  process, mess = self.action_func_before(message)
                 if process:
                     action=tdata.Action(message.action_type,  message.json)
@@ -217,16 +283,16 @@ class Communicator():
                     self.output.send(message)
                 if resend and self.output is not None:
                     res = self.output.receive()
-                    if mess is None:
-                        mess = res
+                    mess = res
                     logging.debug("Answer to resent message is receive (" + str(mess) + ')')
-                mess_after = self.action_func_after(message)
+                mess_after = self.action_func_after(message, mess)
                 if mess_after is not None:
                     mess = mess_after
+                    logging.debug("Message after: (" + str(mess) + ')')
                 if mess == None:
                     action=tdata.Action(tdata.ActionType.error)
                     if resend:
-                        action.action.data["msg"] = "timeout"
+                        action.data.data["msg"] = "timeout"
                     else:
                         action.data.data["msg"] = "implementation error"
                     mess = action.get_message()
@@ -235,17 +301,28 @@ class Communicator():
                 if error:
                     logging.error("Error answer sent (" + str(mess) + ')')
                 else:
-                    logging.debug("Answer is sent (" + str(mess) + ')')
-            if stop:
-                break                  
+                    logging.debug("Answer is sent (" + str(mess) + ')')   
 
     def send_message(self, message):
         """send message to output"""
         self.output.send(message)
         logging.debug("Message is send (" + str(message) + ')')
+       
+    def send_long_action(self, action):
+        """send message with long response time, to output"""
+        sec = time.time() + LONG_MESSAGE_TIMEOUT
+        while sec  > time.time() :
+            message = action.get_message()
+            self.send_message(message)
+            mess = self.receive_message(120)
+            if mess is None:
+                break
+            if mess.action_type != tdata.ActionType.action_in_process:
+                return mess
+        return None
 
-    def receive_message(self):
+    def receive_message(self, timeout=60):
         """receive message from output"""
-        mess = self.output.receive()
+        mess = self.output.receive(timeout)
         logging.debug("Answer to message is receive (" + str(mess) + ')')
         return mess    

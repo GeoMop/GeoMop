@@ -31,8 +31,11 @@ if sys.platform == "win32":
             if self.installation.scl_enable_exec is not None:
                 mess = self.ssh.exec_("scl enable " +  self.installation.scl_enable_exec + " bash")
                 if mess != "":
-                    logging.warning("Enable scl error: " + mess) 
-            self.installation.create_install_dir(self.ssh)
+                    logging.warning("Enable scl error: " + mess)
+            try:
+                self.installation.create_install_dir(self.ssh)
+            except Exception as err:
+                logging.warning("Installation error: " + str(err))
              
         def exec_(self, python_file):
             """run set python file in ssh"""
@@ -60,8 +63,14 @@ if sys.platform == "win32":
                 logging.warning("Receive message (" + txt + ") error: " + str(err))
             return None    
      
-        def get_file(self, file_name):
-            """download file from installation folder"""
+        def download_result(self):
+            """download result files from installation folder"""
+            try:
+                self.installation.get_results(self.ssh)
+            except Exception as err:
+                logging.warning("Download file error: " + str(err))
+                return False
+            return True
 else:
     import pxssh
     import pexpect
@@ -87,9 +96,27 @@ else:
         def disconnect(self):
             """disconnect session"""
             try:
-                self.ssh.logout()
-            except:
-                pass
+                try:
+                    #prompt from exec
+                    self.ssh.read_nonblocking(size=10000, timeout=10)
+                except pexpect.TIMEOUT:
+                    pass
+                self.ssh.sendline("cd ..")
+                if self.ssh.prompt():
+                    mess = str(self.ssh.before, 'utf-8').strip()
+                    if mess != ("cd .."):
+                        logging.warning("Cd before logout fail: " + mess)
+                try:
+                    self.ssh.logout()
+                except pexpect.TIMEOUT:
+                    # sometimes first logout fails
+                    self.ssh.sendline("pwd")
+                    try:
+                        self.ssh.logout()
+                    except Exception as err:
+                        logging.warning("Ssh logout error: " +   str(err))
+            except Exception as err:
+                logging.warning("Ssh error before logout: " +   str(err))
             
         def install(self):
             """make installation"""
@@ -97,18 +124,14 @@ else:
                 self.ssh.sendline("scl enable " +  self.installation.scl_enable_exec + " bash")
                 self.ssh.expect(".*scl enable " +  self.installation.scl_enable_exec + " bash\r\n")
                 if len(self.ssh.before)>0:
-                    logging.warning("Sftp message (scl enable): " + str(self.ssh.before, 'utf-8').strip())                    
-            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
-            sftp.expect('.*assword:')
-            sftp.sendline(self.password)
-            sftp.expect('.*')
-            res = sftp.expect(['Permission denied','Connected to .*'])
-            if res == 0:
-                sftp.kill(0)
-                raise Exception("Permission denied for user " + self.name) 
-            self.installation.create_install_dir(sftp)
-            sftp.close()
-            
+                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip())                    
+            try:        
+                sftp = self._get_sftp()
+                self.installation.create_install_dir(sftp)
+                sftp.close()
+            except Exception as err:
+                logging.warning("Installation error: " + str(err))
+                
         def exec_(self, python_file):
             """run set python file in ssh"""
             self.ssh.sendline("cd " + self.installation.copy_path)
@@ -191,8 +214,28 @@ else:
                 logging.warning("Receive message (" + txt + ") error: " + str(err))
             return None
      
-        def get_file(self, file_name):
-            """download file from installation folder"""
+        def download_result(self):
+            """download result files from installation folder"""
+            try:
+                sftp = self._get_sftp()
+                self.installation.get_results(sftp)
+                sftp.close()
+            except Exception as err:
+                logging.warning("Download file error: " + str(err))
+                return False
+            return True
+            
+        def _get_sftp(self):
+            """return sftp connection"""
+            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
+            sftp.expect('.*assword:')
+            sftp.sendline(self.password)
+            sftp.expect('.*')
+            res = sftp.expect(['Permission denied','Connected to .*'])
+            if res == 0:
+                sftp.kill(0)
+                raise Exception("Permission denied for user " + self.name)
+            return sftp
         
         @staticmethod
         def strip_pexpect_echo(txt):

@@ -157,8 +157,8 @@ class DataNode:
             return ''
 
         # show info for Record, Selection or AbstractRecord that is in input structure
-        while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord']
-               or node.origin == NodeOrigin.ac_array):
+        while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord'] or
+               node.origin == NodeOrigin.ac_array):
             prev_node = node
             node = node.parent
             input_type = node.input_type

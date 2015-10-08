@@ -54,10 +54,11 @@ class PbsOutputComm(ExecOutputComm):
     def disconnect(self):
         """disconnect session"""
         if self.config.with_socket:
-            super(PbsOutputComm, self).diconnect()
-        hlp = pbs.Pbs(self.config) 
+            super(PbsOutputComm, self).disconnect()
+        hlp = pbs.Pbs(self.installation.get_mj_data_dir(),self.config) 
         error = hlp.get_errors()
-        logging.warning("Error output contains error:" + error) 
+        if error is not None:
+            logging.warning("Error output contains error:" + error) 
         
     def send(self,  mess):
         """send json message"""        

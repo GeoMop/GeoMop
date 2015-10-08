@@ -13,7 +13,14 @@ class ActionType(Enum):
     ok = 1
     stop = 2
     installation = 3
-    installation_in_process = 4
+    action_in_process = 4
+    download_res = 5
+    
+class ProcessType(Enum):
+    """Action type"""
+    ready = 0
+    processed = 1
+    finished = 2
 
 class Message:
     """
@@ -116,7 +123,9 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.installation:
             self.data = EmptyData()
-        elif type == ActionType.installation_in_process:
+        elif type == ActionType.download_res:
+            self.data = EmptyData()
+        elif type == ActionType.action_in_process:
             self.data = EmptyData()
         elif type == ActionType.error:
             self.data = ErrorData(json_data)

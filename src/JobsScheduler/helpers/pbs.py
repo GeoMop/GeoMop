@@ -46,6 +46,9 @@ class Pbs():
             f = open(self.mj_path + "/" + self.config.name + "/pbs_output", 'r')
             lines = f.read().splitlines(False)
             f.close()
+            if len(lines) == 0 or (len(lines) == 1 and \
+                lines[0].isspace() or len(lines[0]) == 0):
+                return None
             return lines
         return None
     
@@ -54,5 +57,7 @@ class Pbs():
             f = open(self.mj_path + "/" + self.config.name + "/pbs_error", 'r')
             error = f.read()
             f.close()
+            if error.isspace() or len(error) == 0:
+                return None
             return error
         return None        

@@ -122,9 +122,8 @@ class NodeAnalyzer:
         root = self.get_root_node()
         if root is None:
             return None
-        old_node = root.get_node_at_position(Position(line+1, 0))
         node = None
-        while node == old_node or node is None:
+        while  node is None:
             if l<0:
                 return None
             node =  root.get_node_at_position(Position(l+1, len(self._lines[l])-1))

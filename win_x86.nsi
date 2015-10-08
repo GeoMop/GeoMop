@@ -3,7 +3,7 @@
 #--------------------------------
 
 # Define directories.
-!define GIT_DIR ".\"
+!define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
 
@@ -19,6 +19,10 @@
 # Include the tools we use.
 !include MUI2.nsh
 !include LogicLib.nsh
+
+
+# Maximum compression.
+SetCompressor /SOLID lzma
 
 
 # Read version information from file.
@@ -108,7 +112,7 @@ Section "Runtime Environment" SecRuntime
 
   # Copy the common folder.
   SetOutPath $INSTDIR
-  File /r "${SRC_DIR}\common"
+  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\common"
 
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
@@ -119,7 +123,7 @@ SectionEnd
 Section "JobsScheduler" SecJobsScheduler
 
   SetOutPath $INSTDIR
-  File /r "${SRC_DIR}\JobsScheduler"
+  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\JobsScheduler"
 
 SectionEnd
 
@@ -127,7 +131,7 @@ SectionEnd
 Section /o "LayerEditor" SecLayerEditor
 
   SetOutPath $INSTDIR
-  File /r "${SRC_DIR}\LayerEditor"
+  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\LayerEditor"
 
 SectionEnd
 
@@ -135,7 +139,7 @@ SectionEnd
 Section "ModelEditor" SecModelEditor
 
   SetOutPath $INSTDIR
-  File /r "${SRC_DIR}\ModelEditor"
+  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\ModelEditor"
 
 SectionEnd
 

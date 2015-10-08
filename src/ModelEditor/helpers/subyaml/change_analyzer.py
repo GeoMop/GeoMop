@@ -37,7 +37,9 @@ class ChangeAnalyzer:
                     nline, nindex = self._get_key_area(i)
                     if self._line < nline or (self._line == nline and self._index < nindex):
                         return PosType.in_key
-                    i = nline
+                    if i != nline:
+                        i = nline
+                        index = nindex
                 is_key = True
                 if LineAnalyzer.get_char_poss(self._area[i][index+1:], ":") > -1:
                     inner = True

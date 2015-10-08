@@ -158,6 +158,30 @@ class Installation:
                     if end == 0 and len(conn.before)>0:
                         logging.debug("Sftp message(put -r " + dir + "): " + str(conn.before, 'utf-8').strip())
  
+    def get_results(self, conn):
+        """Copy installation files"""
+        res_local = self.get_result_dir_static(self.mj_name)
+        res_dir = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__
+        if sys.platform == "win32": 
+            conn.set_sftp_paths(res_local, res_dir)
+        else:
+            import pexpect 
+            
+            conn.sendline('cd ' + res_dir)
+            conn.expect('.*cd ' + res_dir + "\r\n")
+            conn.expect("sftp> ")
+            conn.sendline('lcd ' + res_local)
+            conn.expect('.*lcd ' + res_local + "\r\n")
+            conn.sendline('get -r *')
+            conn.expect(r'.*get -r \*\r\n')
+            end=0
+            while end==0:
+                #wait 2s after last message
+                end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                if end == 0 and len(conn.before)>0:
+                    logging.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
+            
+ 
     def get_command(self, name):
         """Find install file according to name and return command for running"""
         # use / instead join because destination os is linux and is not 

@@ -31,8 +31,6 @@ class InfoTextGenerator:
         if input_type_id not in cls._input_types:
             return "unknown ID"
         input_type = cls._input_types[input_type_id]
-        # while input_type.__type__ == 'Array':  # array workaround
-        #     input_type = input_type.subtype.get_reference()
         return get_info_text(input_type, **kwargs)
 
 
