@@ -4,13 +4,17 @@ Info Panel Widget
 This module contains a widget that shows info text with QWebView.
 """
 
-# pylint: disable=invalid-name
-
-__author__ = 'Tomas Krizek'
+from urllib.parse import urlparse, parse_qs
+import os
 
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
-import os
+
+from ist import InfoTextGenerator
+
+# pylint: disable=invalid-name
+
+__author__ = 'Tomas Krizek'
 
 __html_root_path__ = os.path.join(os.getcwd(), 'resources', 'ist_html') + os.path.sep
 
@@ -32,15 +36,15 @@ class InfoPanelWidget(QWebView):
 
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
-        from ist import InfoTextGenerator
-        html = InfoTextGenerator.get_info_text('7ca0afc78a994c0d', 'output_fields', selected_item='velocity_p0')
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
-        print('\n\n' + html)
 
     def navigate_to(self, url_):
         """Navigates to given URL."""
         # TODO: is support for links needed?
-        print('navigate-to: ' + url_.toString())
+        query_params = parse_qs(urlparse(url_.toString()).query)
+        kwargs = {name: value[0] for name, value in query_params.items()}
+        html = InfoTextGenerator.get_info_text(**kwargs)
+        self.setHtml(html)
 
     def resizeEvent(self, event):
         """Handle window resize."""

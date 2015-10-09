@@ -31,6 +31,11 @@ class InfoTextGenerator:
         if record_id not in cls._input_types:
             return "unknown record_id"
 
+        cls.record_id = record_id
+        cls.selected_key = selected_key
+        cls.abstract_id = abstract_id
+        cls.selected_item = selected_item
+
         html = htmltree('html')
         html_body = htmltree('body')
 
@@ -75,20 +80,27 @@ class InfoTextGenerator:
 
         with section.open('header'):
             section.tag('h2', type_.get('type_name', ''))
-            section.desctiption(type_.get('description', ''))
+            section.description(type_.get('description', ''))
 
         with section.open('div', cls='key-list col-md-4 col-sm-4 col-xs-4'):
             with section.open('div', cls='item-list'):
                 if 'keys' in type_:
-                    if selected_key is None and len(type_['keys']) > 0:
-                        selected_key = type_['keys'][0]['key']
-                    for key in type_['keys']:
+                    keys = [key for key in type_['keys'] if key['key'] not in ['TYPE']]
+                    if selected_key is None and len(keys) > 0:
+                        selected_key = keys[0]['key']
+                    for key in keys:
                         if key['key'] == selected_key:
                             selected_key_type = key
                             cls_ = 'selected'
                         else:
                             cls_ = ''
-                        section.link('#', key['key'], attrib={'class': cls_})
+                        href = cls.generate_href(
+                            record_id=record_id,
+                            selected_key=key['key'],
+                            abstract_id=cls.abstract_id,
+                            selected_item=cls.selected_item
+                        )
+                        section.tag('a', key['key'], attrib={'class': cls_, 'href': href})
 
         with section.open('div', cls='key-description col-md-4 col-sm-4 col-xs-4'):
             with section.open('header'):
@@ -172,7 +184,13 @@ class InfoTextGenerator:
                     cls_ = 'selected'
                 else:
                     cls_ = ''
-                div.link('#', name, attrib={'class': cls_})
+                href = cls.generate_href(
+                    record_id=cls.record_id,
+                    selected_key=cls.selected_key,
+                    abstract_id=cls.abstract_id,
+                    selected_item=name
+                )
+                div.tag('a', name, attrib={'class': cls_, 'href': href})
 
         return div.current()
 
@@ -215,9 +233,26 @@ class InfoTextGenerator:
                     name = implementation_type.get('type_name')
                     if not name:
                         name = implementation_type.get('name', '')
-                    tree.link('#', name)
+                    href = cls.generate_href(
+                        record_id=implementation_id,
+                        abstract_id=type_['id']
+                    )
+                    tree.tag('a', name, attrib={'href': href})
                     tree.info(' - ')
                     tree.span(implementation_type.get('description', ''))
+
+    @staticmethod
+    def generate_href(record_id=None, selected_key=None, abstract_id=None,
+                      selected_item=None):
+        parts = []
+        for name in ['record_id', 'selected_key', 'abstract_id', 'selected_item']:
+            value = locals().get(name)
+            if value is not None:
+                parts.append("{0}={1}".format(name, value))
+
+        if not parts:
+            return '#'
+        return '?' + '&'.join(parts)
 
 
 class NumberRange:
