@@ -1,8 +1,10 @@
-# encoding: utf-8
-# author:   Jan Hybs
+"""
+Module generates html documentation from IST.
+"""
 import json
-
 from .utils.htmltree import htmltree
+
+__author__ = 'Tomas Krizek'
 
 
 class InfoTextGenerator:
@@ -34,7 +36,7 @@ class InfoTextGenerator:
 
         with html_body.open('div', cls='container-fluid fill'):
             if abstract_id in cls._input_types:
-                html_body.add(cls._generate_abstract(abstract_id))
+                html_body.add(cls._generate_abstract_record(abstract_id))
             html_body.add(cls._generate_record(record_id, selected_key, selected_item))
 
         html_head = htmltree('head')
@@ -52,9 +54,18 @@ class InfoTextGenerator:
         return r'<!DOCTYPE html>' + html.dump()
 
     @classmethod
-    def _generate_abstract(cls, abstract_id):
+    def _generate_abstract_record(cls, abstract_id):
         """Generates documentation for top-level abstract record."""
-        pass
+        section = htmltree('section', cls='row abstract-record')
+        type_ = cls._input_types[abstract_id]
+
+        with section.open('header'):
+            section.tag('h2', type_.get('name', ''))
+            section.description(type_.get('description', ''))
+
+        cls._generate_implementation_list(section, type_)
+
+        return section.current()
 
     @classmethod
     def _generate_record(cls, record_id, selected_key=None, selected_item=None):
@@ -63,8 +74,8 @@ class InfoTextGenerator:
         type_ = cls._input_types[record_id]
 
         with section.open('header'):
-            section.tag('h2', type_['type_name'])
-            section.tag('p', type_['description'], cls='description')
+            section.tag('h2', type_.get('type_name', ''))
+            section.desctiption(type_.get('description', ''))
 
         with section.open('div', cls='key-list col-md-4 col-sm-4 col-xs-4'):
             with section.open('div', cls='item-list'):
@@ -77,42 +88,136 @@ class InfoTextGenerator:
                             cls_ = 'selected'
                         else:
                             cls_ = ''
-                        section.tag('a', key['key'], cls=cls_)
+                        section.link('#', key['key'], attrib={'class': cls_})
 
         with section.open('div', cls='key-description col-md-4 col-sm-4 col-xs-4'):
             with section.open('header'):
                 section.tag('h3', selected_key)
                 if 'default' in selected_key_type and 'value' in selected_key_type['default']:
                     with section.open('div', cls='small'):
-                        section.tag('span', 'Default value: ', cls='leading-text')
+                        section.info('Default value: ')
                         section.tag('span', selected_key_type['default']['value'],
                                     cls='chevron skew')
-            if 'description' in selected_key_type:
-                section.tag('p', selected_key_type['description'], cls='description')
+                section.description(selected_key_type.get('description', ''))
 
         key_type = cls._input_types.get(selected_key_type['type'])
+
+        array_div = None
+        while key_type is not None and key_type.get('input_type') == 'Array':
+            if array_div is None:
+                array_div = htmltree('div', cls='small')
+            array_div.info('Array ')
+            range_ = NumberRange(key_type)
+            array_div.tag('span', str(range_))
+            array_div.info(' of ')
+            key_type = cls._input_types.get(key_type['subtype'])
+
         if key_type is not None and 'input_type' in key_type:
             cls_ = 'key-type col-md-4 col-sm-4 col-xs-4 '
             if key_type['input_type'] == 'Record':
                 cls_ += 'record'
+                section.add(cls._generate_key_type_record(key_type, cls_=cls_, prepend=array_div))
             elif key_type['input_type'] == 'AbstractRecord':
-                cls_ += 'abstract'
+                cls_ += 'abstract-record'
+                section.add(cls._generate_key_type_abstract_record(key_type, cls_=cls_,
+                                                                   prepend=array_div))
             else:
                 cls_ += 'scalar'
-                section.add(cls._generate_key_type_scalar(key_type, selected_item, cls_=cls_))
+                if key_type['input_type'] == 'Selection':
+                    section.add(cls._generate_key_type_selection(key_type, selected_item, cls_=cls_,
+                                                                 prepend=array_div))
+                else:
+                    section.add(cls._generate_key_type_scalar(key_type, cls_=cls_,
+                                                              prepend=array_div))
 
         return section.current()
 
     @classmethod
-    def _generate_key_type_scalar(cls, key_type, selected_item=None, cls_=''):
+    def _generate_key_type_scalar(cls, key_type, cls_='', prepend=None):
         """Generates documentation for scalar key type."""
         div = htmltree('div', cls=cls_)
+        if prepend is not None:
+            div.add(prepend.current())
         with div.open('header'):
-            div.tag('h2', key_type['name'])
-            if key_type['input_type'] in ['Integer', 'Double']:
-                range = NumberRange(key_type)
-                div.tag('span', str(range), cls='small')
+            div.tag('h2', key_type.get('name', ''))
+            if key_type.get('input_type') in ['Integer', 'Double']:
+                range_ = NumberRange(key_type)
+                div.tag('span', str(range_), cls='small')
+            elif key_type.get('input_type') == 'FileName':
+                with div.open('div', cls='small'):
+                    div.info('File mode: ')
+                    div.span(key_type.get('file_mode', 'unknown'), cls='chevron skew')
+            else:
+                div.decription('')
         return div.current()
+
+    @classmethod
+    def _generate_key_type_selection(cls, key_type, selected_item=None, cls_='', prepend=None):
+        """Generates documentation for scalar key type."""
+        div = htmltree('div', cls=cls_)
+        if prepend is not None:
+            div.add(prepend.current())
+        with div.open('header'):
+            div.tag('h2', key_type.get('name', ''))
+            div.decription(key_type.get('description', ''))
+
+        values = {value['name']: value['description'] for value in key_type.get('values', [])}
+        if selected_item in values:
+            div.description('<span class="leading-text">{0}: </span>{1}'
+                            .format(selected_item, values[selected_item]))
+
+        with div.open('div', cls='item-list'):
+            for name in values:
+                if name == selected_item:
+                    cls_ = 'selected'
+                else:
+                    cls_ = ''
+                div.link('#', name, attrib={'class': cls_})
+
+        return div.current()
+
+    @classmethod
+    def _generate_key_type_record(cls, key_type, cls_='', prepend=None):
+        """Generates documentation for record key type."""
+        div = htmltree('div', cls=cls_)
+        if prepend is not None:
+            div.add(prepend.current())
+        with div.open('header'):
+            div.tag('h2', key_type.get('type_name', ''))
+            if 'reducible_to_key' in key_type:
+                with div.open('div', cls='small'):
+                    div.info('Constructible from key: ')
+                    div.span(key_type['reducible_to_key'], cls='chevron skew')
+        div.description(key_type.get('description', ''))
+        return div.current()
+
+    @classmethod
+    def _generate_key_type_abstract_record(cls, key_type, cls_='', prepend=None):
+        """Generates documentation for abstract record key type."""
+        div = htmltree('div', cls=cls_)
+        if prepend is not None:
+            div.add(prepend.current())
+        with div.open('header'):
+            div.tag('h2', key_type.get('name', ''))
+            div.description(key_type.get('description', ''))
+        cls._generate_implementation_list(div, key_type)
+        return div.current()
+
+    @classmethod
+    def _generate_implementation_list(cls, tree, type_):
+        """Generates implementation list for abstract record."""
+        with tree.open('ul', cls='implementation-list'):
+            for implementation_id in type_.get('implementations', []):
+                implementation_type = cls._input_types.get(implementation_id)
+                if implementation_type is None:
+                    continue
+                with tree.open('li'):
+                    name = implementation_type.get('type_name')
+                    if not name:
+                        name = implementation_type.get('name', '')
+                    tree.link('#', name)
+                    tree.info(' - ')
+                    tree.span(implementation_type.get('description', ''))
 
 
 class NumberRange:

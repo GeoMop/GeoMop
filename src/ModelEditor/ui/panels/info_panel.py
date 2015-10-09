@@ -33,7 +33,7 @@ class InfoPanelWidget(QWebView):
     def setHtml(self, html):
         """Sets the HTML content of info panel."""
         from ist import InfoTextGenerator
-        html = InfoTextGenerator.get_info_text("7f7b2caffb3e4eb6", "time_step")
+        html = InfoTextGenerator.get_info_text('7ca0afc78a994c0d', 'output_fields', selected_item='velocity_p0')
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
         print('\n\n' + html)
 
