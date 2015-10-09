@@ -8,8 +8,7 @@ __author__ = 'Tomas Krizek'
 
 from enum import Enum
 
-from .util import TextValue, CursorType
-from ist import InfoTextGenerator
+from .util import TextValue
 
 DEBUG_MODE = True
 """changes the behaviour to debug mode"""
@@ -118,52 +117,35 @@ class DataNode:
             node = node.get_child(key)
         return node
 
-    def get_info_text(self, cursor_type=CursorType.value):
-        """Returns help text describing the input type based on cursor_type."""
+    def get_info_text_data(self):
+        """Returns data necessary to generate info_text."""
         # pylint: disable=no-member
-        input_type = None
-        selected = None
+        abstract_id = None
+        selected_item = None
 
-        # crawl up to the first "real" node (present in text structure)
+        if self.input_type is not None and self.input_type.get('base_type') == 'Selection':
+            selected_item = self.value
+
+        # find first parent record node
         prev_node = self
-        node = self
-        while node.origin == NodeOrigin.ac_array:
+        node = self.parent if self.parent is not None else self
+        while (node.origin == NodeOrigin.ac_array or
+               not (isinstance(node, CompositeNode) and node.explicit_keys is True) or
+               node.input_type is None):
             prev_node = node
             node = node.parent
 
-        # select input_type based on cursor_type
-        if cursor_type == CursorType.key.value:
-            if node.parent is not None and node.parent.input_type is not None:
-                input_type = node.parent.input_type
-                selected = node.key.value
-        elif cursor_type == CursorType.tag.value:
-            if node.parent is not None and node.parent.input_type is not None:
-                input_type = node.parent.input_type['keys'][node.key.value]['type']
-                selected = getattr(node, 'type', None)
-        else:  # default behavior - for value and others
-            input_type = node.input_type
-            if node.input_type and node.input_type['base_type'] == 'Selection':
-                selected = prev_node.value
-            else:
-                selected = prev_node.key.value
+        if 'implemented_abstract_record' in node.input_type:
+            abstract_id = node.input_type['implemented_abstract_record']['id']
+        record_id = node.input_type['id']
+        selected_key = prev_node.key.value
 
-        if input_type is None:
-            # unknown node -> show closest available parent input type
-            while node.parent is not None and node.input_type is None:
-                node = node.parent
-            input_type = node.input_type
-
-        if input_type is None:
-            return ''
-
-        # show info for Record, Selection or AbstractRecord that is in input structure
-        while (input_type['base_type'] not in ['Record', 'Selection', 'AbstractRecord'] or
-               node.origin == NodeOrigin.ac_array):
-            prev_node = node
-            node = node.parent
-            input_type = node.input_type
-            selected = prev_node.key.value
-        return InfoTextGenerator.get_info_text(input_type['id'], selected_key=selected)
+        return {
+            'record_id': record_id,
+            'selected_key': selected_key,
+            'abstract_id': abstract_id,
+            'selected_item': selected_item
+        }
 
     def __str__(self):
         text = (

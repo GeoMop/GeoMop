@@ -77,6 +77,7 @@ class InfoTextGenerator:
         """Generates documentation for record."""
         section = htmltree('section', cls='row record')
         type_ = cls._input_types[record_id]
+        selected_key_type = None
 
         with section.open('header'):
             section.tag('h2', type_.get('type_name', ''))
@@ -102,45 +103,47 @@ class InfoTextGenerator:
                         )
                         section.tag('a', key['key'], attrib={'class': cls_, 'href': href})
 
-        with section.open('div', cls='key-description col-md-4 col-sm-4 col-xs-4'):
-            with section.open('header'):
-                section.tag('h3', selected_key)
-                if 'default' in selected_key_type and 'value' in selected_key_type['default']:
-                    with section.open('div', cls='small'):
-                        section.info('Default value: ')
-                        section.tag('span', selected_key_type['default']['value'],
-                                    cls='chevron skew')
-                section.description(selected_key_type.get('description', ''))
+        if selected_key_type is not None:
+            with section.open('div', cls='key-description col-md-4 col-sm-4 col-xs-4'):
+                with section.open('header'):
+                    section.tag('h3', selected_key)
+                    if 'default' in selected_key_type and 'value' in selected_key_type['default']:
+                        with section.open('div', cls='small'):
+                            section.info('Default value: ')
+                            section.tag('span', selected_key_type['default']['value'],
+                                        cls='chevron skew')
+                    section.description(selected_key_type.get('description', ''))
 
-        key_type = cls._input_types.get(selected_key_type['type'])
+            key_type = cls._input_types.get(selected_key_type['type'])
 
-        array_div = None
-        while key_type is not None and key_type.get('input_type') == 'Array':
-            if array_div is None:
-                array_div = htmltree('div', cls='small')
-            array_div.info('Array ')
-            range_ = NumberRange(key_type)
-            array_div.tag('span', str(range_))
-            array_div.info(' of ')
-            key_type = cls._input_types.get(key_type['subtype'])
+            array_div = None
+            while key_type is not None and key_type.get('input_type') == 'Array':
+                if array_div is None:
+                    array_div = htmltree('div', cls='small')
+                array_div.info('Array ')
+                range_ = NumberRange(key_type)
+                array_div.tag('span', str(range_))
+                array_div.info(' of ')
+                array_div.tag('br')
+                key_type = cls._input_types.get(key_type['subtype'])
 
-        if key_type is not None and 'input_type' in key_type:
-            cls_ = 'key-type col-md-4 col-sm-4 col-xs-4 '
-            if key_type['input_type'] == 'Record':
-                cls_ += 'record'
-                section.add(cls._generate_key_type_record(key_type, cls_=cls_, prepend=array_div))
-            elif key_type['input_type'] == 'AbstractRecord':
-                cls_ += 'abstract-record'
-                section.add(cls._generate_key_type_abstract_record(key_type, cls_=cls_,
-                                                                   prepend=array_div))
-            else:
-                cls_ += 'scalar'
-                if key_type['input_type'] == 'Selection':
-                    section.add(cls._generate_key_type_selection(key_type, selected_item, cls_=cls_,
-                                                                 prepend=array_div))
+            if key_type is not None and 'input_type' in key_type:
+                cls_ = 'key-type col-md-4 col-sm-4 col-xs-4 '
+                if key_type['input_type'] == 'Record':
+                    cls_ += 'record'
+                    section.add(cls._generate_key_type_record(key_type, cls_=cls_, prepend=array_div))
+                elif key_type['input_type'] == 'AbstractRecord':
+                    cls_ += 'abstract-record'
+                    section.add(cls._generate_key_type_abstract_record(key_type, cls_=cls_,
+                                                                       prepend=array_div))
                 else:
-                    section.add(cls._generate_key_type_scalar(key_type, cls_=cls_,
-                                                              prepend=array_div))
+                    cls_ += 'scalar'
+                    if key_type['input_type'] == 'Selection':
+                        section.add(cls._generate_key_type_selection(key_type, selected_item, cls_=cls_,
+                                                                     prepend=array_div))
+                    else:
+                        section.add(cls._generate_key_type_scalar(key_type, cls_=cls_,
+                                                                  prepend=array_div))
 
         return section.current()
 
@@ -160,7 +163,7 @@ class InfoTextGenerator:
                     div.info('File mode: ')
                     div.span(key_type.get('file_mode', 'unknown'), cls='chevron skew')
             else:
-                div.decription('')
+                div.description('')
         return div.current()
 
     @classmethod

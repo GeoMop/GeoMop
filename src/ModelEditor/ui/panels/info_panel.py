@@ -11,6 +11,7 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
 
 from ist import InfoTextGenerator
+from data import CursorType
 
 # pylint: disable=invalid-name
 
@@ -32,19 +33,20 @@ class InfoPanelWidget(QWebView):
 
     def update_from_node(self, node, cursor_type=None):
         """Updates the info text for the given node and cursor_type."""
-        self.setHtml(node.get_info_text(cursor_type))
+        if cursor_type == CursorType.value.value:
+            node = node.get_node_at_position(node.span.start)
+        self.update_from_data(node.get_info_text_data())
 
-    def setHtml(self, html):
-        """Sets the HTML content of info panel."""
+    def update_from_data(self, data):
+        """Generates and shows the info text from data."""
+        html = InfoTextGenerator.get_info_text(**data)
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
 
     def navigate_to(self, url_):
         """Navigates to given URL."""
-        # TODO: is support for links needed?
         query_params = parse_qs(urlparse(url_.toString()).query)
-        kwargs = {name: value[0] for name, value in query_params.items()}
-        html = InfoTextGenerator.get_info_text(**kwargs)
-        self.setHtml(html)
+        data = {name: value[0] for name, value in query_params.items()}
+        self.update_from_data(data)
 
     def resizeEvent(self, event):
         """Handle window resize."""
