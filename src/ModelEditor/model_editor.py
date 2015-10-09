@@ -16,7 +16,6 @@ from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 import argparse
-from ist import InfoTextGenerator
 
 
 class ModelEditor:
@@ -24,15 +23,15 @@ class ModelEditor:
 
     def __init__(self):
         # main window
-        self._app = QtWidgets.QApplication(sys.argv)       
+        self._app = QtWidgets.QApplication(sys.argv)
         self._mainwindow = QtWidgets.QMainWindow()
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self._mainwindow)
-        self._mainwindow.setCentralWidget(self._hsplitter)        
+        self._mainwindow.setCentralWidget(self._hsplitter)
 
         # load config
         cfg.init(self._mainwindow)
         self._update_document_name()
-        
+
         # tab
         self._tab = QtWidgets.QTabWidget(self._hsplitter)
         self._info = panels.InfoPanelWidget(self._tab)
@@ -132,7 +131,7 @@ class ModelEditor:
         self._tree.reload()
         self._err.reload()
         line, index = self._editor.getCursorPosition()
-        self._reload_node(line+1, index+1)        
+        self._reload_node(line+1, index+1)
         self._reload_icon_timer.start(700)
 
     def _hide_reload_icon(self):
@@ -152,7 +151,7 @@ class ModelEditor:
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
         if self._editor.pred_parent is not None:
-            self._info.update_from_node(self._editor.pred_parent, 
+            self._info.update_from_node(self._editor.pred_parent,
                                         CursorType.value.value)
             return
         if self._editor.curr_node is not None:
@@ -314,8 +313,8 @@ class ModelEditor:
         self._app.exec_()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-            description='ModelEditor')
+    # pylint: disable=invalid-name
+    parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 

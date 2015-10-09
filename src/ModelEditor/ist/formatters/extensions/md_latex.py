@@ -16,7 +16,6 @@ from markdown.extensions import Extension
 from markdown.inlinepatterns import Pattern, SimpleTagPattern, BacktickPattern
 from markdown.util import etree
 import re
-from ist.globals import Globals
 
 
 class MdLatexExtension (Extension):

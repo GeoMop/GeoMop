@@ -86,7 +86,7 @@ class DataNode:
         Return if in set line is some child
         """
         return False
-        
+
     def is_jsonchild_on_line(self, line):
         """
         Return if in set line is some json child
@@ -245,7 +245,7 @@ class CompositeNode(DataNode):
             if child.start.line <= line and child.end.line >= line:
                 return True
         return False
-        
+
     def is_jsonchild_on_line(self, line):
         """
         Return if in set line is some json child

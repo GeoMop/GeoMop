@@ -77,8 +77,8 @@ class TreeWidget(QtWidgets.QTreeView):
         data = model_index.internalPointer()
         if model_index.column() == 0 and data.key.span is not None:  # key
             span = data.key.span
-        elif (model_index.column() == 1 and isinstance(data, CompositeNode) and
-                  data.type is not None):  # AbstractRecord type
+        elif model_index.column() == 1 and isinstance(data, CompositeNode) and \
+                data.type is not None:  # AbstractRecord type
             span = data.type.span
         else:  # entire node (value)
             span = data.span

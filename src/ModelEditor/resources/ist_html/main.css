@@ -158,6 +158,9 @@ a.selected {
 .record a:hover {
     color: #23527c;
 }
+.record .record {
+    background: rgba(255, 255, 255, 0.35);
+}
 
 
 /*     ABSTRACT RECORD    */
