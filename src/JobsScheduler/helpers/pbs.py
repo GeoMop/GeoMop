@@ -13,14 +13,15 @@ class Pbs():
         
     def prepare_file(self, command, interpreter=None, args=[]):
         """Open and construct shell file for pbs starting"""
-        if not os.path.isdir(self.config.name):
-            os.makedirs(self.config.name)
+        if not os.path.isdir(self.mj_path):
+            os.makedirs(self.mj_path)
+        if not os.path.isdir(self.mj_path + "/" + self.config.name):
+            os.makedirs(self.mj_path + "/" + self.config.name)
         
         f = open(self.mj_path + "/" + self.config.name  + "/com.qsub", 'w')
         f.write ('#!/bin/bash\n')
         f.write ('#\n')
-        f.write ('#$ -cwd')
-        f.write ('#$ -j y\n')
+        f.write ('#$ -cwd\n')
         f.write ('#$ -S /bin/bash\n')
         f.write ('#$ -terse\n')
         f.write ('#$ -o ' + self.mj_path + "/" + self.config.name + '/pbs_output\n')
