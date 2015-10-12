@@ -32,4 +32,5 @@ $(document).ready(function() {
 
     katex.render (code, element, { displayMode: false });
   });
+  
 });

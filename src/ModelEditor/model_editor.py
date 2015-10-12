@@ -16,7 +16,6 @@ from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 import argparse
-from ist import InfoTextGenerator
 
 
 class ModelEditor:
@@ -24,15 +23,15 @@ class ModelEditor:
 
     def __init__(self):
         # main window
-        self._app = QtWidgets.QApplication(sys.argv)       
-        self._mainwindow = QtWidgets.QMainWindow()
-        self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self._mainwindow)
-        self._mainwindow.setCentralWidget(self._hsplitter)        
+        self._app = QtWidgets.QApplication(sys.argv)
+        self.mainwindow = QtWidgets.QMainWindow()
+        self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
+        self.mainwindow.setCentralWidget(self._hsplitter)
 
         # load config
-        cfg.init(self._mainwindow)
+        cfg.init(self.mainwindow)
         self._update_document_name()
-        
+
         # tab
         self._tab = QtWidgets.QTabWidget(self._hsplitter)
         self._info = panels.InfoPanelWidget(self._tab)
@@ -54,29 +53,29 @@ class ModelEditor:
         self._hsplitter.insertWidget(0, self._tree)
 
         # Menu bar
-        menubar = self._mainwindow.menuBar()
-        self._file_menu = MainFileMenu(self._mainwindow, self)
+        menubar = self.mainwindow.menuBar()
+        self._file_menu = MainFileMenu(self.mainwindow, self)
         self.update_recent_files(0)
-        self._edit_menu = MainEditMenu(self._mainwindow, self._editor)
-        self._settings_menu = MainSettingsMenu(self._mainwindow, self)
+        self._edit_menu = MainEditMenu(self.mainwindow, self._editor)
+        self._settings_menu = MainSettingsMenu(self.mainwindow, self)
         menubar.addMenu(self._file_menu)
         menubar.addMenu(self._edit_menu)
         menubar.addMenu(self._settings_menu)
 
         # status bar
-        self._column = QtWidgets.QLabel(self._mainwindow)
+        self._column = QtWidgets.QLabel(self.mainwindow)
         self._column.setFrameStyle(QtWidgets.QFrame.StyledPanel)
 
-        self._reload_icon = QtWidgets.QLabel(self._mainwindow)
+        self._reload_icon = QtWidgets.QLabel(self.mainwindow)
         self._reload_icon.setPixmap(icon.get_pixmap("refresh", 16))
         self._reload_icon.setVisible(False)
-        self._reload_icon_timer = QtCore.QTimer(self._mainwindow)
+        self._reload_icon_timer = QtCore.QTimer(self.mainwindow)
         self._reload_icon_timer.timeout.connect(self._hide_reload_icon)
 
-        self._status = self._mainwindow.statusBar()
+        self._status = self.mainwindow.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
         self._status.addPermanentWidget(self._column)
-        self._mainwindow.setStatusBar(self._status)
+        self.mainwindow.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
 
         # signals
@@ -90,10 +89,10 @@ class ModelEditor:
         self._editor.nodeSelected.connect(self._on_node_selected)
 
         # set default info text
-        self._info.setHtml(InfoTextGenerator.get_info_text(cfg.root_input_type))
+        self._info.update_from_data({'record_id': cfg.root_input_type['id']})
 
         # show
-        self._mainwindow.show()
+        self.mainwindow.show()
         self._editor.setFocus()
 
     def _cursor_changed(self, line, column):
@@ -132,7 +131,7 @@ class ModelEditor:
         self._tree.reload()
         self._err.reload()
         line, index = self._editor.getCursorPosition()
-        self._reload_node(line+1, index+1)        
+        self._reload_node(line+1, index+1)
         self._reload_icon_timer.start(700)
 
     def _hide_reload_icon(self):
@@ -152,7 +151,7 @@ class ModelEditor:
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
         if self._editor.pred_parent is not None:
-            self._info.update_from_node(self._editor.pred_parent, 
+            self._info.update_from_node(self._editor.pred_parent,
                                         CursorType.value.value)
             return
         if self._editor.curr_node is not None:
@@ -178,7 +177,7 @@ class ModelEditor:
         if not self._save_old_file():
             return
         yaml_file = QtWidgets.QFileDialog.getOpenFileName(
-            self._mainwindow, "Choose Yaml Model File",
+            self.mainwindow, "Choose Yaml Model File",
             cfg.config.last_data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
@@ -192,7 +191,7 @@ class ModelEditor:
         if not self._save_old_file():
             return
         con_file = QtWidgets.QFileDialog.getOpenFileName(
-            self._mainwindow, "Choose Con Model File",
+            self.mainwindow, "Choose Con Model File",
             cfg.config.last_data_dir, "Con Files (*.con)")
         if con_file[0]:
             cfg.import_file(con_file[0])
@@ -229,7 +228,7 @@ class ModelEditor:
         else:
             new_file = cfg.curr_file
         yaml_file = QtWidgets.QFileDialog.getSaveFileName(
-            self._mainwindow, "Set Yaml Model File",
+            self.mainwindow, "Set Yaml Model File",
             new_file, "Yaml Files (*.yaml)")
 
         if yaml_file[0]:
@@ -254,7 +253,7 @@ class ModelEditor:
         if text is not None:
             import data.meconfig
             dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file,
-                                "Transformation rules:", text, self._mainwindow)
+                                "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
 
     def select_format(self, filename):
@@ -272,7 +271,7 @@ class ModelEditor:
         if text is not None:
             import data.meconfig
             dlg = JsonEditorDlg(data.meconfig.__format_dir__, cfg.curr_format_file,
-                                "Format", text, self._mainwindow)
+                                "Format", text, self.mainwindow)
             dlg.exec_()
 
     def update_recent_files(self, from_row=1):
@@ -285,7 +284,7 @@ class ModelEditor:
             title += " - New File"
         else:
             title += " - " + cfg.curr_file
-        self._mainwindow.setWindowTitle(title)
+        self.mainwindow.setWindowTitle(title)
 
     def _save_old_file(self):
         """
@@ -296,7 +295,7 @@ class ModelEditor:
         cfg.update_yaml_file(self._editor.text())
         if cfg.changed:
             reply = QtWidgets.QMessageBox.question(
-                self._mainwindow, 'Confirmation',
+                self.mainwindow, 'Confirmation',
                 "The document has unsaved changes, do you want to save it?",
                 (QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No |
                  QtWidgets.QMessageBox.Abort))
@@ -314,8 +313,8 @@ class ModelEditor:
         self._app.exec_()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-            description='ModelEditor')
+    # pylint: disable=invalid-name
+    parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 

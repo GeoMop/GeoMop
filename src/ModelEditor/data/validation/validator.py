@@ -106,6 +106,7 @@ class Validator:
                 notification.span = get_node_key(node).key.span
             self._report_notification(notification)
         else:
+            concrete_type['implemented_abstract_record'] = input_type
             node.input_type = concrete_type
             self._validate_record(node, concrete_type)
 
@@ -132,6 +133,7 @@ class Validator:
 
 
 def get_node_key(node):
+    """Returns node that has originated from the text structure (not autoconversion)."""
     while node.origin != NodeOrigin.structure:
         node = node.parent
     return node

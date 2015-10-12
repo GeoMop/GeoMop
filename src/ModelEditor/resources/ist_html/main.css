@@ -1,174 +1,116 @@
 html, body {
-  width: 100%;
-  height: 100%;
+    height: 100%;
 }
 
 .fill {
-  min-height: 100%;
-  height: 100%;
+    min-height: 100%;
+    overflow: hidden;
 }
 
 .hidden {
-  display: none;
+    display: none;
 }
 
-.record, .abstract-record, .selection {
-  /*border-bottom: 1px solid #999;*/
+body>div>section:last-child {
+    /* hack to extend the color to the end of info_text */
+    padding-bottom: 32000px;
+    margin-bottom: -32000px;
 }
 
-h1 {
-  border-bottom: 1px solid #999;
+section {
+    padding: 5px;
 }
 
-#input-reference {
-  margin: 0 0 0 0; /*150px*/;
-  
-    min-height: 100%;
-}
-
-#input-reference h3 {
-  color: #337ab7;
-  background-color: rgba(255,255,255,0.5);
-  border-radius: 5px;
-  font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
-}
-
-.record:before, .abstract-record:before, .selection:before {
-    display: inline-block;
-    position: relative;
-    width: 150px;
-    text-align: left;/*right;*/
-    top: 0;/*35px;*/
-    left: 0;/*-155px;*/
-    color: #666;
-    font-size: 0.8em;
-    /*font-weight: bold;*/
-}
-
-/*.record:before {
-    content: "RECORD";
-}
-.abstract-record:before {
-    content: "ABSTRACT RECORD";
-}
-.selection:before {
-    content: "SELECTION";
-}*/
-
-header {
-  background: rgba(250, 250, 250, .5);
-  padding: 5px;
-}
-
-header p {
-	display: inline;
-	margin: 0px;
-	margin-left: 50px;
+h2 {
+    margin: 5px 5px 5px 0px;
+    font-size: 1.3em;
+    font-weight: bold;
+    display: inline;
 }
 
 h3 {
+    border-radius: 5px;
     display: inline-block;
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+    font-size: 1.3em;
+    margin: 0px 0;
+    line-height: 18px;
+    padding: 0px;
+}
+
+h3 small {
+    font-size: 0.9em;
+}
+
+header {
+    margin-bottom: 3px;
+}
+
+header p {
+    margin: 0px;
+}
+
+div.container-fluid>section>header {
+    border-bottom: 1px solid #CCC;
+}
+
+div.container-fluid>section>header p {
+	display: inline;
+	margin: 0px;
+	margin-left: 50px;
+    font-style: italic;
 }
 
 .skew {
     font-style: italic;
 }
 
-body h3 small {
-    font-size: 0.9em;
-}
-
-#input-reference>section>ul.item-list>li:hover {
-    /*box-shadow: inset 0px 0px 10px 0 rgba(0,0,0,0.15)*/
-}
-
-#input-reference>section>ul.item-list {
-    margin: 10px;
-    padding: 0;
-}
-
-#input-reference>section>ul.item-list>li {
-    padding: 10px;
+.implementation-list {
+    padding: 0px 0px 0px 20px;
+    margin: 0px;
     list-style: none;
-    transition: box-shadow 0.2s;
-    border-bottom: 1px solid #CCC;
 }
-/*
-ul.item-list li:nth-child(odd) {
-    border-left: 5px solid #CCC;
+
+.item-list {
+    padding: 0px;
+    margin: 0px;
+    float: left;
+    width: 100%;
 }
-*/
-/*
-ul.item-list li:nth-child(even) {
-    border-left: 2px solid #DDD;
+
+.item-list>a {
+    display: block;
+    margin: 2px 2px;
+    padding: 0px 4px;
+    background: rgba(255, 255, 255, 0.35);
+    float: left;
+}
+
+.item-list a:hover {
+    background: rgba(0, 0, 0, 0.03);
+    text-decoration: none;
+}
+
+/*.item-list li:not(:last-child), .key-list li:not(:last-child) {
+    border-bottom: 1px dashed #CCC;
 }*/
 
-#input-reference>section>ul.item-list li:last-child {
-    border: none
+a.selected {
+    background: rgba(255, 255, 255, 0.75)
 }
 
-.jumbotron .description>p {
-    font-size: 15px;
-    display: inline
-}
 
-.description:before, .description:after {
-    font-size: 1.5em;
-    color: #666;
-    opacity: 0.5;
-}
-
-.description:before {
+/*.description:before {
     content: '"';
 }
 
 .description:after {
     content: '"';
-}
-
-#input-reference a {
-    /*color: inherit;*/
-}
+}*/
 
 .no-description {
     font-style: italic;
     font-variant: small-caps;
-}
-
-.shortcut, .shortcut-r {
-    color: #999;
-}
-
-.shortcut:after {
-    content: ": ";
-}
-
-.shortcut-r:before {
-    content: " :";
-}
-
-
-ul.nav-bar {
-    margin: 0;
-    padding: 0;
-}
-
-ul.nav-bar li {
-    margin: 0;
-    padding: 0;
-    font-size: 0.8em;
-    list-style: none;
-}
-
-.side-anchor {
-    margin-top: 10px;
-    margin-right: 10px;
-    font-size: 1.4em;
-    opacity: 0.2
-}
-
-.side-anchor:hover {
-    opacity: 1;
 }
 
 .md-expression {
@@ -184,27 +126,10 @@ ul.nav-bar li {
     opacity: 0.9;
 }
 
-.item-key-value {
-    text-align: right;
+.small {
     font-size: 0.9em;
     line-height: 16px;
-    float: right;
 }
-
-body h2 {
-    margin: 5px 5px 5px 0px;
-    font-size: 1.3em;
-    font-weight: bold;
-    display: inline;
-}
-
-body h3 {
-    font-size: 1.3em;
-    margin: 5px 0;
-    line-height: 18px;
-    padding: 5px;
-}
-
 
 .chevron:before {
     content: " <";
@@ -223,28 +148,63 @@ body h3 {
 }
 
 
-#input-reference .record {
-    background: #D0E0EF;}
-#input-reference .record h3, #input-reference .record a {
-    color: #337ab7;}
-#input-reference .record a:hover {
-    color: #23527c;}
+/*     RECORD    */
+.record {
+    background: #D0E0EF;
+}
+.record h2, .record h3, .record a {
+    color: #337ab7;
+}
+.record a:hover {
+    color: #23527c;
+}
+.record .record {
+    background: rgba(255, 255, 255, 0.35);
+}
 
 
-#input-reference .abstract-record {
-    background: #E1F2DF;}
-#input-reference .abstract-record h3, #input-reference .abstract-record a {
-    color: #308B26;}
-#input-reference .abstract-record a:hover {
-    color: #276F1F;}
+/*     ABSTRACT RECORD    */
+.abstract-record {
+    background: #E1F2DF;
+}
+.abstract-record h2, .abstract-record h3, .abstract-record a {
+    color: #308B26;
+}
+.abstract-record a:hover {
+    color: #276F1F;
+}
 
-#input-reference .selection {
-    background: #F0DCF2;}
-#input-reference .selection h3,#input-reference .selection a {
-    color: #9A2DA6;}
-#input-reference .selection a:hover {
-    color: #7B2384;}
 
-.abstract-record em {
-    padding-left: 10px;
+/*     SCALAR    */
+.scalar {
+    background: #F0DCF2;
+}
+.scalar h2, .scalar h3, .scalar a {
+    color: #9A2DA6;
+}
+.scalar a:hover {
+    color: #7B2384;
+}
+
+
+.key-type {
+    margin: 0px;
+}
+.key-type section {
+    padding: 0px;
+}
+.key-type h2 {
+    display: block;
+    margin: 0px;
+}
+.key-type p {
+    margin-left: 0px;
+    font-style: normal;
+}
+
+
+
+
+.key-list, .key-description, .key-type {
+    padding: 5px;
 }

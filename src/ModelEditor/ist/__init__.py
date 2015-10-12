@@ -1,2 +1,7 @@
-__author__ = 'Jan Hybs'
-from .ist_formatter_module import InfoTextGenerator
+"""
+Module generates HTML documentation from IST structure.
+"""
+
+from .info_text_genrator import InfoTextGenerator
+
+__author__ = ['Tomas Krizek', 'Jan Hybs']
