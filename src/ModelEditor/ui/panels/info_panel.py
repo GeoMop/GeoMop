@@ -33,9 +33,13 @@ class InfoPanelWidget(QWebView):
 
     def update_from_node(self, node, cursor_type=None):
         """Updates the info text for the given node and cursor_type."""
+        is_parent = False
         if cursor_type == CursorType.value.value:
             node = node.get_node_at_position(node.span.start)
-        self.update_from_data(node.get_info_text_data())
+        elif cursor_type == CursorType.parent.value:
+            is_parent = True
+        data = node.get_info_text_data(is_parent)
+        self.update_from_data(data)
 
     def update_from_data(self, data):
         """Generates and shows the info text from data."""

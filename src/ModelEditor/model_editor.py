@@ -152,7 +152,7 @@ class ModelEditor:
         """Updates info_text if cursor_type has changed."""
         if self._editor.pred_parent is not None:
             self._info.update_from_node(self._editor.pred_parent,
-                                        CursorType.value.value)
+                                        CursorType.parent.value)
             return
         if self._editor.curr_node is not None:
             self._info.update_from_node(self._editor.curr_node, new_cursor_type)

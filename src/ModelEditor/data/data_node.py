@@ -117,8 +117,13 @@ class DataNode:
             node = node.get_child(key)
         return node
 
-    def get_info_text_data(self):
-        """Returns data necessary to generate info_text."""
+    def get_info_text_data(self, is_parent=False):
+        """
+        Returns data necessary to generate info_text.
+
+        `is_parent` should be set to True when the generated info_text should be for this node,
+        instead of its parent node
+        """
         # pylint: disable=no-member
         abstract_id = None
         selected_item = None
@@ -126,19 +131,23 @@ class DataNode:
         if self.input_type is not None and self.input_type.get('base_type') == 'Selection':
             selected_item = self.value
 
-        # find first parent record node
-        prev_node = self
-        node = self.parent if self.parent is not None else self
-        while (node.origin == NodeOrigin.ac_array or
-               not (isinstance(node, CompositeNode) and node.explicit_keys is True) or
-               node.input_type is None):
-            prev_node = node
-            node = node.parent
+        if is_parent:
+            node = self
+            selected_key = None
+        else:
+            # find first parent record node
+            prev_node = self
+            node = self.parent if self.parent is not None else self
+            while (node.origin == NodeOrigin.ac_array or
+                   not (isinstance(node, CompositeNode) and node.explicit_keys is True) or
+                   node.input_type is None):
+                prev_node = node
+                node = node.parent
+            selected_key = prev_node.key.value
 
         if 'implemented_abstract_record' in node.input_type:
             abstract_id = node.input_type['implemented_abstract_record']['id']
         record_id = node.input_type['id']
-        selected_key = prev_node.key.value
 
         return {
             'record_id': record_id,
