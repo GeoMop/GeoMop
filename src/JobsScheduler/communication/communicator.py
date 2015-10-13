@@ -71,9 +71,9 @@ class Communicator():
             Function for processing of action in class above before sending message
             
             Parameter: Is received message object
-            Return: tuple in two Booleans and message. First boolean if action is resend,
-            second if is processed in standart way and if message is not None, is ressend
-            without waiting for processing of communicator above
+            Return: tuple in Boolean and message. Boolean is True if action is 
+            resend to next communicator and if message is not None is send back
+            instead one returned by resend  
             """
         if action_func_after is None:
             self.action_func_after = self.standart_action_function_after
@@ -150,12 +150,12 @@ class Communicator():
                 self._instalation_begined = True
                 logging.debug("Installation to local directory")
                 self.install()
-                return True, True, None
+                return True, None
             else:
                 if self._instalation_begined:
                     if self.is_installed():
                         logging.debug("Installation to remote directory ended")
-                        return True, True, None
+                        return True, None
                     logging.debug("Installation in process signal was sent")
                 else:
                     logging.debug("Installation to remote directory began")
@@ -164,7 +164,7 @@ class Communicator():
                     t.daemon = True
                     t.start()
                 action = tdata.Action(tdata.ActionType.action_in_process)
-                return False, False, action.get_message()
+                return False, action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if isinstance(self.output, SshOutputComm):
                 processed = False
@@ -174,8 +174,8 @@ class Communicator():
                 self._download_processed_lock.release()
                 if processed:
                     #action will be processed in after funcion
-                    return False, False, None
-        return True, True, None
+                    return False, None
+        return True, None
         
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
@@ -210,12 +210,14 @@ class Communicator():
                         t.start()
                     if processed:
                         action = tdata.Action(tdata.ActionType.action_in_process)
-                        return False, False, action.get_message()                
-                    return True, True, None
+                        return False, False, action.get_message()
+                    action = tdata.Action(tdata.ActionType.ok)
+                    return action.get_message()
                 else:
                     self.download()
                     self._download_processed = tdata.ProcessType.ready
-                    return True, True, None
+                    action = tdata.Action(tdata.ActionType.ok)
+                    return action.get_message()
         return None
     
     def close(self):
@@ -299,14 +301,10 @@ class Communicator():
             if message is not None:
                 error = False
                 logging.debug("Input message is receive (" + str(message) + ')')
-                resend,  process, mess = self.action_func_before(message)
-                if process:
-                    action=tdata.Action(message.action_type,  message.json)
-                    action.run
+                resend, mess = self.action_func_before(message)
                 if resend and self.output is not None:
                     logging.debug("Message is resent")
                     self.output.send(message)
-                if resend and self.output is not None:
                     res = self.output.receive()
                     mess = res
                     logging.debug("Answer to resent message is receive (" + str(mess) + ')')

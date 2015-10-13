@@ -2,6 +2,8 @@ import logging
 import sys
 import data.transport_data as tdata
 import socket
+import time
+
 from communication.communication import InputComm
 
 __MAX_OPEN_PORTS__=200
@@ -15,6 +17,7 @@ class SocketInputComm(InputComm):
         """port for server communacion"""
         self.conn = None
         """Socket connection"""
+        self.conn_interupted = False
 
     def connect(self):
         """connect session and send port number over stdout"""
@@ -55,12 +58,19 @@ class SocketInputComm(InputComm):
             data = self.conn.recv(1024*1024)
         except socket.timeout:
             return None
+        if len(data) == 0:
+            time.sleep(10)
+            if not self.conn_interupted:
+                self.conn_interupted = True
+                logging.warning("Connection was probably closed.")
+            return None            
         txt =str(data, "us-ascii")
         try:
             mess = tdata.Message(txt)
         except(tdata.MessageError) as err:
             logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
             return None
+        self.conn_interupted = False
         return mess
         
     def disconnect(self):

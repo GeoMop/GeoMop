@@ -29,10 +29,13 @@ class JobsCommunicator(Communicator):
             self._instalation_begined = True
             self._instaled = True
             action = tdata.Action(tdata.ActionType.ok)
-            return False, True, action.get_message()
+            return False, action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
+            # processing in after function
+            return False, None
         if message.action_type == tdata.ActionType.stop:
             # processing in after function
-            return False, False, None
+            return False, None
         return super(JobsCommunicator, self).standart_action_function_before(message)
         
     def  standart_action_function_after(self, message,  response):
@@ -41,6 +44,9 @@ class JobsCommunicator(Communicator):
             # ToDo:: close all jobs 
             self.stop = True
             logging.info("Stop signal is received")
+            action = tdata.Action(tdata.ActionType.ok)
+            return action.get_message()
+        if message.action_type == tdata.ActionType.download_res:
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
