@@ -83,12 +83,13 @@ class TreeWidget(QtWidgets.QTreeView):
         else:  # entire node (value)
             span = data.span
             # if an array is clicked, select the "- " as well
-            is_array_member = (data.parent is not None and
-                               isinstance(data.parent, CompositeNode) and
-                               data.parent.explicit_keys is False)
-            has_delimiters = data.is_flow is False and data.delimiters is not None
-            if is_array_member and has_delimiters:
-                span = data.delimiters
+            if model_index.column() == 0:
+                is_array_member = (data.parent is not None and
+                                   isinstance(data.parent, CompositeNode) and
+                                   data.parent.explicit_keys is False)
+                has_delimiters = data.is_flow is False and data.delimiters is not None
+                if is_array_member and has_delimiters:
+                    span.start = data.delimiters.start
 
         if span.start is not None and span.end is not None:
             self.itemSelected.emit(span.start.column, span.start.line,
