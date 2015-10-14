@@ -144,18 +144,21 @@ class ModelEditor:
         self._editor.set_new_node(node)
         if node is not None:
             cursor_type = self._editor.cursor_type_position
-            self._info.update_from_node(node, cursor_type)
+            self._update_info(cursor_type)
         if cfg.config.DEBUG_MODE:
             self._debug_tab.show_data_node(node)
 
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
+        self._update_info(new_cursor_type)
+
+    def _update_info(self, cursor_type):
         if self._editor.pred_parent is not None:
             self._info.update_from_node(self._editor.pred_parent,
                                         CursorType.parent.value)
             return
         if self._editor.curr_node is not None:
-            self._info.update_from_node(self._editor.curr_node, new_cursor_type)
+            self._info.update_from_node(self._editor.curr_node, cursor_type)   
 
     def _on_node_selected(self, line, column):
         """Handles nodeSelected event from editor."""
