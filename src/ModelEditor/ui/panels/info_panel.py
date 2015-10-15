@@ -37,8 +37,7 @@ class InfoPanelWidget(QWebView):
         if cursor_type == CursorType.value.value:
             node = node.get_node_at_position(node.span.start)
         elif cursor_type == CursorType.parent.value:
-            if not isinstance(node, ScalarNode):
-                is_parent = True
+            is_parent = True
         data = node.get_info_text_data(is_parent)
         self.update_from_data(data)
 

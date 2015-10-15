@@ -127,13 +127,15 @@ class DataNode:
         # pylint: disable=no-member
         abstract_id = None
         selected_item = None
+        record_id = None
+        selected_key = None
 
-        if self.input_type is not None and self.input_type.get('base_type') == 'Selection':
+        input_type = 'None' if self.input_type is None else self.input_type.get('base_type')
+        if input_type == 'Selection':
             selected_item = self.value
 
-        if is_parent:
+        if is_parent and input_type in ['AbstractRecord', 'Record']:
             node = self
-            selected_key = None
         else:
             # find first parent record node
             prev_node = self
@@ -141,13 +143,16 @@ class DataNode:
             while (node.origin == NodeOrigin.ac_array or
                    not (isinstance(node, CompositeNode) and node.explicit_keys is True) or
                    node.input_type is None):
+                if node.parent is None:
+                    break
                 prev_node = node
                 node = node.parent
             selected_key = prev_node.key.value
 
-        if 'implemented_abstract_record' in node.input_type:
-            abstract_id = node.input_type['implemented_abstract_record']['id']
-        record_id = node.input_type['id']
+        if node.input_type is not None:
+            if 'implemented_abstract_record' in node.input_type:
+                abstract_id = node.input_type['implemented_abstract_record']['id']
+            record_id = node.input_type['id']
 
         return {
             'record_id': record_id,
