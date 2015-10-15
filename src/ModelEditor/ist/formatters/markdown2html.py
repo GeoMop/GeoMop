@@ -13,8 +13,7 @@ class markdown2html(object):
         secured_markdown = self._md_latex.prepare(md_text)
         html_secured = markdown.markdown(secured_markdown, extensions=[
             'markdown.extensions.sane_lists',
-            'markdown.extensions.nl2br',
-            'ist.formatters.extensions.md_links'])
+            'markdown.extensions.nl2br'])
         html = self._md_latex.finish(html_secured)
 
         if not reduce_to_tree:

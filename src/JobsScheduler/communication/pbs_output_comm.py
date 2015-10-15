@@ -3,24 +3,30 @@ import subprocess
 import re
 import helpers.pbs as pbs
 import time
+import copy
 from communication.exec_output_comm import ExecOutputComm
 
 class PbsOutputComm(ExecOutputComm):
     """Communication over PBS"""
     
     def __init__(self, mj_name, port, pbs_config):
-        super(PbsOutputComm, self).__init__(port, mj_name)
-        self.config = pbs_config
+        super(PbsOutputComm, self).__init__(mj_name, port)
+        self.config = copy.deepcopy(pbs_config)
         """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
         self.jobid = None
         """Id for job identification"""
-        
+
     def exec_(self, python_file):
         """run set python file in ssh"""
-        hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config) 
-        hlp.prepare_file(self.installation.get_command_only(python_file), self.installation.get_interpreter())      
+        hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config)        
+        hlp.prepare_file(self.installation.get_command_only(python_file), self.installation.get_interpreter())
+        logging.debug("Qsub params: " + str(hlp.get_qsub_args()))       
         process = subprocess.Popen(hlp.get_qsub_args(), 
             stdout=subprocess.PIPE)
+        return_code = process.poll()
+        if return_code is not None:
+            raise Exception("Can not start next communicator " + python_file + 
+                " (return code: " + str(return_code) + ")")    
         # wait for jobid
         out = process.stdout.readline()
         job  = re.match( '(\d+)', str(out, 'utf-8'))
@@ -45,7 +51,6 @@ class PbsOutputComm(ExecOutputComm):
                     logging.debug("Next communicator return socket port:" + port.group(1)) 
                     self.port = int(port.group(1))
 
-         
     def connect(self):
         """connect session"""
         if self.config.with_socket:

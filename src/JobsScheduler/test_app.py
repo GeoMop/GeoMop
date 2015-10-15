@@ -25,7 +25,7 @@ comunicator = Communicator(ccom)
 comunicator.install()
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))
-time.sleep(30)
+time.sleep(120)
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.download_res))
 comunicator.download()

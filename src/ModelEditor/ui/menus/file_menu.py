@@ -7,6 +7,7 @@ __author__ = 'Tomas Krizek'
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 import helpers.keyboard_shortcuts as shortcuts
 from data.meconfig import MEConfig as cfg
+from geomop_dialogs import GMAboutDialog
 
 
 class MainFileMenu(QMenu):
@@ -18,6 +19,7 @@ class MainFileMenu(QMenu):
         self.setTitle(title)
         self._model_editor = model_editor
         self.parent = parent
+        self._about_dialog = GMAboutDialog(self._model_editor.mainwindow, 'GeoMop ModelEditor')
 
         self._new_file_action = QAction('&New File ...', self)
         self._new_file_action.setShortcut(shortcuts.NEW_FILE.key_sequence)
@@ -57,6 +59,12 @@ class MainFileMenu(QMenu):
 
         self.addSeparator()
 
+        self._about_action = QAction('About', self)
+        self._about_action.triggered.connect(self._on_about_action_clicked)
+        self.addAction(self._about_action)
+
+        self.addSeparator()
+
         self._exit_action = QAction('E&xit', self)
         self._exit_action.setShortcut(shortcuts.EXIT.key_sequence)
         self._exit_action.setStatusTip('Exit application')
@@ -80,3 +88,8 @@ class MainFileMenu(QMenu):
             self._recent.addAction(reaction)
         self._recent_group.triggered.connect(self._model_editor.open_recent)
         self._recent_file_signal_connect = True
+
+    def _on_about_action_clicked(self):
+        """Displays about dialog."""
+        if not self._about_dialog.isVisible():
+            self._about_dialog.show()

@@ -13,7 +13,7 @@ editor = model_editor.ModelEditor()
 def test_err_dialog(request):
     global dialog_result,  editor
  
-    timer = QTimer(editor._mainwindow)
+    timer = QTimer(editor.mainwindow)
     timer.timeout.connect(lambda: start_dialog(editor))
     timer.start(0)
     editor.main()
@@ -24,7 +24,7 @@ def test_err_dialog(request):
 
 def start_dialog(editor):
     global dialog_result
-    dialog_result['title'] = editor._mainwindow.windowTitle()
-    QTest.keyPress(editor._mainwindow, Qt.Key_Q,  Qt.ControlModifier)
-    dialog_result['closed_window'] = editor._mainwindow.close();
+    dialog_result['title'] = editor.mainwindow.windowTitle()
+    QTest.keyPress(editor.mainwindow, Qt.Key_Q,  Qt.ControlModifier)
+    dialog_result['closed_window'] = editor.mainwindow.close();
     editor._app.quit()

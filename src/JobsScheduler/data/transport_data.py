@@ -15,7 +15,9 @@ class ActionType(Enum):
     installation = 3
     action_in_process = 4
     download_res = 5
-    
+    restore_connection = 6
+    interupt_connection = 7
+
 class ProcessType(Enum):
     """Action type"""
     ready = 0
@@ -63,7 +65,6 @@ class Message:
     
     def pack(self):
         """pack data for transport to base64 format"""
-        import logging
         logging.debug("json:"+self.json)
         bin = bytes(self.json, "utf-8")
         bin = struct.pack('!i' , self.action_type.value) + bin
@@ -115,11 +116,13 @@ class Action():
         """action type"""
         self.data = None
         """data for action"""
-        self.action = None
-        """typed action"""
         if type == ActionType.stop:
             self.data = EmptyData()
         elif type == ActionType.ok:
+            self.data = EmptyData()
+        elif type == ActionType.restore_connection:
+            self.data = EmptyData()
+        elif type == ActionType.interupt_connection:
             self.data = EmptyData()
         elif type == ActionType.installation:
             self.data = EmptyData()
@@ -129,28 +132,13 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.error:
             self.data = ErrorData(json_data)
-            self.action = ErrorAction(self.data)
-        
-    def run(self):
-        """standart action implementation"""
-        self.action.run(self.data)
-        
+      
     def get_message(self):
         """return message from action"""
         msg = Message()
         msg.action_type = self.type
         msg.json = self.data.pack()
         return msg
-
-class ErrorAction():
-    """Action data"""
-    
-    def __init__(self, data):
-        pass
-        
-    def run(self, data):
-        logging.error("Error message is received: " + data["msg"])
-        pass
 
 class ActionData(metaclass=abc.ABCMeta):
     """Action data"""

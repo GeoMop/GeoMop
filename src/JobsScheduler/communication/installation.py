@@ -216,7 +216,8 @@ class Installation:
             path = os.path.join(path, __result_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
-        except:
+        except Exception as err:
+            logging.warning("Get mj result dir error: " + str(err))
             return "."
         return path
         
@@ -233,7 +234,8 @@ class Installation:
             path = os.path.join( path,  self.mj_name)
             if not os.path.isdir(path):
                 os.makedirs(path)
-        except:
+        except Exception as err:
+            logging.warning("Get mj data dir error: " + str(err))
             return "."
         return path 
  

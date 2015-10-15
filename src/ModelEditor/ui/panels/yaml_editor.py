@@ -97,6 +97,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setTabIndents(True)
         self.setTabWidth(2)
         self.setUtf8(True)
+        self.setAutoIndent(True)
 
         # text wrapping
         self.setWrapMode(QsciScintilla.WrapWord)
@@ -297,7 +298,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
-            shortcuts.ENTER: self.add_new_line,
+            # shortcuts.ENTER: self.add_new_line,
         }
 
         for shortcut, action in actions.items():

@@ -4,6 +4,7 @@ that have standartized appearent
 """
 import PyQt5.QtWidgets as QtWidgets
 
+
 class GMErrorDialog(QtWidgets.QMessageBox):
     """Error dialog for GeoMop graphic applications"""
     def __init__(self, parent):

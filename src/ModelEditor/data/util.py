@@ -36,6 +36,7 @@ class CursorType(Enum):
     anch = 4
     value = 5
     other = 6
+    parent = 7
 
     @staticmethod
     def get_cursor_type(pos_type, key_type):

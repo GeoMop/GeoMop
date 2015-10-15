@@ -5,6 +5,7 @@ from PyQt5.QtGui import QColor
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, CompositeNode
 import util
+from copy import deepcopy
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -76,22 +77,24 @@ class TreeWidget(QtWidgets.QTreeView):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()
         if model_index.column() == 0 and data.key.span is not None:  # key
-            span = data.key.span
-        elif (model_index.column() == 1 and isinstance(data, CompositeNode) and
-                  data.type is not None):  # AbstractRecord type
-            span = data.type.span
+            span = deepcopy(data.key.span)
+        elif model_index.column() == 1 and isinstance(data, CompositeNode) and \
+                data.type is not None:  # AbstractRecord type
+            span = deepcopy(data.type.span)
         else:  # entire node (value)
-            span = data.span
+            span = deepcopy(data.span)
             # if an array is clicked, select the "- " as well
-            is_array_member = (data.parent is not None and
-                               isinstance(data.parent, CompositeNode) and
-                               data.parent.explicit_keys is False)
-            has_delimiters = data.is_flow is False and data.delimiters is not None
-            if is_array_member and has_delimiters:
-                span = data.delimiters
+            if model_index.column() == 0:
+                is_array_member = (data.parent is not None and
+                                   isinstance(data.parent, CompositeNode) and
+                                   data.parent.explicit_keys is False)
+                has_delimiters = data.is_flow is False and data.delimiters is not None
+                if is_array_member and has_delimiters:
+                    span.start = data.delimiters.start
 
-        self.itemSelected.emit(span.start.column, span.start.line,
-                               span.end.column, span.end.line)
+        if span.start is not None and span.end is not None:
+            self.itemSelected.emit(span.start.column, span.start.line,
+                                   span.end.column, span.end.line)
 
     def select_data_node(self, data_node):
         """Sets the selection to the given `DataNode`."""
