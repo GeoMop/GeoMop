@@ -152,7 +152,10 @@ class DataNode:
         if node.input_type is not None:
             if 'implemented_abstract_record' in node.input_type:
                 abstract_id = node.input_type['implemented_abstract_record']['id']
-            record_id = node.input_type['id']
+            if node.input_type['base_type'] == 'AbstractRecord':
+                abstract_id = node.input_type['id']
+            else:
+                record_id = node.input_type['id']
 
         return {
             'record_id': record_id,
