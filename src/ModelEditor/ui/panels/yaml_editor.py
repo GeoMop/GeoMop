@@ -206,17 +206,18 @@ class YamlEditorWidget(QsciScintilla):
         self._pos.make_post_operation(self, line, index)
         if not self._valid_bounds:
             self.structureChanged.emit(line + 1, index + 1)
-        if self._pos.new_pos(self, line, index):
-            if self._pos.is_changed:
-                self.structureChanged.emit(line + 1, index + 1)
-            else:
-                self.nodeChanged.emit(line + 1, index + 1)
         else:
-            if (old_cursor_type_position != self._pos.cursor_type_position and \
-                    old_cursor_type_position is not None) or \
-               (self._pos.pred_parent != old_pred_parent):
-                self.elementChanged.emit(self._pos.cursor_type_position.value,
-                                         old_cursor_type_position.value)
+            if self._pos.new_pos(self, line, index):
+                if self._pos.is_changed:
+                    self.structureChanged.emit(line + 1, index + 1)
+                else:
+                    self.nodeChanged.emit(line + 1, index + 1)
+            else:
+                if (old_cursor_type_position != self._pos.cursor_type_position and \
+                        old_cursor_type_position is not None) or \
+                   (self._pos.pred_parent != old_pred_parent):
+                    self.elementChanged.emit(self._pos.cursor_type_position.value,
+                                             old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
 
     @property
