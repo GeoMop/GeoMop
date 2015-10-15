@@ -41,7 +41,7 @@ class InfoTextGenerator:
                 html_body.add(cls._generate_abstract_record(abstract_id))
             if record_id in cls._input_types:
                 html_body.add(cls._generate_record(record_id, selected_key, selected_item))
-            else:
+            if abstract_id not in cls._input_types and record_id not in cls._input_types:
                 with html_body.open('section', cls='row record'):
                     html_body.description('')
 
