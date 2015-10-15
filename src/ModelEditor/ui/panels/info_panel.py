@@ -11,7 +11,7 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl
 
 from ist import InfoTextGenerator
-from data import CursorType
+from data import CursorType, ScalarNode
 
 # pylint: disable=invalid-name
 
@@ -37,7 +37,8 @@ class InfoPanelWidget(QWebView):
         if cursor_type == CursorType.value.value:
             node = node.get_node_at_position(node.span.start)
         elif cursor_type == CursorType.parent.value:
-            is_parent = True
+            if not isinstance(node, ScalarNode):
+                is_parent = True
         data = node.get_info_text_data(is_parent)
         self.update_from_data(data)
 
