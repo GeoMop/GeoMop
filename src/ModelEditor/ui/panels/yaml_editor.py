@@ -233,7 +233,7 @@ class YamlEditorWidget(QsciScintilla):
     def _text_changed(self):
         """Function for textChanged signal"""
         if not self.reload_chunk.freeze_reload:
-            self._pos.new_array_line_completation(self)
+            self._pos.new_line_completation(self)
             self._pos.spec_char_completation(self)
             if not self._pos.fix_bounds(self):
                 line, index = self.getCursorPosition()
@@ -349,6 +349,37 @@ class YamlEditorWidget(QsciScintilla):
         else:
             cursor_col = len(text_lines[-1])
         self.setCursorPosition(cursor_line, cursor_col)
+
+    # TODO fix QScintilla interface
+    # def insertAt(self, text, line, index):
+    #     """Insert the given text at the given line and offset."""
+    #     pos = self._position_from_line_index(line, index)
+    #     self.insertAtPos(text, pos)
+    #
+    # def insertAtPos(self, text, pos):
+    #     """Insert the given text at the given position."""
+    #     read_only = self._ensure_rw()
+    #     self.SendScintilla(QsciScintilla.SCI_INSERTTEXT, pos, text.encode('utf-8'))
+    #     self._set_read_only(read_only)
+
+    def _position_from_line_index(self, line, index):
+        """Return a position from a line number and an index within the line."""
+        pos = self.SendScintilla(QsciScintilla.SCI_POSITIONFROMLINE, line)
+        for i in range(index):
+            pos = self.SendScintilla(QsciScintilla.SCI_POSITIONAFTER, pos)
+        return pos
+
+    def _ensure_rw(self):
+        """Ensure the document is read-write and return true if it was read-only."""
+        read_only = self.SendScintilla(QsciScintilla.SCI_GETREADONLY)
+        if read_only:
+            self._set_read_only(False)
+        return read_only
+
+    def _set_read_only(self, read_only):
+        """Set the read-only state."""
+        # self.setAttribute(Qt.WA_InputMethodEnabled, not read_only)
+        self.SendScintilla(QsciScintilla.SCI_SETREADONLY, read_only)
 
     def set_selection_from_cursor(self, length):
         """Selects `length` characters to the right from cursor."""
@@ -539,7 +570,7 @@ class EditorPosition:
         """Type of yaml structure below cursor"""
         self.pred_parent = None
 
-    def new_array_line_completation(self, editor):
+    def new_line_completation(self, editor):
         """New line was added"""
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
             pre_line = editor.text(self.line)
@@ -555,12 +586,14 @@ class EditorPosition:
         if self._new_line_indent is not None and editor.lines() > line:
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
-            if len(new_line) == 0 and pre_line[:len(self._new_line_indent)] == self._new_line_indent:
-                editor.insertAt(self._new_line_indent, line, index)
+            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._new_line_indent)] == self._new_line_indent:
+                editor.insert_at_cursor(self._new_line_indent)
+                # editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
             self._new_line_indent =  None
         if self._spec_char != "" and editor.lines() > line:
-            editor.insertAt(self._spec_char, line, index)
+            editor.insert_at_cursor(self._spec_char)
+            # editor.insertAt(self._spec_char, line, index)
             self._spec_char = ""
 
     def spec_char_completation(self, editor):
