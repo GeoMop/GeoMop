@@ -158,6 +158,8 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut in shortcuts.SCINTILLA_DISABLE:
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
+        self._valid_bounds = True
+
         # begin undo
         self.beginUndoAction()
 
@@ -202,6 +204,8 @@ class YamlEditorWidget(QsciScintilla):
         old_cursor_type_position = self._pos.cursor_type_position
         old_pred_parent = self._pos.pred_parent
         self._pos.make_post_operation(self, line, index)
+        if not self._valid_bounds:
+            self.structureChanged.emit(line + 1, index + 1)
         if self._pos.new_pos(self, line, index):
             if self._pos.is_changed:
                 self.structureChanged.emit(line + 1, index + 1)
@@ -235,9 +239,7 @@ class YamlEditorWidget(QsciScintilla):
         if not self.reload_chunk.freeze_reload:
             self._pos.new_line_completation(self)
             self._pos.spec_char_completation(self)
-            if not self._pos.fix_bounds(self):
-                line, index = self.getCursorPosition()
-                self.structureChanged.emit(line + 1, index + 1)
+            self._valid_bounds = self._pos.fix_bounds(self)
 
     def _reload_chunk_onExit(self):
         """Emits a structure change upon closing a reload chunk."""
@@ -350,36 +352,36 @@ class YamlEditorWidget(QsciScintilla):
             cursor_col = len(text_lines[-1])
         self.setCursorPosition(cursor_line, cursor_col)
 
-    # TODO fix QScintilla interface
-    # def insertAt(self, text, line, index):
+    # # TODO fix QScintilla interface
+    # def insert_at(self, text, line, index):
     #     """Insert the given text at the given line and offset."""
     #     pos = self._position_from_line_index(line, index)
-    #     self.insertAtPos(text, pos)
+    #     self.insert_at_pos(text, pos)
     #
-    # def insertAtPos(self, text, pos):
+    # def insert_at_pos(self, text, pos):
     #     """Insert the given text at the given position."""
-    #     read_only = self._ensure_rw()
+    #     # read_only = self._ensure_rw()
     #     self.SendScintilla(QsciScintilla.SCI_INSERTTEXT, pos, text.encode('utf-8'))
-    #     self._set_read_only(read_only)
-
-    def _position_from_line_index(self, line, index):
-        """Return a position from a line number and an index within the line."""
-        pos = self.SendScintilla(QsciScintilla.SCI_POSITIONFROMLINE, line)
-        for i in range(index):
-            pos = self.SendScintilla(QsciScintilla.SCI_POSITIONAFTER, pos)
-        return pos
-
-    def _ensure_rw(self):
-        """Ensure the document is read-write and return true if it was read-only."""
-        read_only = self.SendScintilla(QsciScintilla.SCI_GETREADONLY)
-        if read_only:
-            self._set_read_only(False)
-        return read_only
-
-    def _set_read_only(self, read_only):
-        """Set the read-only state."""
-        # self.setAttribute(Qt.WA_InputMethodEnabled, not read_only)
-        self.SendScintilla(QsciScintilla.SCI_SETREADONLY, read_only)
+    #     # self._set_read_only(read_only)
+    #
+    # def _position_from_line_index(self, line, index):
+    #     """Return a position from a line number and an index within the line."""
+    #     pos = self.SendScintilla(QsciScintilla.SCI_POSITIONFROMLINE, line)
+    #     for i in range(index):
+    #         pos = self.SendScintilla(QsciScintilla.SCI_POSITIONAFTER, pos)
+    #     return pos
+    #
+    # def _ensure_rw(self):
+    #     """Ensure the document is read-write and return true if it was read-only."""
+    #     read_only = self.SendScintilla(QsciScintilla.SCI_GETREADONLY)
+    #     if read_only:
+    #         self._set_read_only(False)
+    #     return read_only
+    #
+    # def _set_read_only(self, read_only):
+    #     """Set the read-only state."""
+    #     # self.setAttribute(Qt.WA_InputMethodEnabled, not read_only)
+    #     self.SendScintilla(QsciScintilla.SCI_SETREADONLY, read_only)
 
     def set_selection_from_cursor(self, length):
         """Selects `length` characters to the right from cursor."""
@@ -569,6 +571,7 @@ class EditorPosition:
         self.cursor_type_position = None
         """Type of yaml structure below cursor"""
         self.pred_parent = None
+        """Predicted parent node for IST"""
 
     def new_line_completation(self, editor):
         """New line was added"""
