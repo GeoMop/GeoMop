@@ -351,37 +351,6 @@ class YamlEditorWidget(QsciScintilla):
             cursor_col = len(text_lines[-1])
         self.setCursorPosition(cursor_line, cursor_col)
 
-    # # TODO fix QScintilla interface
-    # def insert_at(self, text, line, index):
-    #     """Insert the given text at the given line and offset."""
-    #     pos = self._position_from_line_index(line, index)
-    #     self.insert_at_pos(text, pos)
-    #
-    # def insert_at_pos(self, text, pos):
-    #     """Insert the given text at the given position."""
-    #     # read_only = self._ensure_rw()
-    #     self.SendScintilla(QsciScintilla.SCI_INSERTTEXT, pos, text.encode('utf-8'))
-    #     # self._set_read_only(read_only)
-    #
-    # def _position_from_line_index(self, line, index):
-    #     """Return a position from a line number and an index within the line."""
-    #     pos = self.SendScintilla(QsciScintilla.SCI_POSITIONFROMLINE, line)
-    #     for i in range(index):
-    #         pos = self.SendScintilla(QsciScintilla.SCI_POSITIONAFTER, pos)
-    #     return pos
-    #
-    # def _ensure_rw(self):
-    #     """Ensure the document is read-write and return true if it was read-only."""
-    #     read_only = self.SendScintilla(QsciScintilla.SCI_GETREADONLY)
-    #     if read_only:
-    #         self._set_read_only(False)
-    #     return read_only
-    #
-    # def _set_read_only(self, read_only):
-    #     """Set the read-only state."""
-    #     # self.setAttribute(Qt.WA_InputMethodEnabled, not read_only)
-    #     self.SendScintilla(QsciScintilla.SCI_SETREADONLY, read_only)
-
     def set_selection_from_cursor(self, length):
         """Selects `length` characters to the right from cursor."""
         cur_line, cur_col = self.getCursorPosition()
@@ -592,18 +561,16 @@ class EditorPosition:
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
             if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._new_line_indent)] == self._new_line_indent:
-                editor.insert_at_cursor(self._new_line_indent)
-                # editor.insertAt(self._new_line_indent, line, index)
+                editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
                 if self.node is not None:
                     na = analyzer.NodeAnalyzer(self._old_text, self.node)
                 else:
                     na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
                 self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
-            self._new_line_indent =  None
+            self._new_line_indent = None
         if self._spec_char != "" and editor.lines() > line:
-            editor.insert_at_cursor(self._spec_char)
-            # editor.insertAt(self._spec_char, line, index)
+            editor.insertAt(self._spec_char, line, index)
             self._spec_char = ""
 
     def spec_char_completation(self, editor):
