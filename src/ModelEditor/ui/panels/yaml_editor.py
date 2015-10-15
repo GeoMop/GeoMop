@@ -532,6 +532,8 @@ class EditorPosition:
         """Bound max position is to end line"""
         self._new_line_indent = None
         """indentation for  new array item operation"""
+        self._old_line_prefix = None
+        """indentation for  old array item operation"""
         self._spec_char = ""
         """make special char operation"""
         self.fatal = False
@@ -548,19 +550,23 @@ class EditorPosition:
             indent = analyzer.LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
             if index > -1 and index == indent:
-                if self.node is None or not isinstance(self.node, ScalarNode):
+                if self.node is None or  \
+                   not isinstance(self.node, ScalarNode) or \
+                   (self.node.parent.start.line-1) == self.line:                        
                     self._new_line_indent = indent*' '+"  "
                 else:
                     self._new_line_indent = indent*' '+"- "
+                self._old_line_prefix = indent*' '+"- "
             else:
                 self._new_line_indent = indent*' '
+                self._old_line_prefix = indent*' '
 
     def make_post_operation(self, editor, line, index):
         """complete specion chars after update"""
         if self._new_line_indent is not None and editor.lines() > line:
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
-            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._new_line_indent)] == self._new_line_indent:
+            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._old_line_prefix)] == self._old_line_prefix:
                 editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
                 if self.node is not None:
