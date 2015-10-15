@@ -17,7 +17,6 @@ import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 import argparse
 
-
 class ModelEditor:
     """Model editor main class"""
 
@@ -27,7 +26,7 @@ class ModelEditor:
         self.mainwindow = QtWidgets.QMainWindow()
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
         self.mainwindow.setCentralWidget(self._hsplitter)
-
+        self._app.setWindowIcon(icon.get_app_icon("me-globe"))
         # load config
         cfg.init(self.mainwindow)
         self._update_document_name()
