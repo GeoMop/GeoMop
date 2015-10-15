@@ -5,6 +5,7 @@ from PyQt5.QtGui import QColor
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, CompositeNode
 import util
+from copy import deepcopy
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -76,12 +77,12 @@ class TreeWidget(QtWidgets.QTreeView):
         """Function for itemSelected signal"""
         data = model_index.internalPointer()
         if model_index.column() == 0 and data.key.span is not None:  # key
-            span = data.key.span
+            span = deepcopy(data.key.span)
         elif model_index.column() == 1 and isinstance(data, CompositeNode) and \
                 data.type is not None:  # AbstractRecord type
-            span = data.type.span
+            span = deepcopy(data.type.span)
         else:  # entire node (value)
-            span = data.span
+            span = deepcopy(data.span)
             # if an array is clicked, select the "- " as well
             if model_index.column() == 0:
                 is_array_member = (data.parent is not None and
