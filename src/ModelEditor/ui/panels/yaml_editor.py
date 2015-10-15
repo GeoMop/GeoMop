@@ -651,8 +651,9 @@ class EditorPosition:
         if (self._last_line_after is not None and
                 editor.lines() > self.line and
                 self._last_line_after != editor.text(self.line + 1)):
-             if not ((self._last_line_after.isspace() or len(self._last_line_after)>0) and
-                (editor.text(self.line + 1) or len(editor.text(self.line + 1))>0)):
+            #new line and old line is emty (editor add indentation)        
+            if not ((self._last_line_after.isspace() or len(self._last_line_after)==0) and
+                (editor.text(self.line + 1).isspace() or len(editor.text(self.line + 1))==0)):
                 return False
         new_line = editor.text(self.line)
         # if indentation change
