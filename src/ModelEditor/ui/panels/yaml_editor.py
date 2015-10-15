@@ -590,6 +590,11 @@ class EditorPosition:
                 editor.insert_at_cursor(self._new_line_indent)
                 # editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
+                if self.node is not None:
+                    na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                else:
+                    na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+                self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
             self._new_line_indent =  None
         if self._spec_char != "" and editor.lines() > line:
             editor.insert_at_cursor(self._spec_char)
