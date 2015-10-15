@@ -39,6 +39,12 @@ class Validator:
         if node is None:
             raise Notification.from_name('ValidationError', 'Invalid node (None)')
 
+        if input_type['base_type'] != 'AbstractRecord' and hasattr(node, 'type') \
+                and node.type is not None and 'implemented_abstract_record' not in input_type:
+            notification = Notification.from_name('UselessTag', node.type.value)
+            notification.span = node.type.span
+            self.notification_handler.report(notification)
+
         node.input_type = input_type
         if is_scalar(input_type):
             self._validate_scalar(node, input_type)

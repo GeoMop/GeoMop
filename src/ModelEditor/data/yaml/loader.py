@@ -194,10 +194,8 @@ class Loader:
             else:  # not null - tag has no effect
                 node = temp_node
                 invalid_position = True
-        else:
-            # someone tried to use tag for a sequence - tag has no effect
+        elif isinstance(self._event, pyyaml.SequenceStartEvent):
             node = self._create_array_node()
-            invalid_position = True
         if invalid_position:
             notification = Notification.from_name('UselessTag', tag.value)
             notification.span = tag.span
