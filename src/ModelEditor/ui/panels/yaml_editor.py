@@ -7,9 +7,8 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
-from data import PosType, CursorType
+from data import Position, PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
-from data import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
@@ -580,7 +579,10 @@ class EditorPosition:
             indent = analyzer.LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
             if index > -1 and index == indent:
-                self._new_line_indent = indent*' '+"- "
+                if self.node is None or not isinstance(self.node, ScalarNode):
+                    self._new_line_indent = indent*' '+"  "
+                else:
+                    self._new_line_indent = indent*' '+"- "
             else:
                 self._new_line_indent = indent*' '
 
