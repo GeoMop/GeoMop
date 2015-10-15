@@ -7,9 +7,8 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
-from data import PosType, CursorType
+from data import Position, PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
-from data import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
@@ -534,6 +533,8 @@ class EditorPosition:
         """Bound max position is to end line"""
         self._new_line_indent = None
         """indentation for  new array item operation"""
+        self._old_line_prefix = None
+        """indentation for  old array item operation"""
         self._spec_char = ""
         """make special char operation"""
         self.fatal = False
@@ -550,16 +551,23 @@ class EditorPosition:
             indent = analyzer.LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
             if index > -1 and index == indent:
-                self._new_line_indent = indent*' '+"- "
+                if self.node is None or  \
+                   not isinstance(self.node, ScalarNode) or \
+                   (self.node.parent.start.line-1) == self.line:                        
+                    self._new_line_indent = indent*' '+"  "
+                else:
+                    self._new_line_indent = indent*' '+"- "
+                self._old_line_prefix = indent*' '+"- "
             else:
                 self._new_line_indent = indent*' '
+                self._old_line_prefix = indent*' '
 
     def make_post_operation(self, editor, line, index):
         """complete specion chars after update"""
         if self._new_line_indent is not None and editor.lines() > line:
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
-            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._new_line_indent)] == self._new_line_indent:
+            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._old_line_prefix)] == self._old_line_prefix:
                 editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
                 if self.node is not None:
@@ -608,6 +616,7 @@ class EditorPosition:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
+                analyzer.LineAnalyzer.is_array_char_only(self._old_text[line]) or \
                 (self.node is not None and self.node.origin == NodeOrigin.error):
                 if self.node is not None:
                     na = analyzer.NodeAnalyzer(self._old_text, self.node)
@@ -777,6 +786,7 @@ class EditorPosition:
         
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
+            analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]) or \
             (self.node is not None and self.node.origin == NodeOrigin.error):
             if self.node is not None:
                 na = analyzer.NodeAnalyzer(self._old_text, self.node)

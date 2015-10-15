@@ -141,9 +141,8 @@ class ModelEditor:
         """reload info after changing node selection"""
         node = cfg.get_data_node(Position(line, index))
         self._editor.set_new_node(node)
-        if node is not None:
-            cursor_type = self._editor.cursor_type_position
-            self._update_info(cursor_type)
+        cursor_type = self._editor.cursor_type_position
+        self._update_info(cursor_type)
         if cfg.config.DEBUG_MODE:
             self._debug_tab.show_data_node(node)
 
