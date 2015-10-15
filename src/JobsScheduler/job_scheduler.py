@@ -5,11 +5,13 @@ Start script that initializes main window and runs APP
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-
-import sys
 import os
-import logging
+import sys
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.insert(1, __lib_dir__)
 
+import logging
 import PyQt5.QtWidgets as QtWidgets
 
 from data.data_reloader import DataReloader
