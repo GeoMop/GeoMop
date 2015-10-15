@@ -116,5 +116,5 @@ SCINTILLA_DISABLE = [
     COMMENT,
     DELETE,
     SELECT_ALL,
-    ENTER,
+    # ENTER,
 ]
