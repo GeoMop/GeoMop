@@ -127,7 +127,7 @@ class LineAnalyzer:
         """return intendation of row"""
         if row.isspace():
             return len(row)
-        value = re.search(r'^(\s*-\s)', row)
+        value = re.search(r'^(\s*)-\s', row)
         if not value :
             value = re.search(r'^(\s+)\S', row)
         if not value :
