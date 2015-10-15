@@ -138,6 +138,9 @@ def _expand_reducible_to_key(node, input_type):
 
     record_node = CompositeNode(True, node.key, node.parent)
     record_node.span = node.span
+    if hasattr(node, 'type'):
+        record_node.type = node.type
+        node.type = None
     node.parent = record_node
     node.origin = NodeOrigin.ac_reducible_to_key
     node.key = TextValue(key)

@@ -1,0 +1,56 @@
+problem: !SequentialCoupling
+  description:
+    test
+    test
+    test
+  mesh:
+    mesh_file: ./input/test2.msh
+  primary_equation: !Steady_MH
+    output:
+      output_fields:
+        - pressure_p0
+        - pressure_p1
+      output_stream: 
+        file: test
+        format:
+          !gmsh
+          variant: ascii
+        name:
+          flow_output_stream
+    solver: 
+      !Petsc
+      &solv
+      a_tol:
+        1e-11
+      r_tol: .3231000101
+    input_fields:
+      - region: IMPLICIt_BOUNDARY
+        flow_old_bcd_file: ./test
+      - rid: true
+        conductivity: true
+    balance: true
+    
+  secondary_equation: !SoluteTransport_DG
+    output_stream:
+      file: ./transport
+      format: !gmsh
+        variant: ascii
+      time_step: 0.5
+    substances:
+      - A
+      - B
+    time:
+      end_time: -.3
+      init_dt: 0.5
+    solver: *solv
+    input_fields:
+      - region: abc
+        bc_conc: 
+          !FieldFormula
+          &bc_conc
+          - sin(x)
+          - cos(x)
+      - bc_conc: *bc_conc
+        porosity: 0.25
+    balance:
+      cumulative: true
