@@ -11,6 +11,8 @@ import os
 import logging
 
 import PyQt5.QtWidgets as QtWidgets
+
+from data.data_reloader import DataReloader
 from ui.main_window import MainWindow
 from data.data_structures import DataContainer
 
@@ -29,11 +31,22 @@ class JobsScheduler(object):
         # load data container
         self._data = DataContainer()
 
+        # load data reloader
+        self._reloader = DataReloader(self._data)
+
         # setup qt UI
         self._main_window = MainWindow(data=self._data)
 
+        # connect reloader kill on app exit
+        self._app.aboutToQuit.connect(self._reloader.stop)
+
+        # connect save all on exit
+        self._app.aboutToQuit.connect(self._data.save_all)
+
     def run(self):
         """Run app and show UI"""
+        # start data reloader
+        self._reloader.start()
 
         # show UI
         self._main_window.show()
@@ -46,7 +59,10 @@ class JobsScheduler(object):
 
 if __name__ == "__main__":
     # import common directory to path (should be in __init__)
-    sys.path.append(".." + os.pathsep + "common")
+    # sys.path.append(".." + os.pathsep + "common")
+    __lib_dir__ = os.path.join(os.path.split(
+        os.path.dirname(os.path.realpath(__file__)))[0], "common")
+    sys.path.insert(1, __lib_dir__)
 
     # logging setup on STDOUT or to FILE
     logging.basicConfig(  # filename='jobscheduler.log',

@@ -6,9 +6,11 @@ JobScheduler data structures
 """
 
 import logging
+import os
 import uuid
 
 import config as cfg
+import data.my_communicator_conf as comcfg
 
 
 class ID(object):
@@ -60,6 +62,9 @@ class ResourcesData(PersistentDict):
 
 
 class DataContainer(object):
+    DUMP_PATH = (".", "jobs")
+    CONFIG_FOLDER = ("mj_conf")
+
     multijobs = MultiJobData()
     ssh_presets = SshData()
     pbs_presets = PbsData()
@@ -67,7 +72,6 @@ class DataContainer(object):
 
     def __init__(self):
         self.load_all()
-        # self.fill_mock_data()
 
     def save_all(self):
         self.multijobs.save()
@@ -94,5 +98,33 @@ class DataContainer(object):
             self.resource_presets = ResourcesData()
         logging.info('==== Everything loaded successfully! ====')
 
-    def fill_mock_data(self):
+    def build_config_files(self, key, path=DUMP_PATH):
+        mj = self.multijobs[key]
+
+        base_path = list(path)
+        base_path.append(mj[0])
+        base_path.append(self.CONFIG_FOLDER)
+
+        app_conf = comcfg.CommunicatorConfig()
+        app_conf.output_type = comcfg.OutputCommType.ssh
+        app_conf.communicator_name = "app"
+        app_conf.mj_name = "m5j"
+        app_conf.next_communicator = "delegator"
+        app_conf.ssh.uid = "test"
+        app_conf.ssh.pwd = "MojeHeslo123"
+        app_conf.ssh.host = "localhost"
+        app_conf.pbs = comcfg.PbsConfig()
+        app_conf.log_level = logging.DEBUG
+
+        app_path = list(base_path)
+        app_path.append(app_conf.communicator_name + ".json")
+        app_path_string = os.path.join(*app_path)
+        os.makedirs(os.path.dirname(app_path_string), exist_ok=True)
+        with open(app_path_string, "w") as app_file:
+            app_conf.save_to_json_file(app_file)
+            conf = comcfg.CommunicatorConfig()
+        with open(app_path_string, "r") as app_file:
+            conf.load_from_json_file(app_file)
+
+    def load_from_config_files(self, path):
         pass

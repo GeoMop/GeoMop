@@ -85,6 +85,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
 
+        # connect multijob action
+        self.ui.actionRunMultiJob.triggered.connect(
+            self._handle_run_multijob_action)
+
         # reload view
         self.ui.multiJobOverview.reload_view(self.data.multijobs)
 
@@ -124,6 +128,10 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.data.multijobs[data[0]] = list(data[1:])
         self.multijobs_changed.emit(self.data.multijobs)
+
+    def _handle_run_multijob_action(self):
+        key = self.ui.multiJobOverview.currentItem().text(0)
+        self.data.build_config_files(key)
 
 
 class UiMainWindow(object):
