@@ -173,6 +173,7 @@ class ModelEditor:
         self._reload()
         self.update_recent_files(0)
         self._update_document_name()
+        self._info.update_from_data({'record_id': cfg.root_input_type['id']})
         self._status.showMessage("New file is opened", 5000)
 
     def open_file(self):
