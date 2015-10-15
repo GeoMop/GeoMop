@@ -12,6 +12,8 @@ def get_file(name,  size):
         path = os.path.join(path, "24x24")
     elif size == 16:
         path = os.path.join(path, "16x16")
+    elif size == 32:
+        path = os.path.join(path, "32x32")
     elif size == 48:
         path = os.path.join(path, "48x48")
     elif size == 64:
@@ -27,6 +29,7 @@ def get_icon(name,  size):
 def get_app_icon(name):
     """Get QIcon object from icon archiv"""
     app_icon = QtGui.QIcon()
+    app_icon.addFile(get_file(name,  32), QtCore.QSize(32,32))    
     app_icon.addFile(get_file(name,  48), QtCore.QSize(48,48))    
     app_icon.addFile(get_file(name,  64), QtCore.QSize(64,64))
     app_icon.addFile(get_file(name,  64), QtCore.QSize(128,128))

@@ -26,7 +26,7 @@ class ModelEditor:
         self.mainwindow = QtWidgets.QMainWindow()
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
         self.mainwindow.setCentralWidget(self._hsplitter)
-        self._app.setWindowIcon(icon.get_app_icon("me-globe"))
+        self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         # load config
         cfg.init(self.mainwindow)
         self._update_document_name()
