@@ -28,9 +28,6 @@ class InfoTextGenerator:
         The first key is selected by default. If `abstract_id` is specified, a documentation for
         a parent abstract record is generated. If the selected key type is of type `Selection`,
         then `selected_item` will be selected."""
-        if record_id not in cls._input_types:
-            return "unknown record_id"
-
         cls.record_id = record_id
         cls.selected_key = selected_key
         cls.abstract_id = abstract_id
@@ -42,7 +39,11 @@ class InfoTextGenerator:
         with html_body.open('div', cls='container-fluid fill'):
             if abstract_id in cls._input_types:
                 html_body.add(cls._generate_abstract_record(abstract_id))
-            html_body.add(cls._generate_record(record_id, selected_key, selected_item))
+            if record_id in cls._input_types:
+                html_body.add(cls._generate_record(record_id, selected_key, selected_item))
+            if abstract_id not in cls._input_types and record_id not in cls._input_types:
+                with html_body.open('section', cls='row record'):
+                    html_body.description('')
 
         html_head = htmltree('head')
         html_head.style('bootstrap.min.css')

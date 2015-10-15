@@ -126,8 +126,9 @@ class NodeAnalyzer:
         while  node is None:
             if l<0:
                 return None
-            node =  root.get_node_at_position(Position(l+1, len(self._lines[l])-1))
-            l = -1
+            if not self._lines[l].isspace() and len(self._lines[l])>0: 
+                node =  root.get_node_at_position(Position(l+1, len(self._lines[l])-1))
+            l -= 1
         return node            
     
     def get_parent_for_unfinished(self, line, index, line_text):

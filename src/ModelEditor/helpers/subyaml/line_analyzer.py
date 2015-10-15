@@ -127,9 +127,17 @@ class LineAnalyzer:
         """return intendation of row"""
         if row.isspace():
             return len(row)
-        value = re.search(r'^(\s*-\s)', row)
+        value = re.search(r'^(\s*)-\s', row)
         if not value :
             value = re.search(r'^(\s+)\S', row)
         if not value :
             return 0
         return len(value.group(1))
+     
+    @staticmethod
+    def is_array_char_only(row):
+        """return if is on line only arry char"""
+        value = re.search(r'^\s*-\s*$', row)
+        if not value :
+            return False
+        return True

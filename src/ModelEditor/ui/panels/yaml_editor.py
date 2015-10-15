@@ -7,9 +7,8 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
-from data import PosType, CursorType
+from data import Position, PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
-from data import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
@@ -97,7 +96,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setTabIndents(True)
         self.setTabWidth(2)
         self.setUtf8(True)
-        self.setAutoIndent(True)
+        # self.setAutoIndent(True)
 
         # text wrapping
         self.setWrapMode(QsciScintilla.WrapWord)
@@ -158,6 +157,8 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut in shortcuts.SCINTILLA_DISABLE:
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
+        self._valid_bounds = True
+
         # begin undo
         self.beginUndoAction()
 
@@ -201,18 +202,21 @@ class YamlEditorWidget(QsciScintilla):
         """Function for cursorPositionChanged signal"""
         old_cursor_type_position = self._pos.cursor_type_position
         old_pred_parent = self._pos.pred_parent
-        if self._pos.new_pos(self, line, index):
-            if self._pos.is_changed:
-                self.structureChanged.emit(line + 1, index + 1)
-            else:
-                self.nodeChanged.emit(line + 1, index + 1)
+        self._pos.make_post_operation(self, line, index)
+        if not self._valid_bounds:
+            self.structureChanged.emit(line + 1, index + 1)
         else:
-            self._pos.make_post_operation(self, line, index)
-            if (old_cursor_type_position != self._pos.cursor_type_position and \
-                    old_cursor_type_position is not None) or \
-               (self._pos.pred_parent != old_pred_parent):
-                self.elementChanged.emit(self._pos.cursor_type_position.value,
-                                         old_cursor_type_position.value)
+            if self._pos.new_pos(self, line, index):
+                if self._pos.is_changed:
+                    self.structureChanged.emit(line + 1, index + 1)
+                else:
+                    self.nodeChanged.emit(line + 1, index + 1)
+            else:
+                if (old_cursor_type_position != self._pos.cursor_type_position and \
+                        old_cursor_type_position is not None) or \
+                   (self._pos.pred_parent != old_pred_parent):
+                    self.elementChanged.emit(self._pos.cursor_type_position.value,
+                                             old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, index + 1)
 
     @property
@@ -233,11 +237,9 @@ class YamlEditorWidget(QsciScintilla):
     def _text_changed(self):
         """Function for textChanged signal"""
         if not self.reload_chunk.freeze_reload:
-            self._pos.new_array_line_completation(self)
+            self._pos.new_line_completation(self)
             self._pos.spec_char_completation(self)
-            if not self._pos.fix_bounds(self):
-                line, index = self.getCursorPosition()
-                self.structureChanged.emit(line + 1, index + 1)
+            self._valid_bounds = self._pos.fix_bounds(self)
 
     def _reload_chunk_onExit(self):
         """Emits a structure change upon closing a reload chunk."""
@@ -390,20 +392,6 @@ class YamlEditorWidget(QsciScintilla):
             self.set_selection_from_cursor(1)
         super(YamlEditorWidget, self).removeSelectedText()
 
-    def add_new_line(self):
-        """Adds new line to the text."""
-        # Manually adding indent to new line instead of using self.setAutoIndent(True) to control
-        # undo/redo chunks.
-        indent = ''
-        line, __ = self.getCursorPosition()
-        line_text = self.text(line)
-        indent_regex = r'^([\t ]+)'
-        indent_match = re.search(indent_regex, line_text)
-        if indent_match is not None:
-            indent = indent_match.group(1)
-        new_line = '\n' + indent
-        self.insert_at_cursor(new_line)
-
     def comment(self):
         """(Un)Comments the selected lines."""
         with self.reload_chunk:
@@ -543,8 +531,10 @@ class EditorPosition:
         """last after cursor text of line for comparison"""
         self._to_end_line = True
         """Bound max position is to end line"""
-        self._new_array_item = False
-        """make new array item operation"""
+        self._new_line_indent = None
+        """indentation for  new array item operation"""
+        self._old_line_prefix = None
+        """indentation for  old array item operation"""
         self._spec_char = ""
         """make special char operation"""
         self.fatal = False
@@ -552,26 +542,40 @@ class EditorPosition:
         self.cursor_type_position = None
         """Type of yaml structure below cursor"""
         self.pred_parent = None
+        """Predicted parent node for IST"""
 
-    def new_array_line_completation(self, editor):
+    def new_line_completation(self, editor):
         """New line was added"""
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
             pre_line = editor.text(self.line)
+            indent = analyzer.LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
-            if index > -1:
-                self._new_array_item = True
+            if index > -1 and index == indent:
+                if self.node is None or  \
+                   not isinstance(self.node, ScalarNode) or \
+                   (self.node.parent.start.line-1) == self.line:                        
+                    self._new_line_indent = indent*' '+"  "
+                else:
+                    self._new_line_indent = indent*' '+"- "
+                self._old_line_prefix = indent*' '+"- "
+            else:
+                self._new_line_indent = indent*' '
+                self._old_line_prefix = indent*' '
 
     def make_post_operation(self, editor, line, index):
         """complete specion chars after update"""
-        if self._new_array_item and editor.lines() > line:
-            pre_line = editor.text(self.line - 1)
-            new_line = editor.text(self.line)
-            if not analyzer.LineAnalyzer.indent_changed(new_line + 'x', pre_line):
-                arr_index = pre_line.find("- ")
-                if self.index == len(new_line) and self.index == arr_index:
-                    editor.insertAt("- ", line, index)
-                    editor.setCursorPosition(line, index + 2)
-            self._new_array_item = False
+        if self._new_line_indent is not None and editor.lines() > line:
+            pre_line = editor.text(line - 1)
+            new_line = editor.text(line)
+            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._old_line_prefix)] == self._old_line_prefix:
+                editor.insertAt(self._new_line_indent, line, index)
+                editor.setCursorPosition(line, index + len(self._new_line_indent))
+                if self.node is not None:
+                    na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                else:
+                    na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+                self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
+            self._new_line_indent = None
         if self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
             self._spec_char = ""
@@ -612,6 +616,7 @@ class EditorPosition:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
+                analyzer.LineAnalyzer.is_array_char_only(self._old_text[line]) or \
                 (self.node is not None and self.node.origin == NodeOrigin.error):
                 if self.node is not None:
                     na = analyzer.NodeAnalyzer(self._old_text, self.node)
@@ -651,8 +656,9 @@ class EditorPosition:
         if (self._last_line_after is not None and
                 editor.lines() > self.line and
                 self._last_line_after != editor.text(self.line + 1)):
-             if not ((self._last_line_after.isspace() or len(self._last_line_after)>0) and
-                (editor.text(self.line + 1) or len(editor.text(self.line + 1))>0)):
+            #new line and old line is emty (editor add indentation)        
+            if not ((self._last_line_after.isspace() or len(self._last_line_after)==0) and
+                (editor.text(self.line + 1).isspace() or len(editor.text(self.line + 1))==0)):
                 return False
         new_line = editor.text(self.line)
         # if indentation change
@@ -780,6 +786,7 @@ class EditorPosition:
         
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
+            analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]) or \
             (self.node is not None and self.node.origin == NodeOrigin.error):
             if self.node is not None:
                 na = analyzer.NodeAnalyzer(self._old_text, self.node)
