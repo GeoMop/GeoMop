@@ -615,6 +615,7 @@ class EditorPosition:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
+                analyzer.LineAnalyzer.is_array_char_only(self._old_text[line]) or \
                 (self.node is not None and self.node.origin == NodeOrigin.error):
                 if self.node is not None:
                     na = analyzer.NodeAnalyzer(self._old_text, self.node)
@@ -784,6 +785,7 @@ class EditorPosition:
         
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
+            analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]) or \
             (self.node is not None and self.node.origin == NodeOrigin.error):
             if self.node is not None:
                 na = analyzer.NodeAnalyzer(self._old_text, self.node)
