@@ -21,7 +21,7 @@ except:
     raise Exception('Cannot create config directory')
 
 LOG_FORMAT = '%(asctime)-15s %(message)s'
-LOG_FILENAME = os.path.join(__config_dir__, 'model_editor.log')
+LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
 logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
 
 

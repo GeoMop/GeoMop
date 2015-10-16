@@ -6,6 +6,7 @@
 !define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
+!define APP_HOME_DIR "$APPDATA\GeoMop"
 
 !define PYTHON_MAJOR   "3"
 !define PYTHON_MINOR   "4"
@@ -26,7 +27,7 @@ SetCompressor /SOLID lzma
 
 
 # Read version information from file.
-!searchparse /file "${GIT_DIR}\.version" '' VERSION ''
+!searchparse /file "${GIT_DIR}\VERSION" '' VERSION ''
 
 
 Name "GeoMop ${VERSION}"
@@ -114,13 +115,17 @@ Section "Runtime Environment" SecRuntime
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\common"
 
+  # Copy the sample folder.
+  SetOutPath $INSTDIR
+  File /r "${GIT_DIR}\sample"
+
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
 SectionEnd
 
 
-Section "JobsScheduler" SecJobsScheduler
+Section /o "JobsScheduler" SecJobsScheduler
 
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\JobsScheduler"
@@ -141,6 +146,11 @@ Section "ModelEditor" SecModelEditor
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\ModelEditor"
 
+  # Create an empty log file.
+  FileOpen $9 "${APP_HOME_DIR}\model_editor_log.txt" w
+  FileWrite $9 ""
+  FileClose $9
+
 SectionEnd
 
 
@@ -151,22 +161,23 @@ Section "Start Menu shortcuts" SecStartShortcuts
   # Make sure this is clean and tidy.
   RMDir /r "$SMPROGRAMS\GeoMop"
   CreateDirectory "$SMPROGRAMS\GeoMop"
-
+  
   # Uninstall shortcut.
   SetOutPath $INSTDIR
   CreateShortcut "$SMPROGRAMS\GeoMop\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe"'"$INSTDIR\LayerEditor\layer_editor.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
 
-  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
+  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +4
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor Log.lnk" "${APP_HOME_DIR}\model_editor_log.txt" "" "${APP_HOME_DIR}\model_editor_log.txt" 0
 
 SectionEnd
 
@@ -175,15 +186,15 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe"'"$INSTDIR\LayerEditor\layer_editor.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$PYTHON_SCRIPTS\python.exe" 0
+    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
 
 SectionEnd
 
@@ -193,15 +204,16 @@ Section -post
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
   
+  WriteUninstaller "uninstall.exe"
+
   ; Write the installation path into the registry
   WriteRegStr HKLM SOFTWARE\GeoMop "Install_Dir" "$INSTDIR"
   
   ; Write the uninstall keys for Windows
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "DisplayName" "GeoMop"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoRepair" 1
-  WriteUninstaller "uninstall.exe"
   
 SectionEnd
 
