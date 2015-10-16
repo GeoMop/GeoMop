@@ -5,7 +5,7 @@ Resource dialog
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
@@ -131,6 +131,15 @@ class UiResourceDialog(UiFormDialog):
     """
     UI extensions of form dialog.
     """
+    EXECUTE_USING_LABEL = "Execute using:"
+    EXECUTION_TYPE_LABEL = "Execution type:"
+    SSH_PRESET_LABEL = "SSH preset:"
+    PBS_PRESET_LABEL = "PBS preset:"
+
+    EXEC_LABEL = "EXEC"
+    DELEGATOR_LABEL = "DELEGATOR"
+    REMOTE_LABEL = "REMOTE"
+    PBS_LABEL = "PBS"
 
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
@@ -166,132 +175,191 @@ class UiResourceDialog(UiFormDialog):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
-        # 2 row
+        # remove button box
+        self.mainVerticalLayout.removeWidget(self.buttonBox)
+
+        # divider
+        self.formDivider = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
+        self.formDivider.setObjectName("formDivider")
+        self.formDivider.setFrameShape(QtWidgets.QFrame.HLine)
+        self.formDivider.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.mainVerticalLayout.addWidget(self.formDivider)
+
+        # font
+        labelFont = QtGui.QFont()
+        labelFont.setPointSize(11)
+        labelFont.setWeight(65)
+
+        # multijob label
+        self.multiJobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.multiJobLabel.setObjectName("multijobLabel")
+        self.multiJobLabel.setFont(labelFont)
+        self.multiJobLabel.setText("MultiJob")
+        self.mainVerticalLayout.addWidget(self.multiJobLabel)
+
+        # form layout2
+        self.formLayout2 = QtWidgets.QFormLayout()
+        self.formLayout2.setObjectName("formLayout2")
+        self.formLayout2.setContentsMargins(0, 5, 0, 5)
+        self.mainVerticalLayout.addLayout(self.formLayout2)
+
+        # 1 row
         self.multiJobExecutionTypeLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.multiJobExecutionTypeLabel.setObjectName(
             "multiJobExecutionTypeLabel")
-        self.multiJobExecutionTypeLabel.setText("MultiJob Execution Type:")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
-                                  self.multiJobExecutionTypeLabel)
+        self.multiJobExecutionTypeLabel.setText(self.EXECUTE_USING_LABEL)
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole,
+                                   self.multiJobExecutionTypeLabel)
         self.multiJobExecutionTypeComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.multiJobExecutionTypeComboBox.setObjectName(
             "multiJobExecutionTypeComboBox")
-        self.multiJobExecutionTypeComboBox.addItem("LOCAL", "LOCAL")
-        self.multiJobExecutionTypeComboBox.addItem("REMOTE", "REMOTE")
+        self.multiJobExecutionTypeComboBox.addItem(self.EXEC_LABEL,
+                                                   self.EXEC_LABEL)
+        self.multiJobExecutionTypeComboBox.addItem(self.DELEGATOR_LABEL,
+                                                   self.DELEGATOR_LABEL)
         self.multiJobExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
-                                  self.multiJobExecutionTypeComboBox)
-        
-        # 3 row
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole,
+                                   self.multiJobExecutionTypeComboBox)
+
+        # 2 row
         self.multiJobSshPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.multiJobSshPresetLabel.setObjectName("multiJobSshPresetLabel")
-        self.multiJobSshPresetLabel.setText("MultiJob SSH Preset:")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                  self.multiJobSshPresetLabel)
+        self.multiJobSshPresetLabel.setText(self.SSH_PRESET_LABEL)
+        self.formLayout2.setWidget(1, QtWidgets.QFormLayout.LabelRole,
+                                   self.multiJobSshPresetLabel)
         self.multiJobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.multiJobSshPresetComboBox.setObjectName(
             "multiJobSshPresetComboBox")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                  self.multiJobSshPresetComboBox)
-        
-        # 4 row
+        self.formLayout2.setWidget(1, QtWidgets.QFormLayout.FieldRole,
+                                   self.multiJobSshPresetComboBox)
+
+        # 3 row
         self.multiJobRemoteExecutionTypeLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.multiJobRemoteExecutionTypeLabel.setObjectName(
             "multiJobRemoteExecutionTypeLabel")
-        self.multiJobRemoteExecutionTypeLabel.setText("MultiJob Execution "
-                                                      "Type:")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
-                                  self.multiJobRemoteExecutionTypeLabel)
+        self.multiJobRemoteExecutionTypeLabel.setText(
+            self.EXECUTION_TYPE_LABEL)
+        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                   self.multiJobRemoteExecutionTypeLabel)
         self.multiJobRemoteExecutionTypeComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.multiJobRemoteExecutionTypeComboBox.setObjectName(
             "multiJobRemoteExecutionTypeComboBox")
-        self.multiJobRemoteExecutionTypeComboBox.addItem("LOCAL", "LOCAL")
-        self.multiJobRemoteExecutionTypeComboBox.addItem("PBS", "PBS")
+        self.multiJobRemoteExecutionTypeComboBox.addItem(self.EXEC_LABEL,
+                                                         self.EXEC_LABEL)
+        self.multiJobRemoteExecutionTypeComboBox.addItem(self.PBS_LABEL,
+                                                         self.PBS_LABEL)
         self.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
-                                  self.multiJobRemoteExecutionTypeComboBox)
-        
-        # 5 row
+        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                   self.multiJobRemoteExecutionTypeComboBox)
+
+        # 4 row
         self.multiJobPbsPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.multiJobPbsPresetLabel.setObjectName("multiJobPbsPresetLabel")
-        self.multiJobPbsPresetLabel.setText("MultiJob PBS Preset:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
-                                  self.multiJobPbsPresetLabel)
+        self.multiJobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
+        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+                                   self.multiJobPbsPresetLabel)
         self.multiJobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.multiJobPbsPresetComboBox.setObjectName(
             "multiJobPbsPresetComboBox")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.multiJobPbsPresetComboBox)
+        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.FieldRole,
+                                   self.multiJobPbsPresetComboBox)
 
-        # 6 row
+        # divider
+        self.formDivider1 = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
+        self.formDivider1.setObjectName("formDivider")
+        self.formDivider1.setFrameShape(QtWidgets.QFrame.HLine)
+        self.formDivider1.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.mainVerticalLayout.addWidget(self.formDivider1)
+
+        # job label
+        self.jobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.jobLabel.setObjectName("jobLabel")
+        self.jobLabel.setFont(labelFont)
+        self.jobLabel.setText("Job")
+        self.mainVerticalLayout.addWidget(self.jobLabel)
+
+        # form layout2
+        self.mainVerticalLayout.removeWidget(self.buttonBox)
+        self.formLayout3 = QtWidgets.QFormLayout()
+        self.formLayout3.setObjectName("formLayout3")
+        self.formLayout3.setContentsMargins(0, 5, 0, 5)
+        self.mainVerticalLayout.addLayout(self.formLayout3)
+
+        # 1 row
         self.jobExecutionTypeLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.jobExecutionTypeLabel.setObjectName(
             "jobExecutionTypeLabel")
-        self.jobExecutionTypeLabel.setText("Job Execution Type:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
-                                  self.jobExecutionTypeLabel)
+        self.jobExecutionTypeLabel.setText(self.EXECUTE_USING_LABEL)
+        self.formLayout3.setWidget(0, QtWidgets.QFormLayout.LabelRole,
+                                   self.jobExecutionTypeLabel)
         self.jobExecutionTypeComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.jobExecutionTypeComboBox.setObjectName(
             "jobExecutionTypeComboBox")
-        self.jobExecutionTypeComboBox.addItem("LOCAL", "LOCAL")
-        self.jobExecutionTypeComboBox.addItem("REMOTE", "REMOTE")
+        self.jobExecutionTypeComboBox.addItem(self.EXEC_LABEL, self.EXEC_LABEL)
+        self.jobExecutionTypeComboBox.addItem(self.REMOTE_LABEL,
+                                              self.REMOTE_LABEL)
+        self.jobExecutionTypeComboBox.addItem(self.PBS_LABEL, self.PBS_LABEL)
         self.jobExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
-                                  self.jobExecutionTypeComboBox)
+        self.formLayout3.setWidget(0, QtWidgets.QFormLayout.FieldRole,
+                                   self.jobExecutionTypeComboBox)
 
-        # 7 row
+        # 2 row
         self.jobSshPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.jobSshPresetLabel.setObjectName("jobSshPresetLabel")
-        self.jobSshPresetLabel.setText("Job SSH Preset:")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
-                                  self.jobSshPresetLabel)
+        self.jobSshPresetLabel.setText(self.SSH_PRESET_LABEL)
+        self.formLayout3.setWidget(1, QtWidgets.QFormLayout.LabelRole,
+                                   self.jobSshPresetLabel)
         self.jobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.jobSshPresetComboBox.setObjectName(
             "jobSshPresetComboBox")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
-                                  self.jobSshPresetComboBox)
+        self.formLayout3.setWidget(1, QtWidgets.QFormLayout.FieldRole,
+                                   self.jobSshPresetComboBox)
 
-        # 8 row
+        # 3 row
         self.jobRemoteExecutionTypeLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.jobRemoteExecutionTypeLabel.setObjectName(
             "jobRemoteExecutionTypeLabel")
-        self.jobRemoteExecutionTypeLabel.setText("Job Execution "
-                                                 "Type:")
-        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
-                                  self.jobRemoteExecutionTypeLabel)
+        self.jobRemoteExecutionTypeLabel.setText(self.EXECUTION_TYPE_LABEL)
+        self.formLayout3.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                   self.jobRemoteExecutionTypeLabel)
         self.jobRemoteExecutionTypeComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.jobRemoteExecutionTypeComboBox.setObjectName(
             "jobRemoteExecutionTypeComboBox")
-        self.jobRemoteExecutionTypeComboBox.addItem("LOCAL", "LOCAL")
-        self.jobRemoteExecutionTypeComboBox.addItem("PBS", "PBS")
+        self.jobRemoteExecutionTypeComboBox.addItem(self.EXEC_LABEL,
+                                                    self.EXEC_LABEL)
+        self.jobRemoteExecutionTypeComboBox.addItem(self.PBS_LABEL,
+                                                    self.PBS_LABEL)
         self.jobRemoteExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
-                                  self.jobRemoteExecutionTypeComboBox)
+        self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                   self.jobRemoteExecutionTypeComboBox)
 
-        # 9 row
+        # 4 row
         self.jobPbsPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.jobPbsPresetLabel.setObjectName("jobPbsPresetLabel")
-        self.jobPbsPresetLabel.setText("Job PBS Preset:")
-        self.formLayout.setWidget(9, QtWidgets.QFormLayout.LabelRole,
-                                  self.jobPbsPresetLabel)
+        self.jobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
+        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+                                   self.jobPbsPresetLabel)
         self.jobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.jobPbsPresetComboBox.setObjectName(
             "jobPbsPresetComboBox")
-        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
-                                  self.jobPbsPresetComboBox)
+        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
+                                   self.jobPbsPresetComboBox)
+
+        # add button box
+        self.mainVerticalLayout.addWidget(self.buttonBox)
