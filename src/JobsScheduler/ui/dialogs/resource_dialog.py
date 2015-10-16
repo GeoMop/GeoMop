@@ -50,6 +50,76 @@ class ResourceDialog(AFormDialog):
         # connect generic presets slots (must be called after UI setup)
         super(ResourceDialog, self)._connect_slots()
         # specific slots
+        self.ui.multiJobExecutionTypeComboBox.currentIndexChanged.connect(
+            self._handle_mj_exec_change)
+        self.ui.multiJobRemoteExecutionTypeComboBox.currentIndexChanged \
+            .connect(self._handle_mj_delegator_exec_change)
+        self.ui.jobExecutionTypeComboBox.currentIndexChanged.connect(
+            self._handle_j_exec_change)
+        self.ui.jobRemoteExecutionTypeComboBox.currentIndexChanged \
+            .connect(self._handle_j_remote_exec_change)
+
+    def _handle_mj_exec_change(self, index):
+        if index == self.ui.multiJobExecutionTypeComboBox.findText(
+                self.ui.EXEC_LABEL):
+            self.ui.jobExecutionTypeComboBox.clear()
+            self.ui.jobExecutionTypeComboBox.addItems([self.ui.EXEC_LABEL,
+                                                       self.ui.REMOTE_LABEL])
+            self.ui.multiJobSshPresetComboBox.setDisabled(True)
+            self.ui.multiJobRemoteExecutionTypeComboBox.setDisabled(True)
+            self.ui.multiJobPbsPresetComboBox.setDisabled(True)
+        else:
+            self.ui.multiJobSshPresetComboBox.setDisabled(False)
+            self.ui.multiJobRemoteExecutionTypeComboBox.setDisabled(False)
+            self._handle_mj_delegator_exec_change(
+                self.ui.multiJobRemoteExecutionTypeComboBox.currentIndex())
+
+    def _handle_mj_delegator_exec_change(self, index):
+        if index == self.ui.multiJobRemoteExecutionTypeComboBox.findText(
+                self.ui.EXEC_LABEL):
+            self.ui.multiJobPbsPresetComboBox.setDisabled(True)
+            self.ui.jobExecutionTypeComboBox.clear()
+            self.ui.jobExecutionTypeComboBox.addItems([
+                self.ui.REMOTE_LABEL, self.ui.PBS_LABEL])
+        else:
+            self.ui.multiJobPbsPresetComboBox.setDisabled(False)
+            self.ui.jobExecutionTypeComboBox.clear()
+            self.ui.jobExecutionTypeComboBox.addItems([
+                self.ui.REMOTE_LABEL, self.ui.PBS_LABEL])
+
+    def _handle_j_exec_change(self, index):
+        if index == self.ui.jobExecutionTypeComboBox.findText(
+                self.ui.EXEC_LABEL):
+            self.ui.jobSshPresetComboBox.setDisabled(True)
+            self.ui.jobRemoteExecutionTypeComboBox.setDisabled(True)
+            self.ui.jobPbsPresetComboBox.setDisabled(True)
+        elif index == self.ui.jobExecutionTypeComboBox.findText(
+                self.ui.PBS_LABEL):
+            self.ui.jobSshPresetComboBox.setDisabled(True)
+            self.ui.jobRemoteExecutionTypeComboBox.setDisabled(True)
+            self.ui.jobPbsPresetComboBox.setDisabled(False)
+        else:
+            self.ui.jobSshPresetComboBox.setDisabled(False)
+            self.ui.jobRemoteExecutionTypeComboBox.setDisabled(False)
+            if self.ui.multiJobRemoteExecutionTypeComboBox.currentIndex() == \
+                    self.ui.multiJobRemoteExecutionTypeComboBox.findText(
+                        self.ui.PBS_LABEL):
+                self.ui.jobRemoteExecutionTypeComboBox.clear()
+                self.ui.jobRemoteExecutionTypeComboBox.addItems([
+                    self.ui.PBS_LABEL])
+            else:
+                self.ui.jobRemoteExecutionTypeComboBox.clear()
+                self.ui.jobRemoteExecutionTypeComboBox.addItems([
+                    self.ui.PBS_LABEL, self.ui.EXEC_LABEL])
+            self._handle_j_remote_exec_change(
+                self.ui.jobRemoteExecutionTypeComboBox.currentIndex())
+
+    def _handle_j_remote_exec_change(self, index):
+        if index == self.ui.jobRemoteExecutionTypeComboBox.findText(
+                self.ui.EXEC_LABEL):
+            self.ui.jobPbsPresetComboBox.setDisabled(True)
+        else:
+            self.ui.jobPbsPresetComboBox.setDisabled(False)
 
     def set_pbs_presets(self, pbs):
         self.ui.multiJobPbsPresetComboBox.clear()
@@ -73,44 +143,52 @@ class ResourceDialog(AFormDialog):
         return (self.ui.idLineEdit.text(),
                 self.ui.nameLineEdit.text(),
                 "description",
-                self.ui.multiJobExecutionTypeComboBox.itemData(
-                    self.ui.multiJobExecutionTypeComboBox.currentIndex()),
+                self.ui.multiJobExecutionTypeComboBox.itemText(
+                    self.ui.multiJobExecutionTypeComboBox.currentIndex()) if
+                self.ui.multiJobExecutionTypeComboBox.isEnabled() else None,
                 self.ui.multiJobSshPresetComboBox.itemData(
-                    self.ui.multiJobSshPresetComboBox.currentIndex()),
-                self.ui.multiJobRemoteExecutionTypeComboBox.itemData(
+                    self.ui.multiJobSshPresetComboBox.currentIndex()) if
+                self.ui.multiJobSshPresetComboBox.isEnabled() else None,
+                self.ui.multiJobRemoteExecutionTypeComboBox.itemText(
                     self.ui.multiJobRemoteExecutionTypeComboBox
-                        .currentIndex()),
+                        .currentIndex()) if
+                self.ui.multiJobRemoteExecutionTypeComboBox.isEnabled() else
+                None,
                 self.ui.multiJobPbsPresetComboBox.itemData(
-                    self.ui.multiJobPbsPresetComboBox.currentIndex()),
-                self.ui.jobExecutionTypeComboBox.itemData(
+                    self.ui.multiJobPbsPresetComboBox.currentIndex()) if
+                self.ui.multiJobPbsPresetComboBox.isEnabled() else None,
+                self.ui.jobExecutionTypeComboBox.itemText(
                     self.ui.jobExecutionTypeComboBox.currentIndex()),
                 self.ui.jobSshPresetComboBox.itemData(
-                    self.ui.jobSshPresetComboBox.currentIndex()),
-                self.ui.jobRemoteExecutionTypeComboBox.itemData(
+                    self.ui.jobSshPresetComboBox.currentIndex()) if
+                self.ui.jobSshPresetComboBox.isEnabled() else None,
+                self.ui.jobRemoteExecutionTypeComboBox.itemText(
                     self.ui.jobRemoteExecutionTypeComboBox
-                        .currentIndex()),
+                        .currentIndex()) if
+                self.ui.jobRemoteExecutionTypeComboBox.isEnabled() else None,
                 self.ui.jobPbsPresetComboBox.itemData(
-                    self.ui.jobPbsPresetComboBox.currentIndex()))
+                    self.ui.jobPbsPresetComboBox.currentIndex()) if
+                self.ui.jobPbsPresetComboBox.isEnabled() else None)
 
     def set_data(self, data=None):
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
             self.ui.multiJobExecutionTypeComboBox.setCurrentIndex(
-                self.ui.multiJobExecutionTypeComboBox.findData(data[3]))
+                self.ui.multiJobExecutionTypeComboBox.findText(data[3]))
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(data[4]))
             self.ui.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(
-                self.ui.multiJobRemoteExecutionTypeComboBox.findData(data[5]))
+                self.ui.multiJobRemoteExecutionTypeComboBox.findText(data[5]))
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(data[6]))
 
             self.ui.jobExecutionTypeComboBox.setCurrentIndex(
-                self.ui.jobExecutionTypeComboBox.findData(data[7]))
+                self.ui.jobExecutionTypeComboBox.findText(data[7]))
             self.ui.jobSshPresetComboBox.setCurrentIndex(
                 self.ui.jobSshPresetComboBox.findData(data[8]))
             self.ui.jobRemoteExecutionTypeComboBox.setCurrentIndex(
-                self.ui.jobRemoteExecutionTypeComboBox.findData(data[9]))
+                self.ui.jobRemoteExecutionTypeComboBox.findText(data[9]))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(data[10]))
         else:
@@ -215,10 +293,8 @@ class UiResourceDialog(UiFormDialog):
             self.mainVerticalLayoutWidget)
         self.multiJobExecutionTypeComboBox.setObjectName(
             "multiJobExecutionTypeComboBox")
-        self.multiJobExecutionTypeComboBox.addItem(self.EXEC_LABEL,
-                                                   self.EXEC_LABEL)
-        self.multiJobExecutionTypeComboBox.addItem(self.DELEGATOR_LABEL,
-                                                   self.DELEGATOR_LABEL)
+        self.multiJobExecutionTypeComboBox.addItems([self.EXEC_LABEL,
+                                                     self.DELEGATOR_LABEL])
         self.multiJobExecutionTypeComboBox.setCurrentIndex(0)
         self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobExecutionTypeComboBox)
@@ -250,10 +326,8 @@ class UiResourceDialog(UiFormDialog):
             self.mainVerticalLayoutWidget)
         self.multiJobRemoteExecutionTypeComboBox.setObjectName(
             "multiJobRemoteExecutionTypeComboBox")
-        self.multiJobRemoteExecutionTypeComboBox.addItem(self.EXEC_LABEL,
-                                                         self.EXEC_LABEL)
-        self.multiJobRemoteExecutionTypeComboBox.addItem(self.PBS_LABEL,
-                                                         self.PBS_LABEL)
+        self.multiJobRemoteExecutionTypeComboBox.addItems([self.EXEC_LABEL,
+                                                           self.PBS_LABEL])
         self.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(0)
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobRemoteExecutionTypeComboBox)
@@ -305,10 +379,9 @@ class UiResourceDialog(UiFormDialog):
             self.mainVerticalLayoutWidget)
         self.jobExecutionTypeComboBox.setObjectName(
             "jobExecutionTypeComboBox")
-        self.jobExecutionTypeComboBox.addItem(self.EXEC_LABEL, self.EXEC_LABEL)
-        self.jobExecutionTypeComboBox.addItem(self.REMOTE_LABEL,
-                                              self.REMOTE_LABEL)
-        self.jobExecutionTypeComboBox.addItem(self.PBS_LABEL, self.PBS_LABEL)
+        self.jobExecutionTypeComboBox.addItems([self.EXEC_LABEL,
+                                                self.REMOTE_LABEL,
+                                                self.PBS_LABEL])
         self.jobExecutionTypeComboBox.setCurrentIndex(0)
         self.formLayout3.setWidget(0, QtWidgets.QFormLayout.FieldRole,
                                    self.jobExecutionTypeComboBox)
@@ -339,10 +412,8 @@ class UiResourceDialog(UiFormDialog):
             self.mainVerticalLayoutWidget)
         self.jobRemoteExecutionTypeComboBox.setObjectName(
             "jobRemoteExecutionTypeComboBox")
-        self.jobRemoteExecutionTypeComboBox.addItem(self.EXEC_LABEL,
-                                                    self.EXEC_LABEL)
-        self.jobRemoteExecutionTypeComboBox.addItem(self.PBS_LABEL,
-                                                    self.PBS_LABEL)
+        self.jobRemoteExecutionTypeComboBox.addItems([self.EXEC_LABEL,
+                                                      self.PBS_LABEL])
         self.jobRemoteExecutionTypeComboBox.setCurrentIndex(0)
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.jobRemoteExecutionTypeComboBox)
