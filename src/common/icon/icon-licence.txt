@@ -5,3 +5,11 @@ Iconset: Small & Flat Icons by paomedia (flat)
 	formats: png, ico
 
 error.png, information.png, warning.png, fatal.png - flat
+
+
+Miu Iconset
+    lin: https://www.iconfinder.com/iconsets/miu
+    license: Free for commercial use
+    formats: svg, png, ai, csh
+
+nav-back.png, nav-forward.png, nav-home.png (ModelEditor/resources/ist_html/img)

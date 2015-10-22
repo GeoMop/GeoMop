@@ -21,7 +21,7 @@ section {
     padding: 5px;
 }
 
-h2 {
+h2, a.h2 {
     margin: 5px 5px 5px 0px;
     font-size: 1.3em;
     font-weight: bold;
@@ -48,6 +48,10 @@ header {
 
 header p {
     margin: 0px;
+}
+
+div.container-fluid {
+    position: relative;
 }
 
 div.container-fluid>section>header {
@@ -207,4 +211,44 @@ a.selected {
 
 .key-list, .key-description, .key-type {
     padding: 5px;
+}
+
+
+/*** NAVIGATION PANEL ***/
+.navigation-panel {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    width: 80px;
+    height: 20px;
+    clear: both;
+}
+
+.navigation-panel a {
+    width: 20px;
+    height: 20px;
+    display:block;
+    float: left;
+}
+
+.navigation-panel a:not(:first-child) {
+    margin-left: 10px;
+}
+
+.navigation-panel a.back {
+    background-image: url("img/nav-back.png");
+}
+
+.navigation-panel a.forward {
+    background-image: url("img/nav-forward.png");
+}
+
+.navigation-panel a.home {
+    background-image: url("img/nav-home.png");
+}
+
+.navigation-panel a.not-active {
+    opacity: 0.3;
+    pointer-events: none;
+    cursor: default;
 }
