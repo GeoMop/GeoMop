@@ -20,6 +20,7 @@ __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
 __conf_dir__ = "mj_conf"
 __result_dir__ = "res"
+__status_dir__ = "status"
 
 class Installation:
     """Files with installation (python files and configuration files) is selected 
@@ -237,6 +238,28 @@ class Installation:
         except Exception as err:
             logging.warning("Get mj data dir error: " + str(err))
             return "."
+        return path 
+       
+    def get_status_dir(self):
+        """Return dir for savings status"""
+        return  self.get_staus_dir_static(self.mj_name)
+    
+    @staticmethod
+    def get_staus_dir_static(mj_name):
+        """Return dir for savings status"""
+        try:
+            path = os.path.join(__install_dir__, __jobs_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path,  mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path,__status_dir__ )
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logging.warning("Get mj status dir error: " + str(err))
+            return None
         return path 
  
  

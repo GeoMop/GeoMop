@@ -78,3 +78,6 @@ src/config/*.yaml
 
 #result files
 src/JobsScheduler/jobs
+
+#temporary installed files
+src/JobsScheduler/ins-lib

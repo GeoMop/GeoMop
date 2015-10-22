@@ -7,6 +7,7 @@ import threading
 
 import data.communicator_conf as comconf
 import data.transport_data as tdata
+from data.communicator_status import CommunicatorStatus
 from communication.std_input_comm import StdInputComm
 from  communication.socket_input_comm import SocketInputComm
 from  communication.ssh_output_comm import SshOutputComm
@@ -61,6 +62,9 @@ class Communicator():
         self.stop = False
         """Stop processing of run function"""
         
+        self.status = None
+        self._load_status(init_conf.mj_name) 
+        """Persistent communicator data"""
         self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
             self.communicator_name, self.log_level)
         if action_func_before is None:
@@ -109,7 +113,7 @@ class Communicator():
          
         if init_conf.output_type != comconf.OutputCommType.none:
             self.output = self.get_output(init_conf)
-    
+            
     @staticmethod
     def get_output(conf, new_name=None):
         """Inicialize output using defined type"""
@@ -127,6 +131,14 @@ class Communicator():
             output = ExecOutputComm(conf.mj_name, conf.port)
         output.set_install_params(conf.python_exec,  conf.scl_enable_exec)    
         return output
+        
+    def _load_status(self,  mj_name):
+        """load status"""
+        name = self.communicator_name
+        if self.id is not None:
+            name += "_" + self.id
+        self.status = CommunicatorStatus(
+            Installation.get_staus_dir_static(mj_name), name) 
 
     def _set_loger(self,  path, name, level):
         """set logger"""
@@ -234,7 +246,11 @@ class Communicator():
         """make installation"""
         self.output.install()
         logging.debug("Run next file")
+        self.status.next_installed = True
+        self.status.save()
         self._exec_()
+        self.status.next_started = True
+        self.status.save()
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()

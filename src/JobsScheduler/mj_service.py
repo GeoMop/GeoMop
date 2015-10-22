@@ -33,12 +33,13 @@ ccom.next_communicator = "job"
 ccom.log_level = logging.DEBUG
 #ccom.input_type = comconf.InputCommType.pbs
 ccom.input_type = comconf.InputCommType.socket
-ccom.output_type = comconf.OutputCommType.exec_
-#ccom.output_type = comconf.OutputCommType.pbs
-#ccom.pbs = comconf.PbsConfig()
-#ccom.python_exec = "/opt/python/bin/python3.3"
-#ccom.pbs.with_socket = False
-#ccom.pbs.name = "test"
+#ccom.output_type = comconf.OutputCommType.exec_
+ccom.output_type = comconf.OutputCommType.pbs
+ccom.pbs = comconf.PbsConfig()
+ccom.python_exec = "/opt/python/bin/python3.3"
+ccom.pbs.with_socket = False
+ccom.pbs.name = "test"
+
 comunicator = JobsCommunicator(ccom, None, mj_action_function_before, mj_action_function_after, mj_idle_function)
 if __name__ != "mj_service":
     # no doc generation
