@@ -61,6 +61,8 @@ class Communicator():
         """if installation begined"""
         self.stop = False
         """Stop processing of run function"""
+        self.install_job_libs = init_conf.install_job_libs
+        """Communicator will install libs fo jobs"""
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -158,10 +160,12 @@ class Communicator():
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.installation:
             if isinstance(self.output, ExecOutputComm) and \
-                not isinstance(self.output, PbsOutputComm):
-                self._instalation_begined = True
-                logging.debug("Installation to local directory")
-                self.install()
+                not isinstance(self.output, PbsOutputComm) and \
+                not self.install_job_libs:
+                if not self.is_installed():
+                    self._instalation_begined = True
+                    logging.debug("Installation to local directory")
+                    self.install()
                 return True, None
             else:
                 if self._instalation_begined:
@@ -244,6 +248,8 @@ class Communicator():
     
     def install(self):
         """make installation"""
+        if self.install_job_libs:
+            self.output.install_job_libs()
         self.output.install()
         logging.debug("Run next file")
         self.status.next_installed = True

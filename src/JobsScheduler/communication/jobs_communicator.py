@@ -3,6 +3,7 @@ import copy
 import data.transport_data as tdata
 import data.communicator_conf as comconf
 from .communicator import Communicator
+from  communication.installation import  Installation
 import threading
 
 class JobsCommunicator(Communicator):
@@ -26,10 +27,11 @@ class JobsCommunicator(Communicator):
         """before action function"""
         if message.action_type == tdata.ActionType.installation:
             logging.debug("Job apllication began start")
-            self._instalation_begined = True
-            self._instaled = True
-            action = tdata.Action(tdata.ActionType.ok)
-            return False, action.get_message()
+            resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
+            if self.is_installed():
+                action = tdata.Action(tdata.ActionType.ok)
+                return False, action.get_message()
+            return resent, mess
         if message.action_type == tdata.ActionType.download_res:
             # processing in after function
             return False, None
@@ -78,3 +80,11 @@ class JobsCommunicator(Communicator):
         semafore.acquire()
         action(self.next_communicator)
         semafore.release()
+        
+    def install(self):
+        """make installation"""
+        if self.install_job_libs:
+            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec)
+        self._install_lock.acquire()
+        self._instaled = True
+        self._install_lock.release()

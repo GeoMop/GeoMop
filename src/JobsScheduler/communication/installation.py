@@ -4,6 +4,7 @@ import os
 import re
 import logging
 import copy
+import time
 
 __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
@@ -261,5 +262,29 @@ class Installation:
             logging.warning("Get mj status dir error: " + str(err))
             return None
         return path 
+
+    def install_job_libs(self):
+        """Return dir for savings status"""
+        self.install_job_libs_static(self.mj_name, self.python_exec)
+    
+    @classmethod
+    def install_job_libs_static(cls, mj_name, python_exec):
+        """Return dir for savings status"""
+        if sys.platform == "win32":
+            #ToDo if is needed
+            pass
+        else:
+            import pexpect
+            
+            term = pexpect.spawn('bash')
+            term.sendline('cd twoparty/install')            
+            term.expect('.*cd twoparty/install.*')
+            log_file= os.path.join(cls.get_result_dir_static(mj_name), "install_job_libs.log")
+            command = "./install_mpi4.sh " + python_exec + " &>> " + log_file            
+            term.sendline(command)
+            time.sleep(1)
+            term.expect('.*install.*') 
+            term.expect('.*install.*', timeout=600)
+            term = term.sendline('exit')
  
  

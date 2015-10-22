@@ -66,3 +66,5 @@ class CommunicatorConfig():
         """Enable python exec set name over scl """
         self.pbs = None
         """Pbs settings class :class:`data.communicator_conf.PbsConfig` """
+        self.install_job_libs = False
+        """Communicator will install libs fo jobs"""

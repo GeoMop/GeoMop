@@ -31,6 +31,7 @@ ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "mj_service"
 ccom.next_communicator = "job"
 ccom.log_level = logging.DEBUG
+ccom.install_job_libs=True
 #ccom.input_type = comconf.InputCommType.pbs
 ccom.input_type = comconf.InputCommType.socket
 #ccom.output_type = comconf.OutputCommType.exec_

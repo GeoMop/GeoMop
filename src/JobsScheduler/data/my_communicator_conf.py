@@ -106,6 +106,9 @@ class CommunicatorConfig(object):
 
         self.pbs = PbsConfig()
         """Pbs settings class :class:`data.communicator_conf.PbsConfig`"""
+        
+        self.install_job_libs = False
+        """Communicator will install libs fo jobs"""
 
     def save_to_json_file(self, json_file):
         data = dict(self.__dict__)
