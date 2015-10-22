@@ -1,19 +1,7 @@
-0.1.0-RC
-========
+0.1.0
+=====
 
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
-- test content
+- parsing and validation of YAML config files
+- basic editor functionality
+- tree view for data representation
+- IST help text

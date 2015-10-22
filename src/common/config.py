@@ -3,6 +3,9 @@ Library for work with state of GeoMops applications
 """
 
 import os
+import logging
+import sys
+import traceback
 
 import yaml
 
@@ -16,6 +19,19 @@ try:
         os.makedirs(__config_dir__)
 except:
     raise Exception('Cannot create config directory')
+
+LOG_FORMAT = '%(asctime)-15s %(message)s'
+LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
+logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
+
+
+def log_excepthook(type, value, tback):
+    logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type, value, ''.join(traceback.format_tb(tback))))
+
+    # call the default handler
+    sys.__excepthook__(type, value, tback)
+
+sys.excepthook = log_excepthook
 
 
 def get_config_file(name, directory=None):

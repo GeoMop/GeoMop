@@ -35,18 +35,17 @@ class PbsConfig(object):
     Class for configuration qsub command
     """
 
-    def __init__(self, name=None, with_socket=False, walltime="", nodes="1",
-                 ppn="1", mem="400mb", scratch="400mb"):
+    def __init__(self):
         """init"""
-        self.name = name
+        self.name = None
         """name as unique job identifier for files"""
-        self.with_socket = with_socket  # multijob true; job false
+        self.with_socket = False  # multijob true; job false
         """Initialize communication over socket"""
-        self.walltime = walltime
-        self.nodes = nodes
-        self.ppn = ppn
-        self.mem = mem
-        self.scratch = scratch
+        self.walltime = ""
+        self.nodes = "1"
+        self.ppn = "1"
+        self.mem = "400mb",
+        self.scratch = "400mb",
 
 
 class SshConfig(object):
@@ -54,16 +53,13 @@ class SshConfig(object):
     Class for ssh configuration
     """
 
-    def __init__(self, name=None, host="localhost", port="22", uid="", pwd=""):
+    def __init__(self):
         """init"""
-        self.name = name
-        self.host = host
-        self.port = port
-        self.uid = uid
-        self.pwd = pwd
-
-    def __str__(self):
-        return json.dumps(self.__dict__)
+        self.name = None
+        self.host = "localhost"
+        self.port = "22"
+        self.uid = ""
+        self.pwd = ""
 
 
 class CommunicatorConfig(object):
@@ -121,8 +117,12 @@ class CommunicatorConfig(object):
 
     def load_from_json_file(self, json_file):
         data = json.load(json_file)
-        data["ssh"] = SshConfig(**data["ssh"])
-        data["pbs"] = PbsConfig(**data["pbs"])
+        ssh = SshConfig()
+        ssh.__dict__ = data["ssh"]
+        data["ssh"] = ssh
+        pbs = PbsConfig()
+        pbs.__dict__ = data["pbs"]
+        data["pbs"] = pbs
         self.__dict__ = data
         logging.info("%s:%s loaded from JSON.", self.communicator_name,
                      self.mj_name)

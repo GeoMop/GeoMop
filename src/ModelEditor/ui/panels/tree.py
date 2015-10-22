@@ -170,7 +170,7 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             return QtCore.QSize(120, 20)
         elif role == QtCore.Qt.ForegroundRole:
             if column == 1 and isinstance(data, CompositeNode) and data.type is not None:
-                return QColor(QtCore.Qt.darkMagenta)  # AbstractRecord type
+                return QColor(QtCore.Qt.darkGreen)  # AbstractRecord type
             return QColor(QtCore.Qt.black)
 
     # virtual function
