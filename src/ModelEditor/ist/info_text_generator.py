@@ -3,6 +3,7 @@ Module generates html documentation from IST.
 """
 import json
 from .utils.htmltree import htmltree
+from copy import copy
 
 __author__ = 'Tomas Krizek'
 
@@ -40,8 +41,6 @@ class InfoTextGenerator:
         html = htmltree('html')
         html_body = htmltree('body')
 
-        # TODO add navigation buttons to layout (if necessary)
-
         with html_body.open('div', cls='container-fluid fill'):
             if abstract_id in cls._input_types:
                 html_body.add(cls._generate_abstract_record(abstract_id))
@@ -50,6 +49,45 @@ class InfoTextGenerator:
             if abstract_id not in cls._input_types and record_id not in cls._input_types:
                 with html_body.open('section', cls='row record'):
                     html_body.description('')
+
+        if context is not None and len(context.get('home', {})) > 0:
+            # are we on different page from home?
+            home = context['home']
+            check_fields = ['record_id', 'abstract_id', 'selected_key', 'selected_item']
+            displaying_home = True
+            for field in check_fields:
+                if locals().get(field) != home.get(field):
+                    displaying_home = False
+                    break
+
+            if not displaying_home:  # show navigation bar
+                with html_body.open('div', cls='navigation-panel'):
+                    if len(context['back']) > 0:
+                        args = copy(context['back'][-1])
+                        args.update({'direction': 'back'})
+                        href = cls.generate_href(**args)
+                        class_ = 'back'
+                    else:
+                        href = '#'
+                        class_ = 'back not-active'
+                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
+
+                    if len(context['forward']) > 0:
+                        args = copy(context['forward'][-1])
+                        args.update({'direction': 'forward'})
+                        href = cls.generate_href(**args)
+                        class_ = 'forward'
+                    else:
+                        href = '#'
+                        class_ = 'forward not-active'
+                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
+
+                    if 'home' in context:
+                        args = copy(context['home'])
+                        args.update({'direction': 'home'})
+                        href = cls.generate_href(**args)
+                        class_ = 'home'
+                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
 
         html_head = htmltree('head')
         html_head.style('bootstrap.min.css')
@@ -138,7 +176,8 @@ class InfoTextGenerator:
                 cls_ = 'key-type col-md-4 col-sm-4 col-xs-4 '
                 if key_type['input_type'] == 'Record':
                     cls_ += 'record'
-                    section.add(cls._generate_key_type_record(key_type, cls_=cls_, prepend=array_div))
+                    section.add(cls._generate_key_type_record(key_type, cls_=cls_,
+                                                              prepend=array_div))
                 elif key_type['input_type'] == 'AbstractRecord':
                     cls_ += 'abstract-record'
                     section.add(cls._generate_key_type_abstract_record(key_type, cls_=cls_,
@@ -146,8 +185,8 @@ class InfoTextGenerator:
                 else:
                     cls_ += 'scalar'
                     if key_type['input_type'] == 'Selection':
-                        section.add(cls._generate_key_type_selection(key_type, selected_item, cls_=cls_,
-                                                                     prepend=array_div))
+                        section.add(cls._generate_key_type_selection(key_type, selected_item,
+                                                                     cls_=cls_, prepend=array_div))
                     else:
                         section.add(cls._generate_key_type_scalar(key_type, cls_=cls_,
                                                                   prepend=array_div))
@@ -181,7 +220,7 @@ class InfoTextGenerator:
             div.add(prepend.current())
         with div.open('header'):
             div.tag('h2', key_type.get('name', ''))
-            div.decription(key_type.get('description', ''))
+            div.description(key_type.get('description', ''))
 
         values = {value['name']: value['description'] for value in key_type.get('values', [])}
         if selected_item in values:
@@ -259,12 +298,17 @@ class InfoTextGenerator:
 
     @staticmethod
     def generate_href(record_id=None, selected_key=None, abstract_id=None,
-                      selected_item=None):
+                      selected_item=None, direction=None):
+        """Generates href link from data."""
+        # pylint: disable=unused-argument
         parts = []
         for name in ['record_id', 'selected_key', 'abstract_id', 'selected_item']:
             value = locals().get(name)
             if value is not None:
                 parts.append("{0}={1}".format(name, value))
+
+        if direction is not None:
+            parts.append("{0}=1".format(direction))
 
         if not parts:
             return '#'
@@ -279,8 +323,8 @@ class NumberRange:
     def __init__(self, input_type):
         self.min = self.max = ''
         if 'range' in input_type:
-                self.min = input_type['range'][0]
-                self.max = input_type['range'][1]
+            self.min = input_type['range'][0]
+            self.max = input_type['range'][1]
 
     replacements = {
         '2147483647': 'INT32 MAX',
