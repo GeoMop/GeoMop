@@ -21,7 +21,7 @@ section {
     padding: 5px;
 }
 
-h2 {
+h2, a.h2 {
     margin: 5px 5px 5px 0px;
     font-size: 1.3em;
     font-weight: bold;

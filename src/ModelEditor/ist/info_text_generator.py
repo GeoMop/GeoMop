@@ -22,12 +22,16 @@ class InfoTextGenerator:
                 cls._input_types[item['id']] = item
 
     @classmethod
-    def get_info_text(cls, record_id, selected_key=None, abstract_id=None, selected_item=None):
+    def get_info_text(cls, record_id=None, selected_key=None, abstract_id=None, selected_item=None,
+                      context=None):
         """Generates HTML documentation for `record_id` with `selected_key`.
 
         The first key is selected by default. If `abstract_id` is specified, a documentation for
         a parent abstract record is generated. If the selected key type is of type `Selection`,
-        then `selected_item` will be selected."""
+        then `selected_item` will be selected.
+
+        `context` is a dictionary containing query data for home, back and forward buttons.
+        """
         cls.record_id = record_id
         cls.selected_key = selected_key
         cls.abstract_id = abstract_id
@@ -35,6 +39,8 @@ class InfoTextGenerator:
 
         html = htmltree('html')
         html_body = htmltree('body')
+
+        # TODO add navigation buttons to layout (if necessary)
 
         with html_body.open('div', cls='container-fluid fill'):
             if abstract_id in cls._input_types:
@@ -205,7 +211,10 @@ class InfoTextGenerator:
         if prepend is not None:
             div.add(prepend.current())
         with div.open('header'):
-            div.tag('h2', key_type.get('type_name', ''))
+            href = cls.generate_href(
+                record_id=key_type.get('id')
+            )
+            div.tag('a', key_type.get('type_name', ''), attrib={'class': 'h2', 'href': href})
             if 'reducible_to_key' in key_type:
                 with div.open('div', cls='small'):
                     div.info('Constructible from key: ')
@@ -220,7 +229,10 @@ class InfoTextGenerator:
         if prepend is not None:
             div.add(prepend.current())
         with div.open('header'):
-            div.tag('h2', key_type.get('name', ''))
+            href = cls.generate_href(
+                abstract_id=key_type.get('id')
+            )
+            div.tag('a', key_type.get('name', ''), attrib={'class': 'h2', 'href': href})
             div.description(key_type.get('description', ''))
         cls._generate_implementation_list(div, key_type)
         return div.current()

@@ -26,6 +26,17 @@ class InfoPanelWidget(QWebView):
     def __init__(self, parent=None):
         """Initializes the class."""
         super(InfoPanelWidget, self).__init__(parent)
+
+        self._context = {
+            'home': None,
+            'back': [],
+            'forward': []
+        }
+        """
+        Dictionary with keys `home`, `back`, `forward`. Home contains query data for the
+        automatically selected node. Back and forward are lists of query data.
+        """
+
         self.setMinimumSize(800, 250)
         self._html_root_url = QUrl.fromLocalFile(__html_root_path__)
         self.linkClicked.connect(self.navigate_to)
@@ -41,13 +52,16 @@ class InfoPanelWidget(QWebView):
         data = node.get_info_text_data(is_parent)
         self.update_from_data(data)
 
-    def update_from_data(self, data):
+    def update_from_data(self, data, set_home=True):
         """Generates and shows the info text from data."""
+        data['context'] = self._context
         html = InfoTextGenerator.get_info_text(**data)
+        # TODO set this as home - set_home
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
 
     def navigate_to(self, url_):
         """Navigates to given URL."""
+        # TODO push current data to history
         query_params = parse_qs(urlparse(url_.toString()).query)
         data = {name: value[0] for name, value in query_params.items()}
         self.update_from_data(data)
