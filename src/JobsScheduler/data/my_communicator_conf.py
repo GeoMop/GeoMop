@@ -1,4 +1,9 @@
-"""Configuration of communication unit"""
+# -*- coding: utf-8 -*-
+"""
+Configuration of communication unit
+@author: Jan Gabriel
+@contact: jan.gabriel@tul.cz
+"""
 from enum import Enum, IntEnum
 import logging
 import json
@@ -43,7 +48,7 @@ class PbsConfig(object):
             self.nodes = preset[3]
             self.ppn = preset[4]
             self.mem = preset[5]
-            self.scratch = preset[5]
+            self.scratch = preset[6]
         else:
             self.name = None
             """name as unique job identifier for files"""
@@ -155,7 +160,7 @@ class CommunicatorConfig(object):
             self.input_type = InputCommType.std
             self.output_type = OutputCommType.exec_
         # job
-        elif preset_type == CommType.multijob.value:
+        elif preset_type == CommType.job.value:
             self.communicator_name = CommType.job.value
             self.next_communicator = CommType.none.value
             self.input_type = InputCommType.socket
@@ -163,9 +168,9 @@ class CommunicatorConfig(object):
 
     def save_to_json_file(self, json_file):
         data = dict(self.__dict__)
-        if data["ssh"]:
+        if data["ssh"] is None:
             data["ssh"] = self.ssh.__dict__
-        if data["pbs"]:
+        if data["pbs"] is None:
             data["pbs"] = self.pbs.__dict__
         json.dump(data, json_file, indent=4, sort_keys=True)
         logging.info("%s:%s saved to JSON.", self.communicator_name,
@@ -173,11 +178,11 @@ class CommunicatorConfig(object):
 
     def load_from_json_file(self, json_file):
         data = json.load(json_file)
-        if data["ssh"]:
+        if data["ssh"] is None:
             ssh = SshConfig()
             ssh.__dict__ = data["ssh"]
             data["ssh"] = ssh
-        if data["pbs"]:
+        if data["pbs"] is None:
             pbs = PbsConfig()
             pbs.__dict__ = data["pbs"]
             data["pbs"] = pbs

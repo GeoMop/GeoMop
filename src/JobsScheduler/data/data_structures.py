@@ -53,6 +53,7 @@ class ResourcesData(PersistentDict):
 class DataContainer(object):
     DUMP_PATH = (".", "jobs")
     CONFIG_FOLDER = ("mj_conf")
+    FILE_EXTENSION = ".json"
 
     multijobs = MultiJobData()
     ssh_presets = SshData()
@@ -63,6 +64,9 @@ class DataContainer(object):
         self.load_all()
 
     def save_all(self):
+        """
+        Saves all data containers for app.
+        """
         self.multijobs.save()
         self.ssh_presets.save()
         self.pbs_presets.save()
@@ -70,6 +74,9 @@ class DataContainer(object):
         logging.info('==== Everything saved successfully! ====')
 
     def load_all(self):
+        """
+        Loads all data containers for app.
+        """
         self.multijobs.load()
         if not self.multijobs:
             self.multijobs = MultiJobData()
@@ -88,6 +95,9 @@ class DataContainer(object):
         logging.info('==== Everything loaded successfully! ====')
 
     def build_config_files(self, key, path=DUMP_PATH):
+        """
+        Build json config files into the ./jobs/mj_name/mj_conf
+        """
         # multijob properties
         mj_preset_config = self.multijobs[key]
         mj_name = mj_preset_config[0]
@@ -113,7 +123,7 @@ class DataContainer(object):
         delegator_conf = None
         # make app_config path and create folder
         app_path = list(base_path)
-        app_path.append(app_conf.communicator_name + ".json")
+        app_path.append(app_conf.communicator_name + self.FILE_EXTENSION)
         app_path_string = os.path.join(*app_path)
         if resource_preset[2] == UiResourceDialog.DELEGATOR_LABEL:
             app_conf.next_communicator = comcfg.CommType.delegator.value
@@ -125,7 +135,8 @@ class DataContainer(object):
             delegator_conf.preset_type(comcfg.CommType.delegator.value)
             # make app_config path and create folder
             delegator_path = list(base_path)
-            delegator_path.append(delegator_conf.communicator_name + ".json")
+            delegator_path.append(delegator_conf.communicator_name +
+                                  self.FILE_EXTENSION)
             delegator_path_string = os.path.join(*delegator_path)
             if resource_preset[4] == UiResourceDialog.PBS_LABEL:
                 delegator_conf.output_type = comcfg.OutputCommType.pbs
@@ -134,26 +145,50 @@ class DataContainer(object):
                     with_socket=True)
 
         # mj configs
-        print(resource_preset)
         mj_conf = copy.copy(basic_conf)
         mj_conf.preset_type(comcfg.CommType.multijob.value)
-        remote_conf = None
         # make app_config path and create folder
         mj_path = list(base_path)
-        mj_path.append(app_conf.communicator_name + ".json")
+        mj_path.append(mj_conf.communicator_name + self.FILE_EXTENSION)
         mj_path_string = os.path.join(*mj_path)
         if resource_preset[4] == UiResourceDialog.PBS_LABEL:
             mj_conf.input_type = comcfg.InputCommType.pbs
-        if resource_preset[5] == UiResourceDialog.REMOTE_LABEL:
+        if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
             mj_conf.next_communicator = comcfg.CommType.remote.value
             mj_conf.output_type = comcfg.OutputCommType.ssh
             mj_conf.ssh = comcfg.SshConfig(preset=self.ssh_presets[
-                resource_preset[6]])
-        elif resource_preset[5] == UiResourceDialog.PBS_LABEL:
+                resource_preset[7]])
+        elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
             mj_conf.next_communicator = comcfg.CommType.remote.value
             mj_conf.output_type = comcfg.OutputCommType.pbs
-            mj_conf.ssh = comcfg.PbsConfig(preset=self.pbs_presets[
-                resource_preset[7]])
+            mj_conf.pbs = comcfg.PbsConfig(preset=self.pbs_presets[
+                resource_preset[9]])
+
+        # after mj configs EXEC or REMOTE or PBS
+        remote_conf = None
+        job_conf = copy.copy(basic_conf)
+        job_conf.preset_type(comcfg.CommType.job.value)
+        # make job_config path and create folder
+        job_path = list(base_path)
+        job_path.append(job_conf.communicator_name + self.FILE_EXTENSION)
+        job_path_string = os.path.join(*job_path)
+        if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
+            remote_conf = copy.copy(basic_conf)
+            remote_conf.preset_type(comcfg.CommType.remote.value)
+            # make remote_config path and create folder
+            remote_path = list(base_path)
+            remote_path.append(remote_conf.communicator_name +
+                               self.FILE_EXTENSION)
+            remote_path_string = os.path.join(*remote_path)
+            if resource_preset[8] == UiResourceDialog.PBS_LABEL:
+                remote_conf.output_type = comcfg.OutputCommType.pbs
+                remote_conf.pbs = comcfg.PbsConfig(preset=self.pbs_presets[
+                    resource_preset[9]])
+                job_conf.input_type = comcfg.InputCommType.pbs
+            elif resource_preset[8] == UiResourceDialog.EXEC_LABEL:
+                job_conf.input_type = comcfg.InputCommType.std
+        elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
+            job_conf.input_type = comcfg.InputCommType.pbs
 
         # save to files
         with open(app_path_string, "w") as app_file:
@@ -163,15 +198,19 @@ class DataContainer(object):
                 delegator_conf.save_to_json_file(delegator_file)
         with open(mj_path_string, "w") as mj_file:
             mj_conf.save_to_json_file(mj_file)
-        """
         if remote_conf:
             with open(remote_path_string, "w") as remote_file:
                 remote_conf.save_to_json_file(remote_file)
         with open(job_path_string, "w") as job_file:
             job_conf.save_to_json_file(job_file)
-        """
         logging.info('==== All configs dumped to JSON in %s! ====',
                      os.path.join(*base_path))
 
+        # return app_config, it is always entry point for next operations
+        return app_conf
+
     def load_from_config_files(self, path):
+        """
+        Loads json files.
+        """
         pass
