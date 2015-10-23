@@ -5,14 +5,32 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 
 import time
 import logging
+import subprocess
 import data.communicator_conf as comconf
 from communication import Communicator
+from  communication.installation import  Installation
 
 ccom = comconf.CommunicatorConfig()
 ccom.communicator_name = "job"
 ccom.log_level = logging.INFO
+ccom.python_exec = "/opt/python/bin/python3.3"
+
 comunicator = Communicator(ccom)
 logging.info("Start")
+
+process = subprocess.Popen([ccom.python_exec,"test_task.py", 
+    Installation.get_result_dir_static(ccom.mj_name)], stderr=subprocess.PIPE)
+return_code = process.poll()
+if return_code is not None:
+    out = process.stderr.readline()
+    logging.error("Can not start test task (return code: " + str(return_code) + 
+        ",stderr:" + out + ")")
+
+time.sleep(5)
+out = process.stderr.readline()
+if out is not None and len(out)>0 and not out.isspace():
+    logging.warning("Message in stderr:" + out)
+
 if __name__ != "job":
     for i in range(0, 30):
         time.sleep(30)
