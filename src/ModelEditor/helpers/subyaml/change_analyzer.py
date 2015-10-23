@@ -2,7 +2,7 @@
 
 import re
 import copy
-from helpers.subyaml.line_analyzer import LineAnalyzer
+from .line_analyzer import LineAnalyzer
 from data import KeyType, PosType
 
 

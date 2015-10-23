@@ -7,8 +7,9 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
-from data import Position, PosType, CursorType
+from data import PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
+from helpers import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore

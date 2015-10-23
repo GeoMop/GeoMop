@@ -13,7 +13,7 @@ from ui.dialogs.json_editor import JsonEditorDlg
 from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from data import Position
+from helpers import Position
 from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu

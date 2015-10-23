@@ -6,12 +6,13 @@ __author__ = 'Tomas Krizek'
 
 import re
 import copy
+
 import yaml as pyyaml
 
 from .constructor import construct_scalar
 from .resolver import resolve_scalar_tag
 from ..util import TextValue
-from ..locators import Position, Span
+from helpers import Position, Span
 from ..data_node import ScalarNode, CompositeNode, NodeOrigin
 from helpers import Notification, NotificationHandler
 

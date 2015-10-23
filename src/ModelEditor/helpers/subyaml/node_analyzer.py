@@ -1,6 +1,7 @@
-from helpers.subyaml.line_analyzer import LineAnalyzer
-from data import Position, CompositeNode, NodeOrigin
-from data import NodeStructureType
+from .line_analyzer import LineAnalyzer
+from ..locators import Position
+from data import NodeStructureType, CompositeNode, NodeOrigin
+
 
 class NodeAnalyzer:
     """
