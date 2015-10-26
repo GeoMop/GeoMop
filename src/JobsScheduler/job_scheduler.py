@@ -7,11 +7,19 @@ Start script that initializes main window and runs APP
 """
 import os
 import sys
+# import common directory to path (should be in __init__)
+# sys.path.append(".." + os.pathsep + "common")
 __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.insert(1, __lib_dir__)
 
 import logging
+# logging setup on STDOUT or to FILE
+logging.basicConfig(  # filename='jobscheduler.log',
+                      stream=sys.stdout,
+                      datefmt='%d.%m.%Y|%H:%M:%S',
+                      format='%(asctime)s|%(levelname)s: %(message)s',
+                      level=logging.DEBUG)
 import PyQt5.QtWidgets as QtWidgets
 
 from data.data_reloader import DataReloader
@@ -60,19 +68,6 @@ class JobsScheduler(object):
         sys.exit(self._app.exec_())
 
 if __name__ == "__main__":
-    # import common directory to path (should be in __init__)
-    # sys.path.append(".." + os.pathsep + "common")
-    __lib_dir__ = os.path.join(os.path.split(
-        os.path.dirname(os.path.realpath(__file__)))[0], "common")
-    sys.path.insert(1, __lib_dir__)
-
-    # logging setup on STDOUT or to FILE
-    logging.basicConfig(  # filename='jobscheduler.log',
-                          stream=sys.stdout,
-                          datefmt='%d.%m.%Y|%H:%M:%S',
-                          format='%(asctime)s|%(levelname)s: %(message)s',
-                          level=logging.DEBUG)
-
     # init and run APP
     APP = JobsScheduler(sys.argv)
     APP.run()

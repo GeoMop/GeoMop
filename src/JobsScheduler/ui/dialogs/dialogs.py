@@ -6,10 +6,9 @@ Basic dialogs templates
 """
 
 import logging
+import uuid
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-from data.data_structures import ID
 
 
 class AFormDialog(QtWidgets.QDialog):
@@ -207,7 +206,7 @@ class APresetsDialog(QtWidgets.QDialog):
 
     def handle_presets_dialog(self, purpose, data):
         if purpose != self.presets_dlg.PURPOSE_EDIT:
-            key = ID.id()
+            key = str(uuid.uuid4())
             self.presets[key] = list(data[1:])
         else:
             self.presets[data[0]] = list(data[1:])

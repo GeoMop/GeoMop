@@ -4,10 +4,10 @@ Main window module
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import uuid
 
 from PyQt5 import QtCore
 
-from data.data_structures import ID
 from ui.actions.main_window_actions import *
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.menus.main_window_menus import MainWindowMenuBar
@@ -123,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_multijob_dialog(self, purpose, data):
         if purpose != self.mj_dlg.PURPOSE_EDIT:
-            key = ID.id()
+            key = str(uuid.uuid4())
             self.data.multijobs[key] = list(data[1:])
         else:
             self.data.multijobs[data[0]] = list(data[1:])

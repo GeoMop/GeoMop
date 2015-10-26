@@ -79,7 +79,7 @@ class MultiJobDialog(AFormDialog):
                 self.ui.descriptionTextEdit.toPlainText(),
                 self.ui.resourceComboBox.itemData(
                     self.ui.resourceComboBox.currentIndex()),
-                self.ui.logLevelComboBox.currentText(),
+                self.ui.logLevelComboBox.currentData(),
                 self.ui.numberOfProcessesSpinBox.value())
         return data
 
@@ -92,7 +92,7 @@ class MultiJobDialog(AFormDialog):
             self.ui.resourceComboBox.setCurrentIndex(
                 self.ui.resourceComboBox.findData(data[4]))
             self.ui.logLevelComboBox.setCurrentIndex(
-                self.ui.logLevelComboBox.findText(data[5]))
+                self.ui.logLevelComboBox.findData(data[5]))
             self.ui.numberOfProcessesSpinBox.setValue(data[6])
         else:
             self.ui.idLineEdit.clear()
@@ -100,7 +100,7 @@ class MultiJobDialog(AFormDialog):
             self.ui.analysisLineEdit.clear()
             self.ui.descriptionTextEdit.clear()
             self.ui.resourceComboBox.setCurrentIndex(0)
-            self.ui.logLevelComboBox.setCurrentIndex(1)
+            self.ui.logLevelComboBox.setCurrentIndex(3)
             self.ui.numberOfProcessesSpinBox.setValue(
                 self.ui.numberOfProcessesSpinBox.minimum())
 
@@ -222,7 +222,7 @@ class UiMultiJobDialog(UiFormDialog):
                                       logging.ERROR)
         self.logLevelComboBox.addItem(logging.getLevelName(logging.CRITICAL),
                                       logging.CRITICAL)
-        self.logLevelComboBox.setCurrentIndex(0)
+        self.logLevelComboBox.setCurrentIndex(3)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.logLevelComboBox)
 

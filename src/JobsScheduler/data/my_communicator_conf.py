@@ -1,8 +1,104 @@
-"""Configuration of communication unit"""
+# -*- coding: utf-8 -*-
+"""
+Configuration of communication unit
+@author: Jan Gabriel
+@contact: jan.gabriel@tul.cz
+"""
+import copy
 from enum import Enum, IntEnum
 import logging
 import json
 
+
+class ConfigFactory(object):
+    @staticmethod
+    def get_pbs_config(preset=None, with_socket=False):
+        """
+        Converts dialog data into PbsConfig instance
+        """
+        pbs = PbsConfig()
+        if preset:
+            pbs.name = preset[0]
+            # preset[0] is useless description
+            pbs.walltime = preset[2]
+            pbs.nodes = preset[3]
+            pbs.ppn = preset[4]
+            pbs.mem = preset[5]
+            pbs.scratch = preset[6]
+        else:
+            pbs.name = None
+            pbs.walltime = ""
+            pbs.nodes = "1"
+            pbs.ppn = "1"
+            pbs.mem = "400mb"
+            pbs.scratch = "400mb"
+        if with_socket:
+            pbs.with_socket = with_socket
+        return pbs
+
+    @staticmethod
+    def get_ssh_config(preset=None):
+        """
+        Converts dialog data into SshConfig instance
+        """
+        ssh = SshConfig()
+        if preset:
+            ssh.name = preset[0]
+            # preset[0] is useless description
+            ssh.host = preset[2]
+            ssh.port = preset[3]
+            ssh.uid = preset[4]
+            ssh.pwd = preset[5]
+        return ssh
+
+    @staticmethod
+    def get_communicator_config(communicator=None, mj_name=None,
+                                log_level=None,
+                                preset_type=None):
+        """
+        Provides preset config for most common communicator types, if you
+        provide communicator instance on input with valid preset_type,
+        new communicator is derived from original.
+        """
+        if communicator is None:
+            com = CommunicatorConfig()
+        if communicator is not None:
+            com = copy.copy(communicator)
+        if mj_name is not None:
+            com.mj_name = mj_name
+        if log_level is not None:
+            com.log_level = log_level
+        # app
+        if preset_type is CommType.app:
+            com.communicator_name = CommType.app.value
+            com.next_communicator = CommType.multijob.value
+            com.output_type = OutputCommType.exec_
+        # delegator
+        elif preset_type is CommType.delegator:
+            com.communicator_name = CommType.delegator.value
+            com.next_communicator = CommType.multijob.value
+            com.input_type = InputCommType.std
+            com.output_type = OutputCommType.exec_
+        # mj
+        elif preset_type is CommType.multijob:
+            com.communicator_name = CommType.multijob.value
+            com.next_communicator = CommType.job.value
+            com.input_type = InputCommType.socket
+            com.output_type = OutputCommType.exec_
+        # remote
+        elif preset_type is CommType.remote:
+            com.communicator_name = CommType.remote.value
+            com.next_communicator = CommType.job.value
+            com.input_type = InputCommType.std
+            com.output_type = OutputCommType.exec_
+        # job
+        elif preset_type is CommType.job:
+            com.communicator_name = CommType.job.value
+            com.next_communicator = CommType.none.value
+            com.input_type = InputCommType.socket
+            com.output_type = OutputCommType.none
+        return com
+        
 
 class OutputCommType(IntEnum):
     """Severity of an error."""
@@ -39,13 +135,13 @@ class PbsConfig(object):
         """init"""
         self.name = None
         """name as unique job identifier for files"""
-        self.with_socket = False  # multijob true; job false
-        """Initialize communication over socket"""
         self.walltime = ""
         self.nodes = "1"
         self.ppn = "1"
-        self.mem = "400mb",
-        self.scratch = "400mb",
+        self.mem = "400mb"
+        self.scratch = "400mb"
+        self.with_socket = False  # multijob true; job false
+        """Initialize communication over socket"""
 
 
 class SshConfig(object):
@@ -71,8 +167,11 @@ class CommunicatorConfig(object):
     """
 
     def __init__(self):
-        self.mj_name = "mj"
-        """folder name for multijob data"""
+        self.communicator_name = CommType.none.value
+        """this communicator name for login file, ..."""
+
+        self.next_communicator = CommType.none.value
+        """communicator file that will be start"""
 
         self.input_type = InputCommType.none
         """Input communication type"""
@@ -80,11 +179,8 @@ class CommunicatorConfig(object):
         self.output_type = OutputCommType.none
         """Output communication type"""
 
-        self.communicator_name = ""
-        """this communicator name for login file, ..."""
-
-        self.next_communicator = ""
-        """communicator file that will be start"""
+        self.mj_name = "not_set"
+        """folder name for multijob data"""
 
         self.port = 5723
         """
@@ -99,12 +195,13 @@ class CommunicatorConfig(object):
         self.python_exec = "python3"
         """Python exec command"""
 
-        self.scl_enable_exec = None
+        self.scl_enable_exec = False
         """Enable python exec set name over scl"""
 
-        self.ssh = SshConfig()
+        self.ssh = None
+        """Ssh settings class :class:`data.communicator_conf.SshConfig`"""
 
-        self.pbs = PbsConfig()
+        self.pbs = None
         """Pbs settings class :class:`data.communicator_conf.PbsConfig`"""
         
         self.install_job_libs = False
@@ -112,20 +209,24 @@ class CommunicatorConfig(object):
 
     def save_to_json_file(self, json_file):
         data = dict(self.__dict__)
-        data["ssh"] = self.ssh.__dict__
-        data["pbs"] = self.pbs.__dict__
+        if data["ssh"]:
+            data["ssh"] = self.ssh.__dict__
+        if data["pbs"]:
+            data["pbs"] = self.pbs.__dict__
         json.dump(data, json_file, indent=4, sort_keys=True)
         logging.info("%s:%s saved to JSON.", self.communicator_name,
                      self.mj_name)
 
     def load_from_json_file(self, json_file):
         data = json.load(json_file)
-        ssh = SshConfig()
-        ssh.__dict__ = data["ssh"]
-        data["ssh"] = ssh
-        pbs = PbsConfig()
-        pbs.__dict__ = data["pbs"]
-        data["pbs"] = pbs
+        if data["ssh"]:
+            ssh = SshConfig()
+            ssh.__dict__ = data["ssh"]
+            data["ssh"] = ssh
+        if data["pbs"]:
+            pbs = PbsConfig()
+            pbs.__dict__ = data["pbs"]
+            data["pbs"] = pbs
         self.__dict__ = data
         logging.info("%s:%s loaded from JSON.", self.communicator_name,
                      self.mj_name)

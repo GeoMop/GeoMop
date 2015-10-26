@@ -115,7 +115,8 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobRemoteExecutionTypeComboBox.currentIndex())
 
     def _handle_j_remote_exec_change(self, index):
-        if index == self.ui.jobRemoteExecutionTypeComboBox.findText(
+        if index > 0 and index == \
+                self.ui.jobRemoteExecutionTypeComboBox.findText(
                 self.ui.EXEC_LABEL):
             self.ui.jobPbsPresetComboBox.setDisabled(True)
         else:
