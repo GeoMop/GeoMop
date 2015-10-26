@@ -8,7 +8,7 @@ import logging
 import os
 
 import config as cfg
-import data.my_communicator_conf as comcfg
+import data.communicator_conf as comcfg
 from ui.dialogs.resource_dialog import UiResourceDialog
 
 
