@@ -4,7 +4,6 @@ JobScheduler data structures
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import copy
 import logging
 import os
 
@@ -107,9 +106,8 @@ class DataContainer(object):
         mj_number_of_processes = mj_preset_config[5]
 
         # setup basic conf
-        basic_conf = comcfg.CommunicatorConfig()
-        basic_conf.mj_name = mj_name
-        basic_conf.log_level = mj_log_level
+        basic_conf = comcfg.ConfigFactory.get_communicator_config(
+            mj_name=mj_name, log_level=mj_log_level)
 
         # setup base path
         base_path = list(path)
@@ -118,9 +116,11 @@ class DataContainer(object):
         os.makedirs(os.path.dirname(os.path.join(*base_path)), exist_ok=True)
 
         # before mj configs SSH or EXEC
-        app_conf = copy.copy(basic_conf)
-        app_conf.preset_type(comcfg.CommType.app.value)
+        app_conf = comcfg.ConfigFactory.get_communicator_config(
+            communicator=basic_conf,
+            preset_type=comcfg.CommType.app)
         delegator_conf = None
+        delegator_path_string = None
         # make app_config path and create folder
         app_path = list(base_path)
         app_path.append(app_conf.communicator_name + self.FILE_EXTENSION)
@@ -128,11 +128,12 @@ class DataContainer(object):
         if resource_preset[2] == UiResourceDialog.DELEGATOR_LABEL:
             app_conf.next_communicator = comcfg.CommType.delegator.value
             app_conf.output_type = comcfg.OutputCommType.ssh
-            app_conf.ssh = comcfg.SshConfig(preset=self.ssh_presets[
-                resource_preset[3]])
+            app_conf.ssh = comcfg.ConfigFactory.get_ssh_config(
+                preset=self.ssh_presets[resource_preset[3]])
             # delegator config PBS or EXEC
-            delegator_conf = copy.copy(basic_conf)
-            delegator_conf.preset_type(comcfg.CommType.delegator.value)
+            delegator_conf = comcfg.ConfigFactory.get_communicator_config(
+                communicator=basic_conf,
+                preset_type=comcfg.CommType.delegator)
             # make app_config path and create folder
             delegator_path = list(base_path)
             delegator_path.append(delegator_conf.communicator_name +
@@ -140,13 +141,14 @@ class DataContainer(object):
             delegator_path_string = os.path.join(*delegator_path)
             if resource_preset[4] == UiResourceDialog.PBS_LABEL:
                 delegator_conf.output_type = comcfg.OutputCommType.pbs
-                delegator_conf.pbs = comcfg.PbsConfig(
+                delegator_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
                     preset=self.pbs_presets[resource_preset[5]],
                     with_socket=True)
 
         # mj configs
-        mj_conf = copy.copy(basic_conf)
-        mj_conf.preset_type(comcfg.CommType.multijob.value)
+        mj_conf = comcfg.ConfigFactory.get_communicator_config(
+            communicator=basic_conf,
+            preset_type=comcfg.CommType.multijob)
         # make app_config path and create folder
         mj_path = list(base_path)
         mj_path.append(mj_conf.communicator_name + self.FILE_EXTENSION)
@@ -156,25 +158,28 @@ class DataContainer(object):
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
             mj_conf.next_communicator = comcfg.CommType.remote.value
             mj_conf.output_type = comcfg.OutputCommType.ssh
-            mj_conf.ssh = comcfg.SshConfig(preset=self.ssh_presets[
-                resource_preset[7]])
+            mj_conf.ssh = comcfg.ConfigFactory.get_ssh_config(
+                preset=self.ssh_presets[resource_preset[7]])
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
             mj_conf.next_communicator = comcfg.CommType.remote.value
             mj_conf.output_type = comcfg.OutputCommType.pbs
-            mj_conf.pbs = comcfg.PbsConfig(preset=self.pbs_presets[
-                resource_preset[9]])
+            mj_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
+                preset=self.pbs_presets[resource_preset[9]])
 
         # after mj configs EXEC or REMOTE or PBS
         remote_conf = None
-        job_conf = copy.copy(basic_conf)
-        job_conf.preset_type(comcfg.CommType.job.value)
+        remote_path_string = None
+        job_conf = comcfg.ConfigFactory.get_communicator_config(
+            communicator=basic_conf,
+            preset_type=comcfg.CommType.job)
         # make job_config path and create folder
         job_path = list(base_path)
         job_path.append(job_conf.communicator_name + self.FILE_EXTENSION)
         job_path_string = os.path.join(*job_path)
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
-            remote_conf = copy.copy(basic_conf)
-            remote_conf.preset_type(comcfg.CommType.remote.value)
+            remote_conf = comcfg.ConfigFactory.get_communicator_config(
+                communicator=basic_conf,
+                preset_type=comcfg.CommType.remote)
             # make remote_config path and create folder
             remote_path = list(base_path)
             remote_path.append(remote_conf.communicator_name +
@@ -182,8 +187,8 @@ class DataContainer(object):
             remote_path_string = os.path.join(*remote_path)
             if resource_preset[8] == UiResourceDialog.PBS_LABEL:
                 remote_conf.output_type = comcfg.OutputCommType.pbs
-                remote_conf.pbs = comcfg.PbsConfig(preset=self.pbs_presets[
-                    resource_preset[9]])
+                remote_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
+                    preset=self.pbs_presets[resource_preset[9]])
                 job_conf.input_type = comcfg.InputCommType.pbs
             elif resource_preset[8] == UiResourceDialog.EXEC_LABEL:
                 job_conf.input_type = comcfg.InputCommType.std
