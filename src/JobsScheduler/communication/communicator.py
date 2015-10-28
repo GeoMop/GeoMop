@@ -63,6 +63,8 @@ class Communicator():
         """Stop processing of run function"""
         self.install_job_libs = init_conf.install_job_libs
         """Communicator will install libs fo jobs"""
+        self.mj_name = init_conf.mj_name
+        """folder name for multijob data"""
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -121,13 +123,13 @@ class Communicator():
         """Inicialize output using defined type"""
         output = None
         if conf.output_type == comconf.OutputCommType.ssh:
-            output = SshOutputComm(conf.host, conf.mj_name, conf.uid, conf.pwd)
+            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.ssh.uid, conf.ssh.pwd)
             output.connect()
         elif conf.output_type == comconf.OutputCommType.pbs:
             old_name = conf.pbs.name
             if new_name is not None:
                 conf.pbs.name = new_name
-            output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
+            output = PbsOutputComm(conf.smj_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
@@ -279,7 +281,7 @@ class Communicator():
         
     def _exec_(self):
         """run set python file"""
-        self.output.exec_(self.next_communicator)
+        self.output.exec_(self.next_communicator, self.mj_name, self.id)
         if isinstance(self.output, ExecOutputComm):
             i=0
             while i<3:

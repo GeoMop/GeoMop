@@ -26,7 +26,6 @@ class JobsCommunicator(Communicator):
     def  standart_action_function_before(self, message):
         """before action function"""
         if message.action_type == tdata.ActionType.installation:
-            logging.debug("Job apllication began start")
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
                 action = tdata.Action(tdata.ActionType.ok)
@@ -78,7 +77,7 @@ class JobsCommunicator(Communicator):
     def _run_action(self, action, semafore):
         """Run action guardet by semafore"""        
         semafore.acquire()
-        action(self.next_communicator)
+        action(self.next_communicator,self.mj_name, self.id)
         semafore.release()
         
     def install(self):

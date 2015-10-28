@@ -8,20 +8,29 @@ import data.communicator_conf as comconf
 from communication import Communicator
 import data.transport_data as tdata
 
-ccom = comconf.CommunicatorConfig()
+if len(sys.argv)<2:
+    raise Exception('Multijob name as application parameter is require')
+mj_id = None
+mj_name = sys.argv[1]
+if len(sys.argv)>2 and sys.argv[2] != "&":
+    mj_id = sys.argv[2]
+
+ccom = comconf.CommunicatorConfig(mj_name)
 ccom.output_type = comconf.OutputCommType.ssh
 ccom.communicator_name = "app"
 ccom.next_communicator = "delegator"
-#ccom.uid = "test"
-#ccom.pwd = "MojeHeslo123"
-#ccom.host = "localhost"
-ccom.uid = "pavel.richter"
-ccom.pwd = "p256v22l"
-ccom.host = "hydra.kai.tul.cz"
+ccom.ssh=comconf.SshConfig()
+#ccom.ssh.uid = "test"
+#ccom.ssh.pwd = "MojeHeslo123"
+#ccom.ssh.host = "localhost"
+
+ccom.ssh.uid = "pavel.richter"
+ccom.ssh.pwd = ""
+ccom.ssh.host = "hydra.kai.tul.cz"
 ccom.scl_enable_exec = "python33"
 ccom.log_level = logging.DEBUG
 
-comunicator = Communicator(ccom)
+comunicator = Communicator(ccom, mj_id)
 comunicator.install()
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))

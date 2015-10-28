@@ -29,9 +29,9 @@ class ExecOutputComm(OutputComm):
         """make installation"""
         self.installation.local_copy_path()
         
-    def exec_(self, python_file):
+    def exec_(self, python_file, mj_name, mj_id):
         """run set python file in ssh"""
-        process = subprocess.Popen(self.installation.get_args(python_file), 
+        process = subprocess.Popen(self.installation.get_args(python_file, mj_name, mj_id), 
             stdout=subprocess.PIPE)
         # wait for port number
         return_code = process.poll()

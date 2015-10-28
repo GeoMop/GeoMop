@@ -185,26 +185,33 @@ class Installation:
                     logging.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
             
  
-    def get_command(self, name):
+    def get_command(self, name, mj_name, mj_id):
         """Find install file according to name and return command for running"""
         # use / instead join because destination os is linux and is not 
         # same with current os
-        dest_path = self.copy_path + '/' + __ins_files__[name]
-        return self.python_exec + " " + dest_path
+        command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
+        if mj_id is not None:
+            command += " " + mj_id
+        return self.python_exec + " " + command
     
-    def get_args(self, name):
+    def get_args(self, name, mj_name, mj_id):
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
-        return [self.python_exec,dest_path, "&", "disown"]
+        if mj_id is None:
+            return [self.python_exec,dest_path, mj_name, "&", "disown"]
+        return [self.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
         
     def get_interpreter(self):
         """return python interpreter with path"""
         return self.python_exec
 
-    def get_command_only(self, name):
+    def get_command_only(self, name, mj_name, mj_id):
         """return command with path"""
-        return  self.copy_path + '/' + __ins_files__[name]
+        command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
+        if mj_id is not None:
+            command += " " + mj_id
+        return  command
 
     @staticmethod
     def get_result_dir_static(mj_name):

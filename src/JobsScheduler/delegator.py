@@ -9,7 +9,14 @@ import logging
 import data.communicator_conf as comconf
 from communication import Communicator
 
-ccom = comconf.CommunicatorConfig()
+if len(sys.argv)<2:
+    raise Exception('Multijob name as application parameter is require')
+mj_id = None
+mj_name = sys.argv[1]
+if len(sys.argv)>2 and sys.argv[2] != "&":
+    mj_id = sys.argv[2]
+
+ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "delegator"
 ccom.next_communicator = "mj_service"
 ccom.log_level = logging.DEBUG
@@ -21,7 +28,7 @@ ccom.input_type = comconf.InputCommType.std
 #ccom.pbs.name = "mj_service"
 ccom.output_type = comconf.OutputCommType.exec_
 
-comunicator = Communicator(ccom)
+comunicator = Communicator(ccom, mj_id)
 
 logging.error("Name: " + __name__)
 

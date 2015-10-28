@@ -37,13 +37,13 @@ if sys.platform == "win32":
             except Exception as err:
                 logging.warning("Installation error: " + str(err))
              
-        def exec_(self, python_file):
+        def exec_(self, python_file, mj_name, mj_id):
             """run set python file in ssh"""
             
             mess = self.ssh.cd(self.installation.copy_path)
             if mess != "":
                 logging.warning("Exec python file: " + mess) 
-            mess = self.ssh.exec_(self.installation.get_command(python_file))
+            mess = self.ssh.exec_(self.installation.get_command(python_file, mj_name, mj_id))
             if mess != "":
                 logging.warning("Run python file: " + mess)  
 
@@ -132,14 +132,14 @@ else:
             except Exception as err:
                 logging.warning("Installation error: " + str(err))
                 
-        def exec_(self, python_file):
+        def exec_(self, python_file, mj_name, mj_id):
             """run set python file in ssh"""
             self.ssh.sendline("cd " + self.installation.copy_path)
             if self.ssh.prompt():
                 mess = str(self.ssh.before, 'utf-8').strip()
                 if mess != ("cd " + self.installation.copy_path):
                     logging.warning("Exec python file: " + mess) 
-            self.ssh.sendline(self.installation.get_command(python_file))
+            self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
             self.ssh.expect( self.installation.python_exec + ".*\r\n")
             
             lines = str(self.ssh.after, 'utf-8').splitlines(False)            

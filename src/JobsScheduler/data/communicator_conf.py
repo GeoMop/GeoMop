@@ -166,7 +166,7 @@ class CommunicatorConfig(object):
     :class:`communication.communicator.Communicator`.
     """
 
-    def __init__(self):
+    def __init__(self, mj_name):
         self.communicator_name = CommType.none.value
         """this communicator name for login file, ..."""
 
@@ -179,7 +179,7 @@ class CommunicatorConfig(object):
         self.output_type = OutputCommType.none
         """Output communication type"""
 
-        self.mj_name = "not_set"
+        self.mj_name = mj_name
         """folder name for multijob data"""
 
         self.port = 5723

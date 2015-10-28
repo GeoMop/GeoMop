@@ -16,13 +16,14 @@ class PbsOutputComm(ExecOutputComm):
         self.jobid = None
         """Id for job identification"""
 
-    def exec_(self, python_file):
+    def exec_(self, python_file, mj_name, mj_id):
         """run set python file in ssh"""
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config)        
-        hlp.prepare_file(self.installation.get_command_only(python_file), self.installation.get_interpreter())
+        hlp.prepare_file(self.installation.get_command_only(python_file, mj_name, mj_id),
+                                  self.installation.get_interpreter())
         logging.debug("Qsub params: " + str(hlp.get_qsub_args()))       
         process = subprocess.Popen(hlp.get_qsub_args(), 
-            stdout=subprocess.PIPE)
+                                                       stdout=subprocess.PIPE)
         return_code = process.poll()
         if return_code is not None:
             raise Exception("Can not start next communicator " + python_file + 

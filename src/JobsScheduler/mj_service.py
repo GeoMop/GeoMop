@@ -27,7 +27,14 @@ def  mj_idle_function():
     if i == 2:
         comunicator.add_job("test2", None)
 
-ccom = comconf.CommunicatorConfig()
+if len(sys.argv)<2:
+    raise Exception('Multijob name as application parameter is require')
+mj_id = None
+mj_name = sys.argv[1]
+if len(sys.argv)>2  and sys.argv[2] != "&":
+    mj_id = sys.argv[2]
+
+ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "mj_service"
 ccom.next_communicator = "job"
 ccom.log_level = logging.DEBUG
@@ -41,7 +48,7 @@ ccom.python_exec = "/opt/python/bin/python3.3"
 ccom.pbs.with_socket = False
 ccom.pbs.name = "test"
 
-comunicator = JobsCommunicator(ccom, None, mj_action_function_before, mj_action_function_after, mj_idle_function)
+comunicator = JobsCommunicator(ccom, mj_id, mj_action_function_before, mj_action_function_after, mj_idle_function)
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()

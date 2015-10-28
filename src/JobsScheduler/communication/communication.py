@@ -35,7 +35,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod
-    def exec_(self,  command):
+    def exec_(self,  command, mj_name, mj_id):
         """run command"""
         pass
 

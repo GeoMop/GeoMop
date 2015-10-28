@@ -10,12 +10,19 @@ import data.communicator_conf as comconf
 from communication import Communicator
 from  communication.installation import  Installation
 
-ccom = comconf.CommunicatorConfig()
+if len(sys.argv)<2:
+    raise Exception('Multijob name as application parameter is require')
+mj_id = None
+mj_name = sys.argv[1]
+if len(sys.argv)>2  and sys.argv[2] != "&":
+    mj_id = sys.argv[2]
+
+ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "job"
 ccom.log_level = logging.INFO
 ccom.python_exec = "/opt/python/bin/python3.3"
 
-comunicator = Communicator(ccom)
+comunicator = Communicator(ccom, mj_id)
 logging.info("Start")
 
 process = subprocess.Popen([ccom.python_exec,"test_task.py", 
