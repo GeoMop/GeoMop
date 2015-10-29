@@ -69,35 +69,7 @@ class ConfigFactory(object):
             com.mj_name = mj_name
         if log_level is not None:
             com.log_level = log_level
-        # app
-        if preset_type is CommType.app:
-            com.communicator_name = CommType.app.value
-            com.next_communicator = CommType.multijob.value
-            com.output_type = OutputCommType.exec_
-        # delegator
-        elif preset_type is CommType.delegator:
-            com.communicator_name = CommType.delegator.value
-            com.next_communicator = CommType.multijob.value
-            com.input_type = InputCommType.std
-            com.output_type = OutputCommType.exec_
-        # mj
-        elif preset_type is CommType.multijob:
-            com.communicator_name = CommType.multijob.value
-            com.next_communicator = CommType.job.value
-            com.input_type = InputCommType.socket
-            com.output_type = OutputCommType.exec_
-        # remote
-        elif preset_type is CommType.remote:
-            com.communicator_name = CommType.remote.value
-            com.next_communicator = CommType.job.value
-            com.input_type = InputCommType.std
-            com.output_type = OutputCommType.exec_
-        # job
-        elif preset_type is CommType.job:
-            com.communicator_name = CommType.job.value
-            com.next_communicator = CommType.none.value
-            com.input_type = InputCommType.socket
-            com.output_type = OutputCommType.none
+        CommunicatorConfigService.preset_common_type(com, preset_type)
         return com
         
 
@@ -169,7 +141,7 @@ class CommunicatorConfig(object):
     :class:`communication.communicator.Communicator`.
     """
 
-    def __init__(self, mj_name):
+    def __init__(self, mj_name=None):
         self.communicator_name = CommType.none.value
         """this communicator name for login file, ..."""
 
@@ -210,17 +182,19 @@ class CommunicatorConfig(object):
         self.install_job_libs = False
         """Communicator will install libs fo jobs"""
 
-    def save_to_json_file(self, json_file):
-        data = dict(self.__dict__)
-        if data["ssh"]:
-            data["ssh"] = self.ssh.__dict__
-        if data["pbs"]:
-            data["pbs"] = self.pbs.__dict__
-        json.dump(data, json_file, indent=4, sort_keys=True)
-        logging.info("%s:%s saved to JSON.", self.communicator_name,
-                     self.mj_name)
 
-    def load_from_json_file(self, json_file):
+class CommunicatorConfigService(object):
+    @staticmethod
+    def save_to_json_file(json_file, com):
+        data = dict(com.__dict__)
+        if data["ssh"]:
+            data["ssh"] = com.ssh.__dict__
+        if data["pbs"]:
+            data["pbs"] = com.pbs.__dict__
+        json.dump(data, json_file, indent=4, sort_keys=True)
+
+    @staticmethod
+    def load_from_json_file(json_file, com=CommunicatorConfig()):
         data = json.load(json_file)
         if data["ssh"]:
             ssh = SshConfig()
@@ -230,6 +204,37 @@ class CommunicatorConfig(object):
             pbs = PbsConfig()
             pbs.__dict__ = data["pbs"]
             data["pbs"] = pbs
-        self.__dict__ = data
-        logging.info("%s:%s loaded from JSON.", self.communicator_name,
-                     self.mj_name)
+        com.__dict__ = data
+
+    @staticmethod
+    def preset_common_type(com, preset_type=None):
+        # app
+        if preset_type is CommType.app:
+            com.communicator_name = CommType.app.value
+            com.next_communicator = CommType.multijob.value
+            com.output_type = OutputCommType.exec_
+        # delegator
+        elif preset_type is CommType.delegator:
+            com.communicator_name = CommType.delegator.value
+            com.next_communicator = CommType.multijob.value
+            com.input_type = InputCommType.std
+            com.output_type = OutputCommType.exec_
+        # mj
+        elif preset_type is CommType.multijob:
+            com.communicator_name = CommType.multijob.value
+            com.next_communicator = CommType.job.value
+            com.input_type = InputCommType.socket
+            com.output_type = OutputCommType.exec_
+        # remote
+        elif preset_type is CommType.remote:
+            com.communicator_name = CommType.remote.value
+            com.next_communicator = CommType.job.value
+            com.input_type = InputCommType.std
+            com.output_type = OutputCommType.exec_
+        # job
+        elif preset_type is CommType.job:
+            com.communicator_name = CommType.job.value
+            com.next_communicator = CommType.none.value
+            com.input_type = InputCommType.socket
+            com.output_type = OutputCommType.none
+        return com

@@ -97,7 +97,6 @@ class DataContainer(object):
         # multijob properties
         mj_preset_config = self.multijobs[key]
         mj_name = mj_preset_config[0]
-        print(installation.Installation.get_config_dir_static(mj_name))
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
         mj_log_level = mj_preset_config[4]
@@ -192,17 +191,22 @@ class DataContainer(object):
 
         # save to files
         with open(app_conf_path, "w") as app_file:
-            app_conf.save_to_json_file(app_file)
+            comcfg.CommunicatorConfigService.save_to_json_file(
+                app_file, app_conf)
         if delegator_conf:
             with open(delegator_conf_path, "w") as delegator_file:
-                delegator_conf.save_to_json_file(delegator_file)
+                comcfg.CommunicatorConfigService.save_to_json_file(
+                    delegator_file, delegator_conf)
         with open(mj_path_string, "w") as mj_file:
-            mj_conf.save_to_json_file(mj_file)
+            comcfg.CommunicatorConfigService.save_to_json_file(
+                mj_file, mj_conf)
         if remote_conf:
             with open(remote_conf_path, "w") as remote_file:
-                remote_conf.save_to_json_file(remote_file)
+                comcfg.CommunicatorConfigService.save_to_json_file(
+                    remote_file, remote_conf)
         with open(job_conf_path, "w") as job_file:
-            job_conf.save_to_json_file(job_file)
+            comcfg.CommunicatorConfigService.save_to_json_file(
+                job_file, job_conf)
         logging.info('==== All configs dumped to JSON in %s! ====',
                      installation.Installation.get_config_dir_static(mj_name))
 
