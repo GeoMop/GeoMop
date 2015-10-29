@@ -6,9 +6,12 @@ __author__ = 'Tomas Krizek'
 class AutocompleteHelper:
     """Helper class for creating and managing autocomplete options in editor."""
 
+    SPECIAL_CHARS = ['&']
+
     def __init__(self):
         """Initializes the class."""
         self._options = {}
+        self._anchors = []
 
     def create_options(self, input_type, prev_char=''):
         """
@@ -19,10 +22,21 @@ class AutocompleteHelper:
         autocomplete options.
         """
         self._options.clear()
-        if input_type['base_type'] == 'Record':
-            # create options from keys
-            self._options.update({key['key']: 'key' for key in input_type['keys']})
-        return self.options
+
+        # TODO: prev_char vs first_char ... &an -> &anchor ?
+        if prev_char not in AutocompleteHelper.SPECIAL_CHARS:
+            if input_type['base_type'] == 'Record':  # input type Record
+                self._options.update({key['key']: 'key' for key in input_type['keys']})
+            elif input_type['base_type'] == 'Selection':  # input type Selection
+                self._options.update({value['name']: 'selection' for value in input_type['values']})
+            elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
+                self._options.update({'!' + impl['type_name']: 'type' for impl in
+                                      input_type['implementations']})
+
+        elif prev_char == '&':  # add anchors
+            self._options.update({'&' + anchor: 'anchor' for anchor in self._anchors})
+
+        return list(self._options.keys())
 
     def select_option(self, option_string):
         """
@@ -42,11 +56,11 @@ class AutocompleteHelper:
 
     def register_anchor(self, anchor_name):
         """Registers an anchor by its name."""
-        pass
+        self._anchors.append(anchor_name)
 
     def clear_anchors(self):
         """Clears the anchor list."""
-        pass
+        self._anchors.clear()
 
     @property
     def options(self):
