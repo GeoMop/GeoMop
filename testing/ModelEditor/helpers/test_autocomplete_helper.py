@@ -11,11 +11,11 @@ class TestAutocompleteHelper:
 
     input_type_record = {
         'base_type': 'Record',
-        'keys': [
-            {'key': 'regions'},
-            {'key': 'mesh_file'},
-            {'key': 'sets'},
-        ]
+        'keys': {
+            'regions': None,
+            'mesh_file': None,
+            'sets': None
+        }
     }
 
     input_type_selection = {
@@ -28,11 +28,11 @@ class TestAutocompleteHelper:
 
     input_type_abstract_record = {
         'base_type': 'AbstractRecord',
-        'implementations': [
-            {'type_name': 'Steady_MH'},
-            {'type_name': 'Unsteady_MH'},
-            {'type_name': 'Unsteady_LMH'}
-        ]
+        'implementations': {
+            'Steady_MH': None,
+            'Unsteady_MH': None,
+            'Unsteady_LMH': None
+        }
     }
 
     @pytest.fixture(autouse=True)
@@ -85,3 +85,8 @@ class TestAutocompleteHelper:
         assert '!Unsteady_MH' in options
         assert '!Unsteady_LMH' in options
         assert self.achelper.select_option('!Steady_MH') == '!Steady_MH'
+
+    def test_scintilla_options(self):
+        """Test if QSci options are generated correctly."""
+        self.achelper.create_options(TestAutocompleteHelper.input_type_record)
+        assert self.achelper.scintilla_options.decode('utf-8') == 'mesh_file regions sets'

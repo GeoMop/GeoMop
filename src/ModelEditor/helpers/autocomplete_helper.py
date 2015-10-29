@@ -12,6 +12,8 @@ class AutocompleteHelper:
         """Initializes the class."""
         self._options = {}
         self._anchors = []
+        self.scintilla_options = ''
+        """the QScintilla options string encoded in utf-8"""
 
     def create_options(self, input_type, prev_char=''):
         """
@@ -26,16 +28,17 @@ class AutocompleteHelper:
         # TODO: prev_char vs first_char ... &an -> &anchor ?
         if prev_char not in AutocompleteHelper.SPECIAL_CHARS:
             if input_type['base_type'] == 'Record':  # input type Record
-                self._options.update({key['key']: 'key' for key in input_type['keys']})
+                self._options.update({key: 'key' for key in input_type['keys']})
             elif input_type['base_type'] == 'Selection':  # input type Selection
                 self._options.update({value['name']: 'selection' for value in input_type['values']})
             elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
-                self._options.update({'!' + impl['type_name']: 'type' for impl in
+                self._options.update({'!' + type_: 'type' for type_ in
                                       input_type['implementations']})
 
         elif prev_char == '&':  # add anchors
             self._options.update({'&' + anchor: 'anchor' for anchor in self._anchors})
 
+        self.scintilla_options = (' '.join(sorted(list(self._options.keys())))).encode('utf-8')
         return list(self._options.keys())
 
     def select_option(self, option_string):
@@ -61,8 +64,3 @@ class AutocompleteHelper:
     def clear_anchors(self):
         """Clears the anchor list."""
         self._anchors.clear()
-
-    @property
-    def options(self):
-        """Returns the QScintilla options."""
-        return self._options.keys()

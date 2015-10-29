@@ -100,6 +100,7 @@ SAVE_FILE_AS = KeyboardShortcut('Ctrl+Shift+S')
 IMPORT_FILE = KeyboardShortcut('Ctrl+I')
 EXIT = KeyboardShortcut('Ctrl+Q')
 EDIT_FORMAT = KeyboardShortcut('Ctrl+E')
+SHOW_AUTOCOMPLETE = KeyboardShortcut('Ctrl+ ')
 
 
 """
@@ -116,5 +117,6 @@ SCINTILLA_DISABLE = [
     COMMENT,
     DELETE,
     SELECT_ALL,
+    SHOW_AUTOCOMPLETE,
     # ENTER,
 ]

@@ -19,7 +19,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import helpers.keyboard_shortcuts as shortcuts
 import re
 from ui.menus import EditMenu
-from helpers import Notification
+from helpers import Notification, AutocompleteHelper
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -81,6 +81,8 @@ class YamlEditorWidget(QsciScintilla):
         reload chunk is a context manager used to make multiple text changes without
         triggering a reload function
         """
+
+        self.autocomplete_helper = AutocompleteHelper()
 
         appearance.set_default_appearens(self)
 
@@ -152,6 +154,7 @@ class YamlEditorWidget(QsciScintilla):
         self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
+        self.elementChanged.connect(self._on_element_changed)
         self._pos = EditorPosition()
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
@@ -262,6 +265,10 @@ class YamlEditorWidget(QsciScintilla):
             line += 1
             self.nodeSelected.emit(line, column)
 
+    def _on_element_changed(self):
+        """Handles element changed event."""
+        self._pos.reload_autocomplete(self)
+
     def _reload_margin(self):
         """Set error icon and mark to margin"""
         self.markerDeleteAll()
@@ -301,6 +308,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
+            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocomplete,
             # shortcuts.ENTER: self.add_new_line,
         }
 
@@ -423,6 +431,15 @@ class YamlEditorWidget(QsciScintilla):
             else:  # not a comment already - prepend all lines with '# '
                 lines_with_comment.append('')
                 self.replaceSelectedText('\n'.join(lines_with_comment))
+
+    def show_autocomplete(self):
+        """Shows autocomplete options for the current cursor position."""
+        # find out how many character are already written
+        cur_line, cur_col = self.getCursorPosition()
+        prev_text = self.text(cur_line)[0:cur_col]
+        word = re.search(r'\S*$', prev_text).group()
+        self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
+                           self.autocomplete_helper.scintilla_options)
 
     @pyqtSlot(str, bool, bool, bool)
     def on_find_requested(self, search_term, is_regex, is_case_sensitive, is_word):
@@ -741,14 +758,19 @@ class EditorPosition:
             return False
         return True
 
-    def _reload_autocompletation(self, editor):
+    def reload_autocomplete(self, editor):
         """New line was added"""
-        if self.node is None:
+        # TODO change
+        if self.pred_parent is not None:
+            node = self.pred_parent
+        elif self.node is not None:
+            node = self.node
+
+        if node is None or getattr(node, 'input_type', None) is None:
             return False
-        editor.api.clear()
-        for option in self.node.options:
-            editor.api.add(option)
-        editor.api.prepare()
+
+        editor.autocomplete_helper.create_options(node.input_type)
+        return True
 
     def node_init(self, node, editor):
         """set new node"""
@@ -775,8 +797,6 @@ class EditorPosition:
         if len(self._old_text) + 1 == editor.lines():
             self._old_text.append("")
         self._save_lines(editor)
-        if node is not None:
-            self._reload_autocompletation(editor)
         # set cursore_type_position
         anal = self._init_analyzer(editor, self.line, self.index)
         pos_type = anal.get_pos_type()
@@ -794,6 +814,9 @@ class EditorPosition:
             else:
                 na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
+
+        if node is not None:
+            self.reload_autocomplete(editor)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

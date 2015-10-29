@@ -91,6 +91,7 @@ class ModelEditor:
 
         # set default info text
         self._info.update_from_data({'record_id': cfg.root_input_type['id']})
+        self._editor.autocomplete_helper.create_options(cfg.root_input_type)
 
         # show
         self.mainwindow.show()
@@ -158,7 +159,7 @@ class ModelEditor:
                                         CursorType.parent.value)
             return
         if self._editor.curr_node is not None:
-            self._info.update_from_node(self._editor.curr_node, cursor_type)   
+            self._info.update_from_node(self._editor.curr_node, cursor_type)
 
     def _on_node_selected(self, line, column):
         """Handles nodeSelected event from editor."""
