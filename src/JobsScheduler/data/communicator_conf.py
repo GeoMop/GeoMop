@@ -8,6 +8,7 @@ import copy
 from enum import Enum, IntEnum
 import logging
 import json
+import os
 
 
 class ConfigFactory(object):
@@ -184,8 +185,10 @@ class CommunicatorConfig(object):
 
 
 class CommunicatorConfigService(object):
+    CONF_EXTENSION = ".json"
+
     @staticmethod
-    def save_to_json_file(json_file, com):
+    def save_file(json_file, com):
         data = dict(com.__dict__)
         if data["ssh"]:
             data["ssh"] = com.ssh.__dict__
@@ -194,7 +197,7 @@ class CommunicatorConfigService(object):
         json.dump(data, json_file, indent=4, sort_keys=True)
 
     @staticmethod
-    def load_from_json_file(json_file, com=CommunicatorConfig()):
+    def load_file(json_file, com=CommunicatorConfig()):
         data = json.load(json_file)
         if data["ssh"]:
             ssh = SshConfig()
@@ -205,6 +208,11 @@ class CommunicatorConfigService(object):
             pbs.__dict__ = data["pbs"]
             data["pbs"] = pbs
         com.__dict__ = data
+
+    @staticmethod
+    def get_file_path(conf_path, com_type):
+        filename = com_type + CommunicatorConfigService.CONF_EXTENSION
+        return os.path.join(conf_path, filename)
 
     @staticmethod
     def preset_common_type(com, preset_type=None):

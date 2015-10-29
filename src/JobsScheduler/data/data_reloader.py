@@ -6,6 +6,8 @@ JobScheduler data reloader
 """
 
 import logging
+
+logger = logging.getLogger("UiTrace")
 from threading import Thread
 from time import sleep
 
@@ -22,7 +24,7 @@ class DataReloader(Thread):
         self._isRunning = True
         while self._isRunning:
             sleep(1)
-            logging.info('%s is running...', self.__class__.__name__)
+            logger.info('%s is running...', self.__class__.__name__)
 
     def stop(self):
         self._isRunning = False

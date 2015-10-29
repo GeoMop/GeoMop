@@ -20,14 +20,14 @@ ccom.output_type = comconf.OutputCommType.ssh
 ccom.communicator_name = "app"
 ccom.next_communicator = "delegator"
 ccom.ssh=comconf.SshConfig()
-#ccom.ssh.uid = "test"
-#ccom.ssh.pwd = "MojeHeslo123"
-#ccom.ssh.host = "localhost"
+ccom.ssh.uid = "test"
+ccom.ssh.pwd = "MojeHeslo123"
+ccom.ssh.host = "localhost"
 
-ccom.ssh.uid = "pavel.richter"
-ccom.ssh.pwd = "p256v22l"
-ccom.ssh.host = "hydra.kai.tul.cz"
-ccom.scl_enable_exec = "python33"
+# ccom.ssh.uid = "pavel.richter"
+# ccom.ssh.pwd = "p256v22l"
+# ccom.ssh.host = "hydra.kai.tul.cz"
+# ccom.scl_enable_exec = "python33"
 ccom.log_level = logging.DEBUG
 
 comunicator = Communicator(ccom, mj_id)

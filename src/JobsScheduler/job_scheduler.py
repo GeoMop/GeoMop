@@ -15,11 +15,24 @@ sys.path.insert(1, __lib_dir__)
 
 import logging
 # logging setup on STDOUT or to FILE
-logging.basicConfig(  # filename='jobscheduler.log',
-                      stream=sys.stdout,
-                      datefmt='%d.%m.%Y|%H:%M:%S',
-                      format='%(asctime)s|%(levelname)s: %(message)s',
-                      level=logging.DEBUG)
+logger = logging.getLogger("UiTrace")
+
+logger.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter(
+    '%(asctime)s|%(levelname)s: %(message)s')  # %(asctime)s|%(levelname)s: %(message)s
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
 import PyQt5.QtWidgets as QtWidgets
 
 from data.data_reloader import DataReloader
@@ -33,7 +46,7 @@ class JobsScheduler(object):
     def __init__(self, args):
         """Initialization of UI with executive code"""
         # log app init
-        logging.info('==== %s initialization ====', self.__class__.__name__)
+        logger.info('==== %s initialization ====', self.__class__.__name__)
 
         # setup qt app
         self._app = QtWidgets.QApplication(args)
@@ -62,7 +75,7 @@ class JobsScheduler(object):
         self._main_window.show()
 
         # log app start
-        logging.info('==== %s is running  ====', self.__class__.__name__)
+        logger.info('==== %s is running  ====', self.__class__.__name__)
 
         # execute app
         sys.exit(self._app.exec_())
