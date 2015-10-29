@@ -237,7 +237,7 @@ class Installation:
         
     @staticmethod
     def get_config_dir_static(mj_name):
-        """Return dir for savings configuration"""
+        """Return dir for configuration"""
         try:
             path = os.path.join(__install_dir__, __jobs_dir__)
             if not os.path.isdir(path):
@@ -311,10 +311,16 @@ class Installation:
             term.expect('.*cd twoparty/install.*')
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "install_job_libs.log")
             command = "./install_mpi4.sh " + python_exec + " &>> " + log_file            
+            logging.debug("Installation libraries started")
             term.sendline(command)
             time.sleep(1)
-            term.expect('.*install.*') 
-            term.expect('.*install.*', timeout=600)
+            try:
+                term.expect('.*install.*') 
+                term.expect('.*install.*', timeout=600)
+            except pexpect.TIMEOUT:
+                logging.warning("Installation libraries failed ( " +
+                                          str(term.before, 'utf-8').strip()) 
+            logging.debug("Installation libraries ended")
             term = term.sendline('exit')
  
  

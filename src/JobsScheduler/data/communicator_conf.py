@@ -195,7 +195,7 @@ class CommunicatorConfig(object):
         self.python_exec = "python3"
         """Python exec command"""
 
-        self.scl_enable_exec = False
+        self.scl_enable_exec = None
         """Enable python exec set name over scl"""
 
         self.ssh = None

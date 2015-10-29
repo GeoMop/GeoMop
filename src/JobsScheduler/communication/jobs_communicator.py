@@ -28,6 +28,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.installation:
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
+                logging.debug("Job application started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             return resent, mess

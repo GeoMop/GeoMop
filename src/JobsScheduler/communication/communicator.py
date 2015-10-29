@@ -129,7 +129,7 @@ class Communicator():
             old_name = conf.pbs.name
             if new_name is not None:
                 conf.pbs.name = new_name
-            output = PbsOutputComm(conf.smj_name, conf.port, conf.pbs)
+            output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)

@@ -25,7 +25,7 @@ ccom.ssh=comconf.SshConfig()
 #ccom.ssh.host = "localhost"
 
 ccom.ssh.uid = "pavel.richter"
-ccom.ssh.pwd = ""
+ccom.ssh.pwd = "p256v22l"
 ccom.ssh.host = "hydra.kai.tul.cz"
 ccom.scl_enable_exec = "python33"
 ccom.log_level = logging.DEBUG
