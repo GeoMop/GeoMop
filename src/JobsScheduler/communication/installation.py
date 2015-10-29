@@ -235,6 +235,28 @@ class Installation:
         """Return dir for savings results"""
         return self.get_result_dir_static(self.mj_name) 
         
+    @staticmethod
+    def get_config_dir_static(mj_name):
+        """Return dir for savings configuration"""
+        try:
+            path = os.path.join(__install_dir__, __jobs_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path,  mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path,__conf_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logging.warning("Get mj configuration dir error: " + str(err))
+            return "."
+        return path
+
+    def get_config_dir(self):
+        """Return dir for configuration """
+        return self.get_config_dir_static(self.mj_name)         
+        
     def get_mj_data_dir(self):
         """Return dir for savings results"""
         try:
