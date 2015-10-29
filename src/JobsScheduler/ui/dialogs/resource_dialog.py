@@ -273,7 +273,7 @@ class UiResourceDialog(UiFormDialog):
         self.multiJobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.multiJobLabel.setObjectName("multijobLabel")
         self.multiJobLabel.setFont(labelFont)
-        self.multiJobLabel.setText("MultiJob")
+        self.multiJobLabel.setText("MultiJob services")
         self.mainVerticalLayout.addWidget(self.multiJobLabel)
 
         # form layout2
