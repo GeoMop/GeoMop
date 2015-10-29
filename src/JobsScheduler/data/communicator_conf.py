@@ -49,6 +49,7 @@ class ConfigFactory(object):
             ssh.port = preset[3]
             ssh.uid = preset[4]
             ssh.pwd = preset[5]
+            ssh.scl_enable_exec = preset[6]
         return ssh
 
     @staticmethod
@@ -61,7 +62,7 @@ class ConfigFactory(object):
         new communicator is derived from original.
         """
         if communicator is None:
-            com = CommunicatorConfig()
+            com = CommunicatorConfig(mj_name)
         if communicator is not None:
             com = copy.copy(communicator)
         if mj_name is not None:
@@ -156,6 +157,8 @@ class SshConfig(object):
         self.port = "22"
         self.uid = ""
         self.pwd = ""
+        self.scl_enable_exec = None
+        """Enable python exec set name over scl"""
 
 
 class CommunicatorConfig(object):
