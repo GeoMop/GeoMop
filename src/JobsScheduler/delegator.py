@@ -1,5 +1,4 @@
 """delegator test file"""
-import os
 import sys
 import logging
 
@@ -21,10 +20,14 @@ if len(sys.argv) > 2 and sys.argv[2] != "&":
 # Load from json file
 com_conf = comconf.CommunicatorConfig(mj_name)
 directory = inst.Installation.get_config_dir_static(mj_name)
-filename = comconf.CommType.delegator.value + inst.__conf_extension__
-path = os.path.join(directory, filename)
-with open(path, "R") as json_file:
-    comconf.CommunicatorConfigService.load_from_json_file(json_file, com_conf)
+path = comconf.CommunicatorConfigService.get_file_path(
+    directory, comconf.CommType.delegator.value)
+try:
+    with open(path, "R") as json_file:
+        comconf.CommunicatorConfigService.load_file(json_file, com_conf)
+except Exception as error:
+    logging.error(error)
+    raise error
 # Use com_conf instead of ccom
 
 ccom = comconf.CommunicatorConfig(mj_name)
