@@ -21,6 +21,7 @@ __ins_dirs__.append("twoparty")
 __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
 __conf_dir__ = "mj_conf"
+__conf_extension__ = ".json"
 __result_dir__ = "res"
 __status_dir__ = "status"
 
