@@ -34,6 +34,8 @@ class AutocompleteHelper:
             elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
                 self._options.update({'!' + type_: 'type' for type_ in
                                       input_type['implementations']})
+            elif input_type['base_type'] == 'Bool':  # input tye Bool
+                self._options.update({'true': 'bool', 'false': 'bool'})
 
         elif prev_char == '&':  # add anchors
             self._options.update({'&' + anchor: 'anchor' for anchor in self._anchors})
