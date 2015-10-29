@@ -155,6 +155,7 @@ class YamlEditorWidget(QsciScintilla):
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self.elementChanged.connect(self._on_element_changed)
+        self.SCN_AUTOCSELECTION.connect(self._on_autocomplete_selected)
         self._pos = EditorPosition()
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
@@ -321,6 +322,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def indent(self):
         """Indents the selected lines."""
+        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
         from_line, from_col, to_line, to_col = self.getSelection()
         if from_line == -1 and to_line == -1:  # no selection -> insert spaces
             spaces = ''.join([' ' * self.tabWidth()])
@@ -335,6 +337,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def unindent(self):
         """Unindents the selected lines."""
+        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
         from_line, from_col, to_line, to_col = self.getSelection()
         if from_line == -1 and to_line == -1:  # no selection -> unindent current line
             line, col = self.getCursorPosition()
@@ -434,12 +437,26 @@ class YamlEditorWidget(QsciScintilla):
 
     def show_autocomplete(self):
         """Shows autocomplete options for the current cursor position."""
+        if len(self.autocomplete_helper.scintilla_options) == 0:
+            return
+
         # find out how many character are already written
         cur_line, cur_col = self.getCursorPosition()
         prev_text = self.text(cur_line)[0:cur_col]
         word = re.search(r'\S*$', prev_text).group()
         self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
                            self.autocomplete_helper.scintilla_options)
+
+    def _on_autocomplete_selected(self, selected, position):
+        """Handle autocomplete selection."""
+        self.SendScintilla(self.SCI_AUTOCCANCEL)
+        option = selected.decode('utf-8')
+        option_text = self.autocomplete_helper.select_option(option)
+        text = self.text()
+        word_to_replace = re.search(r'^[!&a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
+        end_position = position + len(word_to_replace)
+        self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
+        self.replaceSelectedText(option_text)
 
     @pyqtSlot(str, bool, bool, bool)
     def on_find_requested(self, search_term, is_regex, is_case_sensitive, is_word):
@@ -760,11 +777,13 @@ class EditorPosition:
 
     def reload_autocomplete(self, editor):
         """New line was added"""
-        # TODO change
         if self.pred_parent is not None:
             node = self.pred_parent
         elif self.node is not None:
-            node = self.node
+            if self.cursor_type_position == CursorType.key and self.node.parent is not None:
+                node = self.node.parent
+            else:
+                node = self.node
 
         if node is None or getattr(node, 'input_type', None) is None:
             return False

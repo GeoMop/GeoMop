@@ -28,9 +28,9 @@ class AutocompleteHelper:
         # TODO: prev_char vs first_char ... &an -> &anchor ?
         if prev_char not in AutocompleteHelper.SPECIAL_CHARS:
             if input_type['base_type'] == 'Record':  # input type Record
-                self._options.update({key: 'key' for key in input_type['keys']})
+                self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
             elif input_type['base_type'] == 'Selection':  # input type Selection
-                self._options.update({value['name']: 'selection' for value in input_type['values']})
+                self._options.update({value: 'selection' for value in input_type['values']})
             elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
                 self._options.update({'!' + type_: 'type' for type_ in
                                       input_type['implementations']})

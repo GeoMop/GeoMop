@@ -20,10 +20,10 @@ class TestAutocompleteHelper:
 
     input_type_selection = {
         'base_type': 'Selection',
-        'values': [
-            {'name': 'PETSc'},
-            {'name': 'METIS'}
-        ]
+        'values': {
+            'PETSc': None,
+            'METIS': None
+        }
     }
 
     input_type_abstract_record = {
