@@ -146,10 +146,16 @@ class Communicator():
 
     def _set_loger(self,  path, name, level):
         """set logger"""
+        log_path = os.path.join(path, "log")
+        if not os.path.isdir(log_path):
+            try:
+                os.makedirs(log_path)
+            except:
+                log_path = path
         if self.id is None:
-            log_file = os.path.join(path, "log_" + name +".log")
+            log_file = os.path.join(log_path, name +".log")
         else:
-            log_file = os.path.join(path, "log_" + name + "_" + self.id + ".log")
+            log_file = os.path.join(log_path, name + "_" + self.id + ".log")
         logging.basicConfig(filename=log_file,level=level, 
             format='%(asctime)s %(levelname)s %(message)s')
         logging.info("Application " + self.communicator_name + " is started")

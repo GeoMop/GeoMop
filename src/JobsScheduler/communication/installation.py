@@ -309,7 +309,8 @@ class Installation:
             term = pexpect.spawn('bash')
             term.sendline('cd twoparty/install')            
             term.expect('.*cd twoparty/install.*')
-            log_file= os.path.join(cls.get_result_dir_static(mj_name), "install_job_libs.log")
+            log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
+            log_file= os.path.join(log_file, "install_job_libs.log")
             command = "./install_mpi4.sh " + python_exec + " &>> " + log_file            
             logging.debug("Installation libraries started")
             term.sendline(command)

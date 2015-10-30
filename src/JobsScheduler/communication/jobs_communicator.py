@@ -71,14 +71,14 @@ class JobsCommunicator(Communicator):
         
         logging.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
         t = threading.Thread(target= self._run_action, 
-              args=( self.job_outputs[id].exec_,self._job_semafores[id]))
+              args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
         t.daemon = True
         t.start()
         
-    def _run_action(self, action, semafore):
+    def _run_action(self, action, id, semafore):
         """Run action guardet by semafore"""        
         semafore.acquire()
-        action(self.next_communicator,self.mj_name, self.id)
+        action(self.next_communicator,self.mj_name, id)
         semafore.release()
         
     def install(self):

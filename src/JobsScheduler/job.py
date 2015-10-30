@@ -10,6 +10,18 @@ import data.communicator_conf as comconf
 from communication import Communicator
 from  communication.installation import  Installation
 
+def read_err(err):
+    try:
+        import fdpexpect
+        import pexpect
+        
+        fd = fdpexpect.fdspawn(err)
+        txt = fd.read_nonblocking(size=10000, timeout=5)
+        txt = str(txt, 'utf-8').strip()
+    except pexpect.TIMEOUT:
+        return None
+    return txt
+
 if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
@@ -23,18 +35,17 @@ ccom.log_level = logging.INFO
 ccom.python_exec = "/opt/python/bin/python3.3"
 
 comunicator = Communicator(ccom, mj_id)
-logging.info("Start")
-
 process = subprocess.Popen([ccom.python_exec,"test_task.py", 
     Installation.get_result_dir_static(ccom.mj_name)], stderr=subprocess.PIPE)
 return_code = process.poll()
 if return_code is not None:
-    out = process.stderr.readline()
+    logging.info("read_line")
+    out =  read_err(process.stderr)
     logging.error("Can not start test task (return code: " + str(return_code) + 
         ",stderr:" + out + ")")
 
-time.sleep(5)
-out = process.stderr.readline()
+out = read_err(process.stderr)
+
 if out is not None and len(out)>0 and not out.isspace():
     logging.warning("Message in stderr:" + out)
 
