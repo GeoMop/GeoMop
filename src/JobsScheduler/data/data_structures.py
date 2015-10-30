@@ -125,6 +125,7 @@ class DataContainer(object):
             delegator_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.delegator)
+            delegator_conf.python_exec = resource_preset[10]
             # make app_config path and create folder
             delegator_conf_path = comconf.CommunicatorConfigService \
                 .get_file_path(conf_dir, comconf.CommType.delegator.value)
@@ -161,7 +162,7 @@ class DataContainer(object):
         job_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.job)
-        job_conf.python_exec = resource_preset[10]
+        job_conf.python_exec = resource_preset[11]
         # make job_config path and create folder
         job_conf_path = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.job.value)
@@ -169,6 +170,7 @@ class DataContainer(object):
             remote_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.remote)
+            delegator_conf.python_exec = resource_preset[11]
             # make remote_config path and create folder
             remote_conf_path = comconf.CommunicatorConfigService.get_file_path(
                 conf_dir, comconf.CommType.remote.value)

@@ -15,6 +15,15 @@ class MultiJobInfoTab(QtWidgets.QTabWidget):
         self.ui.setup_ui(self)
         self.show()
 
+    def reload_view(self, files):
+        self.clear()
+        for file in files:
+            tab = QtWidgets.QWidget(self)
+            text = QtWidgets.QTextEdit(tab)
+            with open(file, "r") as fh:
+                text.setText(fh.read())
+            self.addTab(self.tab, file)
+
 
 class UiMultiJobInfoTab(object):
 

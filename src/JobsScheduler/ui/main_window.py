@@ -16,6 +16,7 @@ from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.ssh_presets import SshPresets
 from ui.dialogs.pbs_presets import PbsPresets
+from communication import Communicator
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -24,9 +25,11 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None, data=None):
+    def __init__(self, parent=None, data=None, data_reloader=None):
         super().__init__(parent)
         self.data = data
+        self.data_reloader = data_reloader
+        # self.data_reloader.notify_data_changed = self._handle_data_changed
 
         # setup UI
         self.ui = UiMainWindow()
@@ -132,7 +135,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_run_multijob_action(self):
         key = self.ui.multiJobOverview.currentItem().text(0)
-        self.data.build_config_files(key)
+        app_conf = self.data.build_config_files(key)
+        communicator = Communicator(app_conf)
+        self.data_reloader.install_communicator(key, communicator)
+
+    def _handle_data_changed(self, key):
+        print(self.data.multijobs[key]["logs"])
+        self.ui.multiJobInfoTab.reload_view(self.data.multijobs[key]["logs"])
 
 
 class UiMainWindow(object):

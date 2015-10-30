@@ -23,7 +23,7 @@ logger = logging.getLogger("UiTrace")
 logger.setLevel(logging.DEBUG)
 
 # create console handler and set level to debug
-ch = logging.StreamHandler()
+ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 
 # create formatter
@@ -61,7 +61,8 @@ class JobsScheduler(object):
         self._reloader = DataReloader(self._data)
 
         # setup qt UI
-        self._main_window = MainWindow(data=self._data)
+        self._main_window = MainWindow(data=self._data,
+                                       data_reloader=self._reloader)
 
         # connect reloader kill on app exit
         self._app.aboutToQuit.connect(self._reloader.stop)

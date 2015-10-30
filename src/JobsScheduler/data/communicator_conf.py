@@ -96,7 +96,7 @@ class CommType(Enum):
     app = "app"
     delegator = "delegator"
     remote = "remote"
-    multijob = "multijob"
+    multijob = "mj_service"
     job = "job"
 
 
