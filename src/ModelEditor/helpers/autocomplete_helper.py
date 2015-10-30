@@ -17,7 +17,7 @@ class AutocompleteHelper:
         # define sorting alphabet
         self.sorting_alphabet = list(map(chr, range(48, 57)))  # generate number 0-9
         self.sorting_alphabet.extend(list(map(chr, range(97, 123))))  # generate lowercase alphabet
-        self.sorting_alphabet.extend(['!', '*', '_'])
+        self.sorting_alphabet.extend(['!', '*', '_', '-'])
 
     def create_options(self, input_type):
         """

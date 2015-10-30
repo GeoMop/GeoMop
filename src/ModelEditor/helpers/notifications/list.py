@@ -266,7 +266,10 @@ _NOTIFICATIONS = [
         'name': 'UselessTag',
         'description': 'When tag is found anywhere except AbstractRecord.',
         'message': 'Tag "!{0}" has no effect here',
-        'example': 'example_validation_abstract_record.yaml'
+        'example': None,
+        'deprecated': True
+        # This info can no longer happen. The combination of autoconversions and abstract records
+        # makes this error very hard to detect.
     },
     {
         'code': 902,

@@ -180,7 +180,6 @@ class Loader:
 
     def _create_abstract_record(self, tag):
         """Creates abstract record from parsing events."""
-        invalid_position = False
         tag.value = tag.value[1:]  # remove leading !
         if isinstance(self._event, pyyaml.MappingStartEvent):
             # classic abstract record node
@@ -192,17 +191,11 @@ class Loader:
                 # empty node - construct as mapping
                 node = CompositeNode(True)
                 node.span = temp_node.span
-            else:  # not null - tag has no effect
+            else:  # may be used for autoconversion
                 node = temp_node
-                invalid_position = True
         elif isinstance(self._event, pyyaml.SequenceStartEvent):
             node = self._create_array_node()
-        if invalid_position:
-            notification = Notification.from_name('UselessTag', tag.value)
-            notification.span = tag.span
-            self.notification_handler.report(notification)
-        else:
-            node.type = tag
+        node.type = tag
         return node
 
     def _create_record_node(self):
