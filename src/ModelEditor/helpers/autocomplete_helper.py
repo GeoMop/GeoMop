@@ -1,5 +1,4 @@
 """Module for handling autocomplete in editor."""
-from socket import socket
 
 __author__ = 'Tomas Krizek'
 
@@ -30,6 +29,9 @@ class AutocompleteHelper:
 
         if input_type['base_type'] == 'Record':  # input type Record
             self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
+            if 'implemented_abstract_record' in input_type:
+                self._options.update({'!' + type_: 'type' for type_ in
+                                     input_type['implemented_abstract_record']['implementations']})
         elif input_type['base_type'] == 'Selection':  # input type Selection
             self._options.update({value: 'selection' for value in input_type['values']})
         elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
