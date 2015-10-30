@@ -91,7 +91,6 @@ class ModelEditor:
 
         # set default info text
         self._info.update_from_data({'record_id': cfg.root_input_type['id']})
-        self._editor.autocomplete_helper.create_options(cfg.root_input_type)
 
         # show
         self.mainwindow.show()

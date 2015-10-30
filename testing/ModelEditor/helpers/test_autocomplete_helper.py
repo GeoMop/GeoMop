@@ -58,16 +58,16 @@ class TestAutocompleteHelper:
         """Test adding and clearing anchors."""
         self.achelper.register_anchor('anchor1')
         self.achelper.register_anchor('anchor2')
-        options = self.achelper.create_options(TestAutocompleteHelper.input_type_record, '&')
-        assert len(options) == 2
-        assert '&anchor1' in options
-        assert '&anchor2' in options
+        options = self.achelper.create_options(TestAutocompleteHelper.input_type_record)
+        assert len(options) == 5
+        assert '*anchor1' in options
+        assert '*anchor2' in options
 
     def test_anchor_selection(self):
-        """Anchor should begin with '&'."""
+        """Anchor should begin with '*'."""
         self.achelper.register_anchor('anchor1')
-        options = self.achelper.create_options(TestAutocompleteHelper.input_type_record, '&')
-        assert self.achelper.select_option(options[0]) == '&anchor1'
+        options = self.achelper.create_options(TestAutocompleteHelper.input_type_record)
+        assert self.achelper.select_option(options[3]) == '*anchor1'
 
     def test_selection_options(self):
         """Test if selection option are correct."""

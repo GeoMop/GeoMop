@@ -1,12 +1,11 @@
 """Module for handling autocomplete in editor."""
+from socket import socket
 
 __author__ = 'Tomas Krizek'
 
 
 class AutocompleteHelper:
     """Helper class for creating and managing autocomplete options in editor."""
-
-    SPECIAL_CHARS = ['&']
 
     def __init__(self):
         """Initializes the class."""
@@ -15,33 +14,38 @@ class AutocompleteHelper:
         self.scintilla_options = ''
         """the QScintilla options string encoded in utf-8"""
 
-    def create_options(self, input_type, prev_char=''):
+        # define sorting alphabet
+        self.sorting_alphabet = list(map(chr, range(48, 57)))  # generate number 0-9
+        self.sorting_alphabet.extend(list(map(chr, range(97, 123))))  # generate lowercase alphabet
+        self.sorting_alphabet.extend(['!', '*', '_'])
+
+    def create_options(self, input_type):
         """
-        Creates a list of options based on the input type and previous character in editor.
-        Each option is identified by a string.
+        Creates a list of options based on the input type. Each option is identified by a string.
 
         Returns a list of string (option identifiers) that should be displayed as QScintilla
         autocomplete options.
         """
         self._options.clear()
 
-        # TODO: prev_char vs first_char ... &an -> &anchor ?
-        if prev_char not in AutocompleteHelper.SPECIAL_CHARS:
-            if input_type['base_type'] == 'Record':  # input type Record
-                self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
-            elif input_type['base_type'] == 'Selection':  # input type Selection
-                self._options.update({value: 'selection' for value in input_type['values']})
-            elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
-                self._options.update({'!' + type_: 'type' for type_ in
-                                      input_type['implementations']})
-            elif input_type['base_type'] == 'Bool':  # input tye Bool
-                self._options.update({'true': 'bool', 'false': 'bool'})
+        if input_type['base_type'] == 'Record':  # input type Record
+            self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
+        elif input_type['base_type'] == 'Selection':  # input type Selection
+            self._options.update({value: 'selection' for value in input_type['values']})
+        elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
+            self._options.update({'!' + type_: 'type' for type_ in
+                                  input_type['implementations']})
+        elif input_type['base_type'] == 'Bool':  # input tye Bool
+            self._options.update({'true': 'bool', 'false': 'bool'})
 
-        elif prev_char == '&':  # add anchors
-            self._options.update({'&' + anchor: 'anchor' for anchor in self._anchors})
+        # add anchors
+        self._options.update({'*' + anchor: 'anchor' for anchor in self._anchors})
 
-        self.scintilla_options = (' '.join(sorted(list(self._options.keys())))).encode('utf-8')
-        return list(self._options.keys())
+        # sort and create scintilla options string
+        sorted_options = sorted(list(self._options.keys()), key=self._sorting_key)
+        self.scintilla_options = (' '.join(sorted_options)).encode('utf-8')
+
+        return sorted_options
 
     def select_option(self, option_string):
         """
@@ -66,3 +70,10 @@ class AutocompleteHelper:
     def clear_anchors(self):
         """Clears the anchor list."""
         self._anchors.clear()
+
+    def _sorting_key(self, word):
+        """A key for sorting the options."""
+        numbers = []
+        for letter in word.lower():
+            numbers.append(self.sorting_alphabet.index(letter))
+        return numbers

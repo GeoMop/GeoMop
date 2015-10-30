@@ -82,8 +82,6 @@ class YamlEditorWidget(QsciScintilla):
         triggering a reload function
         """
 
-        self.autocomplete_helper = AutocompleteHelper()
-
         appearance.set_default_appearens(self)
 
         # Set Yaml lexer
@@ -118,9 +116,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # Completetion
-        self.api = QsciAPIs(self._lexer)
-        self.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.setAutoCompletionThreshold(1)
+        self.SendScintilla(QsciScintilla.SCI_AUTOCSETORDER, QsciScintilla.SC_ORDER_CUSTOM)
 
         # not too small
         self.setMinimumSize(600, 450)
@@ -227,7 +223,11 @@ class YamlEditorWidget(QsciScintilla):
     @property
     def pred_parent(self):
         """return parent node for new created node (if node already exist in structure, return None)"""
-        return self._pos.pred_parent
+        pred_parent = self._pos.pred_parent
+        if pred_parent is not None:
+            while getattr(pred_parent, 'parent') is not None and pred_parent.origin == NodeOrigin.ac_reducible_to_key:
+                pred_parent = pred_parent.parent
+        return pred_parent
         
     @property
     def curr_node(self):
@@ -437,23 +437,25 @@ class YamlEditorWidget(QsciScintilla):
 
     def show_autocomplete(self):
         """Shows autocomplete options for the current cursor position."""
-        if len(self.autocomplete_helper.scintilla_options) == 0:
+        if len(cfg.autocomplete_helper.scintilla_options) == 0:
             return
 
         # find out how many character are already written
         cur_line, cur_col = self.getCursorPosition()
         prev_text = self.text(cur_line)[0:cur_col]
         word = re.search(r'\S*$', prev_text).group()
+        # if word.startswith('*'):
+        #     self.autocomplete_helper.create_options()
         self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
-                           self.autocomplete_helper.scintilla_options)
+                           cfg.autocomplete_helper.scintilla_options)
 
     def _on_autocomplete_selected(self, selected, position):
         """Handle autocomplete selection."""
         self.SendScintilla(self.SCI_AUTOCCANCEL)
         option = selected.decode('utf-8')
-        option_text = self.autocomplete_helper.select_option(option)
+        option_text = cfg.autocomplete_helper.select_option(option)
         text = self.text()
-        word_to_replace = re.search(r'^[!&a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
+        word_to_replace = re.search(r'^[!*a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
         end_position = position + len(word_to_replace)
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
         self.replaceSelectedText(option_text)
@@ -777,8 +779,8 @@ class EditorPosition:
 
     def reload_autocomplete(self, editor):
         """New line was added"""
-        if self.pred_parent is not None:
-            node = self.pred_parent
+        if editor.pred_parent is not None:
+            node = editor.pred_parent
         elif self.node is not None:
             if self.cursor_type_position == CursorType.key and self.node.parent is not None:
                 node = self.node.parent
@@ -788,7 +790,7 @@ class EditorPosition:
         if node is None or getattr(node, 'input_type', None) is None:
             return False
 
-        editor.autocomplete_helper.create_options(node.input_type)
+        cfg.autocomplete_helper.create_options(node.input_type)
         return True
 
     def node_init(self, node, editor):
