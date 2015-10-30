@@ -13,7 +13,7 @@ from ui.dialogs.json_editor import JsonEditorDlg
 from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from data import Position
+from helpers import Position
 from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
@@ -158,7 +158,7 @@ class ModelEditor:
                                         CursorType.parent.value)
             return
         if self._editor.curr_node is not None:
-            self._info.update_from_node(self._editor.curr_node, cursor_type)   
+            self._info.update_from_node(self._editor.curr_node, cursor_type)
 
     def _on_node_selected(self, line, column):
         """Handles nodeSelected event from editor."""

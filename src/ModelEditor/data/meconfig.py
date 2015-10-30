@@ -7,7 +7,7 @@ import copy
 import PyQt5.QtWidgets as QtWidgets
 
 import config as cfg
-from helpers import NotificationHandler
+from helpers import NotificationHandler, AutocompleteHelper
 from ist import InfoTextGenerator
 from helpers.subyaml import StructureAnalyzer
 
@@ -116,6 +116,8 @@ class MEConfig:
     """Static data class"""
     notification_handler = NotificationHandler()
     """error handler for reporting and buffering errors"""
+    autocomplete_helper = AutocompleteHelper()
+    """helpers for handling autocomplete options in editor"""
     format_files = []
     """Array of format files"""
     transformation_files = []
@@ -334,6 +336,9 @@ class MEConfig:
         """reread yaml text and update node tree"""
         cls.notification_handler.clear()
         cls.root = cls.loader.load(cls.document)
+        cls.autocomplete_helper.clear_anchors()
+        for anchor in cls.loader.anchors:
+            cls.autocomplete_helper.register_anchor(anchor)
         cls.notifications = cls.notification_handler.notifications
         if cls.root_input_type is None or cls.root is None:
             return
@@ -350,6 +355,7 @@ class MEConfig:
         text = cls.get_curr_format_text()
         cls.root_input_type = get_root_input_type_from_json(text)
         InfoTextGenerator.init(text)
+        cls.autocomplete_helper.create_options(cls.root_input_type)
         cls.update()
 
     @classmethod

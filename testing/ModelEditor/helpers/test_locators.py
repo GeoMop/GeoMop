@@ -4,7 +4,7 @@ Tests for locators.
 
 __author__ = 'Tomas Krizek'
 
-from data import Position
+from helpers import Position
 
 
 def test_position():
