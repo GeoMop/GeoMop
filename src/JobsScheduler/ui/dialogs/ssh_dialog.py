@@ -217,7 +217,7 @@ class UiSshDialog(UiFormDialog):
         self.sclEnableLineEdit.setDisabled(True)
         self.sclEnableCheckBox = QtWidgets.QCheckBox(
             self.mainVerticalLayoutWidget)
-        self.showPushButton.setObjectName("sclEnableCheckBox")
+        self.sclEnableCheckBox.setObjectName("sclEnableCheckBox")
         self.sclEnableRowSplit.addWidget(self.sclEnableCheckBox)
         self.sclEnableRowSplit.addWidget(self.sclEnableLineEdit)
         self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,

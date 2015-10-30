@@ -104,6 +104,7 @@ class DataContainer(object):
         # setup basic conf
         basic_conf = comconf.ConfigFactory.get_communicator_config(
             mj_name=mj_name, log_level=mj_log_level)
+        basic_conf.number_of_processes = mj_number_of_processes
 
         # before mj configs SSH or EXEC
         app_conf = comconf.ConfigFactory.get_communicator_config(
@@ -137,6 +138,7 @@ class DataContainer(object):
         mj_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.multijob)
+        mj_conf.python_exec = resource_preset[10]
         # make app_config path and create folder
         mj_path_string = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.multijob.value)
@@ -159,6 +161,7 @@ class DataContainer(object):
         job_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.job)
+        job_conf.python_exec = resource_preset[10]
         # make job_config path and create folder
         job_conf_path = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.job.value)
