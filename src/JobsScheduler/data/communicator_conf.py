@@ -171,8 +171,8 @@ class CommunicatorConfig(object):
         self.python_exec = "python3"
         """Python exec command"""
 
-        self.scl_enable_exec = None
-        """Enable python exec set name over scl"""
+        self.number_of_processes = 1
+        """ Number of processes in multijob or job, everywhere else is 1"""
 
         self.ssh = None
         """Ssh settings class :class:`data.communicator_conf.SshConfig`"""

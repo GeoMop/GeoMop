@@ -7,7 +7,6 @@ import time
 import logging
 import subprocess
 from communication.installation import Installation
-import communication.installation as inst
 import data.communicator_conf as comconf
 from communication import Communicator
 
@@ -18,23 +17,25 @@ mj_name = sys.argv[1]
 if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
+"""
 # Load from json file
 com_conf = comconf.CommunicatorConfig(mj_name)
 directory = inst.Installation.get_config_dir_static(mj_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.job.value)
 try:
-    with open(path, "R") as json_file:
+    with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
 except Exception as error:
     logging.error(error)
     raise error
 # Use com_conf instead of ccom
+"""
 
 ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "job"
 ccom.log_level = logging.INFO
-ccom.python_exec = "/opt/python/bin/python3.3"
+# ccom.python_exec = "/opt/python/bin/python3"
 
 comunicator = Communicator(ccom, mj_id)
 logging.info("Start")
