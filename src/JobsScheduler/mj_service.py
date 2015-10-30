@@ -9,6 +9,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 
 from communication import JobsCommunicator
 import data.communicator_conf as comconf
+import communication.installation as inst
 
 def  mj_action_function_before(message):
     """before action function"""
@@ -36,7 +37,7 @@ mj_name = sys.argv[1]
 if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
-"""
+
 # Load from json file
 com_conf = comconf.CommunicatorConfig(mj_name)
 directory = inst.Installation.get_config_dir_static(mj_name)
@@ -49,7 +50,7 @@ except Exception as error:
     logging.error(error)
     raise error
 # Use com_conf instead of ccom
-"""
+
 
 ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "mj_service"
@@ -65,7 +66,8 @@ ccom.output_type = comconf.OutputCommType.exec_
 # ccom.pbs.with_socket = False
 # ccom.pbs.name = "test"
 
-comunicator = JobsCommunicator(ccom, mj_id, mj_action_function_before, mj_action_function_after, mj_idle_function)
+comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
+                               mj_action_function_after, mj_idle_function)
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()

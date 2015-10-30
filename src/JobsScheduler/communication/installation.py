@@ -127,18 +127,31 @@ class Installation:
             # copy mj configuration directory
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
-                mj_path =  os.path.join(__install_dir__, mjs_dir )
+                mj_path = os.path.join(__install_dir__, mjs_dir)
+                conn.sendline('cd ' + mjs_dir)
+                conn.expect('.*cd ' + mjs_dir + "\r\n")
+                conn.expect("sftp> ")
+                if len(conn.before) > 0:
+                    logging.warning("Sftp message (cd " + mjs_dir + "): " +
+                                    str(conn.before, 'utf-8').strip())
                 conn.sendline('lcd ' + mj_path)
                 conn.expect('.*lcd ' + mj_path)
-                conn.sendline('put -r ' +  __conf_dir__)
+                conn.sendline('put -r ' + __conf_dir__)
                 conn.expect('.*put -r ' + __conf_dir__ + "\r\n")
                 end=0
                 while end==0:
                     #wait 2s after last message
                     end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                     if end == 0 and len(conn.before)>0:
-                        logging.debug("Sftp message(put -r " + __conf_dir__  + "): " + 
-                                                str(conn.before, 'utf-8').strip())                    
+                        logging.debug(
+                            "Sftp message(put -r " + __conf_dir__ + "): " +
+                            str(conn.before, 'utf-8').strip())
+            conn.sendline('cd ' + self.copy_path)
+            conn.expect('.*cd ' + self.copy_path + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before) > 0:
+                logging.warning("Sftp message (cd root): " + str(conn.before,
+                                                                 'utf-8').strip())
             conn.sendline('lcd ' + __install_dir__)
             conn.expect('.*lcd ' + __install_dir__ + "\r\n")
             for name in self.ins_files:

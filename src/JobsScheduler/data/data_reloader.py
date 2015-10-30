@@ -13,12 +13,12 @@ from time import sleep
 
 
 class DataReloader(Thread):
-    _isRunning = False
-    data = None
 
     def __init__(self, data=None):
         super(DataReloader, self).__init__()
         self.data = data
+        self._isRunning = False
+        self.communicators = list()
 
     def run(self):
         self._isRunning = True
@@ -28,3 +28,5 @@ class DataReloader(Thread):
 
     def stop(self):
         self._isRunning = False
+
+        # def add_communicator

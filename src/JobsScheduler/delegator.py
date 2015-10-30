@@ -7,6 +7,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(2, './twoparty/enum')
 
 import data.communicator_conf as comconf
+import communication.installation as inst
 from communication import Communicator
 
 if len(sys.argv)<2:
@@ -16,7 +17,6 @@ mj_name = sys.argv[1]
 if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
-"""
 # Load from json file
 com_conf = comconf.CommunicatorConfig(mj_name)
 directory = inst.Installation.get_config_dir_static(mj_name)
@@ -29,7 +29,6 @@ except Exception as error:
     logging.error(error)
     raise error
 # Use com_conf instead of ccom
-"""
 
 ccom = comconf.CommunicatorConfig(mj_name)
 ccom.communicator_name = "delegator"
@@ -43,7 +42,7 @@ ccom.input_type = comconf.InputCommType.std
 #ccom.pbs.name = "mj_service"
 ccom.output_type = comconf.OutputCommType.exec_
 
-comunicator = Communicator(ccom, mj_id)
+comunicator = Communicator(com_conf, mj_id)
 
 logging.error("Name: " + __name__)
 

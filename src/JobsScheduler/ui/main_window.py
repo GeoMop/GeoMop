@@ -100,7 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_EDIT)
             key = self.ui.multiJobOverview.currentItem().text(0)
-            data = list(self.data.multijobs[key])  # list to make a copy
+            data = list(self.data.multijobs[key]["preset"])
             data.insert(0, key)  # insert id
             self.mj_dlg.set_data(tuple(data))
             self.mj_dlg.show()
@@ -109,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_COPY)
             key = self.ui.multiJobOverview.currentItem().text(0)
-            data = list(self.data.multijobs[key])
+            data = list(self.data.multijobs[key]["preset"])
             data.insert(0, None)  # insert empty id
             data[1] = self.mj_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
             self.mj_dlg.set_data(tuple(data))
@@ -124,9 +124,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_multijob_dialog(self, purpose, data):
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
-            self.data.multijobs[key] = list(data[1:])
+            self.data.multijobs[key] = dict()
+            self.data.multijobs[key]["preset"] = list(data[1:])
         else:
-            self.data.multijobs[data[0]] = list(data[1:])
+            self.data.multijobs[data[0]]["preset"] = list(data[1:])
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):

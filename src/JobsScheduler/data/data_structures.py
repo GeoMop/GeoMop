@@ -94,7 +94,7 @@ class DataContainer(object):
         Build json config files into the ./jobs/mj_name/mj_conf
         """
         # multijob properties
-        mj_preset_config = self.multijobs[key]
+        mj_preset_config = self.multijobs[key]["preset"]
         mj_name = mj_preset_config[0]
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
