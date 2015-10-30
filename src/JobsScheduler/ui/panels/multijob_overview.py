@@ -24,6 +24,6 @@ class MultiJobOverview(QtWidgets.QTreeWidget):
             for key in data:
                 row = QtWidgets.QTreeWidgetItem(self)
                 row.setText(0, str(key))
-                for col_id, item in enumerate(data[key][0:2]):
+                for col_id, item in enumerate(data[key]["preset"][0:2]):
                     row.setText(col_id + 1, str(item))
 

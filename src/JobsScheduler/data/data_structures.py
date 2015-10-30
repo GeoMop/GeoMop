@@ -5,10 +5,12 @@ JobScheduler data structures
 @contact: jan.gabriel@tul.cz
 """
 import logging
-import os
+
+logger = logging.getLogger("UiTrace")
 
 import config as cfg
-import data.communicator_conf as comcfg
+import data.communicator_conf as comconf
+from communication import installation as inst
 from ui.dialogs.resource_dialog import UiResourceDialog
 
 
@@ -18,7 +20,6 @@ class PersistentDict(dict):
 
     def save(self):
         cfg.save_config_file(self.NAME, dict(self.items()), self.DIR)
-        logging.info('%s saved successfully.', self.__class__.__name__)
 
     def load(self, clear=True):
         tmp = cfg.get_config_file(self.NAME, self.DIR)
@@ -26,7 +27,6 @@ class PersistentDict(dict):
             self.clear()
         if tmp:
             self.update(tmp.items())
-        logging.info('%s loaded successfully.', self.__class__.__name__)
 
 
 class MultiJobData(PersistentDict):
@@ -50,10 +50,6 @@ class ResourcesData(PersistentDict):
 
 
 class DataContainer(object):
-    DUMP_PATH = (".", "jobs")
-    CONFIG_FOLDER = ("mj_conf")
-    FILE_EXTENSION = ".json"
-
     multijobs = MultiJobData()
     ssh_presets = SshData()
     pbs_presets = PbsData()
@@ -70,7 +66,7 @@ class DataContainer(object):
         self.ssh_presets.save()
         self.pbs_presets.save()
         self.resource_presets.save()
-        logging.info('==== Everything saved successfully! ====')
+        logger.info('==== Everything saved successfully! ====')
 
     def load_all(self):
         """
@@ -91,14 +87,14 @@ class DataContainer(object):
         self.resource_presets.load()
         if not self.resource_presets:
             self.resource_presets = ResourcesData()
-        logging.info('==== Everything loaded successfully! ====')
+        logger.info('==== Everything loaded successfully! ====')
 
-    def build_config_files(self, key, path=DUMP_PATH):
+    def build_config_files(self, key):
         """
         Build json config files into the ./jobs/mj_name/mj_conf
         """
         # multijob properties
-        mj_preset_config = self.multijobs[key]
+        mj_preset_config = self.multijobs[key]["preset"]
         mj_name = mj_preset_config[0]
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
@@ -106,110 +102,105 @@ class DataContainer(object):
         mj_number_of_processes = mj_preset_config[5]
 
         # setup basic conf
-        basic_conf = comcfg.ConfigFactory.get_communicator_config(
+        basic_conf = comconf.ConfigFactory.get_communicator_config(
             mj_name=mj_name, log_level=mj_log_level)
-
-        # setup base path
-        base_path = list(path)
-        base_path.append(mj_name)
-        base_path.append(self.CONFIG_FOLDER)
-        os.makedirs(os.path.dirname(os.path.join(*base_path)), exist_ok=True)
+        basic_conf.number_of_processes = mj_number_of_processes
 
         # before mj configs SSH or EXEC
-        app_conf = comcfg.ConfigFactory.get_communicator_config(
+        app_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
-            preset_type=comcfg.CommType.app)
+            preset_type=comconf.CommType.app)
         delegator_conf = None
-        delegator_path_string = None
+        delegator_conf_path = None
         # make app_config path and create folder
-        app_path = list(base_path)
-        app_path.append(app_conf.communicator_name + self.FILE_EXTENSION)
-        app_path_string = os.path.join(*app_path)
+        conf_dir = inst.Installation.get_config_dir_static(mj_name)
+        app_conf_path = comconf.CommunicatorConfigService.get_file_path(
+            conf_dir, comconf.CommType.app.value)
         if resource_preset[2] == UiResourceDialog.DELEGATOR_LABEL:
-            app_conf.next_communicator = comcfg.CommType.delegator.value
-            app_conf.output_type = comcfg.OutputCommType.ssh
-            app_conf.ssh = comcfg.ConfigFactory.get_ssh_config(
+            app_conf.next_communicator = comconf.CommType.delegator.value
+            app_conf.output_type = comconf.OutputCommType.ssh
+            app_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[3]])
             # delegator config PBS or EXEC
-            delegator_conf = comcfg.ConfigFactory.get_communicator_config(
+            delegator_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
-                preset_type=comcfg.CommType.delegator)
+                preset_type=comconf.CommType.delegator)
             # make app_config path and create folder
-            delegator_path = list(base_path)
-            delegator_path.append(delegator_conf.communicator_name +
-                                  self.FILE_EXTENSION)
-            delegator_path_string = os.path.join(*delegator_path)
+            delegator_conf_path = comconf.CommunicatorConfigService \
+                .get_file_path(conf_dir, comconf.CommType.delegator.value)
             if resource_preset[4] == UiResourceDialog.PBS_LABEL:
-                delegator_conf.output_type = comcfg.OutputCommType.pbs
-                delegator_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
+                delegator_conf.output_type = comconf.OutputCommType.pbs
+                delegator_conf.pbs = comconf.ConfigFactory.get_pbs_config(
                     preset=self.pbs_presets[resource_preset[5]],
                     with_socket=True)
 
         # mj configs
-        mj_conf = comcfg.ConfigFactory.get_communicator_config(
+        mj_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
-            preset_type=comcfg.CommType.multijob)
+            preset_type=comconf.CommType.multijob)
+        mj_conf.python_exec = resource_preset[10]
         # make app_config path and create folder
-        mj_path = list(base_path)
-        mj_path.append(mj_conf.communicator_name + self.FILE_EXTENSION)
-        mj_path_string = os.path.join(*mj_path)
+        mj_path_string = comconf.CommunicatorConfigService.get_file_path(
+            conf_dir, comconf.CommType.multijob.value)
         if resource_preset[4] == UiResourceDialog.PBS_LABEL:
-            mj_conf.input_type = comcfg.InputCommType.pbs
+            mj_conf.input_type = comconf.InputCommType.pbs
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
-            mj_conf.next_communicator = comcfg.CommType.remote.value
-            mj_conf.output_type = comcfg.OutputCommType.ssh
-            mj_conf.ssh = comcfg.ConfigFactory.get_ssh_config(
+            mj_conf.next_communicator = comconf.CommType.remote.value
+            mj_conf.output_type = comconf.OutputCommType.ssh
+            mj_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[7]])
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
-            mj_conf.next_communicator = comcfg.CommType.remote.value
-            mj_conf.output_type = comcfg.OutputCommType.pbs
-            mj_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
+            mj_conf.next_communicator = comconf.CommType.remote.value
+            mj_conf.output_type = comconf.OutputCommType.pbs
+            mj_conf.pbs = comconf.ConfigFactory.get_pbs_config(
                 preset=self.pbs_presets[resource_preset[9]])
 
         # after mj configs EXEC or REMOTE or PBS
         remote_conf = None
-        remote_path_string = None
-        job_conf = comcfg.ConfigFactory.get_communicator_config(
+        remote_conf_path = None
+        job_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
-            preset_type=comcfg.CommType.job)
+            preset_type=comconf.CommType.job)
+        job_conf.python_exec = resource_preset[10]
         # make job_config path and create folder
-        job_path = list(base_path)
-        job_path.append(job_conf.communicator_name + self.FILE_EXTENSION)
-        job_path_string = os.path.join(*job_path)
+        job_conf_path = comconf.CommunicatorConfigService.get_file_path(
+            conf_dir, comconf.CommType.job.value)
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
-            remote_conf = comcfg.ConfigFactory.get_communicator_config(
+            remote_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
-                preset_type=comcfg.CommType.remote)
+                preset_type=comconf.CommType.remote)
             # make remote_config path and create folder
-            remote_path = list(base_path)
-            remote_path.append(remote_conf.communicator_name +
-                               self.FILE_EXTENSION)
-            remote_path_string = os.path.join(*remote_path)
+            remote_conf_path = comconf.CommunicatorConfigService.get_file_path(
+                conf_dir, comconf.CommType.remote.value)
             if resource_preset[8] == UiResourceDialog.PBS_LABEL:
-                remote_conf.output_type = comcfg.OutputCommType.pbs
-                remote_conf.pbs = comcfg.ConfigFactory.get_pbs_config(
+                remote_conf.output_type = comconf.OutputCommType.pbs
+                remote_conf.pbs = comconf.ConfigFactory.get_pbs_config(
                     preset=self.pbs_presets[resource_preset[9]])
-                job_conf.input_type = comcfg.InputCommType.pbs
+                job_conf.input_type = comconf.InputCommType.pbs
             elif resource_preset[8] == UiResourceDialog.EXEC_LABEL:
-                job_conf.input_type = comcfg.InputCommType.std
+                job_conf.input_type = comconf.InputCommType.std
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
-            job_conf.input_type = comcfg.InputCommType.pbs
+            job_conf.input_type = comconf.InputCommType.pbs
 
         # save to files
-        with open(app_path_string, "w") as app_file:
-            app_conf.save_to_json_file(app_file)
+        with open(app_conf_path, "w") as app_file:
+            comconf.CommunicatorConfigService.save_file(
+                app_file, app_conf)
         if delegator_conf:
-            with open(delegator_path_string, "w") as delegator_file:
-                delegator_conf.save_to_json_file(delegator_file)
+            with open(delegator_conf_path, "w") as delegator_file:
+                comconf.CommunicatorConfigService.save_file(
+                    delegator_file, delegator_conf)
         with open(mj_path_string, "w") as mj_file:
-            mj_conf.save_to_json_file(mj_file)
+            comconf.CommunicatorConfigService.save_file(
+                mj_file, mj_conf)
         if remote_conf:
-            with open(remote_path_string, "w") as remote_file:
-                remote_conf.save_to_json_file(remote_file)
-        with open(job_path_string, "w") as job_file:
-            job_conf.save_to_json_file(job_file)
-        logging.info('==== All configs dumped to JSON in %s! ====',
-                     os.path.join(*base_path))
+            with open(remote_conf_path, "w") as remote_file:
+                comconf.CommunicatorConfigService.save_file(
+                    remote_file, remote_conf)
+        with open(job_conf_path, "w") as job_file:
+            comconf.CommunicatorConfigService.save_file(
+                job_file, job_conf)
+        logger.info('==== All configs dumped to JSON in %s! ====', conf_dir)
 
         # return app_config, it is always entry point for next operations
         return app_conf

@@ -5,7 +5,6 @@ Basic dialogs templates
 @contact: jan.gabriel@tul.cz
 """
 
-import logging
 import uuid
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -53,7 +52,6 @@ class AFormDialog(QtWidgets.QDialog):
 
     def accept(self):
         super(AFormDialog, self).accept()
-        logging.info('%s accepted.', self.__class__.__name__)
         self.accepted.emit(self.purpose, self.get_data())
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
@@ -210,7 +208,6 @@ class APresetsDialog(QtWidgets.QDialog):
             self.presets[key] = list(data[1:])
         else:
             self.presets[data[0]] = list(data[1:])
-        logging.info('%s handled.', self.__class__.__name__)
         self.presets_changed.emit(self.presets)
 
     def _connect_slots(self):

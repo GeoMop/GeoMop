@@ -6,9 +6,10 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 import time
 import logging
 import subprocess
+from communication.installation import Installation
 import data.communicator_conf as comconf
+import communication.installation as inst
 from communication import Communicator
-from  communication.installation import  Installation
 
 def read_err(err):
     try:
@@ -26,17 +27,25 @@ if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
 mj_name = sys.argv[1]
-if len(sys.argv)>2  and sys.argv[2] != "&":
+if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
-ccom = comconf.CommunicatorConfig(mj_name)
-ccom.communicator_name = "job"
-ccom.log_level = logging.INFO
-ccom.python_exec = "/opt/python/bin/python3.3"
-
-comunicator = Communicator(ccom, mj_id)
-process = subprocess.Popen([ccom.python_exec,"test_task.py", 
-    Installation.get_result_dir_static(ccom.mj_name)], stderr=subprocess.PIPE)
+# Load from json file
+com_conf = comconf.CommunicatorConfig(mj_name)
+directory = inst.Installation.get_config_dir_static(mj_name)
+path = comconf.CommunicatorConfigService.get_file_path(
+    directory, comconf.CommType.job.value)
+try:
+    with open(path, "r") as json_file:
+        comconf.CommunicatorConfigService.load_file(json_file, com_conf)
+except Exception as error:
+    logging.error(error)
+    raise error
+# Use com_conf instead of ccom
+comunicator = Communicator(com_conf, mj_id)
+logging.info("Start")
+process = subprocess.Popen([com_conf.python_exec,"test_task.py", 
+    Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
 return_code = process.poll()
 if return_code is not None:
     logging.info("read_line")

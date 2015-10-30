@@ -133,7 +133,9 @@ class Communicator():
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_install_params(conf.python_exec,  conf.scl_enable_exec)    
+        output.set_install_params(conf.python_exec,
+                                  None if conf.ssh is None else
+                                  conf.ssh.scl_enable_exec)
         return output
         
     def _load_status(self,  mj_name):
