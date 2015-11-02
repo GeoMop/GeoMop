@@ -112,6 +112,7 @@ class _Config:
                 return self.format_files[i]
         return None
 
+
 class MEConfig:
     """Static data class"""
     notification_handler = NotificationHandler()
@@ -166,7 +167,7 @@ class MEConfig:
         """read names of format files in format files directory"""
         from os import listdir
         from os.path import isfile, join
-        for file_name in listdir(__format_dir__):
+        for file_name in sorted(listdir(__format_dir__)):
             if (isfile(join(__format_dir__, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.format_files.append(file_name[:-5])
