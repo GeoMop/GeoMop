@@ -1,7 +1,5 @@
 """Model dialog static parameters"""
 
-__author__ = ['Pavel Richter', 'Tomas Krizek']
-
 import os
 import copy
 import PyQt5.QtWidgets as QtWidgets
@@ -18,8 +16,9 @@ from .validation import Validator
 from .format import get_root_input_type_from_json
 from .autoconversion import autoconvert
 
-__resource_dir__ = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-                                'resources')
+__author__ = ['Pavel Richter', 'Tomas Krizek']
+
+__resource_dir__ = os.path.join(os.getcwd(), 'resources')
 __format_dir__ = os.path.join(__resource_dir__, 'format')
 __transformation_dir__ = os.path.join(__resource_dir__, 'transformation')
 
