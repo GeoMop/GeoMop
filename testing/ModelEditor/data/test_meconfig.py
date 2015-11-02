@@ -91,7 +91,6 @@ def test_meconfig_static(request):
     cfg._read_format_files()
 
     # read format files
-    assert len(cfg.format_files) == 1
     assert '1.8.2' in cfg.format_files
 
     cfg.curr_format_file = None
