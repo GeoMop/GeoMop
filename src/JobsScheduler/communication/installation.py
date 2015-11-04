@@ -127,18 +127,31 @@ class Installation:
             # copy mj configuration directory
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
-                mj_path =  os.path.join(__install_dir__, mjs_dir )
+                mj_path = os.path.join(__install_dir__, mjs_dir)
+                conn.sendline('cd ' + mjs_dir)
+                conn.expect('.*cd ' + mjs_dir + "\r\n")
+                conn.expect("sftp> ")
+                if len(conn.before) > 0:
+                    logging.warning("Sftp message (cd " + mjs_dir + "): " +
+                                    str(conn.before, 'utf-8').strip())
                 conn.sendline('lcd ' + mj_path)
                 conn.expect('.*lcd ' + mj_path)
-                conn.sendline('put -r ' +  __conf_dir__)
+                conn.sendline('put -r ' + __conf_dir__)
                 conn.expect('.*put -r ' + __conf_dir__ + "\r\n")
                 end=0
                 while end==0:
                     #wait 2s after last message
                     end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                     if end == 0 and len(conn.before)>0:
-                        logging.debug("Sftp message(put -r " + __conf_dir__  + "): " + 
-                                                str(conn.before, 'utf-8').strip())                    
+                        logging.debug(
+                            "Sftp message(put -r " + __conf_dir__ + "): " +
+                            str(conn.before, 'utf-8').strip())
+            conn.sendline('cd ' + self.copy_path)
+            conn.expect('.*cd ' + self.copy_path + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before) > 0:
+                logging.warning("Sftp message (cd root): " + str(conn.before,
+                                                                 'utf-8').strip())
             conn.sendline('lcd ' + __install_dir__)
             conn.expect('.*lcd ' + __install_dir__ + "\r\n")
             for name in self.ins_files:
@@ -235,6 +248,28 @@ class Installation:
         """Return dir for savings results"""
         return self.get_result_dir_static(self.mj_name) 
         
+    @staticmethod
+    def get_config_dir_static(mj_name):
+        """Return dir for configuration"""
+        try:
+            path = os.path.join(__install_dir__, __jobs_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path,  mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path,__conf_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logging.warning("Get mj configuration dir error: " + str(err))
+            return "."
+        return path
+
+    def get_config_dir(self):
+        """Return dir for configuration """
+        return self.get_config_dir_static(self.mj_name)         
+        
     def get_mj_data_dir(self):
         """Return dir for savings results"""
         try:
@@ -271,12 +306,12 @@ class Installation:
             return None
         return path 
 
-    def install_job_libs(self):
+    def install_job_libs(self, mpicc):
         """Return dir for savings status"""
-        self.install_job_libs_static(self.mj_name, self.python_exec)
+        self.install_job_libs_static(self.mj_name, self.python_exec, mpicc)
     
     @classmethod
-    def install_job_libs_static(cls, mj_name, python_exec):
+    def install_job_libs_static(cls, mj_name, python_exec, mpicc):
         """Return dir for savings status"""
         if sys.platform == "win32":
             #ToDo if is needed
@@ -287,12 +322,23 @@ class Installation:
             term = pexpect.spawn('bash')
             term.sendline('cd twoparty/install')            
             term.expect('.*cd twoparty/install.*')
-            log_file= os.path.join(cls.get_result_dir_static(mj_name), "install_job_libs.log")
-            command = "./install_mpi4.sh " + python_exec + " &>> " + log_file            
+            log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
+            log_file= os.path.join(log_file, "install_job_libs.log")
+            if mpicc is None:
+                command = "./install_mpi4.sh " + python_exec + " &>> " + log_file
+            else:
+                command = "./install_mpi4.sh " + python_exec  + " " + mpicc +  \
+                                 " &>> " + log_file 
+            logging.debug("Installation libraries started")
             term.sendline(command)
             time.sleep(1)
-            term.expect('.*install.*') 
-            term.expect('.*install.*', timeout=600)
+            try:
+                term.expect('.*install.*') 
+                term.expect('.*install.*', timeout=600)
+            except pexpect.TIMEOUT:
+                logging.warning("Installation libraries failed ( " +
+                                          str(term.before, 'utf-8').strip()) 
+            logging.debug("Installation libraries ended")
             term = term.sendline('exit')
  
  

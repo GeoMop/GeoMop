@@ -16,6 +16,7 @@ from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.ssh_presets import SshPresets
 from ui.dialogs.pbs_presets import PbsPresets
+from communication import Communicator
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -24,9 +25,11 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None, data=None):
+    def __init__(self, parent=None, data=None, data_reloader=None):
         super().__init__(parent)
         self.data = data
+        self.data_reloader = data_reloader
+        # self.data_reloader.notify_data_changed = self._handle_data_changed
 
         # setup UI
         self.ui = UiMainWindow()
@@ -100,7 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_EDIT)
             key = self.ui.multiJobOverview.currentItem().text(0)
-            data = list(self.data.multijobs[key])  # list to make a copy
+            data = list(self.data.multijobs[key]["preset"])
             data.insert(0, key)  # insert id
             self.mj_dlg.set_data(tuple(data))
             self.mj_dlg.show()
@@ -109,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_COPY)
             key = self.ui.multiJobOverview.currentItem().text(0)
-            data = list(self.data.multijobs[key])
+            data = list(self.data.multijobs[key]["preset"])
             data.insert(0, None)  # insert empty id
             data[1] = self.mj_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
             self.mj_dlg.set_data(tuple(data))
@@ -124,14 +127,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_multijob_dialog(self, purpose, data):
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
-            self.data.multijobs[key] = list(data[1:])
+            self.data.multijobs[key] = dict()
+            self.data.multijobs[key]["preset"] = list(data[1:])
         else:
-            self.data.multijobs[data[0]] = list(data[1:])
+            self.data.multijobs[data[0]]["preset"] = list(data[1:])
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
         key = self.ui.multiJobOverview.currentItem().text(0)
-        self.data.build_config_files(key)
+        app_conf = self.data.build_config_files(key)
+        communicator = Communicator(app_conf)
+        self.data_reloader.install_communicator(key, communicator)
+
+    def _handle_data_changed(self, key):
+        print(self.data.multijobs[key]["logs"])
+        self.ui.multiJobInfoTab.reload_view(self.data.multijobs[key]["logs"])
 
 
 class UiMainWindow(object):

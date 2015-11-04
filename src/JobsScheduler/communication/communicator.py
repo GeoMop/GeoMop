@@ -65,6 +65,12 @@ class Communicator():
         """Communicator will install libs fo jobs"""
         self.mj_name = init_conf.mj_name
         """folder name for multijob data"""
+        self.libs_mpicc = init_conf.libs_mpicc
+        """
+        special location or name for the mpicc compiler wrapper 
+        used during libs for jobs installation (None - use server 
+        standart configuration)
+        """
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -129,11 +135,13 @@ class Communicator():
             old_name = conf.pbs.name
             if new_name is not None:
                 conf.pbs.name = new_name
-            output = PbsOutputComm(conf.smj_name, conf.port, conf.pbs)
+            output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_install_params(conf.python_exec,  conf.scl_enable_exec)    
+        output.set_install_params(conf.python_exec,
+                                  None if conf.ssh is None else
+                                  conf.ssh.scl_enable_exec)
         return output
         
     def _load_status(self,  mj_name):
@@ -146,10 +154,16 @@ class Communicator():
 
     def _set_loger(self,  path, name, level):
         """set logger"""
+        log_path = os.path.join(path, "log")
+        if not os.path.isdir(log_path):
+            try:
+                os.makedirs(log_path)
+            except:
+                log_path = path
         if self.id is None:
-            log_file = os.path.join(path, "log_" + name +".log")
+            log_file = os.path.join(log_path, name +".log")
         else:
-            log_file = os.path.join(path, "log_" + name + "_" + self.id + ".log")
+            log_file = os.path.join(log_path, name + "_" + self.id + ".log")
         logging.basicConfig(filename=log_file,level=level, 
             format='%(asctime)s %(levelname)s %(message)s')
         logging.info("Application " + self.communicator_name + " is started")
@@ -251,7 +265,7 @@ class Communicator():
     def install(self):
         """make installation"""
         if self.install_job_libs:
-            self.output.install_job_libs()
+            self.output.install_job_libs(self.libs_mpicc)
         self.output.install()
         logging.debug("Run next file")
         self.status.next_installed = True

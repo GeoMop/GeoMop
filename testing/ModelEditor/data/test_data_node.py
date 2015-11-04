@@ -3,7 +3,7 @@ import sys
 import pytest
 
 import data.data_node as dn
-from data import Position
+from helpers import Position
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
 from data.meconfig import MEConfig as cfg

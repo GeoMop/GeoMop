@@ -28,7 +28,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
-                logging.debug("Job application began start")
+                logging.debug("Job application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             return resent, mess
@@ -71,20 +71,20 @@ class JobsCommunicator(Communicator):
         
         logging.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
         t = threading.Thread(target= self._run_action, 
-              args=( self.job_outputs[id].exec_,self._job_semafores[id]))
+              args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
         t.daemon = True
         t.start()
         
-    def _run_action(self, action, semafore):
+    def _run_action(self, action, id, semafore):
         """Run action guardet by semafore"""        
         semafore.acquire()
-        action(self.next_communicator,self.mj_name, self.id)
+        action(self.next_communicator,self.mj_name, id)
         semafore.release()
         
     def install(self):
         """make installation"""
         if self.install_job_libs:
-            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec)
+            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec, self.libs_mpicc)
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()

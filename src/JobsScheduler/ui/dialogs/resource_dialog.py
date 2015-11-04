@@ -6,6 +6,7 @@ Resource dialog
 """
 
 from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
@@ -50,6 +51,12 @@ class ResourceDialog(AFormDialog):
         # connect generic presets slots (must be called after UI setup)
         super(ResourceDialog, self)._connect_slots()
         # specific slots
+        self.ui.mjPyExecCheckBox.stateChanged.connect(
+            lambda state: self.ui.mjPyExecLineEdit.setDisabled(not state)
+        )
+        self.ui.jobPyExecCheckBox.stateChanged.connect(
+            lambda state: self.ui.jobPyExecLineEdit.setDisabled(not state)
+        )
         self.ui.multiJobExecutionTypeComboBox.currentIndexChanged.connect(
             self._handle_mj_exec_change)
         self.ui.multiJobRemoteExecutionTypeComboBox.currentIndexChanged \
@@ -169,7 +176,11 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobRemoteExecutionTypeComboBox.isEnabled() else None,
                 self.ui.jobPbsPresetComboBox.itemData(
                     self.ui.jobPbsPresetComboBox.currentIndex()) if
-                self.ui.jobPbsPresetComboBox.isEnabled() else None)
+                self.ui.jobPbsPresetComboBox.isEnabled() else None,
+                self.ui.mjPyExecLineEdit.text()
+                if self.ui.mjPyExecCheckBox.isChecked() else None,
+                self.ui.jobPyExecLineEdit.text()
+                if self.ui.jobPyExecCheckBox.isChecked() else None)
 
     def set_data(self, data=None):
         if data:
@@ -192,6 +203,12 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobRemoteExecutionTypeComboBox.findText(data[9]))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(data[10]))
+            if data[11]:
+                self.ui.mjPyExecCheckBox.setCheckState(Qt.Checked)
+                self.ui.mjPyExecLineEdit.setText(data[11])
+            if data[12]:
+                self.ui.jobPyExecCheckBox.setCheckState(Qt.Checked)
+                self.ui.jobPyExecLineEdit.setText(data[12])
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -204,6 +221,10 @@ class ResourceDialog(AFormDialog):
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(-1)
             self.ui.jobRemoteExecutionTypeComboBox.setCurrentIndex(-1)
             self.ui.jobPbsPresetComboBox.setCurrentIndex(-1)
+            self.ui.mjPyExecCheckBox.setCheckState(Qt.Unchecked)
+            self.ui.mjPyExecLineEdit.clear()
+            self.ui.jobPyExecCheckBox.setCheckState(Qt.Unchecked)
+            self.ui.jobPyExecLineEdit.clear()
 
 
 class UiResourceDialog(UiFormDialog):
@@ -273,7 +294,7 @@ class UiResourceDialog(UiFormDialog):
         self.multiJobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.multiJobLabel.setObjectName("multijobLabel")
         self.multiJobLabel.setFont(labelFont)
-        self.multiJobLabel.setText("MultiJob")
+        self.multiJobLabel.setText("MultiJob services")
         self.mainVerticalLayout.addWidget(self.multiJobLabel)
 
         # form layout2
@@ -347,6 +368,28 @@ class UiResourceDialog(UiFormDialog):
         self.formLayout2.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobPbsPresetComboBox)
 
+        # 5 row
+        self.mjPyExecLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.mjPyExecLabel.setObjectName("mjPyExecLabel")
+        self.mjPyExecLabel.setText("Python Exec:")
+        self.formLayout2.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+                                   self.mjPyExecLabel)
+        self.mjPyExecRowSplit = QtWidgets.QHBoxLayout()
+        self.mjPyExecRowSplit.setObjectName("mjPyExecRowSplit")
+        self.mjPyExecLineEdit = QtWidgets.QLineEdit(
+            self.mainVerticalLayoutWidget)
+        self.mjPyExecLineEdit.setObjectName("mjPyExecLineEdit")
+        self.mjPyExecLineEdit.setPlaceholderText("for example: python3")
+        self.mjPyExecLineEdit.setProperty("clearButtonEnabled", True)
+        self.mjPyExecLineEdit.setDisabled(True)
+        self.mjPyExecCheckBox = QtWidgets.QCheckBox(
+            self.mainVerticalLayoutWidget)
+        self.mjPyExecCheckBox.setObjectName("mjPyExecCheckBox")
+        self.mjPyExecRowSplit.addWidget(self.mjPyExecCheckBox)
+        self.mjPyExecRowSplit.addWidget(self.mjPyExecLineEdit)
+        self.formLayout2.setLayout(4, QtWidgets.QFormLayout.FieldRole,
+                                   self.mjPyExecRowSplit)
+
         # divider
         self.formDivider1 = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
         self.formDivider1.setObjectName("formDivider")
@@ -361,7 +404,7 @@ class UiResourceDialog(UiFormDialog):
         self.jobLabel.setText("Job")
         self.mainVerticalLayout.addWidget(self.jobLabel)
 
-        # form layout2
+        # form layout3
         self.mainVerticalLayout.removeWidget(self.buttonBox)
         self.formLayout3 = QtWidgets.QFormLayout()
         self.formLayout3.setObjectName("formLayout3")
@@ -432,6 +475,28 @@ class UiResourceDialog(UiFormDialog):
             "jobPbsPresetComboBox")
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.jobPbsPresetComboBox)
+
+        # 5 row
+        self.jobPyExecLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.jobPyExecLabel.setObjectName("jobPyExecLabel")
+        self.jobPyExecLabel.setText("Python Exec:")
+        self.formLayout3.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+                                   self.jobPyExecLabel)
+        self.jobPyExecRowSplit = QtWidgets.QHBoxLayout()
+        self.jobPyExecRowSplit.setObjectName("jobPyExecRowSplit")
+        self.jobPyExecLineEdit = QtWidgets.QLineEdit(
+            self.mainVerticalLayoutWidget)
+        self.jobPyExecLineEdit.setObjectName("jobPyExecLineEdit")
+        self.jobPyExecLineEdit.setPlaceholderText("for example: python3")
+        self.jobPyExecLineEdit.setProperty("clearButtonEnabled", True)
+        self.jobPyExecLineEdit.setDisabled(True)
+        self.jobPyExecCheckBox = QtWidgets.QCheckBox(
+            self.mainVerticalLayoutWidget)
+        self.jobPyExecCheckBox.setObjectName("jobPyExecCheckBox")
+        self.jobPyExecRowSplit.addWidget(self.jobPyExecCheckBox)
+        self.jobPyExecRowSplit.addWidget(self.jobPyExecLineEdit)
+        self.formLayout3.setLayout(4, QtWidgets.QFormLayout.FieldRole,
+                                   self.jobPyExecRowSplit)
 
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)
