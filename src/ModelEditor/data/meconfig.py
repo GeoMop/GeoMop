@@ -2,7 +2,6 @@
 
 import os
 import copy
-import PyQt5.QtWidgets as QtWidgets
 
 import config as cfg
 from helpers import NotificationHandler, AutocompleteHelper
@@ -416,6 +415,7 @@ class MEConfig:
         dialog = None
         res = True
         if cls.main_window is not None:
+            import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
             
             dialog = TranformationDetailDlg(transformator.name,
