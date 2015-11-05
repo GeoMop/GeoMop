@@ -49,11 +49,17 @@ class ResourcesData(PersistentDict):
     NAME = "resources"
 
 
+class EnvData(PersistentDict):
+    DIR = "environments"
+    NAME = "environments"
+
+
 class DataContainer(object):
     multijobs = MultiJobData()
     ssh_presets = SshData()
     pbs_presets = PbsData()
     resource_presets = ResourcesData()
+    env_presets = EnvData()
 
     def __init__(self):
         self.load_all()
@@ -66,6 +72,7 @@ class DataContainer(object):
         self.ssh_presets.save()
         self.pbs_presets.save()
         self.resource_presets.save()
+        self.env_presets.save()
         logger.info('==== Everything saved successfully! ====')
 
     def load_all(self):
@@ -87,6 +94,10 @@ class DataContainer(object):
         self.resource_presets.load()
         if not self.resource_presets:
             self.resource_presets = ResourcesData()
+
+        self.env_presets.load()
+        if not self.env_presets:
+            self.env_presets = EnvData()
         logger.info('==== Everything loaded successfully! ====')
 
     def build_config_files(self, key):
@@ -98,8 +109,8 @@ class DataContainer(object):
         mj_name = mj_preset_config[0]
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
-        # env_preset1 = self.resource_presets[mj_preset_config[12]]
-        # env_preset2 = self.resource_presets[mj_preset_config[13]]
+        env_preset1 = None  # self.resource_presets[mj_preset_config[12]]
+        env_preset2 = None  # self.resource_presets[mj_preset_config[13]]
         mj_log_level = mj_preset_config[4]
         mj_number_of_processes = mj_preset_config[5]
 
@@ -109,11 +120,13 @@ class DataContainer(object):
         basic_conf.number_of_processes = mj_number_of_processes
 
         # before mj configs SSH or EXEC
+        delegator_conf = None
+        delegator_conf_path = None
         app_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.app)
-        delegator_conf = None
-        delegator_conf_path = None
+        app_conf.python_env, app_conf.libs_env = \
+            comconf.ConfigFactory.get_env_configs(env_preset1)
         # make app_config path and create folder
         conf_dir = inst.Installation.get_config_dir_static(mj_name)
         app_conf_path = comconf.CommunicatorConfigService.get_file_path(
@@ -127,7 +140,8 @@ class DataContainer(object):
             delegator_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.delegator)
-            delegator_conf.python_exec = resource_preset[10]
+            delegator_conf.python_env, delegator_conf.libs_env = \
+                comconf.ConfigFactory.get_env_configs(env_preset1)
             # make app_config path and create folder
             delegator_conf_path = comconf.CommunicatorConfigService \
                 .get_file_path(conf_dir, comconf.CommType.delegator.value)
@@ -141,7 +155,8 @@ class DataContainer(object):
         mj_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.multijob)
-        mj_conf.python_exec = resource_preset[10]
+        mj_conf.python_env, mj_conf.libs_env = \
+            comconf.ConfigFactory.get_env_configs(env_preset2, True)
         # make app_config path and create folder
         mj_path_string = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.multijob.value)
@@ -150,6 +165,7 @@ class DataContainer(object):
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
             mj_conf.next_communicator = comconf.CommType.remote.value
             mj_conf.output_type = comconf.OutputCommType.ssh
+            mj_conf.libs_env.install_job_libs = False
             mj_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[7]])
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
@@ -164,7 +180,8 @@ class DataContainer(object):
         job_conf = comconf.ConfigFactory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.job)
-        job_conf.python_exec = resource_preset[11]
+        job_conf.python_env, job_conf.libs_env = \
+            comconf.ConfigFactory.get_env_configs(env_preset2, False, True)
         # make job_config path and create folder
         job_conf_path = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.job.value)
@@ -172,7 +189,8 @@ class DataContainer(object):
             remote_conf = comconf.ConfigFactory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.remote)
-            delegator_conf.python_exec = resource_preset[11]
+            remote_conf.python_env, remote_conf.libs_env = \
+                comconf.ConfigFactory.get_env_configs(env_preset2, True)
             # make remote_config path and create folder
             remote_conf_path = comconf.CommunicatorConfigService.get_file_path(
                 conf_dir, comconf.CommType.remote.value)
