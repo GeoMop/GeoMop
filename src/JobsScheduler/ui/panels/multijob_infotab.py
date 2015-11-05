@@ -17,12 +17,15 @@ class MultiJobInfoTab(QtWidgets.QTabWidget):
 
     def reload_view(self, files):
         self.clear()
-        for file in files:
+        for idx, file in enumerate(files[1:]):
+            layout = QtWidgets.QVBoxLayout(self)
             tab = QtWidgets.QWidget(self)
             text = QtWidgets.QTextEdit(tab)
+            layout.addWidget(text)
+            tab.setLayout(layout)
             with open(file, "r") as fh:
                 text.setText(fh.read())
-            self.addTab(self.tab, file)
+            self.addTab(tab, file)
 
 
 class UiMultiJobInfoTab(object):
@@ -51,7 +54,7 @@ class UiMultiJobInfoTab(object):
         self.overviewTreeWidget.topLevelItem(0).setText(4, "Running")
         self.horizontalLayout.addWidget(self.overviewTreeWidget)
         tab_widget.addTab(self.overview_tab, "Overview")
-        
+
         # job tab
         self.job_tab = QtWidgets.QWidget()
         self.job_tab.setObjectName("overviewTab")

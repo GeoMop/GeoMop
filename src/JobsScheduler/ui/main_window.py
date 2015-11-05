@@ -24,16 +24,19 @@ class MainWindow(QtWidgets.QMainWindow):
     Jobs Scheduler main window class
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
+    tabs_data_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None, data=None, data_reloader=None):
         super().__init__(parent)
         self.data = data
         self.data_reloader = data_reloader
-        # self.data_reloader.notify_data_changed = self._handle_data_changed
+        self.data_reloader.notify_data_changed = self._handle_data_changed
 
         # setup UI
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
+
+        self.tabs_data_changed.connect(self.ui.multiJobInfoTab.reload_view)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -140,8 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data_reloader.install_communicator(key, communicator)
 
     def _handle_data_changed(self, key):
-        print(self.data.multijobs[key]["logs"])
-        self.ui.multiJobInfoTab.reload_view(self.data.multijobs[key]["logs"])
+        self.tabs_data_changed.emit(self.data.multijobs[key]["logs"])
 
 
 class UiMainWindow(object):

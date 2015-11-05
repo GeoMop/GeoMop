@@ -1,10 +1,7 @@
 """Model dialog static parameters"""
 
-__author__ = ['Pavel Richter', 'Tomas Krizek']
-
 import os
 import copy
-import PyQt5.QtWidgets as QtWidgets
 
 import config as cfg
 from helpers import NotificationHandler, AutocompleteHelper
@@ -18,8 +15,9 @@ from .validation import Validator
 from .format import get_root_input_type_from_json
 from .autoconversion import autoconvert
 
-__resource_dir__ = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-                                'resources')
+__author__ = ['Pavel Richter', 'Tomas Krizek']
+
+__resource_dir__ = os.path.join(os.getcwd(), 'resources')
 __format_dir__ = os.path.join(__resource_dir__, 'format')
 __transformation_dir__ = os.path.join(__resource_dir__, 'transformation')
 
@@ -112,6 +110,7 @@ class _Config:
                 return self.format_files[i]
         return None
 
+
 class MEConfig:
     """Static data class"""
     notification_handler = NotificationHandler()
@@ -166,7 +165,7 @@ class MEConfig:
         """read names of format files in format files directory"""
         from os import listdir
         from os.path import isfile, join
-        for file_name in listdir(__format_dir__):
+        for file_name in sorted(listdir(__format_dir__)):
             if (isfile(join(__format_dir__, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.format_files.append(file_name[:-5])
@@ -416,6 +415,7 @@ class MEConfig:
         dialog = None
         res = True
         if cls.main_window is not None:
+            import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
             
             dialog = TranformationDetailDlg(transformator.name,

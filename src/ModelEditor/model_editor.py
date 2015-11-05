@@ -1,11 +1,17 @@
 """Start script that inicialize main window """
 
 import os
+
+# IMPORTANT
+# Script changes the working directory so all files can be located.
+# This is especially vital for resources in css.
+MODEL_EDITOR_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(MODEL_EDITOR_PATH)
+
 import logging
 import traceback
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+__lib_dir__ = os.path.join(os.getcwd(), '..', 'common')
 sys.path.insert(1, __lib_dir__)
 
 from data.meconfig import MEConfig as cfg

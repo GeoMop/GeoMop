@@ -98,6 +98,8 @@ class DataContainer(object):
         mj_name = mj_preset_config[0]
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
+        # env_preset1 = self.resource_presets[mj_preset_config[12]]
+        # env_preset2 = self.resource_presets[mj_preset_config[13]]
         mj_log_level = mj_preset_config[4]
         mj_number_of_processes = mj_preset_config[5]
 
@@ -151,7 +153,7 @@ class DataContainer(object):
             mj_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[7]])
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
-            mj_conf.next_communicator = comconf.CommType.remote.value
+            mj_conf.next_communicator = comconf.CommType.job.value
             mj_conf.output_type = comconf.OutputCommType.pbs
             mj_conf.pbs = comconf.ConfigFactory.get_pbs_config(
                 preset=self.pbs_presets[resource_preset[9]])

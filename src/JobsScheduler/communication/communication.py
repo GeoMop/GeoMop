@@ -15,9 +15,9 @@ class OutputComm(metaclass=abc.ABCMeta):
     def set_install_params(self, python_exec,  scl_enable_exec):
         self.installation.set_install_params(python_exec,  scl_enable_exec)
         
-    def install_job_libs(self):
+    def install_job_libs(self, mpicc):
         """Install libs for jobs"""
-        self.installation.install_job_libs()
+        self.installation.install_job_libs(mpicc)
     
     @abc.abstractmethod
     def connect(self):

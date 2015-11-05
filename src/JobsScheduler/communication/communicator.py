@@ -65,6 +65,12 @@ class Communicator():
         """Communicator will install libs fo jobs"""
         self.mj_name = init_conf.mj_name
         """folder name for multijob data"""
+        self.libs_mpicc = init_conf.libs_mpicc
+        """
+        special location or name for the mpicc compiler wrapper 
+        used during libs for jobs installation (None - use server 
+        standart configuration)
+        """
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -259,7 +265,7 @@ class Communicator():
     def install(self):
         """make installation"""
         if self.install_job_libs:
-            self.output.install_job_libs()
+            self.output.install_job_libs(self.libs_mpicc)
         self.output.install()
         logging.debug("Run next file")
         self.status.next_installed = True
