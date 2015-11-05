@@ -98,6 +98,8 @@ class DataContainer(object):
         mj_name = mj_preset_config[0]
         mj_folder = mj_preset_config[1]
         resource_preset = self.resource_presets[mj_preset_config[3]]
+        # env_preset1 = self.resource_presets[mj_preset_config[12]]
+        # env_preset2 = self.resource_presets[mj_preset_config[13]]
         mj_log_level = mj_preset_config[4]
         mj_number_of_processes = mj_preset_config[5]
 

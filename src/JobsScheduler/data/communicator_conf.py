@@ -50,8 +50,17 @@ class ConfigFactory(object):
             ssh.port = preset[3]
             ssh.uid = preset[4]
             ssh.pwd = preset[5]
-            ssh.scl_enable_exec = preset[6]
         return ssh
+
+    @staticmethod
+    def get_env_configs(preset=None, install_job_libs=False,
+                        start_job_libs=False):
+        """
+        Converts dialog data into EnvConfigs instance
+        """
+        python_env = PythonEnvConfig()
+        libs_env = LibsEnvConfig()
+        return {"python_env": python_env, "libs_env": libs_env}
 
     @staticmethod
     def get_communicator_config(communicator=None, mj_name=None,
@@ -130,8 +139,44 @@ class SshConfig(object):
         self.port = "22"
         self.uid = ""
         self.pwd = ""
-        self.scl_enable_exec = None
+
+
+class PythonEnvConfig(object):
+    """
+    Class for python environment configuration
+    """
+
+    def __init__(self):
+        """init"""
+        self.interpreter = "Python3"
+        self.scl_enable_exec = "Python3"
         """Enable python exec set name over scl"""
+        self.module_add = "python34-modules-gcc"
+
+
+class LibsEnvConfig(object):
+    """
+    Class for libs environment configuration
+    """
+
+    def __init__(self):
+        """init"""
+        self.scl_enable_exec = "rock-openmpi"
+        """Enable python exec set name over scl"""
+        self.module_add = "rock-openmpi"
+
+        self.libs_mpicc = None
+        """
+        special location or name for the mpicc compiler wrapper
+        used during libs for jobs installation (None - use server
+        standard configuration)
+        """
+
+        self.install_job_libs = False
+        """Communicator will install libs for jobs"""
+
+        self.start_job_libs = False
+        """Communicator will prepare libs for job running"""
 
 
 class CommunicatorConfig(object):
@@ -179,16 +224,19 @@ class CommunicatorConfig(object):
 
         self.pbs = None
         """Pbs settings class :class:`data.communicator_conf.PbsConfig`"""
-        
-        self.install_job_libs = False
-        """Communicator will install libs fo jobs"""
-        
-        self.libs_mpicc = None
+
+        self.python_env = None
         """
-        special location or name for the mpicc compiler wrapper 
-        used during libs for jobs installation (None - use server 
-        standart configuration)
+        Python environment settings class
+        :class:`data.communicator_conf.PythonEnvConfig`
         """
+
+        self.libs_env = None
+        """
+        Python environment settings class
+        :class:`data.communicator_conf.PythonEnvConfig`
+        """
+
 
 class CommunicatorConfigService(object):
     CONF_EXTENSION = ".json"
