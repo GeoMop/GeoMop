@@ -143,8 +143,14 @@ class NodeAnalyzer:
         while True:
             if node.parent is None:
                 return node
-            prev_indent=LineAnalyzer.get_indent(self._lines[node.start.line-1])
+            prev_indent=LineAnalyzer.get_indent(self._lines[node.start.line-1])            
             if prev_indent < indent and self._node.origin != NodeOrigin.error:
+                if len(self._lines[node.start.line-1]) >= prev_indent+2 and \
+                    self._lines[node.start.line-1][prev_indent:prev_indent+2] == "- " and \
+                    prev_indent >= indent-2 and node.parent is not None and \
+                    node.start.line == node.parent.start.line: 
+                        #cursor bellow array character 
+                        return node.parent                    
                 return node
             node = node.parent 
         return None

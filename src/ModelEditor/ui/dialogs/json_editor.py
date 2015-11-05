@@ -3,7 +3,7 @@ JSON editor dialog.
 """
 import os
 import geomop_dialogs
-from helpers import EditorAppearance as appearance
+from ui.template import EditorAppearance as appearance
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.Qsci import QsciScintilla, QsciLexerJavaScript
 

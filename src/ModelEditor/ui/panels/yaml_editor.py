@@ -8,9 +8,9 @@ from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
 from data import PosType, CursorType
-from helpers.editor_appearance import EditorAppearance as appearance
+from ui.template import EditorAppearance as appearance
 from helpers import Position
-from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
+from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
 import icon
@@ -653,7 +653,6 @@ class EditorPosition:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
-                analyzer.LineAnalyzer.is_array_char_only(self._old_text[line]) or \
                 (self.node is not None and self.node.origin == NodeOrigin.error):
                 if self.node is not None:
                     na = analyzer.NodeAnalyzer(self._old_text, self.node)
@@ -825,10 +824,12 @@ class EditorPosition:
         if pos_type is PosType.in_key:
             key_type = anal.get_key_pos_type()
         self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
+
+#        if  analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]):
+#            self.node = node       
         
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
-            analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]) or \
             (self.node is not None and self.node.origin == NodeOrigin.error):
             if self.node is not None:
                 na = analyzer.NodeAnalyzer(self._old_text, self.node)
