@@ -36,15 +36,15 @@ class Installation:
         """files to install"""
         self.ins_dirs = copy.deepcopy(__ins_dirs__)
         """directories to install"""
-        self.python_exec = "python3"
-        """Python exec command"""
-        self.scl_enable_exec = None
-        """Enable python exec over scl """
+        self.python_env = None
+        """python running envirounment"""
+        self.libs_env = None
+        """libraries running envirounment"""
         
-    def set_install_params(self, python_exec,  scl_enable_exec):
+    def set_env_params(self, python_env,  libs_env):
         """Set install specific settings"""
-        self.python_exec = python_exec
-        self.scl_enable_exec = scl_enable_exec
+        self.python_env = python_env
+        self.libs_env = libs_env
 
     def local_copy_path(self):
         """Set copy path for local installation"""
@@ -62,6 +62,32 @@ class Installation:
             if len(conn.before)>0:
                 logging.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
 
+    def prepare_python_env(self, term):
+        prepare_python_env_static(self.python_env)
+    
+    def prepare_python_env_static(self, python_env):
+        """Prepare python environment for installation"""
+        if sys.platform == "win32":
+            if python_env.scl_enable_exec is not None:
+                mess = self.ssh.exec_("scl enable " +  python_env.scl_enable_exec + " bash")
+                if mess != "":
+                    logging.warning("Enable scl error: " + mess)
+            if python_env.module_add is not None:
+                mess = self.ssh.exec_("module add " +  python_env.module_add)
+                if mess != "":
+                    logging.warning("Add module error: " + mess)
+        else:
+            if python_env.scl_enable_exec is not None:
+                self.ssh.sendline("scl enable " +  python_env.scl_enable_exec + " bash")
+                self.ssh.expect(".*scl enable " +  python_env.scl_enable_exec + " bash\r\n")
+                if len(self.ssh.before)>0:
+                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip()) 
+            if python_env.module_add is not None:
+                self.ssh.sendline("module add " +  python_env.module_add)
+                self.ssh.expect(".*module add " +  python_env.module_add + "\r\n")
+                if len(self.ssh.before)>0:
+                    logging.warning("Ssh message (Add module): " + str(self.ssh.before, 'utf-8').strip()) 
+                
     def create_install_dir(self, conn):
         """Copy installation files"""
         if sys.platform == "win32":
@@ -306,12 +332,25 @@ class Installation:
             return None
         return path 
 
-    def install_job_libs(self, mpicc):
+    def install_job_libs(self):
         """Return dir for savings status"""
-        self.install_job_libs_static(self.mj_name, self.python_exec, mpicc)
+        self.install_job_libs_static(self.mj_name, self.python_env, self.libs_env)
+    
+    def prepare_mpi_env_static(self, libs_env):
+        """Prepare libs environment for installation"""
+        if libs_env.mpi_scl_enable_exec is not None:
+                self.ssh.sendline("scl enable " +  libs_env.mpi_scl_enable_exec + " bash")
+                self.ssh.expect(".*scl enable " + libs_env.mpi_scl_enable_exec + " bash\r\n")
+                if len(self.ssh.before)>0:
+                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip()) 
+        if libs_env.mpi_module_add is not None:
+            self.ssh.sendline("module add " +  libs_env.mpi_module_add)
+            self.ssh.expect(".*module add " + libs_env.mpi_module_add + "\r\n")
+            if len(self.ssh.before)>0:
+                logging.warning("Ssh message (Add module): " + str(self.ssh.before, 'utf-8').strip()) 
     
     @classmethod
-    def install_job_libs_static(cls, mj_name, python_exec, mpicc):
+    def install_job_libs_static(cls, mj_name, python_env, libs_env):
         """Return dir for savings status"""
         if sys.platform == "win32":
             #ToDo if is needed
@@ -320,14 +359,16 @@ class Installation:
             import pexpect
             
             term = pexpect.spawn('bash')
+            cls.prepare_python_env_static(term, python_env)
+            cls.prepare_mpi_env_static()
             term.sendline('cd twoparty/install')            
             term.expect('.*cd twoparty/install.*')
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
             log_file= os.path.join(log_file, "install_job_libs.log")
-            if mpicc is None:
-                command = "./install_mpi4.sh " + python_exec + " &>> " + log_file
+            if libs_env.mpicc is None:
+                command = "./install_mpi4.sh " + python_env.interpreter + " &>> " + log_file
             else:
-                command = "./install_mpi4.sh " + python_exec  + " " + mpicc +  \
+                command = "./install_mpi4.sh " + python_env.interpreter  + " " + libs_env.mpicc +  \
                                  " &>> " + log_file 
             logging.debug("Installation libraries started")
             term.sendline(command)

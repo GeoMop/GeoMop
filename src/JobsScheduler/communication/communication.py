@@ -12,12 +12,12 @@ class OutputComm(metaclass=abc.ABCMeta):
         self.installation = dinstall.Installation(mj_name)
         """installation where is copied files"""
     
-    def set_install_params(self, python_exec,  scl_enable_exec):
-        self.installation.set_install_params(python_exec,  scl_enable_exec)
+    def set_env_params(self, python_env,  libs_env):
+        self.installation.set_env_params(self, python_env,  libs_env)
         
-    def install_job_libs(self, mpicc):
+    def install_job_libs(self):
         """Install libs for jobs"""
-        self.installation.install_job_libs(mpicc)
+        self.installation.install_job_libs()
     
     @abc.abstractmethod
     def connect(self):

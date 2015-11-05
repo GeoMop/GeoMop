@@ -28,10 +28,7 @@ if sys.platform == "win32":
             
         def install(self):
             """make installation"""
-            if self.installation.scl_enable_exec is not None:
-                mess = self.ssh.exec_("scl enable " +  self.installation.scl_enable_exec + " bash")
-                if mess != "":
-                    logging.warning("Enable scl error: " + mess)
+            self.installation.prepare_python_env(self.ssh)
             try:
                 self.installation.create_install_dir(self.ssh)
             except Exception as err:
@@ -120,11 +117,7 @@ else:
             
         def install(self):
             """make installation"""
-            if self.installation.scl_enable_exec is not None:
-                self.ssh.sendline("scl enable " +  self.installation.scl_enable_exec + " bash")
-                self.ssh.expect(".*scl enable " +  self.installation.scl_enable_exec + " bash\r\n")
-                if len(self.ssh.before)>0:
-                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip())                    
+            self.installation.prepare_python_env(self.ssh)                               
             try:        
                 sftp = self._get_sftp()
                 self.installation.create_install_dir(sftp)

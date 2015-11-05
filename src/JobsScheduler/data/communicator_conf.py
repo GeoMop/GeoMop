@@ -161,9 +161,9 @@ class LibsEnvConfig(object):
 
     def __init__(self):
         """init"""
-        self.scl_enable_exec = "rock-openmpi"
+        self.mpi_scl_enable_exec = "rock-openmpi"
         """Enable python exec set name over scl"""
-        self.module_add = "rock-openmpi"
+        self.mpi_module_add = "rock-openmpi"
 
         self.libs_mpicc = None
         """
@@ -212,9 +212,6 @@ class CommunicatorConfig(object):
 
         self.log_level = logging.WARNING
         """log level for communicator"""
-
-        self.python_exec = "python3"
-        """Python exec command"""
 
         self.number_of_processes = 1
         """ Number of processes in multijob or job, everywhere else is 1"""

@@ -83,8 +83,8 @@ class JobsCommunicator(Communicator):
         
     def install(self):
         """make installation"""
-        if self.install_job_libs:
-            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec, self.libs_mpicc)
+        if self.libs_env.install_job_libs:
+            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_env, self.conf.libs_env)
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()

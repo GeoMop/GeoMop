@@ -61,16 +61,12 @@ class Communicator():
         """if installation begined"""
         self.stop = False
         """Stop processing of run function"""
-        self.install_job_libs = init_conf.install_job_libs
-        """Communicator will install libs fo jobs"""
         self.mj_name = init_conf.mj_name
         """folder name for multijob data"""
-        self.libs_mpicc = init_conf.libs_mpicc
-        """
-        special location or name for the mpicc compiler wrapper 
-        used during libs for jobs installation (None - use server 
-        standart configuration)
-        """
+        self.python_env = init_conf.python_env
+        """python running envirounment"""
+        self.libs_env =init_conf.libs_env
+        """libraries running envirounment"""
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -139,9 +135,7 @@ class Communicator():
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_install_params(conf.python_exec,
-                                  None if conf.ssh is None else
-                                  conf.ssh.scl_enable_exec)
+        output.set_env_params(conf.python_env,  conf.libs_env)    
         return output
         
     def _load_status(self,  mj_name):
@@ -177,7 +171,7 @@ class Communicator():
         if message.action_type == tdata.ActionType.installation:
             if isinstance(self.output, ExecOutputComm) and \
                 not isinstance(self.output, PbsOutputComm) and \
-                not self.install_job_libs:
+                not self.libs_env.install_job_libs:
                 if not self.is_installed():
                     self._instalation_begined = True
                     logging.debug("Installation to local directory")
@@ -264,8 +258,8 @@ class Communicator():
     
     def install(self):
         """make installation"""
-        if self.install_job_libs:
-            self.output.install_job_libs(self.libs_mpicc)
+        if self.libs_env.install_job_libs:
+            self.output.install_job_libs()
         self.output.install()
         logging.debug("Run next file")
         self.status.next_installed = True

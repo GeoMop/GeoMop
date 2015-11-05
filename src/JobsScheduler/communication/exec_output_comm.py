@@ -27,6 +27,7 @@ class ExecOutputComm(OutputComm):
         
     def install(self):
         """make installation"""
+        #ToDo: scl, module add support
         self.installation.local_copy_path()
         
     def exec_(self, python_file, mj_name, mj_id):
