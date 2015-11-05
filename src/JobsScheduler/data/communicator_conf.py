@@ -213,9 +213,6 @@ class CommunicatorConfig(object):
         self.log_level = logging.WARNING
         """log level for communicator"""
 
-        self.python_exec = "python3"
-        """Python exec command"""
-
         self.number_of_processes = 1
         """ Number of processes in multijob or job, everywhere else is 1"""
 
