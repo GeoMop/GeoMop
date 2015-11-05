@@ -32,6 +32,7 @@ class ExecOutputComm(OutputComm):
         
     def exec_(self, python_file, mj_name, mj_id):
         """run set python file in ssh"""
+        self.installation.prepare_popen_env()
         process = subprocess.Popen(self.installation.get_args(python_file, mj_name, mj_id), 
             stdout=subprocess.PIPE)
         # wait for port number

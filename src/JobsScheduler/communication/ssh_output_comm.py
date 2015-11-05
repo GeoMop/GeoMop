@@ -28,7 +28,7 @@ if sys.platform == "win32":
             
         def install(self):
             """make installation"""
-            self.installation.prepare_python_env(self.ssh)
+            self.installation.prepare_ssh_env(self.ssh)
             try:
                 self.installation.create_install_dir(self.ssh)
             except Exception as err:
@@ -117,7 +117,7 @@ else:
             
         def install(self):
             """make installation"""
-            self.installation.prepare_python_env(self.ssh)                               
+            self.installation.prepare_ssh_env(self.ssh)                               
             try:        
                 sftp = self._get_sftp()
                 self.installation.create_install_dir(sftp)

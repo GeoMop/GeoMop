@@ -5,6 +5,7 @@ import re
 import logging
 import copy
 import time
+import subprocess
 
 __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
@@ -62,32 +63,6 @@ class Installation:
             if len(conn.before)>0:
                 logging.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
 
-    def prepare_python_env(self, term):
-        prepare_python_env_static(self.python_env)
-    
-    def prepare_python_env_static(self, python_env):
-        """Prepare python environment for installation"""
-        if sys.platform == "win32":
-            if python_env.scl_enable_exec is not None:
-                mess = self.ssh.exec_("scl enable " +  python_env.scl_enable_exec + " bash")
-                if mess != "":
-                    logging.warning("Enable scl error: " + mess)
-            if python_env.module_add is not None:
-                mess = self.ssh.exec_("module add " +  python_env.module_add)
-                if mess != "":
-                    logging.warning("Add module error: " + mess)
-        else:
-            if python_env.scl_enable_exec is not None:
-                self.ssh.sendline("scl enable " +  python_env.scl_enable_exec + " bash")
-                self.ssh.expect(".*scl enable " +  python_env.scl_enable_exec + " bash\r\n")
-                if len(self.ssh.before)>0:
-                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip()) 
-            if python_env.module_add is not None:
-                self.ssh.sendline("module add " +  python_env.module_add)
-                self.ssh.expect(".*module add " +  python_env.module_add + "\r\n")
-                if len(self.ssh.before)>0:
-                    logging.warning("Ssh message (Add module): " + str(self.ssh.before, 'utf-8').strip()) 
-                
     def create_install_dir(self, conn):
         """Copy installation files"""
         if sys.platform == "win32":
@@ -231,19 +206,19 @@ class Installation:
         command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
         if mj_id is not None:
             command += " " + mj_id
-        return self.python_exec + " " + command
+        return self.python_env.interpreter + " " + command
     
     def get_args(self, name, mj_name, mj_id):
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
         if mj_id is None:
-            return [self.python_exec,dest_path, mj_name, "&", "disown"]
-        return [self.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
+            return [self.python_env.interpreter,dest_path, mj_name, "&", "disown"]
+        return [self.python_env.interpreter,dest_path, mj_name, mj_id, "&", "disown"]
         
     def get_interpreter(self):
         """return python interpreter with path"""
-        return self.python_exec
+        return self.python_env.interpreter
 
     def get_command_only(self, name, mj_name, mj_id):
         """return command with path"""
@@ -335,19 +310,65 @@ class Installation:
     def install_job_libs(self):
         """Return dir for savings status"""
         self.install_job_libs_static(self.mj_name, self.python_env, self.libs_env)
+
+    def prepare_ssh_env(self, term):
+        self.prepare_python_env_static(term, self.python_env)
+        if self.libs_env.start_job_libs:
+            self.prepare_mpi_env_static(term, self.libs_env)
     
-    def prepare_mpi_env_static(self, libs_env):
+    @staticmethod
+    def prepare_python_env_static(term,  python_env):
+        """Prepare python environment for installation"""
+        if sys.platform == "win32":
+            if python_env.scl_enable_exec is not None:
+                mess = term.exec_("scl enable " +  python_env.scl_enable_exec + " bash")
+                if mess != "":
+                    logging.warning("Enable scl error: " + mess)
+            if python_env.module_add is not None:
+                mess = term.exec_("module add " +  python_env.module_add)
+                if mess != "":
+                    logging.warning("Add module error: " + mess)
+        else:
+            if python_env.scl_enable_exec is not None:
+                term.sendline("scl enable " +  python_env.scl_enable_exec + " bash")
+                term.expect(".*scl enable " +  python_env.scl_enable_exec + " bash\r\n")
+                if len(term.before)>0:
+                    logging.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
+            if python_env.module_add is not None:
+                term.sendline("module add " +  python_env.module_add)
+                term.expect(".*module add " +  python_env.module_add + "\r\n")
+                if len(term.before)>0:
+                    logging.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
+    
+    def prepare_popen_env(self):
+        self.prepare_popen_env_static(self.python_env, self.libs_env)
+    
+    @staticmethod
+    def prepare_popen_env_static(python_env, libs_env):
+        """prepare envoronment for execution by popen"""
+        if python_env.scl_enable_exec is not None:
+            subprocess.call(["scl", "enable", python_env.scl_enable_exec,"bash"])
+        if python_env.module_add is not None:
+            subprocess.call(["module", "add", python_env.module_add])
+        if libs_env.start_job_libs:
+            if libs_env.mpi_scl_enable_exec is not None:
+                subprocess.call(["scl", "enable", libs_env.mpi_scl_enable_exec,"bash"])
+            if libs_env.mpi_module_add is not None:
+                subprocess.call(["module", "add", libs_env.mpi_module_add])    
+        
+    @staticmethod
+    def prepare_mpi_env_static(term, libs_env):
         """Prepare libs environment for installation"""
         if libs_env.mpi_scl_enable_exec is not None:
-                self.ssh.sendline("scl enable " +  libs_env.mpi_scl_enable_exec + " bash")
-                self.ssh.expect(".*scl enable " + libs_env.mpi_scl_enable_exec + " bash\r\n")
-                if len(self.ssh.before)>0:
-                    logging.warning("Ssh message (scl enable): " + str(self.ssh.before, 'utf-8').strip()) 
+            term.sendline("scl enable " +  libs_env.mpi_scl_enable_exec + " bash")
+            term.expect(".*scl enable " + libs_env.mpi_scl_enable_exec + " bash\r\n")
+            if len(term.before)>0:
+                logging.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
         if libs_env.mpi_module_add is not None:
-            self.ssh.sendline("module add " +  libs_env.mpi_module_add)
-            self.ssh.expect(".*module add " + libs_env.mpi_module_add + "\r\n")
-            if len(self.ssh.before)>0:
-                logging.warning("Ssh message (Add module): " + str(self.ssh.before, 'utf-8').strip()) 
+            term.sendline("module add " +  libs_env.mpi_module_add)
+            term.expect(".*module add " + libs_env.mpi_module_add + "\r\n")
+            if len(term.before)>0:
+                logging.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
     
     @classmethod
     def install_job_libs_static(cls, mj_name, python_env, libs_env):
