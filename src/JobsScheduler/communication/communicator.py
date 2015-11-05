@@ -61,11 +61,11 @@ class Communicator():
         """if installation begined"""
         self.stop = False
         """Stop processing of run function"""
-        self.install_job_libs = init_conf.install_job_libs
+        self.install_job_libs = init_conf.libs_env.install_job_libs
         """Communicator will install libs fo jobs"""
         self.mj_name = init_conf.mj_name
         """folder name for multijob data"""
-        self.libs_mpicc = init_conf.libs_mpicc
+        self.libs_mpicc = init_conf.libs_env.libs_mpicc
         """
         special location or name for the mpicc compiler wrapper 
         used during libs for jobs installation (None - use server 
@@ -139,9 +139,9 @@ class Communicator():
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_install_params(conf.python_exec,
-                                  None if conf.ssh is None else
-                                  conf.ssh.scl_enable_exec)
+        output.set_install_params(conf.python_env.python_exec,
+                                  None if conf.python_env is None else
+                                  conf.python_env.scl_enable_exec)
         return output
         
     def _load_status(self,  mj_name):

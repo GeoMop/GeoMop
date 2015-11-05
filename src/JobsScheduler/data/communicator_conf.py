@@ -11,78 +11,6 @@ import json
 import os
 
 
-class ConfigFactory(object):
-    @staticmethod
-    def get_pbs_config(preset=None, with_socket=False):
-        """
-        Converts dialog data into PbsConfig instance
-        """
-        pbs = PbsConfig()
-        if preset:
-            pbs.name = preset[0]
-            # preset[0] is useless description
-            pbs.walltime = preset[2]
-            pbs.nodes = preset[3]
-            pbs.ppn = preset[4]
-            pbs.mem = preset[5]
-            pbs.scratch = preset[6]
-        else:
-            pbs.name = None
-            pbs.walltime = ""
-            pbs.nodes = "1"
-            pbs.ppn = "1"
-            pbs.mem = "400mb"
-            pbs.scratch = "400mb"
-        if with_socket:
-            pbs.with_socket = with_socket
-        return pbs
-
-    @staticmethod
-    def get_ssh_config(preset=None):
-        """
-        Converts dialog data into SshConfig instance
-        """
-        ssh = SshConfig()
-        if preset:
-            ssh.name = preset[0]
-            # preset[0] is useless description
-            ssh.host = preset[2]
-            ssh.port = preset[3]
-            ssh.uid = preset[4]
-            ssh.pwd = preset[5]
-        return ssh
-
-    @staticmethod
-    def get_env_configs(preset=None, install_job_libs=False,
-                        start_job_libs=False):
-        """
-        Converts dialog data into EnvConfigs instance
-        """
-        python_env = PythonEnvConfig()
-        libs_env = LibsEnvConfig()
-        return {"python_env": python_env, "libs_env": libs_env}
-
-    @staticmethod
-    def get_communicator_config(communicator=None, mj_name=None,
-                                log_level=None,
-                                preset_type=None):
-        """
-        Provides preset config for most common communicator types, if you
-        provide communicator instance on input with valid preset_type,
-        new communicator is derived from original.
-        """
-        if communicator is None:
-            com = CommunicatorConfig(mj_name)
-        if communicator is not None:
-            com = copy.copy(communicator)
-        if mj_name is not None:
-            com.mj_name = mj_name
-        if log_level is not None:
-            com.log_level = log_level
-        CommunicatorConfigService.preset_common_type(com, preset_type)
-        return com
-        
-
 class OutputCommType(IntEnum):
     """Severity of an error."""
     none = 0
@@ -148,7 +76,7 @@ class PythonEnvConfig(object):
 
     def __init__(self):
         """init"""
-        self.interpreter = "Python3"
+        self.python_exec = "Python3"
         self.scl_enable_exec = "Python3"
         """Enable python exec set name over scl"""
         self.module_add = "python34-modules-gcc"
@@ -177,6 +105,78 @@ class LibsEnvConfig(object):
 
         self.start_job_libs = False
         """Communicator will prepare libs for job running"""
+
+
+class ConfigFactory(object):
+    @staticmethod
+    def get_pbs_config(preset=None, with_socket=False):
+        """
+        Converts dialog data into PbsConfig instance
+        """
+        pbs = PbsConfig()
+        if preset:
+            pbs.name = preset[0]
+            # preset[0] is useless description
+            pbs.walltime = preset[2]
+            pbs.nodes = preset[3]
+            pbs.ppn = preset[4]
+            pbs.mem = preset[5]
+            pbs.scratch = preset[6]
+        else:
+            pbs.name = None
+            pbs.walltime = ""
+            pbs.nodes = "1"
+            pbs.ppn = "1"
+            pbs.mem = "400mb"
+            pbs.scratch = "400mb"
+        if with_socket:
+            pbs.with_socket = with_socket
+        return pbs
+
+    @staticmethod
+    def get_ssh_config(preset=None):
+        """
+        Converts dialog data into SshConfig instance
+        """
+        ssh = SshConfig()
+        if preset:
+            ssh.name = preset[0]
+            # preset[0] is useless description
+            ssh.host = preset[2]
+            ssh.port = preset[3]
+            ssh.uid = preset[4]
+            ssh.pwd = preset[5]
+        return ssh
+
+    @staticmethod
+    def get_env_configs(preset=None, install_job_libs=False,
+                        start_job_libs=False):
+        """
+        Converts dialog data into EnvConfigs instance
+        """
+        python_env = PythonEnvConfig()
+        libs_env = LibsEnvConfig()
+        return python_env, libs_env
+
+    @staticmethod
+    def get_communicator_config(communicator=None, mj_name=None,
+                                log_level=None,
+                                preset_type=None):
+        """
+        Provides preset config for most common communicator types, if you
+        provide communicator instance on input with valid preset_type,
+        new communicator is derived from original.
+        """
+        if communicator is None:
+            com = CommunicatorConfig(mj_name)
+        if communicator is not None:
+            com = copy.copy(communicator)
+        if mj_name is not None:
+            com.mj_name = mj_name
+        if log_level is not None:
+            com.log_level = log_level
+        CommunicatorConfigService.preset_common_type(com, preset_type)
+        return com
 
 
 class CommunicatorConfig(object):
@@ -248,6 +248,10 @@ class CommunicatorConfigService(object):
             data["ssh"] = com.ssh.__dict__
         if data["pbs"]:
             data["pbs"] = com.pbs.__dict__
+        if data["python_env"]:
+            data["python_env"] = com.python_env.__dict__
+        if data["libs_env"]:
+            data["libs_env"] = com.libs_env.__dict__
         json.dump(data, json_file, indent=4, sort_keys=True)
 
     @staticmethod
@@ -261,6 +265,14 @@ class CommunicatorConfigService(object):
             pbs = PbsConfig()
             pbs.__dict__ = data["pbs"]
             data["pbs"] = pbs
+        if data["python_env"]:
+            python_env = PythonEnvConfig()
+            python_env.__dict__ = data["python_env"]
+            data["python_env"] = python_env
+        if data["libs_env"]:
+            libs_env = LibsEnvConfig()
+            libs_env.__dict__ = data["libs_env"]
+            data["libs_env"] = libs_env
         com.__dict__ = data
 
     @staticmethod
