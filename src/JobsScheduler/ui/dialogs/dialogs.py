@@ -164,7 +164,7 @@ class APresetsDialog(QtWidgets.QDialog):
     presets = dict()
     presets_changed = QtCore.pyqtSignal(dict)
 
-    def _reload_view(self, data):
+    def reload_view(self, data):
         self.ui.presets.clear()
         if data:
             for key in data:
@@ -218,7 +218,7 @@ class APresetsDialog(QtWidgets.QDialog):
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
 
-        self.presets_changed.connect(self._reload_view)
+        self.presets_changed.connect(self.reload_view)
         self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
         self.ui.btnEdit.clicked.connect(self._handle_edit_preset_action)
         self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)

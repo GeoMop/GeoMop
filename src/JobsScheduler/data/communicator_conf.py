@@ -5,10 +5,10 @@ Configuration of communication unit
 @contact: jan.gabriel@tul.cz
 """
 import copy
-from enum import Enum, IntEnum
-import logging
 import json
+import logging
 import os
+from enum import Enum, IntEnum
 
 
 class OutputCommType(IntEnum):
@@ -77,9 +77,9 @@ class PythonEnvConfig(object):
     def __init__(self):
         """init"""
         self.python_exec = "Python3"
-        self.scl_enable_exec = "Python3"
+        self.scl_enable_exec = None
         """Enable python exec set name over scl"""
-        self.module_add = "python34-modules-gcc"
+        self.module_add = None
 
 
 class LibsEnvConfig(object):
@@ -89,9 +89,9 @@ class LibsEnvConfig(object):
 
     def __init__(self):
         """init"""
-        self.mpi_scl_enable_exec = "rock-openmpi"
+        self.mpi_scl_enable_exec = None
         """Enable python exec set name over scl"""
-        self.mpi_module_add = "rock-openmpi"
+        self.mpi_module_add = None
 
         self.libs_mpicc = None
         """

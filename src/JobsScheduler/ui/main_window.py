@@ -8,15 +8,16 @@ import uuid
 
 from PyQt5 import QtCore
 
-from ui.actions.main_window_actions import *
-from ui.dialogs.resource_presets import ResourcePresets
-from ui.menus.main_window_menus import MainWindowMenuBar
-from ui.panels.multijob_overview import MultiJobOverview
-from ui.panels.multijob_infotab import MultiJobInfoTab
-from ui.dialogs.multijob_dialog import MultiJobDialog
-from ui.dialogs.ssh_presets import SshPresets
-from ui.dialogs.pbs_presets import PbsPresets
 from communication import Communicator
+from ui.actions.main_window_actions import *
+from ui.dialogs.env_presets import EnvPresets
+from ui.dialogs.multijob_dialog import MultiJobDialog
+from ui.dialogs.pbs_presets import PbsPresets
+from ui.dialogs.resource_presets import ResourcePresets
+from ui.dialogs.ssh_presets import SshPresets
+from ui.menus.main_window_menus import MainWindowMenuBar
+from ui.panels.multijob_infotab import MultiJobInfoTab
+from ui.panels.multijob_overview import MultiJobOverview
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -49,7 +50,11 @@ class MainWindow(QtWidgets.QMainWindow):
             = ResourcePresets(parent=self,
                               presets=self.data.resource_presets,
                               pbs=self.data.pbs_presets,
-                              ssh=self.data.ssh_presets)
+                              ssh=self.data.ssh_presets,
+                              env=self.data.env_presets)
+
+        self.env_presets_dlg = EnvPresets(parent=self,
+                                          presets=self.data.env_presets)
 
         # multijob dialog
         self.ui.actionAddMultiJob.triggered.connect(
@@ -78,6 +83,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pbs_presets_dlg.presets_changed.connect(
             self.data.pbs_presets.save)
 
+        # env presets
+        self.ui.actionEnvPresets.triggered.connect(
+            self.env_presets_dlg.show)
+        self.env_presets_dlg.presets_changed.connect(
+            self.data.env_presets.save)
+
         # resource presets
         self.ui.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
@@ -87,6 +98,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.presets_dlg.set_pbs_presets)
         self.ssh_presets_dlg.presets_changed.connect(
             self.resource_presets_dlg.presets_dlg.set_ssh_presets)
+        self.env_presets_dlg.presets_changed.connect(
+            self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
@@ -180,6 +193,7 @@ class UiMainWindow(object):
         self.actionSshPresets = ActionSshPresets(main_window)
         self.actionPbsPresets = ActionPbsPresets(main_window)
         self.actionResourcesPresets = ActionResourcesPresets(main_window)
+        self.actionEnvPresets = ActionEnvPresets(main_window)
 
         # menuBar
         self.menuBar = MainWindowMenuBar(main_window)
@@ -199,6 +213,7 @@ class UiMainWindow(object):
         self.menuBar.settings.addAction(self.actionSshPresets)
         self.menuBar.settings.addAction(self.actionPbsPresets)
         self.menuBar.settings.addAction(self.actionResourcesPresets)
+        self.menuBar.settings.addAction(self.actionEnvPresets)
 
         # multiJob Overview panel
         self.multiJobOverview = MultiJobOverview(self.centralwidget)

@@ -1,45 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-Ssh preset
+Pbs preset
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 from ui.dialogs.dialogs import UiPresetsDialog, APresetsDialog
-from ui.dialogs.ssh_dialog import SshDialog
+from ui.dialogs.env_dialog import EnvDialog
 
 
-class SshPresets(APresetsDialog):
+class EnvPresets(APresetsDialog):
     """
     Dialog executive code with bindings and other functionality.
     """
 
     def __init__(self, parent=None, presets=None):
-        super(SshPresets, self).__init__(parent)
+        super(EnvPresets, self).__init__(parent)
 
         # setup preset specific UI
-        self.ui = UiSshPresets()
+        self.ui = UiEnvPresets()
         self.ui.setup_ui(self)
 
         # assign presets and reload view
-        self. presets = presets
+        self.presets = presets
         self.reload_view(self.presets)
 
         # set custom dialog
-        self.presets_dlg = SshDialog(parent=self)
+        self.presets_dlg = EnvDialog(parent=self)
 
         # connect generic presets slots (must be called after UI setup)
-        super(SshPresets, self)._connect_slots()
+        super(EnvPresets, self)._connect_slots()
 
 
-class UiSshPresets(UiPresetsDialog):
+class UiEnvPresets(UiPresetsDialog):
     """
     UI extensions of presets dialog.
     """
+
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
 
         # dialog properties
         dialog.resize(680, 510)
-        dialog.setObjectName("SshPresetsDialog")
-        dialog.setWindowTitle("SSH Presets")
+        dialog.setObjectName("EnvPresetsDialog")
+        dialog.setWindowTitle("Environment Presets")

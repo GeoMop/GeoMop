@@ -6,7 +6,6 @@ SSH dialog
 """
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
@@ -56,9 +55,6 @@ class SshDialog(AFormDialog):
         self.ui.showPushButton.released.connect(
             lambda: self.ui.passwordLineEdit.setEchoMode(
                 QtWidgets.QLineEdit.Password))
-        self.ui.sclEnableCheckBox.stateChanged.connect(
-            lambda state: self.ui.sclEnableLineEdit.setDisabled(not state)
-        )
 
     def get_data(self):
         return (self.ui.idLineEdit.text(),
@@ -70,9 +66,7 @@ class SshDialog(AFormDialog):
                 self.ui.hostLineEdit.text(),
                 self.ui.portSpinBox.value(),
                 self.ui.userLineEdit.text(),
-                self.ui.passwordLineEdit.text(),
-                self.ui.sclEnableLineEdit.text()
-                if self.ui.sclEnableCheckBox.isChecked() else None)
+                self.ui.passwordLineEdit.text())
 
     def set_data(self, data=None):
         if data:
@@ -82,9 +76,6 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(data[4])
             self.ui.userLineEdit.setText(data[5])
             self.ui.passwordLineEdit.setText(data[6])
-            if data[7]:
-                self.ui.sclEnableCheckBox.setCheckState(Qt.Checked)
-                self.ui.sclEnableLineEdit.setText(data[7])
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -92,8 +83,6 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(22)
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
-            self.ui.sclEnableCheckBox.setCheckState(Qt.Unchecked)
-            self.ui.sclEnableLineEdit.clear()
 
 
 class UiSshDialog(UiFormDialog):
@@ -200,25 +189,3 @@ class UiSshDialog(UiFormDialog):
         self.passwordRowSplit.addWidget(self.showPushButton)
         self.formLayout.setLayout(5, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordRowSplit)
-
-        # 6 row
-        self.sclEnableLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.sclEnableLabel.setObjectName("sclEnableLabel")
-        self.sclEnableLabel.setText("SCL Enable:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
-                                  self.sclEnableLabel)
-        self.sclEnableRowSplit = QtWidgets.QHBoxLayout()
-        self.sclEnableRowSplit.setObjectName("sclEnableRowSplit")
-        self.sclEnableLineEdit = QtWidgets.QLineEdit(
-            self.mainVerticalLayoutWidget)
-        self.sclEnableLineEdit.setObjectName("sclEnableLineEdit")
-        self.sclEnableLineEdit.setPlaceholderText("for example: python33")
-        self.sclEnableLineEdit.setProperty("clearButtonEnabled", True)
-        self.sclEnableLineEdit.setDisabled(True)
-        self.sclEnableCheckBox = QtWidgets.QCheckBox(
-            self.mainVerticalLayoutWidget)
-        self.sclEnableCheckBox.setObjectName("sclEnableCheckBox")
-        self.sclEnableRowSplit.addWidget(self.sclEnableCheckBox)
-        self.sclEnableRowSplit.addWidget(self.sclEnableLineEdit)
-        self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,
-                                  self.sclEnableRowSplit)

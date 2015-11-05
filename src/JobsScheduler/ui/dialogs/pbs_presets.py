@@ -23,7 +23,7 @@ class PbsPresets(APresetsDialog):
 
         # assign presets and reload view
         self. presets = presets
-        self._reload_view(self.presets)
+        self.reload_view(self.presets)
 
         # set custom dialog
         self.presets_dlg = PbsDialog(parent=self)
