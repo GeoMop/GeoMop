@@ -7,8 +7,9 @@ Module contains customized QScintilla editor.
 from data.meconfig import MEConfig as cfg
 from data import ScalarNode, NodeOrigin
 import helpers.subyaml as analyzer
-from data import Position, PosType, CursorType
+from data import PosType, CursorType
 from helpers.editor_appearance import EditorAppearance as appearance
+from helpers import Position
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciAPIs
 from PyQt5.QtGui import QColor
 import PyQt5.QtCore as QtCore
@@ -18,7 +19,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import helpers.keyboard_shortcuts as shortcuts
 import re
 from ui.menus import EditMenu
-from helpers import Notification
+from helpers import Notification, AutocompleteHelper
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -115,9 +116,7 @@ class YamlEditorWidget(QsciScintilla):
         self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # Completetion
-        self.api = QsciAPIs(self._lexer)
-        self.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.setAutoCompletionThreshold(1)
+        self.SendScintilla(QsciScintilla.SCI_AUTOCSETORDER, QsciScintilla.SC_ORDER_CUSTOM)
 
         # not too small
         self.setMinimumSize(600, 450)
@@ -151,6 +150,8 @@ class YamlEditorWidget(QsciScintilla):
         self.marginClicked.connect(self._margin_clicked)
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
+        self.elementChanged.connect(self._on_element_changed)
+        self.SCN_AUTOCSELECTION.connect(self._on_autocomplete_selected)
         self._pos = EditorPosition()
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
@@ -222,7 +223,11 @@ class YamlEditorWidget(QsciScintilla):
     @property
     def pred_parent(self):
         """return parent node for new created node (if node already exist in structure, return None)"""
-        return self._pos.pred_parent
+        pred_parent = self._pos.pred_parent
+        if pred_parent is not None:
+            while getattr(pred_parent, 'parent') is not None and pred_parent.origin == NodeOrigin.ac_reducible_to_key:
+                pred_parent = pred_parent.parent
+        return pred_parent
         
     @property
     def curr_node(self):
@@ -260,6 +265,10 @@ class YamlEditorWidget(QsciScintilla):
             column = len(first_char.group()) + 1
             line += 1
             self.nodeSelected.emit(line, column)
+
+    def _on_element_changed(self):
+        """Handles element changed event."""
+        self._pos.reload_autocomplete(self)
 
     def _reload_margin(self):
         """Set error icon and mark to margin"""
@@ -300,6 +309,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
+            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocomplete,
             # shortcuts.ENTER: self.add_new_line,
         }
 
@@ -312,6 +322,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def indent(self):
         """Indents the selected lines."""
+        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
         from_line, from_col, to_line, to_col = self.getSelection()
         if from_line == -1 and to_line == -1:  # no selection -> insert spaces
             spaces = ''.join([' ' * self.tabWidth()])
@@ -326,6 +337,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def unindent(self):
         """Unindents the selected lines."""
+        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
         from_line, from_col, to_line, to_col = self.getSelection()
         if from_line == -1 and to_line == -1:  # no selection -> unindent current line
             line, col = self.getCursorPosition()
@@ -422,6 +434,31 @@ class YamlEditorWidget(QsciScintilla):
             else:  # not a comment already - prepend all lines with '# '
                 lines_with_comment.append('')
                 self.replaceSelectedText('\n'.join(lines_with_comment))
+
+    def show_autocomplete(self):
+        """Shows autocomplete options for the current cursor position."""
+        if len(cfg.autocomplete_helper.scintilla_options) == 0:
+            return
+
+        # find out how many character are already written
+        cur_line, cur_col = self.getCursorPosition()
+        prev_text = self.text(cur_line)[0:cur_col]
+        word = re.search(r'\S*$', prev_text).group()
+        # if word.startswith('*'):
+        #     self.autocomplete_helper.create_options()
+        self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
+                           cfg.autocomplete_helper.scintilla_options)
+
+    def _on_autocomplete_selected(self, selected, position):
+        """Handle autocomplete selection."""
+        self.SendScintilla(self.SCI_AUTOCCANCEL)
+        option = selected.decode('utf-8')
+        option_text = cfg.autocomplete_helper.select_option(option)
+        text = self.text()
+        word_to_replace = re.search(r'^[!*a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
+        end_position = position + len(word_to_replace)
+        self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
+        self.replaceSelectedText(option_text)
 
     @pyqtSlot(str, bool, bool, bool)
     def on_find_requested(self, search_term, is_regex, is_case_sensitive, is_word):
@@ -740,14 +777,21 @@ class EditorPosition:
             return False
         return True
 
-    def _reload_autocompletation(self, editor):
+    def reload_autocomplete(self, editor):
         """New line was added"""
-        if self.node is None:
+        if editor.pred_parent is not None:
+            node = editor.pred_parent
+        elif self.node is not None:
+            if self.cursor_type_position == CursorType.key and self.node.parent is not None:
+                node = self.node.parent
+            else:
+                node = self.node
+
+        if node is None or getattr(node, 'input_type', None) is None:
             return False
-        editor.api.clear()
-        for option in self.node.options:
-            editor.api.add(option)
-        editor.api.prepare()
+
+        cfg.autocomplete_helper.create_options(node.input_type)
+        return True
 
     def node_init(self, node, editor):
         """set new node"""
@@ -774,8 +818,6 @@ class EditorPosition:
         if len(self._old_text) + 1 == editor.lines():
             self._old_text.append("")
         self._save_lines(editor)
-        if node is not None:
-            self._reload_autocompletation(editor)
         # set cursore_type_position
         anal = self._init_analyzer(editor, self.line, self.index)
         pos_type = anal.get_pos_type()
@@ -793,6 +835,9 @@ class EditorPosition:
             else:
                 na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
+
+        if node is not None:
+            self.reload_autocomplete(editor)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

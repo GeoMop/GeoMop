@@ -25,10 +25,10 @@ class JobsCommunicator(Communicator):
         
     def  standart_action_function_before(self, message):
         """before action function"""
-        if message.action_type == tdata.ActionType.installation:
+        if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
-                logging.debug("Job application started")
+                logging.debug("Job application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             return resent, mess
@@ -84,7 +84,7 @@ class JobsCommunicator(Communicator):
     def install(self):
         """make installation"""
         if self.install_job_libs:
-            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec)
+            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_exec, self.libs_mpicc)
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()

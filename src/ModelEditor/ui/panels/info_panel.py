@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 import os
 
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, Qt
 
 from ist import InfoTextGenerator
 from data import CursorType
@@ -42,6 +42,8 @@ class InfoPanelWidget(QWebView):
         """ Query data of currently displayed page."""
 
         self.setMinimumSize(800, 250)
+        self.setContextMenuPolicy(Qt.NoContextMenu)
+
         self._html_root_url = QUrl.fromLocalFile(__html_root_path__)
         self.linkClicked.connect(self.navigate_to)
         self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)

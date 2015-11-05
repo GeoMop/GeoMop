@@ -182,7 +182,13 @@ class CommunicatorConfig(object):
         
         self.install_job_libs = False
         """Communicator will install libs fo jobs"""
-
+        
+        self.libs_mpicc = None
+        """
+        special location or name for the mpicc compiler wrapper 
+        used during libs for jobs installation (None - use server 
+        standart configuration)
+        """
 
 class CommunicatorConfigService(object):
     CONF_EXTENSION = ".json"

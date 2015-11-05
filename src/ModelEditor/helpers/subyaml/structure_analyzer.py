@@ -1,7 +1,7 @@
-from data import Position, Span, CompositeNode
-from helpers.subyaml.node_analyzer import NodeStructureType, NodeAnalyzer
-from helpers.subyaml.line_analyzer import LineAnalyzer
-from helpers import Notification
+from data import CompositeNode
+from .node_analyzer import NodeStructureType, NodeAnalyzer
+from .line_analyzer import LineAnalyzer
+from .. import Notification, Position, Span
 
 
 class StructureAnalyzer:

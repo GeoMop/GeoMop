@@ -1,11 +1,17 @@
 """Start script that inicialize main window """
 
 import os
+
+# IMPORTANT
+# Script changes the working directory so all files can be located.
+# This is especially vital for resources in css.
+MODEL_EDITOR_PATH = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(MODEL_EDITOR_PATH)
+
 import logging
 import traceback
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+__lib_dir__ = os.path.join(os.getcwd(), '..', 'common')
 sys.path.insert(1, __lib_dir__)
 
 from data.meconfig import MEConfig as cfg
@@ -13,7 +19,7 @@ from ui.dialogs.json_editor import JsonEditorDlg
 from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from data import Position
+from helpers import Position
 from data import CursorType
 import icon
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
@@ -158,7 +164,7 @@ class ModelEditor:
                                         CursorType.parent.value)
             return
         if self._editor.curr_node is not None:
-            self._info.update_from_node(self._editor.curr_node, cursor_type)   
+            self._info.update_from_node(self._editor.curr_node, cursor_type)
 
     def _on_node_selected(self, line, column):
         """Handles nodeSelected event from editor."""

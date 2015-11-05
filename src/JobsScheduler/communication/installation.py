@@ -306,12 +306,12 @@ class Installation:
             return None
         return path 
 
-    def install_job_libs(self):
+    def install_job_libs(self, mpicc):
         """Return dir for savings status"""
-        self.install_job_libs_static(self.mj_name, self.python_exec)
+        self.install_job_libs_static(self.mj_name, self.python_exec, mpicc)
     
     @classmethod
-    def install_job_libs_static(cls, mj_name, python_exec):
+    def install_job_libs_static(cls, mj_name, python_exec, mpicc):
         """Return dir for savings status"""
         if sys.platform == "win32":
             #ToDo if is needed
@@ -324,7 +324,11 @@ class Installation:
             term.expect('.*cd twoparty/install.*')
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
             log_file= os.path.join(log_file, "install_job_libs.log")
-            command = "./install_mpi4.sh " + python_exec + " &>> " + log_file            
+            if mpicc is None:
+                command = "./install_mpi4.sh " + python_exec + " &>> " + log_file
+            else:
+                command = "./install_mpi4.sh " + python_exec  + " " + mpicc +  \
+                                 " &>> " + log_file 
             logging.debug("Installation libraries started")
             term.sendline(command)
             time.sleep(1)

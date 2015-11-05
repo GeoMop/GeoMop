@@ -13,7 +13,7 @@ if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
 mj_name = sys.argv[1]
-if len(sys.argv)>2 and sys.argv[2] != "&":
+if len(sys.argv)>2 and sys.argv[2] != "":
     mj_id = sys.argv[2]
 
 # Load from json file

@@ -6,7 +6,7 @@ __author__ = 'Tomas Krizek'
 
 from enum import Enum
 
-from data import Span, Position
+from ..locators import Span, Position
 from .list import NOTIFICATIONS_BY_CODE, NOTIFICATIONS_BY_NAME
 
 

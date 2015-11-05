@@ -2,9 +2,9 @@
 Module contains helper functions for loading stylesheets.
 """
 
-__author__ = 'Tomas Krizek'
-
 import os
+
+__author__ = 'Tomas Krizek'
 
 __stylesheet_dir__ = os.path.join(os.getcwd(), 'resources', 'css') + os.path.sep
 

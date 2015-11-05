@@ -3,8 +3,7 @@ problem: !SequentialCoupling
     mesh_file: input/dual_por.msh
   primary_equation: !Steady_MH
     balance: true
-    # Unexpected (and ignored) tag triggers 901.
-    input_fields: !InputFields
+    input_fields:
         - bc_pressure: 0
           bc_type: dirichlet
           r_set: BOUNDARY
