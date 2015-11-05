@@ -50,7 +50,8 @@ class MainWindow(QtWidgets.QMainWindow):
             = ResourcePresets(parent=self,
                               presets=self.data.resource_presets,
                               pbs=self.data.pbs_presets,
-                              ssh=self.data.ssh_presets)
+                              ssh=self.data.ssh_presets,
+                              env=self.data.env_presets)
 
         self.env_presets_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
@@ -82,6 +83,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pbs_presets_dlg.presets_changed.connect(
             self.data.pbs_presets.save)
 
+        # env presets
+        self.ui.actionEnvPresets.triggered.connect(
+            self.env_presets_dlg.show)
+        self.env_presets_dlg.presets_changed.connect(
+            self.data.env_presets.save)
+
         # resource presets
         self.ui.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
@@ -91,12 +98,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.presets_dlg.set_pbs_presets)
         self.ssh_presets_dlg.presets_changed.connect(
             self.resource_presets_dlg.presets_dlg.set_ssh_presets)
-
-        # pbs presets
-        self.ui.actionEnvPresets.triggered.connect(
-            self.env_presets_dlg.show)
         self.env_presets_dlg.presets_changed.connect(
-            self.data.env_presets.save)
+            self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
