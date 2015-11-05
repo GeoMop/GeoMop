@@ -133,7 +133,7 @@ else:
                 if mess != ("cd " + self.installation.copy_path):
                     logging.warning("Exec python file: " + mess) 
             self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
-            self.ssh.expect( self.installation.python_exec + ".*\r\n")
+            self.ssh.expect( self.installation.python_env.python_exec + ".*\r\n")
             
             lines = str(self.ssh.after, 'utf-8').splitlines(False)            
             del lines[0]

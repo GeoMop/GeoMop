@@ -206,19 +206,19 @@ class Installation:
         command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
         if mj_id is not None:
             command += " " + mj_id
-        return self.python_env.interpreter + " " + command
+        return self.python_env.python_exec + " " + command
     
     def get_args(self, name, mj_name, mj_id):
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
         if mj_id is None:
-            return [self.python_env.interpreter,dest_path, mj_name, "&", "disown"]
-        return [self.python_env.interpreter,dest_path, mj_name, mj_id, "&", "disown"]
+            return [self.python_env.python_exec,dest_path, mj_name, "&", "disown"]
+        return [self.python_env.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
         
     def get_interpreter(self):
         """return python interpreter with path"""
-        return self.python_env.interpreter
+        return self.python_env.python_exec
 
     def get_command_only(self, name, mj_name, mj_id):
         """return command with path"""
@@ -387,9 +387,9 @@ class Installation:
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
             log_file= os.path.join(log_file, "install_job_libs.log")
             if libs_env.mpicc is None:
-                command = "./install_mpi4.sh " + python_env.interpreter + " &>> " + log_file
+                command = "./install_mpi4.sh " + python_env.python_exec + " &>> " + log_file
             else:
-                command = "./install_mpi4.sh " + python_env.interpreter  + " " + libs_env.mpicc +  \
+                command = "./install_mpi4.sh " + python_env.python_exec  + " " + libs_env.mpicc +  \
                                  " &>> " + log_file 
             logging.debug("Installation libraries started")
             term.sendline(command)

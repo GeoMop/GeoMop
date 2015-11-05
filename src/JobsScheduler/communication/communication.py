@@ -13,7 +13,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         """installation where is copied files"""
     
     def set_env_params(self, python_env,  libs_env):
-        self.installation.set_env_params(self, python_env,  libs_env)
+        self.installation.set_env_params(python_env,  libs_env)
         
     def install_job_libs(self):
         """Install libs for jobs"""

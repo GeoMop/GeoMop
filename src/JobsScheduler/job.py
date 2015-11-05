@@ -45,7 +45,7 @@ except Exception as error:
 comunicator = Communicator(com_conf, mj_id)
 logging.info("Start")
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
-process = subprocess.Popen([com_conf.python_env.interpreter,"test_task.py", 
+process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py", 
     Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
 return_code = process.poll()
 if return_code is not None:
