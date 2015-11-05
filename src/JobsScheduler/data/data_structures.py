@@ -151,7 +151,7 @@ class DataContainer(object):
             mj_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[7]])
         elif resource_preset[6] == UiResourceDialog.PBS_LABEL:
-            mj_conf.next_communicator = comconf.CommType.remote.value
+            mj_conf.next_communicator = comconf.CommType.job.value
             mj_conf.output_type = comconf.OutputCommType.pbs
             mj_conf.pbs = comconf.ConfigFactory.get_pbs_config(
                 preset=self.pbs_presets[resource_preset[9]])
