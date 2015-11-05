@@ -1,11 +1,11 @@
 """Validator for Flow123D data structure"""
 
-__author__ = 'Tomas Krizek'
-
 from . import checks
-from ..data_node import CompositeNode, NodeOrigin
+from ..data_node import CompositeNode, NodeOrigin, TextValue
 from ..format import is_scalar
-from helpers import Notification
+from helpers import Notification, Span
+
+__author__ = 'Tomas Krizek'
 
 
 class Validator:
@@ -112,6 +112,11 @@ class Validator:
                 notification.span = get_node_key(node).key.span
             self._report_notification(notification)
         else:
+            if node.type is None:
+                # if default_descendant defines the AbstractRecord type, add it to data structure
+                node.type = TextValue()
+                node.type.value = concrete_type.get('type_name')
+                node.type.span = Span(node.span.start, node.span.start)
             concrete_type['implemented_abstract_record'] = input_type
             node.input_type = concrete_type
             self._validate_record(node, concrete_type)
