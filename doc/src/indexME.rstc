@@ -5,7 +5,6 @@ Model Editor Source Documentation
    :caption: Model Editor Source
    :maxdepth: 4
 
-   aut/ModelEditor/common
    aut/ModelEditor/data
    aut/ModelEditor/helpers
    aut/ModelEditor/importer

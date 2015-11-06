@@ -5,7 +5,6 @@ Jobs Scheduler Source Documentation
    :caption: Jobs Scheduler Source
    :maxdepth: 4
 
-   aut/JobsScheduler/common
    aut/JobsScheduler/communication
    aut/JobsScheduler/data
    aut/JobsScheduler/delegator
