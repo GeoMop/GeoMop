@@ -20,10 +20,10 @@ class AutocompleteHelper:
 
     def create_options(self, input_type):
         """
-        Creates a list of options based on the input type. Each option is identified by a string.
+        Create and return a list of options based on the input type.
 
-        Returns a list of string (option identifiers) that should be displayed as QScintilla
-        autocomplete options.
+        Each option is identified by a string that should be displayed as QScintilla
+        autocomplete option.
         """
         self._options.clear()
 
