@@ -15,6 +15,7 @@ from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
+from ui.main_window_refresher import WindowRefresher
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.panels.multijob_overview import MultiJobOverview
@@ -25,19 +26,19 @@ class MainWindow(QtWidgets.QMainWindow):
     Jobs Scheduler main window class
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
-    tabs_data_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None, data=None, data_reloader=None):
         super().__init__(parent)
         self.data = data
         self.data_reloader = data_reloader
-        self.data_reloader.notify_data_changed = self._handle_data_changed
+        self.windows_refresher = WindowRefresher(parent=self,
+                                                 data_reloader=data_reloader)
+        self.windows_refresher.results_changed.connect(
+            self.handle_results_changed)
 
         # setup UI
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
-
-        self.tabs_data_changed.connect(self.ui.multiJobInfoTab.reload_view)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -111,6 +112,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # reload view
         self.ui.multiJobOverview.reload_view(self.data.multijobs)
 
+        self.windows_refresher.start(1)
+
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
         self.mj_dlg.show()
@@ -155,8 +158,14 @@ class MainWindow(QtWidgets.QMainWindow):
         communicator = Communicator(app_conf)
         self.data_reloader.install_communicator(key, communicator)
 
-    def _handle_data_changed(self, key):
-        self.tabs_data_changed.emit(self.data.multijobs[key]["logs"])
+    def handle_results_changed(self, results):
+        try:
+            key = self.ui.multiJobOverview.currentItem().text(0)
+            self.ui.multiJobInfoTab.reload_view(results[key]["logs"])
+        except KeyError as keyerr:
+            pass
+        except AttributeError as atrerr:
+            pass
 
 
 class UiMainWindow(object):

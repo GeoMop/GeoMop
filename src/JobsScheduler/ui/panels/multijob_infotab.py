@@ -17,7 +17,7 @@ class MultiJobInfoTab(QtWidgets.QTabWidget):
 
     def reload_view(self, files):
         self.clear()
-        for idx, file in enumerate(files[1:]):
+        for idx, file in enumerate(files):
             layout = QtWidgets.QVBoxLayout(self)
             tab = QtWidgets.QWidget(self)
             text = QtWidgets.QTextEdit(tab)
