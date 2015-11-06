@@ -73,6 +73,7 @@ class DataReloader(threading.Thread):
     def _prepare_results(self, com):
         res_path = inst.Installation \
             .get_result_dir_static(com["communicator"].mj_name)
+        res_path = os.path.join(res_path, "log")
         logs = [os.path.join(res_path, f) for f in os.listdir(res_path)][1:]
         for log in logs:
             log = res_path + log

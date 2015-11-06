@@ -4,6 +4,7 @@ Table of MultiJobs
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import os
 
 import PyQt5.QtWidgets as QtWidgets
 
@@ -18,14 +19,15 @@ class MultiJobInfoTab(QtWidgets.QTabWidget):
     def reload_view(self, files):
         self.clear()
         for idx, file in enumerate(files):
-            layout = QtWidgets.QVBoxLayout(self)
-            tab = QtWidgets.QWidget(self)
-            text = QtWidgets.QTextEdit(tab)
-            layout.addWidget(text)
-            tab.setLayout(layout)
-            with open(file, "r") as fh:
-                text.setText(fh.read())
-            self.addTab(tab, file)
+            if os.path.isfile(file):
+                layout = QtWidgets.QVBoxLayout(self)
+                tab = QtWidgets.QWidget(self)
+                text = QtWidgets.QTextEdit(tab)
+                layout.addWidget(text)
+                tab.setLayout(layout)
+                with open(file, "r") as fh:
+                    text.setText(fh.read())
+                self.addTab(tab, file)
 
 
 class UiMultiJobInfoTab(object):
