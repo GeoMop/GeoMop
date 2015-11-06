@@ -7,9 +7,10 @@ class GeometryDlg(QtWidgets.QDialog):
 
     def __init__(self, geometry=None, parent=None):
         super(GeometryDlg, self).__init__(parent)
-        
-        if geometry == None:
-            geometry = new data.
+
+        # TODO: Please do not leave invalid code in the source files. --TK
+        # if geometry == None:
+        #     geometry = new data.
 
         label_file = QtWidgets.QLabel("Picture File:")
         self._file_name = QtWidgets.QLineEdit()
@@ -97,13 +98,13 @@ class GeometryDlg(QtWidgets.QDialog):
         grid.addWidget(self._bl_color_button, 7, 3)
 
 
-
-self.setLayout(grid)
-
-        self.connect(buttonBox, SIGNAL("accepted()"),
-                     self, SLOT("accept()"))
-        self.connect(buttonBox, SIGNAL("rejected()"),
-                     self, SLOT("reject()"))
-        self.setWindowTitle("Set Number Format (Modal)")
+# TODO: Please do not leave invalid code in the source files. --TK
+# self.setLayout(grid)
+#
+#         self.connect(buttonBox, SIGNAL("accepted()"),
+#                      self, SLOT("accept()"))
+#         self.connect(buttonBox, SIGNAL("rejected()"),
+#                      self, SLOT("reject()"))
+#         self.setWindowTitle("Set Number Format (Modal)")
         
         

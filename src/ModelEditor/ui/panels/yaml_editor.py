@@ -325,6 +325,7 @@ class YamlEditorWidget(QsciScintilla):
         self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
         from_line, from_col, to_line, to_col = self.getSelection()
         if from_line == -1 and to_line == -1:  # no selection -> insert spaces
+            # TODO: use indent instead of spaces
             spaces = ''.join([' ' * self.tabWidth()])
             self.insert_at_cursor(spaces)
         else:  # text selected -> perform indent

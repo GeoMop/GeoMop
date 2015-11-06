@@ -22,6 +22,7 @@ class Communicator():
     """
     Class with communication interface, that provide place for action.
     Communicator contains:
+
       - intput - communacion interface 
         (:class:`communication.communication.InputComm`) 
         for communacion with previous communicator

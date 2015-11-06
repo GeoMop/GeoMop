@@ -28,12 +28,14 @@ class Message:
     """
     Communication message
     
-    Message is compose from:
-      - action type
-      - data (:class:`data.transport_data.Action` descendant object in json format)
-      - controll summation
-    Class provide method for pack and unpack type and data.pack,
-    check its len and summation. Data is pack by base64 to ascii
+    Message is composed of:
+
+        - action type
+        - data (:class:`data.transport_data.Action` descendant object in json format)
+        - control summation
+
+    Class provides methods for pack and unpack type and data.pack,
+    check its len and summation. Data is packed by base64 to ascii
     text format.    
     """
     def __init__(self, asci = None):
