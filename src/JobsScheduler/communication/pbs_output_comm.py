@@ -20,7 +20,9 @@ class PbsOutputComm(ExecOutputComm):
         """run set python file in ssh"""
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config)        
         hlp.prepare_file(self.installation.get_command_only(python_file, mj_name, mj_id),
-                                  self.installation.get_interpreter())
+                                  self.installation.get_interpreter(), 
+                                  self.installation.get_prepare_pbs_env()  
+                                 )
         logging.debug("Qsub params: " + str(hlp.get_qsub_args()))       
         process = subprocess.Popen(hlp.get_qsub_args(), 
                                                        stdout=subprocess.PIPE)
