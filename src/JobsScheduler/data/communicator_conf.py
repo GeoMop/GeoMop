@@ -76,7 +76,7 @@ class PythonEnvConfig(object):
 
     def __init__(self):
         """init"""
-        self.python_exec = "Python3"
+        self.python_exec = "python3"
         self.scl_enable_exec = None
         """Enable python exec set name over scl"""
         self.module_add = None
@@ -156,6 +156,18 @@ class ConfigFactory(object):
         """
         python_env = PythonEnvConfig()
         libs_env = LibsEnvConfig()
+        if preset[2]:
+            python_env.python_exec = preset[2]
+        if preset[3]:
+            python_env.scl_enable_exec = preset[3]
+        if preset[4]:
+            python_env.module_add = preset[4]
+        if preset[5]:
+            libs_env.mpi_scl_enable_exec = preset[5]
+        if preset[6]:
+            libs_env.mpi_module_add = preset[6]
+        if preset[7]:
+            libs_env.libs_mpicc = preset[7]
         return python_env, libs_env
 
     @staticmethod
