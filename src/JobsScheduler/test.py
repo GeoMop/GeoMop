@@ -2,8 +2,14 @@
 import subprocess
 import time
 
-print( "Start - test")   
-p = subprocess.Popen(["python3","job.py", "&", "disown"])
-print( "Popen: " + str(p))   
-time.sleep(60)
-print( "End - test" )  
+
+def main():
+    print("Start - test")
+    p = subprocess.Popen(["python3","job.py", "&", "disown"])
+    print("Popen: " + str(p))
+    time.sleep(60)
+    print("End - test" )
+
+
+if __name__ == '__main__':
+    main()

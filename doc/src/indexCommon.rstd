@@ -1,0 +1,18 @@
+Common Source Documentation
+=================================
+
+.. toctree::
+   :caption: Common Source
+   :maxdepth: 4
+
+   aut/common/config
+   aut/common/geomop_dialogs
+   aut/common/icon
+   aut/common/util
+
+Indices and tables
+==================
+
+* `Index <genindexME.html>`_
+* `Module Index <py-modindexME.html>`_
+

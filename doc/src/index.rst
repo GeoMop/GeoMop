@@ -3,29 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to GeoMop Source Documentation's documentation!
-=======================================================
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
 
-:doc:`Install GeoMop Instruction <install/installation_guide>`
-
-GeoMop project organization:
-  * :doc:`GeoMop Development Procedures (czech) <organization/procedures>`
-  * :doc:`GeoMop Development Rules (czech) <organization/rules>`	
-	
-GeoMob Modules code documentation
-=================================
-
-* `Model Editor <indexME.html>`_
-* `Layer Editor <indexLE.html>`_
-* `Jobs Scheduler <indexJS.html>`_
-
-GeoMob Common code documentation
-================================
+   install/linux_installation_guide
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
+   :titlesonly:
+   :caption: Developer Documentation
 
-   aut/modules
+   module_documentation
+   organization/procedures
+   organization/rules
+   organization/pylint_rules
+
 
 Indices and tables
 ==================

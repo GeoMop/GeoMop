@@ -1,10 +1,17 @@
-Model Editor Source code documentation
-======================================
+Model Editor Source Documentation
+=================================
 
 .. toctree::
+   :caption: Model Editor Source
    :maxdepth: 4
 
-   aut/ModelEditor/modules
+   aut/ModelEditor/common
+   aut/ModelEditor/data
+   aut/ModelEditor/helpers
+   aut/ModelEditor/importer
+   aut/ModelEditor/ist
+   aut/ModelEditor/model_editor
+   aut/ModelEditor/ui
 
 Indices and tables
 ==================

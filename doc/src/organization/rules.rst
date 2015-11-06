@@ -1,9 +1,9 @@
-GeoMop Development Rules (czech)
-================================
+Development Rules (czech)
+=========================
 Vývoj aplikace GeoMop podléhá následujícím pravidlům.
 
 Psaní kódu
-==========
+----------
 Nejdůležitějším pravidlem pro tuto aplikaci je psát **jednoduchý**, ve všem co 
 má dělat protestovaný kód jež dělá jen a pouze to co má.
 
@@ -41,14 +41,14 @@ to není možné a upravuje se kód knohovny, je to velký problém a takovýto 
 být schválen vedoucím projektu.
 
 Kontrola kódu
-=============
+-------------
 
 Před commitem kódu na server je nutné provéct kontrolu pyLintem. Pokud bude nalezena
 chyba, kterou nelze okamžitě vyřešit opravou, nebo v souladu s :doc:`doporučeným řešením 
 <pylint_rules>`, předá se vedoucímu projektu.
 
 Testování kódu
-==============
+--------------
 
 Před commitem kódu na server je nutné kontrolovat kód již :doc:`vytvořenými 
 automatickými testy <procedures>`. Pokud by toto bylo v budoucnu časově náročné, 
@@ -58,7 +58,7 @@ Před uzavřením úkolu musí být vytvořeny i automatické testy v souladu s 
 postupen
 
 Uchovávání kódu
-===============
+---------------
 
 Používá se git na adrese::
 

@@ -1,10 +1,10 @@
-GeoMop Development Procedures (czech)
-=====================================
+Development Procedures (czech)
+==============================
 
 Tento dokument popisuje postupy používané pri vývoji aplikace
 
 Adresářová struktura
-====================
+--------------------
 Adresářová struktura 
 je::
 
@@ -22,7 +22,7 @@ Popis:
   * testing - Automatické testy 
 
 Kontrola kódu
-=============
+-------------
 Pro kontrolu se používá `pyLint <www.pylint.org>`_. V hlavním adresáři každého 
 modulu je soubor pylintrc, v kterém se píší pravidla pro vyjímky. Další vyjímky
 je možné napsat na začátek souboru, nebo nad vyjmutý řádek. Pravidla pro tyto 
@@ -80,7 +80,7 @@ super-on-old-class (E1002)
 
 
 Vývojářska Dokumentace
-======================
+----------------------
 Dokumentace je psaná v `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ 
 a do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htmls>`_.
 `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ je docstring formát a 
@@ -107,19 +107,19 @@ vyvíjený a `sphinx <http://sphinx-doc.org/index.htmls>`_ následně můžeme p
 uživatelské dokumentace.
 
 Uživatelská Dokumentace
-=======================
+-----------------------
 Dokumentace bude asi psaná v `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ a 
 do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htmls>`_.
 
 Testování kódu po sobě
-======================
+----------------------
 
 Kód je nutné otestova kompletně a pokud víme že ovlivní i jiné části programu, pak i ty.
 Tam kde jsou psané kompletní testy stačí zběžně, v jiném případě by mělo být testování
 kompletnější.
 
 Testování - automatické testy
-=============================
+-----------------------------
 
 Pro psaní automatických testů je použit `pyTest <http://pytest.org/latest/>`_. Testy
 je možné lokálně spustit z testing adresáře příkazem::
@@ -151,7 +151,7 @@ deployi ve virtuálním prostředí.
     dispozici úplné testy
   
 Požadavky na vývojový PC
-========================
+------------------------
 
 Vše je psané pro Linux. Pokud by se mělo vyvíjet i na window, je nutné tam nainstalovat
 maketool a asi napsat nějaké alternativy k sh skriptům, ale ten je použit jen pro testy.
@@ -166,7 +166,7 @@ Požadavky:
   * Sphinx
 
 IDE
-===
+---
 Je možné používat IDE dle uvážení. Projektové soubory se do Gitem neverzují. Každý je 
 zodpovědný za to aby mu to fungovalo na jeho Počítači.
 
@@ -181,6 +181,6 @@ Možnosti:
     nápověda pro náš kód.
 
 Build
-=====
+-----
 
   * *rozhodnout jaké instalační balíčky a systémy podporovat a dopsat*

@@ -1,10 +1,22 @@
-Jobs Scheduler source code documentation 
-========================================
+Jobs Scheduler Source Documentation
+===================================
 
 .. toctree::
+   :caption: Jobs Scheduler Source
    :maxdepth: 4
 
-   aut/JobsScheduler/modules
+   aut/JobsScheduler/common
+   aut/JobsScheduler/communication
+   aut/JobsScheduler/data
+   aut/JobsScheduler/delegator
+   aut/JobsScheduler/helpers
+   aut/JobsScheduler/job
+   aut/JobsScheduler/job_scheduler
+   aut/JobsScheduler/mj_service
+   aut/JobsScheduler/test
+   aut/JobsScheduler/test_app
+   aut/JobsScheduler/test_task
+   aut/JobsScheduler/ui
 
 Indices and tables
 ==================

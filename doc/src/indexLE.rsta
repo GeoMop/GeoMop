@@ -1,10 +1,15 @@
-Layer Editor Source code documentation
-======================================
+Layer Editor Source Documentation
+=================================
 
 .. toctree::
+   :caption: Layer Editor Source
    :maxdepth: 4
 
-   aut/LayerEditor/modules
+   aut/LayerEditor/common
+   aut/LayerEditor/data
+   aut/LayerEditor/drawing
+   aut/LayerEditor/layer_editor
+   aut/LayerEditor/ui
 
 Indices and tables
 ==================
