@@ -17,8 +17,9 @@ class FindDialog(QDialog):
     find_request = pyqtSignal(str, bool, bool, bool)
     """
     Signal is triggered when the find button is clicked.
+
     Parameters: search term (str), is regular expression (bool), is case sensitive (bool),
-                is entire word (bool)
+    is entire word (bool)
     """
 
     WIDTH = 350
@@ -122,16 +123,20 @@ class ReplaceDialog(FindDialog):
     replace_request = pyqtSignal(str, str, bool, bool, bool)
     """
     Signal is triggered when the replace button is clicked.
+
     Parameters: search term (str), replacement text (str), is regular expression (bool),
-                is case sensitive (bool), is entire word (bool)
+    is case sensitive (bool), is entire word (bool)
+
     When signal is triggered, current selection should be replaced with the replacement text.
     """
 
     replace_all_request = pyqtSignal(str, str, bool, bool, bool)
     """
     Signal is triggered when the replace all button is clicked.
+
     Parameters: search term (str), replace text (str), is regular expression (bool),
-                is case sensitive (bool), is entire word (bool)
+    is case sensitive (bool), is entire word (bool)
+    
     When signal is triggered, current selection should be replaced with the replacement text
     as well as all other matches, as long as there are some.
     """
