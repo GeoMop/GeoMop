@@ -51,7 +51,7 @@ class PbsConfig(object):
         self.ppn = "1"
         self.mem = "400mb"
         self.scratch = "400mb"
-        self.with_socket = False  # multijob true; job false
+        self.with_socket = True  # multijob true; job false
         """Initialize communication over socket"""
 
 
@@ -109,7 +109,7 @@ class LibsEnvConfig(object):
 
 class ConfigFactory(object):
     @staticmethod
-    def get_pbs_config(preset=None, with_socket=False):
+    def get_pbs_config(preset=None, with_socket=True):
         """
         Converts dialog data into PbsConfig instance
         """
