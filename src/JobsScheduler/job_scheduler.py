@@ -58,7 +58,7 @@ class JobsScheduler(object):
         self._data = DataContainer()
 
         # load data reloader
-        self._reloader = DataReloader(self._data)
+        self._reloader = DataReloader()
 
         # setup qt UI
         self._main_window = MainWindow(data=self._data,

@@ -107,6 +107,6 @@ class ActionResourcesPresets(QtWidgets.QAction):
 class ActionEnvPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
         super(ActionEnvPresets, self).__init__(parent)
-        self.setText("Environment")
+        self.setText("Environments")
         self.setShortcut("Shift+E")
         self.setObjectName("actionEnvPresets")
