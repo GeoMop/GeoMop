@@ -1,30 +1,38 @@
-"""Tree widget panel module"""
+"""
+Tree widget panel
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
+import util
+from copy import deepcopy
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QColor
-from data.meconfig import MEConfig as cfg
-from data import ScalarNode, CompositeNode
-import util
-from copy import deepcopy
+from data import ScalarNode, CompositeNode, cfg
 
 
 class TreeWidget(QtWidgets.QTreeView):
-    """
-    Tree widget for viewing yaml file tree structure
+    """Widget displays the config file structure in a tree.
 
-    Events:
-        :ref:`item_selected <item_selected>`
+    pyqtSignals:
+        * :py:attr:`itemSelected(int, int, int, int) <itemSelected>`
     """
+
     itemSelected = QtCore.pyqtSignal(int, int, int, int)
-    """
-    .. _item_selected:
-    Sgnal is sent when  tree item is clicked.
+    """Signal is sent when a tree item is clicked.
+
+    :param int start_line: Line where the error begins.
+    :param int start_column: Column where the error begins.
+    :param int end_line: Line where the error ends.
+    :param int end_column: Column where the error ends.
     """
 
     def __init__(self, parent=None):
+        """Initialize the class."""
         super(TreeWidget, self).__init__(parent)
         self.showColumn(3)
-        self._model = TreeOfNodes(cfg.root)
+        self._model = DataNodeTreeModel(cfg.root)
         self.setModel(self._model)
         self.setMinimumSize(350, 450)
         self.setColumnWidth(0, 190)
@@ -41,13 +49,13 @@ class TreeWidget(QtWidgets.QTreeView):
         self.setStyleSheet(stylesheet)
 
     def reload(self):
-        """start of reload data from config"""
-        self._model = TreeOfNodes(cfg.root)
+        """Start of reload data from config."""
+        self._model = DataNodeTreeModel(cfg.root)
         self.setModel(self._model)
         self._restore_expanded()
 
     def _restore_expanded(self, item=None):
-        """restore expanded state after init"""
+        """Restore expanded state after init."""
         if item is None:
             item = QtCore.QModelIndex()
         for i in range(0, self._model.rowCount(item)):
@@ -64,17 +72,17 @@ class TreeWidget(QtWidgets.QTreeView):
             self._restore_expanded(child)
 
     def _item_collapsed(self, model_index):
-        """Function for itemColapsed signal"""
+        """Handle itemCollapsed signal."""
         path = model_index.internalPointer().absolute_path
         self._item_states[path] = False
 
     def _item_expanded(self, model_index):
-        """Function for itemExpanded signal"""
+        """Handle itemExpanded signal."""
         path = model_index.internalPointer().absolute_path
         self._item_states[path] = True
 
     def _item_clicked(self, model_index):
-        """Function for itemSelected signal"""
+        """Handle itemClicked signal."""
         data = model_index.internalPointer()
         if model_index.column() == 0 and data.key.span is not None:  # key
             span = deepcopy(data.key.span)
@@ -93,12 +101,15 @@ class TreeWidget(QtWidgets.QTreeView):
                     span.start = data.delimiters.start
 
         if span.start is not None and span.end is not None:
-            self.itemSelected.emit(span.start.column, span.start.line,
-                                   span.end.column, span.end.line)
+            self.itemSelected.emit(span.start.line, span.start.column,
+                                   span.end.line, span.end.column)
 
     def select_data_node(self, data_node):
-        """Sets the selection to the given `DataNode`."""
-        row = Node.row(data_node)
+        """Mark data node as selected in the tree.
+
+        :param DataNode data_node: data node to be selected
+        """
+        row = NodeHelper.row(data_node)
         if row is None:
             return
         index = self._model.createIndex(row, 0, data_node)
@@ -106,20 +117,26 @@ class TreeWidget(QtWidgets.QTreeView):
         self.scrollTo(index, QtWidgets.QAbstractItemView.PositionAtCenter)
 
 
-class TreeOfNodes(QtCore.QAbstractItemModel):
-    """tree model structure"""
+class DataNodeTreeModel(QtCore.QAbstractItemModel):
+    """Item model for PyQt tree containing :py:class:`DataNode <data.data_node.DataNode>`."""
+
     def __init__(self, root):
-        super(TreeOfNodes, self).__init__(None)
+        """Initialize the class.
+
+        :param DataNode root: root data node of the tree
+        """
+        super(DataNodeTreeModel, self).__init__(None)
         self.root = root
         self.headers = ["key", "value"]
 
     def index(self, row, column, parent):
-        """
-        The index is used to access data by the view
-        This method overrides the base implementation, needs to be overridden
-        @param row: The row to create the index for
-        @param column: Not really relevant, the tree item handles this
-        @param parent: The parent this index should be created under
+        """Return index used to access data by the view.
+
+        :param int row: row to create the index for
+        :param int column: not really relevant, the tree item handles this
+        :param QModelIndex parent: parent this index should be created under
+        :return: index to access the data
+        :rtype: QModelIndex
         """
         if not parent.isValid():
             parent = self.root
@@ -127,45 +144,46 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
             parent = parent.internalPointer()
         if parent is None:
             return QtCore.QModelIndex()
-        child = Node.get_child(parent, row)
+        child = NodeHelper.get_child(parent, row)
         if child is None:
             return QtCore.QModelIndex()
         return self.createIndex(row, column, child)
 
     def parent(self, child):
-        """
-        creates an index for a parent based on a child index, and binds the data
-        used by the view to get a parent (from a child)
-        @param childindex: the index of the child to get the parent from
+        """Create a parent index based on a child index.
+
+        :param QModelIndex child: index of the child to get the parent from
+        :return: index of parent
+        :rtype: QModelIndex
         """
         if not child.isValid():
             return QtCore.QModelIndex()
         child = child.internalPointer()
         if child is None:
             return QtCore.QModelIndex()
-        parent = Node.get_parent(child)
+        parent = NodeHelper.get_parent(child)
         if parent is None:
             return QtCore.QModelIndex()
-        if Node.get_parent(parent) is None:
+        if NodeHelper.get_parent(parent) is None:
             return QtCore.QModelIndex()
-        row = Node.row(parent)
+        row = NodeHelper.row(parent)
         if row is None:
             return QtCore.QModelIndex()
         return self.createIndex(row, 0, parent)
 
     # virtual function
     # pylint: disable=R0201
-    def data(self, node, role):
+    def data(self, index, role):
+        """Extract data for the index and role.
+
+        :param QModelIndex index: index to extract the data from
+        :param DisplayRole role: data access role the view requests from the model
+        :return: requested data
         """
-        The view calls this to extract data for the row and column
-        associated with the parent object
-        @param parentindex: the parentindex to extract the data from
-        @param role: the data accessing role the view requests from the model
-        """
-        column = node.column()
-        data = node.internalPointer()
+        column = index.column()
+        data = index.internalPointer()
         if role == QtCore.Qt.DisplayRole:
-            return Node.data(data, column)
+            return NodeHelper.data(data, column)
         elif role == QtCore.Qt.SizeHintRole:
             return QtCore.QSize(120, 20)
         elif role == QtCore.Qt.ForegroundRole:
@@ -175,31 +193,41 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
 
     # virtual function
     # pylint: disable=C0103
-    def rowCount(self, parent):
+    def rowCount(self, index):
+        """Return the amount of rows for a given index.
+
+        :param QModelIndex index: index of the node
+        :return: amount of rows
+        :rtype: int
         """
-        Returns the amount of rows a parent has
-        This comes down to the amount of children associated with the parent
-        @param parentindex: the index of the parent
-        """
-        if not parent.isValid():
-            parent = self.root
+        if not index.isValid():
+            node = self.root
         else:
-            parent = parent.internalPointer()
-        if parent is None:
+            node = index.internalPointer()
+        if node is None:
             return 0
-        return Node.count_child_rows(parent)
+        return NodeHelper.count_child_rows(node)
 
     # virtual function
     # pylint: disable=W0613
-    def columnCount(self, parent):
-        """
-        Amount of columns associated with the parent index
-        @param parentindex: the parent index object
+    def columnCount(self, index):
+        """Return the amount of columns for a given index.
+
+        :param QModelIndex index: the index
+        :return: amount of columns
+        :rtype: int
         """
         return 2
 
     def headerData(self, section, orientation, role):
-        """set header parameters"""
+        """Return header parameters.
+
+        :param int section: number of the column
+        :param orientation: orientation of the header
+        :param DisplayRole role: display role for the data
+        :return: header data
+        :rtype: QVariant
+        """
         if(orientation == QtCore.Qt.Horizontal and
            role == QtCore.Qt.DisplayRole):
             if 0 <= section <= len(self.headers):
@@ -207,22 +235,27 @@ class TreeOfNodes(QtCore.QAbstractItemModel):
         return QtCore.QVariant()
 
 
-class Node:
-    """
-    Helper static class for transformation cfg root structure
-    to model format
-    """
-    def __init__(self):
-        pass
+class NodeHelper:
+    """Contains helper functions for transforming `DataNode` to model structure."""
 
     @staticmethod
     def get_parent(node):
-        """get parent"""
+        """Return parent of the node.
+
+        :param DataNode node: node to get the parent of
+        :return: parent of the node
+        :rtype: DataNode
+        """
         return node.parent
 
     @staticmethod
     def row(node):
-        """return row index for node"""
+        """Return row index of the node.
+
+        :param DataNode node: node to get the row index of
+        :return: index of the node in its parent
+        :rtype: int or None
+        """
         if node.parent is None:
             return None
         if isinstance(node.parent, CompositeNode) and node in node.parent.visible_children:
@@ -231,14 +264,25 @@ class Node:
 
     @staticmethod
     def count_child_rows(node):
-        """return count of children for node"""
+        """Return the amount of children for the node.
+
+        :param DataNode node: parent node of the children
+        :return: amount of children the node has
+        :rtype: int
+        """
         if isinstance(node, CompositeNode):
             return len(node.visible_children)
         return 0
 
     @staticmethod
     def get_child(node, row):
-        """return child in row row for node"""
+        """Return a child node at a given row.
+
+        :param DataNode node: parent node
+        :param int row: index of the child
+        :return: child node
+        :rtype: DataNode or None
+        """
         if isinstance(node, CompositeNode):
             if len(node.visible_children) > row:
                 return node.visible_children[row]
@@ -246,7 +290,15 @@ class Node:
 
     @staticmethod
     def data(node, column):
-        """return text displayed in tree in set column for node"""
+        """Return text displayed in tree.
+
+        The first column displays keys. The second column displays values.
+
+        :param DataNode node: node to extract the text from
+        :param int column: index of the column
+        :return: text to display
+        :rtype: str
+        """
         if column == 0:
             return node.key.value
         if column == 1:

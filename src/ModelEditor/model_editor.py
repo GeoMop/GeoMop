@@ -117,10 +117,16 @@ class ModelEditor:
         else:
             self._reload_node(line, column)
 
-    def _item_selected(self, start_column, start_row, end_column, end_row):
-        """Click tree item action mark relative area in editor"""
+    def _item_selected(self, start_line, start_column, end_line, end_column):
+        """Handle when an item is selected from tree or error tab.
+
+        :param int start_line: line where the selection starts
+        :param int start_column: column where the selection starts
+        :param int end_line: line where the selection ends
+        :param int end_column: column where the selection ends
+        """
         self._editor.setFocus()
-        self._editor.mark_selected(start_column, start_row, end_column, end_row)
+        self._editor.mark_selected(start_line, start_column, end_line, end_column)
 
     def _error_margin_clicked(self, line):
         """Click error icon in margin"""

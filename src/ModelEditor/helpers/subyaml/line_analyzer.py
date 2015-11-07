@@ -1,14 +1,39 @@
+"""Line Analyzer provides functions to analyze a single line of text.
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 import re
 
 
-class LineAnalyzer:
+_re_strip_eol = re.compile(r'[^\n]*')
+_re_begins_with_comment = re.compile(r'(\s*)#')
+_re_uncomment = re.compile(r'(\s*)# ?(.*)')
+
+
+def strip_to_line(function):
+    """Decorator to strip the first argument of a function to a single line without EOL.
+
+    :param function: the function to be wrapped
     """
-    Anayze partial yaml line
+
+    def wrapped(*args, **kwargs):
+        args = list(args)
+        text = args[0]
+        line = _re_strip_eol.match(text).group(0)
+        args[0] = line
+        return function(*args, **kwargs)
+
+    return wrapped
+
+
+class LineAnalyzer:
+    """Anayze partial yaml line
 
     Description: This quick party text analyzing contains line
     specific function.
     """
-    
+
     @staticmethod
     def get_char_poss(line, tag):
         """Return possition of tag ended by space or new line"""
@@ -22,7 +47,7 @@ class LineAnalyzer:
     @classmethod
     def get_separator(cls,  line, char,  start, end):
         """Return possition of char between start and end or -1"""
-        line = cls.uncomment(line)
+        line = cls.strip_comment(line)
         index = line.find(char, start, end)
         return index
         
@@ -77,7 +102,7 @@ class LineAnalyzer:
 
         return if is, end_of_arrea (-1 end of line)
         """
-        line = cls.uncomment(line)
+        line = cls.strip_comment(line)
         area = re.match(r'\s*$', line)
         if area is not None:
             # empty line
@@ -101,8 +126,9 @@ class LineAnalyzer:
         return False, 0
 
     @staticmethod
-    def uncomment(line):
+    def strip_comment(line):
         """return line witout comments"""
+        # TODO write tests and refactor "key: abc ## comment"
         comment = re.search(r'^(.*\S)\s*#.*$', line)
         if comment:
             return comment.group(1)
@@ -141,3 +167,34 @@ class LineAnalyzer:
         if not value :
             return False
         return True
+
+    @staticmethod
+    @strip_to_line
+    def begins_with_comment(line):
+        """Check if line begins with a comment.
+
+        The line can contain any number of whitespace characters before the first
+        comment sign :samp:`#`.
+
+        :param str line: a line of text
+        :return: True if line begins with a comment, False otherwise
+        :rtype: bool
+        """
+        return _re_begins_with_comment.match(line) is not None
+
+    @staticmethod
+    @strip_to_line
+    def uncomment(line):
+        """Remove comment symbol at the start of the line and leave indentation level intact.
+
+        If the comment symbol :samp:`#` is immediately followed by a space, remove it as well.
+
+        :param str line: a line of text possibly starting with a comment symbol
+        :return: line without the leading comment symbol
+        :rtype: str
+        """
+        match = _re_uncomment.match(line)
+        if not match:
+            return line
+        else:
+            return match.group(1) + match.group(2)

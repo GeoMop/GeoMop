@@ -134,7 +134,7 @@ class ChangeAnalyzer:
 
         next_line = False
         while i <= self._line:
-            line = LineAnalyzer.uncomment(self._area[i])
+            line = LineAnalyzer.strip_comment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
             if key is not None:
                 if self._line == i:
@@ -154,7 +154,7 @@ class ChangeAnalyzer:
                 i += 1
                 if i > self._line:
                     return type_
-                line = LineAnalyzer.uncomment(self._area[i])
+                line = LineAnalyzer.strip_comment(self._area[i])
                 if line.isspace() or len(line) == 0:
                     continue
                 dist = 0
@@ -247,7 +247,7 @@ class ChangeAnalyzer:
             r'.*\S+\s*\}'
             r'.*\S+\s*\]'
         ]
-        line = LineAnalyzer.uncomment(line)
+        line = LineAnalyzer.strip_comment(line)
         for pat in patterns:
             area = re.match(pat, line)
             if area is not None:
