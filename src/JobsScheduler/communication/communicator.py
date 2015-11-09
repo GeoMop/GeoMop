@@ -291,21 +291,26 @@ class Communicator():
     def _exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator, self.mj_name, self.id)
-        if isinstance(self.output, ExecOutputComm):
+        self._connect_socket(self.output)
+    
+    @staticmethod
+    def _connect_socket(output,  repeat=3):
+        """connect to output socket"""
+        if isinstance(output, ExecOutputComm):
             i=0
-            while i<3:
+            while i<repeat:
                 try:
-                    self.output.connect()            
+                    output.connect()            
                     break
                 except ConnectionRefusedError as err:
                     i += 1
                     time.sleep(1)
-                    if i == 3:
+                    if i == repeat:
                         logging.error("Connect error (" + str(err) + ')')
                 except err:
                     logging.error("Connect error (" + str(err) + ')')
                     break
-                    
+        
     def run(self):
         """
         Infinite loop that is interupt by sending stop action by input,

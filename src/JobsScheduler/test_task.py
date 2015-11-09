@@ -1,19 +1,20 @@
 import sys
-sys.path.insert(1, './ins-lib')
-
+import os
+__ins_lib_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ins-lib")
+sys.path.insert(1, __ins_lib_dir__)
 import logging
 import random
-from mpi4py import MPI
 import os
 
-path = sys.argv[1]
 
+path = sys.argv[1]
 number = random.randrange(0, 100000)
 log_file = os.path.join(path, "MPI_" + str(number) + ".log")
 logging.basicConfig(filename=log_file,level=logging.DEBUG, 
     format='%(asctime)s %(levelname)s %(message)s')
 logging.info("MPI Application " + str(number) + " is started")
-
+logging.info("Task lib directory:" + __ins_lib_dir__ )
+from mpi4py import MPI
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 name = MPI.Get_processor_name()

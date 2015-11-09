@@ -168,6 +168,8 @@ class ConfigFactory(object):
             libs_env.mpi_module_add = preset[6]
         if preset[7]:
             libs_env.libs_mpicc = preset[7]
+        libs_env.install_job_libs=install_job_libs
+        libs_env.start_job_libs=start_job_libs
         return python_env, libs_env
 
     @staticmethod
