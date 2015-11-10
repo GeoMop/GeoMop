@@ -11,7 +11,7 @@ then
 	# Check out the master branch.
 	git checkout master
 
-	# Verify branch was switched (can fail if current branch has uncommited changes)
+	# Verify branch was switched (can fail if current branch has uncommitted changes)
 	if [ $(git symbolic-ref --short HEAD) != "master" ]
 	then
 		echo "pre-push: Could not switch to branch 'master', aborting."
@@ -26,16 +26,20 @@ then
 	# Generate docs.
 	make html
 
-	# Switch to gh-pages branch and 
+	# Switch to gh-pages branch
 	git checkout gh-pages
 
-	# Verify branch was switched (can fail if current branch has uncommited changes)
+	# Verify branch was switched (can fail if current branch has uncommitted changes)
 	if [ $(git symbolic-ref --short HEAD) != "gh-pages" ]
 	then
 		cd $current_dir
 		echo "pre-push: Could not switch to branch 'gh-pages', aborting."
 		exit 2 
 	fi
+
+	# Fetch and merge gh-pages
+	git fetch origin
+	git merge gh-pages -s ours
 	
 	# Copy the generated docs to root.
 	cd ..
