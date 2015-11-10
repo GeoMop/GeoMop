@@ -169,6 +169,16 @@ class Communicator():
    
     def  standart_action_function_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.restore_connection:
+            if self.status.interupted:
+                self.restore()
+                #restore only one communicator per request
+                action = tdata.Action(tdata.ActionType.action_in_process)
+                return False, action.get_message()
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
             if isinstance(self.output, ExecOutputComm) and \
                 not isinstance(self.output, PbsOutputComm) and \
@@ -206,6 +216,13 @@ class Communicator():
         
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if response is not None and \
+                response.action_type == tdata.ActionType.ok:
+                self.interupt()
+                #interupt only one communicator per request
+                action = tdata.Action(tdata.ActionType.action_in_process)
+                return action.get_message()
         if message.action_type == tdata.ActionType.stop:
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
@@ -245,7 +262,29 @@ class Communicator():
                     self._download_processed = tdata.ProcessType.ready
                     action = tdata.Action(tdata.ActionType.ok)
                     return action.get_message()
-        return None
+        return None    
+    
+    def restore(self):
+        """Restore connection chain to next communicator"""
+        self.status.load()
+        if isinstance(self.output, SshOutputComm):
+            self.output.exec_(self.next_communicator, self.mj_name, self.id)
+        self._connect()
+        self.status.interupted=False
+        self.status.save()
+        logging.info("Application " + self.communicator_name + " is restored")
+        
+    def interupt(self):
+        """Interupt connection chain to next communicator"""
+        time.sleep(1)
+        if self.output is not None:
+            self.output.disconnect()
+        time.sleep(1)
+        if self.input is not None:
+            self.input.disconnect()
+        self.status.interupted=True        
+        self.status.save()
+        logging.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
         """Release resorces"""
@@ -291,6 +330,10 @@ class Communicator():
     def _exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator, self.mj_name, self.id)
+        self._connect()
+        
+    def _connect(self):
+        """connect next communicator"""
         if isinstance(self.output, ExecOutputComm):
             i=0
             while i<3:
