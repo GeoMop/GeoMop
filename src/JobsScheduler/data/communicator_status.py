@@ -11,6 +11,8 @@ class CommunicatorStatus():
         """Communicator name"""
         self.next_installed = False
         """if is next communicator installed"""
+        self.interupted = False
+        """if is communicator interupted"""
         self.next_started = False
         """if is next communicator starteded"""
     

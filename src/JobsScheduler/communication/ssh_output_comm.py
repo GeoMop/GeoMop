@@ -175,7 +175,7 @@ else:
             ready = False
             for i in range(0, len(lines)):
                 line = self.strip_pexpect_echo( lines[i].strip())
-                if not ready and lines[i][-1:] == "=": 
+                if not ready and tdata.Message.check_mess(line): 
                     #base64 text
                     if self.last_mess is not None and line == self.last_mess:
                         #echo

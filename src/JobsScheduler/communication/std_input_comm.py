@@ -35,7 +35,7 @@ class StdInputComm(InputComm):
         except pexpect.TIMEOUT:
             return None
         try:
-            mess = tdata.Message(txt)
+            mess = tdata.Message(str(txt, 'utf-8').strip())
         except(tdata.MessageError) as err:
             txt = str(txt, 'utf-8').strip()
             logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)

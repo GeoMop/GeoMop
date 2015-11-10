@@ -38,6 +38,10 @@ class Message:
     check its len and summation. Data is packed by base64 to ascii
     text format.    
     """
+    
+    end5 =  "-xXx-"
+    """control end of message"""
+    
     def __init__(self, asci = None):
         self.action_type = None
         """type of action"""
@@ -46,7 +50,7 @@ class Message:
         self.len = None
         """length of data"""
         self.sum = None
-        """control sum"""
+        """control sum"""        
         if asci is not None:
             self.unpack(asci)
     
@@ -74,10 +78,31 @@ class Message:
         bin = struct.pack('!i' , sum) + bin
         length = len(bin)
         bin = struct.pack('!i' , length) + bin
-        return str(binascii.b2a_base64(bin),"us-ascii" ).strip()
+        #logging.debug("base64:"+str(binascii.b2a_base64(bin),"us-ascii" ).strip())
         
+        return str(binascii.b2a_base64(bin),"us-ascii" ).strip() + Message.end5
+
+    @classmethod
+    def check_mess(cls, asci):
+        """check message to valid end token and valid base 64 format"""
+        if len(asci) < len(cls.end5) :
+            return False
+        if asci[-len(cls.end5):] != cls.end5: 
+            return False
+        asci = asci[:-len(cls.end5)] 
+        try:
+            binascii.a2b_base64(asci)
+        except:
+            return False
+        return True
+    
     def unpack(self, asci):
         """upack transported data from base 64 format"""
+        if len(asci) < len(Message.end5) :
+            raise MessageError("Invalid message length")
+        if asci[-len(Message.end5):] != Message.end5: 
+            raise MessageError("Invalid end of token")
+        asci = asci[:-len(Message.end5)] 
         try:
             bin = binascii.a2b_base64(asci)
         except:

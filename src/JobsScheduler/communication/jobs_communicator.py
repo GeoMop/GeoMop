@@ -36,6 +36,18 @@ class JobsCommunicator(Communicator):
         
     def  standart_action_function_before(self, message):
         """before action function"""
+        if message.action_type == tdata.ActionType.restore_connection:
+            if not self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return False, action.get_message()
+            self.interupt()
+            #interupt only one communicator per request
+            action = tdata.Action(tdata.ActionType.action_in_process)
+            return False, action.get_message()
+        if message.action_type == tdata.ActionType.restore_connection:
+            self.restore()
+            action = tdata.Action(tdata.ActionType.ok)
+            return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
@@ -111,3 +123,16 @@ class JobsCommunicator(Communicator):
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
+        
+    def restore(self):
+        """Restore connection chain to next communicator"""
+        self.status.load()
+        self.status.interupted=False
+        self.status.save()
+        logging.info("Application " + self.communicator_name + " is restored")    
+        
+    def interupt(self):
+        """Interupt connection chain to next communicator"""
+        self.status.interupted=True        
+        self.status.save()
+        logging.info("Application " + self.communicator_name + " is interupted")    
