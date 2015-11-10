@@ -5,21 +5,14 @@ Tento dokument popisuje postupy používané pri vývoji aplikace
 
 Adresářová struktura
 --------------------
-Adresářová struktura 
-je::
 
-  doc
-  	src
-  src
-  	LayerEditor
-  	lib
-  testing
-
-Popis:
-  * doc/src - vývojářská dokumentace
-  * src/LayerEditor - Modul pro zobrazení a úpravu vrstev
-  * src/lib - Modul s knihovnami používanými ostatními moduly
-  * testing - Automatické testy 
+  * ``doc`` - Dokumentace
+  * ``resources`` - Zdroje, které nejsou součástí aplikace
+  * ``src/JobsScheduler`` - Modul pro vzdálené spouštění výpočtů
+  * ``src/LayerEditor`` - Modul pro zobrazení a úpravu vrstev
+  * ``src/LayerEditor`` - Modul pro úpravu konfiguračních souborů
+  * ``src/lib`` - Modul s knihovnami používanými ostatními moduly
+  * ``testing`` - Automatické testy
 
 Kontrola kódu
 -------------
@@ -69,7 +62,7 @@ co se týká jednotnosti pojmenování, konzistentní. Škoda že to neumí hled
 Python nemá žádnou přímou cestu jak schovat proměnnou. (Jedině jí dát do souboru
 který je schovaný pomocí __init__.py) Osobně si myslím že bez nějaký formy 
 ``zapouzdření`` to větším projektu nejde. Proto bych poprosil o důsledné rozlišení
-a označování lokálních proměnných pomocí _. A doufám že chybu 
+a označování lokálních proměnných pomocí ``_``. A doufám že chybu
 ``protected-access (W0212): Access to a protected member ...`` nikde neuvidím.
 Jen kromě testů, kde je testování lokálních proměnných praktické.
 
@@ -79,26 +72,21 @@ super-on-old-class (E1002)
   * *s někým se poradit a zjistit co to dělá*
 
 
-Vývojářska Dokumentace
+Dokumentace
 ----------------------
 Dokumentace je psaná v `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ 
 a do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htmls>`_.
 `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ je docstring formát a 
 `sphinx <http://sphinx-doc.org/index.htmls>`_ pak umožnuje dodat pěkné formátování textu 
-a vygenerovat požadovaný formát dokumentu. Generovat celou vývojářskou dokumentaci je možné
-z adresáře doc/src/ pomocí make a požadovaného formátu. Například::
+a vygenerovat požadovaný formát dokumentu. Generovat celou vývojářskou je možné
+z adresáře ``doc/`` pomocí make a požadovaného formátu. Například::
 
   make html
 
-Dokumentace se skládá z organizačních pokynů v adresáři doc/src/organization a z dokumentace 
-zdrojových kódů. Ta je automaticky generována po jednotlivých GeoMop modulech pomocí sphinx modulu 
-`sphinx-apidoc <http://sphinx-doc.org/man/sphinx-apidoc.html>`_ příkazem umístěným v Makefile::
-
-  modules.lib.rst: 
-	  sphinx-apidoc -o ./aut -s .rst ../../src/lib/
-	  mv aut/modules.rst aut/lib.rst
-
-a začleněna do index.rst (odkaz na soubor aut/lib.rst)
+Dokumentace se skládá z uživatelské příručky, organizačních pokynů pro vývoj (v adresáři
+doc/organization) a z dokumentace samotných zdrojových kódů. Ta je automaticky generována po
+jednotlivých GeoMop modulech pomocí sphinx modulu
+`sphinx-apidoc <http://sphinx-doc.org/man/sphinx-apidoc.html>`_ příkazem umístěným v ``Makefile``.
 
 `sphinx <http://sphinx-doc.org/index.htmls>`_ není úplně jednoduchý nástroj na osvojení a je 
 primárně určený na psaní dokumentace obecně. Naopak jako nástroj pro generování dokumentace 
@@ -106,10 +94,17 @@ ze zdrojových kódů není ideální a má mnoho much. Ale alternativy již nej
 vyvíjený a `sphinx <http://sphinx-doc.org/index.htmls>`_ následně můžeme použít i na psaní
 uživatelské dokumentace.
 
-Uživatelská Dokumentace
------------------------
-Dokumentace bude asi psaná v `reStructuredText <http://sphinx-doc.org/rest.html#paragraphs>`_ a 
-do finální podoby generována pomocí `sphinx <http://sphinx-doc.org/index.htmls>`_.
+Generování dokumentace při push
++++++++++++++++++++++++++++++++
+
+Pro automatické generování dokumentace lze využít git hook ``pre-push``. Skript, který vygeneruje
+a pushne vytvořenou dokumentaci je umísťen v adresáři ``resources/development``. Pro použití je
+potřeba ho po naklonování repozitáře přesunout mezi git hooks, které se mají vykonat.
+
+.. code-block:: bash
+
+   cp resources/development/pre-push .git/hooks/
+   chmod +x .git/hooks/pre-push
 
 Testování kódu po sobě
 ----------------------
@@ -159,11 +154,17 @@ Pokud by se našel někdo, kdo by chtěl vyvíjet na windows, je to v zásadě v
 to znamenat vyřešit a zdokumentovat instalaci prostředí a přidání alternativních skriptů.
 
 Požadavky:
-  * Python3
-  * PyQt5
-  * PyTest
-  * PyLint
-  * Sphinx
+  * Python3 (včetně pip)
+  * PyQt5 (včetně QScintilla a QWebKit)
+
+Instalace Python závislostí
++++++++++++++++++++++++++++
+
+Pro vývoj i běh se doporučuje používat virtuální prostředí, více viz
+`uživatelská dokumentace <../install/linux_installation_guide.html#virtual-environment>`_. Pro
+instalaci závislostí potřebných k vývoji aplikace lze použít následující příkaz::
+
+   pip install -r requirements-development.txt
 
 IDE
 ---
