@@ -17,6 +17,11 @@ Jobs Scheduler Source Documentation
    aut/JobsScheduler/test_task
    aut/JobsScheduler/ui
 
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
 Indices and tables
 ==================
 

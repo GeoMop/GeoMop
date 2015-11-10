@@ -402,7 +402,7 @@ class YamlEditorWidget(QsciScintilla):
         """Set new node.
 
         :param DataNode node: node to set. When node is None, node at the current cursor
-        position is selected.
+           position is selected.
         """
         if node is None:
             line, index = self.getCursorPosition()

@@ -66,7 +66,7 @@ class InfoPanelWidget(QWebView):
 
         :param dict data: query data; generally IDs or values necessary to generate InfoText
         :param bool set_home: when True, this info_text is set as default and browsing history is
-        reset
+           reset
         """
         self._data = data
         if set_home:

@@ -20,14 +20,14 @@ import sphinx_rtd_theme
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-sys.path.insert(0, os.path.abspath('../../src/common'))
+sys.path.insert(0, os.path.abspath('../src/common'))
 if sys.argv[4] == 'LE':
-    sys.path.insert(1, os.path.abspath('../../src/LayerEditor'))
+    sys.path.insert(1, os.path.abspath('../src/LayerEditor'))
 elif sys.argv[4] == 'JS':
-    sys.path.insert(1, os.path.abspath('../../src/JobsScheduler/'))
-    sys.path.insert(2, os.path.abspath('../../src/JobsScheduler/twoparty/pexpect'))
+    sys.path.insert(1, os.path.abspath('../src/JobsScheduler/'))
+    sys.path.insert(2, os.path.abspath('../src/JobsScheduler/twoparty/pexpect'))
 elif sys.argv[4] == 'ME':
-    sys.path.insert(1, os.path.abspath('../../src/ModelEditor'))
+    sys.path.insert(1, os.path.abspath('../src/ModelEditor'))
 
 print("********************************************")
 print(sys.argv[4])
