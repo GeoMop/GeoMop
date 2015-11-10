@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Generate Sphinx documentation from master branch.
+
+# Get branch name.
+branch=$(git symbolic-ref --short HEAD)
+
+# Do not trigger hook for gh-pages branch.
+if [ $branch != 'gh-pages' ]
+then
+	# Check out the master branch.
+	git checkout master
+
+	# Verify branch was switched (can fail if current branch has uncommited changes)
+	if [ $(git symbolic-ref --short HEAD) != "master" ]
+	then
+		echo "pre-push: Could not switch to branch 'master', aborting."
+		exit 1 
+	fi
+
+	# Change to the right directory.
+	current_dir=$(pwd)
+	git_dir=$(git rev-parse --show-toplevel)
+	cd $git_dir/doc
+
+	# Generate docs.
+	make html
+
+	# Switch to gh-pages branch and 
+	git checkout gh-pages
+
+	# Verify branch was switched (can fail if current branch has uncommited changes)
+	if [ $(git symbolic-ref --short HEAD) != "gh-pages" ]
+	then
+		cd $current_dir
+		echo "pre-push: Could not switch to branch 'gh-pages', aborting."
+		exit 2 
+	fi
+	
+	# Copy the generated docs to root.
+	cd ..
+	cp doc/_build/html/* ./ -R
+
+	# Add, commit and push the docs.
+	git add :/ -A
+	git commit -m "update doc"
+	git push origin gh-pages
+
+	# Restore original console state (branch, working directory).
+	git checkout $branch
+	cd $current_dir
+fi
+
+exit 0
