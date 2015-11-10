@@ -4,12 +4,15 @@ Tree widget panel
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-import util
+import os
 from copy import deepcopy
+
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QColor
+
 from data import ScalarNode, CompositeNode, cfg
+from util import load_stylesheet
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -45,7 +48,8 @@ class TreeWidget(QtWidgets.QTreeView):
         self._item_states = {}
         self.setRootIsDecorated(True)
         self.setIndentation(10)
-        stylesheet = util.load_stylesheet('tree')
+        stylesheet_path = os.path.join(cfg.stylesheet_dir, 'tree.css')
+        stylesheet = load_stylesheet(stylesheet_path)
         self.setStyleSheet(stylesheet)
 
     def reload(self):

@@ -81,6 +81,7 @@ class Loader:
         anchor = self._extract_anchor()
         tag = self._extract_tag()
         node = None
+        # TODO: Adapter pattern?
         if tag is not None:
             node = self._create_node_by_tag(tag)
         elif isinstance(self._event, pyyaml.MappingStartEvent):

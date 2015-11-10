@@ -2,9 +2,9 @@
 Data Node package
 
 Contains classes for representing the tree structure of config files.
-"""
 
-__author__ = 'Tomas Krizek'
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 from enum import Enum
 
@@ -201,6 +201,8 @@ class DataNode:
 class CompositeNode(DataNode):
     """Represents a composite node in the tree structure."""
     def __init__(self, explicit_keys, key=None, parent=None):
+        # TODO: DataNode should have these attributes
+        # TODO: how to avoid isinstance(..., CompositeNode)?
         super(CompositeNode, self).__init__(key, parent)
         self.children = []
         """list of children nodes"""
