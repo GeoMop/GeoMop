@@ -14,12 +14,15 @@ class ExecOutputComm(OutputComm):
         """port for server communacion"""
         self.conn = None
         """Socket connection"""
+        self.connected = False
+        """Is connection established"""
 
     def connect(self):
         """connect session"""
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conn.connect((self.host, self.port))
         logging.debug("Client is connected to " + self.host + ":" + str(self.port)) 
+        self.connected = True
          
     def disconnect(self):
         """disconnect session"""

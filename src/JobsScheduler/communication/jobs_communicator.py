@@ -13,8 +13,8 @@ class JobsCommunicator(Communicator):
         self.conf = copy.deepcopy(init_conf)
         """Copy of communicator configuration use up to for job initialization"""
         init_conf.output_type = comconf.OutputCommType.none
-        super(JobsCommunicator, self).__init__(init_conf, id, action_func_before, action_func_after, idle_func)
-        self.mj_name = init_conf.mj_name
+        super(JobsCommunicator, self).__init__(init_conf, id, action_func_before, action_func_after, self.job_idle_func)
+        self.mj_name = init_conf.mj_name        
         """folder name for multijob data"""
         self.jobs = {}
         """Dictionary of jobs that is run by communicator"""
@@ -22,6 +22,17 @@ class JobsCommunicator(Communicator):
         """Dictionary of jobs outputs"""
         self._job_semafores = {}
         """Job semafore for guarding one run job action"""
+        if idle_func is None:
+            self.anc_idle_func = self.standart_idle_function
+            """
+            Ancestor idle function
+           
+            For job communicator is  called job_idle_function, that make 
+            job specific action. If any job specific action is not pending, 
+            user defined idle function in this variable is called .
+            """
+        else:
+            self.anc_idle_func = idle_func
         
     def  standart_action_function_before(self, message):
         """before action function"""
@@ -64,7 +75,19 @@ class JobsCommunicator(Communicator):
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
-        
+
+    def  job_idle_func(self):
+        """Make job specific action. If is not action pending, run anc_idle_func"""
+        make_custom_action = True
+        for id in self.jobs:
+            # connect
+            if not self.job_outputs[id].connected:
+                self._connect_socket(self.job_outputs[id], 1)
+                make_custom_action = False
+        if make_custom_action:
+            self.anc_idle_func()
+    
+    
     def _exec_(self):
         """
         Exec for jobs_communicator don't make connection for
