@@ -623,10 +623,11 @@ class YamlEditorWidget(QsciScintilla):
 
 
 class ReloadChunk(ContextDecorator, QObject):
-    """
-    Class represents a sequence of editor changes that are clumped together to form a single
-    reload event. Note that reload should be prevented from occurring while
-    `ReloadChunk.freeze_reload` is set to True.
+    """Context manager to handle history of undo/redo changes in editor.
+
+    The QScintilla editor will mark an undo/redo change when using some of its functions.
+    This class serves to indicate when these changes should be joined together to form a single
+    undo/redo change.
 
     This class is used by the `YamlEditorWidget` class using the with statement::
 
@@ -635,23 +636,32 @@ class ReloadChunk(ContextDecorator, QObject):
             # perform multiple changes
             # reload_chunk.freeze_reload prevents reload changes during editing
         # upon exit, onExit event is triggered (can be connected to textChanged)
+
+    pyqt Signals:
+        * :py:attr:`onEnter() <onEnter>`
+        * :py:attr:`onExit() <onExit>`
     """
 
     onEnter = pyqtSignal()
-    """signal is triggered when reload chunk is opened"""
+    """Signal is triggered when reload chunk is entered"""
 
     onExit = pyqtSignal()
-    """signal is triggered when reload chunk is closed"""
+    """Signal is triggered when reload chunk is closed"""
 
-    freeze_reload = False
-    """indicates whether reload function should be frozen"""
+    def __init__(self):
+        """Initialize the class."""
+        super(ReloadChunk, self).__init__()
+        self.freeze_reload = False
+        """Indicates whether reload function should be frozen"""
 
     def __enter__(self):
+        """Handle entering the change block."""
         self.freeze_reload = True
         self.onEnter.emit()
         return self
 
     def __exit__(self, *exc):
+        """Handle exiting the change block."""
         self.freeze_reload = False
         self.onExit.emit()
         return False
@@ -815,7 +825,7 @@ class EditorPosition:
         if (self._last_line_after is not None and
                 editor.lines() > self.line and
                 self._last_line_after != editor.text(self.line + 1)):
-            #new line and old line is emty (editor add indentation)        
+            # new line and old line is empty (editor add indentation)
             if not ((self._last_line_after.isspace() or len(self._last_line_after)==0) and
                 (editor.text(self.line + 1).isspace() or len(editor.text(self.line + 1))==0)):
                 return False
