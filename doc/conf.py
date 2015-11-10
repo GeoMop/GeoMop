@@ -82,8 +82,7 @@ copyright = u'2015, TUL'
 
 def get_version():
     version_file_path = os.path.join(
-        os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-        '..', 'VERSION')
+        os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], 'VERSION')
     try:
         with open(version_file_path) as version_file:
             return version_file.readline()
