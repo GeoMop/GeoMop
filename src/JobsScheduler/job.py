@@ -21,6 +21,9 @@ def read_err(err):
         txt = str(txt, 'utf-8').strip()
     except pexpect.TIMEOUT:
         return None
+    except err:
+        logging.warning("Task output error:" + str(err))
+        return None
     return txt
 
 if len(sys.argv)<2:

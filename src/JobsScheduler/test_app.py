@@ -39,8 +39,8 @@ comunicator.send_long_action(tdata.Action(tdata.ActionType.interupt_connection))
 comunicator.interupt()
 time.sleep(30)
 
-comunicator.send_long_action(tdata.Action(tdata.ActionType.restore_connection))
 comunicator.restore()
+comunicator.send_long_action(tdata.Action(tdata.ActionType.restore_connection))
 time.sleep(60)
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.download_res))

@@ -6,6 +6,7 @@ import struct
 import zlib
 import binascii
 import logging
+from data.states import MJState
 
 class ActionType(Enum):
     """Action type"""
@@ -17,6 +18,7 @@ class ActionType(Enum):
     download_res = 5
     restore_connection = 6
     interupt_connection = 7
+    get_state = 8
 
 class ProcessType(Enum):
     """Action type"""
@@ -159,7 +161,8 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.error:
             self.data = ErrorData(json_data)
-      
+        elif type == ActionType.get_state:
+            self.data = StateData(json_data)
     def get_message(self):
         """return message from action"""
         msg = Message()
@@ -197,3 +200,21 @@ class ErrorData(ActionData):
             self.data["msg"] = None
         else:
             self.data = json.loads(json_data)
+
+class StateData(ActionData):
+    """Multijob status data. Data is set by 
+    (:class:`data.states.MJState`) """    
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is  not None:
+            self.data = json.loads(json_data) 
+
+    def set_data(self, mjstate):
+        """fill data by MJState class"""
+        self.data = mjstate.__dict__
+
+    def get_mjstate(self, mjstate, mjname):
+        """return MJState class instance"""
+        state = MJState(mjname)
+        state.__dict__ = self.data
+        return state

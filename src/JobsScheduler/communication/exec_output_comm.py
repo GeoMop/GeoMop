@@ -16,6 +16,8 @@ class ExecOutputComm(OutputComm):
         """Socket connection"""
         self.connected = False
         """Is connection established"""
+        self.initialized = False
+        """Is ready to connect"""
 
     def connect(self):
         """connect session"""
@@ -49,6 +51,7 @@ class ExecOutputComm(OutputComm):
         if port is not None:
             logging.debug("Next communicator return socket port:" + port.group(1)) 
             self.port = int(port.group(1))
+        self.initialized=True
  
     def send(self,  mess):
         """send json message"""        

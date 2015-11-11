@@ -217,6 +217,9 @@ class Communicator():
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return action.get_message()
             if response is not None and \
                 response.action_type == tdata.ActionType.ok:
                 self.interupt()
@@ -281,9 +284,11 @@ class Communicator():
             self.output.disconnect()
         time.sleep(1)
         if self.input is not None:
-            self.input.disconnect()
+            self.input.disconnect()        
         self.status.interupted=True        
         self.status.save()
+        if isinstance(self.input, StdInputComm):
+            self.stop =True
         logging.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
