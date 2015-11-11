@@ -1,7 +1,16 @@
-"""Start script that inicialize main window """
+"""Start script that initializes the main window.
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 import os
+import sys
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.insert(1, __lib_dir__)
 
+# TODO: can this be replaced? (other way to import css)
 # IMPORTANT
 # Script changes the working directory so all files can be located.
 # This is especially vital for resources in css.
@@ -10,20 +19,18 @@ os.chdir(MODEL_EDITOR_PATH)
 
 import logging
 import traceback
-import sys
-__lib_dir__ = os.path.join(os.getcwd(), '..', 'common')
-sys.path.insert(1, __lib_dir__)
+import argparse
+import icon
 
-from data.meconfig import MEConfig as cfg
-from ui.dialogs.json_editor import JsonEditorDlg
-from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
+
+from data import cfg, CursorType
 from helpers import Position
-from data import CursorType
-import icon
+from ui import panels
+from ui.dialogs.json_editor import JsonEditorDlg
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
-import argparse
+
 
 class ModelEditor:
     """Model editor main class"""

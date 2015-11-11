@@ -14,7 +14,10 @@
    :titlesonly:
    :caption: Developer Documentation
 
-   module_documentation
+   ModelEditor <indexME.html#http://>
+   JobsScheduler <indexJS.html#http://>
+   LayerEditor <indexLE.html#http://>
+   Common <indexCommon.html#http://>
    organization/procedures
    organization/rules
    organization/pylint_rules

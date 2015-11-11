@@ -165,6 +165,7 @@ def test_begins_with_comment():
     assert begins_with_comment('  a # key: 1') is False
     assert begins_with_comment('key: 1') is False
 
+
 def test_uncomment():
     """Test if uncomment removes the leading comment symbol."""
     uncomment = LineAnalyzer.uncomment

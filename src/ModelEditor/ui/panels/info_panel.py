@@ -1,7 +1,9 @@
 """
 Info Panel Widget
 
-This module contains a widget that shows info text with QWebView.
+Widget that shows info text with QWebView.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
 from urllib.parse import urlparse, parse_qs
@@ -13,19 +15,16 @@ from PyQt5.QtCore import QUrl, Qt
 from ist import InfoTextGenerator
 from data import CursorType
 from copy import copy
+from data import cfg
 
 # pylint: disable=invalid-name
-
-__author__ = 'Tomas Krizek'
-
-__html_root_path__ = os.path.join(os.getcwd(), 'resources', 'ist_html') + os.path.sep
 
 
 class InfoPanelWidget(QWebView):
     """Widget for displaying HTML info text."""
 
     def __init__(self, parent=None):
-        """Initializes the class."""
+        """Initialize the class."""
         super(InfoPanelWidget, self).__init__(parent)
 
         self._context = {
@@ -44,12 +43,16 @@ class InfoPanelWidget(QWebView):
         self.setMinimumSize(800, 250)
         self.setContextMenuPolicy(Qt.NoContextMenu)
 
-        self._html_root_url = QUrl.fromLocalFile(__html_root_path__)
+        self._html_root_url = QUrl.fromLocalFile(cfg.info_text_html_root_dir + os.path.sep)
         self.linkClicked.connect(self.navigate_to)
         self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
 
     def update_from_node(self, node, cursor_type=None):
-        """Updates the info text for the given node and cursor_type."""
+        """Update the info text for the given node and cursor_type.
+
+        :param DataNode node: current node
+        :param CursorType cursor_type: indicates cursor position in node
+        """
         is_parent = False
         if cursor_type == CursorType.value.value:
             node = node.get_node_at_position(node.span.start)
@@ -59,7 +62,12 @@ class InfoPanelWidget(QWebView):
         self.update_from_data(data)
 
     def update_from_data(self, data, set_home=True):
-        """Generates and shows the info text from data."""
+        """Generate and show the info text from data.
+
+        :param dict data: query data; generally IDs or values necessary to generate InfoText
+        :param bool set_home: when True, this info_text is set as default and browsing history is
+           reset
+        """
         self._data = data
         if set_home:
             self._context['home'] = self._data
@@ -71,7 +79,10 @@ class InfoPanelWidget(QWebView):
         super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
 
     def navigate_to(self, url_):
-        """Navigates to given URL."""
+        """Navigate to given URL.
+
+        :param QUrl url_: the url containing the query data to navigate to
+        """
         query_params = parse_qs(urlparse(url_.toString()).query)
         data = {name: value[0] for name, value in query_params.items()}
 
@@ -99,27 +110,27 @@ class InfoPanelWidget(QWebView):
         self.page().setViewportSize(event.size())
 
 
-if __name__ == '__main__':
-    def main():
-        """Launches the widget."""
-        import sys
-        from PyQt5.QtWidgets import QApplication
-        from PyQt5.QtCore import QTimer
+def main():
+    """Launches the widget for testing/debugging purposes."""
+    import sys
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtCore import QTimer
 
-        app = QApplication(sys.argv)
-        url = QUrl.fromLocalFile(__html_root_path__ + 'katex_example.html')
-        win = InfoPanelWidget()
+    app = QApplication(sys.argv)
+    url = QUrl.fromLocalFile(os.path.join(cfg.info_text_html_root_dir, 'katex_example.html'))
+    win = InfoPanelWidget()
+    win.setUrl(url)
+    win.show()
+
+    def refresh_page():
+        """Page refresh for debugging purposes."""
         win.setUrl(url)
-        win.show()
 
-        def refresh_page():
-            """Page refresh for debugging purposes."""
-            win.setUrl(url)
+    timer = QTimer(win)
+    timer.timeout.connect(refresh_page)
+    timer.start(5000)
 
-        timer = QTimer(win)
-        timer.timeout.connect(refresh_page)
-        timer.start(5000)
+    sys.exit(app.exec_())
 
-        sys.exit(app.exec_())
-
+if __name__ == '__main__':
     main()

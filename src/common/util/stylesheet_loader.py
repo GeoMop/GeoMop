@@ -1,20 +1,19 @@
 """
 Module contains helper functions for loading stylesheets.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
 import os
 
-__author__ = 'Tomas Krizek'
 
-__stylesheet_dir__ = os.path.join(os.getcwd(), 'resources', 'css') + os.path.sep
+def load_stylesheet(path):
+    """Loads the stylesheet file to a string.
 
-
-def load_stylesheet(name):
-    """Loads the stylesheet file to a string."""
-    if not name.endswith('.css'):
-        name += '.css'
-
-    path = __stylesheet_dir__ + name
+    :param str path: absolute path to the stylesheet
+    :return: stylesheet loaded as text
+    :rtype: str
+    """
     if os.path.isfile(path):
         with open(path) as file_:
             return file_.read()

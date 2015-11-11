@@ -12,9 +12,13 @@ Model Editor Source Documentation
    aut/ModelEditor/model_editor
    aut/ModelEditor/ui
 
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
 Indices and tables
 ==================
 
 * `Index <genindexME.html>`_
 * `Module Index <py-modindexME.html>`_
-

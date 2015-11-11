@@ -10,6 +10,11 @@ Common Source Documentation
    aut/common/icon
    aut/common/util
 
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
 Indices and tables
 ==================
 

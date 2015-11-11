@@ -10,6 +10,11 @@ Layer Editor Source Documentation
    aut/LayerEditor/layer_editor
    aut/LayerEditor/ui
 
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
 Indices and tables
 ==================
 
