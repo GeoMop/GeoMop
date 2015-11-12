@@ -71,11 +71,12 @@ class DataReloader(threading.Thread):
         self.needs_reload.set()
 
     def _prepare_results(self, com):
-        res_path = inst.Installation \
-            .get_result_dir_static(com["communicator"].mj_name)
-        res_path = os.path.join(res_path, "log")
-        logs = [os.path.join(res_path, f) for f in os.listdir(res_path)][1:]
-        for log in logs:
-            log = res_path + log
+        res_path = inst.Installation.get_result_dir_static(
+            com["communicator"].mj_name)
+        conf_path = inst.Installation.get_config_dir_static(
+            com["communicator"].mj_name)
+        log_path = os.path.join(res_path, "log")
         self.results[com["key"]] = dict()
-        self.results[com["key"]]["logs"] = logs
+        self.results[com["key"]]["logs"] = log_path
+        self.results[com["key"]]["conf"] = conf_path
+        self.results[com["key"]]["messages"] = com["messages"]

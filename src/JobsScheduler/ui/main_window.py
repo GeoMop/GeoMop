@@ -17,8 +17,8 @@ from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
 from ui.main_window_refresher import WindowRefresher
 from ui.menus.main_window_menus import MainWindowMenuBar
-from ui.panels.multijob_infotab import MultiJobInfoTab
 from ui.panels.multijob_overview import MultiJobOverview
+from ui.panels.tabs import Tabs
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -161,7 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_results_changed(self, results):
         try:
             key = self.ui.multiJobOverview.currentItem().text(0)
-            self.ui.multiJobInfoTab.reload_view(results[key]["logs"])
+            self.ui.multiJobInfoTab.reload_view(results[key])
         except KeyError as keyerr:
             pass
         except AttributeError as atrerr:
@@ -229,7 +229,7 @@ class UiMainWindow(object):
         self.mainVerticalLayout.addWidget(self.multiJobOverview)
 
         # multiJobInfoTab panel
-        self.multiJobInfoTab = MultiJobInfoTab(self.centralwidget)
+        self.multiJobInfoTab = Tabs(self.centralwidget)
         self.mainVerticalLayout.addWidget(self.multiJobInfoTab)
 
         # set central widget
