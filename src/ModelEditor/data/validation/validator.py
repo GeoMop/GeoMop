@@ -3,8 +3,8 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from helpers import Notification, Span
-from util import TextValue
+from helpers import Notification
+from util import TextValue, Span
 
 from . import checks
 from ..data_node import DataNode

@@ -1,17 +1,24 @@
-"""Module for handling autocomplete in editor."""
+"""Module for handling autocomplete in editor.
 
-__author__ = 'Tomas Krizek'
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 
 class AutocompleteHelper:
-    """Helper class for creating and managing autocomplete options in editor."""
+    """Creates autocomplete options and manages the autocomplete state."""
 
     def __init__(self):
-        """Initializes the class."""
+        """Initialize the class."""
         self._options = {}
         self._anchors = []
         self.scintilla_options = ''
         """the QScintilla options string encoded in utf-8"""
+        self.possible_options = []
+        """a list of possible options for the current context"""
+        self.visible = False
+        """whether autocompletion list is displayed"""
+        self.context = None
+        """:py:class:`AutocompleteContext` for the current word"""
 
         # define sorting alphabet
         self.sorting_alphabet = list(map(chr, range(48, 57)))  # generate number 0-9
@@ -19,11 +26,14 @@ class AutocompleteHelper:
         self.sorting_alphabet.extend(['!', '*', '_', '-'])
 
     def create_options(self, input_type):
-        """
-        Create and return a list of options based on the input type.
+        """Create a list of options based on the input type.
 
         Each option is identified by a string that should be displayed as QScintilla
         autocomplete option.
+
+        :param dict input_type: specification of the input_type
+        :return: string of sorted options separated by a space (for QScintilla API)
+        :rtype: str
         """
         self._options.clear()
 
@@ -42,28 +52,59 @@ class AutocompleteHelper:
 
         # add anchors
         self._options.update({'*' + anchor: 'anchor' for anchor in self._anchors})
+        self._prepare_options()
+        return self.possible_options
 
-        # sort and create scintilla options string
-        sorted_options = sorted(list(self._options.keys()), key=self._sorting_key)
-        self.scintilla_options = (' '.join(sorted_options)).encode('utf-8')
+    def show_autocompletion(self, context=None):
+        """Get autocomplete options for the context.
 
-        return sorted_options
+        If there are some options to be displayed, :py:attr:`visible` is set to True.
 
-    def select_option(self, option_string):
+        :param AutocompleteContext context: current word and position
+        :return: string of sorted options separated by a space
+        :rtype: str or ``None``
         """
-        Selects an option based on the option_string returned from QScintilla API.
+        self.visible = True
+        return self.refresh_autocompletion(context)
 
-        Returns a string that should be inserted into the editor. This string can differ from
-        `option_string` for a better user experience.(For example, a record key would be identified
-        by its name, but the returned string would also contain ': ' at the end.
+    def hide_autocompletion(self):
+        """Set the autocompletion state to hidden."""
+        self.visible = False
+
+    def refresh_autocompletion(self, context):
+        """Refresh possible autocomplete option based on context.
+
+        Do not show any options if the autocomplete is hidden. If there are no
+        options, set the autocomplete state to hidden.
+
+        :param AutocompleteContext context: current word and position
         """
-        if option_string not in self._options:
-            return ''
-        type_ = self._options[option_string]
+        if not self.visible:
+            return None
+        filter = None
+        if context is not None:
+            filter = context.hint
+        self._prepare_options(filter)
+        if len(self.scintilla_options) == 0:
+            self.visible = False
+            return None
+        return self.scintilla_options
+
+    def get_autocompletion(self, option):
+        """Get autocompletion string for the selected option.
+
+        :param str option: option string returned by QScintilla
+        :return: an autocompletion string that replaces the word in current context
+        :rtype: str
+        :raises: ValueError - if option is not one of possible options
+        """
+        if option not in self.possible_options:
+            raise ValueError("Selected autocompletion option is not available.")
+        type_ = self._options[option]
         if type_ == 'key':
-            return option_string + ': '
+            return option + ': '
         else:
-            return option_string
+            return option
 
     def register_anchor(self, anchor_name):
         """Registers an anchor by its name."""
@@ -73,9 +114,43 @@ class AutocompleteHelper:
         """Clears the anchor list."""
         self._anchors.clear()
 
+    def _prepare_options(self, filter=None):
+        """Sort filtered options and prepare QScintilla string representation.
+
+        :param str filter: only allow options that starts with this string
+        """
+        if filter is None:
+            filter = ''
+        options = [option for option in self._options.keys() if option.startswith(filter)]
+        self.possible_options = sorted(options, key=self._sorting_key)
+        self.scintilla_options = (' '.join(self.possible_options)).encode('utf-8')
+
     def _sorting_key(self, word):
         """A key for sorting the options."""
         numbers = []
         for letter in word.lower():
             numbers.append(self.sorting_alphabet.index(letter))
         return numbers
+
+
+class AutocompleteContext:
+    """Holds the context information about the word being autocompleted."""
+
+    def __init__(self, word=None, index=None):
+        """Initialize the class.
+
+        :param str word: the word being autocompleted
+        :param int index: the position of cursor from the beginning of the word
+        """
+        self.word = word
+        """the entire word to be replaced if the autocompletion is triggered"""
+        self.index = index
+        """the position of cursor from the beginning of the word"""
+
+    @property
+    def hint(self):
+        """the beginning of the word up to the cursor"""
+        if self.word is None or self.index is None:
+            return None
+        end = self.index
+        return self.word[:end]

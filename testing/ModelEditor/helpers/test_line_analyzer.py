@@ -52,3 +52,21 @@ def test_strip_comment():
     assert strip_comment('abc #abc') == 'abc'
     assert strip_comment('abc#abc #test') == 'abc#abc'
     assert strip_comment('key: 3 #test') == 'key: 3'
+
+
+def test_get_autocomplete_context():
+    get_ac_context = LineAnalyzer.get_autocomplete_context
+    assert get_ac_context('word', 2) == ('word', 2)
+    assert get_ac_context('key:   4', 3) == ('key: ', 3)
+    assert get_ac_context('  key:   value', 5) == ('key: ', 3)
+    assert get_ac_context('  key:   value', 2) == ('key: ', 0)
+    assert get_ac_context('  key:   value', 10) == ('value', 1)
+    assert get_ac_context('  key:   value', 6) is None
+    assert get_ac_context('  key: *anchor', 8) == ('*anchor', 1)
+    assert get_ac_context('  key: *anchor', 9) == ('*anchor', 2)
+    assert get_ac_context('  key: !tag', 11) == ('!tag', 4)
+    assert get_ac_context('  key: !tag', 8) == ('!tag', 1)
+    assert get_ac_context('', 3) is None
+    assert get_ac_context('# key: 3', 3) is None
+    assert get_ac_context('  key: 3 # comment', 3) == ('key: ', 1)
+
