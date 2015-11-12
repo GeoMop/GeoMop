@@ -24,6 +24,7 @@ class DataReloader(threading.Thread):
         self.results = dict()
         self._is_running = threading.Event()
         self.needs_reload = threading.Event()
+        self.main_key = None
 
     def run(self):
         self._is_running.set()

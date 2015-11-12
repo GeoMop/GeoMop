@@ -8,9 +8,9 @@ Table of MultiJobs
 import PyQt5.QtWidgets as QtWidgets
 
 
-class MultiJobOverview(QtWidgets.QTreeWidget):
+class Overview(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
-        super(MultiJobOverview, self).__init__(parent)
+        super(Overview, self).__init__(parent)
         self.setObjectName("MultiJobOverview")
         self.setHeaderLabels(["Id", "Name", "Insert Time", "Run Time",
                               "Run Interval", "Status"])
