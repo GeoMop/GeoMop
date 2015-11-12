@@ -36,8 +36,8 @@ class JobsCommunicator(Communicator):
         
     def  standart_action_function_before(self, message):
         """before action function"""
-        if message.action_type == tdata.ActionType.restore_connection:
-            if not self.status.interupted:
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             self.interupt()
@@ -65,6 +65,8 @@ class JobsCommunicator(Communicator):
         
     def  standart_action_function_after(self, message,  response):
         """before action function"""
+        if message.action_type == tdata.ActionType.interupt_connection:
+            return None
         if message.action_type == tdata.ActionType.stop:
             # ToDo:: close all jobs 
             self.stop = True
@@ -81,7 +83,7 @@ class JobsCommunicator(Communicator):
         make_custom_action = True
         for id in self.jobs:
             # connect
-            if not self.job_outputs[id].connected:
+            if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
                 self._connect_socket(self.job_outputs[id], 1)
                 make_custom_action = False
         if make_custom_action:
@@ -129,10 +131,10 @@ class JobsCommunicator(Communicator):
         self.status.load()
         self.status.interupted=False
         self.status.save()
-        logging.info("Application " + self.communicator_name + " is restored")    
+        logging.info("Multi Job Application " + self.communicator_name + " is restored")    
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
         self.status.interupted=True        
         self.status.save()
-        logging.info("Application " + self.communicator_name + " is interupted")    
+        logging.info("Multi Job Application " + self.communicator_name + " is interupted")    

@@ -53,6 +53,7 @@ class PbsOutputComm(ExecOutputComm):
                 if port is not None:
                     logging.debug("Next communicator return socket port:" + port.group(1)) 
                     self.port = int(port.group(1))
+        self.initialized=True
 
     def connect(self):
         """connect session"""

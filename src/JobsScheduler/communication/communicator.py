@@ -146,6 +146,7 @@ class Communicator():
             name += "_" + self.id
         self.status = CommunicatorStatus(
             Installation.get_staus_dir_static(mj_name), name) 
+        self.status.load()
 
     def _set_loger(self,  path, name, level):
         """set logger"""
@@ -217,6 +218,9 @@ class Communicator():
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return action.get_message()
             if response is not None and \
                 response.action_type == tdata.ActionType.ok:
                 self.interupt()
@@ -267,23 +271,30 @@ class Communicator():
     def restore(self):
         """Restore connection chain to next communicator"""
         self.status.load()
-        if isinstance(self.output, SshOutputComm):
-            self.output.exec_(self.next_communicator, self.mj_name, self.id)
-        self._connect_socket(self.output)
+        if self.input is not None:
+            self.input.load_state(self.status)
+        if self.output is not None:
+            self.output.load_state(self.status)
+        if self.output is not None:
+            if isinstance(self.output, SshOutputComm):
+                self.output.connect()
+                self.output.exec_(self.next_communicator, self.mj_name, self.id)
+            elif not self.output.connected:    
+                self._connect_socket(self.output)
         self.status.interupted=False
         self.status.save()
         logging.info("Application " + self.communicator_name + " is restored")
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
-        time.sleep(1)
-        if self.output is not None:
-            self.output.disconnect()
-        time.sleep(1)
+        self.status.interupted=True
         if self.input is not None:
-            self.input.disconnect()
-        self.status.interupted=True        
+            self.input.save_state(self.status)
+        if self.output is not None:
+            self.output.save_state(self.status)
         self.status.save()
+        if isinstance(self.input, StdInputComm):
+            self.stop =True
         logging.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
@@ -331,6 +342,9 @@ class Communicator():
         """run set python file"""
         self.output.exec_(self.next_communicator, self.mj_name, self.id)
         self._connect_socket(self.output)
+        if self.output is not None:
+            self.output.save_state(self.status)
+        self.status.save()
     
     @staticmethod
     def _connect_socket(output,  repeat=3):

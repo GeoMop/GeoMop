@@ -16,6 +16,8 @@ class ExecOutputComm(OutputComm):
         """Socket connection"""
         self.connected = False
         """Is connection established"""
+        self.initialized = False
+        """Is ready to connect"""
 
     def connect(self):
         """connect session"""
@@ -27,6 +29,7 @@ class ExecOutputComm(OutputComm):
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
+        self.connected = False
         
     def install(self):
         """make installation"""
@@ -49,6 +52,7 @@ class ExecOutputComm(OutputComm):
         if port is not None:
             logging.debug("Next communicator return socket port:" + port.group(1)) 
             self.port = int(port.group(1))
+        self.initialized=True
  
     def send(self,  mess):
         """send json message"""        
@@ -74,3 +78,13 @@ class ExecOutputComm(OutputComm):
     def download_result(self):
         """download result files from installation folder"""
         return True
+        
+    def save_state(self, state):
+        """save state to variable"""
+        state.output_port = self.port
+        state.output_host = self.host  
+        
+    def load_state(self, state):
+        """load state from variable"""
+        self.port = state.output_port
+        self.host = state.output_host 
