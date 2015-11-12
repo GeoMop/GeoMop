@@ -1,9 +1,9 @@
 import json
 import os
 import logging
-from enum import Enum
+from enum import IntEnum
 
-class TaskStatus(Enum):
+class TaskStatus(IntEnum):
     """Action type"""
     installation = 0
     qued = 1
@@ -57,24 +57,29 @@ class JobsState:
 
     def save_file(self, res_dir):
         """Job data serialization"""
-        data = self.jobs
-        file = os.path.join("jobs_states.json")
+        data = []
+        for job in self.jobs:
+            job.status=job.status.value
+            data.append(job.__dict__)
+        path = os.path.join(res_dir,"state")
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        file = os.path.join(path,"jobs_states.json")
         try:
             with open(file, "w") as json_file:
                 json.dump(data, json_file, indent=4, sort_keys=True)
         except Exception as error:
-            logging.error("Save state error:" + error)
-            raise error
+            logging.error("Save state error:" + str(error))
 
     def load_file(self, res_dir):
         """Job data serialization"""       
-        file = os.path.join("jobs_states.json")
+        file = os.path.join(res_dir,"state","jobs_states.json")                   
         try:
             with open(file, "r") as json_file:
                 data = json.load(json_file)
-                self.jobs = data
+                for job in data:
+                    obj = JobState()
+                    obj.__dict__=job
+                    self.jobs.append(obj)                
         except Exception as error:
-            logging.error("Save state error:" + error)
-            raise error
-        
-        
+            logging.error("Save state error:" + str(error))

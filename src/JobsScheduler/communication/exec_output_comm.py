@@ -29,6 +29,7 @@ class ExecOutputComm(OutputComm):
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
+        self.connected = False
         
     def install(self):
         """make installation"""
@@ -77,3 +78,13 @@ class ExecOutputComm(OutputComm):
     def download_result(self):
         """download result files from installation folder"""
         return True
+        
+    def save_state(self, state):
+        """save state to variable"""
+        state.output_port = self.port
+        state.output_host = self.host  
+        
+    def load_state(self, state):
+        """load state from variable"""
+        self.port = state.output_port
+        self.host = state.output_host 

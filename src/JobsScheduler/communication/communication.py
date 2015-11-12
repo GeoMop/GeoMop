@@ -53,6 +53,16 @@ class OutputComm(metaclass=abc.ABCMeta):
     def download_result(self):
         """download result files from installation folder"""
         pass
+        
+    @abc.abstractmethod
+    def save_state(self, state):
+        """save state to variable"""
+        pass
+        
+    @abc.abstractmethod
+    def load_state(self, state):
+        """load state from variable"""
+        pass
 
 class InputComm(metaclass=abc.ABCMeta):
     """Input communication abstract class"""
@@ -83,9 +93,16 @@ class InputComm(metaclass=abc.ABCMeta):
     def disconnect(self):
         """disconnect session"""
         pass
-
-
         
+    @abc.abstractmethod
+    def save_state(self, state):
+        """save state to variable"""
+        pass
+        
+    @abc.abstractmethod
+    def load_state(self, state):
+        """load state from variable"""
+        pass     
 
 
             

@@ -76,3 +76,12 @@ class SocketInputComm(InputComm):
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
+        
+    def save_state(self, state):
+        """save state to variable"""
+        state.input_port = self.port 
+        
+    def load_state(self, state):
+        """load state from variable"""
+        self.port = state.input_port
+

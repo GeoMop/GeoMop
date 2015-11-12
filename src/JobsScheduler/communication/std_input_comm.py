@@ -44,3 +44,11 @@ class StdInputComm(InputComm):
     def disconnect(self):
         """disconnect session"""
         pass
+        
+    def save_state(self, state):
+        """save state to variable"""
+        pass
+        
+    def load_state(self, state):
+        """load state from variable"""
+        pass
