@@ -3,6 +3,8 @@ import os
 import logging
 from enum import IntEnum
 
+logger = logging.getLogger("Remote")
+
 class TaskStatus(IntEnum):
     """Action type"""
     installation = 0
@@ -69,7 +71,7 @@ class JobsState:
             with open(file, "w") as json_file:
                 json.dump(data, json_file, indent=4, sort_keys=True)
         except Exception as error:
-            logging.error("Save state error:" + str(error))
+            logger.error("Save state error:" + str(error))
 
     def load_file(self, res_dir):
         """Job data serialization"""       
@@ -82,4 +84,4 @@ class JobsState:
                     obj.__dict__=job
                     self.jobs.append(obj)                
         except Exception as error:
-            logging.error("Load state error:" + str(error))
+            logger.error("Load state error:" + str(error))

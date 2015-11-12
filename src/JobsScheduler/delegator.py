@@ -10,6 +10,8 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 from communication import Communicator
 
+logger = logging.getLogger("Remote")
+
 if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
@@ -26,7 +28,7 @@ try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
 except Exception as error:
-    logging.error(error)
+    logger.error(error)
     raise error
 
 comunicator = Communicator(com_conf, mj_id)

@@ -7,6 +7,8 @@ import copy
 import time
 import subprocess
 
+logger = logging.getLogger("Remote")
+
 __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
 __ins_files__ = {}
@@ -55,13 +57,13 @@ class Installation:
         if sys.platform == "win32":
             res = conn.mkdir(dir)
             if len(res)>0:
-                logging.warning("Sftp message (mkdir " + dir + "): " + res)
+                logger.warning("Sftp message (mkdir " + dir + "): " + res)
         else:
             conn.sendline('mkdir ' + dir)
             conn.expect(".*mkdir " + dir + "\r\n")
             conn.expect("sftp> ")
             if len(conn.before)>0:
-                logging.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
+                logger.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
 
     def create_install_dir(self, conn):
         """Copy installation files"""
@@ -70,10 +72,10 @@ class Installation:
             self._create_dir(conn, __root_dir__)
             res = conn.cd(__root_dir__)
             if len(res)>0:
-                logging.warning("Sftp message (cd root): " + res)
+                logger.warning("Sftp message (cd root): " + res)
             res = conn.rmdir(self.mj_name)
             if len(res)>0:
-                logging.warning("Sftp message (rm " + self.mj_name + "): " + res)
+                logger.warning("Sftp message (rm " + self.mj_name + "): " + res)
             self._create_dir(conn, __jobs_dir__)
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir)
@@ -85,16 +87,16 @@ class Installation:
                 conn.set_sftp_paths( conf_path , self.copy_path + '/' + self.mj_name)
                 res = conn.put_r(__conf_dir__) 
                 if len(res)>0:
-                    logging.warning("Sftp message (put -r '" + __conf_dir__ + "'): " + res)
+                    logger.warning("Sftp message (put -r '" + __conf_dir__ + "'): " + res)
             conn.set_sftp_paths( __install_dir__, self.copy_path)
             for name in self.ins_files:
                 res = conn.put(__ins_files__[name]) 
                 if len(res)>0:
-                    logging.warning("Sftp message (put '" + __ins_files__[name] + "'): " + res)
+                    logger.warning("Sftp message (put '" + __ins_files__[name] + "'): " + res)
             for dir in self.ins_dirs:
                 res = conn.put_r(dir) 
                 if len(res)>0:
-                    logging.warning("Sftp message (put -r '" + dir + "'): " + res)
+                    logger.warning("Sftp message (put -r '" + dir + "'): " + res)
         else:
             import pexpect            
            
@@ -110,13 +112,13 @@ class Installation:
             conn.expect('.*cd ' + __root_dir__ + "\r\n")
             conn.expect("sftp> ")
             if len(conn.before)>0:
-                logging.warning("Sftp message (cd root): " + str(conn.before, 'utf-8').strip()) 
+                logger.warning("Sftp message (cd root): " + str(conn.before, 'utf-8').strip()) 
             conn.sendline('rm -r ' + self.mj_name)
             conn.expect(".*rm -r " + self.mj_name + "\r\n")
             ret = str(conn.readline(), 'utf-8').strip()
             conn.expect("sftp> ")
             if len(conn.before)>0:
-                logging.warning("Sftp message(rm -rf " + self.mj_name + "): " 
+                logger.warning("Sftp message(rm -rf " + self.mj_name + "): " 
                                           + str(conn.before, 'utf-8').strip()) 
                                           
             self._create_dir(conn, __jobs_dir__)
@@ -133,7 +135,7 @@ class Installation:
                 conn.expect('.*cd ' + mjs_dir + "\r\n")
                 conn.expect("sftp> ")
                 if len(conn.before) > 0:
-                    logging.warning("Sftp message (cd " + mjs_dir + "): " +
+                    logger.warning("Sftp message (cd " + mjs_dir + "): " +
                                     str(conn.before, 'utf-8').strip())
                 conn.sendline('lcd ' + mj_path)
                 conn.expect('.*lcd ' + mj_path)
@@ -144,14 +146,14 @@ class Installation:
                     #wait 3s after last message
                     end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
                     if end == 0 and len(conn.before)>0:
-                        logging.debug(
+                        logger.debug(
                             "Sftp message(put -r " + __conf_dir__ + "): " +
                             str(conn.before, 'utf-8').strip())
             conn.sendline('cd ' + self.copy_path)
             conn.expect('.*cd ' + self.copy_path + "\r\n")
             conn.expect("sftp> ")
             if len(conn.before) > 0:
-                logging.warning("Sftp message (cd root): " + str(conn.before,
+                logger.warning("Sftp message (cd root): " + str(conn.before,
                                                                  'utf-8').strip())
             conn.sendline('lcd ' + __install_dir__)
             conn.expect('.*lcd ' + __install_dir__ + "\r\n")
@@ -163,7 +165,7 @@ class Installation:
                     #wait 3s after last message
                     end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
                     if end == 0 and len(conn.before)>0:
-                        logging.debug("Sftp message(put " + __ins_files__[name]  + "): " + str(conn.before, 'utf-8').strip())
+                        logger.debug("Sftp message(put " + __ins_files__[name]  + "): " + str(conn.before, 'utf-8').strip())
             for dir in self.ins_dirs:
                 self._create_dir(conn, dir)
                 conn.sendline('put -r ' +  dir)
@@ -173,7 +175,7 @@ class Installation:
                     #wait 5s after last message
                     end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=5)
                     if end == 0 and len(conn.before)>0:
-                        logging.debug("Sftp message(put -r " + dir + "): " + str(conn.before, 'utf-8').strip())
+                        logger.debug("Sftp message(put -r " + dir + "): " + str(conn.before, 'utf-8').strip())
  
     def get_results(self, conn):
         """Copy installation files"""
@@ -196,7 +198,7 @@ class Installation:
                 #wait 2s after last message
                 end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                 if end == 0 and len(conn.before)>0:
-                    logging.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
+                    logger.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
             
  
     def get_command(self, name, mj_name, mj_id):
@@ -241,7 +243,7 @@ class Installation:
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:
-            logging.warning("Get mj result dir error: " + str(err))
+            logger.warning("Get mj result dir error: " + str(err))
             return "."
         return path
         
@@ -263,7 +265,7 @@ class Installation:
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:
-            logging.warning("Get mj configuration dir error: " + str(err))
+            logger.warning("Get mj configuration dir error: " + str(err))
             return "."
         return path
 
@@ -281,7 +283,7 @@ class Installation:
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:
-            logging.warning("Get mj data dir error: " + str(err))
+            logger.warning("Get mj data dir error: " + str(err))
             return "."
         return path 
        
@@ -303,7 +305,7 @@ class Installation:
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:
-            logging.warning("Get mj status dir error: " + str(err))
+            logger.warning("Get mj status dir error: " + str(err))
             return None
         return path 
 
@@ -323,22 +325,22 @@ class Installation:
             if python_env.scl_enable_exec is not None:
                 mess = term.exec_("scl enable " +  python_env.scl_enable_exec + " bash")
                 if mess != "":
-                    logging.warning("Enable scl error: " + mess)
+                    logger.warning("Enable scl error: " + mess)
             if python_env.module_add is not None:
                 mess = term.exec_("module add " +  python_env.module_add)
                 if mess != "":
-                    logging.warning("Add module error: " + mess)
+                    logger.warning("Add module error: " + mess)
         else:
             if python_env.scl_enable_exec is not None:
                 term.sendline("scl enable " +  python_env.scl_enable_exec + " bash")
                 term.expect(".*scl enable " +  python_env.scl_enable_exec + " bash\r\n")
                 if len(term.before)>0:
-                    logging.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
+                    logger.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
             if python_env.module_add is not None:
                 term.sendline("module add " +  python_env.module_add)
                 term.expect(".*module add " +  python_env.module_add + "\r\n")
                 if len(term.before)>0:
-                    logging.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
+                    logger.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
     
     def prepare_popen_env(self):
         self.prepare_popen_env_static(self.python_env, self.libs_env)
@@ -363,12 +365,12 @@ class Installation:
             term.sendline("scl enable " +  libs_env.mpi_scl_enable_exec + " bash")
             term.expect(".*scl enable " + libs_env.mpi_scl_enable_exec + " bash\r\n")
             if len(term.before)>0:
-                logging.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
+                logger.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
         if libs_env.mpi_module_add is not None:
             term.sendline("module add " +  libs_env.mpi_module_add)
             term.expect(".*module add " + libs_env.mpi_module_add + "\r\n")
             if len(term.before)>0:
-                logging.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
+                logger.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
 
     def get_prepare_pbs_env(self):
         """Get array of commads for loading environment for pbs"""
@@ -405,16 +407,16 @@ class Installation:
             else:
                 command = "./install_mpi4.sh " + python_env.python_exec  + " " + libs_env.mpicc +  \
                                  " &>> " + log_file 
-            logging.debug("Installation libraries started")
+            logger.debug("Installation libraries started")
             term.sendline(command)
             time.sleep(1)
             try:
                 term.expect('.*install.*') 
                 term.expect('.*install.*', timeout=600)
             except pexpect.TIMEOUT:
-                logging.warning("Installation libraries failed ( " +
+                logger.warning("Installation libraries failed ( " +
                                           str(term.before, 'utf-8').strip()) 
-            logging.debug("Installation libraries ended")
+            logger.debug("Installation libraries ended")
             term = term.sendline('exit')
  
  

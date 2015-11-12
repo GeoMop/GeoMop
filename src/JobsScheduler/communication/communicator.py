@@ -17,6 +17,7 @@ from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
 
 LONG_MESSAGE_TIMEOUT=600
+logger = logging.getLogger("Remote")
 
 class Communicator():
     """
@@ -160,9 +161,19 @@ class Communicator():
             log_file = os.path.join(log_path, name +".log")
         else:
             log_file = os.path.join(log_path, name + "_" + self.id + ".log")
-        logging.basicConfig(filename=log_file,level=level, 
-            format='%(asctime)s %(levelname)s %(message)s')
-        logging.info("Application " + self.communicator_name + " is started")
+            
+        logger = logging.getLogger("Remote")
+        logger.setLevel(level)
+
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(level)
+
+        formatter = logging.Formatter(
+            '%(asctime)s %(levelname)s %(message)s')
+
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)    
+        logger.info("Application " + self.communicator_name + " is started")
    
     def  standart_idle_function(self):
         """This function will be call, if meesage is not receive in run function."""
@@ -186,17 +197,17 @@ class Communicator():
                 not self.libs_env.install_job_libs:
                 if not self.is_installed():
                     self._instalation_begined = True
-                    logging.debug("Installation to local directory")
+                    logger.debug("Installation to local directory")
                     self.install()
                 return True, None
             else:
                 if self._instalation_begined:
                     if self.is_installed():
-                        logging.debug("Installation to remote directory ended")
+                        logger.debug("Installation to remote directory ended")
                         return True, None
-                    logging.debug("Installation in process signal was sent")
+                    logger.debug("Installation in process signal was sent")
                 else:
-                    logging.debug("Installation to remote directory began")
+                    logger.debug("Installation to remote directory began")
                     self._instalation_begined = True
                     t = threading.Thread(target=self.install)
                     t.daemon = True
@@ -231,7 +242,7 @@ class Communicator():
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
                 return response
-            logging.info("Stop signal is received")
+            logger.info("Stop signal is received")
             self.stop =True
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
@@ -283,7 +294,7 @@ class Communicator():
                 self._connect_socket(self.output)
         self.status.interupted=False
         self.status.save()
-        logging.info("Application " + self.communicator_name + " is restored")
+        logger.info("Application " + self.communicator_name + " is restored")
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
@@ -295,7 +306,7 @@ class Communicator():
         self.status.save()
         if isinstance(self.input, StdInputComm):
             self.stop =True
-        logging.info("Application " + self.communicator_name + " is interupted")
+        logger.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
         """Release resorces"""
@@ -305,14 +316,14 @@ class Communicator():
         time.sleep(1)
         if self.input is not None:
             self.input.disconnect()
-        logging.info("Application " + self.communicator_name + " is stopped")
+        logger.info("Application " + self.communicator_name + " is stopped")
     
     def install(self):
         """make installation"""
         if self.libs_env.install_job_libs:
             self.output.install_job_libs()
         self.output.install()
-        logging.debug("Run next file")
+        logger.debug("Run next file")
         self.status.next_installed = True
         self.status.save()
         self._exec_()
@@ -324,9 +335,9 @@ class Communicator():
         
     def download(self):
         """download result files"""
-        logging.debug("Start downloading result files")
+        logger.debug("Start downloading result files")
         self.output.download_result()
-        logging.debug("End downloading result files")
+        logger.debug("End downloading result files")
         self._download_processed_lock.acquire()
         self._download_processed = tdata.ProcessType.finished
         self._download_processed_lock.release()
@@ -359,9 +370,9 @@ class Communicator():
                     i += 1
                     time.sleep(1)
                     if i == repeat:
-                        logging.error("Connect error (" + str(err) + ')')
+                        logger.error("Connect error (" + str(err) + ')')
                 except err:
-                    logging.error("Connect error (" + str(err) + ')')
+                    logger.error("Connect error (" + str(err) + ')')
                     break
         
     def run(self):
@@ -384,25 +395,25 @@ class Communicator():
         self.stop = False
         while not self.stop:
             if self.input is None:
-                logging.fatal("Infinite loop")
+                logger.fatal("Infinite loop")
                 raise Exception("Infinite loop")
                 break
             message = self.input.receive(1)
             mess = None
             if message is not None:
                 error = False
-                logging.debug("Input message is receive (" + str(message) + ')')
+                logger.debug("Input message is receive (" + str(message) + ')')
                 resend, mess = self.action_func_before(message)
                 if resend and self.output is not None:
-                    logging.debug("Message is resent")
+                    logger.debug("Message is resent")
                     self.output.send(message)
                     res = self.output.receive()
                     mess = res
-                    logging.debug("Answer to resent message is receive (" + str(mess) + ')')
+                    logger.debug("Answer to resent message is receive (" + str(mess) + ')')
                 mess_after = self.action_func_after(message, mess)
                 if mess_after is not None:
                     mess = mess_after
-                    logging.debug("Message after: (" + str(mess) + ')')
+                    logger.debug("Message after: (" + str(mess) + ')')
                 if mess == None:
                     action=tdata.Action(tdata.ActionType.error)
                     if resend:
@@ -413,9 +424,9 @@ class Communicator():
                     error = True
                 self.input.send(mess)
                 if error:
-                    logging.error("Error answer sent (" + str(mess) + ')')
+                    logger.error("Error answer sent (" + str(mess) + ')')
                 else:
-                    logging.debug("Answer is sent (" + str(mess) + ')')   
+                    logger.debug("Answer is sent (" + str(mess) + ')')   
             else:
                 if self.is_installed():
                     self.idle_func()
@@ -423,7 +434,7 @@ class Communicator():
     def send_message(self, message):
         """send message to output"""
         self.output.send(message)
-        logging.debug("Message is send (" + str(message) + ')')
+        logger.debug("Message is send (" + str(message) + ')')
        
     def send_long_action(self, action):
         """send message with long response time, to output"""
@@ -441,5 +452,5 @@ class Communicator():
     def receive_message(self, timeout=60):
         """receive message from output"""
         mess = self.output.receive(timeout)
-        logging.debug("Answer to message is receive (" + str(mess) + ')')
+        logger.debug("Answer to message is receive (" + str(mess) + ')')
         return mess    

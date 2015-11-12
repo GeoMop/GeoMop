@@ -6,6 +6,8 @@ import time
 import copy
 from communication.exec_output_comm import ExecOutputComm
 
+logger = logging.getLogger("Remote")
+
 class PbsOutputComm(ExecOutputComm):
     """Communication over PBS"""
     
@@ -23,7 +25,7 @@ class PbsOutputComm(ExecOutputComm):
                                   self.installation.get_interpreter(), 
                                   self.installation.get_prepare_pbs_env()  
                                  )
-        logging.debug("Qsub params: " + str(hlp.get_qsub_args()))       
+        logger.debug("Qsub params: " + str(hlp.get_qsub_args()))       
         process = subprocess.Popen(hlp.get_qsub_args(), 
                                                        stdout=subprocess.PIPE)
         return_code = process.poll()
@@ -35,7 +37,7 @@ class PbsOutputComm(ExecOutputComm):
         job  = re.match( '(\d+)', str(out, 'utf-8'))
         if job is not None:
             self.jobid  =  int(job.group(1))
-            logging.debug("Job is queued (id:" + job.group(1) + ")")
+            logger.debug("Job is queued (id:" + job.group(1) + ")")
             if self.config.with_socket:
                 i = 0
                 while(i<1800):
@@ -47,11 +49,11 @@ class PbsOutputComm(ExecOutputComm):
                     i += 1
                 host = re.match( 'HOST:--(\S+)--',  lines[0])
                 if host is not None:
-                    logging.debug("Next communicator return socket host:" + host.group(1)) 
+                    logger.debug("Next communicator return socket host:" + host.group(1)) 
                     self.host = host.group(1)
                 port = re.match( 'PORT:--(\d+)--', lines[1])
                 if port is not None:
-                    logging.debug("Next communicator return socket port:" + port.group(1)) 
+                    logger.debug("Next communicator return socket port:" + port.group(1)) 
                     self.port = int(port.group(1))
         self.initialized=True
 
@@ -67,7 +69,7 @@ class PbsOutputComm(ExecOutputComm):
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(),self.config) 
         error = hlp.get_errors()
         if error is not None:
-            logging.warning("Error output contains error:" + error) 
+            logger.warning("Error output contains error:" + error) 
         
     def send(self,  mess):
         """send json message"""        

@@ -5,6 +5,8 @@ import subprocess
 import re
 from communication.communication import OutputComm
 
+logger = logging.getLogger("Remote")
+
 class ExecOutputComm(OutputComm):
     """Ancestor of communication classes"""
     
@@ -23,7 +25,7 @@ class ExecOutputComm(OutputComm):
         """connect session"""
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conn.connect((self.host, self.port))
-        logging.debug("Client is connected to " + self.host + ":" + str(self.port)) 
+        logger.debug("Client is connected to " + self.host + ":" + str(self.port)) 
         self.connected = True
          
     def disconnect(self):
@@ -50,7 +52,7 @@ class ExecOutputComm(OutputComm):
         out = process.stdout.readline()
         port = re.match( 'PORT:--(\d+)--', str(out, 'utf-8'))
         if port is not None:
-            logging.debug("Next communicator return socket port:" + port.group(1)) 
+            logger.debug("Next communicator return socket port:" + port.group(1)) 
             self.port = int(port.group(1))
         self.initialized=True
  
@@ -71,7 +73,7 @@ class ExecOutputComm(OutputComm):
         try:
             mess = tdata.Message(txt)
         except(tdata.MessageError) as err:
-            logging.warning("Error(" + str(err) + ") during parsing output answer: " + txt)
+            logger.warning("Error(" + str(err) + ") during parsing output answer: " + txt)
             return None
         return mess
  

@@ -6,6 +6,8 @@ from .communicator import Communicator
 from  communication.installation import  Installation
 import threading
 
+logger = logging.getLogger("Remote")
+
 class JobsCommunicator(Communicator):
     """Class that add communicators properties to communication with job"""
     
@@ -51,7 +53,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
-                logging.debug("Job application was started")
+                logger.debug("Job application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             return resent, mess
@@ -70,7 +72,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.stop:
             # ToDo:: close all jobs 
             self.stop = True
-            logging.info("Stop signal is received")
+            logger.info("Stop signal is received")
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         if message.action_type == tdata.ActionType.download_res:
@@ -106,7 +108,7 @@ class JobsCommunicator(Communicator):
         self._job_semafores[id] = threading.Semaphore()
         self.job_outputs[id].install() # only copy path
         
-        logging.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
+        logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
         t = threading.Thread(target= self._run_action, 
               args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
         t.daemon = True
@@ -131,10 +133,10 @@ class JobsCommunicator(Communicator):
         self.status.load()
         self.status.interupted=False
         self.status.save()
-        logging.info("Multi Job Application " + self.communicator_name + " is restored")    
+        logger.info("Multi Job Application " + self.communicator_name + " is restored")    
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
         self.status.interupted=True        
         self.status.save()
-        logging.info("Multi Job Application " + self.communicator_name + " is interupted")    
+        logger.info("Multi Job Application " + self.communicator_name + " is interupted")    

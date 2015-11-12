@@ -14,6 +14,8 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 import data.transport_data as tdata
 
+logger = logging.getLogger("Remote")
+
 def  mj_action_function_before(message):
     """before action function"""
     global mj_name, start_time
@@ -83,7 +85,7 @@ try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
 except Exception as error:
-    logging.error(error)
+    logger.error(error)
     raise error
 
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
