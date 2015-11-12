@@ -30,11 +30,16 @@ class DataReloader(threading.Thread):
         self._is_running.set()
         while self._is_running.is_set():
             # install new coms
-            for idx, com in enumerate(self._to_install):
-                com["communicator"].install()
-                mess = com["communicator"].send_long_action(
-                    tdata.Action(tdata.ActionType.installation))
-                com["messages"].append(mess)
+            install_pool = CommunicatorPool()
+            for com in self._to_install:
+                comworker = CommunicatorWorker(com["key"],
+                                               com["communicator"],
+                                               tdata.ActionType.installation)
+                install_pool.coms.append(comworker)
+            install_pool.start_all()
+            results = install_pool.wait_for_results()
+            for idx, result in enumerate(results):
+                self._to_install[idx]["messages"].append(result)
                 self._communicators.append(self._to_install.pop(idx))
 
             if self.needs_reload.is_set():
@@ -81,3 +86,53 @@ class DataReloader(threading.Thread):
         self.results[com["key"]]["logs"] = log_path
         self.results[com["key"]]["conf"] = conf_path
         self.results[com["key"]]["messages"] = com["messages"]
+
+
+class CommunicatorWorker(threading.Thread):
+    def __init__(self, key, com, action_type, res=None):
+        self.key = key
+        self.com = com
+        self.action_type = action_type
+        self.res = res
+        super().__init__(name=com.mj_name)
+
+    def run(self):
+        # Install
+        if self.action_type == tdata.ActionType.installation:
+            self.com.install()
+            self.res = self.com.send_long_action(tdata.Action(
+                tdata.ActionType.installation))
+
+        # Download
+        elif self.action_type == tdata.ActionType.download_res:
+            self.res = self.com.send_long_action(tdata.Action(
+                tdata.ActionType.download_res))
+            self.com.download()
+
+        # Stop
+        elif self.action_type == tdata.ActionType.stop:
+            self.res = self.com.send_long_action(tdata.Action(
+                tdata.ActionType.stop))
+            self.com.close()
+
+
+class CommunicatorPool(object):
+    def __init__(self):
+        super().__init__()
+        self.coms = list()
+
+    def start_all(self):
+        for com in self.coms:
+            com.start()
+
+    def start_one_by_one(self):
+        for com in self.coms:
+            com.start()
+            com.join()
+
+    def wait_for_results(self):
+        results = list()
+        for com in self.coms:
+            com.join()
+            results.append(com.res)
+        return results

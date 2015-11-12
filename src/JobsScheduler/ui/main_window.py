@@ -9,6 +9,7 @@ import uuid
 from PyQt5 import QtCore
 
 from communication import Communicator
+from data.states import TaskStatus
 from ui.actions.main_window_actions import *
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -150,16 +151,28 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
+        state = {
+            "name": data[1],
+            "insert_time": None,
+            "run_time": None,
+            "run_interval": None,
+            "status": TaskStatus.none.name
+        }
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
             self.data.multijobs[key] = dict()
             self.data.multijobs[key]["preset"] = list(data[1:])
+            self.data.multijobs[key]["state"] = state
         else:
             self.data.multijobs[data[0]]["preset"] = list(data[1:])
+            self.data.multijobs[data[0]]["state"] = state
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
         key = self.ui.overviewWidget.currentItem().text(0)
+        self.data.multijobs[key]["state"]["status"] = \
+            TaskStatus.installation.name
+        # self.multijobs_changed.emit(self.data.multijobs)
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
         self.data_reloader.install_communicator(key, communicator)
