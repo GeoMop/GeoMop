@@ -1,15 +1,15 @@
 import sys
-
 import pytest
 
-import data.data_node as dn
-from helpers import Position
+from PyQt5.QtWidgets import QApplication
+
+from data import DataNode
 from data.yaml import Loader
 from data.yaml.resolver import resolve_scalar_tag
-from data.meconfig import MEConfig as cfg
+from meconfig.meconfig import MEConfig as cfg
 import mock_config as mockcfg
-from PyQt5.QtWidgets import QApplication
 from helpers import NotificationHandler
+from util import Position
 
 APP = QApplication(sys.argv)
 APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),
@@ -124,8 +124,7 @@ def test_parse(request=None):
 
     # test empty abstract record
     node = cfg.root.get_node_at_path('/problem/primary_equation/solver')
-    assert isinstance(node, dn.CompositeNode)
-    assert node.explicit_keys is True
+    assert node.implementation == DataNode.Implementation.mapping
     assert node.type.value == 'Petsc'
 
     # test ref errors

@@ -22,6 +22,8 @@
    organization/rules
    organization/pylint_rules
 
+.. TODO the links do not work from subdirectories (install)
+
 
 Indices and tables
 ==================

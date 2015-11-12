@@ -1,7 +1,5 @@
-import pytest
-from helpers.subyaml import LineAnalyzer, ChangeAnalyzer
-from helpers.subyaml.line_analyzer import strip_to_line
-from data import PosType, KeyType
+from helpers import LineAnalyzer, ChangeAnalyzer
+from util import PosType, KeyType
 
 def test_json():
     test = ["key: [86, 95, 12] # json 1.r"]
@@ -139,38 +137,3 @@ def test_key_area():
     assert anal.get_pos_type() is PosType.in_key
     assert anal.get_key_pos_type() is KeyType.anch        
 
-
-def test_strip_to_line():
-    """Test if strip_to_line decorator strips the text to a single line."""
-    @strip_to_line
-    def func(line):
-        return line
-
-    assert func('text') == 'text'
-    assert func('\n') == ''
-    assert func('text\n') == 'text'
-    assert func('text\nline2') == 'text'
-    assert func('text\n\n') == 'text'
-
-
-def test_begins_with_comment():
-    """Test :py:meth:`begins_with_comment`."""
-    begins_with_comment = LineAnalyzer.begins_with_comment
-    assert begins_with_comment('#') is True
-    assert begins_with_comment('# key: 1') is True
-    assert begins_with_comment(' # key: 1') is True
-    assert begins_with_comment('#  # key: 1') is True
-    assert begins_with_comment('\t\t \t# key: 1') is True
-    assert begins_with_comment('') is False
-    assert begins_with_comment('  a # key: 1') is False
-    assert begins_with_comment('key: 1') is False
-
-
-def test_uncomment():
-    """Test if uncomment removes the leading comment symbol."""
-    uncomment = LineAnalyzer.uncomment
-    assert uncomment('#') == ''
-    assert uncomment('# ') == ''
-    assert uncomment('# key: 1') == 'key: 1'
-    assert uncomment('  # key: 1') == '  key: 1'
-    assert uncomment('  # key: 1 # another comment') == '  key: 1 # another comment'

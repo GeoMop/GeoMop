@@ -8,16 +8,15 @@ import os
 import copy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper
+from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer
 from ist import InfoTextGenerator
-from helpers.subyaml import StructureAnalyzer
 
-from .import_json import parse_con, fix_tags, rewrite_comments
-from .yaml import Loader
-from .yaml import Transformator, TransformationFileFormatError
-from .validation import Validator
-from .format import get_root_input_type_from_json
-from .autoconversion import autoconvert
+from data.import_json import parse_con, fix_tags, rewrite_comments
+from data.yaml import Loader
+from data.yaml import Transformator, TransformationFileFormatError
+from data.validation import Validator
+from data.format import get_root_input_type_from_json
+from data.autoconversion import autoconvert
 
 
 class _Config:

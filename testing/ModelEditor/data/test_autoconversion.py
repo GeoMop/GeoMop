@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 """
 Tests for auto-conversion module
 
-@author: Tomas Krizek
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
 import data.autoconversion as ac
-import data.data_node as dn
+from data import ScalarDataNode, MappingDataNode
+from util import TextValue
 
 
 def test_get_expected_array_dimension():
@@ -24,10 +24,10 @@ def test_get_expected_array_dimension():
 
 
 def test_expand_value_to_array():
-    node = dn.ScalarNode()
+    node = ScalarDataNode()
     node.value = 5
-    node.parent = dn.DataNode()
-    node.key = dn.TextValue()
+    node.parent = MappingDataNode()
+    node.key = TextValue()
     node.key.value = 'path'
     expanded = ac._expand_value_to_array(node, 3)
     assert expanded.get_node_at_path('/path/0/0/0').value == 5
@@ -43,7 +43,7 @@ def test_expand_record():
                     base_type='String')}},
         type_name='MyRecord',
         reducible_to_key='a')
-    root = dn.ScalarNode(None, None, 'str')
+    root = ScalarDataNode(None, None, 'str')
     expanded = ac._expand_reducible_to_key(root, input_type)
     assert expanded.get_node_at_path('/a').value == 'str'
 
@@ -61,7 +61,7 @@ def test_expand_abstract_record():
             type_name='MyRecord',
             reducible_to_key='a')
     )
-    root = dn.ScalarNode(None, None, 'str')
+    root = ScalarDataNode(None, None, 'str')
     root.input_type = input_type
     expanded = ac._expand_reducible_to_key(root, input_type)
     assert expanded.get_node_at_path('/a').value == 'str'
@@ -92,8 +92,8 @@ def test_autoconvert():
             }
         },
         type_name='Root')
-    root = dn.CompositeNode(True)
-    node = dn.ScalarNode(dn.TextValue('path'), root, 2)
+    root = MappingDataNode()
+    node = ScalarDataNode(TextValue('path'), root, 2)
     root.children.append(node)
     converted = ac.autoconvert(root, input_type)
     assert converted.get_node_at_path('/path/0/0/a').value == 2

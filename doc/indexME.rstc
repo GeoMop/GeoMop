@@ -9,8 +9,10 @@ Model Editor Source Documentation
    aut/ModelEditor/helpers
    aut/ModelEditor/importer
    aut/ModelEditor/ist
+   aut/ModelEditor/meconfig
    aut/ModelEditor/model_editor
    aut/ModelEditor/ui
+   aut/ModelEditor/util
 
 .. toctree::
    :caption: GeoMop

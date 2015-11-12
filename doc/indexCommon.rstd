@@ -7,8 +7,8 @@ Common Source Documentation
 
    aut/common/config
    aut/common/geomop_dialogs
+   aut/common/geomop_util
    aut/common/icon
-   aut/common/util
 
 .. toctree::
    :caption: GeoMop

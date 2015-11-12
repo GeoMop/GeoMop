@@ -11,8 +11,9 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QColor
 
-from data import ScalarNode, CompositeNode, cfg
-from util import load_stylesheet
+from geomop_util import load_stylesheet
+from meconfig import cfg
+from data import DataNode
 
 
 class TreeWidget(QtWidgets.QTreeView):
@@ -90,7 +91,8 @@ class TreeWidget(QtWidgets.QTreeView):
         data = model_index.internalPointer()
         if model_index.column() == 0 and data.key.span is not None:  # key
             span = deepcopy(data.key.span)
-        elif model_index.column() == 1 and isinstance(data, CompositeNode) and \
+        elif model_index.column() == 1 and \
+                data.implementation == DataNode.Implementation.mapping and \
                 data.type is not None:  # AbstractRecord type
             span = deepcopy(data.type.span)
         else:  # entire node (value)
@@ -98,8 +100,7 @@ class TreeWidget(QtWidgets.QTreeView):
             # if an array is clicked, select the "- " as well
             if model_index.column() == 0:
                 is_array_member = (data.parent is not None and
-                                   isinstance(data.parent, CompositeNode) and
-                                   data.parent.explicit_keys is False)
+                                   data.parent.implementation == DataNode.Implementation.sequence)
                 has_delimiters = data.is_flow is False and data.delimiters is not None
                 if is_array_member and has_delimiters:
                     span.start = data.delimiters.start
@@ -191,9 +192,10 @@ class DataNodeTreeModel(QtCore.QAbstractItemModel):
         elif role == QtCore.Qt.SizeHintRole:
             return QtCore.QSize(120, 20)
         elif role == QtCore.Qt.ForegroundRole:
-            if column == 1 and isinstance(data, CompositeNode) and data.type is not None:
-                return QColor(QtCore.Qt.darkGreen)  # AbstractRecord type
-            return QColor(QtCore.Qt.black)
+            if column == 1:
+                if data.implementation == DataNode.Implementation.mapping and data.type is not None:
+                    return QColor(QtCore.Qt.darkGreen)  # AbstractRecord type
+                return QColor(QtCore.Qt.black)
 
     # virtual function
     # pylint: disable=C0103
@@ -260,9 +262,7 @@ class NodeHelper:
         :return: index of the node in its parent
         :rtype: int or None
         """
-        if node.parent is None:
-            return None
-        if isinstance(node.parent, CompositeNode) and node in node.parent.visible_children:
+        if node.parent and node in node.parent.visible_children:
             return node.parent.visible_children.index(node)
         return None
 
@@ -274,9 +274,7 @@ class NodeHelper:
         :return: amount of children the node has
         :rtype: int
         """
-        if isinstance(node, CompositeNode):
-            return len(node.visible_children)
-        return 0
+        return len(node.visible_children)
 
     @staticmethod
     def get_child(node, row):
@@ -287,9 +285,8 @@ class NodeHelper:
         :return: child node
         :rtype: DataNode or None
         """
-        if isinstance(node, CompositeNode):
-            if len(node.visible_children) > row:
-                return node.visible_children[row]
+        if len(node.visible_children) > row:
+            return node.visible_children[row]
         return None
 
     @staticmethod
@@ -306,8 +303,8 @@ class NodeHelper:
         if column == 0:
             return node.key.value
         if column == 1:
-            if isinstance(node, ScalarNode):
+            if node.implementation == DataNode.Implementation.scalar:
                 return str(node.value)
-            elif isinstance(node, CompositeNode) and node.type is not None:
+            elif node.implementation == DataNode.Implementation.mapping and node.type is not None:
                 return str(node.type.value)
         return ""

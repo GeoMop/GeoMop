@@ -3,7 +3,7 @@
 import re
 import copy
 from .line_analyzer import LineAnalyzer
-from data import KeyType, PosType
+from util import KeyType, PosType
 
 
 class ChangeAnalyzer:
@@ -134,6 +134,7 @@ class ChangeAnalyzer:
 
         next_line = False
         while i <= self._line:
+            # TODO: is while necessary? Why isn't 'i' incremented?
             line = LineAnalyzer.strip_comment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
             if key is not None:

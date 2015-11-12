@@ -1,5 +1,5 @@
-from data.meconfig import MEConfig as cfg
-from data.meconfig import _Config as Config
+from meconfig import cfg
+from meconfig.meconfig import _Config as Config
 from data.yaml import Loader
 from helpers import NotificationHandler
 
