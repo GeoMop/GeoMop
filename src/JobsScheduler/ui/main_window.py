@@ -9,15 +9,17 @@ import uuid
 from PyQt5 import QtCore
 
 from communication import Communicator
+from data.states import TaskStatus
 from ui.actions.main_window_actions import *
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
+from ui.main_window_refresher import WindowRefresher
 from ui.menus.main_window_menus import MainWindowMenuBar
-from ui.panels.multijob_infotab import MultiJobInfoTab
-from ui.panels.multijob_overview import MultiJobOverview
+from ui.panels.overview import Overview
+from ui.panels.tabs import Tabs
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -25,19 +27,22 @@ class MainWindow(QtWidgets.QMainWindow):
     Jobs Scheduler main window class
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
-    tabs_data_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None, data=None, data_reloader=None):
         super().__init__(parent)
-        self.data = data
-        self.data_reloader = data_reloader
-        self.data_reloader.notify_data_changed = self._handle_data_changed
-
         # setup UI
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
 
-        self.tabs_data_changed.connect(self.ui.multiJobInfoTab.reload_view)
+        self.data = data
+        self.data_reloader = data_reloader
+        self.windows_refresher = WindowRefresher(parent=self,
+                                                 data_reloader=data_reloader)
+        self.windows_refresher.results_changed.connect(
+            self.handle_results_changed)
+
+        self.ui.overviewWidget.currentItemChanged.connect(
+            self._handle_mj_selection_changed)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -66,7 +71,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
-        self.multijobs_changed.connect(self.ui.multiJobOverview.reload_view)
+        self.multijobs_changed.connect(self.ui.overviewWidget.reload_view)
         self.multijobs_changed.connect(self.data.multijobs.save)
         self.resource_presets_dlg.presets_changed.connect(
             self.mj_dlg.set_resource_presets)
@@ -109,7 +114,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_run_multijob_action)
 
         # reload view
-        self.ui.multiJobOverview.reload_view(self.data.multijobs)
+        self.ui.overviewWidget.reload_view(self.data.multijobs)
+
+        self.windows_refresher.start(1)
+
+    def _handle_mj_selection_changed(self, current, previous):
+        self.windows_refresher.main_key = current.text(0)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -118,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_edit_multijob_action(self):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_EDIT)
-            key = self.ui.multiJobOverview.currentItem().text(0)
+            key = self.ui.overviewWidget.currentItem().text(0)
             data = list(self.data.multijobs[key]["preset"])
             data.insert(0, key)  # insert id
             self.mj_dlg.set_data(tuple(data))
@@ -127,7 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_copy_multijob_action(self):
         if self.data.multijobs:
             self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_COPY)
-            key = self.ui.multiJobOverview.currentItem().text(0)
+            key = self.ui.overviewWidget.currentItem().text(0)
             data = list(self.data.multijobs[key]["preset"])
             data.insert(0, None)  # insert empty id
             data[1] = self.mj_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
@@ -136,27 +146,45 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
-            key = self.ui.multiJobOverview.currentItem().text(0)
+            key = self.ui.overviewWidget.currentItem().text(0)
             self.data.multijobs.pop(key)  # delete by key
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
+        state = {
+            "name": data[1],
+            "insert_time": None,
+            "run_time": None,
+            "run_interval": None,
+            "status": TaskStatus.none.name
+        }
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
             self.data.multijobs[key] = dict()
             self.data.multijobs[key]["preset"] = list(data[1:])
+            self.data.multijobs[key]["state"] = state
         else:
             self.data.multijobs[data[0]]["preset"] = list(data[1:])
+            self.data.multijobs[data[0]]["state"] = state
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
-        key = self.ui.multiJobOverview.currentItem().text(0)
+        key = self.ui.overviewWidget.currentItem().text(0)
+        self.data.multijobs[key]["state"]["status"] = \
+            TaskStatus.installation.name
+        # self.multijobs_changed.emit(self.data.multijobs)
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
         self.data_reloader.install_communicator(key, communicator)
 
-    def _handle_data_changed(self, key):
-        self.tabs_data_changed.emit(self.data.multijobs[key]["logs"])
+    def handle_results_changed(self, results):
+        try:
+            key = self.ui.overviewWidget.currentItem().text(0)
+            self.ui.tabWidget.reload_view(results[key])
+        except KeyError as keyerr:
+            pass
+        except AttributeError as atrerr:
+            pass
 
 
 class UiMainWindow(object):
@@ -216,12 +244,12 @@ class UiMainWindow(object):
         self.menuBar.settings.addAction(self.actionEnvPresets)
 
         # multiJob Overview panel
-        self.multiJobOverview = MultiJobOverview(self.centralwidget)
-        self.mainVerticalLayout.addWidget(self.multiJobOverview)
+        self.overviewWidget = Overview(self.centralwidget)
+        self.mainVerticalLayout.addWidget(self.overviewWidget)
 
-        # multiJobInfoTab panel
-        self.multiJobInfoTab = MultiJobInfoTab(self.centralwidget)
-        self.mainVerticalLayout.addWidget(self.multiJobInfoTab)
+        # tabWidget panel
+        self.tabWidget = Tabs(self.centralwidget)
+        self.mainVerticalLayout.addWidget(self.tabWidget)
 
         # set central widget
         main_window.setCentralWidget(self.centralwidget)

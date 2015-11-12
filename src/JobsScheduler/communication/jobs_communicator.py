@@ -13,8 +13,8 @@ class JobsCommunicator(Communicator):
         self.conf = copy.deepcopy(init_conf)
         """Copy of communicator configuration use up to for job initialization"""
         init_conf.output_type = comconf.OutputCommType.none
-        super(JobsCommunicator, self).__init__(init_conf, id, action_func_before, action_func_after, idle_func)
-        self.mj_name = init_conf.mj_name
+        super(JobsCommunicator, self).__init__(init_conf, id, action_func_before, action_func_after, self.job_idle_func)
+        self.mj_name = init_conf.mj_name        
         """folder name for multijob data"""
         self.jobs = {}
         """Dictionary of jobs that is run by communicator"""
@@ -22,9 +22,32 @@ class JobsCommunicator(Communicator):
         """Dictionary of jobs outputs"""
         self._job_semafores = {}
         """Job semafore for guarding one run job action"""
+        if idle_func is None:
+            self.anc_idle_func = self.standart_idle_function
+            """
+            Ancestor idle function
+           
+            For job communicator is  called job_idle_function, that make 
+            job specific action. If any job specific action is not pending, 
+            user defined idle function in this variable is called .
+            """
+        else:
+            self.anc_idle_func = idle_func
         
     def  standart_action_function_before(self, message):
         """before action function"""
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return False, action.get_message()
+            self.interupt()
+            #interupt only one communicator per request
+            action = tdata.Action(tdata.ActionType.action_in_process)
+            return False, action.get_message()
+        if message.action_type == tdata.ActionType.restore_connection:
+            self.restore()
+            action = tdata.Action(tdata.ActionType.ok)
+            return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
@@ -42,6 +65,8 @@ class JobsCommunicator(Communicator):
         
     def  standart_action_function_after(self, message,  response):
         """before action function"""
+        if message.action_type == tdata.ActionType.interupt_connection:
+            return None
         if message.action_type == tdata.ActionType.stop:
             # ToDo:: close all jobs 
             self.stop = True
@@ -52,7 +77,19 @@ class JobsCommunicator(Communicator):
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
-        
+
+    def  job_idle_func(self):
+        """Make job specific action. If is not action pending, run anc_idle_func"""
+        make_custom_action = True
+        for id in self.jobs:
+            # connect
+            if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
+                self._connect_socket(self.job_outputs[id], 1)
+                make_custom_action = False
+        if make_custom_action:
+            self.anc_idle_func()
+    
+    
     def _exec_(self):
         """
         Exec for jobs_communicator don't make connection for
@@ -88,3 +125,16 @@ class JobsCommunicator(Communicator):
         self._install_lock.acquire()
         self._instaled = True
         self._install_lock.release()
+        
+    def restore(self):
+        """Restore connection chain to next communicator"""
+        self.status.load()
+        self.status.interupted=False
+        self.status.save()
+        logging.info("Multi Job Application " + self.communicator_name + " is restored")    
+        
+    def interupt(self):
+        """Interupt connection chain to next communicator"""
+        self.status.interupted=True        
+        self.status.save()
+        logging.info("Multi Job Application " + self.communicator_name + " is interupted")    

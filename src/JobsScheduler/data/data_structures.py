@@ -148,8 +148,7 @@ class DataContainer(object):
             if resource_preset[4] == UiResourceDialog.PBS_LABEL:
                 delegator_conf.output_type = comconf.OutputCommType.pbs
                 delegator_conf.pbs = comconf.ConfigFactory.get_pbs_config(
-                    preset=self.pbs_presets[resource_preset[5]],
-                    with_socket=True)
+                    preset=self.pbs_presets[resource_preset[5]])
 
         # mj configs
         mj_conf = comconf.ConfigFactory.get_communicator_config(

@@ -51,16 +51,16 @@ clean:
 	rm -rf aut/* 
 
 modules.LE.rst:
-	sphinx-apidoc -o ./aut/LayerEditor -s .rsta ../../src/LayerEditor/
+	sphinx-apidoc -o ./aut/LayerEditor -s .rsta ../src/LayerEditor/
 
 modules.ME.rst:
-	sphinx-apidoc -o ./aut/ModelEditor -s .rstc ../../src/ModelEditor/
+	sphinx-apidoc -o ./aut/ModelEditor -s .rstc ../src/ModelEditor/
 
 modules.JS.rst:
-	sphinx-apidoc -o ./aut/JobsScheduler -s .rstb ../../src/JobsScheduler/
+	sphinx-apidoc -o ./aut/JobsScheduler -s .rstb ../src/JobsScheduler/
 
-modules.common.rst: 
-	sphinx-apidoc -o ./aut -s .rst ../../src/common/
+modules.common.rst:
+	sphinx-apidoc -o ./aut/common -s .rstd ../src/common/
 
 
 autogen_src: modules.LE.rst modules.common.rst modules.JS.rst modules.ME.rst
@@ -75,6 +75,9 @@ html: autogen_src
 	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html
+	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

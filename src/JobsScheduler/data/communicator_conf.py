@@ -51,7 +51,7 @@ class PbsConfig(object):
         self.ppn = "1"
         self.mem = "400mb"
         self.scratch = "400mb"
-        self.with_socket = False  # multijob true; job false
+        self.with_socket = True  # multijob true; job false
         """Initialize communication over socket"""
 
 
@@ -76,7 +76,7 @@ class PythonEnvConfig(object):
 
     def __init__(self):
         """init"""
-        self.python_exec = "Python3"
+        self.python_exec = "python3"
         self.scl_enable_exec = None
         """Enable python exec set name over scl"""
         self.module_add = None
@@ -109,7 +109,7 @@ class LibsEnvConfig(object):
 
 class ConfigFactory(object):
     @staticmethod
-    def get_pbs_config(preset=None, with_socket=False):
+    def get_pbs_config(preset=None, with_socket=True):
         """
         Converts dialog data into PbsConfig instance
         """
@@ -156,6 +156,20 @@ class ConfigFactory(object):
         """
         python_env = PythonEnvConfig()
         libs_env = LibsEnvConfig()
+        if preset[2]:
+            python_env.python_exec = preset[2]
+        if preset[3]:
+            python_env.scl_enable_exec = preset[3]
+        if preset[4]:
+            python_env.module_add = preset[4]
+        if preset[5]:
+            libs_env.mpi_scl_enable_exec = preset[5]
+        if preset[6]:
+            libs_env.mpi_module_add = preset[6]
+        if preset[7]:
+            libs_env.libs_mpicc = preset[7]
+        libs_env.install_job_libs=install_job_libs
+        libs_env.start_job_libs=start_job_libs
         return python_env, libs_env
 
     @staticmethod

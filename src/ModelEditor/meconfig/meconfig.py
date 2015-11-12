@@ -1,25 +1,22 @@
-"""Model dialog static parameters"""
+"""Model Editor static parameters
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 import os
 import copy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper
+from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer
 from ist import InfoTextGenerator
-from helpers.subyaml import StructureAnalyzer
 
-from .import_json import parse_con, fix_tags, rewrite_comments
-from .yaml import Loader
-from .yaml import Transformator, TransformationFileFormatError
-from .validation import Validator
-from .format import get_root_input_type_from_json
-from .autoconversion import autoconvert
-
-__author__ = ['Pavel Richter', 'Tomas Krizek']
-
-__resource_dir__ = os.path.join(os.getcwd(), 'resources')
-__format_dir__ = os.path.join(__resource_dir__, 'format')
-__transformation_dir__ = os.path.join(__resource_dir__, 'transformation')
+from data.import_json import parse_con, fix_tags, rewrite_comments
+from data.yaml import Loader
+from data.yaml import Transformator, TransformationFileFormatError
+from data.validation import Validator
+from data.format import get_root_input_type_from_json
+from data.autoconversion import autoconvert
 
 
 class _Config:
@@ -143,6 +140,17 @@ class MEConfig:
     """data validator"""
     root_input_type = None
     """input type of the whole tree, parsed from format"""
+    resource_dir = os.path.join(os.path.split(
+        os.path.dirname(os.path.realpath(__file__)))[0], 'resources')
+    """path to a folder containing resources"""
+    format_dir = os.path.join(resource_dir, 'format')
+    """path to a folder containing IST files"""
+    transformation_dir = os.path.join(resource_dir, 'transformation')
+    """path to a folder containing transformation files"""
+    stylesheet_dir = os.path.join(resource_dir, 'css')
+    """path to a folder containing Qt stylesheets"""
+    info_text_html_root_dir = os.path.join(resource_dir, 'ist_html')
+    """path to a root folder for InfoText"""
 
     def __init__(self):
         pass
@@ -165,8 +173,8 @@ class MEConfig:
         """read names of format files in format files directory"""
         from os import listdir
         from os.path import isfile, join
-        for file_name in sorted(listdir(__format_dir__)):
-            if (isfile(join(__format_dir__, file_name)) and
+        for file_name in sorted(listdir(cls.format_dir)):
+            if (isfile(join(cls.format_dir, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.format_files.append(file_name[:-5])
 
@@ -175,8 +183,8 @@ class MEConfig:
         """read names of transformation files in format files directory"""
         from os import listdir
         from os.path import isfile, join
-        for file_name in listdir(__transformation_dir__):
-            if (isfile(join(__transformation_dir__, file_name)) and
+        for file_name in listdir(cls.transformation_dir):
+            if (isfile(join(cls.transformation_dir, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.transformation_files.append(file_name[:-5])
 
@@ -184,7 +192,7 @@ class MEConfig:
     def get_curr_format_text(cls):
         """return current format file text"""
         from os.path import join
-        file_name = join(__format_dir__, cls.curr_format_file + ".json")
+        file_name = join(cls.format_dir, cls.curr_format_file + ".json")
         try:
             with open(file_name, 'r') as file_d:
                 return file_d.read()
@@ -200,7 +208,7 @@ class MEConfig:
     def get_transformation_text(cls, file):
         """return transformation file text"""
         from os.path import join
-        file_name = join(__transformation_dir__, file + ".json")
+        file_name = join(cls.transformation_dir, file + ".json")
         try:
             with open(file_name, 'r') as file_d:
                 return file_d.read()

@@ -68,6 +68,14 @@ if sys.platform == "win32":
                 logging.warning("Download file error: " + str(err))
                 return False
             return True
+            
+        def save_state(self, state):
+            """save state to variable"""
+            pass
+        
+        def load_state(self, state):
+            """load state from variable"""
+            pass
 else:
     import pxssh
     import pexpect
@@ -175,7 +183,7 @@ else:
             ready = False
             for i in range(0, len(lines)):
                 line = self.strip_pexpect_echo( lines[i].strip())
-                if not ready and lines[i][-1:] == "=": 
+                if not ready and tdata.Message.check_mess(line): 
                     #base64 text
                     if self.last_mess is not None and line == self.last_mess:
                         #echo
@@ -239,3 +247,11 @@ else:
                         return ""
                 txt = txt[len(pex_echo.group(1)):]
             return txt
+            
+        def save_state(self, state):
+            """save state to variable"""
+            pass
+        
+        def load_state(self, state):
+            """load state from variable"""
+            pass

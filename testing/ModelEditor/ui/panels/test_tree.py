@@ -9,6 +9,17 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtTest import QTest
 import mock_config as mockcfg
 
+
+def setup_module(module):
+    from PyQt5.Qt import QApplication
+    import sys
+    module.app = QApplication(sys.argv)
+
+
+def teardown_module(module):
+    module.app.quit()
+
+
 signal_is_send = None
 x=None
 

@@ -6,13 +6,13 @@ __author__ = 'Tomas Krizek'
 
 # pylint: disable=unused-argument
 
-from ..data_node import ScalarNode
+from ..data_node import DataNode
 import helpers.notifications.notification as ntf
 
 
 def check_scalar(node, input_type):
     """Checks scalar node value."""
-    if not isinstance(node, ScalarNode):
+    if node.implementation != DataNode.Implementation.scalar:
         raise ntf.Notification.from_name('ValidationTypeError', 'Scalar')
     checks = {
         'Integer': check_integer,

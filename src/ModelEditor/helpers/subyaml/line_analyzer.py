@@ -1,14 +1,26 @@
+"""Line Analyzer provides functions to analyze a single line of text.
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
+
 import re
 
 
-class LineAnalyzer:
-    """
-    Anayze partial yaml line
+_re_strip_eol = re.compile(r'[^\n]*')
+_re_begins_with_comment = re.compile(r'(\s*)#')
+_re_uncomment = re.compile(r'(\s*)# ?(.*)')
+_re_find_node_start = re.compile(r'\s*(-\s+)?(?!#)\S')
+_re_inline_comment = re.compile(r'\s+#')
 
-    Description: This quick party text analyzing contains line
-    specific function.
+
+class LineAnalyzer:
+    r"""Analyze a single YAML line.
+
+    Valid line can not contain an end of line symbol :samp:`\\n`. The methods may not work
+    as expected if the line contains one or more :samp:`\\n` symbols.
     """
-    
+
     @staticmethod
     def get_char_poss(line, tag):
         """Return possition of tag ended by space or new line"""
@@ -22,7 +34,7 @@ class LineAnalyzer:
     @classmethod
     def get_separator(cls,  line, char,  start, end):
         """Return possition of char between start and end or -1"""
-        line = cls.uncomment(line)
+        line = cls.strip_comment(line)
         index = line.find(char, start, end)
         return index
         
@@ -77,7 +89,7 @@ class LineAnalyzer:
 
         return if is, end_of_arrea (-1 end of line)
         """
-        line = cls.uncomment(line)
+        line = cls.strip_comment(line)
         area = re.match(r'\s*$', line)
         if area is not None:
             # empty line
@@ -101,13 +113,23 @@ class LineAnalyzer:
         return False, 0
 
     @staticmethod
-    def uncomment(line):
-        """return line witout comments"""
-        comment = re.search(r'^(.*\S)\s*#.*$', line)
-        if comment:
-            return comment.group(1)
+    def strip_comment(line):
+        """Remove comment from line.
+
+        :param str line: line of text
+        :return: line stripped of comment
+        :rtype: str
+        """
+        # TODO write tests and refactor "key: abc ## comment"
+        end = len(line)
+        begins_with_comment = _re_begins_with_comment.match(line)
+        if begins_with_comment:
+            end = len(begins_with_comment.group()) - 1
         else:
-            return line
+            inline_comment = _re_inline_comment.search(line)
+            if inline_comment:
+                end = inline_comment.span()[0]
+        return line[:end]
 
     @staticmethod
     def indent_changed(new_row, old_row):
@@ -141,3 +163,48 @@ class LineAnalyzer:
         if not value :
             return False
         return True
+
+    @staticmethod
+    def begins_with_comment(line):
+        """Check if line begins with a comment.
+
+        The line can contain any number of whitespace characters before the first
+        comment sign :samp:`#`.
+
+        :param str line: a line of text
+        :return: True if line begins with a comment, False otherwise
+        :rtype: bool
+        """
+        return _re_begins_with_comment.match(line) is not None
+
+    @staticmethod
+    def uncomment(line):
+        """Remove comment symbol at the start of the line and leave indentation level intact.
+
+        If the comment symbol :samp:`#` is immediately followed by a space, remove it as well.
+
+        :param str line: a line of text possibly starting with a comment symbol
+        :return: line without the leading comment symbol
+        :rtype: str
+        """
+        match = _re_uncomment.match(line)
+        if not match:
+            return line
+        else:
+            return match.group(1) + match.group(2)
+
+    @staticmethod
+    def get_node_start(line):
+        """Find position of a start of a node in line.
+
+        For arrays, :samp:`-` is ignored if there is at least one other (non-space) character
+        that follows.
+
+        :param str line: a line of text
+        :return: index of the position after the first character in node
+        :rtype: int or ``None``
+        """
+        match = _re_find_node_start.match(line)
+        if not match:
+            return None
+        return len(match.group())

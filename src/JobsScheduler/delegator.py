@@ -31,8 +31,6 @@ except Exception as error:
 
 comunicator = Communicator(com_conf, mj_id)
 
-logging.error("Name: " + __name__)
-
 if __name__ != "delegator":
     # no doc generation
     comunicator.run()

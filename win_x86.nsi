@@ -2,6 +2,11 @@
 # 
 #--------------------------------
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# TODO ModelEditorData.yaml - remove
+# (re)install - clear the installation folder first
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # Define directories.
 !define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"

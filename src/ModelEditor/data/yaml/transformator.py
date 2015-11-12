@@ -57,7 +57,7 @@ import json
 import re
 
 from .loader import Loader
-from ..data_node import CompositeNode
+from ..data_node import DataNode
 from helpers import NotificationHandler
 
 
@@ -157,17 +157,16 @@ class Transformator:
 
     def _find_all_ref(self, node, refs):
         """find all references"""
-        if isinstance(node, CompositeNode):
-            for child in node.children:
-                if child.anchor is not None and child.ref is not None:
-                    if child.anchor.value not in refs:
-                        refs[child.anchor.value] = {}
-                        refs[child.anchor.value]['anchor'] = child.ref
-                        refs[child.anchor.value]['ref'] = [child]
-                    else:
-                        refs[child.anchor.value]['ref'].append(child)
-                if isinstance(child, CompositeNode):
-                    self._find_all_ref(child, refs)
+        for child in node.children:
+            if child.anchor is not None and child.ref is not None:
+                if child.anchor.value not in refs:
+                    refs[child.anchor.value] = {}
+                    refs[child.anchor.value]['anchor'] = child.ref
+                    refs[child.anchor.value]['ref'] = [child]
+                else:
+                    refs[child.anchor.value]['ref'].append(child)
+            if not child.implementation == DataNode.Implementation.scalar:
+                self._find_all_ref(child, refs)
 
     def _move_key_forward(self, root, lines, action):
         """Move key forward"""
@@ -188,7 +187,7 @@ class Transformator:
         l1, c1, l2, c2 = self._get_node_pos(node)
         pl1, pc1, pl2, pc2 = parent_node.span.start.line-1, parent_node.span.start.column-1, \
             parent_node.span.end.line-1, parent_node.span.end.column-1
-        if not isinstance(parent_node, CompositeNode):
+        if parent_node.implementation != DataNode.Implementation.mapping:
             raise TransformationFileFormatError(
                 "Parent of path (" + action['parameters']['path'] + ") must be abstract record")
         if is_root:
@@ -494,7 +493,7 @@ class Transformator:
             i = node1.key.span.start.line-1
             lines[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", lines[i])
             return True
-        if not isinstance(node2, CompositeNode):
+        if node2.implementation != DataNode.Implementation.mapping:
             raise TransformationFileFormatError(
                 "Parent of destination path (" + action['parameters']['destination_path'] +
                 ") must be abstract record")

@@ -27,7 +27,7 @@ class JsonEditorDlg(QtWidgets.QDialog):
         self._cancel_button.clicked.connect(self._cancel)
 
         self._editor = QsciScintilla(self)
-        appearance.set_default_appearens(self._editor)
+        appearance.set_default_appearence(self._editor)
 
         # Set Yaml lexer
         self._lexer = QsciLexerJavaScript()

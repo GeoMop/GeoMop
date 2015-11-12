@@ -1,6 +1,12 @@
+"""Node analyzer.
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+"""
+
+from util import Position
+from data import DataNode
+
 from .line_analyzer import LineAnalyzer
-from ..locators import Position
-from data import NodeStructureType, CompositeNode, NodeOrigin
 
 
 class NodeAnalyzer:
@@ -18,26 +24,25 @@ class NodeAnalyzer:
         """analyzed node"""
         
     def get_node_structure_type(self):
-        """Get node structure type :class:`helpers.subyaml.node_analyzer.NodeStructureType`"""
-        if isinstance(self._node,  CompositeNode):
-            if not self._node.explicit_keys:
+        """Get node structure type
+        :py:class:`helpers.subyaml.node_analyzer.DataNode.StructureType`"""
+        if self._node.implementation == DataNode.Implementation.sequence:
+            json_start = self.get_start_inner_json_tag()
+            if json_start is not None:
+                return DataNode.StructureType.json_array
+            return DataNode.StructureType.array
+        elif self._node.implementation == DataNode.Implementation.mapping:
                 json_start = self.get_start_inner_json_tag()
                 if json_start is not None:
-                     return NodeStructureType.json_array
-                return NodeStructureType.array
-            else:
-                json_start = self.get_start_inner_json_tag()
-                if json_start is not None:
-                    return NodeStructureType.json_dict
-                return NodeStructureType.dict
-        return NodeStructureType.scalar
+                    return DataNode.StructureType.json_dict
+                return DataNode.StructureType.dict
+        return DataNode.StructureType.scalar
         
     def get_start_inner_json_tag(self):
         """Find start possition of inner json"""
         start_pos = self.get_node_key_end()
         end_pos = self._node.span.start
-        if isinstance(self._node,  CompositeNode) and \
-            len(self._node.children) > 0:
+        if len(self._node.children) > 0:
             end_pos = self._node.children[0].start
         if start_pos is not None and end_pos is not None and \
            start_pos.line <= end_pos.line:
@@ -60,8 +65,7 @@ class NodeAnalyzer:
         """Find start possition of inner json"""
         start_pos = self._node.span.start
         end_pos = self._node.span.end
-        if isinstance(self._node,  CompositeNode) and \
-            len(self._node.children) > 0:
+        if len(self._node.children) > 0:
             start_pos = self._node.children[len(self._node.children)-1].end
         if start_pos is not None and end_pos is not None and \
            start_pos.line <= end_pos.line:
@@ -144,7 +148,7 @@ class NodeAnalyzer:
             if node.parent is None:
                 return node
             prev_indent=LineAnalyzer.get_indent(self._lines[node.start.line-1])            
-            if prev_indent < indent and self._node.origin != NodeOrigin.error:
+            if prev_indent < indent and self._node.origin != DataNode.Origin.error:
                 if len(self._lines[node.start.line-1]) >= prev_indent+2 and \
                     self._lines[node.start.line-1][prev_indent:prev_indent+2] == "- " and \
                     prev_indent >= indent-2 and node.parent is not None and \

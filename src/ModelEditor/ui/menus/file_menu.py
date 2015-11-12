@@ -5,8 +5,9 @@ Module contains file menu widget.
 __author__ = 'Tomas Krizek'
 
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
+
 import helpers.keyboard_shortcuts as shortcuts
-from data.meconfig import MEConfig as cfg
+from meconfig import cfg
 from geomop_dialogs import GMAboutDialog
 
 

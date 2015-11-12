@@ -1,0 +1,30 @@
+Jobs Scheduler Source Documentation
+===================================
+
+.. toctree::
+   :caption: Jobs Scheduler Source
+   :maxdepth: 4
+
+   aut/JobsScheduler/communication
+   aut/JobsScheduler/data
+   aut/JobsScheduler/delegator
+   aut/JobsScheduler/helpers
+   aut/JobsScheduler/job
+   aut/JobsScheduler/job_scheduler
+   aut/JobsScheduler/mj_service
+   aut/JobsScheduler/test
+   aut/JobsScheduler/test_app
+   aut/JobsScheduler/test_task
+   aut/JobsScheduler/ui
+
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
+Indices and tables
+==================
+
+* `Index <genindexJS.html>`_
+* `Module Index <py-modindexJS.html>`_
+

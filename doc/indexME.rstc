@@ -1,0 +1,26 @@
+Model Editor Source Documentation
+=================================
+
+.. toctree::
+   :caption: Model Editor Source
+   :maxdepth: 4
+
+   aut/ModelEditor/data
+   aut/ModelEditor/helpers
+   aut/ModelEditor/importer
+   aut/ModelEditor/ist
+   aut/ModelEditor/meconfig
+   aut/ModelEditor/model_editor
+   aut/ModelEditor/ui
+   aut/ModelEditor/util
+
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <index.html#http://>
+
+Indices and tables
+==================
+
+* `Index <genindexME.html>`_
+* `Module Index <py-modindexME.html>`_

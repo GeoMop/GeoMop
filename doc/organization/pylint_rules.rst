@@ -1,5 +1,5 @@
-Pylint Exception (czech)
-========================
+Pylint Exceptions (czech)
+=========================
 
 **Design checker**
 

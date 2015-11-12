@@ -1,5 +1,5 @@
-from helpers.subyaml import *
-from data import PosType, KeyType
+from helpers import LineAnalyzer, ChangeAnalyzer
+from util import PosType, KeyType
 
 def test_json():
     test = ["key: [86, 95, 12] # json 1.r"]
@@ -27,8 +27,8 @@ def test_json():
     #inner possition   
     assert anal.get_pos_type() is PosType.in_inner
     # uncomment function
-    assert LineAnalyzer.uncomment(test[0]) == "key: [86, 95, 12]"
-    assert LineAnalyzer.uncomment("key: [86, 95, 12]     # json 1.r") == "key: [86, 95, 12]"
+    assert LineAnalyzer.strip_comment(test[0]) == "key: [86, 95, 12]"
+    assert LineAnalyzer.strip_comment("key: [86, 95, 12]     # json 1.r") == "key: [86, 95, 12]"
     # identation
     assert LineAnalyzer.indent_changed("test1","test2") is False
     assert LineAnalyzer.indent_changed("   test1","  test2") is True
@@ -136,3 +136,4 @@ def test_key_area():
     #anchor possition
     assert anal.get_pos_type() is PosType.in_key
     assert anal.get_key_pos_type() is KeyType.anch        
+

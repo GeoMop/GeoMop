@@ -347,15 +347,15 @@ class Installation:
     def prepare_popen_env_static(python_env, libs_env):
         """prepare envoronment for execution by popen"""
         if python_env.scl_enable_exec is not None:
-            subprocess.call(["scl", "enable", python_env.scl_enable_exec,"bash"])
+            subprocess.call(["scl", "enable", python_env.scl_enable_exec,"bash"], shell=True, timeout=10)
         if python_env.module_add is not None:
-            subprocess.call(["module", "add", python_env.module_add])
+            subprocess.call(["module", "add", python_env.module_add], shell=True, timeout=10)
         if libs_env.start_job_libs:
             if libs_env.mpi_scl_enable_exec is not None:
-                subprocess.call(["scl", "enable", libs_env.mpi_scl_enable_exec,"bash"])
+                subprocess.call(["scl", "enable", libs_env.mpi_scl_enable_exec,"bash"], shell=True, timeout=10)
             if libs_env.mpi_module_add is not None:
-                subprocess.call(["module", "add", libs_env.mpi_module_add])    
-        
+                subprocess.call(["module", "add", libs_env.mpi_module_add], shell=True, timeout=10) 
+
     @staticmethod
     def prepare_mpi_env_static(term, libs_env):
         """Prepare libs environment for installation"""
@@ -369,7 +369,21 @@ class Installation:
             term.expect(".*module add " + libs_env.mpi_module_add + "\r\n")
             if len(term.before)>0:
                 logging.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
-    
+
+    def get_prepare_pbs_env(self):
+        """Get array of commads for loading environment for pbs"""
+        res=[]
+        if self.python_env.scl_enable_exec is not None:
+            res.append("scl enable " + self.python_env.scl_enable_exec + " bash")
+        if self.python_env.module_add is not None:
+            res.append("module add" + self.python_env.module_add)
+        if self.libs_env.start_job_libs:
+            if self.libs_env.mpi_scl_enable_exec is not None:
+                res.append("scl enable" + self.libs_env.mpi_scl_enable_exec +" bash")
+            if self.libs_env.mpi_module_add is not None:
+                res.append("module add" + self.libs_env.mpi_module_add)  
+        return res        
+
     @classmethod
     def install_job_libs_static(cls, mj_name, python_env, libs_env):
         """Return dir for savings status"""
@@ -381,12 +395,12 @@ class Installation:
             
             term = pexpect.spawn('bash')
             cls.prepare_python_env_static(term, python_env)
-            cls.prepare_mpi_env_static()
+            cls.prepare_mpi_env_static(term, libs_env)
             term.sendline('cd twoparty/install')            
             term.expect('.*cd twoparty/install.*')
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
             log_file= os.path.join(log_file, "install_job_libs.log")
-            if libs_env.mpicc is None:
+            if libs_env.libs_mpicc is None:
                 command = "./install_mpi4.sh " + python_env.python_exec + " &>> " + log_file
             else:
                 command = "./install_mpi4.sh " + python_env.python_exec  + " " + libs_env.mpicc +  \

@@ -22,6 +22,7 @@ class Communicator():
     """
     Class with communication interface, that provide place for action.
     Communicator contains:
+
       - intput - communacion interface 
         (:class:`communication.communication.InputComm`) 
         for communacion with previous communicator
@@ -145,6 +146,7 @@ class Communicator():
             name += "_" + self.id
         self.status = CommunicatorStatus(
             Installation.get_staus_dir_static(mj_name), name) 
+        self.status.load()
 
     def _set_loger(self,  path, name, level):
         """set logger"""
@@ -168,6 +170,16 @@ class Communicator():
    
     def  standart_action_function_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.restore_connection:
+            if self.status.interupted:
+                self.restore()
+                #restore only one communicator per request
+                action = tdata.Action(tdata.ActionType.action_in_process)
+                return False, action.get_message()
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
             if isinstance(self.output, ExecOutputComm) and \
                 not isinstance(self.output, PbsOutputComm) and \
@@ -205,6 +217,16 @@ class Communicator():
         
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.interupt_connection:
+            if self.status.interupted:
+                action = tdata.Action(tdata.ActionType.ok)
+                return action.get_message()
+            if response is not None and \
+                response.action_type == tdata.ActionType.ok:
+                self.interupt()
+                #interupt only one communicator per request
+                action = tdata.Action(tdata.ActionType.action_in_process)
+                return action.get_message()
         if message.action_type == tdata.ActionType.stop:
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
@@ -244,7 +266,36 @@ class Communicator():
                     self._download_processed = tdata.ProcessType.ready
                     action = tdata.Action(tdata.ActionType.ok)
                     return action.get_message()
-        return None
+        return None    
+    
+    def restore(self):
+        """Restore connection chain to next communicator"""
+        self.status.load()
+        if self.input is not None:
+            self.input.load_state(self.status)
+        if self.output is not None:
+            self.output.load_state(self.status)
+        if self.output is not None:
+            if isinstance(self.output, SshOutputComm):
+                self.output.connect()
+                self.output.exec_(self.next_communicator, self.mj_name, self.id)
+            elif not self.output.connected:    
+                self._connect_socket(self.output)
+        self.status.interupted=False
+        self.status.save()
+        logging.info("Application " + self.communicator_name + " is restored")
+        
+    def interupt(self):
+        """Interupt connection chain to next communicator"""
+        self.status.interupted=True
+        if self.input is not None:
+            self.input.save_state(self.status)
+        if self.output is not None:
+            self.output.save_state(self.status)
+        self.status.save()
+        if isinstance(self.input, StdInputComm):
+            self.stop =True
+        logging.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
         """Release resorces"""
@@ -290,21 +341,29 @@ class Communicator():
     def _exec_(self):
         """run set python file"""
         self.output.exec_(self.next_communicator, self.mj_name, self.id)
-        if isinstance(self.output, ExecOutputComm):
+        self._connect_socket(self.output)
+        if self.output is not None:
+            self.output.save_state(self.status)
+        self.status.save()
+    
+    @staticmethod
+    def _connect_socket(output,  repeat=3):
+        """connect to output socket"""
+        if isinstance(output, ExecOutputComm):
             i=0
-            while i<3:
+            while i<repeat:
                 try:
-                    self.output.connect()            
+                    output.connect()            
                     break
                 except ConnectionRefusedError as err:
                     i += 1
                     time.sleep(1)
-                    if i == 3:
+                    if i == repeat:
                         logging.error("Connect error (" + str(err) + ')')
                 except err:
                     logging.error("Connect error (" + str(err) + ')')
                     break
-                    
+        
     def run(self):
         """
         Infinite loop that is interupt by sending stop action by input,

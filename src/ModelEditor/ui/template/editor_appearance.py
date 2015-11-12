@@ -15,7 +15,7 @@ class EditorAppearance:
         pass
 
     @classmethod
-    def set_default_appearens(cls, editor):
+    def set_default_appearence(cls, editor):
         """Set default applicatin editor appearents"""
         # Set the default font
 

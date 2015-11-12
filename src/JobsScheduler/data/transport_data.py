@@ -6,6 +6,8 @@ import struct
 import zlib
 import binascii
 import logging
+from data.states import MJState, TaskStatus
+
 
 class ActionType(Enum):
     """Action type"""
@@ -17,6 +19,8 @@ class ActionType(Enum):
     download_res = 5
     restore_connection = 6
     interupt_connection = 7
+    get_state = 8
+    state = 9
 
 class ProcessType(Enum):
     """Action type"""
@@ -28,14 +32,20 @@ class Message:
     """
     Communication message
     
-    Message is compose from:
-      - action type
-      - data (:class:`data.transport_data.Action` descendant object in json format)
-      - controll summation
-    Class provide method for pack and unpack type and data.pack,
-    check its len and summation. Data is pack by base64 to ascii
+    Message is composed of:
+
+        - action type
+        - data (:class:`data.transport_data.Action` descendant object in json format)
+        - control summation
+
+    Class provides methods for pack and unpack type and data.pack,
+    check its len and summation. Data is packed by base64 to ascii
     text format.    
     """
+    
+    end5 =  "-xXx-"
+    """control end of message"""
+    
     def __init__(self, asci = None):
         self.action_type = None
         """type of action"""
@@ -44,7 +54,7 @@ class Message:
         self.len = None
         """length of data"""
         self.sum = None
-        """control sum"""
+        """control sum"""        
         if asci is not None:
             self.unpack(asci)
     
@@ -67,33 +77,58 @@ class Message:
         """pack data for transport to base64 format"""
         logging.debug("json:"+self.json)
         bin = bytes(self.json, "utf-8")
-        bin = struct.pack('!i' , self.action_type.value) + bin
+        bin = struct.pack('!I' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
-        bin = struct.pack('!i' , sum) + bin
+        bin = struct.pack('!I' , sum) + bin
         length = len(bin)
-        bin = struct.pack('!i' , length) + bin
-        return str(binascii.b2a_base64(bin),"us-ascii" ).strip()
+        bin = struct.pack('!I' , length) + bin
+        #logging.debug("base64:"+str(binascii.b2a_base64(bin),"us-ascii" ).strip())
         
+        return str(binascii.b2a_base64(bin),"us-ascii" ).strip() + Message.end5
+
+    @classmethod
+    def check_mess(cls, asci):
+        """check message to valid end token and valid base 64 format"""
+        if len(asci) < len(cls.end5) :
+            return False
+        if asci[-len(cls.end5):] != cls.end5: 
+            return False
+        asci = asci[:-len(cls.end5)] 
+        try:
+            binascii.a2b_base64(asci)
+        except:
+            return False
+        return True
+    
     def unpack(self, asci):
         """upack transported data from base 64 format"""
+        if len(asci) < len(Message.end5) :
+            raise MessageError("Invalid message length")
+        if asci[-len(Message.end5):] != Message.end5: 
+            raise MessageError("Invalid end of token")
+        asci = asci[:-len(Message.end5)] 
         try:
             bin = binascii.a2b_base64(asci)
         except:
             raise MessageError("Invalid base64 data format")
         try:
-            self.len, self.sum, action_type = struct.unpack_from("!iii", bin)
+            self.len, self.sum, action_type = struct.unpack_from("!III", bin)
         except(struct.error) as err:
             raise MessageError("Unpact error: " + str(err))
-        if self.len != (len(bin)-struct.calcsize("!i")):
+        if self.len != (len(bin)-struct.calcsize("!I")):
             raise MessageError("Invalid data length")
         try:
             self.action_type = ActionType(action_type)
         except:
             raise MessageError("Invalid action type")
-        sum = zlib.crc32(bin[struct.calcsize("!ii"):])
+        sum = zlib.crc32(bin[struct.calcsize("!II"):])
         if sum != self.sum:
             raise MessageError("Invalid checksum")
-        self.json = bin[struct.calcsize("!iii"):].decode("utf-8")
+        self.json = bin[struct.calcsize("!III"):].decode("utf-8")
+        
+    def get_action(self):
+        action = Action(self.action_type, self.json)
+        return action
         
 class MessageError(Exception):
     """Error in nessage format"""
@@ -132,7 +167,11 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.error:
             self.data = ErrorData(json_data)
-      
+        elif type == ActionType.get_state:
+            self.data = EmptyData()
+        elif type == ActionType.state:
+            self.data = StateData(json_data)
+            
     def get_message(self):
         """return message from action"""
         msg = Message()
@@ -170,3 +209,21 @@ class ErrorData(ActionData):
             self.data["msg"] = None
         else:
             self.data = json.loads(json_data)
+
+class StateData(ActionData):
+    """Multijob status data. Data is set by 
+    (:class:`data.states.MJState`) """    
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is  not None:
+            self.data = json.loads(json_data) 
+
+    def set_data(self, mjstate):
+        """fill data by MJState class"""
+        self.data = mjstate.__dict__
+
+    def get_mjstate(self, mjname):
+        """return MJState class instance"""
+        state = MJState(mjname)
+        state.__dict__ = self.data
+        return state

@@ -1,10 +1,9 @@
-"""
-Tests for locators.
+"""Tests for locators.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-__author__ = 'Tomas Krizek'
-
-from helpers import Position
+from util import Position
 
 
 def test_position():

@@ -1,7 +1,16 @@
-"""Start script that inicialize main window """
+"""Start script that initializes the main window.
+
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 import os
+import sys
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.insert(1, __lib_dir__)
 
+# TODO: can this be replaced? (other way to import css)
 # IMPORTANT
 # Script changes the working directory so all files can be located.
 # This is especially vital for resources in css.
@@ -10,20 +19,18 @@ os.chdir(MODEL_EDITOR_PATH)
 
 import logging
 import traceback
-import sys
-__lib_dir__ = os.path.join(os.getcwd(), '..', 'common')
-sys.path.insert(1, __lib_dir__)
+import argparse
+import icon
 
-from data.meconfig import MEConfig as cfg
-from ui.dialogs.json_editor import JsonEditorDlg
-from ui import panels
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
-from helpers import Position
-from data import CursorType
-import icon
+
+from meconfig import cfg
+from ui import panels
+from ui.dialogs.json_editor import JsonEditorDlg
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
-import argparse
+from util import CursorType, Position
+
 
 class ModelEditor:
     """Model editor main class"""
@@ -117,10 +124,16 @@ class ModelEditor:
         else:
             self._reload_node(line, column)
 
-    def _item_selected(self, start_column, start_row, end_column, end_row):
-        """Click tree item action mark relative area in editor"""
+    def _item_selected(self, start_line, start_column, end_line, end_column):
+        """Handle when an item is selected from tree or error tab.
+
+        :param int start_line: line where the selection starts
+        :param int start_column: column where the selection starts
+        :param int end_line: line where the selection ends
+        :param int end_column: column where the selection ends
+        """
         self._editor.setFocus()
-        self._editor.mark_selected(start_column, start_row, end_column, end_row)
+        self._editor.mark_selected(start_line, start_column, end_line, end_column)
 
     def _error_margin_clicked(self, line):
         """Click error icon in margin"""
@@ -261,8 +274,8 @@ class ModelEditor:
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
-            import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file,
+            import meconfig.meconfig
+            dlg = JsonEditorDlg(meconfig.meconfig.__transformation_dir__, file,
                                 "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
 
@@ -279,8 +292,8 @@ class ModelEditor:
         """Open selected format file in Json Editor"""
         text = cfg.get_curr_format_text()
         if text is not None:
-            import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__format_dir__, cfg.curr_format_file,
+            import meconfig.meconfig
+            dlg = JsonEditorDlg(meconfig.meconfig.__format_dir__, cfg.curr_format_file,
                                 "Format", text, self.mainwindow)
             dlg.exec_()
 
