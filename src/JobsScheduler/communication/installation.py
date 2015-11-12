@@ -141,8 +141,8 @@ class Installation:
                 conn.expect('.*put -r ' + __conf_dir__ + "\r\n")
                 end=0
                 while end==0:
-                    #wait 2s after last message
-                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                    #wait 3s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
                     if end == 0 and len(conn.before)>0:
                         logging.debug(
                             "Sftp message(put -r " + __conf_dir__ + "): " +
@@ -160,8 +160,8 @@ class Installation:
                 conn.expect('sftp> put ' + __ins_files__[name] + "\r\n")
                 end=0
                 while end==0:
-                    #wait 2s after last message
-                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                    #wait 3s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
                     if end == 0 and len(conn.before)>0:
                         logging.debug("Sftp message(put " + __ins_files__[name]  + "): " + str(conn.before, 'utf-8').strip())
             for dir in self.ins_dirs:
@@ -170,8 +170,8 @@ class Installation:
                 conn.expect('.*put -r ' + dir + "\r\n")
                 end=0
                 while end==0:
-                    #wait 2s after last message
-                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
+                    #wait 5s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=5)
                     if end == 0 and len(conn.before)>0:
                         logging.debug("Sftp message(put -r " + dir + "): " + str(conn.before, 'utf-8').strip())
  

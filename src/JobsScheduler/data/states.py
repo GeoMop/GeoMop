@@ -78,8 +78,8 @@ class JobsState:
             with open(file, "r") as json_file:
                 data = json.load(json_file)
                 for job in data:
-                    obj = JobState()
+                    obj = JobState(job['name'])
                     obj.__dict__=job
                     self.jobs.append(obj)                
         except Exception as error:
-            logging.error("Save state error:" + str(error))
+            logging.error("Load state error:" + str(error))

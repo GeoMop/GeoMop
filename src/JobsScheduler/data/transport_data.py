@@ -221,9 +221,11 @@ class StateData(ActionData):
     def set_data(self, mjstate):
         """fill data by MJState class"""
         self.data = mjstate.__dict__
+        self.data['status'] = self.data['status'].value
 
     def get_mjstate(self, mjname):
         """return MJState class instance"""
-        state = MJState(mjname)
+        state = MJState(mjname)        
         state.__dict__ = self.data
+        state.status = TaskStatus(state.status)
         return state

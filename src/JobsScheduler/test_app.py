@@ -8,7 +8,6 @@ import data.communicator_conf as comconf
 from communication import Communicator
 import data.transport_data as tdata
 import communication.installation as inst
-from data.states import MJState, JobsState
 
 if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
@@ -36,6 +35,7 @@ comunicator.install()
 comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))
 time.sleep(30)
 
+from data.states import JobsState
 comunicator.send_long_action(tdata.Action(tdata.ActionType.download_res))
 comunicator.download()
 states = JobsState()
@@ -44,8 +44,8 @@ time.sleep(30)
 
 mess = comunicator.send_long_action(tdata.Action(tdata.ActionType.get_state))
 data = mess.get_action().data
-if isinstance(data, MJState):
-    state=data.get_mjstate(mj_name)
+if mess.action_type == tdata.ActionType.state:
+    mjstate=data.get_mjstate(mj_name)
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.interupt_connection))
 comunicator.interupt()

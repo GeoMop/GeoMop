@@ -134,7 +134,6 @@ class ChangeAnalyzer:
 
         next_line = False
         while i <= self._line:
-            # TODO: is while necessary? Why isn't 'i' incremented?
             line = LineAnalyzer.strip_comment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
             if key is not None:
@@ -149,6 +148,7 @@ class ChangeAnalyzer:
                 line = line[key.end(1):]
                 dist += key.end(1)
                 break
+            i += 1
 
         while i <= self._line:
             if next_line:
