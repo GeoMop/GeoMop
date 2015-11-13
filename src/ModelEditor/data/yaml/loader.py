@@ -160,7 +160,7 @@ class Loader:
         return node
 
     def _create_scalar_node(self):
-        """Creates a ScalarNode."""
+        """Creates a ScalarDataNode."""
         node = ScalarDataNode()
         tag = self._event.tag
         if tag is None or not tag.startswith('tag:yaml.org,2002:'):

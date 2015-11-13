@@ -845,7 +845,7 @@ class EditorPosition:
             # return origin values of end
             if self.end_line == self.line and self.node is not None:
                 if (self.node.key.span is not None and
-                        not isinstance(self.node, ScalarNode)):
+                        self.node.implementation != DataNode.Implementation.scalar):
                     self.end_index = self.node.key.span.end.column - 1
                 else:
                     self.end_index = self.node.span.end.column - 1
