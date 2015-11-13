@@ -5,148 +5,94 @@ JobScheduler data reloader
 @contact: jan.gabriel@tul.cz
 """
 
-import logging
-import os
 import threading
-import time
+from enum import IntEnum
+from queue import Queue
 
-import communication.installation as inst
 import data.transport_data as tdata
-
-from src.JobsScheduler.data.states import JobsState
-
-logger = logging.getLogger("UiTrace")
 
 
 class DataReloader(threading.Thread):
     def __init__(self):
-        super(DataReloader, self).__init__()
-        self._to_install = list()
-        self._communicators = list()
-        self.results = dict()
+        super().__init__()
+        self.req_queue = Queue(50)
+        self.res_queue = Queue(50)
+        self.coms = dict()
         self._is_running = threading.Event()
-        self.needs_reload = threading.Event()
-        self.main_key = None
 
     def run(self):
         self._is_running.set()
+        # main loop
         while self._is_running.is_set():
-            # install new coms
-            install_pool = CommunicatorPool()
-            for com in self._to_install:
-                comworker = CommunicatorWorker(com["key"],
-                                               com["communicator"],
-                                               tdata.ActionType.installation)
-                install_pool.coms.append(comworker)
-            install_pool.start_all()
-            results = install_pool.wait_for_results()
-            for idx, result in enumerate(results):
-                self._to_install[idx]["messages"].append(result)
-                self._communicators.append(self._to_install.pop(idx))
-
-            if self.needs_reload.is_set():
-                # download data
-                for idx, com in enumerate(self._communicators):
-                    mess = com["communicator"].send_long_action(
-                        tdata.Action(tdata.ActionType.download_res))
-                    com["communicator"].download()
-                    com["messages"].append(mess)
-                    time.sleep(2)
-                    mess = com["communicator"].send_long_action(tdata.Action(
-                        tdata.ActionType.get_state))
-                    data = mess.get_action().data
-                    if mess.action_type == tdata.ActionType.state:
-                        print("State action type valid")
-                        mjstate = data.get_mjstate(com["communicator"].mj_name)
-                        com["state"] = mjstate
-                    self._prepare_results(com)
-                    logger.debug("Downloading data from communicator with "
-                                 "message: %s", mess)
-                self.needs_reload.clear()
-            else:
-                time.sleep(1)
-
-        # stop communication on exit
-        logger.debug("Reloader is shutting Down.")
-        for idx, com in enumerate(self._communicators):
-            mess = com["communicator"].send_long_action(
-                tdata.Action(tdata.ActionType.stop))
-            com["communicator"].close()
-            com["messages"].append(mess)
+            while not self.req_queue.empty():
+                print("God Request")
+                req = self.req_queue.get()
+                worker = CommunicationWorker(
+                    req.key, self.coms[req.key], req.com_type, self.res_queue)
+                worker.start()
+        # exit procedures
+        print("Exiting")
+        for key in self.coms:
+            worker = CommunicationWorker(
+                key, self.coms[key], CommunicationType.stop, self.res_queue)
+            worker.start()
 
     def stop(self):
         self._is_running.clear()
 
-    def install_communicator(self, key, communicator):
-        com_entry = {
-            "key": key,
-            "communicator": communicator,
-            "messages": list()
-        }
-        self._to_install.append(com_entry)
-        self.needs_reload.set()
 
-    def _prepare_results(self, com):
-        res_path = inst.Installation.get_result_dir_static(
-            com["communicator"].mj_name)
-        conf_path = inst.Installation.get_config_dir_static(
-            com["communicator"].mj_name)
-        log_path = os.path.join(res_path, "log")
-        self.results[com["key"]] = dict()
-        self.results[com["key"]]["logs"] = log_path
-        self.results[com["key"]]["conf"] = conf_path
-        self.results[com["key"]]["messages"] = com["messages"]
-        states = JobsState()
-        states.load_file(res_path)
-        self.results[com["key"]]["jobs"] = states.jobs
-        self.results[com["key"]]["state"] = com["state"]
+class CommunicationType(IntEnum):
+        """Type of desired communication action"""
+        install = 0
+        results = 1
+        state = 2
+        interrupt = 2
+        stop = 3
 
 
-class CommunicatorWorker(threading.Thread):
-    def __init__(self, key, com, action_type, res=None):
+class ReqData(object):
+    def __init__(self, key, com_type):
+        self.key = key
+        self.com_type = com_type
+
+
+class ResData(object):
+    def __init__(self, key, com_type, res=None):
+        self.key = key
+        self.com_type = com_type
+        self.res = res
+
+
+class CommunicationWorker(threading.Thread):
+    def __init__(self, key, com, com_type, res_queue):
         self.key = key
         self.com = com
-        self.action_type = action_type
-        self.res = res
+        self.com_type = com_type
+        self.res_queue = res_queue
+        self.res = None
         super().__init__(name=com.mj_name)
 
     def run(self):
-        # Install
-        if self.action_type == tdata.ActionType.installation:
+        print("Communicating")
+        # install
+        if self.com_type == CommunicationType.install:
             self.com.install()
             self.res = self.com.send_long_action(tdata.Action(
                 tdata.ActionType.installation))
 
-        # Download
-        elif self.action_type == tdata.ActionType.download_res:
+        # download results
+        elif self.com_type == CommunicationType.results:
             self.res = self.com.send_long_action(tdata.Action(
                 tdata.ActionType.download_res))
             self.com.download()
 
-        # Stop
-        elif self.action_type == tdata.ActionType.stop:
+        # stop
+        elif self.com_type == CommunicationType.stop:
             self.res = self.com.send_long_action(tdata.Action(
                 tdata.ActionType.stop))
             self.com.close()
 
+        # insert into res queue
+        print("Got response")
+        self.res_queue.put(ResData(self.key, self.com_type, self.res))
 
-class CommunicatorPool(object):
-    def __init__(self):
-        super().__init__()
-        self.coms = list()
-
-    def start_all(self):
-        for com in self.coms:
-            com.start()
-
-    def start_one_by_one(self):
-        for com in self.coms:
-            com.start()
-            com.join()
-
-    def wait_for_results(self):
-        results = list()
-        for com in self.coms:
-            com.join()
-            results.append(com.res)
-        return results

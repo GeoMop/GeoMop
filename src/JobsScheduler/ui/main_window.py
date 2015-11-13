@@ -10,6 +10,7 @@ import time
 from PyQt5 import QtCore
 
 from communication import Communicator
+from data.data_reloader import ReqData, CommunicationType
 from data.states import TaskStatus
 from ui.actions.main_window_actions import *
 from ui.dialogs.env_presets import EnvPresets
@@ -39,11 +40,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data_reloader = data_reloader
         self.windows_refresher = WindowRefresher(parent=self,
                                                  data_reloader=data_reloader)
-        self.windows_refresher.results_changed.connect(
-            self.handle_results_changed)
-
-        self.ui.overviewWidget.currentItemChanged.connect(
-            self._handle_mj_selection_changed)
+        self.windows_refresher.mj_installed.connect(
+            self.handle_mj_installed)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -119,10 +117,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.windows_refresher.start(1)
 
-    def _handle_mj_selection_changed(self, current, previous):
-        # self.windows_refresher.main_key = current.text(0)
-        pass
-
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
         self.mj_dlg.show()
@@ -177,28 +171,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.multijobs_changed.emit(self.data.multijobs)
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
-        self.data_reloader.install_communicator(key, communicator)
+        self.data_reloader.coms[key] = communicator
+        self.data_reloader.req_queue.put(
+            ReqData(key, CommunicationType.install))
 
-    def handle_results_changed(self, results):
-        try:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            if results[key].get("state", None):
-                state = results[key]["state"]
-                print("UI state valid")
-                newstate = {
-                    "name": state.name,
-                    "insert_time": time.ctime(state.insert_time),
-                    "run_time": time.ctime(state.start_time),
-                    "run_interval": state.run_interval,
-                    "status": state.status.name
-                }
-                self.data.multijobs[key]["state"] = newstate
-                self.multijobs_changed.emit(self.data.multijobs)
-            self.ui.tabWidget.reload_view(results[key])
-        except KeyError as keyerr:
-            pass
-        except AttributeError as atrerr:
-            pass
+    def handle_mj_installed(self, key):
+        self.data.multijobs[key]["state"]["status"] = "installed"
+        self.multijobs_changed.emit(self.data.multijobs)
 
 
 class UiMainWindow(object):
