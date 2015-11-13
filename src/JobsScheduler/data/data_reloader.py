@@ -13,6 +13,8 @@ import time
 import communication.installation as inst
 import data.transport_data as tdata
 
+from src.JobsScheduler.data.states import JobsState
+
 logger = logging.getLogger("UiTrace")
 
 
@@ -49,6 +51,14 @@ class DataReloader(threading.Thread):
                         tdata.Action(tdata.ActionType.download_res))
                     com["communicator"].download()
                     com["messages"].append(mess)
+                    time.sleep(2)
+                    mess = com["communicator"].send_long_action(tdata.Action(
+                        tdata.ActionType.get_state))
+                    data = mess.get_action().data
+                    if mess.action_type == tdata.ActionType.state:
+                        print("State action type valid")
+                        mjstate = data.get_mjstate(com["communicator"].mj_name)
+                        com["state"] = mjstate
                     self._prepare_results(com)
                     logger.debug("Downloading data from communicator with "
                                  "message: %s", mess)
@@ -86,6 +96,10 @@ class DataReloader(threading.Thread):
         self.results[com["key"]]["logs"] = log_path
         self.results[com["key"]]["conf"] = conf_path
         self.results[com["key"]]["messages"] = com["messages"]
+        states = JobsState()
+        states.load_file(res_path)
+        self.results[com["key"]]["jobs"] = states.jobs
+        self.results[com["key"]]["state"] = com["state"]
 
 
 class CommunicatorWorker(threading.Thread):
