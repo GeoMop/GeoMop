@@ -2,6 +2,7 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
+from copy import copy
 
 
 class AutocompleteHelper:
@@ -29,12 +30,13 @@ class AutocompleteHelper:
         """Create a list of options based on the input type.
 
         Each option is identified by a string that should be displayed as QScintilla
-        autocomplete option.
+        autocomplete option. Set the autocomplete state to hidden.
 
         :param dict input_type: specification of the input_type
         :return: string of sorted options separated by a space (for QScintilla API)
         :rtype: str
         """
+        prev_options = copy(self._options)
         self._options.clear()
 
         if input_type['base_type'] == 'Record':  # input type Record
@@ -53,6 +55,11 @@ class AutocompleteHelper:
         # add anchors
         self._options.update({'*' + anchor: 'anchor' for anchor in self._anchors})
         self._prepare_options()
+
+        # if options changed, hide autocomplete
+        if sorted(prev_options) != sorted(self._options):
+            self.visible = False
+
         return self.possible_options
 
     def show_autocompletion(self, context=None):
@@ -93,6 +100,8 @@ class AutocompleteHelper:
     def get_autocompletion(self, option):
         """Get autocompletion string for the selected option.
 
+        Set the autocompletion state to hidden if an option is selected.
+
         :param str option: option string returned by QScintilla
         :return: an autocompletion string that replaces the word in current context
         :rtype: str
@@ -100,6 +109,7 @@ class AutocompleteHelper:
         """
         if option not in self.possible_options:
             raise ValueError("Selected autocompletion option is not available.")
+        self.visible = False
         type_ = self._options[option]
         if type_ == 'key':
             return option + ': '
@@ -123,6 +133,11 @@ class AutocompleteHelper:
             filter = ''
         options = [option for option in self._options.keys() if option.startswith(filter)]
         self.possible_options = sorted(options, key=self._sorting_key)
+
+        # if there is only one option and it matches the word exactly, do not show options
+        if len(self.possible_options) == 1 and self.possible_options[0] == filter:
+            self.possible_options.clear()
+
         self.scintilla_options = (' '.join(self.possible_options)).encode('utf-8')
 
     def _sorting_key(self, word):

@@ -12,8 +12,8 @@ _re_begins_with_comment = re.compile(r'(\s*)#')
 _re_uncomment = re.compile(r'(\s*)# ?(.*)')
 _re_find_node_start = re.compile(r'\s*(-\s+)?(?!#)\S')
 _re_inline_comment = re.compile(r'\s+#')
-_re_reversed_word = re.compile(r'[a-zA-Z0-9_]*[!*]?')
-_re_autocomplete_word = re.compile(r'[!*]?[a-zA-Z0-9_]+(?::(?:\s|$))?')
+_re_reversed_word = re.compile(r'(?!:)[a-zA-Z0-9_]*[!*]?')
+_re_autocomplete_word = re.compile(r'[!*]?[a-zA-Z0-9_]*(?::(?:\s|$))?')
 
 
 class LineAnalyzer:
@@ -222,12 +222,12 @@ class LineAnalyzer:
         """
         line = LineAnalyzer.strip_comment(line)
         if index > len(line):
-            return None
+            return None, None
         # find the start of the word
         reversed_line_start = line[index-1::-1]
         match_start = _re_reversed_word.match(reversed_line_start)
         if not match_start:
-            return None
+            return None, None
         word_cursor_index = len(match_start.group())
         start_index = index - word_cursor_index
         word = line[start_index:]
@@ -235,7 +235,7 @@ class LineAnalyzer:
         # find the end of the word
         match_end = _re_autocomplete_word.match(word)
         if not match_end:
-            return None
+            return None, None
         word = word[:len(match_end.group())]
 
         return word, word_cursor_index

@@ -17,7 +17,7 @@ import PyQt5.QtCore as QtCore
 
 from meconfig import cfg
 from data import DataNode
-from helpers import Notification
+from helpers import Notification, AutocompleteContext
 from helpers import LineAnalyzer, ChangeAnalyzer, NodeAnalyzer
 import helpers.keyboard_shortcuts as shortcuts
 from ui.menus import EditMenu
@@ -172,7 +172,7 @@ class YamlEditorWidget(QsciScintilla):
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self.elementChanged.connect(self._on_element_changed)
-        self.SCN_AUTOCSELECTION.connect(self._on_autocomplete_selected)
+        self.SCN_AUTOCSELECTION.connect(self._on_autocompletion_selected)
 
         self._valid_bounds = True
         """indicates whether calculated bounds are valid"""
@@ -222,9 +222,6 @@ class YamlEditorWidget(QsciScintilla):
 
         If no line is selected, indent the current line.
         """
-        # hide autocomplete
-        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
-
         from_line, from_col, to_line, to_col = self.getSelection()
         nothing_selected = from_line == -1 and to_line == -1
         if nothing_selected:
@@ -249,9 +246,6 @@ class YamlEditorWidget(QsciScintilla):
 
         If no line is selected, unindent the current line.
         """
-        # hide autocomplete
-        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
-
         from_line, from_col, to_line, to_col = self.getSelection()
         nothing_selected = from_line == -1 and to_line == -1
         if nothing_selected:
@@ -414,22 +408,21 @@ class YamlEditorWidget(QsciScintilla):
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
-    def show_autocomplete(self):
+    def show_autocompletion(self):
         """Show autocomplete options for the current cursor position."""
-        if len(cfg.autocomplete_helper.scintilla_options) == 0:
-            return
+        context = self._get_autocompletion_context()
+        if context.hint is not None:
+            options = cfg.autocomplete_helper.show_autocompletion(context)
+            if options is not None:
+                self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(context.hint), options)
 
-        # find out how many character are already written
+    def _get_autocompletion_context(self):
+        """Create current autocomplete context."""
         cur_line, cur_col = self.getCursorPosition()
-        prev_text = self.text(cur_line)[0:cur_col]
-        # TODO: move to LineAnalyzer
-        word = re.search(r'\S*$', prev_text).group()
-        # if word.startswith('*'):
-        #     self.autocomplete_helper.create_options()
-        self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
-                           cfg.autocomplete_helper.scintilla_options)
+        context_args = LineAnalyzer.get_autocomplete_context(self.text(cur_line), cur_col)
+        return AutocompleteContext(*context_args)
 
-    def _on_autocomplete_selected(self, selected, position):
+    def _on_autocompletion_selected(self, selected, position):
         """Handle autocomplete selection.
 
         :param str selected: text of the selected option
@@ -437,13 +430,15 @@ class YamlEditorWidget(QsciScintilla):
         """
         self.SendScintilla(self.SCI_AUTOCCANCEL)
         option = selected.decode('utf-8')
-        option_text = cfg.autocomplete_helper.select_option(option)
+        option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
         # TODO: move to LineAnalyzer
         word_to_replace = re.search(r'^[!*a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
         end_position = position + len(word_to_replace)
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
-        self.replaceSelectedText(option_text)
+        with self.reload_chunk:
+            self.replaceSelectedText(option_text)
+
 
 # ---------------------------- FIND / REPLACE --------------------------------
 
@@ -564,7 +559,7 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
-            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocomplete
+            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocompletion
         }
 
         for shortcut, action in actions.items():
@@ -606,6 +601,16 @@ class YamlEditorWidget(QsciScintilla):
                     self.elementChanged.emit(self._pos.cursor_type_position.value,
                                              old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, column + 1)
+        # autocomplete
+        context = self._get_autocompletion_context()
+        if context.hint is not None:
+            options = cfg.autocomplete_helper.refresh_autocompletion(context)
+            if options is not None:
+                self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(context.hint), options)
+            else:
+                self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
+        else:
+            self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
 
     def _text_changed(self):
         """Handle :py:attr:`textChanged` signal."""
@@ -621,7 +626,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def _on_element_changed(self):
         """Handle element changed event."""
-        self._pos.reload_autocomplete(self)
+        self._pos.reload_autocompletion(self)
 
 
 class ReloadChunk(ContextDecorator, QObject):
@@ -911,8 +916,8 @@ class EditorPosition:
             return False
         return True
 
-    def reload_autocomplete(self, editor):
-        """New line was added"""
+    def reload_autocompletion(self, editor):
+        """Create new autocomplete options when newline is added."""
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
@@ -973,7 +978,7 @@ class EditorPosition:
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
 
         if node is not None:
-            self.reload_autocomplete(editor)
+            self.reload_autocompletion(editor)
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

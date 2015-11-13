@@ -102,12 +102,18 @@ class TestAutocompleteHelper:
         context = AutocompleteContext('!X', 2)
         assert self.achelper.show_autocompletion(context) is None
         assert self.achelper.visible is False
+        # do not show if the option and word+cursor is identical
+        context = AutocompleteContext('!Unsteady_MH', 12)
+        assert self.achelper.show_autocompletion(context) is None
 
     def test_hide_autocompletion(self):
         self.achelper.create_options(TestAutocompleteHelper.input_type_abstract_record)
         context = AutocompleteContext('!Uns', 2)
         self.achelper.show_autocompletion(context)
         self.achelper.hide_autocompletion()
+        assert self.achelper.visible is False
+        self.achelper.visible = True
+        self.achelper.get_autocompletion('!Unsteady_MH')
         assert self.achelper.visible is False
 
     def test_refresh_autocompletion(self):
