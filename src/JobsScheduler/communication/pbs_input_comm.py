@@ -3,6 +3,8 @@ import sys
 import os
 import logging
 
+logger = logging.getLogger("Remote")
+
 __MAX_OPEN_PORTS__=200
 
 class PbsInputComm(SocketInputComm):
@@ -17,5 +19,5 @@ class PbsInputComm(SocketInputComm):
         host = os.environ.get('HOSTNAME')
         sys.stdout.write("HOST:--" + str(host) + "--\n")
         sys.stdout.flush()
-        logging.debug("Server host is:" + host) 
+        logger.debug("Server host is:" + host) 
         super(PbsInputComm, self).connect()       

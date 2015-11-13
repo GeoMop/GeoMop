@@ -6,6 +6,7 @@ import time
 
 from communication.communication import InputComm
 
+logger = logging.getLogger("Remote")
 __MAX_OPEN_PORTS__=200
 
 class SocketInputComm(InputComm):
@@ -40,7 +41,7 @@ class SocketInputComm(InputComm):
         s.listen(1)
         self.port += i
         self.conn, addr = s.accept()
-        logging.debug("Server is listened on port" + str(self.port) +" by " + str(addr)) 
+        logger.debug("Server is listened on port" + str(self.port) +" by " + str(addr)) 
   
     def send(self, msg):
         """send message to output stream"""
@@ -62,13 +63,13 @@ class SocketInputComm(InputComm):
             time.sleep(10)
             if not self.conn_interupted:
                 self.conn_interupted = True
-                logging.warning("Connection was probably closed.")
+                logger.warning("Connection was probably closed.")
             return None            
         txt =str(data, "us-ascii")
         try:
             mess = tdata.Message(txt)
         except(tdata.MessageError) as err:
-            logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
+            logger.warning("Error(" + str(err) + ") during parsing input message: " + txt)
             return None
         self.conn_interupted = False
         return mess

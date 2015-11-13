@@ -11,6 +11,8 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 from communication import Communicator
 
+logger = logging.getLogger("Remote")
+
 def read_err(err):
     try:
         import fdpexpect
@@ -22,7 +24,7 @@ def read_err(err):
     except pexpect.TIMEOUT:
         return None
     except err:
-        logging.warning("Task output error:" + str(err))
+        logger.warning("Task output error:" + str(err))
         return None
     return txt
 
@@ -42,28 +44,28 @@ try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
 except Exception as error:
-    logging.error(error)
+    logger.error(error)
     raise error
 # Use com_conf instead of ccom
 comunicator = Communicator(com_conf, mj_id)
-logging.info("Start")
+logger.info("Start")
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
 process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py", 
     Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
 return_code = process.poll()
 if return_code is not None:
-    logging.info("read_line")
+    logger.info("read_line")
     out =  read_err(process.stderr)
-    logging.error("Can not start test task (return code: " + str(return_code) + 
+    logger.error("Can not start test task (return code: " + str(return_code) + 
         ",stderr:" + out + ")")
 
 out = read_err(process.stderr)
 
 if out is not None and len(out)>0 and not out.isspace():
-    logging.warning("Message in stderr:" + out)
+    logger.warning("Message in stderr:" + out)
 
 if __name__ != "job":
     for i in range(0, 30):
         time.sleep(30)
-        logging.info( "time: " + str(i*30+30) + "s")
-logging.info( "End" )   
+        logger.info( "time: " + str(i*30+30) + "s")
+logger.info( "End" )   

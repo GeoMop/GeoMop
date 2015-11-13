@@ -4,6 +4,8 @@ from communication.communication import InputComm
 import fdpexpect
 import pexpect
 
+logger = logging.getLogger("Remote")
+
 class StdInputComm(InputComm):
     """Input communication over stdout and in"""
     
@@ -38,7 +40,7 @@ class StdInputComm(InputComm):
             mess = tdata.Message(str(txt, 'utf-8').strip())
         except(tdata.MessageError) as err:
             txt = str(txt, 'utf-8').strip()
-            logging.warning("Error(" + str(err) + ") during parsing input message: " + txt)
+            logger.warning("Error(" + str(err) + ") during parsing input message: " + txt)
         return mess
     
     def disconnect(self):

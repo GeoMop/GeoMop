@@ -2,6 +2,8 @@ import logging
 import json
 import os
 
+logger = logging.getLogger("Remote")
+
 class CommunicatorStatus():
     """Class for save status information between sessions"""
     def __init__(self, path, name):
@@ -30,12 +32,12 @@ class CommunicatorStatus():
             data = json.load(fd)
             fd.close()
         except Exception as err:
-            logging.warning("Status loading error: %s", err.str)
+            logger.warning("Status loading error: %s", err.str)
             fd.close()
             return False
             
         self.__dict__ = data
-        logging.debug("Status loaded from %s", file)        
+        logger.debug("Status loaded from %s", file)        
         return True
         
     def save(self):
@@ -51,8 +53,8 @@ class CommunicatorStatus():
             json.dump(data, fd, indent=4, sort_keys=True)
             fd.close()
         except Exception as err:
-            logging.warning("Status saveing error: %s", err.str)
+            logger.warning("Status saveing error: %s", err.str)
             fd.close()
             return False
-        logging.debug("Status saved to  %s", file)
+        logger.debug("Status saved to  %s", file)
         return True
