@@ -6,6 +6,7 @@ Main window module
 """
 import uuid
 
+import time
 from PyQt5 import QtCore
 
 from communication import Communicator
@@ -119,7 +120,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.windows_refresher.start(1)
 
     def _handle_mj_selection_changed(self, current, previous):
-        self.windows_refresher.main_key = current.text(0)
+        # self.windows_refresher.main_key = current.text(0)
+        pass
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -180,6 +182,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_results_changed(self, results):
         try:
             key = self.ui.overviewWidget.currentItem().text(0)
+            if results[key].get("state", None):
+                state = results[key]["state"]
+                print("UI state valid")
+                newstate = {
+                    "name": state.name,
+                    "insert_time": time.ctime(state.insert_time),
+                    "run_time": time.ctime(state.start_time),
+                    "run_interval": state.run_interval,
+                    "status": state.status.name
+                }
+                self.data.multijobs[key]["state"] = newstate
+                self.multijobs_changed.emit(self.data.multijobs)
             self.ui.tabWidget.reload_view(results[key])
         except KeyError as keyerr:
             pass

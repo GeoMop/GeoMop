@@ -4,15 +4,12 @@ Table of MultiJobs
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import copy
-import datetime
+import time
 import os
 
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
-
-from data.states import JobState, TaskStatus
 
 
 class Tabs(QtWidgets.QTabWidget):
@@ -26,19 +23,7 @@ class Tabs(QtWidgets.QTabWidget):
         self.ui.logsTab.reload_view(results["logs"])
         self.ui.confTab.reload_view(results["conf"])
         self.ui.messagesTab.reload_view(results["messages"])
-
-        job1 = JobState("job1")
-        job1.insert_time = datetime.datetime.now()
-        job1.qued_time = datetime.datetime.now()
-        job1.start_time = datetime.datetime.now()
-        job1.run_interval = 10
-        job1.status = TaskStatus.running
-        job2 = copy.deepcopy(job1)
-        job2.name = "job2"
-        jobs = list()
-        jobs.append(job1)
-        jobs.append(job2)
-        self.ui.jobsTab.reload_view(jobs)
+        self.ui.jobsTab.reload_view(results["jobs"])
 
 
 class UiTabs(object):
@@ -153,9 +138,9 @@ class JobsTab(QtWidgets.QWidget):
         for idx, job in enumerate(jobs):
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
             row.setText(0, job.name)
-            row.setText(1, str(job.insert_time))
-            row.setText(2, str(job.qued_time))
-            row.setText(3, str(job.start_time))
+            row.setText(1, time.ctime(job.insert_time))
+            row.setText(2, time.ctime(job.qued_time))
+            row.setText(3, time.ctime(job.start_time))
             row.setText(4, str(job.run_interval))
             row.setText(5, job.status.name)
         self.ui.treeWidget.resizeColumnToContents(0)
