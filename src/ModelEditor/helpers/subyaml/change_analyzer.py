@@ -12,6 +12,20 @@ class ChangeAnalyzer:
 
     Description: This quick party text analyzing is use only for decision
     if next more expensive text parsing is required.
+    
+    Main function of this class is get_pos_type. This function try recognise
+    part of structure below cursore. This class work with dirty data, that 
+    is not refreshed in data node structure.
+    One reason for get_pos_type calling is recognise if reload is effective. 
+    This is if return value is PosType.in_inner. But checking that cursor is 
+    above child node is may be needed.
+    Next reason for get_pos_type calling may be localization of data node
+    part, where changes has been made. If is changes make in more than
+    one structure part, reload is needed.
+    If more specific key type definition is needed, use  get_key_pos_type
+    function.
+    Last part of this class is function for recognisation of structure set in 
+    empty line, that is sufficion for structure reloading.    
     """
     def __init__(self, cursor_line, cursor_index, area):
         self._area = copy.deepcopy(area)
@@ -24,7 +38,15 @@ class ChangeAnalyzer:
             self._index = len(self._area[self._line]) - 1
 
     def get_pos_type(self):
-        """return line type enum value"""
+        """
+        return line type enum value
+            - PosType.in_key value for key, tag, reference or anchor, but only
+              if this belong to set data node. 
+            - PosType.comment for cursor above comment
+            - PosType.in_inner for child datanode structure
+            - PosType.in_value for skalar node value or structure between child
+              nodes
+        """
         is_key = False
         json_list = 0
         inner = False
@@ -33,6 +55,7 @@ class ChangeAnalyzer:
             # key
             index = LineAnalyzer.get_char_poss(self._area[i], ":")
             if not is_key:
+                # first key
                 if index > -1:
                     nline, nindex = self._get_key_area(i)
                     if self._line < nline or (self._line == nline and self._index < nindex):
@@ -127,12 +150,14 @@ class ChangeAnalyzer:
                 return i, 0
 
     def get_key_pos_type(self):
-        """return key type pos"""
+        """return key type for PosTyp in_key"""
         i = 0
         dist = 0
         type_ = KeyType.key
 
         next_line = False
+        # skip key (if cursore is above key, next block is skipped and
+        # default value is returned KeyType.key)
         while i <= self._line:
             line = LineAnalyzer.strip_comment(self._area[i])
             key = re.match(r'[^:]+:\s*$', line)
@@ -149,7 +174,7 @@ class ChangeAnalyzer:
                 dist += key.end(1)
                 break
             i += 1
-
+        # recignise tags, anchors or refferences
         while i <= self._line:
             if next_line:
                 i += 1
