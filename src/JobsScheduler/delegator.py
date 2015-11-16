@@ -37,5 +37,4 @@ if __name__ != "delegator":
     # no doc generation
     comunicator.run()
 comunicator.close()
-
-
+logger.info("Application " + comunicator.communicator_name + " is stopped")

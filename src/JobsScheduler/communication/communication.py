@@ -19,6 +19,11 @@ class OutputComm(metaclass=abc.ABCMeta):
         """Install libs for jobs"""
         self.installation.install_job_libs()
     
+    @abc.abstractmethod    
+    def isconnected(self):
+        """Connection is opened"""
+        pass
+    
     @abc.abstractmethod
     def connect(self):
         """connect session"""
@@ -73,6 +78,11 @@ class InputComm(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def connect(self):
         """connect session"""
+        pass
+        
+    @abc.abstractmethod    
+    def isconnected(self):
+        """Connection is opened"""
         pass
         
     @abc.abstractmethod

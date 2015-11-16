@@ -19,14 +19,22 @@ if sys.platform == "win32":
             """password name for ssh connection"""
             self.ssh = wssh.Wssh(self.host, self.name, self.password)
             """Ssh subprocessed instance"""
+            self._connected = False
+            """SSH is connected"""
             
         def connect(self):
             """connect session"""
             self.ssh.connect()
+            self._connected = True
+        
+        def isconnected(self):
+            """Connection is opened"""
+            return self._connected
             
         def disconnect(self):
             """disconnect session"""
             self.conn.close()
+            self.connected = False
             
         def install(self):
             """make installation"""
@@ -93,12 +101,19 @@ else:
             """password name for ssh connection"""
             self.ssh = None
             """Ssh subprocessed instance"""
+            self._connected = False
+            """SSH is connected"""
+            
+        def isconnected(self):
+            """Connection is opened"""
+            return self._connected
             
         def connect(self):
             """connect session"""
             self.ssh = pxssh.pxssh()
             self.ssh.login(self.host, self.name, self.password)
             self.last_mess = None
+            self._connected = True
 
         def disconnect(self):
             """disconnect session"""
@@ -124,6 +139,7 @@ else:
                         logger.warning("Ssh logout error: " +   str(err))
             except Exception as err:
                 logger.warning("Ssh error before logout: " +   str(err))
+            self._connected = False
             
         def install(self):
             """make installation"""

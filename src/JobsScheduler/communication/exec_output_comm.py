@@ -16,22 +16,27 @@ class ExecOutputComm(OutputComm):
         """port for server communacion"""
         self.conn = None
         """Socket connection"""
-        self.connected = False
-        """Is connection established"""
         self.initialized = False
         """Is ready to connect"""
+        self._connected = False
+        """socket is connected"""
 
     def connect(self):
         """connect session"""
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        logger.debug("Client try connect to " + self.host + ":" + str(self.port)) 
         self.conn.connect((self.host, self.port))
         logger.debug("Client is connected to " + self.host + ":" + str(self.port)) 
-        self.connected = True
+        self._connected = True
          
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
-        self.connected = False
+        self._connected = False
+        
+    def isconnected(self):
+        """Connection is opened"""
+        return self._connected
         
     def install(self):
         """make installation"""
