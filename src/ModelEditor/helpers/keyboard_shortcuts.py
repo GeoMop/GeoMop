@@ -1,9 +1,8 @@
 """
 Keyboard shortcuts helper.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-
-__author__ = 'Tomas Krizek'
-
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import Qt
@@ -12,6 +11,8 @@ from PyQt5.QtCore import Qt
 class KeyboardShortcut:
     """Represents a keyboard shortcut."""
 
+    # pylint: disable=too-few-public-methods
+
     __SCINTILLA_KEY_CODES = {
         'CTRL': QsciScintilla.SCMOD_CTRL << 16,
         'SHIFT': QsciScintilla.SCMOD_SHIFT << 16,
@@ -19,6 +20,8 @@ class KeyboardShortcut:
         'TAB': QsciScintilla.SCK_TAB,
         'DELETE': QsciScintilla.SCK_DELETE,
         'ENTER': QsciScintilla.SCK_RETURN,
+        'ESC': QsciScintilla.SCK_ESCAPE,
+        'BACKSPACE': QsciScintilla.SCK_BACK,
     }
 
     __QT_MODIFIERS = {
@@ -31,10 +34,16 @@ class KeyboardShortcut:
         'TAB': Qt.Key_Tab,
         'DELETE': Qt.Key_Delete,
         'ENTER': Qt.Key_Return,
+        'ESC': Qt.Key_Escape,
+        'BACKSPACE': Qt.Key_Backspace,
     }
 
     def __init__(self, shortcut):
-        """Initializes the class."""
+        """Initialize the class.
+
+        :param str shortcut: string representation of a shortcut, use :samp:`+` to
+           add modifiers
+        """
         self.shortcut = shortcut
         self.key_sequence = QKeySequence(shortcut)
         self.qt_key = self._get_qt_code()
@@ -42,7 +51,7 @@ class KeyboardShortcut:
         self.qt_modifiers = self._get_qt_modifiers()
 
     def _get_scintilla_code(self):
-        """Returns Scintilla key code."""
+        """Return Scintilla key code."""
         code = 0
         for key in self.shortcut.split(',')[0].upper().split('+'):
             if key in KeyboardShortcut.__SCINTILLA_KEY_CODES:
@@ -55,7 +64,7 @@ class KeyboardShortcut:
         return code
 
     def _get_qt_modifiers(self):
-        """Returns Qt KeyModifiers."""
+        """Return Qt KeyModifiers."""
         qt_modifiers = Qt.NoModifier
         for key in self.shortcut.split(',')[0].upper().split('+'):
             if key in KeyboardShortcut.__QT_MODIFIERS:
@@ -76,7 +85,12 @@ class KeyboardShortcut:
                     return None
 
     def matches_key_event(self, event):
-        """Returns True if the keyboard shortcut matches given `QKeyEvent`."""
+        """Return True if this keyboard shortcut matches the key event.
+
+        :param QKeyEvent event: event that occurred
+        :return: True if this shortcut matches the event
+        :rtype: bool
+        """
         return event.modifiers() == self.qt_modifiers and event.key() == self.qt_key
 
 
@@ -101,7 +115,8 @@ IMPORT_FILE = KeyboardShortcut('Ctrl+I')
 EXIT = KeyboardShortcut('Ctrl+Q')
 EDIT_FORMAT = KeyboardShortcut('Ctrl+E')
 SHOW_AUTOCOMPLETE = KeyboardShortcut('Ctrl+ ')
-
+ESCAPE = KeyboardShortcut('Esc')
+BACKSPACE = KeyboardShortcut('Backspace')
 
 """
 shortcuts to be disabled in default scintilla behavior
@@ -118,5 +133,4 @@ SCINTILLA_DISABLE = [
     DELETE,
     SELECT_ALL,
     SHOW_AUTOCOMPLETE,
-    # ENTER,
 ]

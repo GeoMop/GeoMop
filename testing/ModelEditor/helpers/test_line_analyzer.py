@@ -1,72 +1,114 @@
-"""
+"""Tests for LineAnalyzer.
+
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
+import pytest
+
 from helpers import LineAnalyzer
 
 
-def test_begins_with_comment():
+@pytest.mark.parametrize('line, expected', [
+    ('#', True),
+    ('# key: 1', True),
+    (' # key: 1', True),
+    ('#  # key: 1', True),
+    ('\t\t \t# key: 1', True),
+    ('', False),
+    ('  a # key: 1', False),
+    ('key: 1', False),
+])
+def test_begins_with_comment(line, expected):
     """Test :py:meth:`begins_with_comment`."""
-    begins_with_comment = LineAnalyzer.begins_with_comment
-    assert begins_with_comment('#') is True
-    assert begins_with_comment('# key: 1') is True
-    assert begins_with_comment(' # key: 1') is True
-    assert begins_with_comment('#  # key: 1') is True
-    assert begins_with_comment('\t\t \t# key: 1') is True
-    assert begins_with_comment('') is False
-    assert begins_with_comment('  a # key: 1') is False
-    assert begins_with_comment('key: 1') is False
+    assert LineAnalyzer.begins_with_comment(line) == expected
 
 
-def test_uncomment():
+@pytest.mark.parametrize('line, expected', [
+    ('#', ''),
+    ('# ', ''),
+    ('# key: 1', 'key: 1'),
+    ('#key: 1', 'key: 1'),
+    ('  # key: 1', '  key: 1'),
+    ('  #key: 1', '  key: 1'),
+    ('  # key: 1 # another comment', '  key: 1 # another comment'),
+    ('  key: 1', '  key: 1'),
+])
+def test_uncomment(line, expected):
     """Test if uncomment removes the leading comment symbol."""
-    uncomment = LineAnalyzer.uncomment
-    assert uncomment('#') == ''
-    assert uncomment('# ') == ''
-    assert uncomment('# key: 1') == 'key: 1'
-    assert uncomment('#key: 1') == 'key: 1'
-    assert uncomment('  # key: 1') == '  key: 1'
-    assert uncomment('  #key: 1') == '  key: 1'
-    assert uncomment('  # key: 1 # another comment') == '  key: 1 # another comment'
+    assert LineAnalyzer.uncomment(line) == expected
 
 
-def test_get_node_start():
-    get_node_start = LineAnalyzer.get_node_start
-    assert get_node_start('#') is None
-    assert get_node_start('  #') is None
-    assert get_node_start('a') == 1
-    assert get_node_start('a: 1 # comment') == 1
-    assert get_node_start('  a: 1') == 3
-    assert get_node_start('  -') == 3
-    assert get_node_start('  - ') == 3
-    assert get_node_start('  - a') == 5
+@pytest.mark.parametrize('line, expected', [
+    ('#', None),
+    ('  #', None),
+    ('a', 1),
+    ('a: 1 # comment', 1),
+    ('  a: 1', 3),
+    ('  -', 3),
+    ('  - ', 3),
+    ('  - a', 5),
+])
+def test_get_node_start(line, expected):
+    assert LineAnalyzer.get_node_start(line) == expected
 
 
-def test_strip_comment():
-    strip_comment = LineAnalyzer.strip_comment
-    assert strip_comment('key:') == 'key:'
-    assert strip_comment('#') == ''
-    assert strip_comment('# test') == ''
-    assert strip_comment('  ## abc') == '  '
-    assert strip_comment('abc # abc') == 'abc'
-    assert strip_comment('text example # abc') == 'text example'
-    assert strip_comment('abc #abc') == 'abc'
-    assert strip_comment('abc#abc #test') == 'abc#abc'
-    assert strip_comment('key: 3 #test') == 'key: 3'
+@pytest.mark.parametrize('line, expected', [
+    ('key:', 'key:'),
+    ('#', ''),
+    ('# test', ''),
+    ('  ## abc', '  '),
+    ('abc # abc', 'abc'),
+    ('text example # abc', 'text example'),
+    ('abc #abc', 'abc'),
+    ('abc#abc #test', 'abc#abc'),
+    ('key: 3 #test', 'key: 3'),
+    ('key: abc ## comment', 'key: abc'),
+])
+def test_strip_comment(line, expected):
+    assert LineAnalyzer.strip_comment(line) == expected
 
 
-def test_get_autocomplete_context():
-    get_ac_context = LineAnalyzer.get_autocomplete_context
-    assert get_ac_context('word', 2) == ('word', 2)
-    assert get_ac_context('key:   4', 3) == ('key: ', 3)
-    assert get_ac_context('  key:   value', 5) == ('key: ', 3)
-    assert get_ac_context('  key:   value', 2) == ('key: ', 0)
-    assert get_ac_context('  key:   value', 10) == ('value', 1)
-    assert get_ac_context('  key:   value', 6) == (None, None)
-    assert get_ac_context('  key: *anchor', 8) == ('*anchor', 1)
-    assert get_ac_context('  key: *anchor', 9) == ('*anchor', 2)
-    assert get_ac_context('  key: !tag', 11) == ('!tag', 4)
-    assert get_ac_context('  key: !tag', 8) == ('!tag', 1)
-    assert get_ac_context('', 3) == (None, None)
-    assert get_ac_context('# key: 3', 3) == (None, None)
-    assert get_ac_context('  key: 3 # comment', 3) == ('key: ', 1)
+@pytest.mark.parametrize('line, index, expected', [
+    ('word', 2, ('word', 2)),
+    ('key:   4', 3, ('key: ', 3)),
+    ('  key:   value', 5, ('key: ', 3)),
+    ('  key:   value', 2, ('key: ', 0)),
+    ('  key:   value', 10, ('value', 1)),
+    ('  key:   value', 6, (None, None)),
+    ('  key: *anchor', 8, ('*anchor', 1)),
+    ('  key: *anchor', 9, ('*anchor', 2)),
+    ('  key: !tag', 11, ('!tag', 4)),
+    ('  key: !tag', 8, ('!tag', 1)),
+    ('', 3, (None, None)),
+    ('# key: 3', 3, (None, None)),
+    ('  key: 3 # comment', 3, ('key: ', 1)),
+])
+def test_get_autocomplete_context(line, index, expected):
+    assert LineAnalyzer.get_autocomplete_context(line, index) == expected
 
+
+@pytest.mark.parametrize('line, expected', [
+    ('', True),
+    ('  ', True),
+    ('\t', True),
+    ('\t \t', True),
+    ('a ', False),
+    (' a', False),
+])
+def test_is_empty(line, expected):
+    assert LineAnalyzer.is_empty(line) == expected
+
+
+@pytest.mark.parametrize('line, expected', [
+    ('', 0),
+    (' ', 1),
+    ('  ', 2),
+    ('\t', 2),
+    ('  \t', 4),
+    ('a', 0),
+    ('  a', 2),
+    ('  -', 2),
+    ('  - a', 2),
+    ('\n', 0),
+])
+def test_get_indent(line, expected):
+    assert LineAnalyzer.get_indent(line) == expected

@@ -9,6 +9,7 @@ Customized QScintilla editor widget.
 import icon
 import re
 from contextlib import ContextDecorator
+import math
 
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
 from PyQt5.QtGui import QColor
@@ -137,6 +138,7 @@ class YamlEditorWidget(QsciScintilla):
 
         # Autocomplete
         self.SendScintilla(QsciScintilla.SCI_AUTOCSETORDER, QsciScintilla.SC_ORDER_CUSTOM)
+        cfg.autocomplete_helper.set_editor(self)
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
         for shortcut in shortcuts.SCINTILLA_DISABLE:
@@ -408,15 +410,8 @@ class YamlEditorWidget(QsciScintilla):
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
-    def show_autocompletion(self):
-        """Show autocomplete options for the current cursor position."""
-        context = self._get_autocompletion_context()
-        if context.hint is not None:
-            options = cfg.autocomplete_helper.show_autocompletion(context)
-            if options is not None:
-                self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(context.hint), options)
-
-    def _get_autocompletion_context(self):
+    @property
+    def autocompletion_context(self):
         """Create current autocomplete context."""
         cur_line, cur_col = self.getCursorPosition()
         context_args = LineAnalyzer.get_autocomplete_context(self.text(cur_line), cur_col)
@@ -428,7 +423,7 @@ class YamlEditorWidget(QsciScintilla):
         :param str selected: text of the selected option
         :param int position: index of the beginning of the autocompleted word in the text
         """
-        self.SendScintilla(self.SCI_AUTOCCANCEL)
+        cfg.autocomplete_helper.hide_autocompletion()
         option = selected.decode('utf-8')
         option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
@@ -559,13 +554,13 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.COMMENT: self.comment,
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
-            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocompletion
+            shortcuts.SHOW_AUTOCOMPLETE: cfg.autocomplete_helper.show_autocompletion,
+            shortcuts.BACKSPACE: lambda: self._handle_keypress_backspace(event)
         }
 
         for shortcut, action in actions.items():
             if shortcut.matches_key_event(event):
-                action()
-                return
+                return action()
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
 
@@ -574,6 +569,38 @@ class YamlEditorWidget(QsciScintilla):
         context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
+
+    def _handle_keypress_esc(self, event):
+        """Handle keyPress event for :kbd:`Esc`."""
+        if cfg.autocomplete_helper.visible:
+            return cfg.autocomplete_helper.hide_autocompletion()
+        else:
+            return super(YamlEditorWidget, self).keyPressEvent(event)
+
+    def _handle_keypress_backspace(self, event):
+        """Handle keyPress event for :kdb:`Backspace`."""
+        # select characters to delete if there is no selection
+        if not self.hasSelectedText():
+            line, column = self.getCursorPosition()
+            line_text = self.text(line)
+            cur_line_text = line_text[:column]
+
+            # unindent to previous level if there are only whitespaces in front of cursor
+            if len(cur_line_text) > 0 and LineAnalyzer.is_empty(cur_line_text):
+                    indent_char_count = LineAnalyzer.get_indent(line_text)
+                    indent_level = math.ceil(indent_char_count / self.tabWidth()) - 1
+                    removed_char_count = indent_char_count - indent_level * self.tabWidth()
+                    self.set_selection_from_cursor(-removed_char_count)
+
+            else:  # delete a single character
+                if column > 0:  # delete from this line
+                    self.setSelection(line, column, line, column - 1)
+                elif line > 0:  # delete from previous line
+                    prev_line = line - 1
+                    prev_column = len(self.text(prev_line))
+                    self.setSelection(prev_line, prev_column - 1, line, column)
+        self.removeSelectedText()
+        cfg.autocomplete_helper.refresh_autocompletion()
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 
@@ -601,16 +628,7 @@ class YamlEditorWidget(QsciScintilla):
                     self.elementChanged.emit(self._pos.cursor_type_position.value,
                                              old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, column + 1)
-        # autocomplete
-        context = self._get_autocompletion_context()
-        if context.hint is not None:
-            options = cfg.autocomplete_helper.refresh_autocompletion(context)
-            if options is not None:
-                self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(context.hint), options)
-            else:
-                self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
-        else:
-            self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
+        cfg.autocomplete_helper.refresh_autocompletion()
 
     def _text_changed(self):
         """Handle :py:attr:`textChanged` signal."""
@@ -778,6 +796,8 @@ class EditorPosition:
         Update position and return true if isn't cursor above node
         or is in inner structure
         """
+        if self.line != line:
+            self.handle_line_changed()
         self.line = line
         self.index = index
         self._save_lines(editor)
@@ -979,6 +999,10 @@ class EditorPosition:
 
         if node is not None:
             self.reload_autocompletion(editor)
+
+    def handle_line_changed(self):
+        """Handle when cursor changes line."""
+        cfg.autocomplete_helper.hide_autocompletion()
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""
