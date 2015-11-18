@@ -11,6 +11,8 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
+from data.states import TaskStatus
+
 
 class Tabs(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
@@ -22,7 +24,7 @@ class Tabs(QtWidgets.QTabWidget):
     def reload_view(self, results):
         self.ui.logsTab.reload_view(results["logs"])
         self.ui.confTab.reload_view(results["conf"])
-        self.ui.messagesTab.reload_view(results["messages"])
+        # self.ui.messagesTab.reload_view(results["messages"])
         self.ui.jobsTab.reload_view(results["jobs"])
 
 
@@ -142,7 +144,7 @@ class JobsTab(QtWidgets.QWidget):
             row.setText(2, time.ctime(job.qued_time))
             row.setText(3, time.ctime(job.start_time))
             row.setText(4, str(job.run_interval))
-            row.setText(5, job.status.name)
+            row.setText(5, TaskStatus(job.status).name)
         self.ui.treeWidget.resizeColumnToContents(0)
 
 
