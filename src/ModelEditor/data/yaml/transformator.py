@@ -11,6 +11,8 @@ Actions:
     - delete-key - Delete key on set path. If key contains anchor or refference,
       transporter try resolve reference. If path not exist action si skipped.
     - rename-type - Change tag on set path from old_name to new_name.
+    - change-value - Change value on set path from old_value to new_value.
+      If node in specified path is not scallar type nide, exception is raise.
 
 Description:
     Transformator check se json transformation file. If this file is in bad format,
@@ -78,9 +80,9 @@ class Transformator:
         for action in self._transformation['actions']:
             self._check_parameter("action", action, action['action'], i)
             if not action['action'] in \
-                    ["delete-key", "move-key", "rename-type", "move-key-forward"]:
+                    ["delete-key", "move-key", "rename-type", "move-key-forward", "change-value"]:
                 raise TransformationFileFormatError(
-                    " Action '" + action.action + "' is nod specified")
+                    " Action '" + action['action'] + "' is not specified")
             self._check_parameter("parameters", action, action['action'], i)
             if action['action'] == "delete-key":
                 self._check_parameter("path", action['parameters'], action['action'], i)
@@ -93,6 +95,10 @@ class Transformator:
                 self._check_parameter("path", action['parameters'], action['action'], i)
                 self._check_parameter("new_name", action['parameters'], action['action'], i)
                 self._check_parameter("old_name", action['parameters'], action['action'], i)
+            elif action['action'] == "change-value":
+                self._check_parameter("path", action['parameters'], action['action'], i)
+                self._check_parameter("new_value", action['parameters'], action['action'], i)
+                self._check_parameter("old_value", action['parameters'], action['action'], i)
             i += 1
 
     def _check_parameter(self, name, dict_, act_type, line):
@@ -151,6 +157,8 @@ class Transformator:
                 changes = self._rename_type(root, lines, action)
             elif action['action'] == "move-key-forward":
                 changes = self._move_key_forward(root, lines, action)
+            elif action['action'] == "change-value":
+                changes = self._change_value(root, lines, action)
             if changes:
                 yaml = "\n".join(lines)
         return yaml
@@ -543,6 +551,22 @@ class Transformator:
             return False
         old = '!' + action['parameters']['old_name'] + ' '
         new = '!' + action['parameters']['new_name'] + ' '
+        l1, c1, l2, c2 = self._get_node_pos(node)
+        for i in range(l1, l2+1):
+            lines[i] = re.sub(old, new, lines[i])
+        return False  # reload is not necessary
+        
+    def _change_value(self, root, lines, action):
+        """Rename type transformation"""
+        try:
+            node = root.get_node_at_path(action['parameters']['path'])
+        except:
+            return False
+#        if node
+#            raise TransformationFileFormatError(
+#                    "Specified path (" + action['parameters']['path'] + ") is not scalar type node." )
+        old = '!' + action['parameters']['old_value'] + ' '
+        new = '!' + action['parameters']['new_value'] + ' '
         l1, c1, l2, c2 = self._get_node_pos(node)
         for i in range(l1, l2+1):
             lines[i] = re.sub(old, new, lines[i])
