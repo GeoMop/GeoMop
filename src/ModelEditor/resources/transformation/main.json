@@ -122,10 +122,10 @@
        }
     },
     {
-      "action" : "merge-move-arrays",
+      "action" : "merge-arrays",
       "parameters": {
-        "source_path1":"/problem/mesh/sets_new",
-        "source_path2":"/problem/mesh/regions_elementary",
+        "source_path":"/problem/mesh/sets_new",
+        "addition_path":"/problem/mesh/regions_elementary",
         "destination_path":"/problem/mesh/regions"        
       }
     },
@@ -149,14 +149,6 @@
         "source_path":"**/input_fields/*/r_set",
         "destination_path":"$1/input_fields/$2/region"
       }
-    },
-    {
-      "action": "rename-type",
-      "parameters":{
-        "path":"",
-        "old_name":"",
-        "new_name":""
-      }
-    }             
+    }           
   ]             
 }

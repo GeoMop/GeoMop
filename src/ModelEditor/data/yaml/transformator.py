@@ -13,6 +13,8 @@ Actions:
     - rename-type - Change tag on set path from old_name to new_name.
     - change-value - Change value on set path from old_value to new_value.
       If node in specified path is not scallar type nide, exception is raise.
+    - merge-arrays - Add array in addition_path after array in source path. If
+      destination_path is defined, move array to this path.
 
 Description:
     Transformator check se json transformation file. If this file is in bad format,
@@ -80,7 +82,7 @@ class Transformator:
         for action in self._transformation['actions']:
             self._check_parameter("action", action, action['action'], i)
             if not action['action'] in \
-                    ["delete-key", "move-key", "rename-type", "move-key-forward", "change-value"]:
+                    ["delete-key", "move-key", "rename-type", "move-key-forward", "change-value", "merge-arrays"]:
                 raise TransformationFileFormatError(
                     " Action '" + action['action'] + "' is not specified")
             self._check_parameter("parameters", action, action['action'], i)
@@ -99,6 +101,9 @@ class Transformator:
                 self._check_parameter("path", action['parameters'], action['action'], i)
                 self._check_parameter("new_value", action['parameters'], action['action'], i)
                 self._check_parameter("old_value", action['parameters'], action['action'], i)
+            elif action['action'] == "merge-arrays":
+                self._check_parameter("source_path", action['parameters'], action['action'], i)
+                self._check_parameter("addition_path", action['parameters'], action['action'], i)
             i += 1
 
     def _check_parameter(self, name, dict_, act_type, line):
@@ -159,6 +164,14 @@ class Transformator:
                 changes = self._move_key_forward(root, lines, action)
             elif action['action'] == "change-value":
                 changes = self._change_value(root, lines, action)
+            elif action['action'] == "change-value":
+                changes = self._add_array(root, lines, action)
+                if changes and 'destination_path' in action['parameters']:                    
+                    yaml = "\n".join(lines)
+                    notification_handler.clear()
+                    root = loader.load(yaml)
+                    lines = yaml.splitlines(False)
+                    changes = self._move_key(root, lines, action)
             if changes:
                 yaml = "\n".join(lines)
         return yaml
@@ -541,6 +554,54 @@ class Transformator:
                 ") and source block (" + action['parameters']['destination_path'] +
                 " is overlapped")
         return True
+        
+    def _add_array(self, root, lines, action):
+        """Move key transformation"""
+        try:
+            parent2 = root.get_node_at_path(action['parameters']['addition_path'])
+        except:
+            return False
+        if parent2.implementation == DataNode.Implementation.sequence:
+            raise TransformationFileFormatError(
+                    "Specified addition path (" + action['parameters']['path'] + \
+                    ") is not array type node." )
+        try:
+            parent1 = root.get_node_at_path(action['parameters']['source_path'])
+        except:
+            return False
+        if parent1.implementation == DataNode.Implementation.sequence:
+            raise TransformationFileFormatError(
+                    "Specified source path (" + action['parameters']['path'] + \
+                    ") is not array type node." )        
+        if parent2 == parent1:
+            raise TransformationFileFormatError(
+                "Source and addition paths must be different (" + 
+                action['parameters']['source_path'] + ")")
+        sl1, sc1, sl2, sc2 = self._get_value_pos(parent1)
+        sl2, sc2 = self._fix_end(self, lines, sl1, sc1, sl2, sc2 )
+        al1, ac1, al2, ac2 = self._get_value_pos(parent2)
+        al2, ac2 = self._fix_end(self, lines, al1, ac1, al2, ac2 )
+        if (al1>=sl1 and sl2>=al2) or (sl1>=al1 and al2>=sl2):
+            raise TransformationFileFormatError(
+                "Source and addition nodes can't contains each other (" + 
+                action['parameters']['source_path'] + ")")
+        
+        intendation1 = re.search(r'^(\s*)(\S.*)$', lines[sl1])
+        sl1, sc1, sl2, sc2 = self._add_comments(lines, al1, ac1, al2, ac2)
+        add = self ._copy_value(lines, al1, ac1, al2, ac2, intendation1)
+        add = self._fix_placing(add, self._get_type_place(lines, root, parent2))
+
+        if al2 < sl1 or (al2 == sl1 and al2 < sc1):
+            # source after addition, first delete
+            action['parameters']['path'] = action['parameters']['source_path']
+            self._delete_key(root, lines, action)
+        self._add_comma(lines, sl2, sc2 )
+        for i in range(len(add)-1, -1, -1):
+            lines.insert(sl2+1, add[i])
+        if not(al2 < sl1 or (al2 == sl1 and al2 < sc1)):
+            action['parameters']['path'] = action['parameters']['source_path']
+            self._delete_key(root, lines, action)
+        return True
 
     def _rename_type(self, root, lines, action):
         """Rename type transformation"""
@@ -548,12 +609,51 @@ class Transformator:
             node = root.get_node_at_path(action['parameters']['path'])
         except:
             return False
-        old = '!' + action['parameters']['old_name'] + ' '
-        new = '!' + action['parameters']['new_name'] + ' '
+        old = '!' + action['parameters']['old_name'] 
+        new = '!' + action['parameters']['new_name']
         l1, c1, l2, c2 = self._get_node_pos(node)
+        return self._replace(lines, new,  old,  l1, c1, l2, c2 )
+
+    def _fix_end(self, lines, l1, c1, l2, c2 ):
+        """If end of node is empty  on next line, end is move to end of preceding line"""
+        if c2==0 or lines[l2][:c2].isspace():
+            if l1 < l2:
+                return l2-1, len(lines[l2-1])
+        return l2, c2
+        
+    def _add_comma(self, lines, l2, c2 ):
+        """add comma to the end of array"""
+        sep = re.search(r'^(\s*)-(\s+)$', lines[l2])
+        if sep is not None:
+            return
+        if c2 < len(lines[l2]) and not lines[l2][c2:].isspace():
+           add =  lines[l2][c2:]
+           lines[l2] = lines[l2][:c2]
+           lines.insert(l2+1, add)
+        lines[l2] += ','   
+
+    def _replace(self, lines, new,  old,  l1, c1, l2, c2 ):
+        """replace first occurence of defined value, and return if is len updated"""        
         for i in range(l1, l2+1):
-            lines[i] = re.sub(old, new, lines[i])
-        return False  # reload is not necessary
+            if i == l1:
+                prefix =  lines[i][:c1]
+                line =  lines[i][c1:]
+            else:
+                prefix =  ""                
+                line =  lines[i]
+            old_str = re.search(re.escape(old), line)
+            if old_str is not None:
+                if i == l2:
+                    if (old_str.end() + len(prefix)):
+                        return False
+                if old_str.end() == len(line):
+                    lines[i] = prefix + line[:old_str.start()] + new
+                else:
+                    lines[i] = prefix + line[:old_str.start()] + new + line[old_str.end():]
+                if i == l2:
+                    return len(new) != len(old)
+                return False          
+        return False
         
     def _change_value(self, root, lines, action):
         """Rename type transformation"""
@@ -561,20 +661,24 @@ class Transformator:
             node = root.get_node_at_path(action['parameters']['path'])
         except:
             return False
-#        if node
-#            raise TransformationFileFormatError(
-#                    "Specified path (" + action['parameters']['path'] + ") is not scalar type node." )
-        old = '!' + action['parameters']['old_value'] + ' '
-        new = '!' + action['parameters']['new_value'] + ' '
-        l1, c1, l2, c2 = self._get_node_pos(node)
-        for i in range(l1, l2+1):
-            lines[i] = re.sub(old, new, lines[i])
-        return False  # reload is not necessary
+        if node.implementation == DataNode.Implementation.scalar:
+            raise TransformationFileFormatError(
+                    "Specified path (" + action['parameters']['path'] + ") is not scalar type node." )
+        old = '!' + action['parameters']['old_value'] 
+        new = '!' + action['parameters']['new_value']
+        l1, c1, l2, c2 =  self._get_value_pos(node)
+        return self._replace(lines, new,  old,  l1, c1, l2, c2 )
 
     @staticmethod
     def _get_node_pos(node):
         """return position of node in file"""
         return node.start.line-1, node.start.column-1, node.end.line-1, node.end.column-1
+    
+    @staticmethod
+    def _get_value_pos(node):
+        """return value position in file of set node """
+        return node.span.start.line-1, node.span.start.column-1, \
+            node.span.end.line-1, node.span.end.column-1
 
     @staticmethod
     def _add_comments(lines, l1, c1, l2, c2):
