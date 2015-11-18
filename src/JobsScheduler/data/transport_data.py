@@ -8,6 +8,7 @@ import binascii
 import logging
 from data.states import MJState, TaskStatus
 
+logger = logging.getLogger("Remote")
 
 class ActionType(Enum):
     """Action type"""
@@ -75,14 +76,14 @@ class Message:
     
     def pack(self):
         """pack data for transport to base64 format"""
-        logging.debug("json:"+self.json)
+        logger.debug("json:"+self.json)
         bin = bytes(self.json, "utf-8")
         bin = struct.pack('!I' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
         bin = struct.pack('!I' , sum) + bin
         length = len(bin)
         bin = struct.pack('!I' , length) + bin
-        #logging.debug("base64:"+str(binascii.b2a_base64(bin),"us-ascii" ).strip())
+        #logger.debug("base64:"+str(binascii.b2a_base64(bin),"us-ascii" ).strip())
         
         return str(binascii.b2a_base64(bin),"us-ascii" ).strip() + Message.end5
 
@@ -221,9 +222,11 @@ class StateData(ActionData):
     def set_data(self, mjstate):
         """fill data by MJState class"""
         self.data = mjstate.__dict__
+        self.data['status'] = self.data['status'].value
 
     def get_mjstate(self, mjname):
         """return MJState class instance"""
-        state = MJState(mjname)
+        state = MJState(mjname)        
         state.__dict__ = self.data
+        state.status = TaskStatus(state.status)
         return state

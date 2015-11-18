@@ -8,7 +8,9 @@ import data.communicator_conf as comconf
 from communication import Communicator
 import data.transport_data as tdata
 import communication.installation as inst
-from data.states import MJState, JobsState
+from data.states import  JobsState
+
+logger = logging.getLogger("Remote")
 
 if len(sys.argv)<2:
     raise Exception('Multijob name as application parameter is require')
@@ -26,9 +28,8 @@ try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
 except Exception as error:
-    logging.error(error)
+    logger.error(error)
     raise error
-# Use com_conf instead of ccom
 
 comunicator = Communicator(com_conf, mj_id)
 comunicator.install()
@@ -44,7 +45,7 @@ time.sleep(30)
 
 mess = comunicator.send_long_action(tdata.Action(tdata.ActionType.get_state))
 data = mess.get_action().data
-if isinstance(data, MJState):
+if mess.action_type == tdata.ActionType.state:
     state=data.get_mjstate(mj_name)
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.interupt_connection))

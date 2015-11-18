@@ -5,7 +5,7 @@
 import icon
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
-from data import cfg
+from meconfig import cfg
 from helpers import Notification
 
 

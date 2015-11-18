@@ -8,14 +8,14 @@ Widget that shows info text with QWebView.
 
 from urllib.parse import urlparse, parse_qs
 import os
+from copy import copy
 
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl, Qt
 
 from ist import InfoTextGenerator
-from data import CursorType
-from copy import copy
-from data import cfg
+from util import CursorType
+from meconfig import cfg
 
 # pylint: disable=invalid-name
 

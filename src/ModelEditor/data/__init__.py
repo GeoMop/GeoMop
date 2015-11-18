@@ -1,10 +1,9 @@
 """
 Module for handling data structure.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-__author__ = 'Tomas Krizek'
-
-from .util import TextValue, PosType, KeyType, CursorType, NodeStructureType
-from .data_node import ScalarNode, CompositeNode, NodeOrigin
+from .data_node import DataNode, ScalarDataNode, MappingDataNode, SequenceDataNode
 from .yaml import Loader, Transformator, TransformationFileFormatError
-from .meconfig import MEConfig as cfg
+from .validation import Validator

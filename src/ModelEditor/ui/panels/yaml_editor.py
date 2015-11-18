@@ -9,17 +9,20 @@ Customized QScintilla editor widget.
 import icon
 import re
 from contextlib import ContextDecorator
+
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
-from data import cfg, ScalarNode, NodeOrigin, PosType, CursorType
-from helpers import Position, Notification, AutocompleteHelper
-import helpers.subyaml as analyzer
-from helpers import LineAnalyzer
+
+from meconfig import cfg
+from data import DataNode
+from helpers import Notification
+from helpers import LineAnalyzer, ChangeAnalyzer, NodeAnalyzer
 import helpers.keyboard_shortcuts as shortcuts
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
+from util import Position, PosType, CursorType
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -190,7 +193,7 @@ class YamlEditorWidget(QsciScintilla):
         if pred_parent is not None:
             # crawl up until you find a parent that was not created by reducible_to_key conversion
             while (pred_parent.parent is not None and
-                   pred_parent.origin == NodeOrigin.ac_reducible_to_key):
+                   pred_parent.origin == DataNode.Origin.ac_reducible_to_key):
                 pred_parent = pred_parent.parent
         return pred_parent
 
@@ -510,11 +513,10 @@ class YamlEditorWidget(QsciScintilla):
             self.errorMarginClicked.emit(line + 1)
         else:  # select node in tree
             line_text = self.text(line)
-            # TODO: move to LineAnalyzer
-            first_char = re.match(r'\s*(-\s+)?(?!#)\S', line_text)
-            if not first_char:  # ignore empty lines
+            column = LineAnalyzer.get_node_start(line_text)
+            if not column:  # ignore empty lines
                 return
-            column = len(first_char.group()) + 1
+            column += 1
             line += 1
             self.nodeSelected.emit(line, column)
 
@@ -718,11 +720,11 @@ class EditorPosition:
         """New line was added"""
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
             pre_line = editor.text(self.line)
-            indent = analyzer.LineAnalyzer.get_indent(pre_line)
+            indent = LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
             if index > -1 and index == indent:
                 if self.node is None or  \
-                   not isinstance(self.node, ScalarNode) or \
+                   self.node != DataNode.Implementation.scalar or \
                    (self.node.parent.start.line-1) == self.line:                        
                     self._new_line_indent = indent*' '+"  "
                 else:
@@ -741,9 +743,9 @@ class EditorPosition:
                 editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
                 if self.node is not None:
-                    na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                    na = NodeAnalyzer(self._old_text, self.node)
                 else:
-                    na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+                    na = NodeAnalyzer(self._old_text, cfg.root)
                 self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
             self._new_line_indent = None
         if self._spec_char != "" and editor.lines() > line:
@@ -786,11 +788,11 @@ class EditorPosition:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
-                (self.node is not None and self.node.origin == NodeOrigin.error):
+                (self.node is not None and self.node.origin == DataNode.Origin.error):
                 if self.node is not None:
-                    na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                    na = NodeAnalyzer(self._old_text, self.node)
                 else:
-                    na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+                    na = NodeAnalyzer(self._old_text, cfg.root)
                 self.pred_parent = na.get_parent_for_unfinished(line, index, editor.text(line))
             else:
                 self.pred_parent = None
@@ -831,11 +833,11 @@ class EditorPosition:
                 return False
         new_line = editor.text(self.line)
         # if indentation change
-        if analyzer.LineAnalyzer.indent_changed(new_line, self._old_text[self.line]):
+        if LineAnalyzer.indent_changed(new_line, self._old_text[self.line]):
             return False
         # line unchanged
-        new_line_un = analyzer.LineAnalyzer.strip_comment(new_line)
-        old_line_un = analyzer.LineAnalyzer.strip_comment(self._old_text[self.line])
+        new_line_un = LineAnalyzer.strip_comment(new_line)
+        old_line_un = LineAnalyzer.strip_comment(self._old_text[self.line])
         if (new_line == self._old_text[self.line] or
                 old_line_un == new_line_un):
             if self.begin_line == self.end_line:
@@ -843,7 +845,7 @@ class EditorPosition:
             # return origin values of end
             if self.end_line == self.line and self.node is not None:
                 if (self.node.key.span is not None and
-                        not isinstance(self.node, ScalarNode)):
+                        self.node.implementation != DataNode.Implementation.scalar):
                     self.end_index = self.node.key.span.end.column - 1
                 else:
                     self.end_index = self.node.span.end.column - 1
@@ -854,7 +856,7 @@ class EditorPosition:
             return True
         # find change area
         self.is_changed = True
-        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(new_line, self._last_line)
+        before_pos, end_pos = LineAnalyzer.get_changed_position(new_line, self._last_line)
         # changes outside bounds
         if (self.begin_line == self.line and
                 before_pos < self.begin_index):
@@ -900,7 +902,7 @@ class EditorPosition:
             else:
                 if anal. is_base_struct(new_line):
                     return False
-        before_pos, end_pos = analyzer.LineAnalyzer.get_changed_position(
+        before_pos, end_pos = LineAnalyzer.get_changed_position(
                                               new_line, self._old_text[self.line])
         if self.node is not None and self.node.is_jsonchild_on_line(self.line+1):
             if anal.is_basejson_struct(new_line[before_pos:len(new_line)-end_pos+1]):
@@ -958,16 +960,16 @@ class EditorPosition:
             key_type = anal.get_key_pos_type()
         self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
 
-#        if  analyzer.LineAnalyzer.is_array_char_only(self._old_text[self.line]):
+#        if  LineAnalyzer.is_array_char_only(self._old_text[self.line]):
 #            self.node = node       
         
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
-            (self.node is not None and self.node.origin == NodeOrigin.error):
+            (self.node is not None and self.node.origin == DataNode.Origin.error):
             if self.node is not None:
-                na = analyzer.NodeAnalyzer(self._old_text, self.node)
+                na = NodeAnalyzer(self._old_text, self.node)
             else:
-                na = analyzer.NodeAnalyzer(self._old_text, cfg.root)
+                na = NodeAnalyzer(self._old_text, cfg.root)
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
 
         if node is not None:
@@ -988,7 +990,7 @@ class EditorPosition:
                 text = text[self.begin_index:]
             area.append(text)
         assert in_line < len(area)
-        return analyzer.ChangeAnalyzer(in_line, in_index, area)
+        return ChangeAnalyzer(in_line, in_index, area)
 
     def _save_lines(self, editor):
         """Saves lines."""

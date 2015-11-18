@@ -3,35 +3,22 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
+
 import re
 
 
 _re_strip_eol = re.compile(r'[^\n]*')
 _re_begins_with_comment = re.compile(r'(\s*)#')
 _re_uncomment = re.compile(r'(\s*)# ?(.*)')
-
-
-def strip_to_line(function):
-    """Decorator to strip the first argument of a function to a single line without EOL.
-
-    :param function: the function to be wrapped
-    """
-
-    def wrapped(*args, **kwargs):
-        args = list(args)
-        text = args[0]
-        line = _re_strip_eol.match(text).group(0)
-        args[0] = line
-        return function(*args, **kwargs)
-
-    return wrapped
+_re_find_node_start = re.compile(r'\s*(-\s+)?(?!#)\S')
+_re_inline_comment = re.compile(r'\s+#')
 
 
 class LineAnalyzer:
-    """Anayze partial yaml line
+    r"""Analyze a single YAML line.
 
-    Description: This quick party text analyzing contains line
-    specific function.
+    Valid line can not contain an end of line symbol :samp:`\\n`. The methods may not work
+    as expected if the line contains one or more :samp:`\\n` symbols.
     """
 
     @staticmethod
@@ -127,13 +114,22 @@ class LineAnalyzer:
 
     @staticmethod
     def strip_comment(line):
-        """return line witout comments"""
+        """Remove comment from line.
+
+        :param str line: line of text
+        :return: line stripped of comment
+        :rtype: str
+        """
         # TODO write tests and refactor "key: abc ## comment"
-        comment = re.search(r'^(.*\S)\s*#.*$', line)
-        if comment:
-            return comment.group(1)
+        end = len(line)
+        begins_with_comment = _re_begins_with_comment.match(line)
+        if begins_with_comment:
+            end = len(begins_with_comment.group()) - 1
         else:
-            return line
+            inline_comment = _re_inline_comment.search(line)
+            if inline_comment:
+                end = inline_comment.span()[0]
+        return line[:end]
 
     @staticmethod
     def indent_changed(new_row, old_row):
@@ -169,7 +165,6 @@ class LineAnalyzer:
         return True
 
     @staticmethod
-    @strip_to_line
     def begins_with_comment(line):
         """Check if line begins with a comment.
 
@@ -183,7 +178,6 @@ class LineAnalyzer:
         return _re_begins_with_comment.match(line) is not None
 
     @staticmethod
-    @strip_to_line
     def uncomment(line):
         """Remove comment symbol at the start of the line and leave indentation level intact.
 
@@ -198,3 +192,19 @@ class LineAnalyzer:
             return line
         else:
             return match.group(1) + match.group(2)
+
+    @staticmethod
+    def get_node_start(line):
+        """Find position of a start of a node in line.
+
+        For arrays, :samp:`-` is ignored if there is at least one other (non-space) character
+        that follows.
+
+        :param str line: a line of text
+        :return: index of the position after the first character in node
+        :rtype: int or ``None``
+        """
+        match = _re_find_node_start.match(line)
+        if not match:
+            return None
+        return len(match.group())

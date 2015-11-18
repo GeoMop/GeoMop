@@ -5,17 +5,17 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 import uuid
-
 from PyQt5 import QtCore
-
 from communication import Communicator
+from data.states import TaskStatus
 from ui.actions.main_window_actions import *
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
-from ui.main_window_refresher import WindowRefresher
+from ui.req_scheduler import ReqScheduler
+from ui.res_handler import ResHandler
 from ui.menus.main_window_menus import MainWindowMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
@@ -27,21 +27,30 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     multijobs_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None, data=None, data_reloader=None):
+    def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
         # setup UI
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
 
         self.data = data
-        self.data_reloader = data_reloader
-        self.windows_refresher = WindowRefresher(parent=self,
-                                                 data_reloader=data_reloader)
-        self.windows_refresher.results_changed.connect(
-            self.handle_results_changed)
+        self.com_manager = com_manager
+        self.req_scheduler = ReqScheduler(parent=self,
+                                          com_manager=self.com_manager)
+        self.res_handler = ResHandler(parent=self,
+                                      com_manager=self.com_manager)
 
-        self.ui.overviewWidget.currentItemChanged.connect(
-            self._handle_mj_selection_changed)
+        self.res_handler.mj_installed.connect(
+            self.handle_mj_installed)
+
+        self.res_handler.mj_result.connect(
+            self.handle_mj_result)
+
+        self.res_handler.mj_state.connect(
+            self.handle_mj_state)
+
+        self.res_handler.mj_stoped.connect(
+            self.handle_mj_stopped)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -108,17 +117,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect exit action
         self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
 
-        # connect multijob action
+        # connect multijob run action
         self.ui.actionRunMultiJob.triggered.connect(
             self._handle_run_multijob_action)
 
+        # connect multijob stop action
+        self.ui.actionStopMultiJob.triggered.connect(
+            self._handle_stop_multijob_action)
+
         # reload view
         self.ui.overviewWidget.reload_view(self.data.multijobs)
-
-        self.windows_refresher.start(1)
-
-    def _handle_mj_selection_changed(self, current, previous):
-        self.windows_refresher.main_key = current.text(0)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -150,28 +158,64 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
+        state = {
+            'qued_time': 0,
+            'start_time': 0,
+            'run_interval': 0,
+            'status': TaskStatus.none.name,
+            'insert_time': None,
+            'running_jobs': 2,
+            'finished_jobs': 0,
+            'name': data[1],
+            'estimated_jobs': 0,
+            'known_jobs': 0}
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
             self.data.multijobs[key] = dict()
             self.data.multijobs[key]["preset"] = list(data[1:])
+            self.data.multijobs[key]["state"] = state
         else:
             self.data.multijobs[data[0]]["preset"] = list(data[1:])
+            self.data.multijobs[data[0]]["state"] = state
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
         key = self.ui.overviewWidget.currentItem().text(0)
+        self.data.multijobs[key]["state"]["status"] = \
+            TaskStatus.installation.name
+        # self.multijobs_changed.emit(self.data.multijobs)
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
-        self.data_reloader.install_communicator(key, communicator)
+        self.com_manager.install(key, communicator)
 
-    def handle_results_changed(self, results):
-        try:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            self.ui.tabWidget.reload_view(results[key])
-        except KeyError as keyerr:
-            pass
-        except AttributeError as atrerr:
-            pass
+    def _handle_stop_multijob_action(self):
+        key = self.ui.overviewWidget.currentItem().text(0)
+        state = self.data.multijobs[key]["state"]
+        state["status"] = "stopping"
+        self.ui.overviewWidget.change_state(key, state)
+        self.com_manager.stop(key)
+
+    def handle_mj_installed(self, key):
+        state = self.data.multijobs[key]["state"]
+        state["status"] = "installed"
+        self.ui.overviewWidget.change_state(key, state)
+
+    def handle_mj_stopped(self, key):
+        state = self.data.multijobs[key]["state"]
+        state["status"] = "stopped"
+        self.ui.overviewWidget.change_state(key, state)
+
+    def handle_mj_state(self, key, state):
+        self.ui.overviewWidget.change_state(key, state)
+
+    def handle_mj_result(self, key, result):
+        mj = self.data.multijobs[key]
+        mj["jobs"] = result["jobs"]
+        mj["logs"] = result["logs"]
+        mj["conf"] = result["conf"]
+        cur_item = self.ui.overviewWidget.currentItem()
+        if cur_item.text(0) == key:
+            self.ui.tabWidget.reload_view(mj)
 
 
 class UiMainWindow(object):

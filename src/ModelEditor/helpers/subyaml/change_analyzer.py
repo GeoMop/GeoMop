@@ -3,7 +3,7 @@
 import re
 import copy
 from .line_analyzer import LineAnalyzer
-from data import KeyType, PosType
+from util import KeyType, PosType
 
 
 class ChangeAnalyzer:
@@ -148,6 +148,7 @@ class ChangeAnalyzer:
                 line = line[key.end(1):]
                 dist += key.end(1)
                 break
+            i += 1
 
         while i <= self._line:
             if next_line:

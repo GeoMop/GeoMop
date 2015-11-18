@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 Tests for validator
 
-@author: Tomas Krizek
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from data.validation.validator import Validator
-import data.data_node as dn
-from data.yaml import Loader
+from data import Validator, Loader, ScalarDataNode
 from helpers import NotificationHandler
 
 
@@ -58,7 +55,7 @@ def test_validator():
             'record2': it_record2})
 
     # validate scalar
-    node = dn.ScalarNode()
+    node = ScalarDataNode()
     node.value = 2
     assert validator.validate(node, it_int) is True
 

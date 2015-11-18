@@ -4,6 +4,8 @@ import data.transport_data as tdata
 import re
 from communication.communication import OutputComm
 
+logger = logging.getLogger("Remote")
+
 if sys.platform == "win32":
     import helpers.winssh as wssh
     class SshOutputComm(OutputComm):
@@ -32,17 +34,17 @@ if sys.platform == "win32":
             try:
                 self.installation.create_install_dir(self.ssh)
             except Exception as err:
-                logging.warning("Installation error: " + str(err))
+                logger.warning("Installation error: " + str(err))
              
         def exec_(self, python_file, mj_name, mj_id):
             """run set python file in ssh"""
             
             mess = self.ssh.cd(self.installation.copy_path)
             if mess != "":
-                logging.warning("Exec python file: " + mess) 
+                logger.warning("Exec python file: " + mess) 
             mess = self.ssh.exec_(self.installation.get_command(python_file, mj_name, mj_id))
             if mess != "":
-                logging.warning("Run python file: " + mess)  
+                logger.warning("Run python file: " + mess)  
 
         def send(self,  mess):
             """send json message"""
@@ -57,7 +59,7 @@ if sys.platform == "win32":
                 mess =tdata.Message(txt)
                 return mess
             except(tdata.MessageError) as err:
-                logging.warning("Receive message (" + txt + ") error: " + str(err))
+                logger.warning("Receive message (" + txt + ") error: " + str(err))
             return None    
      
         def download_result(self):
@@ -65,7 +67,7 @@ if sys.platform == "win32":
             try:
                 self.installation.get_results(self.ssh)
             except Exception as err:
-                logging.warning("Download file error: " + str(err))
+                logger.warning("Download file error: " + str(err))
                 return False
             return True
             
@@ -110,7 +112,7 @@ else:
                 if self.ssh.prompt():
                     mess = str(self.ssh.before, 'utf-8').strip()
                     if mess != ("cd .."):
-                        logging.warning("Cd before logout fail: " + mess)
+                        logger.warning("Cd before logout fail: " + mess)
                 try:
                     self.ssh.logout()
                 except pexpect.TIMEOUT:
@@ -119,9 +121,9 @@ else:
                     try:
                         self.ssh.logout()
                     except Exception as err:
-                        logging.warning("Ssh logout error: " +   str(err))
+                        logger.warning("Ssh logout error: " +   str(err))
             except Exception as err:
-                logging.warning("Ssh error before logout: " +   str(err))
+                logger.warning("Ssh error before logout: " +   str(err))
             
         def install(self):
             """make installation"""
@@ -131,7 +133,7 @@ else:
                 self.installation.create_install_dir(sftp)
                 sftp.close()
             except Exception as err:
-                logging.warning("Installation error: " + str(err))
+                logger.warning("Installation error: " + str(err))
                 
         def exec_(self, python_file, mj_name, mj_id):
             """run set python file in ssh"""
@@ -139,7 +141,7 @@ else:
             if self.ssh.prompt():
                 mess = str(self.ssh.before, 'utf-8').strip()
                 if mess != ("cd " + self.installation.copy_path):
-                    logging.warning("Exec python file: " + mess) 
+                    logger.warning("Exec python file: " + mess) 
             self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
             self.ssh.expect( self.installation.python_env.python_exec + ".*\r\n")
             
@@ -151,7 +153,7 @@ else:
                 if len(line)>0:
                     error_lines.append(line)
             if len(error_lines)>0:
-                logging.warning("Run python file: " + "\n".join( error_lines)) 
+                logger.warning("Run python file: " + "\n".join( error_lines)) 
 
         def send(self,  mess):
             """send json message"""
@@ -198,7 +200,7 @@ else:
                         error_lines.append(line)
    
             if len( error_lines) > 0:
-                logging.warning("Ballast in message:" + "\n".join( error_lines))
+                logger.warning("Ballast in message:" + "\n".join( error_lines))
             
             #only echo, tray again
             if last_mess_processed and txt is None:
@@ -212,7 +214,7 @@ else:
                 mess =tdata.Message(txt)
                 return mess
             except(tdata.MessageError) as err:
-                logging.warning("Receive message (" + txt + ") error: " + str(err))
+                logger.warning("Receive message (" + txt + ") error: " + str(err))
             return None
      
         def download_result(self):
@@ -222,7 +224,7 @@ else:
                 self.installation.get_results(sftp)
                 sftp.close()
             except Exception as err:
-                logging.warning("Download file error: " + str(err))
+                logger.warning("Download file error: " + str(err))
                 return False
             return True
             

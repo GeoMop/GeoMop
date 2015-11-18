@@ -25,11 +25,11 @@ import icon
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
-from data import cfg, CursorType
-from helpers import Position
+from meconfig import cfg
 from ui import panels
 from ui.dialogs.json_editor import JsonEditorDlg
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
+from util import CursorType, Position
 
 
 class ModelEditor:
@@ -274,8 +274,8 @@ class ModelEditor:
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
-            import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__transformation_dir__, file,
+            import meconfig.meconfig
+            dlg = JsonEditorDlg(meconfig.meconfig.__transformation_dir__, file,
                                 "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
 
@@ -292,8 +292,8 @@ class ModelEditor:
         """Open selected format file in Json Editor"""
         text = cfg.get_curr_format_text()
         if text is not None:
-            import data.meconfig
-            dlg = JsonEditorDlg(data.meconfig.__format_dir__, cfg.curr_format_file,
+            import meconfig.meconfig
+            dlg = JsonEditorDlg(meconfig.meconfig.__format_dir__, cfg.curr_format_file,
                                 "Format", text, self.mainwindow)
             dlg.exec_()
 

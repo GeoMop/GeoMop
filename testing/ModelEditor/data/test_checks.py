@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 """
-GeoMop Model
-
 Tests for basic validation checks.
 
-@author: Tomas Krizek
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
 import pytest
 
+from data import MappingDataNode
 from data.validation import checks
-import data.data_node as dn
 from helpers import Notification
+from util import TextValue
 
 
 def test_check_integer():
@@ -165,18 +163,18 @@ def test_check_abstractrecord():
     input_type_no_default = dict(implementations={'type1': type1,
                                                   'type2': type2,
                                                   'type3': type3})
-    node = dn.CompositeNode(True)
-    node.type = dn.TextValue()
+    node = MappingDataNode()
+    node.type = TextValue()
     node.type.value = 'type2'
 
     assert checks.get_abstractrecord_type(node, input_type) == type2
-    assert (checks.get_abstractrecord_type(dn.CompositeNode(True),
+    assert (checks.get_abstractrecord_type(MappingDataNode(),
                                            input_type) == type1)
 
     node.type.value = 'type3'
     assert checks.get_abstractrecord_type(node, input_type_no_default) == type3
     with pytest.raises(Notification) as excinfo:
-        checks.get_abstractrecord_type(dn.CompositeNode(True), input_type_no_default)
+        checks.get_abstractrecord_type(MappingDataNode(), input_type_no_default)
     assert excinfo.value.name == 'MissingAbstractRecordType'
 
     node.type.value = 'invalid'
