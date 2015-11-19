@@ -69,4 +69,4 @@ class MainSettingsMenu(QMenu):
 
     def on_options_action(self):
         """Handle options action - display settings."""
-        SettingsDialog(self.parent).show()
+        SettingsDialog(self.parent).exec_()
