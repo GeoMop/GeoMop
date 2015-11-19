@@ -5,7 +5,6 @@
 """
 
 import os
-import copy
 
 import config as cfg
 from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer
@@ -32,20 +31,17 @@ class _Config:
     """Count of recent files"""
 
     def __init__(self, readfromconfig=True):
+
+        from os.path import expanduser
+        self.last_data_dir = expanduser("~")
+        self.recent_files = []
+        self.format_files = []
+        self.display_autocompletion = False
+
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE)
-        else:
-            data = None
-
-        if data is not None:
-            self.recent_files = copy.deepcopy(data.recent_files)
-            self.format_files = copy.deepcopy(data.format_files)
-            self.last_data_dir = data.last_data_dir
-        else:
-            from os.path import expanduser
-            self.last_data_dir = expanduser("~")
-            self.recent_files = []
-            self.format_files = []
+            if hasattr(data, '__dict__'):
+                self.__dict__.update(data.__dict__)
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
@@ -425,7 +421,7 @@ class MEConfig:
         if cls.main_window is not None:
             import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
-            
+
             dialog = TranformationDetailDlg(transformator.name,
                                             transformator.description,
                                             transformator.old_version,
@@ -434,7 +430,7 @@ class MEConfig:
                                             transformator.new_version in cls.transformation_files,
                                             cls.main_window)
             res = QtWidgets.QDialog.Accepted == dialog.exec_()
-        if res :
+        if res:
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:
@@ -447,9 +443,10 @@ class MEConfig:
                 cls.set_current_format_file(transformator.new_version)
             else:
                 cls.update()
-                
+
     @classmethod
-    def _report_error(cls, mess,  err):
+    def _report_error(cls, mess, err):
+        """Report an error with dialog."""
         from geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(cls.main_window)
         err_dialog.open_error_dialog(mess, err)
