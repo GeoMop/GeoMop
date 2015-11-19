@@ -1,13 +1,12 @@
-"""
-Module contains settings menu widget.
-"""
+"""Module contains settings menu widget.
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
 import helpers.keyboard_shortcuts as shortcuts
 from meconfig import cfg
+from ui.dialogs import SettingsDialog
 
 
 class MainSettingsMenu(QMenu):
@@ -48,6 +47,11 @@ class MainSettingsMenu(QMenu):
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
 
+        self.options_action = QAction('&Options ...', self)
+        self.options_action.setStatusTip('Configure editor options')
+        self.options_action.triggered.connect(self.on_options_action)
+        self.addAction(self.options_action)
+
         if cfg.config.DEBUG_MODE:
             self._edit_transformation = self.addMenu('&Edit Transformation Rules')
             pom_lamda = lambda name: lambda: self._model_editor.edit_transformation_file(name)
@@ -62,3 +66,7 @@ class MainSettingsMenu(QMenu):
         action = self._format_group.checkedAction()
         filename = action.text()
         self._model_editor.select_format(filename)
+
+    def on_options_action(self):
+        """Handle options action - display settings."""
+        SettingsDialog(self.parent).show()
