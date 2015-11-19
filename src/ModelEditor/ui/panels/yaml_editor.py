@@ -544,7 +544,6 @@ class YamlEditorWidget(QsciScintilla):
             return
 
         actions = {
-            shortcuts.INDENT: self.indent,
             shortcuts.UNINDENT: self.unindent,
             shortcuts.CUT: self.cut,
             shortcuts.COPY: self.copy,
@@ -555,7 +554,8 @@ class YamlEditorWidget(QsciScintilla):
             shortcuts.DELETE: self.delete,
             shortcuts.SELECT_ALL: self.selectAll,
             shortcuts.SHOW_AUTOCOMPLETE: cfg.autocomplete_helper.show_autocompletion,
-            shortcuts.BACKSPACE: lambda: self._handle_keypress_backspace(event)
+            shortcuts.BACKSPACE: lambda: self._handle_keypress_backspace(event),
+            shortcuts.TAB: lambda: self._handle_keypress_tab(event)
         }
 
         for shortcut, action in actions.items():
@@ -601,6 +601,13 @@ class YamlEditorWidget(QsciScintilla):
                     self.setSelection(prev_line, prev_column - 1, line, column)
         self.removeSelectedText()
         cfg.autocomplete_helper.refresh_autocompletion()
+
+    def _handle_keypress_tab(self, event):
+        """Handle keyPress event for :kdb:`Tab`."""
+        if cfg.autocomplete_helper.visible:
+            self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
+        else:
+            self.indent()
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 

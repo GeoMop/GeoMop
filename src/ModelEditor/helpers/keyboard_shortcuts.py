@@ -99,7 +99,7 @@ PASTE = KeyboardShortcut('Ctrl+V')
 CUT = KeyboardShortcut('Ctrl+X')
 UNDO = KeyboardShortcut('Ctrl+Z')
 REDO = KeyboardShortcut('Ctrl+Y')
-INDENT = KeyboardShortcut('Tab')
+INDENT = KeyboardShortcut('Tab')  # TODO remove duplicate (Tab), better shortcuts system
 UNINDENT = KeyboardShortcut('Shift+Tab')
 COMMENT = KeyboardShortcut('Ctrl+/')
 DELETE = KeyboardShortcut('Delete')
@@ -117,6 +117,7 @@ EDIT_FORMAT = KeyboardShortcut('Ctrl+E')
 SHOW_AUTOCOMPLETE = KeyboardShortcut('Ctrl+ ')
 ESCAPE = KeyboardShortcut('Esc')
 BACKSPACE = KeyboardShortcut('Backspace')
+TAB = KeyboardShortcut('Tab')
 
 """
 shortcuts to be disabled in default scintilla behavior
