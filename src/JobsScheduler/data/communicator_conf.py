@@ -18,7 +18,6 @@ class OutputCommType(IntEnum):
     exec_ = 2
     pbs = 3
 
-
 class InputCommType(IntEnum):
     """Severity of an error."""
     none = 0

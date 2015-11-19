@@ -118,7 +118,6 @@ class Communicator():
         elif init_conf.input_type == comconf.InputCommType.socket:
             self.input = SocketInputComm(init_conf.port)
             self.input.connect()
-         
         if init_conf.output_type != comconf.OutputCommType.none:
             self.output = self.get_output(init_conf)
             
@@ -203,7 +202,6 @@ class Communicator():
             else:
                 if self._instalation_begined:
                     if self.is_installed():
-                        logger.debug("Installation to remote directory ended")
                         return True, None
                     logger.debug("Installation in process signal was sent")
                 else:
