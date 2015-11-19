@@ -15,9 +15,16 @@ class StdInputComm(InputComm):
         """Input Stream"""
         self.output = output
         """Output Stream"""
+        self._connected = False
+        """Std is connected"""
 
     def connect(self):
         """connect session"""
+        self._connected = True
+    
+    def isconnected(self):
+        """Connection is opened"""
+        return self._connected
 
     def send(self, msg):
         """send message to output stream"""
@@ -45,7 +52,7 @@ class StdInputComm(InputComm):
     
     def disconnect(self):
         """disconnect session"""
-        pass
+        self._connected = False
         
     def save_state(self, state):
         """save state to variable"""

@@ -4,8 +4,10 @@ import data.transport_data as tdata
 import data.communicator_conf as comconf
 from .communicator import Communicator
 from  communication.installation import  Installation
+from communication.std_input_comm import StdInputComm
 import threading
 from  communication.exec_output_comm import  ExecOutputComm
+import time
 
 logger = logging.getLogger("Remote")
 
@@ -45,12 +47,8 @@ class JobsCommunicator(Communicator):
     def  standart_action_function_before(self, message):
         """before action function"""
         if message.action_type == tdata.ActionType.interupt_connection:
-            if self.status.interupted:
-                action = tdata.Action(tdata.ActionType.ok)
-                return False, action.get_message()
-            self.interupt()
-            #interupt only one communicator per request
-            action = tdata.Action(tdata.ActionType.action_in_process)
+            self._interupt = True
+            action = tdata.Action(tdata.ActionType.ok)
             return False, action.get_message()
         if message.action_type == tdata.ActionType.restore_connection:
             self.restore()
@@ -126,6 +124,10 @@ class JobsCommunicator(Communicator):
                     self.job_outputs[id].host = mess.get_action().data['host']
                     self.job_outputs[id].port = mess.get_action().data['port']
                     self._connect_socket(self.job_outputs[id], 1)
+        for id in self.jobs:
+            # connect
+            if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                self._connect_socket(self.job_outputs[id], 1)
                 make_custom_action = False
         else:         
             for id in self.jobs:
@@ -135,12 +137,12 @@ class JobsCommunicator(Communicator):
                     make_custom_action = False
         if make_custom_action:
             self.anc_idle_func()
-            
+
     def _exec_(self):
         """
         Exec for jobs_communicator don't make connection for
         actual job. Connectcions will be maked by add_job if is
-        need.
+        needed.
         """
         if self.conf.output_type != comconf.OutputCommType.ssh:
             super(JobsCommunicator, self)._exec_()
@@ -193,4 +195,9 @@ class JobsCommunicator(Communicator):
         """Interupt connection chain to next communicator"""
         self.status.interupted=True        
         self.status.save()
+        if self.input is not None:
+            if not isinstance(self.input, StdInputComm):
+                self.input.disconnect()
+                time.sleep(10)
+                self.input.connect()
         logger.info("Multi Job Application " + self.communicator_name + " is interupted")    

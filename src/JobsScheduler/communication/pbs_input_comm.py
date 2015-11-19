@@ -20,4 +20,4 @@ class PbsInputComm(SocketInputComm):
         sys.stdout.write("HOST:--" + str(host) + "--\n")
         sys.stdout.flush()
         logger.debug("Server host is:" + host) 
-        super(PbsInputComm, self).connect()       
+        super(PbsInputComm, self).connect()

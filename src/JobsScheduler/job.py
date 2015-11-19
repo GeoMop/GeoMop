@@ -23,7 +23,7 @@ def read_err(err):
         txt = str(txt, 'utf-8').strip()
     except pexpect.TIMEOUT:
         return None
-    except err:
+    except Exception as err:
         logger.warning("Task output error:" + str(err))
         return None
     return txt

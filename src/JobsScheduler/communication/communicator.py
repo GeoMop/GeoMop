@@ -67,8 +67,10 @@ class Communicator():
         """folder name for multijob data"""
         self.python_env = init_conf.python_env
         """python running envirounment"""
-        self.libs_env =init_conf.libs_env
+        self.libs_env = init_conf.libs_env
         """libraries running envirounment"""
+        self._interupt = False
+        """interupt connections after message sending"""
         
         self.status = None
         self._load_status(init_conf.mj_name) 
@@ -186,10 +188,6 @@ class Communicator():
                 #restore only one communicator per request
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, action.get_message()
-        if message.action_type == tdata.ActionType.interupt_connection:
-            if self.status.interupted:
-                action = tdata.Action(tdata.ActionType.ok)
-                return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
             if isinstance(self.output, ExecOutputComm) and \
                 not isinstance(self.output, PbsOutputComm) and \
@@ -227,15 +225,9 @@ class Communicator():
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.interupt_connection:
-            if self.status.interupted:
-                action = tdata.Action(tdata.ActionType.ok)
-                return action.get_message()
-            if response is not None and \
-                response.action_type == tdata.ActionType.ok:
-                self.interupt()
-                #interupt only one communicator per request
-                action = tdata.Action(tdata.ActionType.action_in_process)
-                return action.get_message()
+            self._interupt = True
+            action = tdata.Action(tdata.ActionType.ok)
+            return action.get_message()
         if message.action_type == tdata.ActionType.stop:
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
@@ -288,7 +280,7 @@ class Communicator():
             if isinstance(self.output, SshOutputComm):
                 self.output.connect()
                 self.output.exec_(self.next_communicator, self.mj_name, self.id)
-            elif not self.output.connected:    
+            elif not self.output.isconnected():    
                 self._connect_socket(self.output)
         self.status.interupted=False
         self.status.save()
@@ -301,9 +293,14 @@ class Communicator():
             self.input.save_state(self.status)
         if self.output is not None:
             self.output.save_state(self.status)
-        self.status.save()
-        if isinstance(self.input, StdInputComm):
-            self.stop =True
+        self.status.save()        
+        if self.input is not None:
+            if isinstance(self.input, StdInputComm):
+                self.stop =True
+            else:
+                time.sleep(10)
+                self.input.connect()
+                self.close()
         logger.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
@@ -314,7 +311,7 @@ class Communicator():
         time.sleep(1)
         if self.input is not None:
             self.input.disconnect()
-        logger.info("Application " + self.communicator_name + " is stopped")
+        logger.info("Connection to application " + self.communicator_name + " is stopped")
     
     def install(self):
         """make installation"""
@@ -428,6 +425,9 @@ class Communicator():
             else:
                 if self.is_installed():
                     self.idle_func()
+            if self._interupt:
+                self.interupt()
+                self._interupt = False
 
     def send_message(self, message):
         """send message to output"""

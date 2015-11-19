@@ -3,6 +3,7 @@ import sys
 import data.transport_data as tdata
 import socket
 import time
+import threading
 
 from communication.communication import InputComm
 
@@ -18,33 +19,66 @@ class SocketInputComm(InputComm):
         """port for server communacion"""
         self.conn = None
         """Socket connection"""
-        self.conn_interupted = False
+        self._conn_interupted = False
+        """Connection was unintendently interupted"""
+        self._conn_interupted_count = 0
+        """time of connection interuption"""
+        self._connected = False
+        """Socket Connection is connected"""
+        self._connected_lock = threading.Lock()
+        """Lock for connected"""
+        self._established = False
+        """Port and host for Socket Connection was recognised"""
+
+    def isconnected(self):
+        """Connection is opened"""
+        self._connected_lock.acquire()
+        con = self._connected
+        self._connected_lock.release()       
+        return con
 
     def connect(self):
+        """connect session in separate thread"""
+        t = threading.Thread(target=self._connect)
+        t.daemon = True
+        t.start()
+
+    def _connect(self):
         """connect session and send port number over stdout"""
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         ok = False
         i = 0
         while not ok:
             try:
                 s.bind(("", self.port + i))
                 ok = True
-                sys.stdout.write("PORT:--" + str(self.port + i) + "--\n")
-                sys.stdout.flush()
+                if not self._established:
+                    sys.stdout.write("PORT:--" + str(self.port + i) + "--\n")
+                    sys.stdout.flush()
+                    self._established = True
             except OSError as err:
-                if err.errno == 98:
+                if err.errno == 98 and not self._established:
                     i += 1
                     if __MAX_OPEN_PORTS__< i:
                         raise Exception("Max open ports number is exceed")
                 else:
-                    raise err
-        s.listen(1)
+                    logger.error("Cant listen on port " + str(self.port) + ": " + str(err))
+                    return
         self.port += i
+        logger.debug("Server try listen on port " + str(self.port)) 
+        s.listen(1)
         self.conn, addr = s.accept()
-        logger.debug("Server is listened on port" + str(self.port) +" by " + str(addr)) 
+        self._connected_lock.acquire()
+        self._connected = True 
+        self._connected_lock.release()        
+        logger.debug("Server is listened on port " + str(self.port) +" by " + str(addr)) 
   
     def send(self, msg):
         """send message to output stream"""
+        if not self.isconnected():
+            logger.debug("Can't send message, connection is not established.") 
+            return
         b = bytes(msg.pack(), "us-ascii")
         self.conn.sendall(b)
         
@@ -54,29 +88,44 @@ class SocketInputComm(InputComm):
         
         Function wait for answer for set time in seconds
         """
+        if not self.isconnected():
+            time.sleep(1)
+            return 
         self.conn.settimeout(wait)
         try:
             data = self.conn.recv(1024*1024)
         except socket.timeout:
             return None
         if len(data) == 0:
-            time.sleep(10)
+            if self._conn_interupted_count > 600:
+                self.disconnect
+                self.connect()
+                return 
+            time.sleep(1)
             if not self.conn_interupted:
-                self.conn_interupted = True
+                self._conn_interupted = True
                 logger.warning("Connection was probably closed.")
-            return None            
+            else:
+                self._conn_interupted_count +=1
+            return None
         txt =str(data, "us-ascii")
         try:
             mess = tdata.Message(txt)
         except(tdata.MessageError) as err:
             logger.warning("Error(" + str(err) + ") during parsing input message: " + txt)
             return None
-        self.conn_interupted = False
+        self._conn_interupted = False
+        self._conn_interupted_count = 0
         return mess
         
     def disconnect(self):
         """disconnect session"""
-        self.conn.close()
+        self._connected_lock.acquire()
+        self._connected = False
+        self._connected_lock.release()
+ #       self.conn.shutdown(socket.SHUT_RDWR)        
+        self.conn.close() 
+        logger.debug("Server close connection on port " + str(self.port))        
         
     def save_state(self, state):
         """save state to variable"""

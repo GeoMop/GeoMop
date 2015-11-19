@@ -670,7 +670,16 @@ class ReloadChunk(ContextDecorator, QObject):
 
 
 class EditorPosition:
-    """Helper for guarding cursor position above node"""
+    """
+    Helper for guarding cursor position above node.
+    This class help made refresh, only when is needed. 
+    For not state speciffic actions is call functions of
+    (:class:`helpers.subyaml.change_analyzer,ChangeAnalyzer`) 
+    Function  fix_bounds should be called after data changing
+    for reloading borders of selected data Node. Naxt calling
+    of new_pos function make possible determinate if reload
+    is needed. Next function is call for possition specific actions.
+    """
 
     def __init__(self):
         self.node = None
@@ -717,7 +726,13 @@ class EditorPosition:
         """Predicted parent node for IST"""
 
     def new_line_completation(self, editor):
-        """New line was added"""
+        """
+        Add specific symbols to start of line when
+        new line was added.
+        
+        _old_line_prefix variable is set to intendation and new array (-)
+        symbol if need be
+        """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
             pre_line = editor.text(self.line)
             indent = LineAnalyzer.get_indent(pre_line)
@@ -735,13 +750,21 @@ class EditorPosition:
                 self._old_line_prefix = indent*' '
 
     def make_post_operation(self, editor, line, index):
-        """complete specion chars after update"""
+        """
+        complete special chars after text is updated and
+        fix parent if new line is added (new_line_completation 
+        function is called)
+        """
         if self._new_line_indent is not None and editor.lines() > line:
+            # after new_line_completation function is called
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
+            # preceding line prefix is unchanged 
             if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._old_line_prefix)] == self._old_line_prefix:
+                # insert prefix
                 editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
+                # fix parent
                 if self.node is not None:
                     na = NodeAnalyzer(self._old_text, self.node)
                 else:
@@ -771,7 +794,7 @@ class EditorPosition:
     def new_pos(self, editor, line, index):
         """
         Update position and return true if isn't cursor above node
-        or is in inner structure
+        or is in inner structure.
         """
         self.line = line
         self.index = index

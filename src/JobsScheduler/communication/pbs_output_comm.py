@@ -69,7 +69,7 @@ class PbsOutputComm(ExecOutputComm):
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(),self.config) 
         error = hlp.get_errors()
         if error is not None:
-            logger.warning("Error output contains error:" + error) 
+            logger.warning("Error output contains error:" + error)
         
     def send(self,  mess):
         """send json message"""        
