@@ -15,7 +15,7 @@ class ResHandler(QTimer):
     mj_stoped = QtCore.pyqtSignal(str)
     mj_installed = QtCore.pyqtSignal(str)
     mj_result = QtCore.pyqtSignal(str, dict)
-    mj_state = QtCore.pyqtSignal(str, dict)
+    mj_state = QtCore.pyqtSignal(str, object)
 
     def __init__(self, com_manager, parent=None):
         super().__init__(parent)

@@ -7,7 +7,7 @@ Main window module
 import uuid
 from PyQt5 import QtCore
 from communication import Communicator
-from data.states import TaskStatus
+from data.states import TaskStatus, MJState
 from ui.actions.main_window_actions import *
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
-        self.multijobs_changed.connect(self.ui.overviewWidget.reload_view)
+        self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.multijobs.save)
         self.resource_presets_dlg.presets_changed.connect(
             self.mj_dlg.set_resource_presets)
@@ -126,7 +126,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_stop_multijob_action)
 
         # reload view
-        self.ui.overviewWidget.reload_view(self.data.multijobs)
+        self.ui.overviewWidget.reload_items(self.data.multijobs)
+
+    def _handle_ui_locks(self, key):
+        status = self.data.multijobs[key]["state"]["status"]
+        pass
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -158,17 +162,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
-        state = {
-            'qued_time': 0,
-            'start_time': 0,
-            'run_interval': 0,
-            'status': TaskStatus.none.name,
-            'insert_time': None,
-            'running_jobs': 2,
-            'finished_jobs': 0,
-            'name': data[1],
-            'estimated_jobs': 0,
-            'known_jobs': 0}
+        state = MJState(data[1])
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
             self.data.multijobs[key] = dict()
@@ -181,8 +175,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_run_multijob_action(self):
         key = self.ui.overviewWidget.currentItem().text(0)
-        self.data.multijobs[key]["state"]["status"] = \
-            TaskStatus.installation.name
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.installation
         # self.multijobs_changed.emit(self.data.multijobs)
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
@@ -191,22 +185,22 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_stop_multijob_action(self):
         key = self.ui.overviewWidget.currentItem().text(0)
         state = self.data.multijobs[key]["state"]
-        state["status"] = "stopping"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.stoping
+        self.ui.overviewWidget.update_item(key, state)
         self.com_manager.stop(key)
 
     def handle_mj_installed(self, key):
         state = self.data.multijobs[key]["state"]
-        state["status"] = "installed"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.running
+        self.ui.overviewWidget.update_item(key, state)
 
     def handle_mj_stopped(self, key):
         state = self.data.multijobs[key]["state"]
-        state["status"] = "stopped"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.none
+        self.ui.overviewWidget.update_item(key, state)
 
     def handle_mj_state(self, key, state):
-        self.ui.overviewWidget.change_state(key, state)
+        self.ui.overviewWidget.update_item(key, state)
 
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
@@ -227,7 +221,7 @@ class UiMainWindow(object):
         Setup basic UI
         """
         # main window
-        main_window.resize(1014, 702)
+        main_window.resize(1154, 702)
         main_window.setObjectName("MainWindow")
         main_window.setWindowTitle('Jobs Scheduler')
 

@@ -23,9 +23,7 @@ class Tabs(QtWidgets.QTabWidget):
 
     def reload_view(self, results):
         self.ui.logsTab.reload_view(results["logs"])
-        self.ui.confTab.reload_view(results["conf"])
-        # self.ui.messagesTab.reload_view(results["messages"])
-        self.ui.jobsTab.reload_view(results["jobs"])
+        self.ui.jobsTab.reload_items(results["jobs"])
 
 
 class UiTabs(object):
@@ -35,36 +33,43 @@ class UiTabs(object):
         self.overviewTab = OverviewTab(tab_widget)
         self.jobsTab = JobsTab(tab_widget)
         self.resultsTab = ResultsTab(tab_widget)
-        self.messagesTab = MessagesTab(tab_widget)
-        self.logsTab = FilesTab(tab_widget)
-        self.confTab = FilesTab(tab_widget)
+        self.logsTab = LogsTab(tab_widget)
         tab_widget.addTab(self.overviewTab, "Overview")
         tab_widget.addTab(self.jobsTab, "Jobs")
         tab_widget.addTab(self.resultsTab, "Results")
-        tab_widget.addTab(self.messagesTab, "Messages")
         tab_widget.addTab(self.logsTab, "Logs")
-        tab_widget.addTab(self.confTab, "Config")
 
 
-class FilesTab(QtWidgets.QWidget):
+class AbstractTab(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("filesTab")
+        self.setObjectName("abstractTab")
         self.ui = QtWidgets.QWidget(self)
         self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
         self.ui.horizontalLayout.setObjectName("horizontalLayout")
         self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
-        self.ui.headers = ["Filename", "Path"]
+        self.ui.headers = ["Header"]
+        self.time_format = "%d/%m/%y %H:%M:%S"
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.setAlternatingRowColors(True)
         self.ui.treeWidget.setSortingEnabled(True)
+        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
+        self.setLayout(self.ui.horizontalLayout)
+
+    def resize_all_columns_to_contents(self):
+        for idx, header in enumerate(self.headers):
+            self.resizeColumnToContents(idx)
+
+
+class FilesTab(AbstractTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("filesTab")
+        self.ui.headers = ["Filename", "Path"]
+        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.itemDoubleClicked.connect(
             lambda clicked_item, clicked_col: QDesktopServices.openUrl(
                 QUrl.fromLocalFile(clicked_item.text(1))))
-        self.ui.treeWidget.resizeColumnToContents(0)
-
-        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
-        self.setLayout(self.ui.horizontalLayout)
 
     def reload_view(self, path):
         file_names = [f for f in os.listdir(path) if os.path.isfile(
@@ -74,94 +79,59 @@ class FilesTab(QtWidgets.QWidget):
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
             row.setText(0, file_name)
             row.setText(1, os.path.join(path, file_name))
-        self.ui.treeWidget.resizeColumnToContents(0)
 
 
-class MessagesTab(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("messagesTab")
-        self.ui = QtWidgets.QWidget(self)
-        self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
-        self.ui.horizontalLayout.setObjectName("horizontalLayout")
-        self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
-        self.ui.headers = ["Message"]
-        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.setAlternatingRowColors(True)
-        self.ui.treeWidget.setSortingEnabled(True)
-        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
-        self.setLayout(self.ui.horizontalLayout)
-
-    def reload_view(self, messages):
-        self.ui.treeWidget.clear()
-        for idx, mess in enumerate(messages):
-            row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
-            row.setText(0, mess.__str__())
-        self.ui.treeWidget.resizeColumnToContents(0)
-
-
-class OverviewTab(QtWidgets.QWidget):
+class OverviewTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("overviewTab")
-        self.ui = QtWidgets.QWidget(self)
-        self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
-        self.ui.horizontalLayout.setObjectName("horizontalLayout")
-        self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
         self.ui.headers = ["Overview"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.setAlternatingRowColors(True)
-        self.ui.treeWidget.setSortingEnabled(True)
-        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
-        self.setLayout(self.ui.horizontalLayout)
 
     def reload_view(self, messages):
         pass
 
 
-class JobsTab(QtWidgets.QWidget):
+class JobsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("jobsTab")
-        self.ui = QtWidgets.QWidget(self)
-        self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
-        self.ui.horizontalLayout.setObjectName("horizontalLayout")
-        self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
         self.ui.headers = ["Name", "Insert Time", "Qued Time", "Start Time",
                            "Run Interval", "Status"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.setAlternatingRowColors(True)
-        self.ui.treeWidget.setSortingEnabled(True)
-        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
-        self.setLayout(self.ui.horizontalLayout)
 
-    def reload_view(self, jobs):
+    @staticmethod
+    def _update_item(item, job, time_format):
+        item.setText(0, job.name)
+        item.setText(1, time.strftime(
+            time_format, time.gmtime(job.insert_time)))
+        item.setText(2, time.strftime(
+            time_format, time.gmtime(job.qued_time)))
+        item.setText(3, time.strftime(
+            time_format, time.gmtime(job.start_time)))
+        item.setText(4, str(job.run_interval))
+        item.setText(5, TaskStatus(job.status).name)
+        return item
+
+    def reload_items(self, jobs):
         self.ui.treeWidget.clear()
-        for idx, job in enumerate(jobs):
+        for job in jobs:
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
-            row.setText(0, job.name)
-            row.setText(1, time.ctime(job.insert_time))
-            row.setText(2, time.ctime(job.qued_time))
-            row.setText(3, time.ctime(job.start_time))
-            row.setText(4, str(job.run_interval))
-            row.setText(5, TaskStatus(job.status).name)
+            self._update_item(row, job, self.time_format)
         self.ui.treeWidget.resizeColumnToContents(0)
 
 
-class ResultsTab(QtWidgets.QWidget):
+class ResultsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("resultsTab")
-        self.ui = QtWidgets.QWidget(self)
-        self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
-        self.ui.horizontalLayout.setObjectName("horizontalLayout")
-        self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
         self.ui.headers = ["Results"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.setAlternatingRowColors(True)
-        self.ui.treeWidget.setSortingEnabled(True)
-        self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
-        self.setLayout(self.ui.horizontalLayout)
 
     def reload_view(self, messages):
         pass
+
+
+class LogsTab(FilesTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)

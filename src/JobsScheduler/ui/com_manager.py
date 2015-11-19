@@ -11,7 +11,7 @@ from enum import IntEnum
 from multiprocessing import Queue
 
 from communication import Installation
-from data.states import JobsState, TaskStatus
+from data.states import JobsState, MJState
 
 
 class ComManager(object):
@@ -49,6 +49,10 @@ class ComManager(object):
     def terminate(self):
         for key in self._workers:
             self._workers[key].stop()
+
+
+class TooManyReqException(Exception):
+    pass
 
 
 class ReqData(object):
@@ -148,7 +152,7 @@ class ComExecutor(object):
                     tdata.ActionType.get_state))
         if res.mess.action_type == tdata.ActionType.state:
             tmp_data = res.mess.get_action().data
-            res.data = tmp_data.get_mjstate(com.mj_name).__dict__
+            res.data = tmp_data.get_mjstate(com.mj_name)
         return res
 
     @staticmethod
@@ -178,17 +182,7 @@ class MockComExecutor(ComExecutor):
     @staticmethod
     def _state(com, res):
         res.mess = "OK - State"
-        res.data = {
-            'qued_time': 1447672171.6055062,
-            'start_time': 1447672151.6055062,
-            'run_interval': 50,
-            'status': TaskStatus.running.name,
-            'insert_time': 1447672161.6055062,
-            'running_jobs': 2,
-            'finished_jobs': 0,
-            'name': 'testmj',
-            'estimated_jobs': 2,
-            'known_jobs': 2}
+        res.data = MJState(com.mj_name)
         return res
 
     @staticmethod
