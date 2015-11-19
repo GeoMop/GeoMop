@@ -418,7 +418,7 @@ class YamlEditorWidget(QsciScintilla):
         return AutocompleteContext(*context_args)
 
     def _on_autocompletion_selected(self, selected, position):
-        """Handle autocomplete selection.
+        """Handle autocompletion selection (from QScintilla).
 
         :param str selected: text of the selected option
         :param int position: index of the beginning of the autocompleted word in the text
@@ -427,13 +427,13 @@ class YamlEditorWidget(QsciScintilla):
         option = selected.decode('utf-8')
         option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
-        # TODO: move to LineAnalyzer
-        word_to_replace = re.search(r'^[!*a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
+        lines = text[position:]
+        line = lines.split('\n')[0]
+        word_to_replace = LineAnalyzer.get_autocompletion_word(line)
         end_position = position + len(word_to_replace)
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
         with self.reload_chunk:
             self.replaceSelectedText(option_text)
-
 
 # ---------------------------- FIND / REPLACE --------------------------------
 
@@ -638,8 +638,7 @@ class YamlEditorWidget(QsciScintilla):
         # autocompletion - show if it is pending or refresh
         if cfg.autocomplete_helper.pending_check:
             cfg.autocomplete_helper.pending_check = False
-            context = self.autocompletion_context
-            if context.hint is not None and len(context.hint) == 1:
+            if len(self.autocompletion_context.hint) == 1:
                 cfg.autocomplete_helper.show_autocompletion()
             else:
                 cfg.autocomplete_helper.refresh_autocompletion()

@@ -127,9 +127,9 @@ class AutocompleteHelper:
             return
         if context is None:
             context = getattr(self._editor, 'autocompletion_context', None)
+        self.context = context
         if context.hint is None:
             return
-        self.context = context
         filter_ = None
         if context is not None:
             filter_ = context.hint
@@ -196,9 +196,8 @@ class AutocompleteHelper:
         """Notify the editor to display autocompletion."""
         send_scintilla = getattr(self._editor, 'SendScintilla', None)
         if callable(send_scintilla):
-            if self.context:
-                send_scintilla(QsciScintilla.SCI_AUTOCSHOW, len(self.context.hint),
-                               self.scintilla_options)
+            send_scintilla(QsciScintilla.SCI_AUTOCSHOW, len(self.context.hint),
+                           self.scintilla_options)
 
     def _hide(self):
         """Notify the editor to hide autocompletion."""
@@ -229,6 +228,6 @@ class AutocompleteContext:
     def hint(self):
         """the beginning of the word up to the cursor"""
         if self.word is None or self.index is None:
-            return None
+            return ''
         end = self.index
         return self.word[:end]

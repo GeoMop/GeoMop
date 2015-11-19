@@ -113,3 +113,17 @@ def test_is_empty(line, expected):
 ])
 def test_get_indent(line, expected):
     assert LineAnalyzer.get_indent(line) == expected
+
+
+@pytest.mark.parametrize('line, start_index, expected', [
+    ('12', None, '12'),
+    ('key: ', None, 'key: '),
+    ('key: 3', None, 'key: '),
+    ('  key: 3', 2, 'key: '),
+    ('  key: 3', None, ''),
+    ('  key: 3', 2, 'key: '),
+    ('!tag  ', None, '!tag'),
+    ('*link  ', None, '*link'),
+])
+def test_get_autocompletion_word(line, start_index, expected):
+    assert LineAnalyzer.get_autocompletion_word(line, start_index) == expected

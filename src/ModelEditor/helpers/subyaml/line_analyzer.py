@@ -14,7 +14,7 @@ _re_uncomment = re.compile(r'(\s*)# ?(.*)')
 _re_find_node_start = re.compile(r'\s*(-\s+)?(?!#)\S')
 _re_inline_comment = re.compile(r'\s+#')
 _re_reversed_word = re.compile(r'(?!:)[a-zA-Z0-9_]*[!*]?')
-_re_autocomplete_word = re.compile(r'[!*]?[a-zA-Z0-9_]*(?::(?:\s|$))?')
+_re_autocompletion_word = re.compile(r'[!*]?[a-zA-Z0-9_]*(?::(?:\s|$))?')
 _re_whitespace_only = re.compile(r'^\s*$')
 
 
@@ -242,13 +242,9 @@ class LineAnalyzer:
         else:
             word_cursor_index = 0
         start_index = index - word_cursor_index
-        word = line[start_index:]
 
         # find the end of the word
-        match_end = _re_autocomplete_word.match(word)
-        if not match_end:
-            return None, None
-        word = word[:len(match_end.group())]
+        word = LineAnalyzer.get_autocompletion_word(line, start_index)
 
         return word, word_cursor_index
 
@@ -264,3 +260,22 @@ class LineAnalyzer:
         if not match:
             return False
         return True
+
+    @staticmethod
+    def get_autocompletion_word(line, start_index=None):
+        """Return the entire word to be replace by autocompletion.
+
+        :param str line: text of a single line
+        :param int start_index: the start index of the word; assume word start at the
+           line beginning if not specified
+        :return: the entire word to be replaced
+        :rtype: str or ``None``
+        """
+        if start_index is None:
+            start_index = 0
+        line = line[start_index:]
+        word_match = _re_autocompletion_word.match(line)
+        if not word_match:
+            return None
+        else:
+            return word_match.group()
