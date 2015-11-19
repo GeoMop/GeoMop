@@ -232,12 +232,15 @@ class LineAnalyzer:
         line = LineAnalyzer.strip_comment(line)
         if index > len(line):
             return None, None
-        # find the start of the word
-        reversed_line_start = line[index-1::-1]
-        match_start = _re_reversed_word.match(reversed_line_start)
-        if not match_start:
-            return None, None
-        word_cursor_index = len(match_start.group())
+        if index != 0:
+            # find the start of the word
+            reversed_line_start = line[index-1::-1]
+            match_start = _re_reversed_word.match(reversed_line_start)
+            if not match_start:
+                return None, None
+            word_cursor_index = len(match_start.group())
+        else:
+            word_cursor_index = 0
         start_index = index - word_cursor_index
         word = line[start_index:]
 

@@ -35,6 +35,8 @@ class AutocompleteHelper:
         """:py:class:`AutocompleteContext` for the current word"""
         self._editor = None
         """editor component that receives signals to show and hide autocompletion"""
+        self.pending_check = False
+        """is autocompletion pending to be checked for automatic display"""
         self.set_editor(editor)
 
     @property

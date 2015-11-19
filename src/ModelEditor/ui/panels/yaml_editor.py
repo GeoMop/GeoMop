@@ -628,7 +628,16 @@ class YamlEditorWidget(QsciScintilla):
                     self.elementChanged.emit(self._pos.cursor_type_position.value,
                                              old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, column + 1)
-        cfg.autocomplete_helper.refresh_autocompletion()
+        # autocompletion - show if it is pending or refresh
+        if cfg.autocomplete_helper.pending_check:
+            cfg.autocomplete_helper.pending_check = False
+            context = self.autocompletion_context
+            if context.hint is not None and len(context.hint) == 1:
+                cfg.autocomplete_helper.show_autocompletion()
+            else:
+                cfg.autocomplete_helper.refresh_autocompletion()
+        else:
+            cfg.autocomplete_helper.refresh_autocompletion()
 
     def _text_changed(self):
         """Handle :py:attr:`textChanged` signal."""
@@ -636,6 +645,10 @@ class YamlEditorWidget(QsciScintilla):
             self._pos.new_line_completation(self)
             self._pos.spec_char_completation(self)
             self._valid_bounds = self._pos.fix_bounds(self)
+            # flag autocompletion to be checked whether to display it or not if it is
+            # turned on globally
+            if cfg.config.display_autocompletion:
+                cfg.autocomplete_helper.pending_check = True
 
     def _reload_chunk_on_exit(self):
         """Emit a structure change upon closing a reload chunk."""

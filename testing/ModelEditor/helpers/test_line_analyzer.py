@@ -81,6 +81,7 @@ def test_strip_comment(line, expected):
     ('', 3, (None, None)),
     ('# key: 3', 3, (None, None)),
     ('  key: 3 # comment', 3, ('key: ', 1)),
+    ('problem', 0, ('problem', 0)),
 ])
 def test_get_autocomplete_context(line, index, expected):
     assert LineAnalyzer.get_autocomplete_context(line, index) == expected
