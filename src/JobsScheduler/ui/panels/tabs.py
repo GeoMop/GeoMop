@@ -49,7 +49,7 @@ class AbstractTab(QtWidgets.QWidget):
         self.ui.horizontalLayout.setObjectName("horizontalLayout")
         self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
         self.ui.headers = ["Header"]
-        self.time_format = "%d/%m/%y %H:%M:%S"
+        self.time_format = "%H:%M:%S %d/%m/%y"
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.setAlternatingRowColors(True)
         self.ui.treeWidget.setSortingEnabled(True)
