@@ -4,7 +4,6 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-import helpers.keyboard_shortcuts as shortcuts
 from meconfig import cfg
 from ui.dialogs import SettingsDialog
 
@@ -34,7 +33,7 @@ class MainSettingsMenu(QMenu):
         if cfg.config.DEBUG_MODE:
             self._edit_format_action = QAction(
                 '&Edit Format File ...', self)
-            self._edit_format_action.setShortcut(shortcuts.EDIT_FORMAT.key_sequence)
+            self._edit_format_action.setShortcut(cfg.get_shortcut('edit_format').key_sequence)
             self._edit_format_action.setStatusTip('Edit format file in Json Editor')
             self._edit_format_action.triggered.connect(self._model_editor.edit_format)
             self._format.addAction(self._edit_format_action)

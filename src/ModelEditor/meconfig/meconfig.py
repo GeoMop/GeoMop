@@ -5,9 +5,10 @@
 """
 
 import os
+from copy import deepcopy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer
+from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer, shortcuts
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments
@@ -34,9 +35,15 @@ class _Config:
 
         from os.path import expanduser
         self.last_data_dir = expanduser("~")
+        """directory of the most recently opened data file"""
         self.recent_files = []
+        """a list of recently opened files"""
         self.format_files = []
+        """a list of format files"""
         self.display_autocompletion = False
+        """whether to display autocompletion automatically"""
+        self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
+        """user customizable keyboard shortcuts"""
 
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE)
@@ -443,6 +450,23 @@ class MEConfig:
                 cls.set_current_format_file(transformator.new_version)
             else:
                 cls.update()
+
+    @classmethod
+    def get_shortcut(cls, name):
+        """Locate a keyboard shortcut by its action name.
+
+        :param str name: name of the shortcut
+        :return: the assigned shortcut
+        :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
+        """
+        shortcut = None
+        if name in shortcuts.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        elif name in cls.config.shortcuts:
+            shortcut = cls.config.shortcuts[name]
+        if shortcut:
+            return shortcuts.get_shortcut(shortcut)
+        return None
 
     @classmethod
     def _report_error(cls, mess, err):
