@@ -16,7 +16,7 @@ class Overview(QtWidgets.QTreeWidget):
                         "Start Time", "Run Interval", "Status",
                         "Known Jobs", "Estimated Jobs", "Finished Jobs",
                         "Running Jobs"]
-        self.time_format = "%d/%m/%y %H:%M:%S"
+        self.time_format = "%H:%M:%S %d/%m/%y"
         self.setObjectName("MultiJobOverview")
         self.setHeaderLabels(self.headers)
         self.setColumnHidden(0, True)
@@ -47,12 +47,9 @@ class Overview(QtWidgets.QTreeWidget):
     def _get_item_by_key(self, key):
         for idx in range(0, self.topLevelItemCount()):
                 item = self.topLevelItem(idx)
-                if item is 0:
-                    return None
-                elif item.text(0) == key:
+                if item.text(0) == key:
                     return idx, item
-                else:
-                    return None
+        return None
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
@@ -61,7 +58,7 @@ class Overview(QtWidgets.QTreeWidget):
 
     def update_item(self, key, data):
         index, item = self._get_item_by_key(key)
-        if index and item:
+        if item:
             self._update_item(item, data, self.time_format)
         self.resize_all_columns_to_contents()
 

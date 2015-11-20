@@ -14,6 +14,9 @@ class TaskStatus(IntEnum):
     stoping = 3
     ready = 4
     none = 5
+    pausing = 6
+    paused = 7
+    resuming = 8
 
 
 class MJState:

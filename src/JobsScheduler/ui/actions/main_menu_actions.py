@@ -10,7 +10,7 @@ import PyQt5.QtWidgets as QtWidgets
 
 class ActionExit(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionExit, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Exit")
         self.setShortcut("Ctrl+Q")
         self.setObjectName("actionExit")
@@ -18,7 +18,7 @@ class ActionExit(QtWidgets.QAction):
 
 class ActionAddMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionAddMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Add")
         self.setShortcut("Alt+A")
         self.setObjectName("actionAddMultiJob")
@@ -26,7 +26,7 @@ class ActionAddMultiJob(QtWidgets.QAction):
 
 class ActionEditMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionEditMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Edit")
         self.setShortcut("Alt+E")
         self.setObjectName("actionEditMultiJob")
@@ -34,7 +34,7 @@ class ActionEditMultiJob(QtWidgets.QAction):
 
 class ActionCopyMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionCopyMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Copy")
         self.setShortcut("Alt+C")
         self.setObjectName("actionCopyMultiJob")
@@ -42,7 +42,7 @@ class ActionCopyMultiJob(QtWidgets.QAction):
 
 class ActionDeleteMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionDeleteMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Delete")
         self.setShortcut("Alt+D")
         self.setObjectName("actionDeleteMultiJob")
@@ -50,7 +50,7 @@ class ActionDeleteMultiJob(QtWidgets.QAction):
 
 class ActionRunMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionRunMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Run")
         self.setShortcut("Ctrl+R")
         self.setObjectName("actionRunMultiJob")
@@ -58,15 +58,23 @@ class ActionRunMultiJob(QtWidgets.QAction):
 
 class ActionPauseMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionPauseMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Pause")
         self.setShortcut("Ctrl+P")
         self.setObjectName("actionPauseMultiJob")
 
 
+class ActionResumeMultiJob(QtWidgets.QAction):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("Resume")
+        self.setShortcut("Ctrl+U")
+        self.setObjectName("actionResumeMultiJob")
+
+
 class ActionStopMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionStopMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Stop")
         self.setShortcut("Ctrl+S")
         self.setObjectName("actionStopMultiJob")
@@ -74,7 +82,7 @@ class ActionStopMultiJob(QtWidgets.QAction):
 
 class ActionRestartMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionRestartMultiJob, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Restart")
         self.setShortcut("Ctrl+E")
         self.setObjectName("actionRestartMultiJob")
@@ -82,7 +90,7 @@ class ActionRestartMultiJob(QtWidgets.QAction):
 
 class ActionSshPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionSshPresets, self).__init__(parent)
+        super().__init__(parent)
         self.setText("SSH Connections")
         self.setShortcut("Shift+S")
         self.setObjectName("actionSshPresets")
@@ -90,7 +98,7 @@ class ActionSshPresets(QtWidgets.QAction):
 
 class ActionPbsPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionPbsPresets, self).__init__(parent)
+        super().__init__(parent)
         self.setText("PBS Presets")
         self.setShortcut("Shift+P")
         self.setObjectName("actionPbsPresets")
@@ -98,7 +106,7 @@ class ActionPbsPresets(QtWidgets.QAction):
 
 class ActionResourcesPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionResourcesPresets, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Resources")
         self.setShortcut("Shift+R")
         self.setObjectName("actionResourcesPresets")
@@ -106,7 +114,7 @@ class ActionResourcesPresets(QtWidgets.QAction):
 
 class ActionEnvPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
-        super(ActionEnvPresets, self).__init__(parent)
+        super().__init__(parent)
         self.setText("Environments")
         self.setShortcut("Shift+E")
         self.setObjectName("actionEnvPresets")

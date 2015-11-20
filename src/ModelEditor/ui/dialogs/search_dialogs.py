@@ -1,11 +1,7 @@
+"""Module contains dialogs for search functions - find and replace.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-Module contains dialogs for search functions - find and replace.
-"""
-
-# pylint: disable=invalid-name
-
-__author__ = 'Tomas Krizek'
-
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QGridLayout)
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -136,7 +132,7 @@ class ReplaceDialog(FindDialog):
 
     Parameters: search term (str), replace text (str), is regular expression (bool),
     is case sensitive (bool), is entire word (bool)
-    
+
     When signal is triggered, current selection should be replaced with the replacement text
     as well as all other matches, as long as there are some.
     """
