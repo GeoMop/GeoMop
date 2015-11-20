@@ -47,8 +47,13 @@ class _Config:
 
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE)
-            if hasattr(data, '__dict__'):
-                self.__dict__.update(data.__dict__)
+            self.last_data_dir = getattr(data, 'last_data_dir', self.last_data_dir)
+            self.recent_files = getattr(data, 'recent_files', self.recent_files)
+            self.format_files = getattr(data, 'format_files', self.format_files)
+            self.display_autocompletion = getattr(data, 'display_autocompletion',
+                                                  self.display_autocompletion)
+            if hasattr(data, 'shortcuts'):
+                self.shortcuts.update(data.shortcuts)
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""

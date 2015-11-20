@@ -598,10 +598,12 @@ class YamlEditorWidget(QsciScintilla):
 
     def _handle_keypress_tab(self, event):
         """Handle keyPress event for :kdb:`Tab`."""
-        if cfg.get_shortcut('indent').matches_key_event(event) and cfg.autocomplete_helper.visible:
+        if cfg.autocomplete_helper.visible:
             self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
-        else:
+        elif cfg.get_shortcut('indent').matches_key_event(event):
             self.indent()
+        else:
+            self.insert_at_cursor(' ' * self.tabWidth())
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 

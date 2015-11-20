@@ -23,6 +23,7 @@ class KeyboardShortcut:
         'ENTER': QsciScintilla.SCK_RETURN,
         'ESC': QsciScintilla.SCK_ESCAPE,
         'BACKSPACE': QsciScintilla.SCK_BACK,
+        'SPACE': ord(' '),
     }
 
     __QT_MODIFIERS = {
@@ -37,6 +38,7 @@ class KeyboardShortcut:
         'ENTER': Qt.Key_Return,
         'ESC': Qt.Key_Escape,
         'BACKSPACE': Qt.Key_Backspace,
+        'SPACE': Qt.Key_Space,
     }
 
     __SHORTCUTS = {}
@@ -126,7 +128,7 @@ DEFAULT_USER_SHORTCUTS = {
     'comment': 'Ctrl+/',
     'delete': 'Delete',
     'select_all': 'Ctrl+A',
-    'show_autocompletion': 'Ctrl+ ',
+    'show_autocompletion': 'Ctrl+Space',
 
     # menu actions
     'new_file': 'Ctrl+N',
