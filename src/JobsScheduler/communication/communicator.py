@@ -318,9 +318,9 @@ class Communicator():
         if self.libs_env.install_job_libs:
             self.output.install_job_libs()
         self.output.install()
-        logger.debug("Run next file")
         self.status.next_installed = True
         self.status.save()
+        logger.debug("Run next file")
         self._exec_()
         self.status.next_started = True
         self.status.save()

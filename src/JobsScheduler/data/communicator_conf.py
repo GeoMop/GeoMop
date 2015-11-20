@@ -234,6 +234,18 @@ class CommunicatorConfig(object):
 
         self.pbs = None
         """Pbs settings class :class:`data.communicator_conf.PbsConfig`"""
+        
+        self.app_version = None
+        """
+        Applicationj version. If version in remote installation is different
+        new instalation is created
+        """
+        
+        self.conf_long_id = None
+        """
+        Long id of configuration. If  in remote installation is different
+        id new configuration is reloaded
+        """
 
         self.python_env = None
         """

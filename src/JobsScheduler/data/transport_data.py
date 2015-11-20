@@ -215,9 +215,7 @@ class ErrorData(ActionData):
         if json_data is None:            
             self.data["msg"] = None
         else:
-            self.data = json.loads(json_data)
-            
-        return json.dumps({})
+            self.data = json.loads(json_data)            
 
 class JobData(ActionData):
     """Data for adding new job over remote"""    

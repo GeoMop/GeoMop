@@ -100,41 +100,43 @@ class JobsCommunicator(Communicator):
         """
         make_custom_action = True
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            # 
             pending_outputs = []
             next = 0
             for id in self.jobs:
                 # connect
-                if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
+                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
                     pending_outputs.append(id)
                     if id == self.last_send_id:
-                        next = len(pending_outputs)               
+                        next = len(pending_outputs)
             if len(pending_outputs) > 0:
                 if len(pending_outputs) == next:
                     next = 0
                 id = pending_outputs[next]
                 action=tdata.Action(tdata.ActionType.add_job)
-                action.data.set_conn(id)
+                action.data.set_id(id)
                 mess = action.get_message()
                 self.last_send_id = id
+                logger.debug("Before send")
                 self.send_message(mess)
                 mess = self.receive_message()
                 if mess is not None and mess.action_type == tdata.ActionType.job_conn:
                     # connection over remote was established
-                    self.job_outputs[id].host = mess.get_action().data['host']
-                    self.job_outputs[id].port = mess.get_action().data['port']
-                    self._connect_socket(self.job_outputs[id], 1)
-        for id in self.jobs:
-            # connect
-            if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
-                self._connect_socket(self.job_outputs[id], 1)
-                make_custom_action = False
-        else:         
-            for id in self.jobs:
-                # connect
-                if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
+                    self.job_outputs[id].host = mess.get_action().data.data['host']
+                    self.job_outputs[id].port = mess.get_action().data.data['port']
                     self._connect_socket(self.job_outputs[id], 1)
                     make_custom_action = False
+        else:
+            for id in self.jobs:
+                # connect
+                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                    self._connect_socket(self.job_outputs[id], 1)
+                    make_custom_action = False
+            else:         
+                for id in self.jobs:
+                    # connect
+                    if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
+                        self._connect_socket(self.job_outputs[id], 1)
+                        make_custom_action = False
         if make_custom_action:
             self.anc_idle_func()
 
@@ -144,7 +146,7 @@ class JobsCommunicator(Communicator):
         actual job. Connectcions will be maked by add_job if is
         needed.
         """
-        if self.conf.output_type != comconf.OutputCommType.ssh:
+        if self.conf.output_type == comconf.OutputCommType.ssh:
             super(JobsCommunicator, self)._exec_()
         
     def add_job(self, id, job):
@@ -153,7 +155,8 @@ class JobsCommunicator(Communicator):
         """Dictionary of jobs that is run by communicator"""
         self.job_outputs[id] = self.get_output(self.conf, id)
         self._job_semafores[id] = threading.Semaphore()
-        self.job_outputs[id].install() # only copy path        
+        
+        self.job_outputs[id].installation.local_copy_path() # only copy path
         logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
         
         if self.conf.output_type == comconf.OutputCommType.ssh:
