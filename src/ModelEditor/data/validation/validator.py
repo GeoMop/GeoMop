@@ -3,10 +3,12 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
+from helpers import Notification
+from util import TextValue, Span
+
 from . import checks
 from ..data_node import DataNode
 from ..format import is_scalar
-from helpers import Notification
 
 
 class Validator:
@@ -113,6 +115,11 @@ class Validator:
                 notification.span = get_node_key(node).key.span
             self._report_notification(notification)
         else:
+            if node.type is None:
+                # if default_descendant defines the AbstractRecord type, add it to data structure
+                node.type = TextValue()
+                node.type.value = concrete_type.get('type_name')
+                node.type.span = Span(node.span.start, node.span.start)
             concrete_type['implemented_abstract_record'] = input_type
             node.input_type = concrete_type
             self._validate_record(node, concrete_type)

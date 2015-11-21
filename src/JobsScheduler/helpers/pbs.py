@@ -1,4 +1,5 @@
 import os
+import copy
 
 class Pbs():
     """
@@ -6,7 +7,7 @@ class Pbs():
     """
     def __init__(self, mj_path, config):
         """init"""
-        self.config = config
+        self.config = copy.deepcopy(config)
         """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
         self. mj_path = mj_path
         """folder name for multijob data"""

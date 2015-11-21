@@ -5,13 +5,12 @@ JobScheduler data structures
 @contact: jan.gabriel@tul.cz
 """
 import logging
-
-logger = logging.getLogger("UiTrace")
-
 import config as cfg
 import data.communicator_conf as comconf
 from communication import installation as inst
 from ui.dialogs.resource_dialog import UiResourceDialog
+
+logger = logging.getLogger("UiTrace")
 
 
 class PersistentDict(dict):

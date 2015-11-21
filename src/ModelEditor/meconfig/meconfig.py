@@ -5,10 +5,10 @@
 """
 
 import os
-import copy
+from copy import deepcopy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer
+from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer, shortcuts
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments
@@ -32,20 +32,28 @@ class _Config:
     """Count of recent files"""
 
     def __init__(self, readfromconfig=True):
+
+        from os.path import expanduser
+        self.last_data_dir = expanduser("~")
+        """directory of the most recently opened data file"""
+        self.recent_files = []
+        """a list of recently opened files"""
+        self.format_files = []
+        """a list of format files"""
+        self.display_autocompletion = False
+        """whether to display autocompletion automatically"""
+        self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
+        """user customizable keyboard shortcuts"""
+
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE)
-        else:
-            data = None
-
-        if data is not None:
-            self.recent_files = copy.deepcopy(data.recent_files)
-            self.format_files = copy.deepcopy(data.format_files)
-            self.last_data_dir = data.last_data_dir
-        else:
-            from os.path import expanduser
-            self.last_data_dir = expanduser("~")
-            self.recent_files = []
-            self.format_files = []
+            self.last_data_dir = getattr(data, 'last_data_dir', self.last_data_dir)
+            self.recent_files = getattr(data, 'recent_files', self.recent_files)
+            self.format_files = getattr(data, 'format_files', self.format_files)
+            self.display_autocompletion = getattr(data, 'display_autocompletion',
+                                                  self.display_autocompletion)
+            if hasattr(data, 'shortcuts'):
+                self.shortcuts.update(data.shortcuts)
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
@@ -425,7 +433,7 @@ class MEConfig:
         if cls.main_window is not None:
             import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
-            
+
             dialog = TranformationDetailDlg(transformator.name,
                                             transformator.description,
                                             transformator.old_version,
@@ -434,7 +442,7 @@ class MEConfig:
                                             transformator.new_version in cls.transformation_files,
                                             cls.main_window)
             res = QtWidgets.QDialog.Accepted == dialog.exec_()
-        if res :
+        if res:
             try:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:
@@ -447,9 +455,27 @@ class MEConfig:
                 cls.set_current_format_file(transformator.new_version)
             else:
                 cls.update()
-                
+
     @classmethod
-    def _report_error(cls, mess,  err):
+    def get_shortcut(cls, name):
+        """Locate a keyboard shortcut by its action name.
+
+        :param str name: name of the shortcut
+        :return: the assigned shortcut
+        :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
+        """
+        shortcut = None
+        if name in shortcuts.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        elif name in cls.config.shortcuts:
+            shortcut = cls.config.shortcuts[name]
+        if shortcut:
+            return shortcuts.get_shortcut(shortcut)
+        return None
+
+    @classmethod
+    def _report_error(cls, mess, err):
+        """Report an error with dialog."""
         from geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(cls.main_window)
         err_dialog.open_error_dialog(mess, err)

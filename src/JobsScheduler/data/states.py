@@ -5,6 +5,7 @@ from enum import IntEnum
 
 logger = logging.getLogger("Remote")
 
+
 class TaskStatus(IntEnum):
     """Action type"""
     installation = 0
@@ -13,6 +14,10 @@ class TaskStatus(IntEnum):
     stoping = 3
     ready = 4
     none = 5
+    pausing = 6
+    paused = 7
+    resuming = 8
+
 
 class MJState:
     def __init__(self, name):
@@ -26,7 +31,7 @@ class MJState:
         """when multiJob was started"""
         self.run_interval = 0
         """Job run time from start in second"""
-        self.status=TaskStatus.none
+        self.status = TaskStatus.none
         """multijob status"""
         self.known_jobs = 0
         """count of known jobs (minimal amout of jobs)"""
@@ -36,6 +41,7 @@ class MJState:
         """count of finished jobs"""
         self.running_jobs = 0
         """count of running jobs"""
+
 
 class JobState:
     def __init__(self, name):
@@ -47,14 +53,15 @@ class JobState:
         """when Job was qued"""
         self.start_time = None
         """when Job was started"""
-        self.run_interval=0
+        self.run_interval = 0
         """Job run time from start in second"""
-        self.status=TaskStatus.none
+        self.status = TaskStatus.none
         """job status"""
-        
+
+
 class JobsState:
     def __init__(self):
-        self.jobs=[]
+        self.jobs = []
         """array of jobs states"""
 
     def save_file(self, res_dir):

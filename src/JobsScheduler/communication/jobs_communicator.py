@@ -6,6 +6,7 @@ from .communicator import Communicator
 from  communication.installation import  Installation
 from communication.std_input_comm import StdInputComm
 import threading
+from  communication.exec_output_comm import  ExecOutputComm
 import time
 
 logger = logging.getLogger("Remote")
@@ -16,8 +17,11 @@ class JobsCommunicator(Communicator):
     def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None, idle_func=None):
         self.conf = copy.deepcopy(init_conf)
         """Copy of communicator configuration use up to for job initialization"""
-        init_conf.output_type = comconf.OutputCommType.none
-        super(JobsCommunicator, self).__init__(init_conf, id, action_func_before, action_func_after, self.job_idle_func)
+        if init_conf.output_type != comconf.OutputCommType.ssh:
+            # socket based connection have output directly to jobs            
+            init_conf.output_type = comconf.OutputCommType.none            
+        super(JobsCommunicator, self).__init__(
+                init_conf, id, action_func_before, action_func_after, self.job_idle_func)
         self.mj_name = init_conf.mj_name        
         """folder name for multijob data"""
         self.jobs = {}
@@ -26,6 +30,8 @@ class JobsCommunicator(Communicator):
         """Dictionary of jobs outputs"""
         self._job_semafores = {}
         """Job semafore for guarding one run job action"""
+        self.last_send_id = None 
+        """Job id from which is send last message over ssh"""
         if idle_func is None:
             self.anc_idle_func = self.standart_idle_function
             """
@@ -79,23 +85,69 @@ class JobsCommunicator(Communicator):
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
 
     def  job_idle_func(self):
-        """Make job specific action. If is not action pending, run anc_idle_func"""
+        """
+        Make job specific action. If is not action pending, run anc_idle_func
+        
+        For connection over ssh make:
+            - Find next unconnected over socket job and send add_job message to it
+              over remote. If job_conn akcion is returned, connect, and continue 
+              connecion over socket
+        For other connections make:
+            - Find first unconnected job and try connect it
+
+        Call standart communicator idle function. But only if long action is not 
+        already processed it.
+        """
         make_custom_action = True
-        for id in self.jobs:
-            # connect
-            if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
-                self._connect_socket(self.job_outputs[id], 1)
-                make_custom_action = False
+        if self.conf.output_type == comconf.OutputCommType.ssh:
+            pending_outputs = []
+            next = 0
+            for id in self.jobs:
+                # connect
+                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                    pending_outputs.append(id)
+                    if id == self.last_send_id:
+                        next = len(pending_outputs)
+            if len(pending_outputs) > 0:
+                if len(pending_outputs) == next:
+                    next = 0
+                id = pending_outputs[next]
+                action=tdata.Action(tdata.ActionType.add_job)
+                action.data.set_id(id)
+                mess = action.get_message()
+                self.last_send_id = id
+                logger.debug("Before send")
+                self.send_message(mess)
+                mess = self.receive_message()
+                if mess is not None and mess.action_type == tdata.ActionType.job_conn:
+                    # connection over remote was established
+                    self.job_outputs[id].host = mess.get_action().data.data['host']
+                    self.job_outputs[id].port = mess.get_action().data.data['port']
+                    self._connect_socket(self.job_outputs[id], 1)
+                    make_custom_action = False
+        else:
+            for id in self.jobs:
+                # connect
+                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                    self._connect_socket(self.job_outputs[id], 1)
+                    make_custom_action = False
+            else:         
+                for id in self.jobs:
+                    # connect
+                    if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
+                        self._connect_socket(self.job_outputs[id], 1)
+                        make_custom_action = False
         if make_custom_action:
-            self.anc_idle_func()    
-    
+            self.anc_idle_func()
+
     def _exec_(self):
         """
         Exec for jobs_communicator don't make connection for
         actual job. Connectcions will be maked by add_job if is
         needed.
         """
-        pass
+        if self.conf.output_type == comconf.OutputCommType.ssh:
+            super(JobsCommunicator, self)._exec_()
         
     def add_job(self, id, job):
         """Add job to dictionary, process it and make connection if is needed"""
@@ -103,13 +155,19 @@ class JobsCommunicator(Communicator):
         """Dictionary of jobs that is run by communicator"""
         self.job_outputs[id] = self.get_output(self.conf, id)
         self._job_semafores[id] = threading.Semaphore()
-        self.job_outputs[id].install() # only copy path
         
+        self.job_outputs[id].installation.local_copy_path() # only copy path
         logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
-        t = threading.Thread(target= self._run_action, 
-              args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
-        t.daemon = True
-        t.start()
+        
+        if self.conf.output_type == comconf.OutputCommType.ssh:
+            self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
+            self.job_outputs[id].initialized = True
+        else:
+            self.job_outputs[id] = self.get_output(self.conf, id)
+            t = threading.Thread(target= self._run_action, 
+                  args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
+            t.daemon = True
+            t.start()
         
     def _run_action(self, action, id, semafore):
         """Run action guardet by semafore"""        
@@ -119,11 +177,15 @@ class JobsCommunicator(Communicator):
         
     def install(self):
         """make installation"""
-        if self.libs_env.install_job_libs:
-            Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_env, self.conf.libs_env)
-        self._install_lock.acquire()
-        self._instaled = True
-        self._install_lock.release()
+        if self.conf.output_type == comconf.OutputCommType.ssh:
+            super(JobsCommunicator, self).install()
+        else:
+            # socket based connection only install libs
+            if self.libs_env.install_job_libs:
+                Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_env, self.conf.libs_env)
+            self._install_lock.acquire()
+            self._instaled = True
+            self._install_lock.release()
         
     def restore(self):
         """Restore connection chain to next communicator"""

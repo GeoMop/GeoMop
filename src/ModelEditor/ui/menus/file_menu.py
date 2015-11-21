@@ -1,12 +1,9 @@
-"""
-Module contains file menu widget.
-"""
+"""Module contains file menu widget.
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-import helpers.keyboard_shortcuts as shortcuts
 from meconfig import cfg
 from geomop_dialogs import GMAboutDialog
 
@@ -23,25 +20,25 @@ class MainFileMenu(QMenu):
         self._about_dialog = GMAboutDialog(self._model_editor.mainwindow, 'GeoMop ModelEditor')
 
         self._new_file_action = QAction('&New File ...', self)
-        self._new_file_action.setShortcut(shortcuts.NEW_FILE.key_sequence)
+        self._new_file_action.setShortcut(cfg.get_shortcut('new_file').key_sequence)
         self._new_file_action.setStatusTip('New model yaml file')
         self._new_file_action.triggered.connect(self._model_editor.new_file)
         self.addAction(self._new_file_action)
 
         self._open_file_action = QAction('&Open File ...', self)
-        self._open_file_action.setShortcut(shortcuts.OPEN_FILE.key_sequence)
+        self._open_file_action.setShortcut(cfg.get_shortcut('open_file').key_sequence)
         self._open_file_action.setStatusTip('Open model yaml file')
         self._open_file_action.triggered.connect(self._model_editor.open_file)
         self.addAction(self._open_file_action)
 
         self._save_file_action = QAction('&Save File', self)
-        self._save_file_action.setShortcut(shortcuts.SAVE_FILE.key_sequence)
+        self._save_file_action.setShortcut(cfg.get_shortcut('save_file').key_sequence)
         self._save_file_action.setStatusTip('Save model yaml file')
         self._save_file_action.triggered.connect(self._model_editor.save_file)
         self.addAction(self._save_file_action)
 
         self._save_as_action = QAction('Save &As ...', self)
-        self._save_as_action.setShortcut(shortcuts.SAVE_FILE_AS.key_sequence)
+        self._save_as_action.setShortcut(cfg.get_shortcut('save_file_as').key_sequence)
         self._save_as_action.setStatusTip('Save model yaml file as')
         self._save_as_action.triggered.connect(self._model_editor.save_as)
         self.addAction(self._save_as_action)
@@ -53,7 +50,7 @@ class MainFileMenu(QMenu):
         self.addSeparator()
 
         self._import_file_action = QAction('&Import File ...', self)
-        self._import_file_action.setShortcut(shortcuts.IMPORT_FILE.key_sequence)
+        self._import_file_action.setShortcut(cfg.get_shortcut('import_file').key_sequence)
         self._import_file_action.setStatusTip('Import model from old con formatted file')
         self._import_file_action.triggered.connect(self._model_editor.import_file)
         self.addAction(self._import_file_action)
@@ -67,7 +64,7 @@ class MainFileMenu(QMenu):
         self.addSeparator()
 
         self._exit_action = QAction('E&xit', self)
-        self._exit_action.setShortcut(shortcuts.EXIT.key_sequence)
+        self._exit_action.setShortcut(cfg.get_shortcut('exit').key_sequence)
         self._exit_action.setStatusTip('Exit application')
         self._exit_action.triggered.connect(qApp.quit)
         self.addAction(self._exit_action)

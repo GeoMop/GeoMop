@@ -6,15 +6,17 @@ JobScheduler data reloader
 """
 import os
 import threading
+from queue import Empty
+
 import data.transport_data as tdata
 from enum import IntEnum
 from multiprocessing import Queue
 
 from communication import Installation
-from data.states import JobsState, TaskStatus
+from data.states import JobsState, MJState, TaskStatus
 
 
-class ComManager(object):
+class ComManager:
     def __init__(self):
         self.res_queue = Queue()
         self._workers = dict()
@@ -24,6 +26,23 @@ class ComManager(object):
         req = ReqData(key=key, com_type=ComType.install)
         worker.req_queue.put(req)
         self._workers[worker.key] = worker
+
+    def pause(self, key):
+        worker = self._workers[key]
+        req = ReqData(key=key, com_type=ComType.pause)
+        worker.req_queue.put(req)
+
+    def resume(self, key):
+        worker = self._workers[key]
+        req = ReqData(key=key, com_type=ComType.resume)
+        worker.req_queue.put(req)
+
+    def restart(self, key):
+        worker = self._workers[key]
+        req_stop = ReqData(key=key, com_type=ComType.pause)
+        req_run = ReqData(key=key, com_type=ComType.resume)
+        worker.req_queue.put(req_stop)
+        worker.req_queue.put(req_run)
 
     def state(self, key):
         worker = self._workers[key]
@@ -37,6 +56,7 @@ class ComManager(object):
 
     def stop(self, key):
         worker = self._workers[key]
+        worker.drop_all_req()
         req = ReqData(key=key, com_type=ComType.stop)
         worker.req_queue.put(req)
 
@@ -46,9 +66,115 @@ class ComManager(object):
         else:
             return False
 
+    def is_busy(self, key):
+        worker = self._workers.get(key, None)
+        if worker.req_queue.empty():
+            return False
+        return True
+
     def terminate(self):
         for key in self._workers:
             self._workers[key].stop()
+
+
+class ComManagerMock:
+    def __init__(self):
+        self.res_queue = Queue()
+        self._workers = dict()
+        self._last_state = dict()
+
+    def install(self, key, com):
+        self._workers[key] = com
+        mess = tdata.Message()
+        res = ResData(key, ComType.install, mess)
+        self.res_queue.put(res)
+        self._last_state[key] = True
+
+    def pause(self, key):
+        mess = tdata.Message()
+        res = ResData(key, ComType.pause, mess)
+        self.res_queue.put(res)
+        self._last_state[key] = False
+
+    def resume(self, key):
+        mess = tdata.Message()
+        res = ResData(key, ComType.resume, mess)
+        self.res_queue.put(res)
+        self._last_state[key] = True
+
+    def restart(self, key):
+        mess = tdata.Message()
+        res_pause = ResData(key, ComType.pause, mess)
+        self.res_queue.put(res_pause)
+        res_resume = ResData(key, ComType.resume, mess)
+        self.res_queue.put(res_resume)
+        self._last_state[key] = True
+
+    def state(self, key):
+        mess = tdata.Message()
+        data = MJState(self._workers[key].mj_name)
+        data.insert_time = 1448021814
+        data.qued_time = 1448021814
+        data.start_time = 1448021814
+        data.run_interval = 20
+        data.status = TaskStatus.running
+        data.known_jobs = 35
+        data.estimated_jobs = 10
+        data.finished_jobs = 20
+        data.running_jobs = 5
+        res = ResData(key, ComType.state, mess, None, data)
+        self.res_queue.put(res)
+
+    def results(self, key):
+        mess = tdata.Message()
+        job1 = JobsState()
+        job1.name = "testjob1"
+        job1.insert_time = 1448021814
+        job1.qued_time = 1448021814
+        job1.start_time = 1448021814
+        job1.run_interval = 0
+        job1.status = TaskStatus.running
+
+        job2 = JobsState()
+        job2.name = "testjob1"
+        job2.insert_time = 1448021814
+        job2.qued_time = 1448021814
+        job2.start_time = 1448021814
+        job2.run_interval = 0
+        job2.status = TaskStatus.running
+        res_path = Installation.get_result_dir_static(
+            self._workers[key].mj_name)
+        log_path = os.path.join(res_path, "log")
+        conf_path = Installation.get_config_dir_static(
+            self._workers[key].mj_name)
+        data = {
+            "jobs": [job1, job2],
+            "logs": log_path,
+            "conf": conf_path
+        }
+        res = ResData(key, ComType.results, mess, None, data)
+        self.res_queue.put(res)
+
+    def stop(self, key):
+        mess = tdata.Message()
+        del self._workers[key]
+        res = ResData(key, ComType.stop, mess)
+        self.res_queue.put(res)
+        self._last_state[key] = False
+
+    def is_installed(self, key):
+        if self._workers.get(key, None):
+            return self._last_state.get(key, False)
+        else:
+            return False
+
+    def is_busy(self, key):
+        if self.res_queue.empty():
+            return False
+        return True
+
+    def terminate(self):
+        pass
 
 
 class ReqData(object):
@@ -72,34 +198,43 @@ class ComType(IntEnum):
         install = 0
         results = 1
         state = 2
-        interrupt = 2
-        stop = 3
+        pause = 3
+        resume = 4
+        stop = 5
 
 
 class ComWorker(threading.Thread):
         def __init__(self, key, com, res_queue):
+            super().__init__(name=com.mj_name)
             self.key = key
             self.com = com
+            self._is_running = threading.Event()
             self.req_queue = Queue()
             self.res_queue = res_queue
-            super().__init__(name=com.mj_name)
             self.start()
 
+        def drop_all_req(self):
+            while not self.req_queue.empty():
+                try:
+                    self.req_queue.get(False, 0)
+                except Empty:
+                    continue
+
         def run(self):
-            while True:
+            self._is_running.set()
+            while self._is_running.is_set():
                 req = self.req_queue.get()
-                print("Got Req")
                 if req is None:
                     break
                 else:
                     res = ComExecutor.communicate(self.com, req)
                     self.res_queue.put(res)
-                    print("Got Res")
             res = ComExecutor.communicate(
                 self.com, ReqData(self.key, ComType.stop))
             self.res_queue.put(res)
 
         def stop(self):
+            self._is_running.clear()
             self.req_queue.put(None)
 
 
@@ -111,9 +246,18 @@ class ComExecutor(object):
             # install
             if req.com_type == ComType.install:
                 res = cls._install(com, res)
+
             # download results
             elif req.com_type == ComType.results:
                 res = cls._results(com, res)
+
+            # pause results
+            elif req.com_type == ComType.pause:
+                res = cls._pause(com, res)
+
+            # resume results
+            elif req.com_type == ComType.resume:
+                res = cls._resume(com, res)
 
             # stop
             elif req.com_type == ComType.stop:
@@ -122,6 +266,9 @@ class ComExecutor(object):
             # state
             elif req.com_type == ComType.state:
                 res = cls._state(com, res)
+
+            else:
+                raise Exception("Unsupported operation.")
 
         except Exception as e:
             res.err = e
@@ -133,6 +280,20 @@ class ComExecutor(object):
         com.install()
         res.mess = com.send_long_action(tdata.Action(
             tdata.ActionType.installation))
+        return res
+
+    @staticmethod
+    def _pause(com, res):
+        res.mess = com.send_long_action(tdata.Action(
+            tdata.ActionType.interupt_connection))
+        com.interupt()
+        return res
+
+    @staticmethod
+    def _resume(com, res):
+        com.restore()
+        res.mess = com.send_long_action(tdata.Action(
+            tdata.ActionType.restore_connection))
         return res
 
     @staticmethod
@@ -148,7 +309,7 @@ class ComExecutor(object):
                     tdata.ActionType.get_state))
         if res.mess.action_type == tdata.ActionType.state:
             tmp_data = res.mess.get_action().data
-            res.data = tmp_data.get_mjstate(com.mj_name).__dict__
+            res.data = tmp_data.get_mjstate(com.mj_name)
         return res
 
     @staticmethod
@@ -156,48 +317,6 @@ class ComExecutor(object):
         res.mess = com.send_long_action(tdata.Action(
                     tdata.ActionType.download_res))
         com.download()
-        res_path = Installation.get_result_dir_static(com.mj_name)
-        log_path = os.path.join(res_path, "log")
-        conf_path = Installation.get_config_dir_static(com.mj_name)
-        states = JobsState()
-        states.load_file(res_path)
-        res.data = {
-            "jobs": states.jobs,
-            "logs": log_path,
-            "conf": conf_path
-        }
-        return res
-
-
-class MockComExecutor(ComExecutor):
-    @staticmethod
-    def _install(com, res):
-        res.mess = "OK - Installed"
-        return res
-
-    @staticmethod
-    def _state(com, res):
-        res.mess = "OK - State"
-        res.data = {
-            'qued_time': 1447672171.6055062,
-            'start_time': 1447672151.6055062,
-            'run_interval': 50,
-            'status': TaskStatus.running.name,
-            'insert_time': 1447672161.6055062,
-            'running_jobs': 2,
-            'finished_jobs': 0,
-            'name': 'testmj',
-            'estimated_jobs': 2,
-            'known_jobs': 2}
-        return res
-
-    @staticmethod
-    def _stop(com, res):
-        res.mess = "OK - Stop"
-        return res
-
-    @staticmethod
-    def _results(com, res):
         res_path = Installation.get_result_dir_static(com.mj_name)
         log_path = os.path.join(res_path, "log")
         conf_path = Installation.get_config_dir_static(com.mj_name)

@@ -7,8 +7,8 @@ Main window module
 import uuid
 from PyQt5 import QtCore
 from communication import Communicator
-from data.states import TaskStatus
-from ui.actions.main_window_actions import *
+from data.states import TaskStatus, MJState
+from ui.actions.main_menu_actions import *
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.pbs_presets import PbsPresets
@@ -16,7 +16,7 @@ from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
 from ui.req_scheduler import ReqScheduler
 from ui.res_handler import ResHandler
-from ui.menus.main_window_menus import MainWindowMenuBar
+from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
@@ -49,7 +49,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.res_handler.mj_state.connect(
             self.handle_mj_state)
 
-        self.res_handler.mj_stoped.connect(
+        self.res_handler.mj_paused.connect(
+            self.handle_mj_paused)
+
+        self.res_handler.mj_resumed.connect(
+            self.handle_mj_resumed)
+
+        self.res_handler.mj_stopped.connect(
             self.handle_mj_stopped)
 
         # init dialogs
@@ -70,40 +76,40 @@ class MainWindow(QtWidgets.QMainWindow):
                                           presets=self.data.env_presets)
 
         # multijob dialog
-        self.ui.actionAddMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
-        self.ui.actionEditMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionEditMultiJob.triggered.connect(
             self._handle_edit_multijob_action)
-        self.ui.actionCopyMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionCopyMultiJob.triggered.connect(
             self._handle_copy_multijob_action)
-        self.ui.actionDeleteMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
-        self.multijobs_changed.connect(self.ui.overviewWidget.reload_view)
+        self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.multijobs.save)
         self.resource_presets_dlg.presets_changed.connect(
             self.mj_dlg.set_resource_presets)
 
         # ssh presets
-        self.ui.actionSshPresets.triggered.connect(
+        self.ui.menuBar.settings.actionSshPresets.triggered.connect(
             self.ssh_presets_dlg.show)
         self.ssh_presets_dlg.presets_changed.connect(
             self.data.ssh_presets.save)
 
         # pbs presets
-        self.ui.actionPbsPresets.triggered.connect(
+        self.ui.menuBar.settings.actionPbsPresets.triggered.connect(
             self.pbs_presets_dlg.show)
         self.pbs_presets_dlg.presets_changed.connect(
             self.data.pbs_presets.save)
 
         # env presets
-        self.ui.actionEnvPresets.triggered.connect(
+        self.ui.menuBar.settings.actionEnvPresets.triggered.connect(
             self.env_presets_dlg.show)
         self.env_presets_dlg.presets_changed.connect(
             self.data.env_presets.save)
 
         # resource presets
-        self.ui.actionResourcesPresets.triggered.connect(
+        self.ui.menuBar.settings.actionResourcesPresets.triggered.connect(
             self.resource_presets_dlg.show)
         self.resource_presets_dlg.presets_changed.connect(
             self.data.resource_presets.save)
@@ -115,22 +121,46 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # connect exit action
-        self.ui.actionExit.triggered.connect(QtWidgets.QApplication.quit)
+        self.ui.menuBar.app.actionExit.triggered.connect(
+            QtWidgets.QApplication.quit)
 
         # connect multijob run action
-        self.ui.actionRunMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionRunMultiJob.triggered.connect(
             self._handle_run_multijob_action)
 
         # connect multijob stop action
-        self.ui.actionStopMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionPauseMultiJob.triggered.connect(
+            self._handle_pause_multijob_action)
+
+        # connect multijob resume action
+        self.ui.menuBar.multiJob.actionResumeMultiJob.triggered.connect(
+            self._handle_resume_multijob_action)
+
+        # connect multijob stop action
+        self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
             self._handle_stop_multijob_action)
 
+        # connect multijob restart action
+        self.ui.menuBar.multiJob.actionRestartMultiJob.triggered.connect(
+            self._handle_restart_multijob_action)
+
+        # connect current multijob changed
+        self.ui.overviewWidget.currentItemChanged.connect(
+            self.update_ui_locks)
+
         # reload view
-        self.ui.overviewWidget.reload_view(self.data.multijobs)
+        self.ui.overviewWidget.reload_items(self.data.multijobs)
+
+    def update_ui_locks(self, current, previous=None):
+        if current is None:
+            self.ui.menuBar.multiJob.update_locks(None)
+        else:
+            status = self.data.multijobs[current.text(0)]["state"].status
+            self.ui.menuBar.multiJob.update_locks(status)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
-        self.mj_dlg.show()
+        self.mj_dlg.open()
 
     def _handle_edit_multijob_action(self):
         if self.data.multijobs:
@@ -158,17 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
-        state = {
-            'qued_time': 0,
-            'start_time': 0,
-            'run_interval': 0,
-            'status': TaskStatus.none.name,
-            'insert_time': None,
-            'running_jobs': 2,
-            'finished_jobs': 0,
-            'name': data[1],
-            'estimated_jobs': 0,
-            'known_jobs': 0}
+        state = MJState(data[1])
         if purpose != self.mj_dlg.PURPOSE_EDIT:
             key = str(uuid.uuid4())
             self.data.multijobs[key] = dict()
@@ -180,41 +200,111 @@ class MainWindow(QtWidgets.QMainWindow):
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
-        key = self.ui.overviewWidget.currentItem().text(0)
-        self.data.multijobs[key]["state"]["status"] = \
-            TaskStatus.installation.name
-        # self.multijobs_changed.emit(self.data.multijobs)
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.installation
+        self.ui.overviewWidget.update_item(key, state)
+
+        self.update_ui_locks(current)
+
         app_conf = self.data.build_config_files(key)
         communicator = Communicator(app_conf)
         self.com_manager.install(key, communicator)
 
-    def _handle_stop_multijob_action(self):
-        key = self.ui.overviewWidget.currentItem().text(0)
+    def _handle_pause_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
         state = self.data.multijobs[key]["state"]
-        state["status"] = "stopping"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.pausing
+        self.ui.overviewWidget.update_item(key, state)
+
+        self.update_ui_locks(current)
+
+        self.com_manager.pause(key)
+
+    def _handle_resume_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.resuming
+        self.ui.overviewWidget.update_item(key, state)
+
+        self.update_ui_locks(current)
+
+        self.com_manager.resume(key)
+
+    def _handle_stop_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.stoping
+        self.ui.overviewWidget.update_item(key, state)
+
+        self.update_ui_locks(current)
         self.com_manager.stop(key)
+
+    def handle_terminate(self):
+        mj = self.data.multijobs
+        for key in self.data.multijobs:
+            state = mj[key]["state"]
+            state.status = TaskStatus.none
+        self.com_manager.terminate()
+        print("Exiting")
+
+    def _handle_restart_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.stoping
+        self.ui.overviewWidget.update_item(key, state)
+
+        self.update_ui_locks(current)
+
+        self.com_manager.restart(key)
 
     def handle_mj_installed(self, key):
         state = self.data.multijobs[key]["state"]
-        state["status"] = "installed"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.running
+
+        self.ui.overviewWidget.update_item(key, state)
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
+
+    def handle_mj_paused(self, key):
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.paused
+
+        self.ui.overviewWidget.update_item(key, state)
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
+
+    def handle_mj_resumed(self, key):
+        state = self.data.multijobs[key]["state"]
+        state.status = TaskStatus.running
+
+        self.ui.overviewWidget.update_item(key, state)
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
 
     def handle_mj_stopped(self, key):
         state = self.data.multijobs[key]["state"]
-        state["status"] = "stopped"
-        self.ui.overviewWidget.change_state(key, state)
+        state.status = TaskStatus.none
+
+        self.ui.overviewWidget.update_item(key, state)
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
 
     def handle_mj_state(self, key, state):
-        self.ui.overviewWidget.change_state(key, state)
+        self.ui.overviewWidget.update_item(key, state)
 
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
         mj["jobs"] = result["jobs"]
         mj["logs"] = result["logs"]
         mj["conf"] = result["conf"]
-        cur_item = self.ui.overviewWidget.currentItem()
-        if cur_item.text(0) == key:
+        current = self.ui.overviewWidget.currentItem()
+        if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)
 
 
@@ -227,52 +317,19 @@ class UiMainWindow(object):
         Setup basic UI
         """
         # main window
-        main_window.resize(1014, 702)
+        main_window.resize(1154, 702)
         main_window.setObjectName("MainWindow")
         main_window.setWindowTitle('Jobs Scheduler')
 
+        # central widget and layout
         self.centralwidget = QtWidgets.QWidget(main_window)
         self.centralwidget.setObjectName("centralwidget")
         self.mainVerticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.mainVerticalLayout.setObjectName("mainVerticalLayout")
 
-        # actions
-        self.actionExit = ActionExit(main_window)
-
-        self.actionAddMultiJob = ActionAddMultiJob(main_window)
-        self.actionEditMultiJob = ActionEditMultiJob(main_window)
-        self.actionCopyMultiJob = ActionCopyMultiJob(main_window)
-        self.actionDeleteMultiJob = ActionDeleteMultiJob(main_window)
-        # ----
-        self.actionRunMultiJob = ActionRunMultiJob(main_window)
-        self.actionPauseMultiJob = ActionPauseMultiJob(main_window)
-        self.actionStopMultiJob = ActionStopMultiJob(main_window)
-        self.actionRestartMultiJob = ActionRestartMultiJob(main_window)
-
-        self.actionSshPresets = ActionSshPresets(main_window)
-        self.actionPbsPresets = ActionPbsPresets(main_window)
-        self.actionResourcesPresets = ActionResourcesPresets(main_window)
-        self.actionEnvPresets = ActionEnvPresets(main_window)
-
         # menuBar
-        self.menuBar = MainWindowMenuBar(main_window)
+        self.menuBar = MainMenuBar(main_window)
         main_window.setMenuBar(self.menuBar)
-
-        # bind actions to menus
-        self.menuBar.menu.addAction(self.actionExit)
-        self.menuBar.multiJob.addAction(self.actionAddMultiJob)
-        self.menuBar.multiJob.addAction(self.actionEditMultiJob)
-        self.menuBar.multiJob.addAction(self.actionCopyMultiJob)
-        self.menuBar.multiJob.addAction(self.actionDeleteMultiJob)
-        self.menuBar.multiJob.addSeparator()
-        self.menuBar.multiJob.addAction(self.actionRunMultiJob)
-        self.menuBar.multiJob.addAction(self.actionPauseMultiJob)
-        self.menuBar.multiJob.addAction(self.actionStopMultiJob)
-        self.menuBar.multiJob.addAction(self.actionRestartMultiJob)
-        self.menuBar.settings.addAction(self.actionSshPresets)
-        self.menuBar.settings.addAction(self.actionPbsPresets)
-        self.menuBar.settings.addAction(self.actionResourcesPresets)
-        self.menuBar.settings.addAction(self.actionEnvPresets)
 
         # multiJob Overview panel
         self.overviewWidget = Overview(self.centralwidget)

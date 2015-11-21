@@ -6,6 +6,7 @@ import logging
 import copy
 import time
 import subprocess
+import uuid
 
 logger = logging.getLogger("Remote")
 
@@ -14,6 +15,7 @@ __install_dir__ = os.path.split(
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
 __ins_files__['job'] = "job.py"
+__ins_files__['remote'] = "remote.py"
 __ins_files__['test_task'] = "test_task.py"
 __ins_files__['mj_service'] = "mj_service.py"
 __ins_dirs__ = []
@@ -65,10 +67,13 @@ class Installation:
             if len(conn.before)>0:
                 logger.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
 
-    def create_install_dir(self, conn):
+    def create_install_dir(self, conn, ssh):
         """Copy installation files"""
         if sys.platform == "win32":
             self.copy_path = conn.pwd() + '/' + __root_dir__
+            if self.is_local_and_remote_same(ssh):
+                logger.debug("Installation and local directory is same")                
+                return
             self._create_dir(conn, __root_dir__)
             res = conn.cd(__root_dir__)
             if len(res)>0:
@@ -107,6 +112,9 @@ class Installation:
             # use / instead join because destination os is linux and is not 
             # same with current os
             self.copy_path = searchObj.group(2) + '/' + __root_dir__
+            if self.is_local_and_remote_same(ssh):
+                logger.debug("Installation and local directory is same")                
+                return
             self._create_dir(conn, __root_dir__)
             conn.sendline('cd ' + __root_dir__)
             conn.expect('.*cd ' + __root_dir__ + "\r\n")
@@ -199,8 +207,34 @@ class Installation:
                 end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                 if end == 0 and len(conn.before)>0:
                     logger.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
+     
+    def is_local_and_remote_same(self, conn):
+        """Test if local and remote directory is same (open file with uuid in local and try find it in remote)"""
+        result = False
+        local = os.path.join(self.get_result_dir_static(self.mj_name), 'test666iden')
+        remote = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__ +'/' + 'test666iden'
+        uid = str(uuid.uuid4())
+        f=open(local, 'w')
+        f.write(uid)
+        f.close()
+        if sys.platform == "win32": 
+            # ToDo
+            result = False
+        else:
+            import pexpect 
             
- 
+            conn.sendline('ls ' + remote)
+            conn.expect('.*ls ' + remote + "\r\n")
+            res = conn.expect([remote + ".*", ".*ls.*", pexpect.TIMEOUT])
+            if res == 0:
+                conn.sendline('head ' + remote)
+                conn.expect('.*head ' + remote + "\r\n")
+                res = conn.expect( ['.*' + uid + '.*', pexpect.TIMEOUT ])
+                if res == 0:
+                    result = True            
+        os.remove(local)
+        return result
+        
     def get_command(self, name, mj_name, mj_id):
         """Find install file according to name and return command for running"""
         # use / instead join because destination os is linux and is not 

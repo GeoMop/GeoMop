@@ -7,8 +7,8 @@ Customized QScintilla editor widget.
 
 # pylint: disable=invalid-name
 import icon
-import re
 from contextlib import ContextDecorator
+import math
 
 from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
 from PyQt5.QtGui import QColor
@@ -17,9 +17,8 @@ import PyQt5.QtCore as QtCore
 
 from meconfig import cfg
 from data import DataNode
-from helpers import Notification
-from helpers import LineAnalyzer, ChangeAnalyzer, NodeAnalyzer
-import helpers.keyboard_shortcuts as shortcuts
+from helpers import (Notification, AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
+                     NodeAnalyzer, shortcuts)
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
 from util import Position, PosType, CursorType
@@ -137,9 +136,11 @@ class YamlEditorWidget(QsciScintilla):
 
         # Autocomplete
         self.SendScintilla(QsciScintilla.SCI_AUTOCSETORDER, QsciScintilla.SC_ORDER_CUSTOM)
+        cfg.autocomplete_helper.set_editor(self)
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
-        for shortcut in shortcuts.SCINTILLA_DISABLE:
+        for shortcut_name in shortcuts.SCINTILLA_DISABLE:
+            shortcut = cfg.get_shortcut(shortcut_name)
             self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
         # Clickable margin 0 to select node in tree
@@ -172,7 +173,7 @@ class YamlEditorWidget(QsciScintilla):
         self.cursorPositionChanged.connect(self._cursor_position_changed)
         self.textChanged.connect(self._text_changed)
         self.elementChanged.connect(self._on_element_changed)
-        self.SCN_AUTOCSELECTION.connect(self._on_autocomplete_selected)
+        self.SCN_AUTOCSELECTION.connect(self._on_autocompletion_selected)
 
         self._valid_bounds = True
         """indicates whether calculated bounds are valid"""
@@ -222,9 +223,6 @@ class YamlEditorWidget(QsciScintilla):
 
         If no line is selected, indent the current line.
         """
-        # hide autocomplete
-        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
-
         from_line, from_col, to_line, to_col = self.getSelection()
         nothing_selected = from_line == -1 and to_line == -1
         if nothing_selected:
@@ -249,9 +247,6 @@ class YamlEditorWidget(QsciScintilla):
 
         If no line is selected, unindent the current line.
         """
-        # hide autocomplete
-        self.SendScintilla(QsciScintilla.SCI_AUTOCCANCEL)
-
         from_line, from_col, to_line, to_col = self.getSelection()
         nothing_selected = from_line == -1 and to_line == -1
         if nothing_selected:
@@ -414,36 +409,30 @@ class YamlEditorWidget(QsciScintilla):
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
-    def show_autocomplete(self):
-        """Show autocomplete options for the current cursor position."""
-        if len(cfg.autocomplete_helper.scintilla_options) == 0:
-            return
-
-        # find out how many character are already written
+    @property
+    def autocompletion_context(self):
+        """Create current autocomplete context."""
         cur_line, cur_col = self.getCursorPosition()
-        prev_text = self.text(cur_line)[0:cur_col]
-        # TODO: move to LineAnalyzer
-        word = re.search(r'\S*$', prev_text).group()
-        # if word.startswith('*'):
-        #     self.autocomplete_helper.create_options()
-        self.SendScintilla(QsciScintilla.SCI_AUTOCSHOW, len(word),
-                           cfg.autocomplete_helper.scintilla_options)
+        context_args = LineAnalyzer.get_autocomplete_context(self.text(cur_line), cur_col)
+        return AutocompleteContext(*context_args)
 
-    def _on_autocomplete_selected(self, selected, position):
-        """Handle autocomplete selection.
+    def _on_autocompletion_selected(self, selected, position):
+        """Handle autocompletion selection (from QScintilla).
 
         :param str selected: text of the selected option
         :param int position: index of the beginning of the autocompleted word in the text
         """
-        self.SendScintilla(self.SCI_AUTOCCANCEL)
+        cfg.autocomplete_helper.hide_autocompletion()
         option = selected.decode('utf-8')
-        option_text = cfg.autocomplete_helper.select_option(option)
+        option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
-        # TODO: move to LineAnalyzer
-        word_to_replace = re.search(r'^[!*a-zA-Z_]*((: )|(?=\s|$))', text[position:]).group()
+        lines = text[position:]
+        line = lines.split('\n')[0]
+        word_to_replace = LineAnalyzer.get_autocompletion_word(line)
         end_position = position + len(word_to_replace)
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
-        self.replaceSelectedText(option_text)
+        with self.reload_chunk:
+            self.replaceSelectedText(option_text)
 
 # ---------------------------- FIND / REPLACE --------------------------------
 
@@ -553,24 +542,26 @@ class YamlEditorWidget(QsciScintilla):
         if event.type() != QtCore.QEvent.KeyPress:
             return
 
-        actions = {
-            shortcuts.INDENT: self.indent,
-            shortcuts.UNINDENT: self.unindent,
-            shortcuts.CUT: self.cut,
-            shortcuts.COPY: self.copy,
-            shortcuts.PASTE: self.paste,
-            shortcuts.UNDO: self.undo,
-            shortcuts.REDO: self.redo,
-            shortcuts.COMMENT: self.comment,
-            shortcuts.DELETE: self.delete,
-            shortcuts.SELECT_ALL: self.selectAll,
-            shortcuts.SHOW_AUTOCOMPLETE: self.show_autocomplete
-        }
+        actions = [
+            ('tab', lambda: self._handle_keypress_tab(event)),
+            ('backspace', lambda: self._handle_keypress_backspace(event)),
+            ('delete', self.delete),
+            ('copy', self.copy),
+            ('paste', self.paste),
+            ('cut', self.cut),
+            ('undo', self.undo),
+            ('redo', self.redo),
+            ('select_all', self.selectAll),
+            ('show_autocompletion', cfg.autocomplete_helper.show_autocompletion),
+            ('indent', self.indent),
+            ('unindent', self.unindent),
+            ('comment', self.comment),
+        ]
 
-        for shortcut, action in actions.items():
+        for shortcut_name, action in actions:
+            shortcut = cfg.get_shortcut(shortcut_name)
             if shortcut.matches_key_event(event):
-                action()
-                return
+                return action()
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
 
@@ -579,6 +570,40 @@ class YamlEditorWidget(QsciScintilla):
         context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
+
+    def _handle_keypress_backspace(self, event):
+        """Handle keyPress event for :kdb:`Backspace`."""
+        # select characters to delete if there is no selection
+        if not self.hasSelectedText():
+            line, column = self.getCursorPosition()
+            line_text = self.text(line)
+            cur_line_text = line_text[:column]
+
+            # unindent to previous level if there are only whitespaces in front of cursor
+            if len(cur_line_text) > 0 and LineAnalyzer.is_empty(cur_line_text):
+                indent_char_count = LineAnalyzer.get_indent(line_text)
+                indent_level = math.ceil(indent_char_count / self.tabWidth()) - 1
+                removed_char_count = indent_char_count - indent_level * self.tabWidth()
+                self.set_selection_from_cursor(-removed_char_count)
+
+            else:  # delete a single character
+                if column > 0:  # delete from this line
+                    self.setSelection(line, column, line, column - 1)
+                elif line > 0:  # delete from previous line
+                    prev_line = line - 1
+                    prev_column = len(self.text(prev_line))
+                    self.setSelection(prev_line, prev_column - 1, line, column)
+        self.removeSelectedText()
+        cfg.autocomplete_helper.refresh_autocompletion()
+
+    def _handle_keypress_tab(self, event):
+        """Handle keyPress event for :kdb:`Tab`."""
+        if cfg.autocomplete_helper.visible:
+            self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
+        elif cfg.get_shortcut('indent').matches_key_event(event):
+            self.indent()
+        else:
+            self.insert_at_cursor(' ' * self.tabWidth())
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 
@@ -606,6 +631,15 @@ class YamlEditorWidget(QsciScintilla):
                     self.elementChanged.emit(self._pos.cursor_type_position.value,
                                              old_cursor_type_position.value)
         self.cursorChanged.emit(line + 1, column + 1)
+        # autocompletion - show if it is pending or refresh
+        if cfg.autocomplete_helper.pending_check:
+            cfg.autocomplete_helper.pending_check = False
+            if len(self.autocompletion_context.hint) == 1:
+                cfg.autocomplete_helper.show_autocompletion()
+            else:
+                cfg.autocomplete_helper.refresh_autocompletion()
+        else:
+            cfg.autocomplete_helper.refresh_autocompletion()
 
     def _text_changed(self):
         """Handle :py:attr:`textChanged` signal."""
@@ -613,6 +647,10 @@ class YamlEditorWidget(QsciScintilla):
             self._pos.new_line_completation(self)
             self._pos.spec_char_completation(self)
             self._valid_bounds = self._pos.fix_bounds(self)
+            # flag autocompletion to be checked whether to display it or not if it is
+            # turned on globally
+            if cfg.config.display_autocompletion:
+                cfg.autocomplete_helper.pending_check = True
 
     def _reload_chunk_on_exit(self):
         """Emit a structure change upon closing a reload chunk."""
@@ -621,7 +659,7 @@ class YamlEditorWidget(QsciScintilla):
 
     def _on_element_changed(self):
         """Handle element changed event."""
-        self._pos.reload_autocomplete(self)
+        self._pos.reload_autocompletion(self)
 
 
 class ReloadChunk(ContextDecorator, QObject):
@@ -672,9 +710,9 @@ class ReloadChunk(ContextDecorator, QObject):
 class EditorPosition:
     """
     Helper for guarding cursor position above node.
-    This class help made refresh, only when is needed. 
+    This class help made refresh, only when is needed.
     For not state speciffic actions is call functions of
-    (:class:`helpers.subyaml.change_analyzer,ChangeAnalyzer`) 
+    (:class:`helpers.subyaml.change_analyzer,ChangeAnalyzer`)
     Function  fix_bounds should be called after data changing
     for reloading borders of selected data Node. Naxt calling
     of new_pos function make possible determinate if reload
@@ -729,7 +767,7 @@ class EditorPosition:
         """
         Add specific symbols to start of line when
         new line was added.
-        
+
         _old_line_prefix variable is set to intendation and new array (-)
         symbol if need be
         """
@@ -740,7 +778,7 @@ class EditorPosition:
             if index > -1 and index == indent:
                 if self.node is None or  \
                    self.node != DataNode.Implementation.scalar or \
-                   (self.node.parent.start.line-1) == self.line:                        
+                   (self.node.parent.start.line-1) == self.line:
                     self._new_line_indent = indent*' '+"  "
                 else:
                     self._new_line_indent = indent*' '+"- "
@@ -752,15 +790,16 @@ class EditorPosition:
     def make_post_operation(self, editor, line, index):
         """
         complete special chars after text is updated and
-        fix parent if new line is added (new_line_completation 
+        fix parent if new line is added (new_line_completation
         function is called)
         """
         if self._new_line_indent is not None and editor.lines() > line:
             # after new_line_completation function is called
             pre_line = editor.text(line - 1)
             new_line = editor.text(line)
-            # preceding line prefix is unchanged 
-            if (new_line.isspace() or len(new_line) == 0) and pre_line[:len(self._old_line_prefix)] == self._old_line_prefix:
+            # preceding line prefix is unchanged
+            if ((new_line.isspace() or len(new_line) == 0) and
+                    pre_line[:len(self._old_line_prefix)] == self._old_line_prefix):
                 # insert prefix
                 editor.insertAt(self._new_line_indent, line, index)
                 editor.setCursorPosition(line, index + len(self._new_line_indent))
@@ -769,7 +808,8 @@ class EditorPosition:
                     na = NodeAnalyzer(self._old_text, self.node)
                 else:
                     na = NodeAnalyzer(self._old_text, cfg.root)
-                self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
+                self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
+                                                                editor.text(self.line))
             self._new_line_indent = None
         if self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
@@ -796,6 +836,8 @@ class EditorPosition:
         Update position and return true if isn't cursor above node
         or is in inner structure.
         """
+        if self.line != line:
+            self.handle_line_changed()
         self.line = line
         self.index = index
         self._save_lines(editor)
@@ -809,7 +851,7 @@ class EditorPosition:
             key_type = None
             if pos_type is PosType.in_key:
                 key_type = anal.get_key_pos_type()
-            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)            
+            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
             if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
                 (self.node is not None and self.node.origin == DataNode.Origin.error):
                 if self.node is not None:
@@ -851,8 +893,8 @@ class EditorPosition:
                 editor.lines() > self.line and
                 self._last_line_after != editor.text(self.line + 1)):
             # new line and old line is empty (editor add indentation)
-            if not ((self._last_line_after.isspace() or len(self._last_line_after)==0) and
-                (editor.text(self.line + 1).isspace() or len(editor.text(self.line + 1))==0)):
+            if not ((self._last_line_after.isspace() or len(self._last_line_after) == 0) and
+                    (editor.text(self.line + 1).isspace() or len(editor.text(self.line + 1)) == 0)):
                 return False
         new_line = editor.text(self.line)
         # if indentation change
@@ -925,8 +967,7 @@ class EditorPosition:
             else:
                 if anal. is_base_struct(new_line):
                     return False
-        before_pos, end_pos = LineAnalyzer.get_changed_position(
-                                              new_line, self._old_text[self.line])
+        before_pos, end_pos = LineAnalyzer.get_changed_position(new_line, self._old_text[self.line])
         if self.node is not None and self.node.is_jsonchild_on_line(self.line+1):
             if anal.is_basejson_struct(new_line[before_pos:len(new_line)-end_pos+1]):
                 return False
@@ -934,8 +975,8 @@ class EditorPosition:
             return False
         return True
 
-    def reload_autocomplete(self, editor):
-        """New line was added"""
+    def reload_autocompletion(self, editor):
+        """Create new autocomplete options when newline is added."""
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
@@ -984,8 +1025,8 @@ class EditorPosition:
         self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
 
 #        if  LineAnalyzer.is_array_char_only(self._old_text[self.line]):
-#            self.node = node       
-        
+#            self.node = node
+
         self.pred_parent = None
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
             (self.node is not None and self.node.origin == DataNode.Origin.error):
@@ -993,10 +1034,15 @@ class EditorPosition:
                 na = NodeAnalyzer(self._old_text, self.node)
             else:
                 na = NodeAnalyzer(self._old_text, cfg.root)
-            self.pred_parent = na.get_parent_for_unfinished(self.line, self.index, editor.text(self.line))
+            self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
+                                                            editor.text(self.line))
 
         if node is not None:
-            self.reload_autocomplete(editor)
+            self.reload_autocompletion(editor)
+
+    def handle_line_changed(self):
+        """Handle when cursor changes line."""
+        cfg.autocomplete_helper.hide_autocompletion()
 
     def _init_analyzer(self, editor, line, index):
         """prepare data for analyzer, and return it"""

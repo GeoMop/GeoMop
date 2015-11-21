@@ -1,13 +1,11 @@
-"""
-Module contains settings menu widget.
-"""
+"""Module contains settings menu widget.
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-import helpers.keyboard_shortcuts as shortcuts
 from meconfig import cfg
+from ui.dialogs import SettingsDialog
 
 
 class MainSettingsMenu(QMenu):
@@ -35,7 +33,7 @@ class MainSettingsMenu(QMenu):
         if cfg.config.DEBUG_MODE:
             self._edit_format_action = QAction(
                 '&Edit Format File ...', self)
-            self._edit_format_action.setShortcut(shortcuts.EDIT_FORMAT.key_sequence)
+            self._edit_format_action.setShortcut(cfg.get_shortcut('edit_format').key_sequence)
             self._edit_format_action.setStatusTip('Edit format file in Json Editor')
             self._edit_format_action.triggered.connect(self._model_editor.edit_format)
             self._format.addAction(self._edit_format_action)
@@ -47,6 +45,11 @@ class MainSettingsMenu(QMenu):
             faction.setStatusTip('Transform format of current document')
             self._transformation.addAction(faction)
             faction.triggered.connect(pom_lamda(frm))
+
+        self.options_action = QAction('&Options ...', self)
+        self.options_action.setStatusTip('Configure editor options')
+        self.options_action.triggered.connect(self.on_options_action)
+        self.addAction(self.options_action)
 
         if cfg.config.DEBUG_MODE:
             self._edit_transformation = self.addMenu('&Edit Transformation Rules')
@@ -62,3 +65,7 @@ class MainSettingsMenu(QMenu):
         action = self._format_group.checkedAction()
         filename = action.text()
         self._model_editor.select_format(filename)
+
+    def on_options_action(self):
+        """Handle options action - display settings."""
+        SettingsDialog(self.parent).exec_()

@@ -21,14 +21,16 @@ class ReqScheduler(QTimer):
         self.com_manager = com_manager
         # connect handle slot
         self.timeout.connect(self._handle_timeout)
-        self.start(20)
+        self.start(10)
 
     def _handle_timeout(self):
         for key in self.main_window.data.multijobs:
             if self.com_manager.is_installed(key):
                 self.com_manager.state(key)
+
         cur_item = self.main_window.ui.overviewWidget.currentItem()
         if cur_item:
             key = cur_item.text(0)
             if self.com_manager.is_installed(key):
-                self.com_manager.results(key)
+                if not self.com_manager.is_busy(key):
+                    self.com_manager.results(key)

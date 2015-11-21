@@ -1,6 +1,6 @@
 [typecheck]
 ignored-modules=PyQt5.QtWidgets,PyQt5.QtCore,PyQt5.QtGui,PyQt5.Qsci,PyQt5.QtWebKitWidgets
-ignored-classes=YamlEditorWidget,TreeWidget,TreeOfNodes,TranformationDetailDlg,FindDialog,ReplaceDialog,JsonEditorDlg,DebugPanelWidget,ErrorWidget,InfoPanelWidget,EditMenu,MainEditMenu,MainFileMenu,MainSettingsMenu
+ignored-classes=YamlEditorWidget,TreeWidget,TreeOfNodes,TranformationDetailDlg,FindDialog,ReplaceDialog,JsonEditorDlg,DebugPanelWidget,ErrorWidget,InfoPanelWidget,EditMenu,MainEditMenu,MainFileMenu,MainSettingsMenu,SettingsDialog,GeneralTab,KeyboardShortcutPicker,KeyboardShortcutsTab
 [master]
 init-hook='sys.path.append("../lib")'
 [messages control]

@@ -22,6 +22,8 @@ class ActionType(Enum):
     interupt_connection = 7
     get_state = 8
     state = 9
+    add_job = 10
+    job_conn = 11
 
 class ProcessType(Enum):
     """Action type"""
@@ -172,6 +174,10 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.state:
             self.data = StateData(json_data)
+        elif type == ActionType.add_job:
+            self.data = JobData(json_data)
+        elif type == ActionType.job_conn:
+            self.data = JobConn(json_data)
             
     def get_message(self):
         """return message from action"""
@@ -209,7 +215,35 @@ class ErrorData(ActionData):
         if json_data is None:            
             self.data["msg"] = None
         else:
+            self.data = json.loads(json_data)            
+
+class JobData(ActionData):
+    """Data for adding new job over remote"""    
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is None:            
+            self.data["id"] = None
+        else:
             self.data = json.loads(json_data)
+    
+    def set_id(self, id):
+        """Set job id"""
+        self.data["id"] = id
+
+class JobConn(ActionData):
+    """Connection parameters of a new job over remote"""
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is None:            
+            self.data["host"] = None
+            self.data["port"] = None
+        else:
+            self.data = json.loads(json_data)
+
+    def set_conn(self, host, port):
+        """Set connection data"""
+        self.data["host"] = host
+        self.data["port"] = port
 
 class StateData(ActionData):
     """Multijob status data. Data is set by 

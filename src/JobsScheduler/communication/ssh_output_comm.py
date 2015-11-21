@@ -40,7 +40,7 @@ if sys.platform == "win32":
             """make installation"""
             self.installation.prepare_ssh_env(self.ssh)
             try:
-                self.installation.create_install_dir(self.ssh)
+                self.installation.create_install_dir(self.ssh, self.ssh)
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
              
@@ -143,10 +143,11 @@ else:
             
         def install(self):
             """make installation"""
-            self.installation.prepare_ssh_env(self.ssh)                               
+            self.installation.prepare_ssh_env(self.ssh)           
+           
             try:        
                 sftp = self._get_sftp()
-                self.installation.create_install_dir(sftp)
+                self.installation.create_install_dir(sftp, self.ssh)
                 sftp.close()
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
@@ -158,6 +159,9 @@ else:
                 mess = str(self.ssh.before, 'utf-8').strip()
                 if mess != ("cd " + self.installation.copy_path):
                     logger.warning("Exec python file: " + mess) 
+                    
+            logger.debug("Exec command over SSH: " + 
+                self.installation.get_command(python_file, mj_name, mj_id))        
             self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
             self.ssh.expect( self.installation.python_env.python_exec + ".*\r\n")
             
@@ -247,13 +251,15 @@ else:
         def _get_sftp(self):
             """return sftp connection"""
             sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
-            sftp.expect('.*assword:')
-            sftp.sendline(self.password)
-            sftp.expect('.*')
-            res = sftp.expect(['Permission denied','Connected to .*'])
+            res = sftp.expect(['.*assword:', 'sftp> '])
             if res == 0:
-                sftp.kill(0)
-                raise Exception("Permission denied for user " + self.name)
+                # password requaried
+                sftp.sendline(self.password)
+                sftp.expect('.*')
+                res = sftp.expect(['Permission denied','Connected to .*'])
+                if res == 0:
+                    sftp.kill(0)
+                    raise Exception("Permission denied for user " + self.name)
             return sftp
         
         @staticmethod

@@ -69,6 +69,8 @@ class ErrorWidget(QtWidgets.QListWidget):
 
     def _current_item_changed(self, current, previous):
         """Handle :py:attr:`currentItemChanged` signal."""
+        if current is None:
+            return
         data = current.data(QtCore.Qt.UserRole)
         self.itemSelected.emit(data.span.start.line, data.span.start.column,
                                data.span.end.line, data.span.end.column)
