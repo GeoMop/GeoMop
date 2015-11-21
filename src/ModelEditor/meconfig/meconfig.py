@@ -439,7 +439,7 @@ class MEConfig:
                 cls.document = transformator.transform(cls.document)
             except TransformationFileFormatError as err:
                 if cls.main_window is not None:
-                    cls._report_error("Can't decode transformation file", err)
+                    cls._report_error("Transformation format error", err)
                 else:
                     raise err
                 return

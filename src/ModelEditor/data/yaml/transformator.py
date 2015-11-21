@@ -1,26 +1,45 @@
 """
 File for transformation of yaml files to another version
 
+Wildchars:
+    In defined actions (if is not writen in next text else) is possible use simple
+    wildchars. For key with name path and source_path:
+    - * for one level of path
+    - ** for one or more level of path
+    For key with name destination_path, addition_path and set_type_path is 
+    possible use replacement $1,$2,... .  This signify part of path in wildchars 
+    on position 1,2,....
+    Wildchars have three restrictions:
+        - ** can't be last part of path (too many result cases)
+        - **/* sequence is forbiden (too many result cases)
+        - **/** sequence is forbiden (can't determine replacements)
+    
 Actions:
     - move-key - Move value of set key from source_path to destination_path.
       Not existing directory of destination_path cause exception. If both path
       is same, only key is different, key is renamed. Destination_path placed in
       source_path cause exception. If source_path not exist action si skipped.
       Refference or anchors is moved and if its relative possition is changed,
-      result must be fixed by user.
+      result must be fixed by user. In this action can be used parameters
+      set_type_path and new_type for replacing tag new_type in path "set_type_path"
     - delete-key - Delete key on set path. If key contains anchor or refference,
-      transporter try resolve reference. If path not exist action si skipped.
+      transporter try resolve reference. If path not exist, or contains some children
+      action si skipped. If parameter deep is set to true, key is delete with containing 
+      children.
     - rename-type - Change tag on set path from old_name to new_name.
     - change-value - Change value on set path from old_value to new_value.
       If node in specified path is not scallar type nide, exception is raise.
     - merge-arrays - Add array in addition_path after array in source path. If
-      destination_path is defined, move array to this path.
+      destination_path is defined, node is moved from source to this path.
+    - move-key-forward - Move node in specified path before all siblings nodes.
+      (this action is use by import script for moving node with anchor after
+      refference)
 
 Description:
     Transformator check se json transformation file. If this file is in bad format,
     cause exception. After checking is processet action in set order. Repetitional
     processing this program can cause exception or corrupt data.
-
+    
 Example::
 
     {
@@ -59,6 +78,7 @@ Example::
 
 import json
 import re
+import copy
 
 from .loader import Loader
 from ..data_node import DataNode
@@ -67,7 +87,12 @@ from helpers import NotificationHandler
 
 class Transformator:
     """Transform yaml file to new version"""
-
+    __actions__=["delete-key", "move-key", "rename-type", "move-key-forward", "change-value", "merge-arrays"]
+    __source_paths__ = {"delete-key":"path","move-key-forward":"path", "move-key":"source_path", 
+                                      "rename-type":"path", "change-value":"path", "merge-arrays":"source_path"}
+    __destination_paths__ = {"delete-key":None,"move-key-forward":None, "move-key":["destination_path"],
+                                          "rename-type":None, "change-value":None, "merge-arrays":["destination_path", "addition_path"]}
+    
     def __init__(self, transform_file, data=None):
         """init"""
         if transform_file is not None:
@@ -81,8 +106,7 @@ class Transformator:
         i = 1
         for action in self._transformation['actions']:
             self._check_parameter("action", action, action['action'], i)
-            if not action['action'] in \
-                    ["delete-key", "move-key", "rename-type", "move-key-forward", "change-value", "merge-arrays"]:
+            if not action['action'] in Transformator.__actions__:
                 raise TransformationFileFormatError(
                     " Action '" + action['action'] + "' is not specified")
             self._check_parameter("parameters", action, action['action'], i)
@@ -93,6 +117,9 @@ class Transformator:
             elif action['action'] == "move-key":
                 self._check_parameter("destination_path", action['parameters'], action['action'], i)
                 self._check_parameter("source_path", action['parameters'], action['action'], i)
+                if "set_type_path" in action['parameters'] or "new_type" in action['parameters']:
+                    self._check_parameter("set_type_path", action['parameters'], action['action'], i)
+                    self._check_parameter("new_type", action['parameters'], action['action'], i)                
             elif action['action'] == "rename-type":
                 self._check_parameter("path", action['parameters'], action['action'], i)
                 self._check_parameter("new_name", action['parameters'], action['action'], i)
@@ -148,33 +175,155 @@ class Transformator:
         """transform yaml file"""
         notification_handler = NotificationHandler()
         loader = Loader(notification_handler)
-        changes = True
-        for action in self._transformation['actions']:
-            if changes:
-                notification_handler.clear()
-                root = loader.load(yaml)
-                lines = yaml.splitlines(False)
-            if action['action'] == "delete-key":
-                changes = self._delete_key(root, lines, action)
-            elif action['action'] == "move-key":
-                changes = self._move_key(root, lines, action)
-            elif action['action'] == "rename-type":
-                changes = self._rename_type(root, lines, action)
-            elif action['action'] == "move-key-forward":
-                changes = self._move_key_forward(root, lines, action)
-            elif action['action'] == "change-value":
-                changes = self._change_value(root, lines, action)
-            elif action['action'] == "change-value":
-                changes = self._add_array(root, lines, action)
-                if changes and 'destination_path' in action['parameters']:                    
-                    yaml = "\n".join(lines)
+        root = loader.load(yaml)
+        lines = yaml.splitlines(False)
+        changes = False
+        for aaction in self._transformation['actions']:
+            for action in self._replace_wildchars(root, aaction):
+                if changes:
                     notification_handler.clear()
                     root = loader.load(yaml)
                     lines = yaml.splitlines(False)
+                if action['action'] == "delete-key":
+                    changes = self._delete_key(root, lines, action)
+                elif action['action'] == "move-key":
                     changes = self._move_key(root, lines, action)
-            if changes:
-                yaml = "\n".join(lines)
+                    if  changes and "set_type_path" in action['parameters']:
+                        yaml = "\n".join(lines)
+                        notification_handler.clear()
+                        root = loader.load(yaml)
+                        lines = yaml.splitlines(False)
+                        changes = False
+                        try:
+                            node = root.get_node_at_path(action['parameters']['set_type_path']) 
+                            if node.type is not None:
+                                action['parameters']['path'] = action['parameters']['set_type_path']
+                                action['parameters']['new_name'] = action['parameters']['new_type']
+                                action['parameters']['old_name'] = node.type
+                                changes = self._move_key(root, lines, action)
+                        except:
+                            pass
+                elif action['action'] == "rename-type":
+                    changes = self._rename_type(root, lines, action)
+                elif action['action'] == "move-key-forward":
+                    changes = self._move_key_forward(root, lines, action)
+                elif action['action'] == "change-value":
+                    changes = self._change_value(root, lines, action)
+                elif action['action'] == "merge-arrays":
+                    changes = self._add_array(root, lines, action)
+                    if changes and 'destination_path' in action['parameters']:                    
+                        yaml = "\n".join(lines)
+                        notification_handler.clear()
+                        root = loader.load(yaml)
+                        lines = yaml.splitlines(False)
+                        changes = self._move_key(root, lines, action)
+                if changes:
+                    yaml = "\n".join(lines)
         return yaml
+
+    class _Replacement:
+        """Replacement structure for path wildchars operation"""
+        def __init__(self, replacement=None):
+            self.path = ""
+            """find path"""
+            self.replacements = []
+            """array of replacements"""
+            self.orig_path = None
+            """origination path for error message"""
+            if replacement is not None:
+                self.path = copy.deepcopy(replacement.path)
+                self.replacements = copy.deepcopy(replacement.replacements)
+                self.orig_path = copy.deepcopy(replacement.orig_path)
+
+    def _replace_wildchars(self, root, action):
+        """If path have some wildchards replace it real path"""        
+        if Transformator.__source_paths__[action['action']] is None:
+            return[action]
+        path_parameter = Transformator.__source_paths__[action['action']]
+        path = action['parameters'][path_parameter]
+        if '*' not in path:
+            return [action]
+        res = []
+        spath = path.split('/')
+        if spath[len(spath)-1]=='**':
+            raise TransformationFileFormatError(
+                "Wildcard '**' can't be in end of path(" + action['parameters'][path_parameter] + ")")
+        replacement = Transformator._Replacement()
+        replacement.orig_path = path
+        replacements = self._search_node(spath, root, replacement, action['parameters'][path_parameter])
+        for replacement in replacements:
+            new_action = copy.deepcopy(action)
+            new_action['parameters'][path_parameter] = replacement.path 
+            new_action['parameters']['orig_' + path_parameter] = replacement.orig_path
+            if Transformator.__destination_paths__[action['action']] is not None:
+                for parameter in Transformator.__destination_paths__[action['action']]:
+                    for i in range(0, len(replacement.replacements)):
+                        if i == 0:
+                            new_action['parameters']['orig_' + parameter] = new_action['parameters'][parameter]
+                        new_action['parameters'][parameter] = \
+                            new_action['parameters'][parameter].replace( \
+                                '$'+str(i+1), replacement.replacements[i]) 
+            res.append(new_action)    
+        return res
+        
+    def _search_node(self, spath, node, replacement,  orig_path, deep=False):
+        """
+        search all paths complying set spath pattern in set node, 
+        and return theirs array. This function is use recusively.
+        """
+        if node is None:
+            return []
+        if len(spath) == 0:
+            return [replacement]
+        res = []
+        if spath[0]=='*':
+            for child in node.children_keys:
+                new_replacement = Transformator._Replacement(replacement)
+                new_replacement.path += "/" + child
+                new_replacement.replacements.append(child)
+                if len(spath) == 1:
+                    res.append(new_replacement)
+                else:
+                    replacements = self._search_node(spath[1:],  node.get_child(child), new_replacement, orig_path)                
+                    res.extend(replacements)
+        elif spath[0]=='**':
+            if len(spath)>1:
+                if spath[1]=='**':
+                    raise TransformationFileFormatError(
+                        "Sequence '**/**' is forbiden(" + orig_path + ")")
+                if spath[1]=='*':
+                    raise TransformationFileFormatError(
+                        "Sequence '**/*' is forbiden(" + orig_path + ")")
+            for child in node.children_keys:
+                new_replacement = Transformator._Replacement(replacement)
+                new_replacement.path += "/" + child
+                if deep:
+                    new_replacement.replacements[len(new_replacement.replacements)-1] += \
+                        "/" + child
+                else:
+                    new_replacement.replacements.append(child)
+                if len(spath) == 1:
+                    res.append(new_replacement)
+                # first try find paths in next structure
+                replacements = self._search_node(spath, node.get_child(child), new_replacement, orig_path, True)                
+                res.extend(replacements)
+                if deep:
+                    # second try cancel ** find
+                    if spath[1] == child:
+                        replacements = self._search_node(spath[1:],  node.get_child(child), new_replacement, orig_path)                
+                        res.extend(replacements)
+        else:
+            for child in node.children_keys:
+                new_node = node.get_child(child)
+                if new_node.key.value == spath[0]:
+                    new_replacement = Transformator._Replacement(replacement)
+                    new_replacement.path += "/" + child
+                    if len(spath) == 1:
+                        res.append(new_replacement)
+                    else:
+                        replacements = self._search_node(spath[1:], new_node, new_replacement, orig_path)                
+                        res.extend(replacements)
+        return res
 
     def _find_all_ref(self, node, refs):
         """find all references"""
@@ -196,7 +345,7 @@ class Transformator:
             node = root.get_node_at_path(action['parameters']['path'])
             if parent is None:
                 raise TransformationFileFormatError(
-                    "Cannot find parent path for path (" + action['parameters']['path'] + ")")
+                    "Cannot find parent path for path (" + self._get_paths_str(action, 'path') + ")")
             is_root = False
             if len(parent.group(1)) == 0:
                 parent_node = root
@@ -210,7 +359,7 @@ class Transformator:
             parent_node.span.end.line-1, parent_node.span.end.column-1
         if parent_node.implementation != DataNode.Implementation.mapping:
             raise TransformationFileFormatError(
-                "Parent of path (" + action['parameters']['path'] + ") must be abstract record")
+                "Parent of path (" + self._get_paths_str(action, 'path') + ") must be abstract record")
         if is_root:
             intendation1 = 0
             pl1 = 0
@@ -229,6 +378,14 @@ class Transformator:
             else:
                 lines.insert(pl1+1, add[i])
         return True
+        
+    def _get_paths_str(self, action, key):
+        """return error string with both paths"""
+        str = action['parameters'][key]
+        if ('orig_' + key) in action['parameters'] and \
+            action['parameters']['orig_' + key] is not None:
+            str += " ~" + action['parameters']['orig_' + key] + "~"
+        return str
 
     def _delete_key(self, root, lines, action):
         """Delete key transformation"""
@@ -236,6 +393,9 @@ class Transformator:
             node = root.get_node_at_path(action['parameters']['path'])
         except:
             return False
+        if "deep" not in action['parameters'] or not  action['parameters']['deep']:
+            if len(node.children_keys)>0:
+                return False            
         l1, c1, l2, c2 = self._get_node_pos(node)
         anchors = []
         for i in range(l1, l2+1):
@@ -492,7 +652,7 @@ class Transformator:
         try:
             parent1 = root.get_node_at_path(action['parameters']['destination_path'])
             raise TransformationFileFormatError(
-                "Destination path (" + action['parameters']['destination_path'] + ") already exist")
+                "Destination path (" + self._get_paths_str(action, 'destination_path') + ") already exist")
         except:
             pass
         try:
@@ -505,7 +665,7 @@ class Transformator:
             node2 = root.get_node_at_path(parent2.group(1))
         except:
             raise TransformationFileFormatError(
-                "Parent of destination path (" + action['parameters']['destination_path'] +
+                "Parent of destination path (" + self._get_paths_str(action, 'destination_path') +
                 ") must exist")
         sl1, sc1, sl2, sc2 = self._get_node_pos(node1)
         dl1, dc1, dl2, dc2 = self._get_node_pos(node2)
@@ -516,7 +676,7 @@ class Transformator:
             return True
         if node2.implementation != DataNode.Implementation.mapping:
             raise TransformationFileFormatError(
-                "Parent of destination path (" + action['parameters']['destination_path'] +
+                "Parent of destination path (" + self._get_paths_str(action, 'destination_path') +
                 ") must be abstract record")
         intendation1 = re.search(r'^(\s*)(\S.*)$', lines[dl1])
         intendation1 = len(intendation1.group(1)) + 2
@@ -550,8 +710,8 @@ class Transformator:
                     lines.insert(dl2, add[i])
         else:
             raise TransformationFileFormatError(
-                "Destination block (" + action['parameters']['source_path'] +
-                ") and source block (" + action['parameters']['destination_path'] +
+                "Destination block (" + self._get_paths_str(action, 'source_path') +
+                ") and source block (" + self._get_paths_str(action, 'destination_path') +
                 " is overlapped")
         return True
         
@@ -563,7 +723,7 @@ class Transformator:
             return False
         if parent2.implementation == DataNode.Implementation.sequence:
             raise TransformationFileFormatError(
-                    "Specified addition path (" + action['parameters']['path'] + \
+                    "Specified addition path (" + self._get_paths_str(action, 'path') + \
                     ") is not array type node." )
         try:
             parent1 = root.get_node_at_path(action['parameters']['source_path'])
@@ -571,12 +731,12 @@ class Transformator:
             return False
         if parent1.implementation == DataNode.Implementation.sequence:
             raise TransformationFileFormatError(
-                    "Specified source path (" + action['parameters']['path'] + \
+                    "Specified source path (" + self._get_paths_str(action, 'path') + \
                     ") is not array type node." )        
         if parent2 == parent1:
             raise TransformationFileFormatError(
                 "Source and addition paths must be different (" + 
-                action['parameters']['source_path'] + ")")
+                self._get_paths_str(action, 'source_path') + ")")
         sl1, sc1, sl2, sc2 = self._get_value_pos(parent1)
         sl2, sc2 = self._fix_end(self, lines, sl1, sc1, sl2, sc2 )
         al1, ac1, al2, ac2 = self._get_value_pos(parent2)
@@ -584,7 +744,7 @@ class Transformator:
         if (al1>=sl1 and sl2>=al2) or (sl1>=al1 and al2>=sl2):
             raise TransformationFileFormatError(
                 "Source and addition nodes can't contains each other (" + 
-                action['parameters']['source_path'] + ")")
+                self._get_paths_str(action, 'source_path') + ")")
         
         intendation1 = re.search(r'^(\s*)(\S.*)$', lines[sl1])
         sl1, sc1, sl2, sc2 = self._add_comments(lines, al1, ac1, al2, ac2)
@@ -661,9 +821,9 @@ class Transformator:
             node = root.get_node_at_path(action['parameters']['path'])
         except:
             return False
-        if node.implementation == DataNode.Implementation.scalar:
+        if node.implementation != DataNode.Implementation.scalar:
             raise TransformationFileFormatError(
-                    "Specified path (" + action['parameters']['path'] + ") is not scalar type node." )
+                    "Specified path (" + self._get_paths_str(action, 'path') + ") is not scalar type node." )
         old = '!' + action['parameters']['old_value'] 
         new = '!' + action['parameters']['new_value']
         l1, c1, l2, c2 =  self._get_value_pos(node)

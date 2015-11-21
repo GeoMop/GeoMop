@@ -350,16 +350,17 @@ if __name__ == "__main__":
     else:
         __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
 
-    LOG_FORMAT = '%(asctime)-15s %(message)s'
-    LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
-    logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
+    if not args.debug:
+        LOG_FORMAT = '%(asctime)-15s %(message)s'
+        LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
+        logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
 
-    def log_excepthook(type_, value, tback):
-        logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value, ''.join(traceback.format_tb(tback))))
+        def log_excepthook(type_, value, tback):
+            logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value, ''.join(traceback.format_tb(tback))))
 
-        # call the default handler
-        sys.__excepthook__(type_, value, tback)
+            # call the default handler
+            sys.__excepthook__(type_, value, tback)
 
-    sys.excepthook = log_excepthook
+        sys.excepthook = log_excepthook
 
     ModelEditor().main()
