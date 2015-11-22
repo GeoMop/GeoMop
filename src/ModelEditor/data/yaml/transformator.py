@@ -72,6 +72,16 @@ Example::
         ]
     }
 
+Wildchars Example::
+
+    { 
+      "action": "move-key",
+      "parameters": {
+        "source_path":"/**/input_fields/*/r_set",
+        "destination_path":"/$1/input_fields/$2/region"
+      }
+    }
+
 """
 
 # pylint: disable=invalid-name
@@ -245,6 +255,8 @@ class Transformator:
             return [action]
         res = []
         spath = path.split('/')
+        if spath[0] == "":
+            spath = spath[1:]
         if spath[len(spath)-1]=='**':
             raise TransformationFileFormatError(
                 "Wildcard '**' can't be in end of path(" + action['parameters'][path_parameter] + ")")
@@ -263,6 +275,8 @@ class Transformator:
                         new_action['parameters'][parameter] = \
                             new_action['parameters'][parameter].replace( \
                                 '$'+str(i+1), replacement.replacements[i]) 
+                        if new_action['parameters'][parameter][0] != "/":
+                            new_action['parameters'][parameter] = "/"+new_action['parameters'][parameter]
             res.append(new_action)    
         return res
         
@@ -310,7 +324,12 @@ class Transformator:
                 if deep:
                     # second try cancel ** find
                     if spath[1] == child:
-                        replacements = self._search_node(spath[1:],  node.get_child(child), new_replacement, orig_path)                
+                        new_replacement2 = Transformator._Replacement(replacement)
+                        new_replacement2.path += "/" + child
+                        if len(spath)==2:
+                            res.append(new_replacement2)
+                        else:
+                            replacements = self._search_node(spath[2:],  node.get_child(child), new_replacement2, orig_path)                
                         res.extend(replacements)
         else:
             for child in node.children_keys:
