@@ -269,14 +269,15 @@ class Transformator:
             new_action['parameters']['orig_' + path_parameter] = replacement.orig_path
             if Transformator.__destination_paths__[action['action']] is not None:
                 for parameter in Transformator.__destination_paths__[action['action']]:
-                    for i in range(0, len(replacement.replacements)):
-                        if i == 0:
-                            new_action['parameters']['orig_' + parameter] = new_action['parameters'][parameter]
-                        new_action['parameters'][parameter] = \
-                            new_action['parameters'][parameter].replace( \
-                                '$'+str(i+1), replacement.replacements[i]) 
-                        if new_action['parameters'][parameter][0] != "/":
-                            new_action['parameters'][parameter] = "/"+new_action['parameters'][parameter]
+                    if parameter in action['parameters']:
+                        for i in range(0, len(replacement.replacements)):
+                            if i == 0:
+                                new_action['parameters']['orig_' + parameter] = new_action['parameters'][parameter]
+                            new_action['parameters'][parameter] = \
+                                new_action['parameters'][parameter].replace( \
+                                    '$'+str(i+1), replacement.replacements[i]) 
+                            if new_action['parameters'][parameter][0] != "/":
+                                new_action['parameters'][parameter] = "/"+new_action['parameters'][parameter]
             res.append(new_action)    
         return res
         
@@ -330,7 +331,7 @@ class Transformator:
                             res.append(new_replacement2)
                         else:
                             replacements = self._search_node(spath[2:],  node.get_child(child), new_replacement2, orig_path)                
-                        res.extend(replacements)
+                            res.extend(replacements)
         else:
             for child in node.children_keys:
                 new_node = node.get_child(child)
@@ -440,9 +441,8 @@ class Transformator:
         else:
             l2 = nl2
             c2 = nc2
-        # try add comments
-        # l1, c1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
-        # one line
+        # try exclude comments
+        l1, c1, l2, c2 = self._leave_comments(lines, l1, c1, l2, c2)        
         if l1 == l2:
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l1])
             if ((len(place.group(1)) >= c1) and
@@ -740,15 +740,15 @@ class Transformator:
             parent2 = root.get_node_at_path(action['parameters']['addition_path'])
         except:
             return False
-        if parent2.implementation == DataNode.Implementation.sequence:
+        if parent2.implementation != DataNode.Implementation.sequence:
             raise TransformationFileFormatError(
-                    "Specified addition path (" + self._get_paths_str(action, 'path') + \
+                    "Specified addition path (" + self._get_paths_str(action, 'addition_path') + \
                     ") is not array type node." )
         try:
             parent1 = root.get_node_at_path(action['parameters']['source_path'])
         except:
             return False
-        if parent1.implementation == DataNode.Implementation.sequence:
+        if parent1.implementation != DataNode.Implementation.sequence:
             raise TransformationFileFormatError(
                     "Specified source path (" + self._get_paths_str(action, 'path') + \
                     ") is not array type node." )        
@@ -757,28 +757,30 @@ class Transformator:
                 "Source and addition paths must be different (" + 
                 self._get_paths_str(action, 'source_path') + ")")
         sl1, sc1, sl2, sc2 = self._get_value_pos(parent1)
-        sl2, sc2 = self._fix_end(self, lines, sl1, sc1, sl2, sc2 )
+        sl2, sc2 = self._fix_end(lines, sl1, sc1, sl2, sc2 )
         al1, ac1, al2, ac2 = self._get_value_pos(parent2)
-        al2, ac2 = self._fix_end(self, lines, al1, ac1, al2, ac2 )
+        al2, ac2 = self._fix_end(lines, al1, ac1, al2, ac2 )
         if (al1>=sl1 and sl2>=al2) or (sl1>=al1 and al2>=sl2):
             raise TransformationFileFormatError(
                 "Source and addition nodes can't contains each other (" + 
                 self._get_paths_str(action, 'source_path') + ")")
         
         intendation1 = re.search(r'^(\s*)(\S.*)$', lines[sl1])
-        sl1, sc1, sl2, sc2 = self._add_comments(lines, al1, ac1, al2, ac2)
+        intendation1 = len(intendation1.group(1))
+        al1, ac1, al2, ac2 = self._add_comments(lines, al1, ac1, al2, ac2)
         add = self ._copy_value(lines, al1, ac1, al2, ac2, intendation1)
         add = self._fix_placing(add, self._get_type_place(lines, root, parent2))
 
         if al2 < sl1 or (al2 == sl1 and al2 < sc1):
             # source after addition, first delete
-            action['parameters']['path'] = action['parameters']['source_path']
+            action['parameters']['path'] = action['parameters']['addition_path']
             self._delete_key(root, lines, action)
         self._add_comma(lines, sl2, sc2 )
         for i in range(len(add)-1, -1, -1):
             lines.insert(sl2+1, add[i])
         if not(al2 < sl1 or (al2 == sl1 and al2 < sc1)):
-            action['parameters']['path'] = action['parameters']['source_path']
+            action['parameters']['path'] = action['parameters']['addition_path']
+            action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
         return True
 
@@ -896,6 +898,41 @@ class Transformator:
                 nc2 = len(lines[nl2])
             else:
                 break
+        return nl1, nc1, nl2, nc2
+        
+    @staticmethod
+    def _leave_comments(lines, l1, c1, l2, c2):
+        """Try find comments in start of node and exclude it from node"""
+        nl1 = l1
+        nc1 = c1
+        nl2 = l2
+        nc2 = c2
+        # comments on start
+        comment = re.search(r'^(\s*)#\s*(.*)$', lines[l1][c1:])
+        if comment is not None:
+            nl1 += 1
+            nc1 = 0
+            while nl1 < nl2:
+                comment = re.search(r'^(\s*)#\s*(.*)$', lines[nl1])
+                if comment is not None:
+                    nl1 += 1
+                else:
+                    break
+        while nl2 > nl1:
+            comment = re.search(r'^(\s*)#\s*(.*)$', lines[nl2][:nc2])
+            if comment is None:
+                if nc2 == 0 or lines[nl2][:nc2].isspace():
+                    comment = re.search(r'^(\s*)#\s*(.*)$', lines[nl2-1])
+                    if comment is None:
+                        break
+                    else:
+                        nl2 -= 1
+                        nc2 = 0
+                else:
+                    nc2 = 0
+            ident = re.search(r'^(\s*)\S', lines[nl2])
+            if ident is not None:
+                nc2 = len(ident.group(1))
         return nl1, nc1, nl2, nc2
 
 
