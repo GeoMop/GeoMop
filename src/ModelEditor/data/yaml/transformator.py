@@ -183,6 +183,7 @@ class Transformator:
 
     def transform(self, yaml):
         """transform yaml file"""
+        # TODO: cls.root = autoconvert(cls.root, cls.root_input_type)
         notification_handler = NotificationHandler()
         loader = Loader(notification_handler)
         root = loader.load(yaml)
