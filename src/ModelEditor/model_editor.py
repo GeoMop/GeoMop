@@ -172,6 +172,7 @@ class ModelEditor:
         self._update_info(new_cursor_type)
 
     def _update_info(self, cursor_type):
+        """Update the info panel."""
         if self._editor.pred_parent is not None:
             self._info.update_from_node(self._editor.pred_parent,
                                         CursorType.parent.value)
@@ -275,7 +276,7 @@ class ModelEditor:
         text = cfg.get_transformation_text(file)
         if text is not None:
             import meconfig.meconfig
-            dlg = JsonEditorDlg(meconfig.meconfig.__transformation_dir__, file,
+            dlg = JsonEditorDlg(cfg.transformation_dir, file,
                                 "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
 
@@ -292,12 +293,12 @@ class ModelEditor:
         """Open selected format file in Json Editor"""
         text = cfg.get_curr_format_text()
         if text is not None:
-            import meconfig.meconfig
-            dlg = JsonEditorDlg(meconfig.meconfig.__format_dir__, cfg.curr_format_file,
+            dlg = JsonEditorDlg(cfg.format_dir, cfg.curr_format_file,
                                 "Format", text, self.mainwindow)
             dlg.exec_()
 
     def update_recent_files(self, from_row=1):
+        """Update recently opened files."""
         self._file_menu.update_recent_files(from_row)
 
     def _update_document_name(self):
@@ -342,7 +343,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.debug:
-        cfg.config.DEBUG_MODE = True
+        cfg.config.__class__.DEBUG_MODE = True
 
     # logging
     if 'APPDATA' in os.environ:
@@ -350,16 +351,19 @@ if __name__ == "__main__":
     else:
         __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
 
-    LOG_FORMAT = '%(asctime)-15s %(message)s'
-    LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
-    logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
+    if not args.debug:
+        LOG_FORMAT = '%(asctime)-15s %(message)s'
+        LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
+        logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
 
-    def log_excepthook(type_, value, tback):
-        logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value, ''.join(traceback.format_tb(tback))))
+        def log_excepthook(type_, value, tback):
+            """Set exception logging hook."""
+            logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value,
+                                                                  ''.join(traceback.format_tb(tback))))
+                                                                  
+            # call the default handler
+            sys.__excepthook__(type_, value, tback)
 
-        # call the default handler
-        sys.__excepthook__(type_, value, tback)
-
-    sys.excepthook = log_excepthook
+        sys.excepthook = log_excepthook
 
     ModelEditor().main()
