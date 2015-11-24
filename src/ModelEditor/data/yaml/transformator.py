@@ -63,7 +63,7 @@ import re
 from .loader import Loader
 from ..data_node import DataNode
 from helpers import NotificationHandler
-
+from helpers.subyaml import StructureChanger
 
 class Transformator:
     """Transform yaml file to new version"""
@@ -219,8 +219,7 @@ class Transformator:
             intendation1 = re.search(r'^(\s*)(\S.*)$', lines[pl1])
             intendation1 = len(intendation1.group(1)) + 2
         l1, c1, l2, c2 = self._add_comments(lines, l1, c1, l2, c2)
-        add = self ._copy_value(lines, l1, c1, l2, c2, intendation1)
-        add = self._fix_placing(add, self._get_type_place(lines, root, parent_node, True))
+        add = StructureChanger.copy_structure(lines, l1, c1, l2, c2, intendation1)
         pl1, pc1 = self._skip_tar(lines, pl1, pc1, pl2, pc2)
         self._delete_key(root, lines, action)
         for i in range(len(add)-1, -1, -1):
@@ -384,7 +383,7 @@ class Transformator:
         dl1, dc1, dl2, dc2 = self._get_node_pos(ref_node)
         intend = re.search(r'^(\s*)(\S.*)$', lines[dl1])
         intend = len(intend.group(1)) + 2
-        add = self._copy_value(lines, l1, c1, l2, c2, intend)
+        add = self.StructureChanger.copy_structure(lines, l1, c1, l2, c2, intend)
         while dl1 <= dl2:
             ref = re.search(r'^(.*\*' + anchor_node.anchor.value + r')(.*)$', lines[dl1])
             if ref is not None:
@@ -440,38 +439,7 @@ class Transformator:
                     return line, column
                 break
         return old_line, old_column
-
-    def _copy_value(self, lines, l1, c1, l2, c2, intend):
-        add = []
-        # try add comments
-        if l1 == l2:
-            add.append(intend*" " + lines[l1][c1:c2])
-        else:
-            from_line = l1
-            if c1 > 0:
-                add.append(intend*" " + lines[l1][c1:])
-                from_line += 1
-            intendation2 = re.search(r'^(\s*)(\S.*)$', lines[l1])
-            intendation2 = len(intendation2.group(1))
-            intendation = intend - intendation2
-            for i in range(from_line, l2):
-                intendation_test = re.search(r'^(\s*)(\S.*)$', lines[i])
-                if intendation == 0 or len(intendation_test.group(1)) < -intendation:
-                    add.append(lines[i])
-                elif intendation < 0:
-                    add.append(lines[i][-intendation:])
-                else:
-                    add.append(intendation*" " + lines[i])
-            intendation_test = re.search(r'^(\s*)(\S.*)$', lines[l2])
-            if len(intendation_test.group(1)) <= c2:
-                if intendation == 0 or len(intendation_test.group(1)) < -intendation:
-                    add.append(lines[l2][:c2])
-                elif intendation < 0:
-                    add.append(lines[l2][-intendation:c2])
-                else:
-                    add.append(intendation*" " + lines[l2][:c2])
-        return add
-
+ 
     def _get_type_place(self, lines, root, parent_node, place_forward=False):
         """
         Return type of placeing to root element
@@ -482,10 +450,6 @@ class Transformator:
         4 - comma after
         """
         return 2
-
-    def _fix_placing(self, add, type):
-        """Fix placening in added text"""
-        return add
 
     def _move_key(self, root, lines, action):
         """Move key transformation"""
@@ -521,8 +485,7 @@ class Transformator:
         intendation1 = re.search(r'^(\s*)(\S.*)$', lines[dl1])
         intendation1 = len(intendation1.group(1)) + 2
         sl1, sc1, sl2, sc2 = self._add_comments(lines, sl1, sc1, sl2, sc2)
-        add = self ._copy_value(lines, sl1, sc1, sl2, sc2, intendation1)
-        add = self._fix_placing(add, self._get_type_place(lines, root, node2))
+        add = StructureChanger.copy_structure(lines, sl1, sc1, sl2, sc2, intendation1)
         # rename key
         i = node1.key.span.start.line - sl1 - 1
         add[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", add[i])
@@ -588,8 +551,7 @@ class Transformator:
         
         intendation1 = re.search(r'^(\s*)(\S.*)$', lines[sl1])
         sl1, sc1, sl2, sc2 = self._add_comments(lines, al1, ac1, al2, ac2)
-        add = self ._copy_value(lines, al1, ac1, al2, ac2, intendation1)
-        add = self._fix_placing(add, self._get_type_place(lines, root, parent2))
+        add = StructureChanger.copy_structure(lines, al1, ac1, al2, ac2, intendation1)
 
         if al2 < sl1 or (al2 == sl1 and al2 < sc1):
             # source after addition, first delete
