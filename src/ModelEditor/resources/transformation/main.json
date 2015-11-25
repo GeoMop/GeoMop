@@ -101,7 +101,8 @@
       "action": "move-key",
       "parameters": {
         "source_path":"/problem/mesh/sets/*/name",
-        "destination_path":"/problem/mesh/sets_new/$1/name"
+        "destination_path":"/problem/mesh/sets_new/$1/name",
+		"create_path":true
       }
     },   
     { 

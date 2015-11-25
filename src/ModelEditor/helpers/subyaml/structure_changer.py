@@ -4,15 +4,15 @@
 """
 import re
 from data import DataNode
+from .node_analyzer import NodeAnalyzer
 
 class NodeDescription:
-   def __init__(self, key="0", type=DataNode.StructureType.array):
+   def __init__(self, type, key=None):
         """init"""
         self.key = key
         """Name of key"""
         self.type = type
-        """type of node"""
-    
+        """Type of parent node"""    
 
 class StructureChanger:
     """
@@ -71,13 +71,45 @@ class StructureChanger:
                     lines.insert(line, add[i])
                     
     @staticmethod
-    def copy_absent_path(root,  source_path,  dest_path):
+    def copy_absent_path(root, lines, source_node,  dest_path):
         """
         Return different path (it is not existing path in  dest_path constracted 
-        from source_path ) in array of NodeDescription. This structure is suitable 
+        from source_node ) in array of NodeDescription. This structure is suitable 
         for next processing for some function as is paste_absent_path.
         """
-        return []
+        dest = dest_path.split('/')
+        if dest[0] == "":
+            dest = dest[1:] 
+        known_path = ""           
+        node = root
+        path_exist=True
+        while(path_exist):
+            path_exist = False
+            for child in node.children_keys:
+                if child == dest[0]:
+                    known_path += "/" + child
+                    node = node.get_child(child)
+                    dest = dest[1:]
+                    path_exist = True
+                    break
+        node_struct = []
+        for i in range(1, len(dest)+1): 
+            if source_node is None:
+                return [], None            
+            if source_node.parent is not None:
+                na = NodeAnalyzer(lines, source_node.parent)
+                node_type = na. get_node_structure_type()
+            else:
+                # root element is dictionary
+                node_type =  DataNode.StructureType.dict
+            if source_node.key is None:
+                node_struct.insert(0, NodeDescription(node_type))
+            else:
+                node_struct.insert(0, NodeDescription(node_type, dest[len(dest)-i]))
+            source_node = source_node.parent
+        if known_path == "":
+            known_path = "/"
+        return node_struct, known_path
         
     @staticmethod
     def paste_absent_path(add, node_struct):
@@ -96,19 +128,19 @@ class StructureChanger:
                 add_ident = len(place.group(1))
                 break        
         # prepend (append) structure
-        for node in range(0, len(node_struct)):
-            if node.type == DataNode.StructureType.dict:
+        for i in range(0, len(node_struct)):
+            if node_struct[i].type == DataNode.StructureType.dict:
                 add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
                 if  add_dash:
                     add_dash = False
                     add[prepend_len] += "- "
                     prepend_ident += 2
-                add[prepend_len] +=  node.key +":"
+                add[prepend_len] +=  node_struct[i].key +":"
                 prepend_len += 1
                 prepend_ident += StructureChanger.__indent__
-            if node.type == DataNode.StructureType.array:
-                add_dash = True            
-            if node.type == DataNode.StructureType.json_array:
+            if node_struct[i].type == DataNode.StructureType.array:
+                add_dash = True
+            if node_struct[i].type == DataNode.StructureType.json_array:
                 add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
                 if  add_dash:
                     add_dash = False
@@ -118,13 +150,13 @@ class StructureChanger:
                 prepend_len += 1
                 add.insert(prepend_len+add_len, (add_ident + prepend_ident)  * " " + "]")
                 prepend_ident += StructureChanger.__indent__
-            if node.type == DataNode.StructureType.json_dict:
+            if node_struct[i].type == DataNode.StructureType.json_dict:
                 add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
                 if  add_dash:
                     add_dash = False
                     add[prepend_len] += "- "
                     prepend_ident += 2
-                add[prepend_len] +=  "{ " + node.key +":"
+                add[prepend_len] +=  "{ " + node_struct[i].key +":"
                 prepend_len += 1
                 add.insert(prepend_len+add_len, (add_ident + prepend_ident)  * " " + "}")
                 prepend_ident += StructureChanger.__indent__
@@ -132,11 +164,11 @@ class StructureChanger:
         for i in range( prepend_len,  prepend_len + add_len):
             if add_dash:
                 if len(add[prepend_len]) >  prepend_ident:
-                    add[prepend_len] =  (add_ident + prepend_ident - 2)  * " " + "- " + add[prepend_len] [prepend_ident:]
+                    add[prepend_len] =  (add_ident + prepend_ident)  * " " + "- " + add[add_len] [prepend_ident:]
+                    prepend_ident += 2
                     add_dash = False
             else:
-                add[prepend_len] =  prepend_ident * " " +add[prepend_len]
-        
+                add[prepend_len] =  prepend_ident * " " +add[prepend_len]        
         return add
     
     @staticmethod
@@ -153,7 +185,7 @@ class StructureChanger:
         
     
     @staticmethod    
-    def replace(self, lines, new,  old,  l1, c1, l2, c2 ):
+    def replace(lines, new,  old,  l1, c1, l2, c2):
         """replace first occurence of defined value, and return if is len updated"""        
         for i in range(l1, l2+1):
             if i == l1:
@@ -249,7 +281,7 @@ class StructureChanger:
         return add
         
     @staticmethod
-    def skip_tar(self, lines, l1, c1, l2, c2):
+    def skip_tar(lines, l1, c1, l2, c2):
         """
         Return start possition of value from set possition of node. 
         ( Start node structure witout tag, anchor or ref )               

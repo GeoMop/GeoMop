@@ -196,7 +196,7 @@ class Transformator:
         text = cfg.get_curr_format_text()
         root_input_type = get_root_input_type_from_json(text)
         for aaction in self._transformation['actions']:
-            for action in self.replace_wildchars(root, aaction):
+            for action in self._replace_wildchars(root, aaction):
                 if changes:
                     root, lines = self.refresh(root_input_type, yaml, notification_handler, loader)
                 if action['action'] == "delete-key":
@@ -342,14 +342,13 @@ class Transformator:
                             res.extend(replacements)
         else:
             for child in node.children_keys:
-                new_node = node.get_child(child)
-                if new_node.key.value == spath[0]:
+                if child == spath[0]:
                     new_replacement = Transformator._Replacement(replacement)
                     new_replacement.path += "/" + child
                     if len(spath) == 1:
                         res.append(new_replacement)
                     else:
-                        replacements = self._search_node(spath[1:], new_node, new_replacement, orig_path)                
+                        replacements = self._search_node(spath[1:], node.get_child(child), new_replacement, orig_path)                
                         res.extend(replacements)
         return res
 
@@ -568,11 +567,29 @@ class Transformator:
             return False
         try:
             parent2 = re.search(r'^(.*)/([^/]*)$', action['parameters']['destination_path'])
+            new_node = parent2.group(2)
             node2 = root.get_node_at_path(parent2.group(1))
+            node_struct = []
         except:
-            raise TransformationFileFormatError(
-                "Parent of destination path (" + self._get_paths_str(action, 'destination_path') +
-                ") must exist")
+            if action['parameters']['create_path'] and parent2 is not None:
+                node_struct,new_path = StructureChanger.copy_absent_path(root, 
+                    lines, node1.parent, parent2.group(1))
+                if len(node_struct) == 0:
+                    raise TransformationFileFormatError(
+                        "Can't constract destination path (" + 
+                        self._get_paths_str(action, 'destination_path') + ")")
+                try:                    
+                    new_node = parent2.group(2)
+                    parent2 = re.search(r'^(.*)/([^/]*)$', new_path + "/" + new_node)
+                    node2 = root.get_node_at_path(parent2.group(1))                    
+                except:    
+                    raise TransformationFileFormatError(
+                        "Constracted path error(" + self._get_paths_str(action, 'destination_path') +
+                        ")")
+            else:
+                raise TransformationFileFormatError(
+                    "Parent of destination path (" + self._get_paths_str(action, 'destination_path') +
+                    ") must exist")
         sl1, sc1, sl2, sc2 = StructureChanger.node_pos(node1)
         dl1, dc1, dl2, dc2 = StructureChanger.node_pos(node2)
         if parent1.group(1) == parent2.group(1):
@@ -590,13 +607,11 @@ class Transformator:
         add = StructureChanger.copy_structure(lines, sl1, sc1, sl2, sc2, intendation1)
         # rename key
         i = node1.key.span.start.line - sl1 - 1
-        add[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", add[i])
-        
-        if action['parameters']['create_path']:
-            StructureChanger.copy_absent_path(lines, parent1, parent2, add)
-
-        
-        if sl2 < dl1 or (sl2 == dl1 and sc2 < dc1):
+        add[i] = re.sub(parent1.group(2) + r"\s*:", new_node + ":", add[i])        
+        if action['parameters']['create_path'] and len(node_struct) > 0:
+            add = StructureChanger.paste_absent_path(add, node_struct)        
+        if sl2 < dl1 or (sl2 == dl1 and sc2 < dc1) or \
+            (action['parameters']['create_path'] and len(node_struct) > 0):
             # source before dest, first copy
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])
             StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
