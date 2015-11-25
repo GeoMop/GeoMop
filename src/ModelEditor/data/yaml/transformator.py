@@ -93,10 +93,9 @@ import copy
 from .loader import Loader
 from ..data_node import DataNode
 from helpers import NotificationHandler
-from helpers.subyaml import StructureChanger
+from helpers.subyaml.structure_changer import StructureChanger
 from data.autoconversion import autoconvert
 from data.format import get_root_input_type_from_json
-from meconfig import cfg
 
 class Transformator:
     """Transform yaml file to new version"""
@@ -186,7 +185,7 @@ class Transformator:
             return self._transformation['name']
         return ""
 
-    def transform(self, yaml):
+    def transform(self, yaml, cfg):
         """transform yaml file"""
         # TODO: cls.root = autoconvert(cls.root, cls.root_input_type)
         notification_handler = NotificationHandler()
@@ -197,7 +196,7 @@ class Transformator:
         text = cfg.get_curr_format_text()
         root_input_type = get_root_input_type_from_json(text)
         for aaction in self._transformation['actions']:
-            for action in StructureChanger.replace_wildchars(root, aaction):
+            for action in self.replace_wildchars(root, aaction):
                 if changes:
                     root, lines = self.refresh(root_input_type, yaml, notification_handler, loader)
                 if action['action'] == "delete-key":
@@ -589,11 +588,14 @@ class Transformator:
         intendation1 = len(intendation1.group(1)) + 2
         sl1, sc1, sl2, sc2 = StructureChanger._add_comments(lines, sl1, sc1, sl2, sc2)
         add = StructureChanger.copy_structure(lines, sl1, sc1, sl2, sc2, intendation1)
-        if action['parameters']['create_path']:
-            StructureChanger.copy_absent_path(lines, parent1, parent2, add)
         # rename key
         i = node1.key.span.start.line - sl1 - 1
         add[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", add[i])
+        
+        if action['parameters']['create_path']:
+            StructureChanger.copy_absent_path(lines, parent1, parent2, add)
+
+        
         if sl2 < dl1 or (sl2 == dl1 and sc2 < dc1):
             # source before dest, first copy
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])

@@ -1,9 +1,18 @@
 """Structure changer.
 
-
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 import re
+from data import DataNode
+
+class NodeDescription:
+   def __init__(self, key="0", type=DataNode.StructureType.array):
+        """init"""
+        self.key = key
+        """Name of key"""
+        self.type = type
+        """type of node"""
+    
 
 class StructureChanger:
     """
@@ -62,13 +71,74 @@ class StructureChanger:
                     lines.insert(line, add[i])
                     
     @staticmethod
-    def copy_absent_path(lines, source, dest, add):
+    def copy_absent_path(root,  source_path,  dest_path):
         """
-        Add absent path (difference between source_path and dest_path ) 
-        to add array and icrease its indentation.
+        Return different path (it is not existing path in  dest_path constracted 
+        from source_path ) in array of NodeDescription. This structure is suitable 
+        for next processing for some function as is paste_absent_path.
         """
-        source = path.split('/')
-                    
+        return []
+        
+    @staticmethod
+    def paste_absent_path(add, node_struct):
+        """
+        Add node structure to add array and icrease its indentation.
+        """
+        add_ident = 0
+        add_len = len(add)
+        prepend_len = 0
+        prepend_ident = 0
+        add_dash = False        
+        # find indetation
+        for i in range(0, len(add)):
+            place = re.search(r'^(\s*)(\S.*\S)(\s*)$', add[i])
+            if place is not None:
+                add_ident = len(place.group(1))
+                break        
+        # prepend (append) structure
+        for node in range(0, len(node_struct)):
+            if node.type == DataNode.StructureType.dict:
+                add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
+                if  add_dash:
+                    add_dash = False
+                    add[prepend_len] += "- "
+                    prepend_ident += 2
+                add[prepend_len] +=  node.key +":"
+                prepend_len += 1
+                prepend_ident += StructureChanger.__indent__
+            if node.type == DataNode.StructureType.array:
+                add_dash = True            
+            if node.type == DataNode.StructureType.json_array:
+                add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
+                if  add_dash:
+                    add_dash = False
+                    add[prepend_len] += "- "
+                    prepend_ident += 2
+                add[prepend_len] +=  "["
+                prepend_len += 1
+                add.insert(prepend_len+add_len, (add_ident + prepend_ident)  * " " + "]")
+                prepend_ident += StructureChanger.__indent__
+            if node.type == DataNode.StructureType.json_dict:
+                add.insert(prepend_len, (add_ident + prepend_ident)  * " ")
+                if  add_dash:
+                    add_dash = False
+                    add[prepend_len] += "- "
+                    prepend_ident += 2
+                add[prepend_len] +=  "{ " + node.key +":"
+                prepend_len += 1
+                add.insert(prepend_len+add_len, (add_ident + prepend_ident)  * " " + "}")
+                prepend_ident += StructureChanger.__indent__
+        # add indentation to origin add variable
+        for i in range( prepend_len,  prepend_len + add_len):
+            if add_dash:
+                if len(add[prepend_len]) >  prepend_ident:
+                    add[prepend_len] =  (add_ident + prepend_ident - 2)  * " " + "- " + add[prepend_len] [prepend_ident:]
+                    add_dash = False
+            else:
+                add[prepend_len] =  prepend_ident * " " +add[prepend_len]
+        
+        return add
+    
     @staticmethod
     def change_tag(lines, node, old,  new):
         """change node tag"""        
@@ -112,11 +182,14 @@ class StructureChanger:
         """Delete structure from yaml file (lines array)"""
         if l1 == l2:
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l1])
-            if ((len(place.group(1)) >= c1) and
-                    ((len(lines[l1]) - len(place.group(3))) <= c2)):
-                del lines[l1]
+            if place is not None:
+                if ((len(place.group(1)) >= c1) and
+                        ((len(lines[l1]) - len(place.group(3))) <= c2)):
+                    del lines[l1]
+                else:
+                    lines[l1] = lines[l1][:c1] + lines[l1][c2:]
             else:
-                lines[l1] = lines[l1][:c1] + lines[l1][c2:]
+                del lines[l1] 
         else:
             # more lines
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l2])

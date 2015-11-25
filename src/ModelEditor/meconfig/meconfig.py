@@ -304,7 +304,7 @@ class MEConfig:
             for path in need_move_forward:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
-            cls.document = transformator.transform(cls.document)
+            cls.document = transformator.transform(cls.document, cls)
             cls.update_format()
             cls.changed = True
             return True
@@ -444,7 +444,7 @@ class MEConfig:
             res = QtWidgets.QDialog.Accepted == dialog.exec_()
         if res:
             try:
-                cls.document = transformator.transform(cls.document)
+                cls.document = transformator.transform(cls.document, cls)
             except TransformationFileFormatError as err:
                 if cls.main_window is not None:
                     cls._report_error("Transformation format error", err)
