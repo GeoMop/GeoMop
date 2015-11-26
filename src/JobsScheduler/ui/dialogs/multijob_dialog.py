@@ -8,9 +8,9 @@ Multijob dialog
 import logging
 
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QRegExpValidator, QValidator
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.validators.validation import MultiJobNameValidator
 
 
 class MultiJobDialog(AFormDialog):
@@ -97,6 +97,9 @@ class MultiJobDialog(AFormDialog):
         return data
 
     def set_data(self, data=None):
+        # reset validation colors
+        self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #ffffff }")
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
@@ -129,6 +132,10 @@ class UiMultiJobDialog(UiFormDialog):
         # dialog properties
         dialog.resize(500, 440)
 
+        # validators
+        self.nameValidator = MultiJobNameValidator(
+            self.mainVerticalLayoutWidget)
+
         # form layout
         # hidden row
         self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -155,8 +162,6 @@ class UiMultiJobDialog(UiFormDialog):
         self.nameLineEdit.setPlaceholderText("Only alphanumeric characters "
                                              "and - or _")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameValidator = QRegExpValidator(
-            QtCore.QRegExp("([a-z-_]|[A-Z])+"))
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)

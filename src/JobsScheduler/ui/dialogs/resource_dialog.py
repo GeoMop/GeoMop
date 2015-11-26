@@ -8,6 +8,7 @@ Resource dialog
 from PyQt5 import QtGui, QtWidgets
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.validators.validation import PresetNameValidator
 
 
 class ResourceDialog(AFormDialog):
@@ -58,6 +59,18 @@ class ResourceDialog(AFormDialog):
             self._handle_j_exec_change)
         self.ui.jobRemoteExecutionTypeComboBox.currentIndexChanged \
             .connect(self._handle_j_remote_exec_change)
+
+    def valid(self):
+        valid = True
+        # name validator
+        if not self.ui.nameLineEdit.hasAcceptableInput():
+            self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #f6989d }")  # red
+            valid = False
+        else:
+            self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #ffffff }")
+        return valid
 
     def _handle_mj_exec_change(self, index):
         if index == self.ui.multiJobExecutionTypeComboBox.findText(
@@ -185,6 +198,9 @@ class ResourceDialog(AFormDialog):
                     self.ui.jobEnvPresetComboBox.currentIndex()))
 
     def set_data(self, data=None):
+        # reset validation colors
+        self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #ffffff }")
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
@@ -250,6 +266,10 @@ class UiResourceDialog(UiFormDialog):
         # dialog properties
         dialog.resize(400, 260)
 
+        # validators
+        self.nameValidator = PresetNameValidator(
+            self.mainVerticalLayoutWidget)
+
         # form layout
         # hidden row
         self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -275,6 +295,7 @@ class UiResourceDialog(UiFormDialog):
         self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the preset")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
+        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
