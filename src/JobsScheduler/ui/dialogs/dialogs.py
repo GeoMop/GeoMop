@@ -51,8 +51,17 @@ class AFormDialog(QtWidgets.QDialog):
     accepted = QtCore.pyqtSignal(dict, tuple)
 
     def accept(self):
-        super(AFormDialog, self).accept()
-        self.accepted.emit(self.purpose, self.get_data())
+        if self.valid():
+            super(AFormDialog, self).accept()
+            self.accepted.emit(self.purpose, self.get_data())
+
+    def valid(self):
+        """
+        Validates input fields and returns True if valid. Otherwise points
+        out problems with form problems.
+        (To be overridden in child)
+        """
+        return True
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
         self.set_data(data)

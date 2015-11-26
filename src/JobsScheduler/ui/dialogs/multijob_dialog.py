@@ -8,6 +8,7 @@ Multijob dialog
 import logging
 
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QRegExpValidator, QValidator
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 
@@ -55,6 +56,18 @@ class MultiJobDialog(AFormDialog):
         super(MultiJobDialog, self)._connect_slots()
         # specific slots
         self.ui.analysisPushButton.clicked.connect(self.handle_dir_picking)
+
+    def valid(self):
+        valid = True
+        # name validator
+        if not self.ui.nameLineEdit.hasAcceptableInput():
+            self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #f6989d }")  # red
+            valid = False
+        else:
+            self.ui.nameLineEdit.setStyleSheet(
+                "QLineEdit { background-color: #ffffff }")
+        return valid
 
     def handle_dir_picking(self):
         old_dir = self.ui.analysisLineEdit.text()
@@ -142,6 +155,9 @@ class UiMultiJobDialog(UiFormDialog):
         self.nameLineEdit.setPlaceholderText("Only alphanumeric characters "
                                              "and - or _")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
+        self.nameValidator = QRegExpValidator(
+            QtCore.QRegExp("([a-z-_]|[A-Z])+"))
+        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
