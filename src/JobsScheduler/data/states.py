@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import time
 from enum import IntEnum
 
 logger = logging.getLogger("Remote")
@@ -17,13 +18,13 @@ class TaskStatus(IntEnum):
     pausing = 6
     paused = 7
     resuming = 8
-
+    stoped = 9
 
 class MJState:
-    def __init__(self, name):
+    def __init__(self, name, install=False):
         self.name = name
         """Name of multijob"""        
-        self.insert_time = None
+        self.insert_time = time.time()
         """when multiJob was started"""
         self.qued_time = None
         """when multiJob was qued"""
@@ -32,6 +33,8 @@ class MJState:
         self.run_interval = 0
         """Job run time from start in second"""
         self.status = TaskStatus.none
+        if install:
+            self.status = TaskStatus.installation
         """multijob status"""
         self.known_jobs = 0
         """count of known jobs (minimal amout of jobs)"""
@@ -44,10 +47,10 @@ class MJState:
 
 
 class JobState:
-    def __init__(self, name):
+    def __init__(self, name, install=False):
         self.name = name
         """Name of job"""
-        self.insert_time = None
+        self.insert_time = time.time()
         """when Job was started"""
         self.qued_time = None
         """when Job was qued"""
@@ -56,6 +59,8 @@ class JobState:
         self.run_interval = 0
         """Job run time from start in second"""
         self.status = TaskStatus.none
+        if install:
+            self.status = TaskStatus.installation
         """job status"""
 
 

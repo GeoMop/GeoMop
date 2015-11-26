@@ -276,12 +276,16 @@ class JobStateData(ActionData):
         if json_data is  not None:
             self.data = json.loads(json_data) 
         else:
-            self.data["ready"] = True
-            self.data["return_code"] = -1
+            self.data["ready"] = False
+            self.data["return_code"] = 0
     
     def set_data(self, return_code):
         """fill JobState state"""
-        self.data["ready"] = return_code != 0
-        self.data["return_code"] = return_code
+        if return_code is None:
+            self.data["ready"] = False
+            self.data["return_code"] = 0
+        else:
+            self.data["ready"] = True
+            self.data["return_code"] = return_code
             
         

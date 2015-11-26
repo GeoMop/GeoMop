@@ -23,6 +23,7 @@ msg = "Hello world! I am process {0} of {1} on {2}.".format(str(rank), str(size)
 logging.info(msg)
 
 if __name__ != "job":
-    for i in range(0, 30):
-        time.sleep(30)
-        logging.info( "time: " + str(i*30+30) + "s")
+    for i in range(0, 18):
+        time.sleep(10)
+        logging.info( "time: " + str(i*10+10) + "s")
+logging.info("End")

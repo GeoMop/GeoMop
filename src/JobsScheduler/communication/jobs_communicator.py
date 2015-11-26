@@ -8,6 +8,7 @@ from communication.std_input_comm import StdInputComm
 import threading
 from  communication.exec_output_comm import  ExecOutputComm
 import time
+from data.states import JobsState
 
 logger = logging.getLogger("Remote")
 
@@ -26,11 +27,15 @@ class JobsCommunicator(Communicator):
         """folder name for multijob data"""
         self.jobs = {}
         """Dictionary of jobs that is run by communicator"""
+        self.ready_jobs = {}
+        """Dictionary of jobs that is ready"""
         self.job_outputs = {}
         """Dictionary of jobs outputs"""
         self._job_semafores = {}
         """Job semafore for guarding one run job action"""
-        self.last_send_id = None 
+        self._last_send_id = None 
+        """Job id from which is send last message over ssh"""
+        self._last_check_id = None 
         """Job id from which is send last message over ssh"""
         if idle_func is None:
             self.anc_idle_func = self.standart_idle_function
@@ -106,7 +111,7 @@ class JobsCommunicator(Communicator):
                 # connect
                 if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
                     pending_outputs.append(id)
-                    if id == self.last_send_id:
+                    if id == self._last_send_id:
                         next = len(pending_outputs)
             if len(pending_outputs) > 0:
                 if len(pending_outputs) == next:
@@ -115,12 +120,13 @@ class JobsCommunicator(Communicator):
                 action=tdata.Action(tdata.ActionType.add_job)
                 action.data.set_id(id)
                 mess = action.get_message()
-                self.last_send_id = id
+                self._last_send_id = id
                 logger.debug("Before send")
                 self.send_message(mess)
                 mess = self.receive_message()
                 if mess is not None and mess.action_type == tdata.ActionType.job_conn:
                     # connection over remote was established
+                    self.jobs[id].state_start()
                     self.job_outputs[id].host = mess.get_action().data.data['host']
                     self.job_outputs[id].port = mess.get_action().data.data['port']
                     self._connect_socket(self.job_outputs[id], 1)
@@ -129,10 +135,51 @@ class JobsCommunicator(Communicator):
             for id in self.jobs:
                 # connect
                 if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                    self.jobs[id].state_start()
                     self._connect_socket(self.job_outputs[id], 1)
                     make_custom_action = False
         if make_custom_action:
+            # get status
+            pending_outputs = []
+            next = 0
+            for id in self.jobs:
+                # connect
+                if self.job_outputs[id].isconnected():
+                    pending_outputs.append(id)
+                    if id == self._last_check_id:
+                        next = len(pending_outputs)
+            if len(pending_outputs) > 0:
+                if len(pending_outputs) == next:
+                    next = 0
+                id = pending_outputs[next]
+                action=tdata.Action(tdata.ActionType.get_state)
+                logger.debug("Get job status message to " + id + " is sent")
+                self.job_outputs[id].send(action.get_message())
+                mess = self.job_outputs[id].receive()
+                logger.debug("Answer to status nessage is receive (" + str(mess) + ')')
+                self._last_check_id = id
+                if mess is not None and mess.action_type == tdata.ActionType.job_conn:
+                    if mess.get_action().data.data['ready']:
+                        action=tdata.Action(tdata.ActionType.stop)
+                        logger.debug("Stop message to ready job " + id + " is sent")
+                        self.job_outputs[id].send(action.get_message())
+                        mess = self.job_outputs[id].receive()
+                        logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
+                        if mess is not None and mess.action_type == tdata.ActionType.ok:
+                            self.ready_jobs[id] = self.jobs[id]
+                            self.jobs[id].state_ready()
+                            del self.jobs[id]
+        if make_custom_action:
             self.anc_idle_func()
+
+    def  get_jobs_states(self):
+        """return state all jobs"""
+        states = JobsState()
+        for id in self.ready_jobs:
+            states.jobs.append(self.ready_jobs[id].get_state())
+        for id in self.jobs:
+            states.jobs.append(self.jobs[id].get_state())
+        return states
 
     def _exec_(self):
         """
@@ -158,8 +205,9 @@ class JobsCommunicator(Communicator):
             logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
             t = threading.Thread(target= self._run_action, 
                   args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
-            t.daemon = True
+            t.daemon = True            
             t.start()
+        self.jobs[id].state_qued()
         
     def _run_action(self, action, id, semafore):
         """Run action guardet by semafore"""        

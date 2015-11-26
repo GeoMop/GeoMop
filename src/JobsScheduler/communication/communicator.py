@@ -402,8 +402,7 @@ class Communicator():
                 if resend and self.output is not None:
                     logger.debug("Message is resent")
                     self.output.send(message)
-                    res = self.output.receive()
-                    mess = res
+                    mess = self.output.receive()
                     logger.debug("Answer to resent message is receive (" + str(mess) + ')')
                 mess_after = self.action_func_after(message, mess)
                 if mess_after is not None:

@@ -1,3 +1,55 @@
+import threading
+import time
+import copy
+from data.states import JobState, TaskStatus
+
 class Job:
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self._data_lock = threading.Lock()
+        """Lock for job data"""
+        self._state = JobState(name, True)
+        """Job state"""
+
+    def state_qued(self):
+        """change state to qued"""
+        self._data_lock.acquire()
+        self._state.qued_time = time.time()
+        self._state.status = TaskStatus.qued
+        self._data_lock.release()
+        
+    def state_start(self):
+        """change state to running"""
+        self._data_lock.acquire()
+        self._state.start_time = time.time()
+        self._state.status = TaskStatus.running
+        self._data_lock.release()
+        
+    def state_ready(self):
+        """change state to ready"""
+        self._data_lock.acquire()
+        self._state.run_interval = time.time() - self._state.start_time 
+        self._state.status = TaskStatus.ready
+        self._data_lock.release()
+        
+    def state_stopping(self):
+        """change state to stopping"""
+        self._data_lock.acquire()
+        self._state.run_interval = time.time() - self._state.start_time 
+        self._state.status = TaskStatus.stoping
+        self._data_lock.release()
+        
+    def state_stoped(self):
+        """change state to stoped"""
+        self._data_lock.acquire()
+        self._state.status = TaskStatus.stoped
+        self._data_lock.release()
+    
+    def get_state(self):
+        """change state to qued"""
+        self._data_lock.acquire()
+        if self._state.status == TaskStatus.stoped:
+            self._state.run_interval = time.time() - self._state.start_time 
+        new_state = copy.deepcopy(self._state)
+        self._data_lock.release()
+        return new_state
+    

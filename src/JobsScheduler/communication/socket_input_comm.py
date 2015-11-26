@@ -102,7 +102,7 @@ class SocketInputComm(InputComm):
                 self.connect()
                 return 
             time.sleep(1)
-            if not self.conn_interupted:
+            if not self._conn_interupted:
                 self._conn_interupted = True
                 logger.warning("Connection was probably closed.")
             else:
