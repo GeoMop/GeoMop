@@ -144,7 +144,8 @@ class YamlEditorWidget(QsciScintilla):
         # disable QScintilla keyboard shortcuts to handle them in Qt
         for shortcut_name in shortcuts.SCINTILLA_DISABLE:
             shortcut = cfg.get_shortcut(shortcut_name)
-            self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
+            if shortcut.scintilla_code is not None:
+                self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
         # Clickable margin 0 to select node in tree
         self.setMarginSensitivity(0, True)
@@ -215,6 +216,11 @@ class YamlEditorWidget(QsciScintilla):
         :rtype: CursorType
         """
         return self._pos.cursor_type_position.value
+
+    @property
+    def eof_cursor(self):
+        """Cursor position for end of file."""
+        return 1000000, 1000000, 1000000, 1000000
 
 # ------------------------- TEXT MANIPULATION METHODS ------------------------
 
@@ -441,7 +447,9 @@ class YamlEditorWidget(QsciScintilla):
 
         :param bool replace_visible: when set to False, replace part of the dialog is hidden
         """
-        if self._find_replace_dialog is not None:
+        search_term = ""
+        if self._find_replace_dialog is not None and self._find_replace_dialog.isVisible():
+            search_term = self._find_replace_dialog.search_term
             self._find_replace_dialog.close()
 
         self._find_replace_dialog = FindReplaceDialog(self, replace_visible,
@@ -449,10 +457,13 @@ class YamlEditorWidget(QsciScintilla):
 
         # handle current selection
         from_row, from_col, to_row, to_col = self.getSelection()
-        if from_row == to_row and from_col != to_col:  # non-empty single line text
-            self._find_replace_dialog.search_term = self.selectedText()
+        if not search_term and from_row == to_row and from_col != to_col:
+            # non-empty single line text
+            search_term = self.selectedText()
         else:  # multiple lines -> ignore selection
             self.clear_selection()
+        if search_term:
+            self._find_replace_dialog.search_term = search_term
 
         # connect actions
         self._find_replace_dialog.search.connect(self.search)
@@ -507,6 +518,9 @@ class YamlEditorWidget(QsciScintilla):
     def replace_all(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
         """Replace all occurrences of search results with given text.
 
+        This function will search the text first and only then will be all occurrences be replaced.
+        This prevents looping of the function for certain replacements (like a -> aa).
+
         :param str search_term: search term
         :param str replacement: text that will replace result of the search
         :param bool is_regex: if set to True, search term is regarded as a regular expression
@@ -514,13 +528,27 @@ class YamlEditorWidget(QsciScintilla):
         :param bool is_word: if set to True, search only matches entire words
         """
         with self.reload_chunk:
+            boundaries = []
             self.clear_selection()
-            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True)
+            self.setCursorPosition(0, 0)
+            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
             if not self.hasSelectedText():
                 self._find_replace_dialog.on_match_not_found()
-            while self.hasSelectedText():
-                self.replaceSelectedText(replacement)
+
+            # find and record all occurrences
+            while (self.hasSelectedText() and
+                   (len(boundaries) == 0 or boundaries[-1] != self.getSelection())):
+                boundaries.append(self.getSelection())
                 self.findNext()
+
+            text = ""
+            # replace all occurrences by copying the valid parts of text and adding replacement
+            # text instead of original occurrence
+            for from_b, to_b in zip([(0, 0, 0, 0)] + boundaries, boundaries + [self.eof_cursor]):
+                self.setSelection(from_b[2], from_b[3], to_b[0], to_b[1])
+                text += self.selectedText() + replacement
+            text = text[:-len(replacement)]
+            self.setText(text, keep_history=True)
 
 # ------------------------------- MARGIN -------------------------------------
 
@@ -578,6 +606,8 @@ class YamlEditorWidget(QsciScintilla):
             return
 
         actions = [
+            ('escape', lambda: self._handle_keypress_escape(event)),
+            ('f3', lambda: self._handle_keypress_f3(event)),
             ('tab', lambda: self._handle_keypress_tab(event)),
             ('backspace', lambda: self._handle_keypress_backspace(event)),
             ('delete', self.delete),
@@ -588,7 +618,6 @@ class YamlEditorWidget(QsciScintilla):
             ('redo', self.redo),
             ('select_all', self.selectAll),
             ('show_autocompletion', cfg.autocomplete_helper.show_autocompletion),
-            ('indent', self.indent),
             ('unindent', self.unindent),
             ('comment', self.comment),
         ]
@@ -635,13 +664,18 @@ class YamlEditorWidget(QsciScintilla):
         """Handle keyPress event for :kdb:`Tab`."""
         if cfg.autocomplete_helper.visible:
             self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
-        elif cfg.get_shortcut('indent').matches_key_event(event):
-            self.indent()
         else:
-            self.insert_at_cursor(' ' * self.tabWidth())
+            self.indent()
 
-    # TODO keypress Esc to hide find/replace dialog
-    # TODO: F3 to find next
+    def _handle_keypress_escape(self, event):
+        """Handle keyPress event for :kdb:`Esc`."""
+        if self._find_replace_dialog is not None and self._find_replace_dialog.isVisible():
+            self._find_replace_dialog.close()
+        super(YamlEditorWidget, self).keyPressEvent(event)
+
+    def _handle_keypress_f3(self, event):
+        """Handle keyPress event for :kdb:`F3`."""
+        self._find_replace_dialog.perform_find()
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 

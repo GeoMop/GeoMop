@@ -4,7 +4,7 @@
 """
 from PyQt5.QtWidgets import (QDialog, QHBoxLayout, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QGridLayout, QSizePolicy)
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QEvent
 
 
 class FindReplaceDialog(QDialog):
@@ -57,22 +57,29 @@ class FindReplaceDialog(QDialog):
         self._find_label = QLabel('Search for: ', self)
         self._find_label.setMinimumSize(85, 20)
         self._find_line_edit = QLineEdit(self)
-        self._find_line_edit.textChanged.connect(self._perform_find)
+        self._find_line_edit.textChanged.connect(self.perform_find)
+        self._find_line_edit.returnPressed.connect(self.perform_find)
         self._find_line_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         self._find_line_edit.setMinimumSize(150, 20)
         self._cs_check_box = QCheckBox('Match Case', self)
+        self._cs_check_box.setFocusPolicy(Qt.NoFocus)
         self._re_check_box = QCheckBox('RegEx', self)
+        self._re_check_box.setFocusPolicy(Qt.NoFocus)
         self._wo_check_box = QCheckBox('Words', self)
+        self._wo_check_box.setFocusPolicy(Qt.NoFocus)
         self._find_button = QPushButton('Find Next', self)
-        self._find_button.setDefault(True)
-        self._find_button.clicked.connect(self._perform_find)
+        self._find_button.setFocusPolicy(Qt.NoFocus)
+        self._find_button.clicked.connect(self.perform_find)
 
         # replace components
         self._replace_label = QLabel('Replace with: ')
         self._replace_line_edit = QLineEdit()
+        self._replace_line_edit.returnPressed.connect(self._on_replace_button_clicked)
         self._replace_button = QPushButton('Replace')
+        self._replace_button.setFocusPolicy(Qt.NoFocus)
         self._replace_button.clicked.connect(self._on_replace_button_clicked)
         self._replace_all_button = QPushButton('Replace All')
+        self._replace_all_button.setFocusPolicy(Qt.NoFocus)
         self._replace_all_button.clicked.connect(self._on_replace_all_button_clicked)
 
         # layout
@@ -106,7 +113,8 @@ class FindReplaceDialog(QDialog):
 
         # set default values
         if defaults is not None:
-            self._find_line_edit.setText(defaults.search_term)
+            if not self.search_term:
+                self._find_line_edit.setText(defaults.search_term)
             self._cs_check_box.setChecked(defaults.is_case_sensitive)
             self._re_check_box.setChecked(defaults.is_regex)
             self._wo_check_box.setChecked(defaults.is_word)
@@ -118,12 +126,18 @@ class FindReplaceDialog(QDialog):
     def activateWindow(self):
         """Activates the window and sets the focus."""
         super(FindReplaceDialog, self).activateWindow()
-        if self._replace_visible:
-            self._replace_line_edit.selectAll()
-            self._replace_line_edit.setFocus()
-        else:
-            self._find_line_edit.selectAll()
-            self._find_line_edit.setFocus()
+        self._find_line_edit.selectAll()
+        self._find_line_edit.setFocus()
+
+    def close(self):
+        """Clear search text on close."""
+        self.search_term = ""
+        super(FindReplaceDialog, self).close()
+
+    def reject(self):
+        """Clear search term on reject."""
+        self.search_term = ""
+        super(FindReplaceDialog, self).reject()
 
     def on_match_found(self):
         """Handle when match is found."""
@@ -163,7 +177,7 @@ class FindReplaceDialog(QDialog):
         """Whether search term should be matched to entire words only."""
         return self._wo_check_box.isChecked()
 
-    def _perform_find(self):
+    def perform_find(self):
         """Perform a search."""
         self.search.emit(self.search_term, self.is_regex, self.is_case_sensitive, self.is_word)
 
@@ -177,4 +191,15 @@ class FindReplaceDialog(QDialog):
         self.replace_all.emit(self.search_term, self.replacement_text,
                               self.is_regex, self.is_case_sensitive, self.is_word)
 
-# TODO: Enter (when focused) to find next
+    def keyPressEvent(self, event):
+        """Handle keypress events.
+
+        :param QKeyEvent event: event with the key press information
+        """
+        if event.type() != QEvent.KeyPress:
+            return
+
+        if event.key() == Qt.Key_F3:
+            self.perform_find()
+        else:
+            super(FindReplaceDialog, self).keyPressEvent(event)

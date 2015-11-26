@@ -61,7 +61,6 @@ class EditMenu(QMenu):
         self.paste_action.triggered.connect(self._editor.paste)
 
         self.delete_action = QAction('&Delete', self)
-        self.delete_action.setShortcut(cfg.get_shortcut('delete').key_sequence)
         self.delete_action.setStatusTip('Delete selected text')
         self.delete_action.triggered.connect(self._editor.delete)
 
@@ -71,7 +70,6 @@ class EditMenu(QMenu):
         self.select_all_action.triggered.connect(self._editor.selectAll)
 
         self.indent_action = QAction('Indent Block', self)
-        self.indent_action.setShortcut(cfg.get_shortcut('indent').key_sequence)
         self.indent_action.setStatusTip('Indents the selected lines')
         self.indent_action.triggered.connect(self._editor.indent)
 

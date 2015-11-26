@@ -30,9 +30,30 @@ class KeyboardShortcutPicker(QPushButton):
         Qt.Key_Alt: 'Alt',
         Qt.Key_Backspace: 'Backspace',
         Qt.Key_Space: 'Space',
+        Qt.Key_Insert: 'Insert',
         Qt.Key_Delete: 'Delete',
         Qt.Key_Tab: 'Tab',
         Qt.Key_Tab+1: 'Tab',
+        Qt.Key_F1: 'F1',
+        Qt.Key_F2: 'F2',
+        Qt.Key_F3: 'F3',
+        Qt.Key_F4: 'F4',
+        Qt.Key_F5: 'F5',
+        Qt.Key_F6: 'F6',
+        Qt.Key_F7: 'F7',
+        Qt.Key_F8: 'F8',
+        Qt.Key_F9: 'F9',
+        Qt.Key_F10: 'F10',
+        Qt.Key_F11: 'F11',
+        Qt.Key_F12: 'F12',
+        Qt.Key_Home: 'Home',
+        Qt.Key_End: 'End',
+        Qt.Key_PageUp: 'PageUp',
+        Qt.Key_PageDown: 'PageDown',
+        Qt.Key_Left: 'Left',
+        Qt.Key_Right: 'Right',
+        Qt.Key_Up: 'Up',
+        Qt.Key_Down: 'Down',
     }
 
     def __init__(self, shortcut, parent):
@@ -88,11 +109,17 @@ class KeyboardShortcutPicker(QPushButton):
             return
 
         key = event.key()
+
         if key in KeyboardShortcutPicker.KEY_TRANSLATIONS:
             key_label = KeyboardShortcutPicker.KEY_TRANSLATIONS[key]
         else:
             key_label = chr(key)
-        self.new_combination.append(key_label)
+
+        # enable only modifiers as the first keys
+        if len(self.new_combination) > 0 or key_label in ['Ctrl', 'Alt', 'Shift']:
+            self.new_combination.append(key_label)
+        else:
+            return
 
         if self.is_valid_key_combination(self.new_combination):
             self.editing = False
