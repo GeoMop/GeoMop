@@ -22,8 +22,14 @@ class Tabs(QtWidgets.QTabWidget):
         self.show()
 
     def reload_view(self, results):
-        self.ui.logsTab.reload_view(results["logs"])
-        self.ui.jobsTab.reload_items(results["jobs"])
+        try:
+            self.ui.logsTab.reload_view(results["logs"])
+        except KeyError:
+            self.ui.logsTab.ui.treeWidget.clear()
+        try:
+            self.ui.jobsTab.reload_items(results["jobs"])
+        except KeyError:
+            self.ui.jobsTab.ui.treeWidget.clear()
 
 
 class UiTabs(object):
