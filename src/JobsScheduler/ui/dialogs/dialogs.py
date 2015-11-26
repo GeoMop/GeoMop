@@ -224,14 +224,12 @@ class APresetsDialog(QtWidgets.QDialog):
         Connect generic slots for dialog
         (must be called after UI setup in child)
         """
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
-
         self.presets_changed.connect(self.reload_view)
         self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
         self.ui.btnEdit.clicked.connect(self._handle_edit_preset_action)
         self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)
         self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
+        self.ui.btnClose.clicked.connect(self.reject)
         self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
 
@@ -294,20 +292,17 @@ class UiPresetsDialog(object):
                                            QtWidgets.QSizePolicy.Minimum,
                                            QtWidgets.QSizePolicy.Expanding)
         self.buttonLayout.addItem(spacerItem)
+
+        self.btnClose = QtWidgets.QPushButton(dialog)
+        self.btnClose.setText("C&lose")
+        self.btnClose.setObjectName("btnClose")
+        self.buttonLayout.addWidget(self.btnClose)
+
         # add buttons to layout
         self.horizontalLayout.addLayout(self.buttonLayout)
 
         # add presets and buttons layout to main
         self.mainVerticalLayout.addLayout(self.horizontalLayout)
-
-        # button box (order of of buttons is set by system default)
-        self.buttonBox = QtWidgets.QDialogButtonBox(
-            self.mainVerticalLayoutWidget)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Close)
-        self.buttonBox.setObjectName("buttonBox")
-        self.mainVerticalLayout.addWidget(self.buttonBox)
 
         # resize layout to fit dialog
         dialog.setLayout(self.mainVerticalLayout)
