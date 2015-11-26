@@ -4,6 +4,6 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 
-from .search_dialogs import FindDialog, ReplaceDialog
+from .find_replace_dialog import FindReplaceDialog
 from .transformation_detail import TranformationDetailDlg
 from .settings_dialog import SettingsDialog

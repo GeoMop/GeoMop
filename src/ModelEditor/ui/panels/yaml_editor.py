@@ -19,6 +19,7 @@ from meconfig import cfg
 from data import DataNode
 from helpers import (Notification, AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, shortcuts)
+from ui.dialogs import FindReplaceDialog
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
 from util import Position, PosType, CursorType
@@ -77,10 +78,6 @@ class YamlEditorWidget(QsciScintilla):
     :param int line: line number in text document
     """
 
-    # TODO: is this a good design decision? find/replace functionality
-    notFound = QtCore.pyqtSignal()
-    """Signal is sent when find/replace fails to find anything."""
-
     nodeSelected = QtCore.pyqtSignal(int, int)
     """Signal is sent when a node is selected, for example by clicking on the margin.
 
@@ -97,6 +94,12 @@ class YamlEditorWidget(QsciScintilla):
 
         self._pos = EditorPosition()
         """Helper for monitoring the cursor position."""
+
+        self._valid_bounds = True
+        """indicates whether calculated bounds are valid"""
+
+        self._find_replace_dialog = None
+        """dialog for find/replace functionality"""
 
         appearance.set_default_appearence(self)
 
@@ -141,7 +144,8 @@ class YamlEditorWidget(QsciScintilla):
         # disable QScintilla keyboard shortcuts to handle them in Qt
         for shortcut_name in shortcuts.SCINTILLA_DISABLE:
             shortcut = cfg.get_shortcut(shortcut_name)
-            self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
+            if shortcut.scintilla_code is not None:
+                self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)
 
         # Clickable margin 0 to select node in tree
         self.setMarginSensitivity(0, True)
@@ -174,9 +178,6 @@ class YamlEditorWidget(QsciScintilla):
         self.textChanged.connect(self._text_changed)
         self.elementChanged.connect(self._on_element_changed)
         self.SCN_AUTOCSELECTION.connect(self._on_autocompletion_selected)
-
-        self._valid_bounds = True
-        """indicates whether calculated bounds are valid"""
 
         # start to monitor actions to enable undo/redo
         self.beginUndoAction()
@@ -215,6 +216,11 @@ class YamlEditorWidget(QsciScintilla):
         :rtype: CursorType
         """
         return self._pos.cursor_type_position.value
+
+    @property
+    def eof_cursor(self):
+        """Cursor position for end of file."""
+        return 1000000, 1000000, 1000000, 1000000
 
 # ------------------------- TEXT MANIPULATION METHODS ------------------------
 
@@ -436,6 +442,44 @@ class YamlEditorWidget(QsciScintilla):
 
 # ---------------------------- FIND / REPLACE --------------------------------
 
+    def show_find_replace_dialog(self, replace_visible=False):
+        """Displays or refreshes the find replace dialog.
+
+        :param bool replace_visible: when set to False, replace part of the dialog is hidden
+        """
+        search_term = ""
+        if self._find_replace_dialog is not None and self._find_replace_dialog.isVisible():
+            search_term = self._find_replace_dialog.search_term
+            self._find_replace_dialog.close()
+
+        self._find_replace_dialog = FindReplaceDialog(self, replace_visible,
+                                                      defaults=self._find_replace_dialog)
+
+        # handle current selection
+        from_row, from_col, to_row, to_col = self.getSelection()
+        if not search_term and from_row == to_row and from_col != to_col:
+            # non-empty single line text
+            search_term = self.selectedText()
+        else:  # multiple lines -> ignore selection
+            self.clear_selection()
+        if search_term:
+            self._find_replace_dialog.search_term = search_term
+
+        # connect actions
+        self._find_replace_dialog.search.connect(self.search)
+        self._find_replace_dialog.replace.connect(self.replace_and_search)
+        self._find_replace_dialog.replace_all.connect(self.replace_all)
+
+        # show and set focus
+        self._find_replace_dialog.show()
+        self._find_replace_dialog.activateWindow()
+
+        # set position
+        top_right_editor = self.mapToGlobal(self.geometry().topRight())
+        pos_x = top_right_editor.x() - self._find_replace_dialog.width() - 1
+        pos_y = top_right_editor.y() + 1
+        self._find_replace_dialog.move(pos_x, pos_y)
+
     @pyqtSlot(str, bool, bool, bool)
     def search(self, search_term, is_regex, is_case_sensitive, is_word):
         """Search the text for given term.
@@ -450,7 +494,9 @@ class YamlEditorWidget(QsciScintilla):
         self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True, line=cur_line,
                        index=cur_col)
         if not self.hasSelectedText():
-            self.notFound.emit()
+            self._find_replace_dialog.on_match_not_found()
+        else:
+            self._find_replace_dialog.on_match_found()
 
     @pyqtSlot(str, str, bool, bool, bool)
     def replace_and_search(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
@@ -472,6 +518,9 @@ class YamlEditorWidget(QsciScintilla):
     def replace_all(self, search_term, replacement, is_regex, is_case_sensitive, is_word):
         """Replace all occurrences of search results with given text.
 
+        This function will search the text first and only then will be all occurrences be replaced.
+        This prevents looping of the function for certain replacements (like a -> aa).
+
         :param str search_term: search term
         :param str replacement: text that will replace result of the search
         :param bool is_regex: if set to True, search term is regarded as a regular expression
@@ -479,13 +528,27 @@ class YamlEditorWidget(QsciScintilla):
         :param bool is_word: if set to True, search only matches entire words
         """
         with self.reload_chunk:
+            boundaries = []
             self.clear_selection()
-            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, True)
+            self.setCursorPosition(0, 0)
+            self.findFirst(search_term, is_regex, is_case_sensitive, is_word, False)
             if not self.hasSelectedText():
-                self.notFound.emit()
-            while self.hasSelectedText():
-                self.replaceSelectedText(replacement)
+                self._find_replace_dialog.on_match_not_found()
+
+            # find and record all occurrences
+            while (self.hasSelectedText() and
+                   (len(boundaries) == 0 or boundaries[-1] != self.getSelection())):
+                boundaries.append(self.getSelection())
                 self.findNext()
+
+            text = ""
+            # replace all occurrences by copying the valid parts of text and adding replacement
+            # text instead of original occurrence
+            for from_b, to_b in zip([(0, 0, 0, 0)] + boundaries, boundaries + [self.eof_cursor]):
+                self.setSelection(from_b[2], from_b[3], to_b[0], to_b[1])
+                text += self.selectedText() + replacement
+            text = text[:-len(replacement)]
+            self.setText(text, keep_history=True)
 
 # ------------------------------- MARGIN -------------------------------------
 
@@ -543,6 +606,8 @@ class YamlEditorWidget(QsciScintilla):
             return
 
         actions = [
+            ('escape', lambda: self._handle_keypress_escape(event)),
+            ('f3', lambda: self._handle_keypress_f3(event)),
             ('tab', lambda: self._handle_keypress_tab(event)),
             ('backspace', lambda: self._handle_keypress_backspace(event)),
             ('delete', self.delete),
@@ -553,7 +618,6 @@ class YamlEditorWidget(QsciScintilla):
             ('redo', self.redo),
             ('select_all', self.selectAll),
             ('show_autocompletion', cfg.autocomplete_helper.show_autocompletion),
-            ('indent', self.indent),
             ('unindent', self.unindent),
             ('comment', self.comment),
         ]
@@ -600,10 +664,18 @@ class YamlEditorWidget(QsciScintilla):
         """Handle keyPress event for :kdb:`Tab`."""
         if cfg.autocomplete_helper.visible:
             self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
-        elif cfg.get_shortcut('indent').matches_key_event(event):
-            self.indent()
         else:
-            self.insert_at_cursor(' ' * self.tabWidth())
+            self.indent()
+
+    def _handle_keypress_escape(self, event):
+        """Handle keyPress event for :kdb:`Esc`."""
+        if self._find_replace_dialog is not None and self._find_replace_dialog.isVisible():
+            self._find_replace_dialog.close()
+        super(YamlEditorWidget, self).keyPressEvent(event)
+
+    def _handle_keypress_f3(self, event):
+        """Handle keyPress event for :kdb:`F3`."""
+        self._find_replace_dialog.perform_find()
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 
