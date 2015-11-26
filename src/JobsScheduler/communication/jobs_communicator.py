@@ -57,7 +57,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if self.is_installed():
-                logger.debug("Job application was started")
+                logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
             return resent, mess
@@ -131,12 +131,6 @@ class JobsCommunicator(Communicator):
                 if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
                     self._connect_socket(self.job_outputs[id], 1)
                     make_custom_action = False
-            else:         
-                for id in self.jobs:
-                    # connect
-                    if not self.job_outputs[id].connected and self.job_outputs[id].initialized:
-                        self._connect_socket(self.job_outputs[id], 1)
-                        make_custom_action = False
         if make_custom_action:
             self.anc_idle_func()
 
@@ -153,17 +147,15 @@ class JobsCommunicator(Communicator):
         """Add job to dictionary, process it and make connection if is needed"""
         self.jobs[id] = job
         """Dictionary of jobs that is run by communicator"""
-        self.job_outputs[id] = self.get_output(self.conf, id)
         self._job_semafores[id] = threading.Semaphore()
-        
-        self.job_outputs[id].installation.local_copy_path() # only copy path
-        logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
-        
         if self.conf.output_type == comconf.OutputCommType.ssh:
             self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
+            logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
             self.job_outputs[id].initialized = True
         else:
             self.job_outputs[id] = self.get_output(self.conf, id)
+            self.job_outputs[id].installation.local_copy_path() # only copy path
+            logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
             t = threading.Thread(target= self._run_action, 
                   args=( self.job_outputs[id].exec_,id, self._job_semafores[id]))
             t.daemon = True

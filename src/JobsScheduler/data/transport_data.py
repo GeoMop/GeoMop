@@ -24,6 +24,8 @@ class ActionType(Enum):
     state = 9
     add_job = 10
     job_conn = 11
+    job_state = 12
+    
 
 class ProcessType(Enum):
     """Action type"""
@@ -174,6 +176,8 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.state:
             self.data = StateData(json_data)
+        elif type == ActionType.job_state:
+            self.data = JobStateData(json_data)            
         elif type == ActionType.add_job:
             self.data = JobData(json_data)
         elif type == ActionType.job_conn:
@@ -264,3 +268,20 @@ class StateData(ActionData):
         state.__dict__ = self.data
         state.status = TaskStatus(state.status)
         return state
+
+class JobStateData(ActionData):
+    """Job status data."""    
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is  not None:
+            self.data = json.loads(json_data) 
+        else:
+            self.data["ready"] = True
+            self.data["return_code"] = -1
+    
+    def set_data(self, return_code):
+        """fill JobState state"""
+        self.data["ready"] = return_code != 0
+        self.data["return_code"] = return_code
+            
+        

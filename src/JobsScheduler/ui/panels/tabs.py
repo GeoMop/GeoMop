@@ -72,10 +72,14 @@ class FilesTab(AbstractTab):
                 QUrl.fromLocalFile(clicked_item.text(1))))
 
     def reload_view(self, path):
+        if not os.path.exists(path):
+            return
         file_names = [f for f in os.listdir(path) if os.path.isfile(
             os.path.join(path, f))]
         self.ui.treeWidget.clear()
         for idx, file_name in enumerate(file_names):
+            if len(file_name)<5 or file_name[-4:] != ".log":
+                continue
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
             row.setText(0, file_name)
             row.setText(1, os.path.join(path, file_name))

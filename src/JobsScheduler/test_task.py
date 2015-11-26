@@ -5,7 +5,7 @@ sys.path.insert(1, __ins_lib_dir__)
 import logging
 import random
 import os
-
+import time
 
 path = sys.argv[1]
 number = random.randrange(0, 100000)
@@ -20,4 +20,9 @@ rank = MPI.COMM_WORLD.Get_rank()
 name = MPI.Get_processor_name()
 
 msg = "Hello world! I am process {0} of {1} on {2}.".format(str(rank), str(size), name)
-logging.info(msg)     
+logging.info(msg)
+
+if __name__ != "job":
+    for i in range(0, 30):
+        time.sleep(30)
+        logging.info( "time: " + str(i*30+30) + "s")
