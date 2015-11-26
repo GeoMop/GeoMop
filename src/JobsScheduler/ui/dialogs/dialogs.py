@@ -58,7 +58,7 @@ class AFormDialog(QtWidgets.QDialog):
     def valid(self):
         """
         Validates input fields and returns True if valid. Otherwise points
-        out problems with form problems.
+        out problems with form.
         (To be overridden in child)
         """
         return True

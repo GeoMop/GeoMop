@@ -21,7 +21,7 @@ class ReqScheduler(QTimer):
         self.com_manager = com_manager
         # connect handle slot
         self.timeout.connect(self._handle_timeout)
-        self.start(10)
+        self.start(10000)
 
     def _handle_timeout(self):
         for key in self.main_window.data.multijobs:
