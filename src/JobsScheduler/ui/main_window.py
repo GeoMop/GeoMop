@@ -158,6 +158,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             status = self.data.multijobs[current.text(0)]["state"].status
             self.ui.menuBar.multiJob.update_locks(status)
+            mj = self.data.multijobs[current.text(0)]
+            self.ui.tabWidget.reload_view(mj)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
