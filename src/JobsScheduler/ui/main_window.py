@@ -4,9 +4,10 @@ Main window module
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import os
 import uuid
 from PyQt5 import QtCore
-from communication import Communicator
+from communication import Communicator, Installation
 from data.states import TaskStatus, MJState
 from ui.actions.main_menu_actions import *
 from ui.dialogs.env_presets import EnvPresets
@@ -157,6 +158,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             status = self.data.multijobs[current.text(0)]["state"].status
             self.ui.menuBar.multiJob.update_locks(status)
+            mj = self.data.multijobs[current.text(0)]
+            self.ui.tabWidget.reload_view(mj)
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
@@ -209,8 +212,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
         app_conf = self.data.build_config_files(key)
-        communicator = Communicator(app_conf)
-        self.com_manager.install(key, communicator)
+        com = Communicator(app_conf)
+        # reload log
+        res_path = Installation.get_result_dir_static(com.mj_name)
+        log_path = os.path.join(res_path, "log")
+        self.ui.tabWidget.ui.logsTab.reload_view(log_path)
+        self.com_manager.install(key, com)
 
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()

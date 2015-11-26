@@ -23,7 +23,7 @@ class ResHandler(QTimer):
         self.com_manager = com_manager
         # connect handle slot
         self.timeout.connect(self._handle_timeout)
-        self.start(5)
+        self.start(500)
 
     def _handle_timeout(self):
         while not self.com_manager.res_queue.empty():
