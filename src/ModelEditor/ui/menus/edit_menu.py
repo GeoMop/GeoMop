@@ -5,7 +5,6 @@
 from PyQt5.QtWidgets import QMenu, QAction
 
 from meconfig import cfg
-from ui.dialogs import FindDialog, ReplaceDialog
 
 
 class EditMenu(QMenu):
@@ -150,46 +149,8 @@ class MainEditMenu(EditMenu):
 
     def on_find_action(self):
         """Handles the find action."""
-        self._editor.clear_selection()
-
-        if self.replace_dialog:
-            self.replace_dialog.close()
-
-        if not self.find_dialog or not self.find_dialog.isVisible():
-            self.find_dialog = FindDialog(self.parent)
-            self.find_dialog.find_request.connect(self._editor.search)
-            self._editor.notFound.connect(self.find_dialog.on_not_found)
-
-            # move the dialog to top right position of editor
-            top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
-            pos_x = top_right_editor.x() - FindDialog.WIDTH - 1
-            pos_y = top_right_editor.y() + 1
-            self.find_dialog.move(pos_x, pos_y)
-
-            self.find_dialog.show()
-
-        self.find_dialog.activateWindow()
+        self._editor.show_find_replace_dialog(replace_visible=False)
 
     def on_replace_action(self):
         """Handles the replace action."""
-        self._editor.clear_selection()
-
-        if self.find_dialog:
-            self.find_dialog.close()
-
-        if not self.replace_dialog or not self.replace_dialog.isVisible():
-            self.replace_dialog = ReplaceDialog(self.parent)
-            self.replace_dialog.find_request.connect(self._editor.search)
-            self.replace_dialog.replace_request.connect(self._editor.replace_and_search)
-            self.replace_dialog.replace_all_request.connect(self._editor.replace_all)
-            self._editor.notFound.connect(self.replace_dialog.on_not_found)
-
-            # move the dialog to top right position of editor
-            top_right_editor = self._editor.mapToGlobal(self._editor.geometry().topRight())
-            pos_x = top_right_editor.x() - ReplaceDialog.WIDTH - 1
-            pos_y = top_right_editor.y() + 1
-            self.replace_dialog.move(pos_x, pos_y)
-
-            self.replace_dialog.show()
-
-        self.replace_dialog.activateWindow()
+        self._editor.show_find_replace_dialog(replace_visible=True)
