@@ -179,6 +179,7 @@ class JobsCommunicator(Communicator):
         """make installation"""
         if self.conf.output_type == comconf.OutputCommType.ssh:
             super(JobsCommunicator, self).install()
+            self.send_long_action(tdata.Action(tdata.ActionType.installation))
         else:
             # socket based connection only install libs
             if self.libs_env.install_job_libs:

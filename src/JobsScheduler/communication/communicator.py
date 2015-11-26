@@ -437,10 +437,18 @@ class Communicator():
     def send_long_action(self, action):
         """send message with long response time, to output"""
         sec = time.time() + LONG_MESSAGE_TIMEOUT
+        i = 0
         while sec  > time.time() :
             message = action.get_message()
             self.send_message(message)
             mess = self.receive_message(120)
+            i += 1
+            if i > 5:
+                time.sleep(1)
+            elif i > 20:
+                time.sleep(5)
+            elif i > 30:
+                time.sleep(10)
             if mess is None:
                 break
             if mess.action_type != tdata.ActionType.action_in_process:
