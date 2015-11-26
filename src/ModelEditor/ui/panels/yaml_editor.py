@@ -992,7 +992,7 @@ class EditorPosition:
         return True
 
     def node_init(self, node, editor):
-        """set new node"""
+        """set new node; initializes the EditorPosition class"""
         self.node = node
         self.line, self.index = editor.getCursorPosition()
         if node is not None:

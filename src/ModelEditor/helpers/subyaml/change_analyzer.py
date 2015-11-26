@@ -1,33 +1,32 @@
-"""Helper for yaml text editor"""
+"""Helper for yaml text editor
 
+.. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
+"""
 import re
 import copy
-from .line_analyzer import LineAnalyzer
+
 from util import KeyType, PosType
+
+from .line_analyzer import LineAnalyzer
 
 
 class ChangeAnalyzer:
     """
-    Analyze partial yaml text for change character report
+    Analyzes partial yaml text for change character report
 
-    Description: This quick party text analyzing is use only for decision
-    if next more expensive text parsing is required.
+    Description: This quick partial text analysis is used to decide whether more time consuming
+    text parsing is necessary.
     
-    Main function of this class is get_pos_type. This function try recognise
-    part of structure below cursore. This class work with dirty data, that 
-    is not refreshed in data node structure.
-    One reason for get_pos_type calling is recognise if reload is effective. 
-    This is if return value is PosType.in_inner. But checking that cursor is 
-    above child node is may be needed.
-    Next reason for get_pos_type calling may be localization of data node
-    part, where changes has been made. If is changes make in more than
-    one structure part, reload is needed.
-    If more specific key type definition is needed, use  get_key_pos_type
-    function.
-    Last part of this class is function for recognisation of structure set in 
-    empty line, that is sufficion for structure reloading.    
+    This class works with dirty data, that is not refreshed in data node structure.
     """
+
     def __init__(self, cursor_line, cursor_index, area):
+        """Initialize the class.
+
+        :param int cursor_line: position of the cursor (line)
+        :param int cursor_index: position of the cursor (column)
+        :param list<str> area: list of lines in the surrounding area
+        """
         self._area = copy.deepcopy(area)
         for line in range(0, len(self._area)):
             if self._area[line][-1:] == "\n":
@@ -38,15 +37,26 @@ class ChangeAnalyzer:
             self._index = len(self._area[self._line]) - 1
 
     def get_pos_type(self):
-        """
-        return line type enum value
-            - PosType.in_key value for key, tag, reference or anchor, but only
-              if this belong to set data node. 
-            - PosType.comment for cursor above comment
-            - PosType.in_inner for child datanode structure
-            - PosType.in_value for skalar node value or structure between child
-              nodes
-        """
+        """Recognize the part of the data structure that is pointed to by a current cursor.
+
+        There are a couple of reasons to call this function.
+
+        First, it can recognize whether reload is effective??? In this case, the function
+        returns ``in_inner``. It may be necessary to still check if cursor is above
+        child node. ???
+
+        Second, the function is useful to figure out which part of the data node structure
+        has been changed. If there are multiple changes in one data node structure, a reload
+        is needed.
+
+        :return: position indicator of the part of the structure below cursor
+
+           - ``in_key`` for key, tag, reference or anchor, but only if this belong to set data node
+           - ``comment`` for cursor above comment
+           - ``in_inner`` for child :py:class:`DataNode` structure
+           - ``in_value`` for scalar node value or structure between child nodes
+        :rtype: PosType
+        """    # TODO: when is in_inner returned? how is it related to "reload is effective"?
         is_key = False
         json_list = 0
         inner = False
@@ -127,7 +137,7 @@ class ChangeAnalyzer:
     def _get_key_area(self, line):
         """get new line and index for init object"""
         i = line
-        is_dist, dist =  LineAnalyzer.get_key_area(self._area[i])
+        is_dist, dist = LineAnalyzer.get_key_area(self._area[i])
         if not is_dist:
             return line, 0
         if dist != -1:
@@ -139,7 +149,7 @@ class ChangeAnalyzer:
                 if space_after is not None:
                     return i-1, space_after.end(1)
                 return i, 0
-            is_dist, dist =  LineAnalyzer.get_after_key_area(self._area[i])
+            is_dist, dist = LineAnalyzer.get_after_key_area(self._area[i])
             if is_dist:
                 if dist != -1:
                     return i, dist-1
@@ -150,7 +160,14 @@ class ChangeAnalyzer:
                 return i, 0
 
     def get_key_pos_type(self):
-        """return key type for PosTyp in_key"""
+        """Get more specific key type definition.
+
+        When the ``get_pos_type`` method returns ``in_key``, more specific position may
+        be acquired by this method.
+
+        :return: specific position in key (like key, tag, anchor or reference)
+        :rtype: KeyType
+        """
         i = 0
         dist = 0
         type_ = KeyType.key
@@ -221,10 +238,11 @@ class ChangeAnalyzer:
         else:
             return KeyType.key
 
+    # TODO: move is_xxx_struct methods to LineAnalyzer?
+
     @staticmethod
     def is_basejson_struct(add):
-        """
-        Return if is in line json base structure for evaluation
+        """Return if is in line json base structure for evaluation
         
         If line has new json structure added in json node, reload is needed
         """
@@ -240,8 +258,7 @@ class ChangeAnalyzer:
         
     @staticmethod
     def is_fulljson_struct(add):
-        """
-        Return if is in line json base structure for evaluation
+        """Return if is in line json base structure for evaluation
         
         If line has new json structure, reload is needed
         """
@@ -257,8 +274,7 @@ class ChangeAnalyzer:
     
     @staticmethod
     def is_base_struct(line):
-        """
-        Return if is in line base structure for evaluation
+        """Return if is in line base structure for evaluation
 
         If line was empty, and now is there base structure, reload is needed
         """
@@ -269,8 +285,8 @@ class ChangeAnalyzer:
             r'\s\*\S+\s',
             r'\s*-\s+',
             r'.*<<:\s+\*',
-            r'.*\S+\s*,'
-            r'.*\S+\s*\}'
+            r'.*\S+\s*,',
+            r'.*\S+\s*\}',
             r'.*\S+\s*\]'
         ]
         line = LineAnalyzer.strip_comment(line)
