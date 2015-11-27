@@ -8,11 +8,11 @@ sys.path.insert(1, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(2, './twoparty/enum')
 
-from data.states import MJState, JobsState, JobState, TaskStatus
 from communication import JobsCommunicator
 import data.communicator_conf as comconf
 import communication.installation as inst
 import data.transport_data as tdata
+from data.job import  Job
 
 logger = logging.getLogger("Remote")
 
@@ -20,16 +20,7 @@ def  mj_action_function_before(message):
     """before action function"""
     global mj_name, start_time
     if message.action_type == tdata.ActionType.get_state:
-        state = MJState(mj_name)
-        state.insert_time = start_time +10
-        state.qued_time = start_time +20
-        state.start_time = start_time
-        state.run_interval=50
-        state.status=TaskStatus.running
-        state.known_jobs = 2
-        state.estimated_jobs = 2
-        state.finished_jobs = 0
-        state.running_jobs = 2
+        state = comunicator.get_state()
         action = tdata.Action(tdata.ActionType.state)
         action.data.set_data(state)
         return False, action.get_message()        
@@ -37,23 +28,9 @@ def  mj_action_function_before(message):
     
 def  mj_action_function_after(message,  response):
     """before action function"""
-    global mj_name, start_time
+    global mj_name
     if message.action_type == tdata.ActionType.download_res:
-        states = JobsState()
-        state = JobState('test1')
-        state.insert_time = start_time +10
-        state.qued_time = start_time +20
-        state.start_time = start_time
-        state.run_interval=50
-        state.status=TaskStatus.running
-        states.jobs.append(state)
-        state2 = JobState('test2')
-        state2.insert_time = start_time +15
-        state2.qued_time = start_time +25
-        state2.start_time = start_time + 5
-        state2.run_interval=45
-        state2.status=TaskStatus.running
-        states.jobs.append(state2)
+        states =  comunicator.get_jobs_states()
         states.save_file(inst.Installation.get_result_dir_static(mj_name))
     return comunicator.standart_action_function_after(message,  response)
 
@@ -63,9 +40,9 @@ def  mj_idle_function():
     global i
     i += 1
     if i == 1:
-        comunicator.add_job("test1", None)
+        comunicator.add_job("test1", Job("test1"))
     if i == 2:
-        comunicator.add_job("test2", None)
+        comunicator.add_job("test2", Job("test2"))
 
 
 if len(sys.argv) < 2:
@@ -90,6 +67,7 @@ except Exception as error:
 
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
+comunicator.set_start_jobs_count(2, 0)
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()

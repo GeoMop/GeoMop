@@ -27,20 +27,20 @@ class ResHandler(QTimer):
 
     def _handle_timeout(self):
         while not self.com_manager.res_queue.empty():
-                res = self.com_manager.res_queue.get()
-                if res.com_type is ComType.install:
-                    self.mj_installed.emit(res.key)
-                elif res.com_type is ComType.pause:
-                    self.mj_paused.emit(res.key)
-                elif res.com_type is ComType.resume:
-                    self.mj_resumed.emit(res.key)
-                elif res.com_type is ComType.results:
-                    if res.data:
-                        self.mj_result.emit(res.key, res.data)
-                elif res.com_type is ComType.state:
-                    if res.data:
-                        self.mj_state.emit(res.key, res.data)
-                elif res.com_type is ComType.stop:
-                    self.mj_stopped.emit(res.key)
-                else:
-                    raise Exception("Response type not recognized")
+            res = self.com_manager.res_queue.get()
+            if res.com_type is ComType.install:
+                self.mj_installed.emit(res.key)
+            elif res.com_type is ComType.pause:
+                self.mj_paused.emit(res.key)
+            elif res.com_type is ComType.resume:
+                self.mj_resumed.emit(res.key)
+            elif res.com_type is ComType.results:
+                if res.data:
+                    self.mj_result.emit(res.key, res.data)
+            elif res.com_type is ComType.state:
+                if res.data:
+                    self.mj_state.emit(res.key, res.data)
+            elif res.com_type is ComType.stop:
+                self.mj_stopped.emit(res.key)
+            else:
+                raise Exception("Response type not recognized")

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Main window actions
+Actions used by main menu.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """

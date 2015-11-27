@@ -8,6 +8,8 @@ Pbs dialog
 from PyQt5 import QtCore, QtWidgets
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.validators.validation import PresetNameValidator, WalltimeValidator, \
+    MemoryValidator, ScratchValidator, ValidationColorizer
 
 
 class PbsDialog(AFormDialog):
@@ -50,6 +52,22 @@ class PbsDialog(AFormDialog):
         super(PbsDialog, self)._connect_slots()
         # specific slots
 
+    def valid(self):
+        valid = True
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.nameLineEdit):
+            valid = False
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.walltimeLineEdit):
+            valid = False
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.memoryLineEdit):
+            valid = False
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.scratchLineEdit):
+            valid = False
+        return valid
+
     def get_data(self):
         data = (self.ui.idLineEdit.text(),
                 self.ui.nameLineEdit.text(),
@@ -66,6 +84,12 @@ class PbsDialog(AFormDialog):
         return data
 
     def set_data(self, data=None):
+        # reset validation colors
+        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+        ValidationColorizer.colorize_white(self.ui.walltimeLineEdit)
+        ValidationColorizer.colorize_white(self.ui.memoryLineEdit)
+        ValidationColorizer.colorize_white(self.ui.scratchLineEdit)
+
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
@@ -95,6 +119,17 @@ class UiPbsDialog(UiFormDialog):
         # dialog properties
         dialog.resize(400, 260)
 
+        # validators
+        self.nameValidator = PresetNameValidator(
+            self.mainVerticalLayoutWidget)
+        self.walltimeValidator = WalltimeValidator(
+            self.mainVerticalLayoutWidget)
+        self.memoryValidator = MemoryValidator(
+            self.mainVerticalLayoutWidget)
+        self.scratchValidator = ScratchValidator(
+            self.mainVerticalLayoutWidget)
+
+
         # form layout
         # hidden row
         self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -120,6 +155,7 @@ class UiPbsDialog(UiFormDialog):
         self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the preset")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
+        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
@@ -132,8 +168,9 @@ class UiPbsDialog(UiFormDialog):
         self.walltimeLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.walltimeLineEdit.setObjectName("walltimeLineEdit")
-        self.walltimeLineEdit.setPlaceholderText("For example 1d4h")
+        self.walltimeLineEdit.setPlaceholderText("1d4h or 20h")
         self.walltimeLineEdit.setProperty("clearButtonEnabled", True)
+        self.walltimeLineEdit.setValidator(self.walltimeValidator)
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                   self.walltimeLineEdit)
 
@@ -184,8 +221,9 @@ class UiPbsDialog(UiFormDialog):
         self.memoryLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.memoryLineEdit.setObjectName("memoryLineEdit")
-        self.memoryLineEdit.setPlaceholderText("For example 300mb or 1gb")
+        self.memoryLineEdit.setPlaceholderText("300mb or 1gb")
         self.memoryLineEdit.setProperty("clearButtonEnabled", True)
+        self.memoryLineEdit.setValidator(self.memoryValidator)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.memoryLineEdit)
 
@@ -198,8 +236,8 @@ class UiPbsDialog(UiFormDialog):
         self.scratchLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.scratchLineEdit.setObjectName("scratchLineEdit")
-        self.scratchLineEdit.setPlaceholderText("For example 150mb or "
-                                                "10gb:ssd")
+        self.scratchLineEdit.setPlaceholderText("150mb or 10gb:ssd")
         self.scratchLineEdit.setProperty("clearButtonEnabled", True)
+        self.scratchLineEdit.setValidator(self.scratchValidator)
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.scratchLineEdit)

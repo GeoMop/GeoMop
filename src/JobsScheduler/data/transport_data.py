@@ -24,6 +24,9 @@ class ActionType(Enum):
     state = 9
     add_job = 10
     job_conn = 11
+    job_state = 12
+    install_in_process = 13
+    
 
 class ProcessType(Enum):
     """Action type"""
@@ -174,10 +177,14 @@ class Action():
             self.data = EmptyData()
         elif type == ActionType.state:
             self.data = StateData(json_data)
+        elif type == ActionType.job_state:
+            self.data = JobStateData(json_data)            
         elif type == ActionType.add_job:
             self.data = JobData(json_data)
         elif type == ActionType.job_conn:
             self.data = JobConn(json_data)
+        elif type == ActionType.install_in_process:
+            self.data = InstallData(json_data)
             
     def get_message(self):
         """return message from action"""
@@ -215,7 +222,17 @@ class ErrorData(ActionData):
         if json_data is None:            
             self.data["msg"] = None
         else:
-            self.data = json.loads(json_data)            
+            self.data = json.loads(json_data) 
+ 
+class InstallData(ActionData):
+    """Install data"""
+
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is None:            
+            self.data["phase"] = TaskStatus.installation
+        else:
+            self.data = json.loads(json_data)
 
 class JobData(ActionData):
     """Data for adding new job over remote"""    
@@ -264,3 +281,24 @@ class StateData(ActionData):
         state.__dict__ = self.data
         state.status = TaskStatus(state.status)
         return state
+
+class JobStateData(ActionData):
+    """Job status data."""    
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is  not None:
+            self.data = json.loads(json_data) 
+        else:
+            self.data["ready"] = False
+            self.data["return_code"] = 0
+    
+    def set_data(self, return_code):
+        """fill JobState state"""
+        if return_code is None:
+            self.data["ready"] = False
+            self.data["return_code"] = 0
+        else:
+            self.data["ready"] = True
+            self.data["return_code"] = return_code
+            
+        

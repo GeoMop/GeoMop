@@ -17,8 +17,6 @@ sys.path.insert(1, __lib_dir__)
 MODEL_EDITOR_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(MODEL_EDITOR_PATH)
 
-import logging
-import traceback
 import argparse
 import icon
 
@@ -154,6 +152,10 @@ class ModelEditor:
         self._reload_node(line+1, index+1)
         self._reload_icon_timer.start(700)
 
+    def reload(self):
+        """Reload panels when structure changes."""
+        self._reload()
+
     def _hide_reload_icon(self):
         """Hides the reload icon."""
         self._reload_icon.setVisible(False)
@@ -169,6 +171,7 @@ class ModelEditor:
 
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
+        # pylint: disable=unused-argument
         self._update_info(new_cursor_type)
 
     def _update_info(self, cursor_type):
@@ -275,7 +278,6 @@ class ModelEditor:
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
-            import meconfig.meconfig
             dlg = JsonEditorDlg(cfg.transformation_dir, file,
                                 "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
@@ -336,8 +338,9 @@ class ModelEditor:
         """go"""
         self._app.exec_()
 
-if __name__ == "__main__":
-    # pylint: disable=invalid-name
+
+def main():
+    """ModelEditor application entry point."""
     parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
@@ -346,24 +349,37 @@ if __name__ == "__main__":
         cfg.config.__class__.DEBUG_MODE = True
 
     # logging
-    if 'APPDATA' in os.environ:
-        __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
-    else:
-        __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
-
     if not args.debug:
-        LOG_FORMAT = '%(asctime)-15s %(message)s'
-        LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
-        logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
+        from geomop_util.logging import log_unhandled_exceptions
 
-        def log_excepthook(type_, value, tback):
-            """Set exception logging hook."""
-            logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value,
-                                                                  ''.join(traceback.format_tb(tback))))
-                                                                  
-            # call the default handler
-            sys.__excepthook__(type_, value, tback)
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from geomop_dialogs import GMErrorDialog
+            if model_editor is not None:
+                err_dialog = None
+                # display message box with the exception
+                if model_editor.mainwindow is not None:
+                    err_dialog = GMErrorDialog(model_editor.mainwindow)
 
-        sys.excepthook = log_excepthook
+                # try to reload editor to avoid inconsistent state
+                if callable(model_editor.reload):
+                    try:
+                        model_editor.reload()
+                    except:
+                        if err_dialog is not None:
+                            err_dialog.open_error_dialog("Application performed invalid operation!",
+                                                         error=exception)
+                            sys.exit(1)
 
-    ModelEditor().main()
+                if err_dialog is not None:
+                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+
+        log_unhandled_exceptions('ModelEditor', on_unhandled_exception)
+
+    model_editor = ModelEditor()
+    model_editor.main()
+
+
+if __name__ == "__main__":
+    main()

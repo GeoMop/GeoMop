@@ -15,6 +15,7 @@ from  communication.exec_output_comm import  ExecOutputComm
 from  communication.installation import  Installation
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
+from data.states import TaskStatus
 
 LONG_MESSAGE_TIMEOUT=600
 logger = logging.getLogger("Remote")
@@ -208,8 +209,10 @@ class Communicator():
                     t = threading.Thread(target=self.install)
                     t.daemon = True
                     t.start()
-                action = tdata.Action(tdata.ActionType.action_in_process)
-                return False, action.get_message()
+                action = tdata.Action(tdata.ActionType.install_in_process)
+                if isinstance(self.output, PbsOutputComm):
+                    action.data.data['phase'] = TaskStatus.qued
+                    return False, action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if isinstance(self.output, SshOutputComm):
                 processed = False
@@ -402,8 +405,7 @@ class Communicator():
                 if resend and self.output is not None:
                     logger.debug("Message is resent")
                     self.output.send(message)
-                    res = self.output.receive()
-                    mess = res
+                    mess = self.output.receive()
                     logger.debug("Answer to resent message is receive (" + str(mess) + ')')
                 mess_after = self.action_func_after(message, mess)
                 if mess_after is not None:
@@ -437,16 +439,24 @@ class Communicator():
     def send_long_action(self, action):
         """send message with long response time, to output"""
         sec = time.time() + LONG_MESSAGE_TIMEOUT
+        i = 0
         while sec  > time.time() :
             message = action.get_message()
             self.send_message(message)
             mess = self.receive_message(120)
+            i += 1
+            if i > 5:
+                time.sleep(1)
+            elif i > 20:
+                time.sleep(5)
+            elif i > 30:
+                time.sleep(10)
             if mess is None:
                 break
             if mess.action_type != tdata.ActionType.action_in_process:
                 return mess
         return None
-
+        
     def receive_message(self, timeout=60):
         """receive message from output"""
         mess = self.output.receive(timeout)

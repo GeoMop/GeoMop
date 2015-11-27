@@ -7,6 +7,7 @@ JobScheduler data structures
 import logging
 import config as cfg
 import data.communicator_conf as comconf
+
 from communication import installation as inst
 from ui.dialogs.resource_dialog import UiResourceDialog
 
@@ -14,14 +15,27 @@ logger = logging.getLogger("UiTrace")
 
 
 class PersistentDict(dict):
+    """
+    Parent class for persistent data derived from dict.
+    DIR and FILE_NAME should be overridden in child for custom folder and
+    filename.
+    """
     DIR = "mydictfolder"
-    NAME = "mydictname"
+    FILE_NAME = "mydictname"
 
     def save(self):
-        cfg.save_config_file(self.NAME, dict(self.items()), self.DIR)
+        """
+        Method for saving data to custom DIR/FILE_NAME.
+        :return:
+        """
+        cfg.save_config_file(self.FILE_NAME, dict(self.items()), self.DIR)
 
     def load(self, clear=True):
-        tmp = cfg.get_config_file(self.NAME, self.DIR)
+        """
+        Loads from custom DIR/FILE_NAME.
+        :return:
+        """
+        tmp = cfg.get_config_file(self.FILE_NAME, self.DIR)
         if clear:
             self.clear()
         if tmp:
@@ -29,31 +43,49 @@ class PersistentDict(dict):
 
 
 class MultiJobData(PersistentDict):
+    """
+    Child class for MJ data.
+    """
     DIR = "mj"
-    NAME = "mj"
+    FILE_NAME = "mj"
 
 
 class SshData(PersistentDict):
+    """
+    Child class for SSH data.
+    """
     DIR = "ssh"
-    NAME = "ssh"
+    FILE_NAME = "ssh"
 
 
 class PbsData(PersistentDict):
+    """
+    Child class for PBS data.
+    """
     DIR = "pbs"
-    NAME = "pbs"
+    FILE_NAME = "pbs"
 
 
 class ResourcesData(PersistentDict):
+    """
+    Child class for RES data.
+    """
     DIR = "resources"
-    NAME = "resources"
+    FILE_NAME = "resources"
 
 
 class EnvData(PersistentDict):
+    """
+    Child class for ENV data.
+    """
     DIR = "environments"
-    NAME = "environments"
+    FILE_NAME = "environments"
 
 
 class DataContainer(object):
+    """
+    Wrapper class for all data containers.
+    """
     multijobs = MultiJobData()
     ssh_presets = SshData()
     pbs_presets = PbsData()
@@ -66,6 +98,7 @@ class DataContainer(object):
     def save_all(self):
         """
         Saves all data containers for app.
+        :return:
         """
         self.multijobs.save()
         self.ssh_presets.save()
@@ -77,6 +110,7 @@ class DataContainer(object):
     def load_all(self):
         """
         Loads all data containers for app.
+        :return:
         """
         self.multijobs.load()
         if not self.multijobs:
@@ -225,8 +259,3 @@ class DataContainer(object):
         # return app_config, it is always entry point for next operations
         return app_conf
 
-    def load_from_config_files(self, path):
-        """
-        Loads json files.
-        """
-        pass

@@ -4,19 +4,21 @@ Table of MultiJobs
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-
+import datetime
 import PyQt5.QtWidgets as QtWidgets
 import time
+
+from PyQt5 import QtCore
 
 
 class Overview(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
-        super(Overview, self).__init__(parent)
+        super().__init__(parent)
         self.headers = ["Id", "Name", "Insert Time", "Qued Time",
                         "Start Time", "Run Interval", "Status",
                         "Known Jobs", "Estimated Jobs", "Finished Jobs",
                         "Running Jobs"]
-        self.time_format = "%H:%M:%S %d/%m/%y"
+        self.time_format = "%d. %m. %y; %H:%M:%S"
         self.setObjectName("MultiJobOverview")
         self.setHeaderLabels(self.headers)
         self.setColumnHidden(0, True)
@@ -29,6 +31,8 @@ class Overview(QtWidgets.QTreeWidget):
 
     @staticmethod
     def _update_item(item, state, time_format):
+        # datetime.datetime.fromtimestamp(ts_epoch).strftime('%Y-%m-%d
+        # %H:%M:%S') to remove time import
         item.setText(1, str(state.name))
         item.setText(2, time.strftime(
             time_format, time.gmtime(state.insert_time)))
@@ -36,7 +40,7 @@ class Overview(QtWidgets.QTreeWidget):
             time_format, time.gmtime(state.qued_time)))
         item.setText(4, time.strftime(
             time_format, time.gmtime(state.start_time)))
-        item.setText(5, str(state.run_interval))
+        item.setText(5, str(datetime.timedelta(seconds=state.run_interval)))
         item.setText(6, str(state.status.name))
         item.setText(7, str(state.known_jobs))
         item.setText(8, str(state.estimated_jobs))
@@ -53,6 +57,15 @@ class Overview(QtWidgets.QTreeWidget):
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
+        item.setTextAlignment(2, QtCore.Qt.AlignRight)
+        item.setTextAlignment(3, QtCore.Qt.AlignRight)
+        item.setTextAlignment(4, QtCore.Qt.AlignRight)
+        item.setTextAlignment(5, QtCore.Qt.AlignRight)
+        item.setTextAlignment(6, QtCore.Qt.AlignCenter)
+        item.setTextAlignment(7, QtCore.Qt.AlignRight)
+        item.setTextAlignment(8, QtCore.Qt.AlignRight)
+        item.setTextAlignment(9, QtCore.Qt.AlignRight)
+        item.setTextAlignment(10, QtCore.Qt.AlignRight)
         item.setText(0, key)
         return self._update_item(item, data, self.time_format)
 

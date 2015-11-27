@@ -69,7 +69,11 @@ def  remote_action_function_before(message):
                 action=tdata.Action(tdata.ActionType.action_in_process) 
             mess = action.get_message() 
         return False, mess       
-    return comunicator.standart_action_function_before(message)
+    return super(JobsCommunicator, comunicator).standart_action_function_before(message)
+    
+def  remote_action_function_after(message):
+    """after action function"""
+    return super(JobsCommunicator, comunicator).standart_action_function_after(message)
     
 logger = logging.getLogger("Remote")
 
@@ -92,7 +96,7 @@ except Exception as error:
     logger.error(error)
     raise error
 
-comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before)
+comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before, remote_action_function_after)
 
 if __name__ != "remote":
     # no doc generation
