@@ -10,6 +10,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
 class EnvDialog(AFormDialog):
@@ -67,6 +68,13 @@ class EnvDialog(AFormDialog):
             lambda state: self.ui.mpiAddModuleLineEdit.setDisabled(not state)
         )
 
+    def valid(self):
+        valid = True
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.nameLineEdit):
+            valid = False
+        return valid
+
     def get_data(self):
         data = (self.ui.idLineEdit.text(),
                 self.ui.nameLineEdit.text(),
@@ -84,6 +92,9 @@ class EnvDialog(AFormDialog):
         return data
 
     def set_data(self, data=None):
+        # reset validation colors
+        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])
@@ -128,6 +139,10 @@ class UiEnvDialog(UiFormDialog):
         # dialog properties
         dialog.resize(400, 260)
 
+        # validators
+        self.nameValidator = PresetNameValidator(
+            self.mainVerticalLayoutWidget)
+
         # form layout
         # hidden row
         self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -153,6 +168,7 @@ class UiEnvDialog(UiFormDialog):
         self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the preset")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
+        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
