@@ -112,8 +112,5 @@ class InputComm(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def load_state(self, state):
         """load state from variable"""
-        pass     
-
-
-            
+        pass            
 

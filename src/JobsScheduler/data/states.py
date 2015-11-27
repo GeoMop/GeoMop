@@ -18,6 +18,7 @@ class TaskStatus(IntEnum):
     paused = 7
     resuming = 8
     stopped = 9
+    prepared = 10
 
 class MJState:
     def __init__(self, name, install=False):
