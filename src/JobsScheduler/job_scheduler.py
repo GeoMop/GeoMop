@@ -8,6 +8,7 @@ Start script that initializes main window and runs APP
 import os
 import sys
 import logging
+import argparse
 import PyQt5.QtWidgets as QtWidgets
 
 # import common directory to path (should be in __init__)
@@ -67,6 +68,11 @@ class JobsScheduler(object):
         # connect save all on exit
         self._app.aboutToQuit.connect(self._data.save_all)
 
+    @property
+    def mainwindow(self):
+        """Application main window."""
+        return self._main_window
+
     def run(self):
         """Run app and show UI"""
 
@@ -76,7 +82,32 @@ class JobsScheduler(object):
         # execute app
         sys.exit(self._app.exec_())
 
-if __name__ == "__main__":
+
+def main():
+    """JobsScheduler application entry point."""
+    parser = argparse.ArgumentParser(description='JobsScheduler')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    args = parser.parse_args()
+
+    # logging
+    if not args.debug:
+        from geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from geomop_dialogs import GMErrorDialog
+            # display message box with the exception
+            if jobs_scheduler is not None and jobs_scheduler.mainwindow is not None:
+                err_dialog = GMErrorDialog(jobs_scheduler.mainwindow)
+                err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+
+        log_unhandled_exceptions('JobsScheduler', on_unhandled_exception)
+
     # init and run APP
-    APP = JobsScheduler(sys.argv)
-    APP.run()
+    jobs_scheduler = JobsScheduler(sys.argv)
+    jobs_scheduler.run()
+
+
+if __name__ == "__main__":
+    main()
