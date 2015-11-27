@@ -23,8 +23,6 @@ import icon
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
-from geomop_util.logging import log_unhandled_exceptions
-from geomop_dialogs import GMErrorDialog
 from meconfig import cfg
 from ui import panels
 from ui.dialogs.json_editor import JsonEditorDlg
@@ -336,8 +334,9 @@ class ModelEditor:
         """go"""
         self._app.exec_()
 
-if __name__ == "__main__":
-    # pylint: disable=invalid-name
+
+def main():
+    """ModelEditor application entry point."""
     parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
@@ -347,9 +346,12 @@ if __name__ == "__main__":
 
     # logging
     if not args.debug:
+        from geomop_util.logging import log_unhandled_exceptions
+
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
+            from geomop_dialogs import GMErrorDialog
             # display message box with the exception
             if model_editor is not None and model_editor.mainwindow is not None:
                 err_dialog = GMErrorDialog(model_editor.mainwindow)
@@ -359,3 +361,7 @@ if __name__ == "__main__":
 
     model_editor = ModelEditor()
     model_editor.main()
+
+
+if __name__ == "__main__":
+    main()
