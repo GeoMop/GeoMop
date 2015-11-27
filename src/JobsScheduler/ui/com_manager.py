@@ -278,18 +278,21 @@ class ComExecutor(object):
 
     @staticmethod
     def _install(com, res):
+        old_phase = TaskStatus.installation
         com.install()
         sec = time.time() + 600
         message = tdata.Action(tdata.ActionType.installation).get_message()
         mess = None
-        while sec  > time.time() :
+        while sec > time.time():
             com.send_message(message)
             mess = com.receive_message(120)
             if mess is None:
                 break
             if mess.action_type == tdata.ActionType.install_in_process:
                 phase = mess.get_action().data.data['phase']
-                # ToDo set state
+                if phase is not old_phase:
+                    # add to queue
+                    pass
                 pass
             else:
                 break
@@ -340,6 +343,7 @@ class ComExecutor(object):
         res.data = {
             "jobs": states.jobs,
             "logs": log_path,
-            "conf": conf_path
+            "conf": conf_path,
+            "res": res_path
         }
         return res

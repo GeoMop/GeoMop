@@ -318,6 +318,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mj["jobs"] = result["jobs"]
         mj["logs"] = result["logs"]
         mj["conf"] = result["conf"]
+        mj["res"] = result["res"]
         current = self.ui.overviewWidget.currentItem()
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)

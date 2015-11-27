@@ -6,6 +6,7 @@ from enum import IntEnum
 
 logger = logging.getLogger("Remote")
 
+
 class TaskStatus(IntEnum):
     """Action type"""
     installation = 0
@@ -18,7 +19,8 @@ class TaskStatus(IntEnum):
     paused = 7
     resuming = 8
     stopped = 9
-    prepared = 10
+    finished = 10
+
 
 class MJState:
     def __init__(self, name, install=False):
@@ -45,6 +47,7 @@ class MJState:
         self.running_jobs = 0
         """count of running jobs"""
 
+
 class JobState:
     def __init__(self, name, install=False):
         self.name = name
@@ -61,6 +64,7 @@ class JobState:
         """job status"""
         if install:
             self.status = TaskStatus.installation
+
 
 class JobsState:
     def __init__(self):
