@@ -154,10 +154,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
-            self.ui.menuBar.multiJob.update_locks(None)
+            self.ui.menuBar.multiJob.lock_by_status(None)
         else:
             status = self.data.multijobs[current.text(0)]["state"].status
-            self.ui.menuBar.multiJob.update_locks(status)
+            self.ui.menuBar.multiJob.lock_by_status(status)
             mj = self.data.multijobs[current.text(0)]
             self.ui.tabWidget.reload_view(mj)
 
@@ -303,7 +303,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_state(self, key, state):
-        self.ui.overviewWidget.update_item(key, state)
+        if state.status == TaskStatus.running:
+            self.ui.overviewWidget.update_item(key, state)
+        elif state.status == TaskStatus.ready:
+            current = self.ui.overviewWidget.currentItem()
+            state = self.data.multijobs[key]["state"]
+            state.status = TaskStatus.stopping
+            self.ui.overviewWidget.update_item(key, state)
+            self.update_ui_locks(current)
+            self.com_manager.stop(key)
 
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
