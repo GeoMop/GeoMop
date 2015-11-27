@@ -17,14 +17,14 @@ sys.path.insert(1, __lib_dir__)
 MODEL_EDITOR_PATH = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(MODEL_EDITOR_PATH)
 
-import logging
-import traceback
 import argparse
 import icon
 
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
+from geomop_util.logging import log_unhandled_exceptions
+from geomop_dialogs import GMErrorDialog
 from meconfig import cfg
 from ui import panels
 from ui.dialogs.json_editor import JsonEditorDlg
@@ -169,6 +169,7 @@ class ModelEditor:
 
     def _on_element_changed(self, new_cursor_type, old_cursor_type):
         """Updates info_text if cursor_type has changed."""
+        # pylint: disable=unused-argument
         self._update_info(new_cursor_type)
 
     def _update_info(self, cursor_type):
@@ -275,7 +276,6 @@ class ModelEditor:
         """edit transformation rules in file"""
         text = cfg.get_transformation_text(file)
         if text is not None:
-            import meconfig.meconfig
             dlg = JsonEditorDlg(cfg.transformation_dir, file,
                                 "Transformation rules:", text, self.mainwindow)
             dlg.exec_()
@@ -346,24 +346,16 @@ if __name__ == "__main__":
         cfg.config.__class__.DEBUG_MODE = True
 
     # logging
-    if 'APPDATA' in os.environ:
-        __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
-    else:
-        __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
-
     if not args.debug:
-        LOG_FORMAT = '%(asctime)-15s %(message)s'
-        LOG_FILENAME = os.path.join(__config_dir__, 'model_editor_log.txt')
-        logging.basicConfig(format=LOG_FORMAT, filename=LOG_FILENAME)
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            # display message box with the exception
+            if model_editor is not None and model_editor.mainwindow is not None:
+                err_dialog = GMErrorDialog(model_editor.mainwindow)
+                err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 
-        def log_excepthook(type_, value, tback):
-            """Set exception logging hook."""
-            logging.critical('{0}: {1}\n  Traceback:\n{2}'.format(type_, value,
-                                                                  ''.join(traceback.format_tb(tback))))
-                                                                  
-            # call the default handler
-            sys.__excepthook__(type_, value, tback)
+        log_unhandled_exceptions('ModelEditor', on_unhandled_exception)
 
-        sys.excepthook = log_excepthook
-
-    ModelEditor().main()
+    model_editor = ModelEditor()
+    model_editor.main()
