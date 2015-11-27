@@ -88,7 +88,7 @@ class ResourceDialog(AFormDialog):
             self.ui.multiJobPbsPresetComboBox.setDisabled(True)
             self.ui.jobExecutionTypeComboBox.clear()
             self.ui.jobExecutionTypeComboBox.addItems([
-                self.ui.REMOTE_LABEL, self.ui.PBS_LABEL])
+                self.ui.EXEC_LABEL, self.ui.REMOTE_LABEL, self.ui.PBS_LABEL])
         else:
             self.ui.multiJobPbsPresetComboBox.setDisabled(False)
             self.ui.jobExecutionTypeComboBox.clear()
