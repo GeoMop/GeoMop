@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Basic dialogs templates
+Basic application dialog templates, other dialogs should inherit from those to
+maintain UI consistency.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
 
 import uuid
 
+from abc import abstractmethod
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class AFormDialog(QtWidgets.QDialog):
     """
-    Form dialog executive code with bindings and other functionality.
+    Abstract form dialog with abstract data manipulation interface.
     """
 
     # Purposes of dialog by action
@@ -51,10 +53,15 @@ class AFormDialog(QtWidgets.QDialog):
     accepted = QtCore.pyqtSignal(dict, tuple)
 
     def accept(self):
+        """
+        Accepts the form if all data fields are valid.
+        :return:
+        """
         if self.valid():
             super(AFormDialog, self).accept()
             self.accepted.emit(self.purpose, self.get_data())
 
+    @abstractmethod
     def valid(self):
         """
         Validates input fields and returns True if valid. Otherwise points
@@ -64,6 +71,13 @@ class AFormDialog(QtWidgets.QDialog):
         return True
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
+        """
+        Sets the purpose of the dialog. Used for default data labels and
+        accept handling.
+        :param purpose: Dialog purpose. (ADD/EDIT/COPY)
+        :param data: Data to be pre filled if None dialog is cleared.
+        :return:
+        """
         self.set_data(data)
         self.purpose = purpose
         self.setObjectName(purpose["objectName"])
@@ -73,32 +87,41 @@ class AFormDialog(QtWidgets.QDialog):
 
     def _connect_slots(self):
         """
-        Connect generic slots for dialog
+        Connects generic slots for dialog.
         (must be called after UI setup in child)
         """
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
 
+    @abstractmethod
     def get_data(self):
         """
-        Get data from form fields as tuple.
+        Gets data from form fields. Used by accept signal.
         (To be overridden in child)
         """
-        pass
+        return NotImplemented
 
+    @abstractmethod
     def set_data(self, data=None):
         """
-        Set data to form fields from tuple.
+        Set data to form fields.
         (To be overridden in child)
+        :param data: Preset data to be used.
         """
-        pass
+        return NotImplemented
 
 
 class UiFormDialog(object):
     """
     UI of basic form dialog.
     """
+
     def setup_ui(self, dialog):
+        """
+        Setup UI on passed dialog.
+        :param dialog: All UI components are attached to this dialog.
+        :return:
+        """
         # dialog properties
         dialog.setObjectName("FormDialog")
         dialog.setWindowTitle("Form dialog")
@@ -114,6 +137,7 @@ class UiFormDialog(object):
         # labels
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum,
                                            QtWidgets.QSizePolicy.Maximum)
+
         # title label
         self.titleLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         titleFont = QtGui.QFont()
@@ -168,7 +192,7 @@ class UiFormDialog(object):
 
 class APresetsDialog(QtWidgets.QDialog):
     """
-    Presets Dialog executive code with bindings and other functionality.
+    Abstract preset dialog.
     """
     presets = dict()
     presets_changed = QtCore.pyqtSignal(dict)
@@ -254,6 +278,7 @@ class UiPresetsDialog(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.setContentsMargins(0, 5, 0, 5)
 
+        # presets tree widget
         self.presets = QtWidgets.QTreeWidget(dialog)
         self.presets.setAlternatingRowColors(True)
         self.presets.setObjectName("presets")

@@ -11,6 +11,9 @@ from data.states import TaskStatus
 
 
 class MainMenuBar(QtWidgets.QMenuBar):
+    """
+    Main windows menu bar.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("MainMenuBar")
@@ -27,6 +30,9 @@ class MainMenuBar(QtWidgets.QMenuBar):
 
 
 class AppMenu(QtWidgets.QMenu):
+    """
+    App sub menu.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Menu")
@@ -40,6 +46,9 @@ class AppMenu(QtWidgets.QMenu):
 
 
 class MultiJobMenu(QtWidgets.QMenu):
+    """
+    MultiJob sub menu.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("MultiJob")
@@ -70,105 +79,145 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionStopMultiJob)
         self.addAction(self.actionRestartMultiJob)
 
-    def update_locks(self, task_status=None):
+    def lock_as_none(self):
+        """
+        Locks to state None
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(False)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(False)
+
+        self.actionRunMultiJob.setDisabled(False)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
+    def lock_as_installation(self):
+        """
+        Locks to state Installation
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
+    def lock_as_running(self):
+        """
+        Locks to state Running
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(False)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(False)
+        self.actionRestartMultiJob.setDisabled(False)
+
+    def lock_as_pausing(self):
+        """
+        Locks to state Pausing
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
+    def lock_as_paused(self):
+        """
+        Locks to state Paused
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(False)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
+    def lock_as_resuming(self):
+        """
+        Locks to state Resuming
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
+    def unlock(self):
+        """
+        Unlocks all actions
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(False)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(False)
+
+        self.actionRunMultiJob.setDisabled(False)
+        self.actionPauseMultiJob.setDisabled(False)
+        self.actionResumeMultiJob.setDisabled(False)
+        self.actionStopMultiJob.setDisabled(False)
+        self.actionRestartMultiJob.setDisabled(False)
+
+    def lock_by_status(self, task_status=None):
+        """
+        Locks UI actions based on selected MultiJob. If status is None then
+        it works like unlock.
+        :param task_status: Status that controls the locks.
+        :return:
+        """
         if task_status is TaskStatus.none:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(False)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(False)
-
-            self.actionRunMultiJob.setDisabled(False)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
+            self.lock_as_none()
         elif task_status is TaskStatus.installation:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
+            self.lock_as_installation()
         elif task_status is TaskStatus.running:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(False)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(False)
-            self.actionRestartMultiJob.setDisabled(False)
-
+            self.lock_as_running()
         elif task_status is TaskStatus.pausing:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
-        elif task_status is TaskStatus.pausing:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
+            self.lock_as_pausing()
         elif task_status is TaskStatus.paused:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(False)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
+            self.lock_as_paused()
         elif task_status is TaskStatus.resuming:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(True)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(True)
-
-            self.actionRunMultiJob.setDisabled(True)
-            self.actionPauseMultiJob.setDisabled(True)
-            self.actionResumeMultiJob.setDisabled(True)
-            self.actionStopMultiJob.setDisabled(True)
-            self.actionRestartMultiJob.setDisabled(True)
-
+            self.lock_as_resuming()
         else:
-            self.actionAddMultiJob.setDisabled(False)
-            self.actionEditMultiJob.setDisabled(False)
-            self.actionCopyMultiJob.setDisabled(False)
-            self.actionDeleteMultiJob.setDisabled(False)
-
-            self.actionRunMultiJob.setDisabled(False)
-            self.actionPauseMultiJob.setDisabled(False)
-            self.actionResumeMultiJob.setDisabled(False)
-            self.actionStopMultiJob.setDisabled(False)
-            self.actionRestartMultiJob.setDisabled(False)
+            self.unlock()
 
 
 class SettingsMenu(QtWidgets.QMenu):
+    """
+    Settings sub menu.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Settings")
