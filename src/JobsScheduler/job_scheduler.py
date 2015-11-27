@@ -100,7 +100,9 @@ def main():
             # display message box with the exception
             if jobs_scheduler is not None and jobs_scheduler.mainwindow is not None:
                 err_dialog = GMErrorDialog(jobs_scheduler.mainwindow)
-                err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+                err_dialog.open_error_dialog("Application performed invalid operation!",
+                                             error=exception)
+            sys.exit(1)
 
         log_unhandled_exceptions('JobsScheduler', on_unhandled_exception)
 

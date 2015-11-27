@@ -152,6 +152,10 @@ class ModelEditor:
         self._reload_node(line+1, index+1)
         self._reload_icon_timer.start(700)
 
+    def reload(self):
+        """Reload panels when structure changes."""
+        self._reload()
+
     def _hide_reload_icon(self):
         """Hides the reload icon."""
         self._reload_icon.setVisible(False)
@@ -352,10 +356,18 @@ def main():
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
             from geomop_dialogs import GMErrorDialog
-            # display message box with the exception
-            if model_editor is not None and model_editor.mainwindow is not None:
-                err_dialog = GMErrorDialog(model_editor.mainwindow)
-                err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            if model_editor is not None:
+                # try to reload editor to avoid inconsistent state
+                if callable(model_editor.reload):
+                    try:
+                        model_editor.reload()
+                    except:
+                        pass
+
+                # display message box with the exception
+                if model_editor.mainwindow is not None:
+                    err_dialog = GMErrorDialog(model_editor.mainwindow)
+                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 
         log_unhandled_exceptions('ModelEditor', on_unhandled_exception)
 
