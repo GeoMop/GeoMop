@@ -49,6 +49,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self._item_states = {}
         self.setRootIsDecorated(True)
         self.setIndentation(10)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
         stylesheet_path = os.path.join(cfg.stylesheet_dir, 'tree.css')
         stylesheet = load_stylesheet(stylesheet_path, cfg.resource_dir)
         self.setStyleSheet(stylesheet)

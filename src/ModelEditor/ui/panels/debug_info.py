@@ -1,10 +1,10 @@
 """
 Module contains widget that shows debug information.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-
-__author__ = 'Tomas Krizek'
-
 from PyQt5.QtWidgets import QTextEdit
+from PyQt5.QtCore import Qt
 
 
 class DebugPanelWidget(QTextEdit):
@@ -15,6 +15,7 @@ class DebugPanelWidget(QTextEdit):
         super(DebugPanelWidget, self).__init__(parent)
         self.setReadOnly(True)
         self.setFontFamily('Courier New')
+        self.setFocusPolicy(Qt.NoFocus)
 
     def show_data_node(self, node):
         """Displays debug information for `DataNode` node."""

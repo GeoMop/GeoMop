@@ -42,6 +42,7 @@ class InfoPanelWidget(QWebView):
 
         self.setMinimumSize(800, 250)
         self.setContextMenuPolicy(Qt.NoContextMenu)
+        self.setFocusPolicy(Qt.NoFocus)
 
         self._html_root_url = QUrl.fromLocalFile(cfg.info_text_html_root_dir + os.path.sep)
         self.linkClicked.connect(self.navigate_to)

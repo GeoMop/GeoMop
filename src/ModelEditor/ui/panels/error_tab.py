@@ -27,6 +27,7 @@ class ErrorWidget(QtWidgets.QListWidget):
     def __init__(self, parent=None):
         """Initialize the class."""
         super(ErrorWidget, self).__init__(parent)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.currentItemChanged.connect(self._current_item_changed)
         self._load_items()
 
