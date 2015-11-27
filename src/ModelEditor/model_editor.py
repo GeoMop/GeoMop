@@ -357,16 +357,22 @@ def main():
             # pylint: disable=unused-argument
             from geomop_dialogs import GMErrorDialog
             if model_editor is not None:
+                err_dialog = None
+                # display message box with the exception
+                if model_editor.mainwindow is not None:
+                    err_dialog = GMErrorDialog(model_editor.mainwindow)
+
                 # try to reload editor to avoid inconsistent state
                 if callable(model_editor.reload):
                     try:
                         model_editor.reload()
                     except:
-                        pass
+                        if err_dialog is not None:
+                            err_dialog.open_error_dialog("Application performed invalid operation!",
+                                                         error=exception)
+                            sys.exit(1)
 
-                # display message box with the exception
-                if model_editor.mainwindow is not None:
-                    err_dialog = GMErrorDialog(model_editor.mainwindow)
+                if err_dialog is not None:
                     err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 
         log_unhandled_exceptions('ModelEditor', on_unhandled_exception)
