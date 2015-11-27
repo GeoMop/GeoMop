@@ -50,7 +50,7 @@ class TreeWidget(QtWidgets.QTreeView):
         self.setRootIsDecorated(True)
         self.setIndentation(10)
         stylesheet_path = os.path.join(cfg.stylesheet_dir, 'tree.css')
-        stylesheet = load_stylesheet(stylesheet_path)
+        stylesheet = load_stylesheet(stylesheet_path, cfg.resource_dir)
         self.setStyleSheet(stylesheet)
 
     def reload(self):
