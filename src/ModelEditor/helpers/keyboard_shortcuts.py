@@ -35,10 +35,31 @@ class KeyboardShortcut:
     __QT_KEYS = {
         'TAB': Qt.Key_Tab,
         'DELETE': Qt.Key_Delete,
+        'INSERT': Qt.Key_Insert,
         'ENTER': Qt.Key_Return,
         'ESC': Qt.Key_Escape,
         'BACKSPACE': Qt.Key_Backspace,
         'SPACE': Qt.Key_Space,
+        'F1': Qt.Key_F1,
+        'F2': Qt.Key_F2,
+        'F3': Qt.Key_F3,
+        'F4': Qt.Key_F4,
+        'F5': Qt.Key_F5,
+        'F6': Qt.Key_F6,
+        'F7': Qt.Key_F7,
+        'F8': Qt.Key_F8,
+        'F9': Qt.Key_F9,
+        'F10': Qt.Key_F10,
+        'F11': Qt.Key_F11,
+        'F12': Qt.Key_F12,
+        'HOME': Qt.Key_Home,
+        'END': Qt.Key_End,
+        'PAGEUP': Qt.Key_PageUp,
+        'PAGEDOWN': Qt.Key_PageDown,
+        'LEFT': Qt.Key_Left,
+        'RIGHT': Qt.Key_Right,
+        'UP': Qt.Key_Up,
+        'DOWN': Qt.Key_Down,
     }
 
     __SHORTCUTS = {}
@@ -53,7 +74,6 @@ class KeyboardShortcut:
         self.key_sequence = QKeySequence(shortcut)
         self.qt_key = self._get_qt_code()
         self.scintilla_code = self._get_scintilla_code()
-        # self.qt_modifiers = self._get_qt_modifiers()
 
     def _get_scintilla_code(self):
         """Return Scintilla key code."""
@@ -118,16 +138,9 @@ get_shortcut = KeyboardShortcut.get_shortcut
 
 DEFAULT_USER_SHORTCUTS = {
     # editor actions
-    'copy': 'Ctrl+C',
-    'paste': 'Ctrl+V',
-    'cut': 'Ctrl+X',
     'undo': 'Ctrl+Z',
     'redo': 'Ctrl+Y',
-    'indent': 'Tab',
-    'unindent': 'Shift+Tab',
     'comment': 'Ctrl+/',
-    'delete': 'Delete',
-    'select_all': 'Ctrl+A',
     'show_autocompletion': 'Ctrl+Space',
 
     # menu actions
@@ -146,16 +159,9 @@ DEFAULT_USER_SHORTCUTS = {
 
 SHORTCUT_LABELS = {
     # editor actions
-    'copy': 'Copy to clipboard',
-    'paste': 'Paste from clipboard',
-    'cut': 'Cut to clipboard',
     'undo': 'Undo an action',
     'redo': 'Redo an action',
-    'indent': 'Increase indentation level',
-    'unindent': 'Decrease indetation level',
     'comment': 'Toggle comment',
-    'delete': 'Delete',
-    'select_all': 'Select the entire text',
     'show_autocompletion': 'Display autocompletion options',
 
     # menu actions
@@ -173,8 +179,17 @@ SHORTCUT_LABELS = {
 
 
 SYSTEM_SHORTCUTS = {
+    # editor actions
+    'copy': 'Ctrl+C',
+    'paste': 'Ctrl+V',
+    'cut': 'Ctrl+X',
+    'select_all': 'Ctrl+A',
+    'unindent': 'Shift+Tab',
+    'delete': 'Delete',
     'tab': 'Tab',
     'backspace': 'Backspace',
+    'escape': 'Esc',
+    'f3': 'F3',
 }
 """system keyboard shortcuts that can not be changed by user"""
 
@@ -185,7 +200,6 @@ SCINTILLA_DISABLE = [
     'cut',
     'undo',
     'redo',
-    'indent',
     'unindent',
     'comment',
     'delete',

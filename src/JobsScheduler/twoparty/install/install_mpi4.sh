@@ -33,4 +33,4 @@ $INTERPRETER setup.py build $MPICC
 $INTERPRETER setup.py install --install-lib=../../../ins-lib
 
 cd $CURR_PATH
-#rm -rf $BUILD_DIR
+rm -rf $BUILD_DIR
