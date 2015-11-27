@@ -25,6 +25,7 @@ class ActionType(Enum):
     add_job = 10
     job_conn = 11
     job_state = 12
+    install_in_process = 13
     
 
 class ProcessType(Enum):
@@ -182,6 +183,8 @@ class Action():
             self.data = JobData(json_data)
         elif type == ActionType.job_conn:
             self.data = JobConn(json_data)
+        elif type == ActionType.install_in_process:
+            self.data = InstallData(json_data)
             
     def get_message(self):
         """return message from action"""
@@ -219,7 +222,17 @@ class ErrorData(ActionData):
         if json_data is None:            
             self.data["msg"] = None
         else:
-            self.data = json.loads(json_data)            
+            self.data = json.loads(json_data) 
+ 
+class InstallData(ActionData):
+    """Install data"""
+
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is None:            
+            self.data["phase"] = TaskStatus.installation
+        else:
+            self.data = json.loads(json_data)
 
 class JobData(ActionData):
     """Data for adding new job over remote"""    
