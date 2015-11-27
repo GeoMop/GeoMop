@@ -68,13 +68,17 @@ class JobsCommunicator(Communicator):
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 return False, action.get_message()
+            if mess is not None and mess.action_type == tdata.ActionType.install_in_process:
+                # renew install state to installation
+                mess = tdata.Action(tdata.ActionType.install_in_process).get_message()
             return resent, mess
         if message.action_type == tdata.ActionType.download_res:
             # processing in after function
             return False, None
         if message.action_type == tdata.ActionType.stop:
             # processing in after function
-            return False, None
+            if self.conf.output_type != comconf.OutputCommType.ssh:
+                return False, None
         return super(JobsCommunicator, self).standart_action_function_before(message)
         
     def  standart_action_function_after(self, message,  response):
@@ -86,7 +90,10 @@ class JobsCommunicator(Communicator):
             if len(self.jobs) > 0:
                 self._stopping = True
                 action = tdata.Action(tdata.ActionType.action_in_process)
-                return action.get_message()                    
+                return action.get_message()    
+            if response is not None and \
+                response.action_type == tdata.ActionType.action_in_process:
+                return response
             self._state_stoped()
             self.stop = True
             logger.info("Stop signal is received")

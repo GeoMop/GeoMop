@@ -15,6 +15,7 @@ from  communication.exec_output_comm import  ExecOutputComm
 from  communication.installation import  Installation
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
+from data.states import TaskStatus
 
 LONG_MESSAGE_TIMEOUT=600
 logger = logging.getLogger("Remote")
@@ -208,8 +209,10 @@ class Communicator():
                     t = threading.Thread(target=self.install)
                     t.daemon = True
                     t.start()
-                action = tdata.Action(tdata.ActionType.action_in_process)
-                return False, action.get_message()
+                action = tdata.Action(tdata.ActionType.install_in_process)
+                if isinstance(self.output, PbsOutputComm):
+                    action.data.data['phase'] = TaskStatus.qued
+                    return False, action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if isinstance(self.output, SshOutputComm):
                 processed = False
@@ -453,7 +456,7 @@ class Communicator():
             if mess.action_type != tdata.ActionType.action_in_process:
                 return mess
         return None
-
+        
     def receive_message(self, timeout=60):
         """receive message from output"""
         mess = self.output.receive(timeout)

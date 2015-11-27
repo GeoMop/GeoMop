@@ -6,6 +6,7 @@ JobScheduler data reloader
 """
 import os
 import threading
+import time
 from queue import Empty
 
 import data.transport_data as tdata
@@ -278,8 +279,22 @@ class ComExecutor(object):
     @staticmethod
     def _install(com, res):
         com.install()
-        res.mess = com.send_long_action(tdata.Action(
-            tdata.ActionType.installation))
+        sec = time.time() + 600
+        message = tdata.Action(tdata.ActionType.installation).get_message()
+        mess = None
+        while sec  > time.time() :
+            com.send_message(message)
+            mess = com.receive_message(120)
+            if mess is None:
+                break
+            if mess.action_type == tdata.ActionType.install_in_process:
+                phase = mess.get_action().data.data['phase']
+                # ToDo set state
+                pass
+            else:
+                break
+            time.sleep(10)
+            res.mess = mess
         return res
 
     @staticmethod
