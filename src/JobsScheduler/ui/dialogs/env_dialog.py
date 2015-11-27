@@ -10,7 +10,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import PresetNameValidator
+from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
 class EnvDialog(AFormDialog):
@@ -70,14 +70,9 @@ class EnvDialog(AFormDialog):
 
     def valid(self):
         valid = True
-        # name validator
-        if not self.ui.nameLineEdit.hasAcceptableInput():
-            self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #f6989d }")  # red
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.nameLineEdit):
             valid = False
-        else:
-            self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
         return valid
 
     def get_data(self):
@@ -98,8 +93,8 @@ class EnvDialog(AFormDialog):
 
     def set_data(self, data=None):
         # reset validation colors
-        self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
+        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+
         if data:
             self.ui.idLineEdit.setText(data[0])
             self.ui.nameLineEdit.setText(data[1])

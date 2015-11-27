@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, WalltimeValidator, \
-    MemoryValidator, ScratchValidator
+    MemoryValidator, ScratchValidator, ValidationColorizer
 
 
 class PbsDialog(AFormDialog):
@@ -54,41 +54,18 @@ class PbsDialog(AFormDialog):
 
     def valid(self):
         valid = True
-        # name validator
-        if not self.ui.nameLineEdit.hasAcceptableInput():
-            self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #f6989d }")  # red
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.nameLineEdit):
             valid = False
-        else:
-            self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-
-        # walltime validator
-        if not self.ui.walltimeLineEdit.hasAcceptableInput():
-            self.ui.walltimeLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #f6989d }")  # red
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.walltimeLineEdit):
             valid = False
-        else:
-            self.ui.walltimeLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-
-        # memory validator
-        if not self.ui.memoryLineEdit.hasAcceptableInput():
-            self.ui.memoryLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #f6989d }")  # red
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.memoryLineEdit):
             valid = False
-        else:
-            self.ui.memoryLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-
-        # scratch validator
-        if not self.ui.scratchLineEdit.hasAcceptableInput():
-            self.ui.scratchLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #f6989d }")  # red
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.scratchLineEdit):
             valid = False
-        else:
-            self.ui.scratchLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
         return valid
 
     def get_data(self):
@@ -108,14 +85,10 @@ class PbsDialog(AFormDialog):
 
     def set_data(self, data=None):
         # reset validation colors
-        self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-        self.ui.walltimeLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-        self.ui.memoryLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
-        self.ui.scratchLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
+        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+        ValidationColorizer.colorize_white(self.ui.walltimeLineEdit)
+        ValidationColorizer.colorize_white(self.ui.memoryLineEdit)
+        ValidationColorizer.colorize_white(self.ui.scratchLineEdit)
 
         if data:
             self.ui.idLineEdit.setText(data[0])
