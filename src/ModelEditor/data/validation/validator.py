@@ -73,14 +73,14 @@ class Validator:
                                      'ValidationTypeError']:
                 notification.span = node.span
             else:
-                notification.span = get_node_key(node).key.span
+                notification.span = get_node_key(node).notification_span
             self._report_notification(notification)
 
     def _validate_record(self, node, input_type):
         """Validates a Record node."""
         if not node.implementation == DataNode.Implementation.mapping:
             notification = Notification.from_name('ValidationTypeError', 'Record')
-            notification.span = get_node_key(node).key.span
+            notification.span = get_node_key(node).notification_span
             self._report_notification(notification)
             return
         keys = node.children_keys
@@ -94,10 +94,9 @@ class Validator:
                 checks.check_record_key(node.children_keys, key, input_type)
             except Notification as notification:
                 if notification.name == 'UnknownRecordKey':
-
-                    notification.span = child.key.span
+                    notification.span = child.notification_span
                 else:
-                    notification.span = get_node_key(node).key.span
+                    notification.span = get_node_key(node).notification_span
                 self._report_notification(notification)
             else:
                 if child is not None:
@@ -112,7 +111,7 @@ class Validator:
             if notification.name == 'InvalidAbstractRecordType':
                 notification.span = node.type.span
             else:
-                notification.span = get_node_key(node).key.span
+                notification.span = get_node_key(node).notification_span
             self._report_notification(notification)
         else:
             if node.type is None:
@@ -128,13 +127,13 @@ class Validator:
         """Validates an Array node."""
         if not node.implementation == DataNode.Implementation.sequence:
             notification = Notification.from_name('ValidationTypeError', 'Array')
-            notification.span = get_node_key(node).key.span
+            notification.span = get_node_key(node).notification_span
             self._report_notification(notification)
             return
         try:
             checks.check_array(node.children, input_type)
         except Notification as notification:
-            notification.span = get_node_key(node).key.span
+            notification.span = get_node_key(node).notification_span
             self._report_notification(notification)
         for child in node.children:
             self._validate_node(child, input_type['subtype'])
@@ -147,7 +146,7 @@ class Validator:
 
 
 def get_node_key(node):
-    """Returns node that has originated from the text structure (not autoconversion)."""
+    """Return node that has originated from the text structure (not autoconversion)."""
     while node.origin != DataNode.Origin.structure:
         node = node.parent
     return node
