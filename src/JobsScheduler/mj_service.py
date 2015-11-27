@@ -8,7 +8,6 @@ sys.path.insert(1, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(2, './twoparty/enum')
 
-from data.states import MJState, TaskStatus
 from communication import JobsCommunicator
 import data.communicator_conf as comconf
 import communication.installation as inst
@@ -21,16 +20,7 @@ def  mj_action_function_before(message):
     """before action function"""
     global mj_name, start_time
     if message.action_type == tdata.ActionType.get_state:
-        state = MJState(mj_name)
-        state.insert_time = start_time +10
-        state.qued_time = start_time +20
-        state.start_time = start_time
-        state.run_interval=50
-        state.status=TaskStatus.running
-        state.known_jobs = 2
-        state.estimated_jobs = 2
-        state.finished_jobs = 0
-        state.running_jobs = 2
+        state = comunicator.get_state()
         action = tdata.Action(tdata.ActionType.state)
         action.data.set_data(state)
         return False, action.get_message()        
@@ -77,6 +67,7 @@ except Exception as error:
 
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
+comunicator.set_start_jobs_count(2, 0)
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()
