@@ -16,7 +16,10 @@ logger = logging.getLogger("Remote")
 finished = False
 rc = 0
 
-   
+def  job_action_function_after(message,  response):
+        """before action function - all logic is in after function"""
+        return response
+        
 def  job_action_function_before(message):
     """before action function"""
     if message.action_type == tdata.ActionType.get_state:
@@ -39,7 +42,7 @@ def  job_action_function_before(message):
             logger.info("Job process will be terminated.")
         comunicator.stop =True
         action = tdata.Action(tdata.ActionType.ok)
-        return action.get_message()
+        return False, action.get_message()
     action=tdata.Action(tdata.ActionType.error)
     action.data.data["msg"] = "Unsupported job communicator message"
     return False, action.get_message()        
@@ -78,7 +81,7 @@ except Exception as error:
     logger.error(error)
     raise error
 # Use com_conf instead of ccom
-comunicator = Communicator(com_conf, mj_id,  job_action_function_before)
+comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_action_function_after)
 logger.info("Start")
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
 process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py", 

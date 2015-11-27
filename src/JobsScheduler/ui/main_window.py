@@ -245,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
         state = self.data.multijobs[key]["state"]
-        state.status = TaskStatus.stoping
+        state.status = TaskStatus.stopping
         self.ui.overviewWidget.update_item(key, state)
 
         self.update_ui_locks(current)
@@ -263,7 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
         state = self.data.multijobs[key]["state"]
-        state.status = TaskStatus.stoping
+        state.status = TaskStatus.stopping
         self.ui.overviewWidget.update_item(key, state)
 
         self.update_ui_locks(current)

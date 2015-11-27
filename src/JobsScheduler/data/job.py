@@ -27,28 +27,28 @@ class Job:
     def state_ready(self):
         """change state to ready"""
         self._data_lock.acquire()
-        self._state.run_interval = time.time() - self._state.start_time 
+        self._state.run_interval = int(time.time() - self._state.start_time)
         self._state.status = TaskStatus.ready
         self._data_lock.release()
         
     def state_stopping(self):
         """change state to stopping"""
         self._data_lock.acquire()
-        self._state.run_interval = time.time() - self._state.start_time 
-        self._state.status = TaskStatus.stoping
+        self._state.run_interval = int(time.time() - self._state.start_time )
+        self._state.status = TaskStatus.stopping
         self._data_lock.release()
         
-    def state_stoped(self):
+    def state_stopped(self):
         """change state to stoped"""
         self._data_lock.acquire()
-        self._state.status = TaskStatus.stoped
+        self._state.status = TaskStatus.stopped
         self._data_lock.release()
     
     def get_state(self):
         """change state to qued"""
         self._data_lock.acquire()
-        if self._state.status == TaskStatus.stoped:
-            self._state.run_interval = time.time() - self._state.start_time 
+        if self._state.status == TaskStatus.running:
+            self._state.run_interval = int(time.time() - self._state.start_time)
         new_state = copy.deepcopy(self._state)
         self._data_lock.release()
         return new_state
