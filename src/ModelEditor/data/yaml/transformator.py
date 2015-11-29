@@ -444,7 +444,8 @@ class Transformator:
             l2 = nl2
             c2 = nc2
         # try exclude comments
-        l1, c1, l2, c2 = StructureChanger._leave_comments(lines, l1, c1, l2, c2)        
+        l1, c1, l2, c2 = StructureChanger.leave_comments(lines, l1, c1, l2, c2) 
+        l1, c1, l2, c2 = StructureChanger.add_delete_item_chars(lines, l1, c1, l2, c2)
         StructureChanger.delete_structure(lines, l1, c1, l2, c2)
         return True
 

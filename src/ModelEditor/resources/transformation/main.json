@@ -102,7 +102,7 @@
       "parameters": {
         "source_path":"/problem/mesh/sets/*/name",
         "destination_path":"/problem/mesh/sets_new/$1/name",
-		"create_path":true
+	"create_path":true
       }
     },   
     { 
@@ -112,7 +112,8 @@
         "source_path":"/problem/mesh/sets/*/region_ids",
         "destination_path":"/problem/mesh/sets_new/$1/region_ids",
         "set_type_path":"/problem/mesh/sets_new/$1",
-        "new_type":"Union"  
+        "new_type":"Union",
+        "create_path":true  
       }
     },
     { 
@@ -122,7 +123,8 @@
         "source_path":"/problem/mesh/sets/*/region_labels",
         "destination_path":"/problem/mesh/sets_new/$1/regions",
         "set_type_path":"/problem/mesh/sets_new/$1",
-        "new_type":"Union"  
+        "new_type":"Union", 
+        "create_path":true 
       }
     },
     { 
@@ -132,7 +134,8 @@
         "source_path":"/problem/mesh/sets/*/union",
         "destination_path":"/problem/mesh/sets_new/$1/regions",
         "set_type_path":"/problem/mesh/sets_new/$1",
-        "new_type":"Union"  
+        "new_type":"Union",
+        "create_path":true  
       }
     },
     { 
@@ -142,7 +145,8 @@
         "source_path":"/problem/mesh/sets/*/intersection",
         "destination_path":"/problem/mesh/sets_new/$1/regions",
         "set_type_path":"/problem/mesh/sets_new/$1",
-        "new_type":"Intersection"  
+        "new_type":"Intersection",
+        "create_path":true  
       }
     },
     { 
@@ -152,20 +156,23 @@
         "source_path":"/problem/mesh/sets/*/difference",
         "destination_path":"/problem/mesh/sets_new/$1/regions",
         "set_type_path":"/problem/mesh/sets_new/$1",
-        "new_type":"Difference"  
+        "new_type":"Difference",
+        "create_path":true  
       }
     },
     {
       "action": "delete-key",
       "parameters": {
-         "path": "/problem/mesh/sets"
+        "path": "/problem/mesh/sets",
+        "deep": true	
       }
     },
     {
       "action": "delete-key",
       "parameters": {
-         "path": "/problem/mesh/regions"
-       }
+        "path": "/problem/mesh/regions",
+        "deep": true
+      }
     },
     {
       "action" : "merge-arrays",
