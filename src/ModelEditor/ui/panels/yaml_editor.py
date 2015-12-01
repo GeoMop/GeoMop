@@ -68,8 +68,8 @@ class YamlEditorWidget(QsciScintilla):
 
     The different YAML elements can be for example keys, values, tags or anchors.
 
-    :param int line: current line of cursor
-    :param int column: current column of cursor
+    :param int new_cursor_type: CursorType value of the new cursor
+    :param int old_cursor_type: CursorType value of the previous cursor
     """
 
     errorMarginClicked = QtCore.pyqtSignal(int)

@@ -164,7 +164,7 @@ class StructureChanger:
         for i in range( prepend_len,  prepend_len + add_len):
             if add_dash:
                 if len(add[prepend_len]) >  prepend_ident:
-                    add[prepend_len] =  (add_ident + prepend_ident)  * " " + "- " + add[add_len] [prepend_ident:]
+                    add[prepend_len] =  (add_ident + prepend_ident)  * " " + "- " + add[i][add_ident:]
                     prepend_ident += 2
                     add_dash = False
             else:
@@ -239,6 +239,9 @@ class StructureChanger:
             if place is not None:
                 if len(place.group(1)) >= c1:
                     del lines[l1]
+                elif c1 == c2:
+                    lines[l1] = lines[l1][:c1] + lines[l1+1][c1:]
+                    del lines[l1+1]
                 else:
                     lines[l1] = lines[l1][:c1]
             else:
@@ -350,7 +353,7 @@ class StructureChanger:
         return nl1, nc1, nl2, nc2
         
     @staticmethod
-    def _leave_comments(lines, l1, c1, l2, c2):
+    def leave_comments(lines, l1, c1, l2, c2):
         """Try find comments in start and end of node and exclude it from node"""
         nl1 = l1
         nc1 = c1
@@ -379,7 +382,38 @@ class StructureChanger:
                         nc2 = 0
                 else:
                     nc2 = 0
-            ident = re.search(r'^(\s*)\S', lines[nl2])
-            if ident is not None:
-                nc2 = len(ident.group(1))
-        return nl1, nc1, nl2, nc2    
+                ident = re.search(r'^(\s*)\S', lines[nl2])
+                if ident is not None:
+                    nc2 = len(ident.group(1))
+        return nl1, nc1, nl2, nc2  
+      
+    @staticmethod
+    def add_delete_item_chars(lines, l1, c1, l2, c2):
+        """
+        If is deleted array node, is needed delete next empty chars and center
+        next item as array or delete array char too
+        """
+        nl1 = l1
+        nc1 = c1
+        nl2 = l2
+        nc2 = c2
+        item = re.search(r'^(\s*)-\s(\S.*\S)(\s*)$', lines[l1])
+        if item is None:
+            item = re.search(r'^(\s*)-\s(\S)(\s*)$', lines[l1])
+        if item is not None and \
+            (len(item.group(1)) +2) == c1 and \
+            (l2>l1 or (len(item.group(1)) + 2 + len(item.group(2)))<=c2):
+            # delete array item
+            if l1 < l2 and len(lines[l2]) > c2 and not lines[l2][c2:].isspace():
+               return l1, c1, l2, c2
+            ident = re.search(r'^(\s*)\S', lines[l2+1])
+            if ident is not None and len(ident.group(1)) == (len(item.group(1)) + 2):
+                #next row as array item
+                nl2 = l2 + 1
+                nc2 = c1
+            else:
+                # delete item char
+                nc1 -= 2 
+        return nl1, nc1, nl2, nc2         
+            
+

@@ -105,6 +105,14 @@ class DataNode:
         """all visible children nodes"""
         return [child for child in self.children if child.hidden is False]
 
+    @property
+    def notification_span(self):
+        """span for notification, preferably returns key span, falls back to span"""
+        if self.key is not None and self.key.span is not None:
+            return self.key.span
+        else:
+            return self.span
+
     def generate_absolute_path(self, descendant_path=None):
         """generate absolute path to this node, used recursively"""
         if self.parent is None:

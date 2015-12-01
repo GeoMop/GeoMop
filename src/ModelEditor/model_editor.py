@@ -10,18 +10,12 @@ __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.insert(1, __lib_dir__)
 
-# TODO: can this be replaced? (other way to import css)
-# IMPORTANT
-# Script changes the working directory so all files can be located.
-# This is especially vital for resources in css.
-MODEL_EDITOR_PATH = os.path.split(os.path.realpath(__file__))[0]
-os.chdir(MODEL_EDITOR_PATH)
-
 import argparse
 import icon
 
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 
 from meconfig import cfg
 from ui import panels
@@ -320,11 +314,14 @@ class ModelEditor:
         """
         cfg.update_yaml_file(self._editor.text())
         if cfg.changed:
-            reply = QtWidgets.QMessageBox.question(
-                self.mainwindow, 'Confirmation',
-                "The document has unsaved changes, do you want to save it?",
-                (QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No |
-                 QtWidgets.QMessageBox.Abort))
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("Confirmation")
+            msg_box.setIcon(QMessageBox.Question)
+            msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Abort)
+            msg_box.setDefaultButton(QMessageBox.Abort)
+            msg_box.setText("The document has unsaved changes, do you want to save it?")
+            reply = msg_box.exec_()
+
             if reply == QtWidgets.QMessageBox.Abort:
                 return False
             if reply == QtWidgets.QMessageBox.Yes:

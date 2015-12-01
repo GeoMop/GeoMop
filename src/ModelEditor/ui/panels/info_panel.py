@@ -42,6 +42,7 @@ class InfoPanelWidget(QWebView):
 
         self.setMinimumSize(800, 250)
         self.setContextMenuPolicy(Qt.NoContextMenu)
+        self.setFocusPolicy(Qt.NoFocus)
 
         self._html_root_url = QUrl.fromLocalFile(cfg.info_text_html_root_dir + os.path.sep)
         self.linkClicked.connect(self.navigate_to)
@@ -54,7 +55,9 @@ class InfoPanelWidget(QWebView):
         :param CursorType cursor_type: indicates cursor position in node
         """
         is_parent = False
-        if cursor_type == CursorType.value.value:
+        if node.parent is not None and node.parent.implementation == node.Implementation.sequence:
+            is_parent = True
+        elif cursor_type == CursorType.value.value:
             node = node.get_node_at_position(node.span.start)
         elif cursor_type == CursorType.parent.value:
             is_parent = True
