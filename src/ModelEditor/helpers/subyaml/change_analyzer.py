@@ -11,8 +11,7 @@ from .line_analyzer import LineAnalyzer
 
 
 class ChangeAnalyzer:
-    """
-    Analyzes partial yaml text for change character report
+    """Analyzes incomplete YAML text and reports changes.
 
     Description: This quick partial text analysis is used to decide whether more time consuming
     text parsing is necessary.
@@ -32,7 +31,9 @@ class ChangeAnalyzer:
             if self._area[line][-1:] == "\n":
                 self._area[line] = self._area[line][0:-1]
         self._line = cursor_line
+        """index of the line on which there is a cursor"""
         self._index = cursor_index
+        """index of the column on which there is a cursor"""
         if len(self._area[self._line]) <= self._index:
             self._index = len(self._area[self._line]) - 1
 
@@ -41,11 +42,12 @@ class ChangeAnalyzer:
 
         There are a couple of reasons to call this function.
 
-        First, it can recognize whether reload is effective??? In this case, the function
-        returns ``in_inner``. It may be necessary to still check if cursor is above
-        child node. ???
+        When this method returns ``in_inner``, it signifies that some changes in structure may have
+        happened. If there has been any text changes when this method returns ``in_inner``, a
+        complete structure reload is needed. If there hasn't been any text changes, the currently
+        active (selected) node has been changed and the managing class has to reflect this change.
 
-        Second, the function is useful to figure out which part of the data node structure
+        The method is also useful to figure out which part of the data node structure
         has been changed. If there are multiple changes in one data node structure, a reload
         is needed.
 
@@ -53,28 +55,34 @@ class ChangeAnalyzer:
 
            - ``in_key`` for key, tag, reference or anchor, but only if this belong to set data node
            - ``comment`` for cursor above comment
-           - ``in_inner`` for child :py:class:`DataNode` structure
+           - ``in_inner`` for child :py:class:`DataNode` structure. This value is returned when the
+              previous cursor position was in parent node and the child node has been entered.
+              If the cursor was previously at a different position, something else is returned
+              (most likely ``in_value``).
            - ``in_value`` for scalar node value or structure between child nodes
+
         :rtype: PosType
-        """    # TODO: when is in_inner returned? how is it related to "reload is effective"?
+        """
         is_key = False
         json_list = 0
         inner = False
         i = 0
         while i < len(self._area):
             # key
-            index = LineAnalyzer.get_char_poss(self._area[i], ":")
+            index = LineAnalyzer.get_str_position(self._area[i], ":")
             if not is_key:
                 # first key
                 if index > -1:
-                    nline, nindex = self._get_key_area(i)
-                    if self._line < nline or (self._line == nline and self._index < nindex):
+                    nline, nindex = self._get_key_area_end(i)
+                    cursor_before_key_end = (self._line < nline or
+                                             (self._line == nline and self._index < nindex))
+                    if cursor_before_key_end:
                         return PosType.in_key
                     if i != nline:
                         i = nline
                         index = nindex
                 is_key = True
-                if LineAnalyzer.get_char_poss(self._area[i][index+1:], ":") > -1:
+                if LineAnalyzer.get_str_position(self._area[i][index+1:], ":") > -1:
                     inner = True
             else:
                 if index > -1:
@@ -134,25 +142,29 @@ class ChangeAnalyzer:
             i += 1
         return PosType.in_value
 
-    def _get_key_area(self, line):
-        """get new line and index for init object"""
-        i = line
-        is_dist, dist = LineAnalyzer.get_key_area(self._area[i])
-        if not is_dist:
-            return line, 0
-        if dist != -1:
-            return i, dist-1
-        while dist == -1:
+    def _get_key_area_end(self, line_index):
+        """Find the line and column where the key area ends.
+
+        :param int line_index: index of the line that contains the key
+        :return: index of the line and column where the key area ends
+        :rtype: tuple(int, int)
+        """
+        i = line_index
+        key_area_end = LineAnalyzer.get_key_area_end(self._area[i])
+        if key_area_end is None:
+            return line_index, 0
+        if key_area_end != -1:
+            return i, key_area_end-1
+        while key_area_end == -1:
             i += 1
             if i >= len(self._area):
                 space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
                 if space_after is not None:
                     return i-1, space_after.end(1)
                 return i, 0
-            is_dist, dist = LineAnalyzer.get_after_key_area(self._area[i])
-            if is_dist:
-                if dist != -1:
-                    return i, dist-1
+            key_area_end = LineAnalyzer.get_after_key_area_end(self._area[i])
+            if key_area_end is not None and key_area_end != -1:
+                return i, key_area_end-1
             else:
                 space_after = re.search(r'(.*\S)\s+$', self._area[i-1])
                 if space_after is not None:
@@ -237,8 +249,6 @@ class ChangeAnalyzer:
             return KeyType.anch
         else:
             return KeyType.key
-
-    # TODO: move is_xxx_struct methods to LineAnalyzer?
 
     @staticmethod
     def is_basejson_struct(add):
