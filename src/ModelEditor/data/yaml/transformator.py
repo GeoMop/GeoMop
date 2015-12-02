@@ -224,9 +224,10 @@ class Transformator:
                     changes = self._change_value(root, lines, action)
                 elif action['action'] == "merge-arrays":
                     changes = self._add_array(root, lines, action)
-                    if changes and 'destination_path' in action['parameters']:
-                        yaml = "\n".join(lines)
-                        root, lines = self.refresh(root_input_type, yaml, notification_handler, loader)
+                    if 'destination_path' in action['parameters']:
+                        if changes: 
+                            yaml = "\n".join(lines)
+                            root, lines = self.refresh(root_input_type, yaml, notification_handler, loader)
                         changes = self._move_key(root, lines, action)
                 if changes:
                     yaml = "\n".join(lines)
@@ -397,6 +398,7 @@ class Transformator:
         l1, c1, l2, c2 = StructureChanger._add_comments(lines, l1, c1, l2, c2)
         add = StructureChanger.copy_structure(lines, l1, c1, l2, c2, intendation1)
         pl1, pc1 = StructureChanger.skip_tar(lines, pl1, pc1, pl2, pc2)
+        action['parameters']['deep'] = True
         self._delete_key(root, lines, action)
         StructureChanger.paste_structure(lines, pl1, add, pc1 != 0)
         return True
@@ -617,10 +619,12 @@ class Transformator:
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])
             StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
             action['parameters']['path'] = action['parameters']['source_path']
+            action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
         elif dl2 < sl1 or (dl2 == sl1 and dl2 < sc1):
             # source after dest, first delete
             action['parameters']['path'] = action['parameters']['source_path']
+            action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])
             StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
@@ -670,6 +674,7 @@ class Transformator:
         if al2 < sl1 or (al2 == sl1 and al2 < sc1):
             # source after addition, first delete
             action['parameters']['path'] = action['parameters']['addition_path']
+            action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
         self._add_comma(lines, sl2, sc2 )
         StructureChanger.paste_structure(lines, sl2,  add, True)

@@ -206,8 +206,7 @@ class StructureChanger:
                 if i == l2:
                     return len(new) != len(old)
                 return False          
-        return False
-        
+        return False       
         
     @staticmethod
     def delete_structure(lines, l1, c1, l2, c2):
@@ -411,9 +410,6 @@ class StructureChanger:
                 #next row as array item
                 nl2 = l2 + 1
                 nc2 = c1
-            else:
-                # delete item char
-                nc1 -= 2 
         return nl1, nc1, nl2, nc2         
             
 
