@@ -1,9 +1,7 @@
-"""
-Basic rules for data validation
-"""
+"""Basic rules for data validation
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 # pylint: disable=unused-argument
 
 from ..data_node import DataNode
@@ -30,7 +28,7 @@ def check_scalar(node, input_type):
 
 def check_integer(value, input_type):
     """Checks if value is an integer within given range."""
-    if not isinstance(value, int):
+    if not isinstance(value, int) or isinstance(value, bool):
         raise ntf.Notification.from_name('ValidationTypeError', 'Integer')
     if value < input_type['min']:
         raise ntf.Notification.from_name('ValueTooSmall', input_type['min'])
@@ -41,7 +39,7 @@ def check_integer(value, input_type):
 
 def check_double(value, input_type):
     """Checks if value is a real number within given range."""
-    if not isinstance(value, (int, float)):
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ntf.Notification.from_name('ValidationTypeError', 'Double')
     if value < input_type['min']:
         raise ntf.Notification.from_name('ValueTooSmall', input_type['min'])
