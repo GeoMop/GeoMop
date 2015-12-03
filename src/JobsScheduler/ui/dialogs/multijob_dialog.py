@@ -9,6 +9,7 @@ import logging
 
 from PyQt5 import QtCore, QtWidgets
 
+from ui.data.preset_data import MjPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import MultiJobNameValidator
 
@@ -18,7 +19,7 @@ class MultiJobDialog(AFormDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    # Purposes of dialog by action
+    # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddMultiJobDialog",
                        windowTitle="Job Scheduler - Add new MultiJob",
@@ -40,20 +41,19 @@ class MultiJobDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, resources=None,
-                 data=None):
-        super(MultiJobDialog, self).__init__(parent)
+    def __init__(self, parent=None, resources=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
 
-        # set purpose, data and resources
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
         self.set_resource_presets(resources)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(MultiJobDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
         self.ui.analysisPushButton.clicked.connect(self.handle_dir_picking)
 
@@ -82,34 +82,38 @@ class MultiJobDialog(AFormDialog):
         self.ui.resourceComboBox.clear()
         if resources:
             # sort dict by list, not sure how it works
-            for idx in sorted(resources, key=resources.get, reverse=False):
-                self.ui.resourceComboBox.addItem(resources[idx][0], idx)
+            for key in resources:
+                self.ui.resourceComboBox.addItem(resources[key].name, key)
 
     def get_data(self):
-        data = (self.ui.idLineEdit.text(),
-                self.ui.nameLineEdit.text(),
-                self.ui.analysisLineEdit.text(),
-                self.ui.descriptionTextEdit.toPlainText(),
-                self.ui.resourceComboBox.itemData(
-                    self.ui.resourceComboBox.currentIndex()),
-                self.ui.logLevelComboBox.currentData(),
-                self.ui.numberOfProcessesSpinBox.value())
-        return data
+        key = self.ui.idLineEdit.text()
+        preset = MjPreset(self.ui.nameLineEdit.text())
+        preset.analysis = self.ui.analysisLineEdit.text()
+        preset.resource_preset = self.ui.resourceComboBox.itemData(
+                    self.ui.resourceComboBox.currentIndex())
+        preset.log_level = self.ui.logLevelComboBox.currentData()
+        preset.number_of_processes = self.ui.numberOfProcessesSpinBox.value()
+        return {
+            "key": key,
+            "preset": preset
+        }
 
     def set_data(self, data=None):
         # reset validation colors
         self.ui.nameLineEdit.setStyleSheet(
                 "QLineEdit { background-color: #ffffff }")
         if data:
-            self.ui.idLineEdit.setText(data[0])
-            self.ui.nameLineEdit.setText(data[1])
-            self.ui.analysisLineEdit.setText(data[2])
-            self.ui.descriptionTextEdit.setText(data[3])
+            key = data["key"]
+            preset = data["preset"]
+            self.ui.idLineEdit.setText(key)
+            self.ui.nameLineEdit.setText(preset.name)
+            self.ui.analysisLineEdit.setText(preset.analysis)
             self.ui.resourceComboBox.setCurrentIndex(
-                self.ui.resourceComboBox.findData(data[4]))
+                self.ui.resourceComboBox.findData(preset.resource_preset))
             self.ui.logLevelComboBox.setCurrentIndex(
-                self.ui.logLevelComboBox.findData(data[5]))
-            self.ui.numberOfProcessesSpinBox.setValue(data[6])
+                self.ui.logLevelComboBox.findData(preset.log_level))
+            self.ui.numberOfProcessesSpinBox.setValue(
+                preset.number_of_processes)
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -265,3 +269,5 @@ class UiMultiJobDialog(UiFormDialog):
         self.numberOfProcessesSpinBox.setObjectName("spinBox")
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.numberOfProcessesSpinBox)
+
+        return dialog

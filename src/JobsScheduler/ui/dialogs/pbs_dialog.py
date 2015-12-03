@@ -7,6 +7,7 @@ Pbs dialog
 
 from PyQt5 import QtCore, QtWidgets
 
+from ui.data.preset_data import PbsPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, WalltimeValidator, \
     MemoryValidator, ScratchValidator, ValidationColorizer
@@ -17,7 +18,7 @@ class PbsDialog(AFormDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    # Purposes of dialog by action
+    # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddPbsDialog",
                        windowTitle="Job Scheduler - Add new PBS Preset",
@@ -38,18 +39,18 @@ class PbsDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(PbsDialog, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiPbsDialog()
         self.ui.setup_ui(self)
 
-        # set purpose
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(PbsDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
 
     def valid(self):
@@ -69,19 +70,17 @@ class PbsDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        data = (self.ui.idLineEdit.text(),
-                self.ui.nameLineEdit.text(),
-                (self.ui.walltimeLineEdit.text() + ", " +  # description
-                 str(self.ui.nodesSpinBox.value()) + ", " +
-                 str(self.ui.ppnSpinBox.value()) + ", " +
-                 self.ui.memoryLineEdit.text() + ", " +
-                 self.ui.scratchLineEdit.text()),
-                self.ui.walltimeLineEdit.text(),
-                self.ui.nodesSpinBox.value(),
-                self.ui.ppnSpinBox.value(),
-                self.ui.memoryLineEdit.text(),
-                self.ui.scratchLineEdit.text())
-        return data
+        key = self.ui.idLineEdit.text()
+        preset = PbsPreset(self.ui.nameLineEdit.text())
+        preset.walltime = self.ui.walltimeLineEdit.text()
+        preset.nodes = str(self.ui.nodesSpinBox.value())
+        preset.ppn = str(self.ui.ppnSpinBox.value())
+        preset.memory = self.ui.memoryLineEdit.text()
+        preset.scratch = self.ui.scratchLineEdit.text()
+        return {
+            "key": key,
+            "preset": preset
+        }
 
     def set_data(self, data=None):
         # reset validation colors
@@ -91,13 +90,15 @@ class PbsDialog(AFormDialog):
         ValidationColorizer.colorize_white(self.ui.scratchLineEdit)
 
         if data:
-            self.ui.idLineEdit.setText(data[0])
-            self.ui.nameLineEdit.setText(data[1])
-            self.ui.walltimeLineEdit.setText(data[3])
-            self.ui.nodesSpinBox.setValue(data[4])
-            self.ui.ppnSpinBox.setValue(data[5])
-            self.ui.memoryLineEdit.setText(data[6])
-            self.ui.scratchLineEdit.setText(data[7])
+            key = data["key"]
+            preset = data["preset"]
+            self.ui.idLineEdit.setText(key)
+            self.ui.nameLineEdit.setText(preset.name)
+            self.ui.walltimeLineEdit.setText(preset.walltime)
+            self.ui.nodesSpinBox.setValue(preset.nodes)
+            self.ui.ppnSpinBox.setValue(preset.ppn)
+            self.ui.memoryLineEdit.setText(preset.memory)
+            self.ui.scratchLineEdit.setText(preset.scratch)
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -241,3 +242,5 @@ class UiPbsDialog(UiFormDialog):
         self.scratchLineEdit.setValidator(self.scratchValidator)
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.scratchLineEdit)
+
+        return dialog

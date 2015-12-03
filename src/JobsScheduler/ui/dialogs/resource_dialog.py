@@ -7,6 +7,7 @@ Resource dialog
 
 from PyQt5 import QtGui, QtWidgets
 
+from ui.data.preset_data import ResPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
@@ -38,18 +39,18 @@ class ResourceDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(ResourceDialog, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiResourceDialog()
         self.ui.setup_ui(self)
 
-        # set purpose
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(ResourceDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
         self.ui.multiJobExecutionTypeComboBox.currentIndexChanged.connect(
             self._handle_mj_exec_change)
@@ -135,92 +136,104 @@ class ResourceDialog(AFormDialog):
         self.ui.jobPbsPresetComboBox.clear()
         if pbs:
             # sort dict by list, not sure how it works
-            for idx in sorted(pbs, key=pbs.get, reverse=False):
-                self.ui.multiJobPbsPresetComboBox.addItem(pbs[idx][0], idx)
-                self.ui.jobPbsPresetComboBox.addItem(pbs[idx][0], idx)
+            for key in pbs:
+                self.ui.multiJobPbsPresetComboBox.addItem(pbs[key].name, key)
+                self.ui.jobPbsPresetComboBox.addItem(pbs[key].name, key)
 
     def set_ssh_presets(self, ssh):
         self.ui.multiJobSshPresetComboBox.clear()
         self.ui.jobSshPresetComboBox.clear()
         if ssh:
             # sort dict by list, not sure how it works
-            for idx in sorted(ssh, key=ssh.get, reverse=False):
-                self.ui.multiJobSshPresetComboBox.addItem(ssh[idx][0], idx)
-                self.ui.jobSshPresetComboBox.addItem(ssh[idx][0], idx)
+            for key in ssh:
+                self.ui.multiJobSshPresetComboBox.addItem(ssh[key].name, key)
+                self.ui.jobSshPresetComboBox.addItem(ssh[key].name, key)
 
     def set_env_presets(self, env):
         self.ui.mjEnvPresetComboBox.clear()
         self.ui.jobEnvPresetComboBox.clear()
         if env:
             # sort dict by list, not sure how it works
-            for idx in sorted(env, key=env.get, reverse=False):
-                self.ui.mjEnvPresetComboBox.addItem(env[idx][0], idx)
-                self.ui.jobEnvPresetComboBox.addItem(env[idx][0], idx)
+            for key in env:
+                self.ui.mjEnvPresetComboBox.addItem(env[key].name, key)
+                self.ui.jobEnvPresetComboBox.addItem(env[key].name, key)
 
     def get_data(self):
-        return (self.ui.idLineEdit.text(),
-                self.ui.nameLineEdit.text(),
-                "description",
-                self.ui.multiJobExecutionTypeComboBox.itemText(
-                    self.ui.multiJobExecutionTypeComboBox.currentIndex()) if
-                self.ui.multiJobExecutionTypeComboBox.isEnabled() else None,
-                self.ui.multiJobSshPresetComboBox.itemData(
-                    self.ui.multiJobSshPresetComboBox.currentIndex()) if
-                self.ui.multiJobSshPresetComboBox.isEnabled() else None,
+        key = self.ui.idLineEdit.text()
+        preset = ResPreset(self.ui.nameLineEdit.text())
+
+        preset.mj_execution_type = \
+            self.ui.multiJobExecutionTypeComboBox.itemText(
+                    self.ui.multiJobExecutionTypeComboBox.currentIndex())
+        if self.ui.multiJobSshPresetComboBox.isEnabled():
+            preset.mj_ssh_preset = self.ui.multiJobSshPresetComboBox.itemData(
+                    self.ui.multiJobSshPresetComboBox.currentIndex())
+        if self.ui.multiJobRemoteExecutionTypeComboBox.isEnabled():
+            preset.mj_remote_execution_type = \
                 self.ui.multiJobRemoteExecutionTypeComboBox.itemText(
-                    self.ui.multiJobRemoteExecutionTypeComboBox
-                        .currentIndex()) if
-                self.ui.multiJobRemoteExecutionTypeComboBox.isEnabled() else
-                None,
-                self.ui.multiJobPbsPresetComboBox.itemData(
-                    self.ui.multiJobPbsPresetComboBox.currentIndex()) if
-                self.ui.multiJobPbsPresetComboBox.isEnabled() else None,
-                self.ui.jobExecutionTypeComboBox.itemText(
-                    self.ui.jobExecutionTypeComboBox.currentIndex()),
-                self.ui.jobSshPresetComboBox.itemData(
-                    self.ui.jobSshPresetComboBox.currentIndex()) if
-                self.ui.jobSshPresetComboBox.isEnabled() else None,
+                    self.ui.multiJobRemoteExecutionTypeComboBox.currentIndex())
+        if self.ui.multiJobPbsPresetComboBox.isEnabled():
+            preset.mj_pbs_preset = self.ui.multiJobPbsPresetComboBox.itemData(
+                    self.ui.multiJobPbsPresetComboBox.currentIndex())
+        preset.mj_env = self.ui.mjEnvPresetComboBox.itemData(
+                    self.ui.mjEnvPresetComboBox.currentIndex())
+
+        preset.j_execution_type = self.ui.jobExecutionTypeComboBox.itemText(
+                    self.ui.jobExecutionTypeComboBox.currentIndex())
+        if self.ui.jobSshPresetComboBox.isEnabled():
+            preset.j_ssh_preset = self.ui.jobSshPresetComboBox.itemData(
+                    self.ui.jobSshPresetComboBox.currentIndex())
+        if self.ui.jobRemoteExecutionTypeComboBox.isEnabled():
+            preset.j_remote_execution_type = \
                 self.ui.jobRemoteExecutionTypeComboBox.itemText(
-                    self.ui.jobRemoteExecutionTypeComboBox
-                        .currentIndex()) if
-                self.ui.jobRemoteExecutionTypeComboBox.isEnabled() else None,
-                self.ui.jobPbsPresetComboBox.itemData(
-                    self.ui.jobPbsPresetComboBox.currentIndex()) if
-                self.ui.jobPbsPresetComboBox.isEnabled() else None,
-                self.ui.mjEnvPresetComboBox.itemData(
-                    self.ui.mjEnvPresetComboBox.currentIndex()),
-                self.ui.jobEnvPresetComboBox.itemData(
-                    self.ui.jobEnvPresetComboBox.currentIndex()))
+                    self.ui.jobRemoteExecutionTypeComboBox.currentIndex())
+        if self.ui.jobPbsPresetComboBox.isEnabled():
+            preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.itemData(
+                    self.ui.jobPbsPresetComboBox.currentIndex())
+
+        preset.j_env = self.ui.jobEnvPresetComboBox.itemData(
+                    self.ui.jobEnvPresetComboBox.currentIndex())
+        return {
+            "key": key,
+            "preset": preset
+        }
 
     def set_data(self, data=None):
         # reset validation colors
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
 
         if data:
-            self.ui.idLineEdit.setText(data[0])
-            self.ui.nameLineEdit.setText(data[1])
+            key = data["key"]
+            preset = data["preset"]
+            self.ui.idLineEdit.setText(key)
+            self.ui.nameLineEdit.setText(preset.name)
             self.ui.multiJobExecutionTypeComboBox.setCurrentIndex(
-                self.ui.multiJobExecutionTypeComboBox.findText(data[3]))
+                self.ui.multiJobExecutionTypeComboBox.findText(
+                    preset.mj_execution_type))
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
-                self.ui.multiJobSshPresetComboBox.findData(data[4]))
+                self.ui.multiJobSshPresetComboBox.findData(
+                    preset.mj_ssh_preset))
             self.ui.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(
-                self.ui.multiJobRemoteExecutionTypeComboBox.findText(data[5]))
+                self.ui.multiJobRemoteExecutionTypeComboBox.findText(
+                    preset.mj_remote_execution_type))
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
-                self.ui.multiJobPbsPresetComboBox.findData(data[6]))
+                self.ui.multiJobPbsPresetComboBox.findData(
+                    preset.mj_pbs_preset))
+            self.ui.mjEnvPresetComboBox.setCurrentIndex(
+                self.ui.mjEnvPresetComboBox.findData(preset.mj_env))
 
             self.ui.jobExecutionTypeComboBox.setCurrentIndex(
-                self.ui.jobExecutionTypeComboBox.findText(data[7]))
+                self.ui.jobExecutionTypeComboBox.findText(
+                    preset.j_execution_type))
             self.ui.jobSshPresetComboBox.setCurrentIndex(
-                self.ui.jobSshPresetComboBox.findData(data[8]))
+                self.ui.jobSshPresetComboBox.findData(preset.j_ssh_preset))
             self.ui.jobRemoteExecutionTypeComboBox.setCurrentIndex(
-                self.ui.jobRemoteExecutionTypeComboBox.findText(data[9]))
+                self.ui.jobRemoteExecutionTypeComboBox.findText(
+                    preset.j_execution_type))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
-                self.ui.jobPbsPresetComboBox.findData(data[10]))
-
-            self.ui.mjEnvPresetComboBox.setCurrentIndex(
-                self.ui.mjEnvPresetComboBox.findData(data[11]))
+                self.ui.jobPbsPresetComboBox.findData(preset.j_pbs_preset))
             self.ui.jobEnvPresetComboBox.setCurrentIndex(
-                self.ui.jobEnvPresetComboBox.findData(data[12]))
+                self.ui.jobEnvPresetComboBox.findData(preset.j_env))
 
         else:
             self.ui.idLineEdit.clear()
@@ -502,3 +515,5 @@ class UiResourceDialog(UiFormDialog):
 
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)
+
+        return dialog

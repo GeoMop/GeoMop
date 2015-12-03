@@ -5,19 +5,19 @@ maintain UI consistency.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-
+import copy
 import uuid
-
 from abc import abstractmethod
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+from ui.data.preset_data import Id
 
 
 class AFormDialog(QtWidgets.QDialog):
     """
     Abstract form dialog with abstract data manipulation interface.
     """
-
-    # Purposes of dialog by action
+    # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddDialog",
                        windowTitle="Job Scheduler - Add",
@@ -44,21 +44,21 @@ class AFormDialog(QtWidgets.QDialog):
                           title="Delete",
                           subtitle="This should not happen.")
 
-    # Default Copy name prefix
+    # default Copy name prefix
     PURPOSE_COPY_PREFIX = "Copy of"
-    # Default dialog purpose
-    purpose = PURPOSE_ADD
+    # default dialog purpose
+    purpose = None
 
-    # Custom accept signal
-    accepted = QtCore.pyqtSignal(dict, tuple)
+    # custom accept signal
+    accepted = QtCore.pyqtSignal(dict, dict)
 
     def accept(self):
         """
         Accepts the form if all data fields are valid.
-        :return:
+        :return: None
         """
         if self.valid():
-            super(AFormDialog, self).accept()
+            super().accept()
             self.accepted.emit(self.purpose, self.get_data())
 
     @abstractmethod
@@ -67,8 +67,9 @@ class AFormDialog(QtWidgets.QDialog):
         Validates input fields and returns True if valid. Otherwise points
         out problems with form.
         (To be overridden in child)
+        :return: None
         """
-        return True
+        return NotImplemented
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
         """
@@ -76,7 +77,7 @@ class AFormDialog(QtWidgets.QDialog):
         accept handling.
         :param purpose: Dialog purpose. (ADD/EDIT/COPY)
         :param data: Data to be pre filled if None dialog is cleared.
-        :return:
+        :return: None
         """
         self.set_data(data)
         self.purpose = purpose
@@ -89,15 +90,51 @@ class AFormDialog(QtWidgets.QDialog):
         """
         Connects generic slots for dialog.
         (must be called after UI setup in child)
+        :return: None
         """
         self.ui.buttonBox.accepted.connect(self.accept)
         self.ui.buttonBox.rejected.connect(self.reject)
+
+    def exec_with_purpose(self, purpose, data):
+        """
+        Executes dialog with given purpose and data.
+        :param purpose: Purpose of the dialog. (ADD/EDIT/COPY)
+        :param data: Data to be pre filled in dialog.
+        :return: dialog.exec()
+        """
+        self.set_purpose(purpose)
+        self.set_data(data)
+        return self.exec()
+
+    def exec_add(self):
+        """
+        Convenience method for add purpose.
+        :return: dialog.exec()
+        """
+        return self.exec_with_purpose(self.PURPOSE_ADD, None)
+
+    def exec_edit(self, data):
+        """
+        Convenience method for edit purpose.
+        :param data: Data to be pre filled in dialog.
+        :return: dialog.exec()
+        """
+        return self.exec_with_purpose(self.PURPOSE_EDIT, data)
+
+    def exec_copy(self, data):
+        """
+        Convenience method for copy purpose.
+        :param data: Data to be pre filled in dialog.
+        :return: dialog.exec()
+        """
+        return self.exec_with_purpose(self.PURPOSE_COPY, data)
 
     @abstractmethod
     def get_data(self):
         """
         Gets data from form fields. Used by accept signal.
         (To be overridden in child)
+        :return: Dialog preset
         """
         return NotImplemented
 
@@ -107,11 +144,12 @@ class AFormDialog(QtWidgets.QDialog):
         Set data to form fields.
         (To be overridden in child)
         :param data: Preset data to be used.
+        :return: None
         """
         return NotImplemented
 
 
-class UiFormDialog(object):
+class UiFormDialog:
     """
     UI of basic form dialog.
     """
@@ -120,7 +158,7 @@ class UiFormDialog(object):
         """
         Setup UI on passed dialog.
         :param dialog: All UI components are attached to this dialog.
-        :return:
+        :return: Decorated dialog
         """
         # dialog properties
         dialog.setObjectName("FormDialog")
@@ -188,6 +226,7 @@ class UiFormDialog(object):
 
         # resize layout to fit dialog
         dialog.setLayout(self.mainVerticalLayout)
+        return dialog
 
 
 class APresetsDialog(QtWidgets.QDialog):
@@ -203,31 +242,33 @@ class APresetsDialog(QtWidgets.QDialog):
             for key in data:
                 row = QtWidgets.QTreeWidgetItem(self.ui.presets)
                 row.setText(0, str(key))
-                for col_id, item in enumerate(data[key][0:2]):
-                    row.setText(col_id + 1, str(item))
+                row.setText(1, data[key].get_name())
+                row.setText(2, data[key].get_description())
 
     def _handle_add_preset_action(self):
-        self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_ADD)
-        self.presets_dlg.show()
+        self.presets_dlg.exec_add()
 
     def _handle_edit_preset_action(self):
         if self.presets and self.ui.presets.currentItem():
-            self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_EDIT)
             key = self.ui.presets.currentItem().text(0)
-            data = list(self.presets[key])  # list to make a copy
-            data.insert(0, key)  # insert id
-            self.presets_dlg.set_data(tuple(data))
-            self.presets_dlg.show()
+            preset = self.presets[key]
+            data = {
+                "key": key,
+                "preset": preset
+            }
+            self.presets_dlg.exec_edit(data)
 
     def _handle_copy_preset_action(self):
         if self.presets and self.ui.presets.currentItem():
-            self.presets_dlg.set_purpose(self.presets_dlg.PURPOSE_COPY)
             key = self.ui.presets.currentItem().text(0)
-            data = list(self.presets[key])
-            data.insert(0, None)  # insert empty id
-            data[1] = self.presets_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
-            self.presets_dlg.set_data(tuple(data))
-            self.presets_dlg.show()
+            preset = copy.deepcopy(self.presets[key])
+            preset.name = self.presets_dlg.\
+                PURPOSE_COPY_PREFIX + " " + preset.name
+            data = {
+                "key": key,
+                "preset": preset
+            }
+            self.presets_dlg.exec_copy(data)
 
     def _handle_delete_preset_action(self):
         if self.presets and self.ui.presets.currentItem():
@@ -237,16 +278,17 @@ class APresetsDialog(QtWidgets.QDialog):
 
     def handle_presets_dialog(self, purpose, data):
         if purpose != self.presets_dlg.PURPOSE_EDIT:
-            key = str(uuid.uuid4())
-            self.presets[key] = list(data[1:])
+            key = Id.get_id()
+            self.presets[key] = data["preset"]
         else:
-            self.presets[data[0]] = list(data[1:])
+            self.presets[data["key"]] = data["preset"]
         self.presets_changed.emit(self.presets)
 
-    def _connect_slots(self):
+    def connect_slots(self):
         """
         Connect generic slots for dialog
         (must be called after UI setup in child)
+        :return: None
         """
         self.presets_changed.connect(self.reload_view)
         self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
@@ -257,11 +299,17 @@ class APresetsDialog(QtWidgets.QDialog):
         self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
 
-class UiPresetsDialog(object):
+class UiPresetsDialog:
     """
     UI of basic presets dialog.
     """
+
     def setup_ui(self, dialog):
+        """
+        Setup UI on passed dialog.
+        :param dialog: All UI components are attached to this dialog.
+        :return: Decorated dialog
+        """
         # dialog properties
         dialog.setObjectName("PresetsDialog")
         dialog.setWindowTitle("Presets dialog")
@@ -331,3 +379,4 @@ class UiPresetsDialog(object):
 
         # resize layout to fit dialog
         dialog.setLayout(self.mainVerticalLayout)
+        return dialog

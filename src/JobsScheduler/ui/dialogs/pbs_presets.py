@@ -15,21 +15,21 @@ class PbsPresets(APresetsDialog):
     """
 
     def __init__(self, parent=None, presets=None):
-        super(PbsPresets, self).__init__(parent)
+        super().__init__(parent)
 
         # setup preset specific UI
         self.ui = UiPbsPresets()
         self.ui.setup_ui(self)
 
         # assign presets and reload view
-        self. presets = presets
+        self.presets = presets
         self.reload_view(self.presets)
 
         # set custom dialog
         self.presets_dlg = PbsDialog(parent=self)
 
         # connect generic presets slots (must be called after UI setup)
-        super(PbsPresets, self)._connect_slots()
+        super().connect_slots()
 
 
 class UiPbsPresets(UiPresetsDialog):

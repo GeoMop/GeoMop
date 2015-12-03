@@ -102,7 +102,7 @@ class PresetNameValidator(QRegExpValidator):
     Preset name validator.
     """
     def __init__(self, parent=None):
-        rx = QtCore.QRegExp("([a-zA-Z0-9])([a-zA-Z0-9])*")
+        rx = QtCore.QRegExp("([a-zA-Z0-9])([a-zA-Z0-9]|[_-\s])*")
         super().__init__(rx, parent)
 
 

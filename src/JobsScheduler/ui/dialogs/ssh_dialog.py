@@ -7,6 +7,7 @@ SSH dialog
 
 from PyQt5 import QtWidgets
 
+from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
@@ -16,7 +17,7 @@ class SshDialog(AFormDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    # Purposes of dialog by action
+    # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddSshDialog",
                        windowTitle="Job Scheduler - Add new SSH Preset",
@@ -37,18 +38,18 @@ class SshDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(SshDialog, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiSshDialog()
         self.ui.setup_ui(self)
 
-        # set purpose
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(SshDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
         self.ui.showPushButton.pressed.connect(
             lambda: self.ui.passwordLineEdit.setEchoMode(
@@ -65,28 +66,30 @@ class SshDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        return (self.ui.idLineEdit.text(),
-                self.ui.nameLineEdit.text(),
-                ("ssh://" +
-                 self.ui.userLineEdit.text() + "@" +
-                 self.ui.hostLineEdit.text() + ":" +
-                 str(self.ui.portSpinBox.value())),
-                self.ui.hostLineEdit.text(),
-                self.ui.portSpinBox.value(),
-                self.ui.userLineEdit.text(),
-                self.ui.passwordLineEdit.text())
+        key = self.ui.idLineEdit.text()
+        preset = SshPreset(self.ui.nameLineEdit.text())
+        preset.host = self.ui.hostLineEdit.text()
+        preset.port = self.ui.portSpinBox.value()
+        preset.uid = self.ui.userLineEdit.text()
+        preset.pwd = self.ui.passwordLineEdit.text()
+        return {
+            "key": key,
+            "preset": preset
+        }
 
     def set_data(self, data=None):
         # reset validation colors
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
 
         if data:
-            self.ui.idLineEdit.setText(data[0])
-            self.ui.nameLineEdit.setText(data[1])
-            self.ui.hostLineEdit.setText(data[3])
-            self.ui.portSpinBox.setValue(data[4])
-            self.ui.userLineEdit.setText(data[5])
-            self.ui.passwordLineEdit.setText(data[6])
+            key = data["key"]
+            preset = data["preset"]
+            self.ui.idLineEdit.setText(key)
+            self.ui.nameLineEdit.setText(preset.name)
+            self.ui.hostLineEdit.setText(preset.host)
+            self.ui.portSpinBox.setValue(preset.port)
+            self.ui.userLineEdit.setText(preset.uid)
+            self.ui.passwordLineEdit.setText(preset.pwd)
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -148,7 +151,7 @@ class UiSshDialog(UiFormDialog):
                                   self.hostLabel)
         self.hostLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.hostLineEdit.setObjectName("hostLineEdit")
-        self.hostLineEdit.setPlaceholderText("Insert valid host address")
+        self.hostLineEdit.setPlaceholderText("Valid host address or Ip")
         self.hostLineEdit.setProperty("clearButtonEnabled", True)
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                   self.hostLineEdit)
@@ -205,3 +208,5 @@ class UiSshDialog(UiFormDialog):
         self.passwordRowSplit.addWidget(self.showPushButton)
         self.formLayout.setLayout(5, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordRowSplit)
+
+        return dialog

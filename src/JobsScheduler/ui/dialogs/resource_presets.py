@@ -16,7 +16,7 @@ class ResourcePresets(APresetsDialog):
 
     def __init__(self, parent=None, presets=None, pbs=None, ssh=None,
                  env=None):
-        super(ResourcePresets, self).__init__(parent)
+        super().__init__(parent)
 
         # setup preset specific UI
         self.ui = UiResourcePresets()
@@ -33,7 +33,7 @@ class ResourcePresets(APresetsDialog):
         self.presets_dlg.set_env_presets(env)
 
         # connect generic presets slots (must be called after UI setup)
-        super(ResourcePresets, self)._connect_slots()
+        super().connect_slots()
 
 
 class UiResourcePresets(UiPresetsDialog):
