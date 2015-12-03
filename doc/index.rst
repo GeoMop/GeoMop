@@ -7,22 +7,21 @@
    :maxdepth: 2
    :caption: User Guide
 
-   install/linux_installation_guide
+   user/linux_installation_guide
+   user/model_editor
 
 .. toctree::
    :maxdepth: 1
    :titlesonly:
    :caption: Developer Documentation
 
-   ModelEditor <indexME.html#http://>
-   JobsScheduler <indexJS.html#http://>
-   LayerEditor <indexLE.html#http://>
-   Common <indexCommon.html#http://>
+   ModelEditor <http://geomop.github.io/GeoMop/indexME.html>
+   JobsScheduler <http://geomop.github.io/GeoMop/indexJS.html>
+   LayerEditor <http://geomop.github.io/GeoMop/indexLE.html>
+   Common <http://geomop.github.io/GeoMop/indexCommon.html/>
    organization/procedures
    organization/rules
    organization/pylint_rules
-
-.. TODO the links do not work from subdirectories (install)
 
 
 Indices and tables
