@@ -20,7 +20,6 @@ class ExecOutputComm(OutputComm):
         """Is ready to connect"""
         self._connected = False
         """socket is connected"""
-        self.installation.lock_installation()
 
     def connect(self):
         """connect session"""
@@ -29,13 +28,12 @@ class ExecOutputComm(OutputComm):
         self.conn.connect((self.host, self.port))
         logger.debug("Client is connected to " + self.host + ":" + str(self.port)) 
         self._connected = True
-        self.installation.unlock_installation()
          
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
         self._connected = False
-        self.installation.unlock_app()
+        self.installation.unlock_application()
         
     def isconnected(self):
         """Connection is opened"""

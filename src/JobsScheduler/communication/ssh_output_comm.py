@@ -21,13 +21,11 @@ if sys.platform == "win32":
             """Ssh subprocessed instance"""
             self._connected = False
             """SSH is connected"""
-            self.installation.lock_installation()
             
         def connect(self):
             """connect session"""
             self.ssh.connect()
             self._connected = True
-            self.installation.unlock_installation()
         
         def isconnected(self):
             """Connection is opened"""

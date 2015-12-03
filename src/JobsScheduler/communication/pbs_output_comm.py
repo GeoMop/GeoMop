@@ -61,9 +61,7 @@ class PbsOutputComm(ExecOutputComm):
         """connect session"""
         if self.config.with_socket:
             super(PbsOutputComm, self).connect()
-        else:
-            self.installation.unlock_installation()        
-         
+
     def disconnect(self):
         """disconnect session"""
         if self.config.with_socket:

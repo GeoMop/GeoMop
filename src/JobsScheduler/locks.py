@@ -99,7 +99,7 @@ class Lock():
             if dataed_ver is None or dataed_ver != data_ver:
                 if os.path.isdir(res_dir):
                     shutil.rmtree(res_dir, ignore_errors=True) 
-                self._write_version(self._mj_name + "data.version", data_ver)          
+                self._write_version(self._mj_name + "_data.version", data_ver)          
             # data_ready            
         else:
             raise LockFileError("Global lock can't be set.")
