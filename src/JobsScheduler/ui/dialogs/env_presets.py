@@ -15,7 +15,7 @@ class EnvPresets(APresetsDialog):
     """
 
     def __init__(self, parent=None, presets=None):
-        super(EnvPresets, self).__init__(parent)
+        super().__init__(parent)
 
         # setup preset specific UI
         self.ui = UiEnvPresets()
@@ -29,7 +29,7 @@ class EnvPresets(APresetsDialog):
         self.presets_dlg = EnvDialog(parent=self)
 
         # connect generic presets slots (must be called after UI setup)
-        super(EnvPresets, self)._connect_slots()
+        super().connect_slots()
 
 
 class UiEnvPresets(UiPresetsDialog):

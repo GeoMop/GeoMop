@@ -9,6 +9,7 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
+from ui.data.preset_data import EnvPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
@@ -41,18 +42,18 @@ class EnvDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(EnvDialog, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiEnvDialog()
         self.ui.setup_ui(self)
 
-        # set purpose
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(EnvDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
         self.ui.sclEnableCheckBox.stateChanged.connect(
             lambda state: self.ui.sclEnableLineEdit.setDisabled(not state)
@@ -76,42 +77,49 @@ class EnvDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        data = (self.ui.idLineEdit.text(),
-                self.ui.nameLineEdit.text(),
-                "description",
-                self.ui.pythonExecLineEdit.text(),
-                self.ui.sclEnableLineEdit.text()
-                if self.ui.sclEnableCheckBox.isChecked() else None,
-                self.ui.addModuleLineEdit.text()
-                if self.ui.addModuleCheckBox.isChecked() else None,
-                self.ui.mpiSclEnableLineEdit.text()
-                if self.ui.mpiSclEnableCheckBox.isChecked() else None,
-                self.ui.mpiAddModuleLineEdit.text()
-                if self.ui.mpiAddModuleCheckBox.isChecked() else None,
-                self.ui.mpiccPathLineEdit.text())
-        return data
+        key = self.ui.idLineEdit.text()
+        preset = EnvPreset(self.ui.nameLineEdit.text())
+        if self.ui.pythonExecLineEdit.text():
+            preset.python_exec = self.ui.pythonExecLineEdit.text()
+        if self.ui.sclEnableCheckBox.isChecked():
+            preset.scl_enable_exec = self.ui.addModuleLineEdit.text()
+        if self.ui.addModuleCheckBox.isChecked():
+            preset.module_add = self.ui.addModuleLineEdit.text()
+        if self.ui.mpiSclEnableCheckBox.isChecked():
+            preset.mpi_scl_enable_exec = self.ui.mpiSclEnableLineEdit.text()
+        if self.ui.mpiAddModuleCheckBox.isChecked():
+            preset.mpi_module_add = self.ui.mpiAddModuleLineEdit.text()
+        if self.ui.mpiccPathLineEdit.text():
+            preset.libs_mpicc = self.ui.mpiccPathLineEdit.text()
+        return {
+            "key": key,
+            "preset": preset
+        }
 
     def set_data(self, data=None):
         # reset validation colors
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
 
         if data:
-            self.ui.idLineEdit.setText(data[0])
-            self.ui.nameLineEdit.setText(data[1])
-            self.ui.pythonExecLineEdit.setText(data[3])
-            if data[4]:
+            key = data["key"]
+            preset = data["preset"]
+            self.ui.idLineEdit.setText(key)
+            self.ui.nameLineEdit.setText(preset.name)
+            self.ui.pythonExecLineEdit.setText(preset.python_exec)
+            if preset.scl_enable_exec:
                 self.ui.sclEnableCheckBox.setCheckState(Qt.Checked)
-                self.ui.sclEnableLineEdit.setText(data[4])
-            if data[5]:
+                self.ui.sclEnableLineEdit.setText(preset.scl_enable_exec)
+            if preset.module_add:
                 self.ui.addModuleCheckBox.setCheckState(Qt.Checked)
-                self.ui.addModuleLineEdit.setText(data[5])
-            if data[6]:
+                self.ui.addModuleLineEdit.setText(preset.module_add)
+            if preset.mpi_scl_enable_exec:
                 self.ui.mpiSclEnableCheckBox.setCheckState(Qt.Checked)
-                self.ui.mpiSclEnableLineEdit.setText(data[6])
-            if data[7]:
+                self.ui.mpiSclEnableLineEdit.setText(
+                    preset.mpi_scl_enable_exec)
+            if preset.mpi_module_add:
                 self.ui.mpiAddModuleCheckBox.setCheckState(Qt.Checked)
-                self.ui.mpiAddModuleLineEdit.setText(data[7])
-            self.ui.mpiccPathLineEdit.setText(data[8])
+                self.ui.mpiAddModuleLineEdit.setText(preset.mpi_module_add)
+            self.ui.mpiccPathLineEdit.setText(preset.libs_mpicc)
 
         else:
             self.ui.idLineEdit.clear()
@@ -344,3 +352,5 @@ class UiEnvDialog(UiFormDialog):
         
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)
+
+        return dialog

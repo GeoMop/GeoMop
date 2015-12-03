@@ -38,18 +38,18 @@ class ResourceDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, purpose=PURPOSE_ADD, data=None):
-        super(ResourceDialog, self).__init__(parent)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # setup specific UI
         self.ui = UiResourceDialog()
         self.ui.setup_ui(self)
 
-        # set purpose
-        self.set_purpose(purpose, data)
+        # preset purpose
+        self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
-        super(ResourceDialog, self)._connect_slots()
+        super()._connect_slots()
         # specific slots
         self.ui.multiJobExecutionTypeComboBox.currentIndexChanged.connect(
             self._handle_mj_exec_change)
@@ -502,3 +502,5 @@ class UiResourceDialog(UiFormDialog):
 
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)
+
+        return dialog

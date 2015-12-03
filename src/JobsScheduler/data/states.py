@@ -39,7 +39,7 @@ class MJState:
             self.status = TaskStatus.installation
         """multijob status"""
         self.known_jobs = 0
-        """count of known jobs (minimal amout of jobs)"""
+        """count of known jobs (minimal amount of jobs)"""
         self.estimated_jobs = 0
         """estimated count of jobs"""
         self.finished_jobs = 0

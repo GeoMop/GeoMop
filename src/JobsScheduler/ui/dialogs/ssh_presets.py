@@ -15,7 +15,7 @@ class SshPresets(APresetsDialog):
     """
 
     def __init__(self, parent=None, presets=None):
-        super(SshPresets, self).__init__(parent)
+        super().__init__(parent)
 
         # setup preset specific UI
         self.ui = UiSshPresets()
@@ -29,7 +29,7 @@ class SshPresets(APresetsDialog):
         self.presets_dlg = SshDialog(parent=self)
 
         # connect generic presets slots (must be called after UI setup)
-        super(SshPresets, self)._connect_slots()
+        super().connect_slots()
 
 
 class UiSshPresets(UiPresetsDialog):
