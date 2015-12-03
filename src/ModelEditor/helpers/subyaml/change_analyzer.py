@@ -238,7 +238,7 @@ class ChangeAnalyzer:
 
     @staticmethod
     def _get_type_from_char(char):
-        """return key type from char"""
+        """Return key type from char."""
         if char == '!':
             return KeyType.tag
         elif char == '*':

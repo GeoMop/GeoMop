@@ -780,18 +780,22 @@ class ReloadChunk(ContextDecorator, QObject):
 
 
 class EditorPosition:
-    """
-    Helper for guarding cursor position above node.
-    This class help made refresh, only when is needed.
-    For not state speciffic actions is call functions of
-    (:class:`helpers.subyaml.change_analyzer,ChangeAnalyzer`)
-    Function  fix_bounds should be called after data changing
-    for reloading borders of selected data Node. Naxt calling
-    of new_pos function make possible determinate if reload
-    is needed. Next function is call for possition specific actions.
+    """Helper for guarding cursor position above node.
+
+    The purpose of this class is to limit the reloading of data structure (full parsing) to the
+    cases when it is really needed instead of reloading it after any character is written.
+
+    The class also manages autocompletion. It triggers the update of available autocompletion
+    options when the context changes. It also handles some trivial autocompletion, like completion
+    of braces or a new item of an array.
+
+    After data changes, :py:meth:`fix_bounds` should be called to recalculate the boundaries of
+    selected data node. Then :py:meth:`new_pos` can be called to determine if a structure reload
+    is needed.
     """
 
     def __init__(self):
+        """Initialize the class."""
         self.node = None
         """DataNode item below cursor"""
         self.line = 0
@@ -813,7 +817,7 @@ class EditorPosition:
         self.is_key_changed = False
         """Is key changed"""
         self.last_key_type = None
-        """last key type possition changed"""
+        """last key type position changed"""
         self._old_text = [""]
         """All yaml text before changes"""
         self._last_line = ""
@@ -836,12 +840,10 @@ class EditorPosition:
         """Predicted parent node for IST"""
 
     def new_line_completation(self, editor):
-        """
-        Add specific symbols to start of line when
-        new line was added.
+        """Add specific symbols to start of line when new line was added.
 
-        _old_line_prefix variable is set to intendation and new array (-)
-        symbol if need be
+        ``_old_line_prefix`` is set to indentation and new array (-)
+        symbol if need be.
         """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
             pre_line = editor.text(self.line)
@@ -860,10 +862,9 @@ class EditorPosition:
                 self._old_line_prefix = indent*' '
 
     def make_post_operation(self, editor, line, index):
-        """
-        complete special chars after text is updated and
+        """Complete special chars after text is updated and
         fix parent if new line is added (new_line_completation
-        function is called)
+        function is called).
         """
         if self._new_line_indent is not None and editor.lines() > line:
             # after new_line_completation function is called
@@ -888,7 +889,7 @@ class EditorPosition:
             self._spec_char = ""
 
     def spec_char_completation(self, editor):
-        """if is added special char, set text for completation else empty string"""
+        """If a special character was added, set text for completion."""
         new_line = editor.text(self.line)
         if len(self._last_line) + 1 == len(new_line):
             __, index = editor.getCursorPosition()
@@ -904,8 +905,7 @@ class EditorPosition:
                     self._spec_char = "}"
 
     def new_pos(self, editor, line, index):
-        """
-        Update position and return true if isn't cursor above node
+        """Update position and return true if cursor isn't above node
         or is in inner structure.
         """
         if self.line != line:
@@ -924,7 +924,7 @@ class EditorPosition:
             if pos_type is PosType.in_key:
                 key_type = anal.get_key_pos_type()
             self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
-            if  (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
+            if (self._old_text[line].isspace() or len(self._old_text[line]) == 0) or \
                 (self.node is not None and self.node.origin == DataNode.Origin.error):
                 if self.node is not None:
                     na = NodeAnalyzer(self._old_text, self.node)
@@ -946,16 +946,15 @@ class EditorPosition:
                 if self.is_key_changed or self.last_key_type is not None:
                     return True
             if pos_type is PosType.in_inner and self.node is not None:
-                if  self.node.is_child_on_line(line+1):
+                if self.node.is_child_on_line(line+1):
                     return True
             return False
         return True
 
     def fix_bounds(self, editor):
-        """
-        Text is changed, recount bounds
+        """Recalculate the boundaries of data node after text has changed.
 
-        return:False if recount is unsuccessful, and reload is needed
+        :return: False if recount is unsuccessful, and reload is needed
         """
         # lines count changed
         if editor.lines() != len(self._old_text):
@@ -1031,7 +1030,7 @@ class EditorPosition:
                 self.is_value_changed = True
             if self.is_key_changed:
                 return False
-        if  self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0:
+        if self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0:
             if pos_type is PosType.in_key:
                 # if added text is space, reload
                 if new_line[before_pos:len(new_line)-end_pos+1].isspace():
@@ -1064,7 +1063,7 @@ class EditorPosition:
         return True
 
     def node_init(self, node, editor):
-        """set new node; initializes the EditorPosition class"""
+        """Set new node; initializes the EditorPosition class."""
         self.node = node
         self.line, self.index = editor.getCursorPosition()
         if node is not None:
@@ -1117,7 +1116,7 @@ class EditorPosition:
         cfg.autocomplete_helper.hide_autocompletion()
 
     def _init_analyzer(self, editor, line, index):
-        """prepare data for analyzer, and return it"""
+        """Prepare data for analyzer, and return it."""
         in_line = line - self.begin_line
         in_index = index
         if line == self.begin_line:
@@ -1134,7 +1133,7 @@ class EditorPosition:
         return ChangeAnalyzer(in_line, in_index, area)
 
     def _save_lines(self, editor):
-        """Saves lines."""
+        """Save lines."""
         self._last_line = editor.text(self.line)
         if editor.lines() == self.line + 1:
             self._last_line_after = None
