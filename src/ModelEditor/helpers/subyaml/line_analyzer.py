@@ -16,6 +16,8 @@ _re_inline_comment = re.compile(r'\s+#')
 _re_reversed_word = re.compile(r'(?!:)[a-zA-Z0-9_]*[!*]?')
 _re_autocompletion_word = re.compile(r'[!*]?[a-zA-Z0-9_]*(?::(?:\s|$))?')
 _re_whitespace_only = re.compile(r'^\s*$')
+_re_entire_line_is_key = re.compile(r'[^:]+:\s*$')
+_re_find_end_of_key = re.compile(r'([^:]+:\s)')
 
 
 class LineAnalyzer:
@@ -25,14 +27,20 @@ class LineAnalyzer:
     as expected if the line contains one or more :samp:`\\n` symbols.
     """
 
-    TAB_WIDTH = 2
+    TAB_WIDTH = 2  # TODO: move to global settings
 
     @staticmethod
-    def get_char_poss(line, tag):
-        """Return possition of tag ended by space or new line"""
-        index = line.find(tag + " ")
+    def get_str_position(line, string):
+        """Find a string ended by a space or a new line and return its start position.
+
+        :param str line: a single line of text
+        :param str string: a character or string to be found (without the space / end of line)
+        :return: index of the start of the found string or :samp:`-1` if the string is not found
+        :rtype: int
+        """
+        index = line.find(string + " ")
         if index == -1:
-            index = line.find(tag)
+            index = line.find(string)
             if index > -1 and len(line) != (index+1):
                 return -1
         return index
@@ -68,55 +76,73 @@ class LineAnalyzer:
         return before_pos, end_pos
 
     @classmethod
-    def get_key_area(cls, line):
-        """
-        get key area for one line
+    def get_key_area_end(cls, line):
+        """Search the line for a key area and find where it ends if it exists.
 
-        return if is, end_of_area (-1 end of line)
+        The key expression can be extended beyond the end of the key (': ') if it
+        contains anchors or tags. These will be considered as a part of the key.
+
+        :param str line: a single line of text (can contain comments)
+        :return:
+           - :samp:`-1` if the entire line is a key area
+           - index of the last character in the key area
+           - ``None`` if the line has no key area
+
+        :rtype: int or ``None``
         """
-        key = re.match(r'[^:]+:\s*$', line)
-        if key is not None:
-            return True, -1
-        key = re.match(r'([^:]+:\s)', line)
-        if key is not None:
-            dist = key.end(1)
-            res, dist2 = cls.get_after_key_area(line[dist:])
-            if not res:
-                return True, dist
+        line = LineAnalyzer.strip_comment(line)
+        entire_line_is_key = _re_entire_line_is_key.match(line)
+        if entire_line_is_key is not None:
+            return -1
+        end_of_key = _re_find_end_of_key.match(line)
+        if end_of_key is not None:
+            dist = end_of_key.end(1)
+            dist2 = cls.get_after_key_area_end(line[dist:])
+            if dist2 is None:
+                return dist
             if dist2 == -1:
-                return True, -1
-            return True, dist + dist2
-        return False, 0
+                return -1
+            return dist + dist2
+        return None
 
     @classmethod
-    def get_after_key_area(cls, line):
-        """
-        Test if line begin with special areas (tag, ref, anchor)
+    def get_after_key_area_end(cls, line):
+        """If the line begins an after_key area, return its end position.
 
-        return if is, end_of_arrea (-1 end of line)
+        The after_key area can be a tag, anchor, reference or merge. Empty spaces are also
+        considered after_key area.
+
+        :param str line: the line to be analyzed (can contain comments)
+        :return:
+           - :samp:`-1` if the entire line is an after_key area
+           - index of the last character in the after_key area
+           - ``None`` if the line has no after_key area
+
+        :rtype: int or ``None``
         """
         line = cls.strip_comment(line)
         area = re.match(r'\s*$', line)
         if area is not None:
             # empty line
-            return True, -1
+            return -1
+        # TODO: this does not work for * and <<: (can't even be here)
         for char in ['!', '&', r'<<: \*', r'\*']:
             index = line.find(char)
             if index > -1:
                 area = re.match(r'\s*(' + char + r'\S+\s*)$', line)
                 if area is not None:
                     # area is all line
-                    return True, -1
+                    return -1
                 area = re.match(r'\s*(' + char + r'\S+\s+)\S', line)
                 if area is not None:
                     dist = area.end(1)
-                    res, dist2 = cls.get_after_key_area(line[dist:])
-                    if not res:
-                        return True, dist
+                    dist2 = cls.get_after_key_area_end(line[dist:])
+                    if dist2 is None:
+                        return dist
                     if dist2 == -1:
-                        return True, -1
-                    return True, dist + dist2
-        return False, 0
+                        return -1
+                    return dist + dist2
+        return None
 
     @staticmethod
     def strip_comment(line):

@@ -92,22 +92,24 @@ class NodeAnalyzer:
             dist = -1
             i = start_pos.line-1
             if start_pos.column > len(self._lines[i]):
-                i =+ 1
-                if i >  self._node.end.line-1:
+                # TODO: can the above condition ever be True? If so, there is probably
+                # a mistake in the next line's operator (=+ instead of +=)
+                i =+ 1  # this sets the i to 1, instead of incrementing it
+                if i > self._node.end.line-1:
                     return start_pos
-                line =  self._lines[i]
+                line = self._lines[i]
             else:
-                line =  self._lines[i][start_pos.column-1:]   
+                line = self._lines[i][start_pos.column-1:]
             while dist == -1: 
-                is_dist, dist =  LineAnalyzer.get_after_key_area(line)
-                if is_dist:
+                dist = LineAnalyzer.get_after_key_area_end(line)
+                if dist is not None:
                     if dist != -1:
                         return Position(i+1, dist)
                     else:
                         i += 1
-                        if i >  self._node.end.line-1:
+                        if i > self._node.end.line-1:
                             return self._node.end
-                        line =  self._lines[i]
+                        line = self._lines[i]
                 else:
                     return Position(i+1, 1)
         return start_pos
