@@ -10,8 +10,6 @@ import logging
 import os
 import uuid
 from enum import Enum, IntEnum
-from version import Version
-
 
 class OutputCommType(IntEnum):
     """Severity of an error."""
@@ -111,6 +109,7 @@ class LibsEnvConfig(object):
 class ConfigFactory(object):
     def __init__(self):
         """init"""
+        from version import Version
         version = Version()
         self.app_version = version.version
         """
@@ -199,7 +198,7 @@ class ConfigFactory(object):
         if communicator is None:
             com = CommunicatorConfig(mj_name)
             com.app_version = self.app_version
-            com.app_version = self.conf_long_id
+            com.conf_long_id = self.conf_long_id
         if communicator is not None:
             com = copy.copy(communicator)
         if mj_name is not None:

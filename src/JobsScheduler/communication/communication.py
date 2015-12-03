@@ -16,7 +16,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         self.installation.set_env_params(python_env,  libs_env)
         
     def set_version_params(self, app_version, data_version):
-        self.installation.set_vesion_params(app_version, data_version)
+        self.installation.set_version_params(app_version, data_version)
         
     def install_job_libs(self):
         """Install libs for jobs"""
