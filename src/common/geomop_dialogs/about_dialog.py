@@ -2,16 +2,11 @@
 Module contains about dialog.
 """
 
-import os
-
+from version import Version
 from PyQt5.QtWidgets import (QDialog, QTextEdit, QLabel, QLineEdit, QGridLayout)
 from PyQt5.QtGui import QFont
 
 __author__ = 'Tomas Krizek'
-
-__git_root_path__ = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0],
-                                 '..', '..')
-
 
 class GMAboutDialog(QDialog):
     """Dialog for displaying information about the application."""
@@ -20,18 +15,12 @@ class GMAboutDialog(QDialog):
         """Initializes the class."""
         super(GMAboutDialog, self).__init__(parent)
 
-        version_file_path = os.path.join(__git_root_path__, 'VERSION')
-        changelog_file_path = os.path.join(__git_root_path__, 'CHANGELOG.md')
+        changelog_file_path = Version.get_changelog_path()
+        version = Version()
 
-        try:
-            with open(version_file_path) as version_file:
-                lines = version_file.readlines()
-        except FileNotFoundError:
-            lines = []
-
-        self.version = lines[0] if len(lines) > 0 else ''
-        self.build = lines[1] if len(lines) > 1 else ''
-        self.date = lines[2] if len(lines) > 2 else ''
+        self.version = version.version
+        self.build = version.build
+        self.date = version.date
 
         try:
             with open(changelog_file_path) as changelog_file:

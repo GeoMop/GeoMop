@@ -21,11 +21,13 @@ if sys.platform == "win32":
             """Ssh subprocessed instance"""
             self._connected = False
             """SSH is connected"""
+            self.installation.lock_installation()
             
         def connect(self):
             """connect session"""
             self.ssh.connect()
             self._connected = True
+            self.installation.unlock_installation()
         
         def isconnected(self):
             """Connection is opened"""
@@ -35,14 +37,18 @@ if sys.platform == "win32":
             """disconnect session"""
             self.conn.close()
             self.connected = False
+            self.installation.unlock_application()
             
         def install(self):
             """make installation"""
             self.installation.prepare_ssh_env(self.ssh)
             try:
                 self.installation.create_install_dir(self.ssh, self.ssh)
+                self.installation.lock_installation_over_ssh(self.ssh, self.ssh, True)
+                self.installation.copy_install_files(self.ssh, self.ssh)
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
+            self.installation.lock_installation_over_ssh(self.ssh, self.ssh, False)    
              
         def exec_(self, python_file, mj_name, mj_id):
             """run set python file in ssh"""

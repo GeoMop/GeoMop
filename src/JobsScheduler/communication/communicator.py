@@ -139,7 +139,8 @@ class Communicator():
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
             output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_env_params(conf.python_env,  conf.libs_env)    
+        output.set_env_params(conf.python_env,  conf.libs_env)  
+        output.set_version_params(conf.app_version,  conf.conf_long_id) 
         return output
         
     def _load_status(self,  mj_name):

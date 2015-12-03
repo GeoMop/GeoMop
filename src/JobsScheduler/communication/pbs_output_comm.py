@@ -61,6 +61,8 @@ class PbsOutputComm(ExecOutputComm):
         """connect session"""
         if self.config.with_socket:
             super(PbsOutputComm, self).connect()
+        else:
+            self.installation.unlock_installation()        
          
     def disconnect(self):
         """disconnect session"""
@@ -70,6 +72,8 @@ class PbsOutputComm(ExecOutputComm):
         error = hlp.get_errors()
         if error is not None:
             logger.warning("Error output contains error:" + error)
+        if not self.config.with_socket:
+            self.installation.unlock_application()
         
     def send(self,  mess):
         """send json message"""        

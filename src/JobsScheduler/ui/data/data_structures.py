@@ -146,16 +146,18 @@ class DataContainer(object):
         env_preset2 = self.env_presets[resource_preset[11]]
         mj_log_level = mj_preset_config[4]
         mj_number_of_processes = mj_preset_config[5]
+        
+        conf_factory = comconf.ConfigFactory()
 
         # setup basic conf
-        basic_conf = comconf.ConfigFactory.get_communicator_config(
+        basic_conf = conf_factory.get_communicator_config(
             mj_name=mj_name, log_level=mj_log_level)
         basic_conf.number_of_processes = mj_number_of_processes
 
         # before mj configs SSH or EXEC
         delegator_conf = None
         delegator_conf_path = None
-        app_conf = comconf.ConfigFactory.get_communicator_config(
+        app_conf = conf_factory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.app)
         app_conf.python_env, app_conf.libs_env = \
@@ -170,7 +172,7 @@ class DataContainer(object):
             app_conf.ssh = comconf.ConfigFactory.get_ssh_config(
                 preset=self.ssh_presets[resource_preset[3]])
             # delegator config PBS or EXEC
-            delegator_conf = comconf.ConfigFactory.get_communicator_config(
+            delegator_conf = conf_factory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.delegator)
             delegator_conf.python_env, delegator_conf.libs_env = \
@@ -184,7 +186,7 @@ class DataContainer(object):
                     preset=self.pbs_presets[resource_preset[5]])
 
         # mj configs
-        mj_conf = comconf.ConfigFactory.get_communicator_config(
+        mj_conf = conf_factory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.multijob)
         mj_conf.python_env, mj_conf.libs_env = \
@@ -209,7 +211,7 @@ class DataContainer(object):
         # after mj configs EXEC or REMOTE or PBS
         remote_conf = None
         remote_conf_path = None
-        job_conf = comconf.ConfigFactory.get_communicator_config(
+        job_conf = conf_factory.get_communicator_config(
             communicator=basic_conf,
             preset_type=comconf.CommType.job)
         job_conf.python_env, job_conf.libs_env = \
@@ -218,7 +220,7 @@ class DataContainer(object):
         job_conf_path = comconf.CommunicatorConfigService.get_file_path(
             conf_dir, comconf.CommType.job.value)
         if resource_preset[6] == UiResourceDialog.REMOTE_LABEL:
-            remote_conf = comconf.ConfigFactory.get_communicator_config(
+            remote_conf = conf_factory.get_communicator_config(
                 communicator=basic_conf,
                 preset_type=comconf.CommType.remote)
             remote_conf.python_env, remote_conf.libs_env = \

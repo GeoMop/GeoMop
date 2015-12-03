@@ -8,7 +8,9 @@ import copy
 import json
 import logging
 import os
+import uuid
 from enum import Enum, IntEnum
+from version import Version
 
 
 class OutputCommType(IntEnum):
@@ -107,6 +109,21 @@ class LibsEnvConfig(object):
 
 
 class ConfigFactory(object):
+    def __init__(self):
+        """init"""
+        version = Version()
+        self.app_version = version.version
+        """
+        Applicationj version. If version in remote installation is different
+        new instalation is created
+        """
+        
+        self.conf_long_id = str(uuid.uuid4())
+        """
+        Long id of configuration. If  in remote installation is different
+        id new configuration is reloaded
+        """
+        
     @staticmethod
     def get_pbs_config(preset=None, with_socket=True):
         """
@@ -171,8 +188,7 @@ class ConfigFactory(object):
         libs_env.start_job_libs=start_job_libs
         return python_env, libs_env
 
-    @staticmethod
-    def get_communicator_config(communicator=None, mj_name=None,
+    def get_communicator_config(self, communicator=None, mj_name=None,
                                 log_level=None,
                                 preset_type=None):
         """
@@ -182,6 +198,8 @@ class ConfigFactory(object):
         """
         if communicator is None:
             com = CommunicatorConfig(mj_name)
+            com.app_version = self.app_version
+            com.app_version = self.conf_long_id
         if communicator is not None:
             com = copy.copy(communicator)
         if mj_name is not None:

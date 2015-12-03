@@ -132,7 +132,7 @@ class Lock():
         self._unlock_file("app.lock")
         return res 
         
-    def unlock_lin(self):
+    def unlock_lib(self):
         """Library is installed"""
         self._lock_file("app.lock")
         self._unlock_file("lib.lock")
@@ -187,3 +187,40 @@ class LockFileError(Exception):
 
     def __init__(self, msg):
         super(LockFileError, self).__init__(msg)
+        
+if __name__ == "__main__":
+    """
+    calling:
+        locks.py mj_name path install_ver data_ver res_path
+            - mj_name - multijob name
+            - path - path to installation directory
+            - install_ver - installation version 
+            - data_ver - data version (id of started session) 
+            - res_path - path to result directory
+    """
+    import sys
+    
+    if len(sys.argv) != 7:
+        raise Exception('Lock application six parameters require')
+    mj_name = sys.argv[1]
+    path = sys.argv[2]
+    install_ver = sys.argv[3]
+    data_ver = sys.argv[4]
+    res_path = sys.argv[5]
+    locking = sys.argv[6]
+        
+    lock = Lock(mj_name, path)
+    if locking == "N":
+        lock.unlock_install()
+        lock.unlock_app()
+        sys.exit(0)
+    try:
+        if not lock.lock_app(install_ver, data_ver, res_path):
+            print("--1--")
+            sys.exit(1)
+    except LockFileError as err:
+        print("Lock instalation error: " + str(err))
+        print("--2--")
+        sys.exit(2)
+    print("--0--")
+    sys.exit(0)
