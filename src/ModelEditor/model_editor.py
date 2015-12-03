@@ -32,6 +32,7 @@ class ModelEditor:
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
         self.mainwindow = QtWidgets.QMainWindow()
+        self.mainwindow.setMinimumSize(960, 660)
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
         self.mainwindow.setCentralWidget(self._hsplitter)
         self.mainwindow.closeEvent = self._before_exit
@@ -42,6 +43,9 @@ class ModelEditor:
 
         # tab
         self._tab = QtWidgets.QTabWidget(self._hsplitter)
+        self._tab.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self._tab.setMinimumSize(600, 200)
+        self._tab.sizeHint = lambda: QtCore.QSize(700, 250)
         self._info = panels.InfoPanelWidget(self._tab)
         self._err = panels.ErrorWidget(self._tab)
         self._tab.addTab(self._info, "Structure Info")
