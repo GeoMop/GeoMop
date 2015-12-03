@@ -13,10 +13,11 @@ System pre-requisites
 - Python 3
 - PyQt5 with QScintilla and QWebKit
 - pip3
+- xclip
 
 You can obtain all of these with the following command::
 
-  $ sudo apt-get install git python3 python3-pip python3-pyqt5 python3-pyqt5.qsci python3-pyqt5.qtwebkit
+  $ sudo apt-get install git python3 python3-pip python3-pyqt5 python3-pyqt5.qsci python3-pyqt5.qtwebkit xclip
 
 
 Virtual Environment
