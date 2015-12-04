@@ -130,13 +130,13 @@ class ConfigFactory(object):
         """
         pbs = PbsConfig()
         if preset:
-            pbs.name = preset[0]
+            pbs.name = preset.name
             # preset[0] is useless description
-            pbs.walltime = preset[2]
-            pbs.nodes = preset[3]
-            pbs.ppn = preset[4]
-            pbs.mem = preset[5]
-            pbs.scratch = preset[6]
+            pbs.walltime = preset.walltime
+            pbs.nodes = preset.nodes
+            pbs.ppn = preset.ppn
+            pbs.mem = preset.mem
+            pbs.scratch = preset.scratch
         else:
             pbs.name = None
             pbs.walltime = ""
@@ -155,12 +155,12 @@ class ConfigFactory(object):
         """
         ssh = SshConfig()
         if preset:
-            ssh.name = preset[0]
+            ssh.name = preset.name
             # preset[0] is useless description
-            ssh.host = preset[2]
-            ssh.port = preset[3]
-            ssh.uid = preset[4]
-            ssh.pwd = preset[5]
+            ssh.host = preset.host
+            ssh.port = preset.port
+            ssh.uid = preset.uid
+            ssh.pwd = preset.pwd
         return ssh
 
     @staticmethod
@@ -171,20 +171,20 @@ class ConfigFactory(object):
         """
         python_env = PythonEnvConfig()
         libs_env = LibsEnvConfig()
-        if preset[2]:
-            python_env.python_exec = preset[2]
-        if preset[3]:
-            python_env.scl_enable_exec = preset[3]
-        if preset[4]:
-            python_env.module_add = preset[4]
-        if preset[5]:
-            libs_env.mpi_scl_enable_exec = preset[5]
-        if preset[6]:
-            libs_env.mpi_module_add = preset[6]
-        if preset[7]:
-            libs_env.libs_mpicc = preset[7]
-        libs_env.install_job_libs=install_job_libs
-        libs_env.start_job_libs=start_job_libs
+        if preset.python_exec:
+            python_env.python_exec = preset.python_exec
+        if preset.scl_enable_exec:
+            python_env.scl_enable_exec = preset.scl_enable_exec
+        if preset.module_add:
+            python_env.module_add = preset.module_add
+        if preset.mpi_scl_enable_exec:
+            libs_env.mpi_scl_enable_exec = preset.mpi_scl_enable_exec
+        if preset.mpi_module_add:
+            libs_env.mpi_module_add = preset.mpi_module_add
+        if preset.libs_mpicc:
+            libs_env.libs_mpicc = preset.libs_mpicc
+        libs_env.install_job_libs = install_job_libs
+        libs_env.start_job_libs = start_job_libs
         return python_env, libs_env
 
     def get_communicator_config(self, communicator=None, mj_name=None,
