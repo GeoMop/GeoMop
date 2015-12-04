@@ -73,7 +73,7 @@ class Lock():
             source = True
             if self._lock_file("source.lock", 0):
                 source = False
-                self._unlock_file("app.lock") 
+                self._unlock_file("source.lock") 
         
             if (installed_ver is None or installed_ver !=  install_ver) and \
                 not source :
@@ -86,9 +86,9 @@ class Lock():
                 names = os.listdir( self._js_path)
                 for name in names:
                     path = os.path.join(self._js_path,name)
-                    if os.path.isdir(path) and name != self._lock_dir:
+                    if os.path.isdir(path) and name != __lock_dir__:
                         shutil.rmtree(path, ignore_errors=True)
-                    if os.path.isfile(path) and name != self._lock_dir:
+                    if os.path.isfile(path) and name != "locks.py":
                         os.remove(path)
                 self._write_version("install.version", install_ver )
             else:
@@ -130,12 +130,9 @@ class Lock():
             if self._lock_file("lib.lock", 300):
                 if os.path.isdir(lib_dir):
                     names = os.listdir(lib_dir)
-                    if len(names) == 0:
+                    if len(names) > 0:
                         self._unlock_file("lib.lock")
-                        res = False
-                else:
-                    self._unlock_file("lib.lock")
-                    res = False
+                        res = False                
             else:                
                 self._unlock_file("app.lock") 
                 raise LockFileError("Library lock can't be set.")
@@ -199,7 +196,6 @@ class Lock():
         try:
             with open(path, 'r') as f:
                 version = f.readline()
-            f.closed
         except:
             return None
         return version
@@ -215,7 +211,6 @@ class Lock():
         try:
             with open(path, 'w') as f:
                 f.write(version)
-            f.closed
         except:
             return False
         return True
@@ -250,7 +245,6 @@ if __name__ == "__main__":
     lock = Lock(mj_name, path)
     if locking == "N":
         lock.unlock_install()
-        lock.unlock_app()
         sys.exit(0)
     try:
         if not lock.lock_app(install_ver, data_ver, res_path):

@@ -23,11 +23,11 @@ class Version:
         except FileNotFoundError:
             lines = []
 
-        self.version = lines[0] if len(lines) > 0 else ''
+        self.version = lines[0].strip() if len(lines) > 0 else ''
         """text version geomop pressentation"""
-        self.build = lines[1] if len(lines) > 1 else ''
+        self.build = lines[1].strip() if len(lines) > 1 else ''
         """text build geomop pressentation"""
-        self.date = lines[2] if len(lines) > 2 else ''
+        self.date = lines[2].strip() if len(lines) > 2 else ''
         """text date geomop pressentation"""
      
     @staticmethod   

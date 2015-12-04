@@ -120,7 +120,7 @@ class Installation:
                 return False
             if self._is_install_lock(ssh):
                 logger.debug("Other installation is running")
-                return False
+                return True
             self._create_dir(conn, __root_dir__)
             conn.sendline('cd ' + __root_dir__)
             conn.expect('.*cd ' + __root_dir__ + "\r\n")
@@ -175,8 +175,8 @@ class Installation:
             return False
         return True        
 
-    @staticmethod
-    def lock_lib():
+    @classmethod
+    def lock_lib(cls):
         """Set ilibrary lock"""
         path = os.path.join( __install_dir__, __lib_dir__)
         lock = Lock("", __install_dir__)
@@ -185,6 +185,7 @@ class Installation:
                 return False
         except LockFileError as err:
             logger.warning("Lock lib error: " + str(err))
+            cls.unlock_lib()
             return False
         return True
      
@@ -209,16 +210,16 @@ class Installation:
         ssh connection. In start of application is lock repeated.
         """
         command = self.python_env.python_exec + " "
-        command += self.copy_path + '/' + __lock_file__ + " "
+        command += '"' + self.copy_path + '/' + __lock_file__ + '" '
         command += self.mj_name + " "
-        command += self.copy_path + " "
+        command += '"' + self.copy_path + '" '
         command += self.app_version + " "
         command += self.data_version + " "
-        command += self. get_result_dir() + " "
+        command += '"' + self. get_result_dir() + '" '
         if lock:
-            command += self. get_result_dir() + "Y"
+            command += "Y"
         else:
-            command += self. get_result_dir() + "N"
+            command += "N"
         
         if sys.platform == "win32":
             # ToDo
@@ -228,7 +229,7 @@ class Installation:
             
             ssh.sendline(command)
             res = ssh.expect( ["--0--", "--1--", "--2--", pexpect.TIMEOUT], timeout=360)
-            if res == 1:
+            if res == 0:
                 return True
         return False
 
@@ -570,7 +571,10 @@ class Installation:
     @classmethod
     def install_job_libs_static(cls, mj_name, python_env, libs_env):
         """Return dir for savings status"""
-        cls.lock_lib()
+        if not cls.lock_lib():
+            logger.debug("Libraries is allready installed")
+            return
+            
         if sys.platform == "win32":
             #ToDo if is needed
             pass
