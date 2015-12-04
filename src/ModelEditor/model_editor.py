@@ -12,6 +12,7 @@ sys.path.insert(1, __lib_dir__)
 
 import argparse
 import icon
+import pyperclip
 
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
@@ -33,6 +34,7 @@ class ModelEditor:
         self.mainwindow = QtWidgets.QMainWindow()
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
         self.mainwindow.setCentralWidget(self._hsplitter)
+        self.mainwindow.closeEvent = self._before_exit
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         # load config
         cfg.init(self.mainwindow)
@@ -330,6 +332,11 @@ class ModelEditor:
                 else:
                     self.save_file()
         return True
+
+    def _before_exit(self, event):
+        """Back up clipboard contents before exit."""
+        clipboard = QtWidgets.QApplication.clipboard()
+        pyperclip.copy(clipboard.text())
 
     def main(self):
         """go"""

@@ -31,6 +31,9 @@ def test_check_integer():
     with pytest.raises(Notification) as excinfo:
         checks.check_integer([], input_type)
     assert excinfo.value.name == 'ValidationTypeError'
+    with pytest.raises(Notification) as excinfo:
+        checks.check_integer(True, input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
 
     assert checks.check_integer(3, input_type) is True
     assert checks.check_integer(2, input_type) is True
@@ -54,6 +57,9 @@ def test_check_double():
 
     with pytest.raises(Notification) as excinfo:
         checks.check_double("3.14", input_type)
+    assert excinfo.value.name == 'ValidationTypeError'
+    with pytest.raises(Notification) as excinfo:
+        checks.check_integer(True, input_type)
     assert excinfo.value.name == 'ValidationTypeError'
 
     assert checks.check_double(3.14, input_type) is True

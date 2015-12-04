@@ -127,3 +127,44 @@ def test_get_indent(line, expected):
 ])
 def test_get_autocompletion_word(line, start_index, expected):
     assert LineAnalyzer.get_autocompletion_word(line, start_index) == expected
+
+
+@pytest.mark.parametrize('line, expected', [
+    ('key: 1', 5),
+    ('key:  1', 5),
+    ('# key: 1', None),
+    ('key: ', -1),
+    ('  key: 1', 7),
+    ('test', None),
+    ('!tag', None),
+    ('key: !tag value', 10),
+    ('key: &anch', -1),
+    # ('key: *anch', -1),
+    # ('key: <<: *anch', -1),
+])
+def test_get_key_area_end(line, expected):
+    assert LineAnalyzer.get_key_area_end(line) == expected
+
+
+@pytest.mark.parametrize('line, expected', [
+    ('!tag', -1),
+    ('!tag 3', 5),
+    # ('*anch', (True, -1)),
+    ('&anch', -1),
+    ('  ', -1),
+    ('value', None),
+
+])
+def test_get_after_key_area_end(line, expected):
+    assert LineAnalyzer.get_after_key_area_end(line) == expected
+
+
+@pytest.mark.parametrize('line, string, expected', [
+    ('key: value', ':', 3),
+    ('  key: value', ':', 5),
+    ('key: ', ':', 3),
+    ('key:', ':', 3),
+    ('kk', 'k', -1),
+])
+def test_get_str_position(line, string, expected):
+    assert LineAnalyzer.get_str_position(line, string) == expected

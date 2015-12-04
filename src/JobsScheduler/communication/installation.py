@@ -8,10 +8,13 @@ import time
 import subprocess
 import uuid
 
+from locks import Lock, LockFileError
+
 logger = logging.getLogger("Remote")
 
 __install_dir__ = os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0]
+__lock_file__ = "locks.py"
 __ins_files__ = {}
 __ins_files__['delegator'] = "delegator.py"
 __ins_files__['job'] = "job.py"
@@ -28,6 +31,7 @@ __jobs_dir__ = "jobs"
 __conf_dir__ = "mj_conf"
 __result_dir__ = "res"
 __status_dir__ = "status"
+__lib_dir__ = "ins-lib"
 
 class Installation:
     """Files with installation (python files and configuration files) is selected 
@@ -45,11 +49,26 @@ class Installation:
         """python running envirounment"""
         self.libs_env = None
         """libraries running envirounment"""
+        self.app_version = None
+        """
+        Applicationj version. If version in remote installation is different
+        new instalation is created
+        """        
+        self.data_version = None
+        """
+        Long id of configuration. If  in remote installation is different
+        id new configuration is reloaded
+        """
         
     def set_env_params(self, python_env,  libs_env):
         """Set install specific settings"""
         self.python_env = python_env
         self.libs_env = libs_env
+        
+    def set_version_params(self, app_version, data_version):
+        """Set install specific settings"""
+        self.app_version = app_version
+        self.data_version = data_version
 
     def local_copy_path(self):
         """Set copy path for local installation"""
@@ -68,19 +87,118 @@ class Installation:
                 logger.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
 
     def create_install_dir(self, conn, ssh):
-        """Copy installation files"""
+        """Create installation directory, return if should installation continue"""
         if sys.platform == "win32":
             self.copy_path = conn.pwd() + '/' + __root_dir__
             if self.is_local_and_remote_same(ssh):
                 logger.debug("Installation and local directory is same")                
-                return
+                return False
+            if self._is_install_lock(ssh):
+                logger.debug("Other installation is running")
+                return False
             self._create_dir(conn, __root_dir__)
             res = conn.cd(__root_dir__)
             if len(res)>0:
                 logger.warning("Sftp message (cd root): " + res)
-            res = conn.rmdir(self.mj_name)
+            self._create_dir(conn, __jobs_dir__)
+            conn.set_sftp_paths( __install_dir__, self.copy_path)
+            res = conn.put(__lock_file__) 
             if len(res)>0:
-                logger.warning("Sftp message (rm " + self.mj_name + "): " + res)
+                logger.warning("Sftp message (put '" + __lock_file__ + "'): " + res)
+        else:
+            import pexpect 
+
+            conn.sendline('pwd')
+            conn.expect(".*pwd\r\n")
+            ret = str(conn.readline(), 'utf-8').strip()
+            searchObj = re.search( '^(.*):\s(/.*)$',ret)
+            # use / instead join because destination os is linux and is not 
+            # same with current os
+            self.copy_path = searchObj.group(2) + '/' + __root_dir__
+            if self.is_local_and_remote_same(ssh):
+                logger.debug("Installation and local directory is same")                
+                return False
+            if self._is_install_lock(ssh):
+                logger.debug("Other installation is running")
+                return False
+            self._create_dir(conn, __root_dir__)
+            conn.sendline('cd ' + __root_dir__)
+            conn.expect('.*cd ' + __root_dir__ + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before)>0:
+                logger.warning("Sftp message (cd root): " + str(conn.before, 'utf-8').strip()) 
+            conn.sendline('lcd ' + __install_dir__)
+            conn.expect('.*lcd ' + __install_dir__ + "\r\n")
+            conn.sendline('put ' +  __lock_file__)
+            conn.expect('sftp> put ' + __lock_file__ + "\r\n")
+            end=0
+            while end==0:
+                #wait 3s after last message
+                end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
+                if end == 0 and len(conn.before)>0:
+                    logger.debug("Sftp message(put " + __lock_file__  + "): " + str(conn.before, 'utf-8').strip())
+        return True
+
+    @staticmethod
+    def lock_lib():
+        """Set ilibrary lock"""
+        path = os.path.join( __install_dir__, __lib_dir__)
+        lock = Lock("", __install_dir__)
+        try:
+            if not lock.lock_lib(path):
+                return False
+        except LockFileError as err:
+            logger.warning("Lock lib error: " + str(err))
+            return False
+        return True
+     
+    @staticmethod   
+    def unlock_lib():
+        """Set installation locks, return if should installation continue"""
+        lock = Lock("", __install_dir__)
+        try:
+            if not lock.unlock_lib():
+                return False
+        except LockFileError as err:
+            logger.warning("Unock lib error: " + str(err))
+            return False
+        return True
+
+        
+    def lock_installation_over_ssh(self, conn, ssh, lock):
+        """
+        Set installation locks, return if should installation continue
+        
+        Lock over ssh is specific, becose lock is processed during
+        ssh connection. In start of application is lock repeated.
+        """
+        command = self.python_env.python_exec + " "
+        command += self.copy_path + '/' + __lock_file__ + " "
+        command += self.mj_name + " "
+        command += self.copy_path + " "
+        command += self.app_version + " "
+        command += self.data_version + " "
+        command += self. get_result_dir() + " "
+        if lock:
+            command += self. get_result_dir() + "Y"
+        else:
+            command += self. get_result_dir() + "N"
+        
+        if sys.platform == "win32":
+            # ToDo
+            return False
+        else:
+            import pexpect   
+            
+            ssh.sendline(command)
+            res = ssh.expect( ["--0--", "--1--", "--2--", pexpect.TIMEOUT], timeout=360)
+            if res == 1:
+                return True
+        return False
+
+    def copy_install_files(self, conn, ssh):
+        """Copy installation files"""
+        if sys.platform == "win32":
             self._create_dir(conn, __jobs_dir__)
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir)
@@ -104,31 +222,6 @@ class Installation:
                     logger.warning("Sftp message (put -r '" + dir + "'): " + res)
         else:
             import pexpect            
-           
-            conn.sendline('pwd')
-            conn.expect(".*pwd\r\n")
-            ret = str(conn.readline(), 'utf-8').strip()
-            searchObj = re.search( '^(.*):\s(/.*)$',ret)
-            # use / instead join because destination os is linux and is not 
-            # same with current os
-            self.copy_path = searchObj.group(2) + '/' + __root_dir__
-            if self.is_local_and_remote_same(ssh):
-                logger.debug("Installation and local directory is same")                
-                return
-            self._create_dir(conn, __root_dir__)
-            conn.sendline('cd ' + __root_dir__)
-            conn.expect('.*cd ' + __root_dir__ + "\r\n")
-            conn.expect("sftp> ")
-            if len(conn.before)>0:
-                logger.warning("Sftp message (cd root): " + str(conn.before, 'utf-8').strip()) 
-            conn.sendline('rm -r ' + self.mj_name)
-            conn.expect(".*rm -r " + self.mj_name + "\r\n")
-            ret = str(conn.readline(), 'utf-8').strip()
-            conn.expect("sftp> ")
-            if len(conn.before)>0:
-                logger.warning("Sftp message(rm -rf " + self.mj_name + "): " 
-                                          + str(conn.before, 'utf-8').strip()) 
-                                          
             self._create_dir(conn, __jobs_dir__)
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir)
@@ -234,6 +327,24 @@ class Installation:
                     result = True            
         os.remove(local)
         return result
+        
+    def _is_install_lock(self, conn):
+        """Test if install lock is set in lock directory"""
+        import locks
+        locks.__lock_dir__
+        lock_file = self.copy_path  + '/' + locks.__lock_dir__  + '/install.lock'
+        if sys.platform == "win32": 
+            # ToDo
+            return False
+        else:
+            import pexpect 
+            
+            conn.sendline('ls ' + lock_file)
+            conn.expect('.*ls ' + lock_file + "\r\n")
+            res = conn.expect([lock_file + ".*", ".*ls.*", pexpect.TIMEOUT])
+            if res == 0:
+                return True
+        return False
         
     def get_command(self, name, mj_name, mj_id):
         """Find install file according to name and return command for running"""
@@ -423,6 +534,7 @@ class Installation:
     @classmethod
     def install_job_libs_static(cls, mj_name, python_env, libs_env):
         """Return dir for savings status"""
+        cls.lock_lib()
         if sys.platform == "win32":
             #ToDo if is needed
             pass
@@ -452,5 +564,6 @@ class Installation:
                                           str(term.before, 'utf-8').strip()) 
             logger.debug("Installation libraries ended")
             term = term.sendline('exit')
+        cls.unlock_lib()
  
  
