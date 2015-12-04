@@ -4,12 +4,14 @@ Main window module
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import copy
 import os
-import uuid
 from PyQt5 import QtCore
 from communication import Communicator, Installation
 from data.states import TaskStatus, MJState
 from ui.actions.main_menu_actions import *
+from ui.data.mj_data import MultiJob
+from ui.data.preset_data import Id
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.pbs_presets import PbsPresets
@@ -156,33 +158,35 @@ class MainWindow(QtWidgets.QMainWindow):
         if current is None:
             self.ui.menuBar.multiJob.lock_by_status(None)
         else:
-            status = self.data.multijobs[current.text(0)]["state"].status
+            status = self.data.multijobs[current.text(0)].state.status
             self.ui.menuBar.multiJob.lock_by_status(status)
             mj = self.data.multijobs[current.text(0)]
             self.ui.tabWidget.reload_view(mj)
 
     def _handle_add_multijob_action(self):
-        self.mj_dlg.set_purpose(MultiJobDialog.PURPOSE_ADD)
-        self.mj_dlg.open()
+        self.mj_dlg.exec_add()
 
     def _handle_edit_multijob_action(self):
         if self.data.multijobs:
-            self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_EDIT)
             key = self.ui.overviewWidget.currentItem().text(0)
-            data = list(self.data.multijobs[key]["preset"])
-            data.insert(0, key)  # insert id
-            self.mj_dlg.set_data(tuple(data))
-            self.mj_dlg.show()
+            preset = self.data.multijobs[key].preset
+            data = {
+                "key": key,
+                "preset": preset
+            }
+            self.mj_dlg.exec_edit(data)
 
     def _handle_copy_multijob_action(self):
         if self.data.multijobs:
-            self.mj_dlg.set_purpose(self.mj_dlg.PURPOSE_COPY)
             key = self.ui.overviewWidget.currentItem().text(0)
-            data = list(self.data.multijobs[key]["preset"])
-            data.insert(0, None)  # insert empty id
-            data[1] = self.mj_dlg.PURPOSE_COPY_PREFIX + " " + data[1]
-            self.mj_dlg.set_data(tuple(data))
-            self.mj_dlg.show()
+            preset = copy.deepcopy(self.data.multijobs[key].preset)
+            preset.name = self.presets_dlg.\
+                PURPOSE_COPY_PREFIX + " " + preset.name
+            data = {
+                "key": key,
+                "preset": preset
+            }
+            self.presets_dlg.exec_copy(data)
 
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
@@ -191,21 +195,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
-        state = MJState(data[1])
         if purpose != self.mj_dlg.PURPOSE_EDIT:
-            key = str(uuid.uuid4())
-            self.data.multijobs[key] = dict()
-            self.data.multijobs[key]["preset"] = list(data[1:])
-            self.data.multijobs[key]["state"] = state
+            key = Id.get_id()
+            self.data.multijobs[key] = MultiJob(data["preset"])
         else:
-            self.data.multijobs[data[0]]["preset"] = list(data[1:])
-            self.data.multijobs[data[0]]["state"] = state
+            # Todo properly edit state, change folder name etc.
+            self.data.multijobs[data["key"]] = MultiJob(data["preset"])
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.installation
         self.ui.overviewWidget.update_item(key, state)
 
@@ -222,7 +223,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.pausing
         self.ui.overviewWidget.update_item(key, state)
 
@@ -233,7 +234,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.resuming
         self.ui.overviewWidget.update_item(key, state)
 
@@ -244,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_stop_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.stopping
         self.ui.overviewWidget.update_item(key, state)
 
@@ -254,7 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_terminate(self):
         mj = self.data.multijobs
         for key in self.data.multijobs:
-            state = mj[key]["state"]
+            state = mj[key].state
             state.status = TaskStatus.none
         self.com_manager.terminate()
         print("Exiting")
@@ -262,7 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.stopping
         self.ui.overviewWidget.update_item(key, state)
 
@@ -271,7 +272,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.restart(key)
 
     def handle_mj_installed(self, key):
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.running
 
         self.ui.overviewWidget.update_item(key, state)
@@ -279,7 +280,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_paused(self, key):
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.paused
 
         self.ui.overviewWidget.update_item(key, state)
@@ -287,7 +288,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_resumed(self, key):
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.running
 
         self.ui.overviewWidget.update_item(key, state)
@@ -295,7 +296,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_stopped(self, key):
-        state = self.data.multijobs[key]["state"]
+        state = self.data.multijobs[key].state
         state.status = TaskStatus.none
 
         self.ui.overviewWidget.update_item(key, state)
@@ -304,10 +305,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_mj_state(self, key, state):
         if state.status == TaskStatus.running:
-            self.ui.overviewWidget.update_item(key, state)
+            mj_state = self.data.multijobs[key].state
+            mj_state.update(state)
+            self.ui.overviewWidget.update_item(key, mj_state)
         elif state.status == TaskStatus.ready:
             current = self.ui.overviewWidget.currentItem()
-            state = self.data.multijobs[key]["state"]
+            state = self.data.multijobs[key].state
             state.status = TaskStatus.stopping
             self.ui.overviewWidget.update_item(key, state)
             self.update_ui_locks(current)
@@ -315,10 +318,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
-        mj["jobs"] = result["jobs"]
-        mj["logs"] = result["logs"]
-        mj["conf"] = result["conf"]
-        mj["res"] = result["res"]
+        mj.jobs = result["jobs"]
+        mj.logs = result["logs"]
+        mj.conf = result["conf"]
+        mj.res = result["res"]
         current = self.ui.overviewWidget.currentItem()
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)

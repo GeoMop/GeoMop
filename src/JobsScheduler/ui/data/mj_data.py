@@ -13,6 +13,10 @@ class MultiJob:
     def __init__(self, preset):
         self.preset = preset
         self.state = MultiJobState(preset.name)
+        self.logs = None
+        self.jobs = None
+        self.res = None
+        self.conf = None
 
 
 class MultiJobState:

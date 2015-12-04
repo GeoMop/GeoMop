@@ -83,7 +83,6 @@ class Overview(QtWidgets.QTreeWidget):
         self.clear()
         if data:
             for key in data:
-                state = data[key]["state"]
-                self.add_item(key, state)
+                self.add_item(key, data[key].state)
         self.resize_all_columns_to_contents()
 

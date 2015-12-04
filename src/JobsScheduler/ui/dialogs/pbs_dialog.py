@@ -73,8 +73,8 @@ class PbsDialog(AFormDialog):
         key = self.ui.idLineEdit.text()
         preset = PbsPreset(self.ui.nameLineEdit.text())
         preset.walltime = self.ui.walltimeLineEdit.text()
-        preset.nodes = str(self.ui.nodesSpinBox.value())
-        preset.ppn = str(self.ui.ppnSpinBox.value())
+        preset.nodes = self.ui.nodesSpinBox.value()
+        preset.ppn = self.ui.ppnSpinBox.value()
         preset.memory = self.ui.memoryLineEdit.text()
         preset.scratch = self.ui.scratchLineEdit.text()
         return {
