@@ -14,6 +14,12 @@ from communication import JobsCommunicator
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.exec_output_comm import  ExecOutputComm
 
+import signal
+def end_handler(signal, frame):
+    comunicator.close()
+        
+signal.signal(signal.SIGINT, end_handler)
+
 started_jobs = {}
 
 class JobStarter():
@@ -100,5 +106,10 @@ comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before, r
 
 if __name__ != "remote":
     # no doc generation
-    comunicator.run()
+    try:
+        comunicator.run()
+    except Exception as err:
+        comunicator.close()
+        logger.info("Application stop for uncatch error:" + str(err)) 
+        sys.exit(1)    
 comunicator.close()

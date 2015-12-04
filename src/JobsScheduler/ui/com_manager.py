@@ -72,6 +72,9 @@ class ComManager:
         if worker.req_queue.empty():
             return False
         return True
+        
+    def get_communicator(self, key):
+        return self._workers[key].com
 
     def terminate(self):
         for key in self._workers:

@@ -213,12 +213,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
         app_conf = self.data.build_config_files(key)
+        Communicator.lock_installation(app_conf)
         com = Communicator(app_conf)
         # reload log
         res_path = Installation.get_result_dir_static(com.mj_name)
         log_path = os.path.join(res_path, "log")
         self.ui.tabWidget.ui.logsTab.reload_view(log_path)
         self.com_manager.install(key, com)
+        Communicator.unlock_installation(com.mj_name)
 
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -251,6 +253,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.update_ui_locks(current)
         self.com_manager.stop(key)
+        Communicator.unlock_installation(
+            self.com_manager.get_communicator(key).mj_name)
 
     def handle_terminate(self):
         mj = self.data.multijobs
