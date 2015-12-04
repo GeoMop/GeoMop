@@ -8,8 +8,9 @@ import copy
 import os
 from PyQt5 import QtCore
 from communication import Communicator, Installation
-from data.states import TaskStatus, MJState
+from data.states import TaskStatus
 from ui.actions.main_menu_actions import *
+from ui.data.config_factory import ConfigBuilder
 from ui.data.mj_data import MultiJob
 from ui.data.preset_data import Id
 from ui.dialogs.env_presets import EnvPresets
@@ -212,7 +213,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.update_ui_locks(current)
 
-        app_conf = self.data.build_config_files(key)
+        conf_builder = ConfigBuilder(self.data)
+        app_conf = conf_builder.build(key)
         Communicator.lock_installation(app_conf)
         com = Communicator(app_conf)
         # reload log

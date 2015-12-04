@@ -4,12 +4,11 @@ Configuration of communication unit
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import copy
 import json
 import logging
 import os
-import uuid
 from enum import Enum, IntEnum
+
 
 class OutputCommType(IntEnum):
     """Severity of an error."""
@@ -17,6 +16,7 @@ class OutputCommType(IntEnum):
     ssh = 1
     exec_ = 2
     pbs = 3
+
 
 class InputCommType(IntEnum):
     """Severity of an error."""
@@ -104,109 +104,6 @@ class LibsEnvConfig(object):
 
         self.start_job_libs = False
         """Communicator will prepare libs for job running"""
-
-
-class ConfigFactory(object):
-    def __init__(self):
-        """init"""
-        from version import Version
-        version = Version()
-        self.app_version = version.version
-        """
-        Applicationj version. If version in remote installation is different
-        new instalation is created
-        """
-        
-        self.conf_long_id = str(uuid.uuid4())
-        """
-        Long id of configuration. If  in remote installation is different
-        id new configuration is reloaded
-        """
-        
-    @staticmethod
-    def get_pbs_config(preset=None, with_socket=True):
-        """
-        Converts dialog data into PbsConfig instance
-        """
-        pbs = PbsConfig()
-        if preset:
-            pbs.name = preset.name
-            # preset[0] is useless description
-            pbs.walltime = preset.walltime
-            pbs.nodes = preset.nodes
-            pbs.ppn = preset.ppn
-            pbs.mem = preset.mem
-            pbs.scratch = preset.scratch
-        else:
-            pbs.name = None
-            pbs.walltime = ""
-            pbs.nodes = "1"
-            pbs.ppn = "1"
-            pbs.mem = "400mb"
-            pbs.scratch = "400mb"
-        if with_socket:
-            pbs.with_socket = with_socket
-        return pbs
-
-    @staticmethod
-    def get_ssh_config(preset=None):
-        """
-        Converts dialog data into SshConfig instance
-        """
-        ssh = SshConfig()
-        if preset:
-            ssh.name = preset.name
-            # preset[0] is useless description
-            ssh.host = preset.host
-            ssh.port = preset.port
-            ssh.uid = preset.uid
-            ssh.pwd = preset.pwd
-        return ssh
-
-    @staticmethod
-    def get_env_configs(preset=None, install_job_libs=False,
-                        start_job_libs=False):
-        """
-        Converts dialog data into EnvConfigs instance
-        """
-        python_env = PythonEnvConfig()
-        libs_env = LibsEnvConfig()
-        if preset.python_exec:
-            python_env.python_exec = preset.python_exec
-        if preset.scl_enable_exec:
-            python_env.scl_enable_exec = preset.scl_enable_exec
-        if preset.module_add:
-            python_env.module_add = preset.module_add
-        if preset.mpi_scl_enable_exec:
-            libs_env.mpi_scl_enable_exec = preset.mpi_scl_enable_exec
-        if preset.mpi_module_add:
-            libs_env.mpi_module_add = preset.mpi_module_add
-        if preset.libs_mpicc:
-            libs_env.libs_mpicc = preset.libs_mpicc
-        libs_env.install_job_libs = install_job_libs
-        libs_env.start_job_libs = start_job_libs
-        return python_env, libs_env
-
-    def get_communicator_config(self, communicator=None, mj_name=None,
-                                log_level=None,
-                                preset_type=None):
-        """
-        Provides preset config for most common communicator types, if you
-        provide communicator instance on input with valid preset_type,
-        new communicator is derived from original.
-        """
-        if communicator is None:
-            com = CommunicatorConfig(mj_name)
-            com.app_version = self.app_version
-            com.conf_long_id = self.conf_long_id
-        if communicator is not None:
-            com = copy.copy(communicator)
-        if mj_name is not None:
-            com.mj_name = mj_name
-        if log_level is not None:
-            com.log_level = log_level
-        CommunicatorConfigService.preset_common_type(com, preset_type)
-        return com
 
 
 class CommunicatorConfig(object):
@@ -318,36 +215,3 @@ class CommunicatorConfigService(object):
     def get_file_path(conf_path, com_type):
         filename = com_type + CommunicatorConfigService.CONF_EXTENSION
         return os.path.join(conf_path, filename)
-
-    @staticmethod
-    def preset_common_type(com, preset_type=None):
-        # app
-        if preset_type is CommType.app:
-            com.communicator_name = CommType.app.value
-            com.next_communicator = CommType.multijob.value
-            com.output_type = OutputCommType.exec_
-        # delegator
-        elif preset_type is CommType.delegator:
-            com.communicator_name = CommType.delegator.value
-            com.next_communicator = CommType.multijob.value
-            com.input_type = InputCommType.std
-            com.output_type = OutputCommType.exec_
-        # mj
-        elif preset_type is CommType.multijob:
-            com.communicator_name = CommType.multijob.value
-            com.next_communicator = CommType.job.value
-            com.input_type = InputCommType.socket
-            com.output_type = OutputCommType.exec_
-        # remote
-        elif preset_type is CommType.remote:
-            com.communicator_name = CommType.remote.value
-            com.next_communicator = CommType.job.value
-            com.input_type = InputCommType.std
-            com.output_type = OutputCommType.exec_
-        # job
-        elif preset_type is CommType.job:
-            com.communicator_name = CommType.job.value
-            com.next_communicator = CommType.none.value
-            com.input_type = InputCommType.socket
-            com.output_type = OutputCommType.none
-        return com
