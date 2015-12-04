@@ -10,6 +10,12 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 from communication import Communicator
 
+import signal
+def end_handler(signal, frame):
+    comunicator.close()
+        
+signal.signal(signal.SIGINT, end_handler)
+
 logger = logging.getLogger("Remote")
 
 if len(sys.argv)<2:
@@ -35,6 +41,11 @@ comunicator = Communicator(com_conf, mj_id)
 
 if __name__ != "delegator":
     # no doc generation
-    comunicator.run()
+    try:
+        comunicator.run()
+    except Exception as err:
+        comunicator.close()
+        logger.info("Application stop for uncatch error:" + str(err)) 
+        sys.exit(1)
 comunicator.close()
 logger.info("Application " + comunicator.communicator_name + " is stopped")

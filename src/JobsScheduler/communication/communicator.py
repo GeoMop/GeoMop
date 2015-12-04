@@ -213,7 +213,7 @@ class Communicator():
                 action = tdata.Action(tdata.ActionType.install_in_process)
                 if isinstance(self.output, PbsOutputComm):
                     action.data.data['phase'] = TaskStatus.qued
-                    return False, action.get_message()
+                return False, action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if isinstance(self.output, SshOutputComm):
                 processed = False
@@ -315,6 +315,8 @@ class Communicator():
         time.sleep(1)
         if self.input is not None:
             self.input.disconnect()
+            if isinstance(self.input, StdInputComm):
+                Installation.unlock_application(self.mj_name)
         logger.info("Connection to application " + self.communicator_name + " is stopped")
     
     def install(self):
@@ -422,9 +424,9 @@ class Communicator():
                     error = True
                 self.input.send(mess)
                 if error:
-                    logger.error("Error answer sent (" + str(mess) + ')')
+                    logger.error("Error answer was send (" + str(mess) + ')')
                 else:
-                    logger.debug("Answer is sent (" + str(mess) + ')')   
+                    logger.debug("Answer was send (" + str(mess) + ')')   
             else:
                 if self.is_installed():
                     self.idle_func()
@@ -463,3 +465,18 @@ class Communicator():
         mess = self.output.receive(timeout)
         logger.debug("Answer to message is receive (" + str(mess) + ')')
         return mess    
+
+    @staticmethod
+    def lock_installation( init_conf):
+        """Set installation locks, return if should installation continue"""
+        Installation.lock_installation( init_conf.mj_name, init_conf.app_version,  init_conf.conf_long_id)
+        
+    @staticmethod    
+    def unlock_installation(mj_name):
+        """Unset installation locks"""
+        Installation.unlock_installation(mj_name)
+    
+    @staticmethod    
+    def unlock_application(mj_name):
+        """Unset application locks"""
+        Installation.unlock_application(mj_name)

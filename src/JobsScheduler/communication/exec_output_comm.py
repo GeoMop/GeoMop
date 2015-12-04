@@ -32,8 +32,7 @@ class ExecOutputComm(OutputComm):
     def disconnect(self):
         """disconnect session"""
         self.conn.close()
-        self._connected = False
-        self.installation.unlock_application()
+        self._connected = False        
         
     def isconnected(self):
         """Connection is opened"""

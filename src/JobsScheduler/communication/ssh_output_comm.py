@@ -35,7 +35,6 @@ if sys.platform == "win32":
             """disconnect session"""
             self.conn.close()
             self.connected = False
-            self.installation.unlock_application()
             
         def install(self):
             """make installation"""

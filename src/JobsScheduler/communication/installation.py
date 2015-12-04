@@ -139,6 +139,42 @@ class Installation:
                     logger.debug("Sftp message(put " + __lock_file__  + "): " + str(conn.before, 'utf-8').strip())
         return True
 
+    @classmethod
+    def lock_installation(cls, mj_name, app_version, data_version):
+        """Set installation locks, return if should installation continue"""
+        lock = Lock(mj_name, __install_dir__)
+        try:
+            if not lock.lock_app(app_version, data_version, cls.get_result_dir_static(mj_name)):
+                return False
+        except LockFileError as err:
+            logger.warning("Lock instalation error: " + str(err))
+            return False
+        return True
+    
+    @staticmethod  
+    def unlock_installation(mj_name):
+        """Unset installation locks"""
+        lock = Lock(mj_name, __install_dir__)
+        try:
+            if not lock.unlock_install():
+                return False
+        except LockFileError as err:
+            logger.warning("Unock instalation error: " + str(err))
+            return False
+        return True
+    
+    @staticmethod  
+    def unlock_application(mj_name):
+        """Unset application locks"""
+        lock = Lock(mj_name, __install_dir__)
+        try:
+            if not lock.unlock_app():
+                return False
+        except LockFileError as err:
+            logger.warning("Lock application error: " + str(err))
+            return False
+        return True        
+
     @staticmethod
     def lock_lib():
         """Set ilibrary lock"""

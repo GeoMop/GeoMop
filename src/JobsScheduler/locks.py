@@ -92,6 +92,7 @@ class Lock():
                         os.remove(path)
                 self._write_version("install.version", install_ver )
             else:
+                self._write_version("install.version", install_ver, False)
                 self._unlock_file("install.lock")
                 res = False
             # installation ready
@@ -128,7 +129,7 @@ class Lock():
         if self._lock_file("app.lock"):
             if self._lock_file("lib.lock", 300):
                 if os.path.isdir(lib_dir):
-                    names = os.listdir(self.lib_dir)
+                    names = os.listdir(lib_dir)
                     if len(names) == 0:
                         self._unlock_file("lib.lock")
                         res = False
@@ -177,8 +178,11 @@ class Lock():
     def _unlock_file(self, file):
         """lock global lock"""
         path = os.path.join(self._lock_dir, file)
-        os.remove(path)
-        
+        try:
+            os.remove(path)
+        except:
+            pass
+
     def _is_mj_lock_set(self, mj_name):
         """return True if any multijob lock difrent from actual is set"""
         names = os.listdir(self._lock_dir)
@@ -200,15 +204,17 @@ class Lock():
             return None
         return version
         
-    def _write_version(self, file,  version):
+    def _write_version(self, file,  version, rewrite=True):
         """Return version string or None if file is not exist"""
         path = os.path.join(self._version_dir, file)
         if not os.path.isdir(self._version_dir):
             os.makedirs(self._version_dir)
-        version = None
+        else:
+            if os.path.isfile(path) and not rewrite:
+                return True
         try:
             with open(path, 'w') as f:
-                version = f.write(version)
+                f.write(version)
             f.closed
         except:
             return False

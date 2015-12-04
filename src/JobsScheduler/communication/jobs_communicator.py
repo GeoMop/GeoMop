@@ -67,7 +67,7 @@ class JobsCommunicator(Communicator):
             if self.is_installed():
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
-                return False, action.get_message()
+                return False, action.get_message()                        
             if mess is not None and mess.action_type == tdata.ActionType.install_in_process:
                 # renew install state to installation
                 mess = tdata.Action(tdata.ActionType.install_in_process).get_message()
