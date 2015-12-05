@@ -5,6 +5,7 @@
 """
 import argparse
 import os
+import signal
 import sys
 __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "common")
@@ -227,8 +228,13 @@ def main():
 
         log_unhandled_exceptions('ModelEditor', on_unhandled_exception)
 
+    # enable Ctrl+C from console to kill the application
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    # launch the application
     model_editor = ModelEditor()
     model_editor.main()
+    sys.exit(0)
 
 
 if __name__ == "__main__":
