@@ -12,6 +12,7 @@ from copy import copy
 
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl, Qt
+import PyQt5.QtCore as QtCore
 
 from ist import InfoTextGenerator
 from util import CursorType
@@ -40,7 +41,8 @@ class InfoPanelWidget(QWebView):
         self._data = None
         """ Query data of currently displayed page."""
 
-        self.setMinimumSize(800, 250)
+        # self.setMinimumSize(700, 200)
+        # self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.setContextMenuPolicy(Qt.NoContextMenu)
         self.setFocusPolicy(Qt.NoFocus)
 
@@ -111,6 +113,10 @@ class InfoPanelWidget(QWebView):
         """Handle window resize."""
         super(InfoPanelWidget, self).resizeEvent(event)
         self.page().setViewportSize(event.size())
+
+    def sizeHint(self):
+        """Return the preferred size of widget."""
+        return QtCore.QSize(700, 250)
 
 
 def main():
