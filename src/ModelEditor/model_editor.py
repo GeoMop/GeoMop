@@ -3,201 +3,52 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-
+import argparse
 import os
 import sys
 __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.insert(1, __lib_dir__)
 
-import argparse
-import icon
-import pyperclip
-
-import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
+import icon
 from meconfig import cfg
-from ui import panels
 from ui.dialogs.json_editor import JsonEditorDlg
-from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
-from util import CursorType, Position
+from ui import MainWindow
 
 
 class ModelEditor:
     """Model editor main class"""
 
     def __init__(self):
+        # load config
+        cfg.init(None)
+
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
-        self.mainwindow = QtWidgets.QMainWindow()
-        self.mainwindow.setMinimumSize(960, 660)
-        self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self.mainwindow)
-        self.mainwindow.setCentralWidget(self._hsplitter)
-        self.mainwindow.closeEvent = self._before_exit
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
-        # load config
-        cfg.init(self.mainwindow)
+        self.mainwindow = MainWindow(self)
+        cfg.main_window = self.mainwindow
+
+        # set default values
         self._update_document_name()
-
-        # tab
-        self._tab = QtWidgets.QTabWidget(self._hsplitter)
-        self._tab.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self._tab.setMinimumSize(600, 200)
-        self._tab.sizeHint = lambda: QtCore.QSize(700, 250)
-        self._info = panels.InfoPanelWidget(self._tab)
-        self._err = panels.ErrorWidget(self._tab)
-        self._tab.addTab(self._info, "Structure Info")
-        self._tab.addTab(self._err, "Messages")
-
-        if cfg.config.DEBUG_MODE:
-            self._debug_tab = panels.DebugPanelWidget(self._tab)
-            self._tab.addTab(self._debug_tab, "Debug")
-
-        # splitters
-        self._vsplitter = QtWidgets.QSplitter(
-            QtCore.Qt.Vertical, self._hsplitter)
-        self._editor = panels.YamlEditorWidget(self._vsplitter)
-        self._tree = panels.TreeWidget(self._vsplitter)
-        self._vsplitter.addWidget(self._editor)
-        self._vsplitter.addWidget(self._tab)
-        self._hsplitter.insertWidget(0, self._tree)
-
-        # Menu bar
-        menubar = self.mainwindow.menuBar()
-        self._file_menu = MainFileMenu(self.mainwindow, self)
-        self.update_recent_files(0)
-        self._edit_menu = MainEditMenu(self.mainwindow, self._editor)
-        self._settings_menu = MainSettingsMenu(self.mainwindow, self)
-        menubar.addMenu(self._file_menu)
-        menubar.addMenu(self._edit_menu)
-        menubar.addMenu(self._settings_menu)
-
-        # status bar
-        self._column = QtWidgets.QLabel(self.mainwindow)
-        self._column.setFrameStyle(QtWidgets.QFrame.StyledPanel)
-
-        self._reload_icon = QtWidgets.QLabel(self.mainwindow)
-        self._reload_icon.setPixmap(icon.get_pixmap("refresh", 16))
-        self._reload_icon.setVisible(False)
-        self._reload_icon_timer = QtCore.QTimer(self.mainwindow)
-        self._reload_icon_timer.timeout.connect(self._hide_reload_icon)
-
-        self._status = self.mainwindow.statusBar()
-        self._status.addPermanentWidget(self._reload_icon)
-        self._status.addPermanentWidget(self._column)
-        self.mainwindow.setStatusBar(self._status)
-        self._status.showMessage("Ready", 5000)
-
-        # signals
-        self._err.itemSelected.connect(self._item_selected)
-        self._tree.itemSelected.connect(self._item_selected)
-        self._editor.nodeChanged.connect(self._node_changed)
-        self._editor.cursorChanged.connect(self._cursor_changed)
-        self._editor.structureChanged.connect(self._structure_changed)
-        self._editor.errorMarginClicked.connect(self._error_margin_clicked)
-        self._editor.elementChanged.connect(self._on_element_changed)
-        self._editor.nodeSelected.connect(self._on_node_selected)
-
-        # set default info text
-        self._info.update_from_data({'record_id': cfg.root_input_type['id']})
+        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']})
 
         # show
         self.mainwindow.show()
-        self._editor.setFocus()
-
-    def _cursor_changed(self, line, column):
-        """Editor node change signal"""
-        self._column.setText("Line: {:5d}  Pos: {:3d}".format(line, column))
-
-    def _node_changed(self, line, column):
-        """Editor node change signal"""
-        self._reload_node(line, column)
-
-    def _structure_changed(self, line, column):
-        """Editor structure change signal"""
-        if cfg.update_yaml_file(self._editor.text()):
-            self._reload()
-        else:
-            self._reload_node(line, column)
-
-    def _item_selected(self, start_line, start_column, end_line, end_column):
-        """Handle when an item is selected from tree or error tab.
-
-        :param int start_line: line where the selection starts
-        :param int start_column: column where the selection starts
-        :param int end_line: line where the selection ends
-        :param int end_column: column where the selection ends
-        """
-        self._editor.setFocus()
-        self._editor.mark_selected(start_line, start_column, end_line, end_column)
-
-    def _error_margin_clicked(self, line):
-        """Click error icon in margin"""
-        self._tab.setCurrentIndex(self._tab.indexOf(self._err))
-        self._err.select_error(line)
-
-    def _reload(self):
-        """reload panels after structure changes"""
-        self._reload_icon.setVisible(True)
-        self._reload_icon.update()
-        self._editor.setUpdatesEnabled(False)
-        cfg.update()
-        self._editor.setUpdatesEnabled(True)
-        self._editor.reload()
-        self._tree.reload()
-        self._err.reload()
-        line, index = self._editor.getCursorPosition()
-        self._reload_node(line+1, index+1)
-        self._reload_icon_timer.start(700)
-
-    def reload(self):
-        """Reload panels when structure changes."""
-        self._reload()
-
-    def _hide_reload_icon(self):
-        """Hides the reload icon."""
-        self._reload_icon.setVisible(False)
-
-    def _reload_node(self, line, index):
-        """reload info after changing node selection"""
-        node = cfg.get_data_node(Position(line, index))
-        self._editor.set_new_node(node)
-        cursor_type = self._editor.cursor_type_position
-        self._update_info(cursor_type)
-        if cfg.config.DEBUG_MODE:
-            self._debug_tab.show_data_node(node)
-
-    def _on_element_changed(self, new_cursor_type, old_cursor_type):
-        """Updates info_text if cursor_type has changed."""
-        # pylint: disable=unused-argument
-        self._update_info(new_cursor_type)
-
-    def _update_info(self, cursor_type):
-        """Update the info panel."""
-        if self._editor.pred_parent is not None:
-            self._info.update_from_node(self._editor.pred_parent,
-                                        CursorType.parent.value)
-            return
-        if self._editor.curr_node is not None:
-            self._info.update_from_node(self._editor.curr_node, cursor_type)
-
-    def _on_node_selected(self, line, column):
-        """Handles nodeSelected event from editor."""
-        node = cfg.get_data_node(Position(line, column))
-        self._tree.select_data_node(node)
 
     def new_file(self):
         """new file menu action"""
         if not self._save_old_file():
             return
         cfg.new_file()
-        self._reload()
-        self.update_recent_files(0)
+        self.mainwindow.reload()
+        self.mainwindow.update_recent_files(0)
         self._update_document_name()
-        self._info.update_from_data({'record_id': cfg.root_input_type['id']})
-        self._status.showMessage("New file is opened", 5000)
+        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']})
+        self.mainwindow.show_status_message("New file is opened")
 
     def open_file(self):
         """open file menu action"""
@@ -208,10 +59,10 @@ class ModelEditor:
             cfg.config.last_data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
-            self._reload()
-            self.update_recent_files()
+            self.mainwindow.reload()
+            self.mainwindow.update_recent_files()
             self._update_document_name()
-            self._status.showMessage("File '" + yaml_file[0] + "' is opened", 5000)
+            self.mainwindow.show_status_message("File '" + yaml_file[0] + "' is opened")
 
     def import_file(self):
         """import con file menu action"""
@@ -222,10 +73,10 @@ class ModelEditor:
             cfg.config.last_data_dir, "Con Files (*.con)")
         if con_file[0]:
             cfg.import_file(con_file[0])
-            self._reload()
-            self.update_recent_files()
+            self.mainwindow.reload()
+            self.mainwindow.update_recent_files()
             self._update_document_name()
-            self._status.showMessage("File '" + con_file[0] + "' is imported", 5000)
+            self.mainwindow.show_status_message("File '" + con_file[0] + "' is imported")
 
     def open_recent(self, action):
         """open recent file menu action"""
@@ -234,22 +85,22 @@ class ModelEditor:
         if not self._save_old_file():
             return
         cfg.open_recent_file(action.text())
-        self._reload()
-        self.update_recent_files()
+        self.mainwindow.reload()
+        self.mainwindow.update_recent_files()
         self._update_document_name()
-        self._status.showMessage("File '" + action.text() + "' is opened", 5000)
+        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
 
     def save_file(self):
         """save file menu action"""
         if cfg.curr_file is None:
             return self.save_as()
-        cfg.update_yaml_file(self._editor.text())
+        cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.save_file()
-        self._status.showMessage("File is saved", 5000)
+        self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
-        cfg.update_yaml_file(self._editor.text())
+        cfg.update_yaml_file(self.mainwindow.editor.text())
         if cfg.curr_file is None:
             new_file = cfg.config.last_data_dir + os.path.sep + "NewFile.yaml"
         else:
@@ -260,19 +111,19 @@ class ModelEditor:
 
         if yaml_file[0]:
             cfg.save_as(yaml_file[0])
-            self.update_recent_files()
+            self.mainwindow.update_recent_files()
             self._update_document_name()
-            self._status.showMessage("File is saved", 5000)
+            self.mainwindow.show_status_message("File is saved")
             return True
         return False
 
     def transform(self, file):
         """Run transformation according rules in set file"""
-        cfg.update_yaml_file(self._editor.text())
+        cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.transform(file)
         # synchronize cfg document with editor text
-        self._editor.setText(cfg.document, keep_history=True)
-        self._reload()
+        self.mainwindow.editor.setText(cfg.document, keep_history=True)
+        self.mainwindow.reload()
 
     def edit_transformation_file(self, file):
         """edit transformation rules in file"""
@@ -288,8 +139,8 @@ class ModelEditor:
             return
         cfg.curr_format_file = filename
         cfg.update_format()
-        self._reload()
-        self._status.showMessage("Format of file is changed", 5000)
+        self.mainwindow.reload()
+        self.mainwindow.show_status_message("Format of file is changed")
 
     def edit_format(self):
         """Open selected format file in Json Editor"""
@@ -298,10 +149,6 @@ class ModelEditor:
             dlg = JsonEditorDlg(cfg.format_dir, cfg.curr_format_file,
                                 "Format", text, self.mainwindow)
             dlg.exec_()
-
-    def update_recent_files(self, from_row=1):
-        """Update recently opened files."""
-        self._file_menu.update_recent_files(from_row)
 
     def _update_document_name(self):
         """Update document title (add file name)"""
@@ -318,7 +165,7 @@ class ModelEditor:
 
         return: False if action have to be aborted
         """
-        cfg.update_yaml_file(self._editor.text())
+        cfg.update_yaml_file(self.mainwindow.editor.text())
         if cfg.changed:
             msg_box = QMessageBox()
             msg_box.setWindowTitle("Confirmation")
@@ -336,11 +183,6 @@ class ModelEditor:
                 else:
                     self.save_file()
         return True
-
-    def _before_exit(self, event):
-        """Back up clipboard contents before exit."""
-        clipboard = QtWidgets.QApplication.clipboard()
-        pyperclip.copy(clipboard.text())
 
     def main(self):
         """go"""
@@ -371,9 +213,9 @@ def main():
                     err_dialog = GMErrorDialog(model_editor.mainwindow)
 
                 # try to reload editor to avoid inconsistent state
-                if callable(model_editor.reload):
+                if callable(model_editor.mainwindow.reload):
                     try:
-                        model_editor.reload()
+                        model_editor.mainwindow.reload()
                     except:
                         if err_dialog is not None:
                             err_dialog.open_error_dialog("Application performed invalid operation!",

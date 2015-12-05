@@ -17,7 +17,7 @@ class MainFileMenu(QMenu):
         self.setTitle(title)
         self._model_editor = model_editor
         self.parent = parent
-        self._about_dialog = GMAboutDialog(self._model_editor.mainwindow, 'GeoMop ModelEditor')
+        self._about_dialog = GMAboutDialog(parent, 'GeoMop ModelEditor')
 
         self._new_file_action = QAction('&New File ...', self)
         self._new_file_action.setShortcut(cfg.get_shortcut('new_file').key_sequence)
