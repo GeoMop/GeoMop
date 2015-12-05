@@ -106,12 +106,15 @@ class ModelEditor:
             new_file = cfg.config.last_data_dir + os.path.sep + "NewFile.yaml"
         else:
             new_file = cfg.curr_file
-        yaml_file = QtWidgets.QFileDialog.getSaveFileName(
-            self.mainwindow, "Set Yaml Model File",
-            new_file, "Yaml Files (*.yaml)")
-
-        if yaml_file[0]:
-            cfg.save_as(yaml_file[0])
+        dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as YAML File', new_file,
+                                       "YAML Files (*.yaml)")
+        dialog.setDefaultSuffix('.yaml')
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
+        if dialog.exec_():
+            file_name = dialog.selectedFiles()[0]
+            cfg.save_as(file_name)
             self.mainwindow.update_recent_files()
             self._update_document_name()
             self.mainwindow.show_status_message("File is saved")
