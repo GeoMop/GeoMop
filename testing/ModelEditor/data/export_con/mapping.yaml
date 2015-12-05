@@ -1,0 +1,8 @@
+record:
+  test: 3
+  another_record:
+    value: 2
+    value2: 5
+  value: 6
+record2:
+  value: 8

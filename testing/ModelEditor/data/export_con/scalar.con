@@ -1,0 +1,5 @@
+{
+  string = "text",
+  file_name = "same/as/string",
+  selection = "same_as_string"
+}
