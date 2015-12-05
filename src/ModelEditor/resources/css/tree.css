@@ -1,6 +1,6 @@
 QTreeView {
   background-color: #fbfbfb;
-  alternate-background-color: #fdfdfd;
+  alternate-background-color: #f3f3f3;
 }
 
 QTreeView::branch:has-siblings:!adjoins-item {
