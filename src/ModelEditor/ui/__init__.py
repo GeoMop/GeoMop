@@ -1,4 +1,6 @@
+"""Module contains Qt widgets.
+
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-Module contains Qt widgets.
-"""
-__author__ = 'Tomas Krizek'
+
+from .mainwindow import MainWindow

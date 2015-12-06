@@ -14,6 +14,7 @@ from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
+import PyQt5.QtWidgets as QtWidgets
 
 from meconfig import cfg
 from data import DataNode
@@ -135,7 +136,8 @@ class YamlEditorWidget(QsciScintilla):
         self.setUnmatchedBraceForegroundColor(QColor("#ff0000"))
 
         # not too small
-        self.setMinimumSize(600, 450)
+        self.setMinimumSize(600, 200)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
         # Autocomplete
         self.SendScintilla(QsciScintilla.SCI_AUTOCSETORDER, QsciScintilla.SC_ORDER_CUSTOM)
@@ -676,6 +678,10 @@ class YamlEditorWidget(QsciScintilla):
     def _handle_keypress_f3(self, event):
         """Handle keyPress event for :kdb:`F3`."""
         self._find_replace_dialog.perform_find()
+
+    def sizeHint(self):
+        """Return the preferred size of widget."""
+        return QtCore.QSize(700, 400)
 
 # ------------------- OTHER SIGNALS AND EVENT HANDLERS -----------------------
 

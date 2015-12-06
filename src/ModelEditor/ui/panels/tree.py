@@ -38,8 +38,8 @@ class TreeWidget(QtWidgets.QTreeView):
         self.showColumn(3)
         self._model = DataNodeTreeModel(cfg.root)
         self.setModel(self._model)
-        self.setMinimumSize(350, 450)
-        self.setColumnWidth(0, 190)
+        self.setMinimumSize(250, 400)
+        self.setMaximumWidth(450)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -121,6 +121,16 @@ class TreeWidget(QtWidgets.QTreeView):
         index = self._model.createIndex(row, 0, data_node)
         self.selectionModel().select(index, QtCore.QItemSelectionModel.ClearAndSelect)
         self.scrollTo(index, QtWidgets.QAbstractItemView.PositionAtCenter)
+
+    def resizeEvent(self, event):
+        """Adjust column size on resize."""
+        super(TreeWidget, self).resizeEvent(event)
+        width = int(event.size().width() * 60/100)
+        self.setColumnWidth(0, width)
+
+    def sizeHint(self):
+        """Return the preferred size of widget."""
+        return QtCore.QSize(300, 800)
 
 
 class DataNodeTreeModel(QtCore.QAbstractItemModel):
