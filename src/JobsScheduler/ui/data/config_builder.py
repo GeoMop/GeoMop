@@ -71,40 +71,39 @@ class ConfigBuilder:
         basic_conf.app_version = self.app_version
         basic_conf.conf_long_id = self.conf_long_id
 
-        # declare builders
-        app = None
-        delegator = None
-        mj = None
-        remote = None
-        job = None
-
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
         mj_pbs = ConfFactory.get_ssh_conf(mj_pbs_preset)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
+        # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
         j_pbs = ConfFactory.get_ssh_conf(j_pbs_preset)
-        mj_python_env, mj_libs_env = ConfFactory.get_env_conf(j_env)
+        jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
         r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, True)
         j_python_env, j_libs_env = ConfFactory.get_env_conf(j_env, False, True)
 
-        # before mj
+        # declare builders
         app = ConfBuilder(basic_conf)
         app.set_comm_name(CommType.app)\
             .set_python_env(mj_python_env)\
             .set_libs_env(mj_libs_env)
+
+        delegator = None
 
         mj = ConfBuilder(basic_conf)
         mj.set_comm_name(CommType.multijob)\
             .set_python_env(r_python_env)\
             .set_libs_env(r_libs_env)
 
+        remote = None
+
         job = ConfBuilder(basic_conf)
         job.set_comm_name(CommType.job)\
             .set_python_env(j_python_env)\
             .set_libs_env(j_libs_env)
 
+        # set data with builders
         if mj_execution_type == UiResourceDialog.EXEC_LABEL:
             app.set_next_comm(CommType.multijob)\
                 .set_out_comm(OutputCommType.exec_)
@@ -136,8 +135,8 @@ class ConfigBuilder:
             mj.set_next_comm(CommType.remote)\
                 .set_out_comm(OutputCommType.ssh)\
                 .set_ssh(j_ssh)\
-                .set_python_env(mj_python_env)\
-                .set_libs_env(mj_libs_env)
+                .set_python_env(jmj_python_env)\
+                .set_libs_env(jmj_libs_env)
             remote = ConfBuilder(basic_conf)
             remote.set_comm_name(CommType.remote)\
                 .set_next_comm(CommType.job)\
@@ -216,9 +215,17 @@ class ConfBuilder:
         return self
 
     def get_conf(self):
+        """
+        Gets internal conf state.
+        :return: CommunicatorConf object
+        """
         return self.conf
 
     def get_path(self):
+        """
+        Get path to conf file.
+        :return: Conf file path string.
+        """
         path = Installation.get_config_dir_static(self.conf.communicator_name)
         file = self.conf.communicator_name + ".json"
         return os.path.join(path, file)
