@@ -76,7 +76,7 @@ _eric6project/
 src/config/*.yaml
 
 #JobsScheduler version files
-src/JobsScheduler/version
+src/JobsScheduler/versions
 
 #JobsScheduler lock files
 src/JobsScheduler/lock/app.lock

@@ -1,0 +1,10 @@
+sequence:
+  - 1
+  - 2
+  - 3
+flow_style: [4, 5]
+sequence_of_mapping:
+  - val: 1
+    bc: 4
+  - val: 5
+    bc: [7, 8]

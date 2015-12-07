@@ -255,7 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.update_ui_locks(current)
         self.com_manager.stop(key)
-        Communicator.unlock_installation(
+        Communicator.unlock_application(
             self.com_manager.get_communicator(key).mj_name)
 
     def handle_terminate(self):
@@ -321,6 +321,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.overviewWidget.update_item(key, state)
             self.update_ui_locks(current)
             self.com_manager.stop(key)
+            Communicator.unlock_application(
+                self.com_manager.get_communicator(key).mj_name)
 
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
