@@ -10,7 +10,7 @@ from PyQt5 import QtCore
 from communication import Communicator, Installation
 from data.states import TaskStatus
 from ui.actions.main_menu_actions import *
-from ui.data.config_factory import ConfigBuilder
+from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob
 from ui.data.preset_data import Id
 from ui.dialogs.env_presets import EnvPresets
