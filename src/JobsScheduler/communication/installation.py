@@ -74,17 +74,23 @@ class Installation:
         """Set copy path for local installation"""
         self.copy_path = __install_dir__
         
-    def _create_dir(self, conn, dir):
+    def _create_dir(self, conn, dir, log=True):
+        result = None
         if sys.platform == "win32":
             res = conn.mkdir(dir)
             if len(res)>0:
-                logger.warning("Sftp message (mkdir " + dir + "): " + res)
+                result = "Sftp message (mkdir " + dir + "): " + res
+                if log:
+                    logger.warning(result)
         else:
             conn.sendline('mkdir ' + dir)
             conn.expect(".*mkdir " + dir + "\r\n")
             conn.expect("sftp> ")
             if len(conn.before)>0:
-                logger.warning("Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip())
+                result = "Sftp message (mkdir " + dir + "): " + str(conn.before, 'utf-8').strip()
+                if log:
+                    logger.warning(result)
+        return result
 
     def create_install_dir(self, conn, ssh):
         """Create installation directory, return if should installation continue"""
@@ -96,11 +102,10 @@ class Installation:
             if self._is_install_lock(ssh):
                 logger.debug("Other installation is running")
                 return False
-            self._create_dir(conn, __root_dir__)
+            self._create_dir(conn, __root_dir__, False)
             res = conn.cd(__root_dir__)
             if len(res)>0:
-                logger.warning("Sftp message (cd root): " + res)
-            self._create_dir(conn, __jobs_dir__)
+                logger.warning("Sftp message (cd root): " + res)            
             conn.set_sftp_paths( __install_dir__, self.copy_path)
             res = conn.put(__lock_file__) 
             if len(res)>0:
@@ -121,7 +126,7 @@ class Installation:
             if self._is_install_lock(ssh):
                 logger.debug("Other installation is running")
                 return True
-            self._create_dir(conn, __root_dir__)
+            self._create_dir(conn, __root_dir__, False)
             conn.sendline('cd ' + __root_dir__)
             conn.expect('.*cd ' + __root_dir__ + "\r\n")
             conn.expect("sftp> ")
