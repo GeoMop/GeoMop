@@ -51,7 +51,10 @@ class PbsConfig(object):
         self.mem = "400mb"
         self.scratch = "400mb"
         self.with_socket = True  # multijob true; job false
-        """Initialize communication over socket"""
+        """
+        Initialize communication over socket, True in case of MultiJob
+        otherwise False.
+        """
 
 
 class SshConfig(object):

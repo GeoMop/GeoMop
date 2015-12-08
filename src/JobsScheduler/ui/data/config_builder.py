@@ -73,12 +73,12 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_pbs = ConfFactory.get_ssh_conf(mj_pbs_preset)
+        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_pbs = ConfFactory.get_ssh_conf(j_pbs_preset)
+        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
         r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, True)
         j_python_env, j_libs_env = ConfFactory.get_env_conf(j_env, False, True)
