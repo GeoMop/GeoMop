@@ -81,7 +81,7 @@ class Message:
     
     def pack(self):
         """pack data for transport to base64 format"""
-        logger.debug("json:"+self.json)
+        # logger.debug("json:"+self.json)
         bin = bytes(self.json, "utf-8")
         bin = struct.pack('!I' , self.action_type.value) + bin
         sum=zlib.crc32(bin)
@@ -230,7 +230,7 @@ class InstallData(ActionData):
     def __init__(self, json_data):
         self.data={}
         if json_data is None:            
-            self.data["phase"] = TaskStatus.installation
+            self.data["phase"] = TaskStatus.installation.value
         else:
             self.data = json.loads(json_data)
 

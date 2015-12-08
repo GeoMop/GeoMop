@@ -8,7 +8,7 @@ import data.communicator_conf as comconf
 from communication import Communicator
 import data.transport_data as tdata
 import communication.installation as inst
-from data.states import  JobsState
+from data.states import  JobsState, TaskStatus
 
 logger = logging.getLogger("Remote")
 
@@ -34,7 +34,25 @@ except Exception as error:
 comunicator = Communicator(com_conf, mj_id)
 comunicator.install()
 
-comunicator.send_long_action(tdata.Action(tdata.ActionType.installation))
+old_phase = TaskStatus.installation
+sec = time.time() + 600
+message = tdata.Action(tdata.ActionType.installation).get_message()
+mess = None
+while sec > time.time():
+    comunicator.send_message(message)
+    mess = comunicator.receive_message(120)
+    if mess is None:
+        break
+    if mess.action_type == tdata.ActionType.install_in_process:
+        phase = mess.get_action().data.data['phase']
+        if phase is not old_phase:
+            # add to queue
+            pass
+        pass
+    else:
+        break
+    time.sleep(10)
+
 time.sleep(30)
 
 comunicator.send_long_action(tdata.Action(tdata.ActionType.download_res))
