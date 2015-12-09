@@ -66,8 +66,8 @@ class ConfigBuilder:
         # init conf
         basic_conf = CommunicatorConfig()
         basic_conf.mj_name = mj_name
-        basic_conf.mj_log_level = mj_log_level
-        basic_conf.mj_number_of_processes = mj_number_of_processes
+        basic_conf.log_level = mj_log_level
+        basic_conf.number_of_processes = mj_number_of_processes
         basic_conf.app_version = self.app_version
         basic_conf.conf_long_id = self.conf_long_id
 
@@ -107,6 +107,7 @@ class ConfigBuilder:
         if mj_execution_type == UiResourceDialog.EXEC_LABEL:
             app.set_next_comm(CommType.multijob)\
                 .set_out_comm(OutputCommType.exec_)
+            mj.set_in_comm(InputCommType.socket)
 
         elif mj_execution_type == UiResourceDialog.DELEGATOR_LABEL:
             app.set_next_comm(CommType.delegator)\
@@ -195,7 +196,7 @@ class ConfBuilder:
         return self
 
     def set_out_comm(self, out_comm):
-        self.conf.input_type = out_comm
+        self.conf.output_type = out_comm
         return self
 
     def set_ssh(self, ssh_conf):
@@ -226,7 +227,7 @@ class ConfBuilder:
         Get path to conf file.
         :return: Conf file path string.
         """
-        path = Installation.get_config_dir_static(self.conf.communicator_name)
+        path = Installation.get_config_dir_static(self.conf.mj_name)
         file = self.conf.communicator_name + ".json"
         return os.path.join(path, file)
 

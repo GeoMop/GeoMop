@@ -207,9 +207,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.installation
-        self.ui.overviewWidget.update_item(key, state)
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.installation)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
 

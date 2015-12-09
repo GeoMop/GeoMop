@@ -18,6 +18,22 @@ class MultiJob:
         self.res = None
         self.conf = None
 
+    def update_state(self, new_state):
+        """
+        Update MultiJob status with received data.
+        :param new_state: State object that updates current state.
+        :return: None
+        """
+        self.state.update(new_state)
+
+    def change_status(self, new_status):
+        """
+        Directly changes status of the MultiJob
+        :param new_status: TaskStatus o replace current.
+        :return: None
+        """
+        self.state.status = new_status
+
 
 class MultiJobState:
     """
@@ -50,9 +66,6 @@ class MultiJobState:
         self.running_jobs = 0
         """Count of running jobs"""
 
-        self.updated = time.time()
-        """Timestamp of last update from remote data"""
-
     def update(self, state):
         """
         Update state with received data
@@ -67,8 +80,10 @@ class MultiJobState:
         self.estimated_jobs = state.estimated_jobs
         self.finished_jobs = state.finished_jobs
         self.running_jobs = state.running_jobs
-        # update timestamp
-        self.updated = time.time()
+
+
+class MultiJobPaths:
+    pass
 
 
 class JobState:
