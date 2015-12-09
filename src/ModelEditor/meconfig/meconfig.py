@@ -300,7 +300,7 @@ class MEConfig:
             cls.document = rewrite_comments(con, cls.document, cls.root)
             cls.update()
             data = {'actions': [{'action': 'move-key-forward', 'parameters': {'path': '/system'}},
-                                {'action': 'delete-key', 'parameters': {'path': '/system'}}]}
+                                {'action': 'delete-key', 'parameters': {'path': '/system', 'deep': True}}]}
             for path in need_move_forward:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)

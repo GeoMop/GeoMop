@@ -245,6 +245,7 @@ if __name__ == "__main__":
     lock = Lock(mj_name, path)
     if locking == "N":
         lock.unlock_install()
+        print("--0--")
         sys.exit(0)
     try:
         if not lock.lock_app(install_ver, data_ver, res_path):
