@@ -603,7 +603,7 @@ class Transformator:
             i = node1.key.span.start.line-1
             lines[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", lines[i])
             return True
-        if not action['parameters']['create_path'] or len(node_struct) == 0:
+        if not action['parameters']['create_path']:
             # check only existing path
             if node2.implementation != DataNode.Implementation.mapping:
                 raise TransformationFileFormatError(
