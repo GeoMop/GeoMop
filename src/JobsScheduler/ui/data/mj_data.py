@@ -33,7 +33,7 @@ class MultiJob:
 
         # reset times
         self.state.queued_time = None
-        self.state.start_time = time.time()
+        self.state.start_time = None
 
         # set status to installation
         self.change_status(TaskStatus.installation)
@@ -54,6 +54,17 @@ class MultiJob:
         self.state.queued_time = time.time()
         # set status to installation
         self.change_status(TaskStatus.qued)
+
+    def action_running(self):
+        """
+        Changes status to queued and sets queued time.
+        :return: None
+        """
+        if not self.state.queued_time:
+            self.state.queued_time = time.time()
+        self.state.start_time = time.time()
+        # set status to installation
+        self.change_status(TaskStatus.running)
 
     def update_state(self, new_state):
         """

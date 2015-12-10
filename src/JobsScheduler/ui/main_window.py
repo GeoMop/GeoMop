@@ -299,12 +299,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
-
         self.com_manager.restart(key)
 
     def handle_mj_installed(self, key):
         mj = self.data.multijobs[key]
-        mj.change_status(TaskStatus.running)
+        mj.action_running()
         self.ui.overviewWidget.update_item(key, mj.state)
 
         current = self.ui.overviewWidget.currentItem()
