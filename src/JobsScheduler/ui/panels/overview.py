@@ -26,6 +26,8 @@ class Overview(QtWidgets.QTreeWidget):
         self.setSortingEnabled(True)
         self.setRootIsDecorated(False)
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
     def resize_all_columns_to_contents(self):
         for idx, header in enumerate(self.headers):

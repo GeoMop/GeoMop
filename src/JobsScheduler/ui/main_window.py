@@ -229,6 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
         self.com_manager.install(key, com)
         Communicator.unlock_installation(com.mj_name)
+        self.com_manager.results(key)
 
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -336,7 +337,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             current = self.ui.overviewWidget.currentItem()
             self.update_ui_locks(current)
-            self.com_manager.stop(key)
+            self.com_manager.finish(key)
             Communicator.unlock_application(
                 self.com_manager.get_communicator(key).mj_name)
 

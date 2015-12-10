@@ -24,8 +24,8 @@ class ComManager:
 
     def install(self, key, com):
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
-        req = ReqData(key=key, com_type=ComType.install)
-        worker.req_queue.put(req)
+        req_install = ReqData(key=key, com_type=ComType.install)
+        worker.req_queue.put(req_install)
         self._workers[worker.key] = worker
 
     def pause(self, key):
@@ -57,6 +57,13 @@ class ComManager:
         worker = self._workers[key]
         req = ReqData(key=key, com_type=ComType.results)
         worker.req_queue.put(req)
+
+    def finish(self, key):
+        worker = self._workers[key]
+        req_result = ReqData(key=key, com_type=ComType.results)
+        req_stop = ReqData(key=key, com_type=ComType.stop)
+        worker.req_queue.put(req_result)
+        worker.req_queue.put(req_stop)
 
     def stop(self, key):
         worker = self._workers[key]
