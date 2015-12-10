@@ -67,6 +67,7 @@ class ComManager:
 
     def stop(self, key):
         worker = self._workers[key]
+        worker.is_ready.clear()
         req = ReqData(key=key, com_type=ComType.stop)
         worker.drop_all_req()
         worker.req_queue.put(req)

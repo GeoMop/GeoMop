@@ -233,6 +233,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # reload log
         res_path = Installation.get_result_dir_static(com.mj_name)
         log_path = os.path.join(res_path, "log")
+        # delete results
+        for root, dirs, files in os.walk(res_path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
         self.ui.tabWidget.ui.logsTab.reload_view(log_path)
         self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
         mj.jobs = None
@@ -278,7 +282,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_terminate(self):
         mj = self.data.multijobs
-        for key in self.data.multijobs:
+        for key in mj:
             state = mj[key].state
             state.status = TaskStatus.none
         self.com_manager.terminate()

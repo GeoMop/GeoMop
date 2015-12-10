@@ -50,7 +50,7 @@ class PbsConfig(object):
         self.ppn = "1"
         self.mem = "400mb"
         self.scratch = "400mb"
-        self.with_socket = True  # multijob true; job false
+        self.with_socket = True
         """
         Initialize communication over socket, True in case of MultiJob
         otherwise False.
