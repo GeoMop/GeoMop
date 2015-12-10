@@ -305,6 +305,9 @@ class Communicator():
                 time.sleep(10)
                 self.input.connect()
                 self.close()
+        else:
+            #app
+            self.close()
         logger.info("Application " + self.communicator_name + " is interupted")
     
     def close(self):
