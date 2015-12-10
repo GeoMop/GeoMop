@@ -24,6 +24,8 @@ class Overview(QtWidgets.QTreeWidget):
         self.setColumnHidden(0, True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
+        self.setRootIsDecorated(False)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
     def resize_all_columns_to_contents(self):
         for idx, header in enumerate(self.headers):
@@ -85,4 +87,5 @@ class Overview(QtWidgets.QTreeWidget):
             for key in data:
                 self.add_item(key, data[key].state)
         self.resize_all_columns_to_contents()
+        self.setCurrentItem(self.topLevelItem(0))
 

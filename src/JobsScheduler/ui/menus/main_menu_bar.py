@@ -111,6 +111,22 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.actionStopMultiJob.setDisabled(True)
         self.actionRestartMultiJob.setDisabled(True)
 
+    def lock_as_qued(self):
+        """
+        Locks to state qued
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(True)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
     def lock_as_running(self):
         """
         Locks to state Running
@@ -175,6 +191,22 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.actionStopMultiJob.setDisabled(True)
         self.actionRestartMultiJob.setDisabled(True)
 
+    def lock_as_finished(self):
+        """
+        Locks to state qued
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(False)
+        self.actionEditMultiJob.setDisabled(True)
+        self.actionCopyMultiJob.setDisabled(False)
+        self.actionDeleteMultiJob.setDisabled(False)
+
+        self.actionRunMultiJob.setDisabled(True)
+        self.actionPauseMultiJob.setDisabled(True)
+        self.actionResumeMultiJob.setDisabled(True)
+        self.actionStopMultiJob.setDisabled(True)
+        self.actionRestartMultiJob.setDisabled(True)
+
     def unlock(self):
         """
         Unlocks all actions
@@ -202,6 +234,8 @@ class MultiJobMenu(QtWidgets.QMenu):
             self.lock_as_none()
         elif task_status is TaskStatus.installation:
             self.lock_as_installation()
+        elif task_status is TaskStatus.qued:
+            self.lock_as_qued()
         elif task_status is TaskStatus.running:
             self.lock_as_running()
         elif task_status is TaskStatus.pausing:
@@ -210,6 +244,8 @@ class MultiJobMenu(QtWidgets.QMenu):
             self.lock_as_paused()
         elif task_status is TaskStatus.resuming:
             self.lock_as_resuming()
+        elif task_status is TaskStatus.finished:
+            self.lock_as_finished()
         else:
             self.unlock()
 

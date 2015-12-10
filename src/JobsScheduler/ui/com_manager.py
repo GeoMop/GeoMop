@@ -30,11 +30,14 @@ class ComManager:
 
     def pause(self, key):
         worker = self._workers[key]
+        worker.is_ready.clear()
         req = ReqData(key=key, com_type=ComType.pause)
+        worker.drop_all_req()
         worker.req_queue.put(req)
 
     def resume(self, key):
         worker = self._workers[key]
+        worker.is_ready.set()
         req = ReqData(key=key, com_type=ComType.resume)
         worker.req_queue.put(req)
 
@@ -57,8 +60,8 @@ class ComManager:
 
     def stop(self, key):
         worker = self._workers[key]
-        worker.drop_all_req()
         req = ReqData(key=key, com_type=ComType.stop)
+        worker.drop_all_req()
         worker.req_queue.put(req)
 
     def is_installed(self, key):
@@ -69,7 +72,7 @@ class ComManager:
 
     def is_busy(self, key):
         worker = self._workers.get(key, None)
-        if worker.req_queue.empty():
+        if worker.req_queue.empty() and worker.is_ready.is_set():
             return False
         return True
         
@@ -213,6 +216,7 @@ class ComWorker(threading.Thread):
             super().__init__(name=com.mj_name)
             self.key = key
             self.com = com
+            self.is_ready = threading.Event()
             self._is_running = threading.Event()
             self.req_queue = Queue()
             self.res_queue = res_queue
@@ -226,16 +230,18 @@ class ComWorker(threading.Thread):
                     continue
 
         def run(self):
+            self.is_ready.set()
             self._is_running.set()
             while self._is_running.is_set():
                 req = self.req_queue.get()
                 if req is None:
                     break
                 else:
-                    res = ComExecutor.communicate(self.com, req)
+                    res = ComExecutor.communicate(self.com, req,
+                                                  self.res_queue)
                     self.res_queue.put(res)
             res = ComExecutor.communicate(
-                self.com, ReqData(self.key, ComType.stop))
+                self.com, ReqData(self.key, ComType.stop), self.res_queue)
             self.res_queue.put(res)
 
         def stop(self):
@@ -245,12 +251,12 @@ class ComWorker(threading.Thread):
 
 class ComExecutor(object):
     @classmethod
-    def communicate(cls, com, req):
+    def communicate(cls, com, req, res_queue):
         res = ResData(req.key, req.com_type)
         try:
             # install
             if req.com_type == ComType.install:
-                res = cls._install(com, res)
+                res = cls._install(com, res, res_queue)
 
             # download results
             elif req.com_type == ComType.results:
@@ -281,7 +287,7 @@ class ComExecutor(object):
         return res
 
     @staticmethod
-    def _install(com, res):
+    def _install(com, res, res_queue):
         old_phase = TaskStatus.installation
         com.install()
         sec = time.time() + 600
@@ -296,8 +302,7 @@ class ComExecutor(object):
                 phase = mess.get_action().data.data['phase']
                 if phase is not old_phase:
                     # add to queue
-                    pass
-                pass
+                    res_queue.put(ResData(res.key, ComType.qued, mess))
             else:
                 break
             time.sleep(10)

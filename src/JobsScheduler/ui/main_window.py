@@ -47,6 +47,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
 
+        self.res_handler.mj_qued.connect(
+            self.handle_mj_qued)
+
         self.res_handler.mj_result.connect(
             self.handle_mj_result)
 
@@ -181,13 +184,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             preset = copy.deepcopy(self.data.multijobs[key].preset)
-            preset.name = self.presets_dlg.\
+            preset.name = self.mj_dlg.\
                 PURPOSE_COPY_PREFIX + " " + preset.name
             data = {
                 "key": key,
                 "preset": preset
             }
-            self.presets_dlg.exec_copy(data)
+            self.mj_dlg.exec_copy(data)
 
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
@@ -221,6 +224,9 @@ class MainWindow(QtWidgets.QMainWindow):
         res_path = Installation.get_result_dir_static(com.mj_name)
         log_path = os.path.join(res_path, "log")
         self.ui.tabWidget.ui.logsTab.reload_view(log_path)
+        self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
+        mj.jobs = None
+        self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
         self.com_manager.install(key, com)
         Communicator.unlock_installation(com.mj_name)
 
@@ -286,6 +292,14 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
+    def handle_mj_qued(self, key):
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.qued)
+        self.ui.overviewWidget.update_item(key, mj.state)
+
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
+
     def handle_mj_paused(self, key):
         mj = self.data.multijobs[key]
         mj.change_status(TaskStatus.paused)
@@ -304,22 +318,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_mj_stopped(self, key):
         mj = self.data.multijobs[key]
-        mj.change_status(TaskStatus.none)
-        self.ui.overviewWidget.update_item(key, mj.state)
-
+        if mj.state.status is not TaskStatus.finished:
+            mj.change_status(TaskStatus.none)
+            self.ui.overviewWidget.update_item(key, mj.state)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
     def handle_mj_state(self, key, state):
+        mj = self.data.multijobs[key]
         if state.status == TaskStatus.running:
-            mj_state = self.data.multijobs[key].state
-            mj_state.update(state)
-            self.ui.overviewWidget.update_item(key, mj_state)
+            mj.update_state(state)
+            self.ui.overviewWidget.update_item(key, mj.state)
         elif state.status == TaskStatus.ready:
+            mj.update_state(state)
+            mj.change_status(TaskStatus.finished)
+            self.ui.overviewWidget.update_item(key, mj.state)
+
             current = self.ui.overviewWidget.currentItem()
-            state = self.data.multijobs[key].state
-            state.status = TaskStatus.stopping
-            self.ui.overviewWidget.update_item(key, state)
             self.update_ui_locks(current)
             self.com_manager.stop(key)
             Communicator.unlock_application(
