@@ -123,6 +123,13 @@ class CommunicatorConfig(object):
 
         self.next_communicator = CommType.none.value
         """communicator file that will be start"""
+        
+        self.direct_communication = True
+        """
+        This parameter is for remote and mj_service configurator.
+        If parametr is true, this communicators comunicate directli 
+        over socket. Only installation message is sent over remote.        
+        """
 
         self.input_type = InputCommType.none
         """Input communication type"""

@@ -13,6 +13,7 @@ import communication.installation as inst
 from communication import JobsCommunicator
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.exec_output_comm import  ExecOutputComm
+from data.job import  Job
 
 import signal
 def end_handler(signal, frame):
@@ -56,25 +57,30 @@ class JobStarter():
 def  remote_action_function_before(message):
     """before action function"""
     if message.action_type == tdata.ActionType.add_job:
-        if comunicator.conf.output_type == comconf.OutputCommType.none or \
-            comunicator.conf.output_type == comconf.OutputCommType.ssh:
-            action=tdata.Action(tdata.ActionType.error)
-            action.data.data["msg"] = "Communacion to job must be over socket"
+        if comunicator.conf.direct_communication:
+            if comunicator.conf.output_type == comconf.OutputCommType.none or \
+                comunicator.conf.output_type == comconf.OutputCommType.ssh:
+                action=tdata.Action(tdata.ActionType.error)
+                action.data.data["msg"] = "Communacion to job must be over socket"
+            else:
+                id = message.get_action().data.data['id']
+                if id in started_jobs:
+                    host, port = started_jobs[id].get_connection()
+                    if host is None:
+                        action=tdata.Action(tdata.ActionType.action_in_process)
+                    else:
+                        # ToDo for remote exec return host (not localhost-])
+                        action=tdata.Action(tdata.ActionType.job_conn)
+                        action.data.set_conn(host, port)
+                else:
+                    started_jobs[id] = JobStarter(comunicator.conf, id)
+                    action=tdata.Action(tdata.ActionType.action_in_process) 
+                mess = action.get_message() 
+            return False, mess 
         else:
             id = message.get_action().data.data['id']
-            if id in started_jobs:
-                host, port = started_jobs[id].get_connection()
-                if host is None:
-                    action=tdata.Action(tdata.ActionType.action_in_process)
-                else:
-                    # ToDo for remote exec return host (not localhost-])
-                    action=tdata.Action(tdata.ActionType.job_conn)
-                    action.data.set_conn(host, port)
-            else:
-                started_jobs[id] = JobStarter(comunicator.conf, id)
-                action=tdata.Action(tdata.ActionType.action_in_process) 
-            mess = action.get_message() 
-        return False, mess       
+            comunicator.add_job(id, Job(id))
+            return False, mess
     return super(JobsCommunicator, comunicator).standart_action_function_before(message)
     
 def  remote_action_function_after(message):
