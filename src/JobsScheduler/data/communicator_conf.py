@@ -124,7 +124,7 @@ class CommunicatorConfig(object):
         self.next_communicator = CommType.none.value
         """communicator file that will be start"""
         
-        self.direct_communication = True
+        self.direct_communication = False
         """
         This parameter is for remote and mj_service configurator.
         If parametr is true, this communicators comunicate directli 

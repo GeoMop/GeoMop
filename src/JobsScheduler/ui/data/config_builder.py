@@ -157,6 +157,12 @@ class ConfigBuilder:
                 .set_pbs(j_pbs)
             job.set_in_comm(InputCommType.pbs)
 
+        if mj_remote_execution_type == UiResourceDialog.PBS_LABEL and \
+           j_execution_type == UiResourceDialog.REMOTE_LABEL and \
+           j_remote_execution_type == UiResourceDialog.PBS_LABEL:
+            mj.conf.direct_communication = True
+            remote.conf.direct_communication = True
+
         # save to files
         with open(app.get_path(), "w") as app_file:
             CommunicatorConfigService.save_file(
