@@ -4,6 +4,7 @@ Table of MultiJobs
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import datetime
 import time
 import os
 import PyQt5.QtWidgets as QtWidgets
@@ -58,7 +59,7 @@ class AbstractTab(QtWidgets.QWidget):
         self.ui.horizontalLayout.setObjectName("horizontalLayout")
         self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
         self.ui.headers = ["Header"]
-        self.time_format = "%H:%M:%S %d/%m/%y"
+        self.time_format = "%d. %m. %y; %H:%M:%S"
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.setAlternatingRowColors(True)
         self.ui.treeWidget.setSortingEnabled(True)
@@ -116,13 +117,19 @@ class JobsTab(AbstractTab):
     @staticmethod
     def _update_item(item, job, time_format):
         item.setText(0, job.name)
-        item.setText(1, time.strftime(
-            time_format, time.gmtime(job.insert_time)))
-        item.setText(2, time.strftime(
-            time_format, time.gmtime(job.queued_time)))
-        item.setText(3, time.strftime(
-            time_format, time.gmtime(job.start_time)))
-        item.setText(4, str(job.run_interval))
+        item.setText(1, datetime.datetime.fromtimestamp(
+                job.insert_time).strftime(time_format))
+        if job.queued_time:
+            item.setText(2, datetime.datetime.fromtimestamp(
+                job.queued_time).strftime(time_format))
+        else:
+            item.setText(2, "Not Queued Yet")
+        if job.start_time:
+            item.setText(3, datetime.datetime.fromtimestamp(
+                job.start_time).strftime(time_format))
+        else:
+            item.setText(3, "Not Started Yet")
+        item.setText(4, str(datetime.timedelta(seconds=job.run_interval)))
         item.setText(5, TaskStatus(job.status).name)
         return item
 

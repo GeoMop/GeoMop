@@ -6,7 +6,6 @@ Table of MultiJobs
 """
 import datetime
 import PyQt5.QtWidgets as QtWidgets
-import time
 
 from PyQt5 import QtCore
 
@@ -35,19 +34,17 @@ class Overview(QtWidgets.QTreeWidget):
 
     @staticmethod
     def _update_item(item, state, time_format):
-        # datetime.datetime.fromtimestamp(ts_epoch).strftime('%Y-%m-%d
-        # %H:%M:%S') to remove time import
         item.setText(1, str(state.name))
-        item.setText(2, time.strftime(
-            time_format, time.gmtime(state.insert_time)))
+        item.setText(2, datetime.datetime.fromtimestamp(
+                state.insert_time).strftime(time_format))
         if state.queued_time:
-            item.setText(3, time.strftime(
-                time_format, time.gmtime(state.queued_time)))
+            item.setText(3, datetime.datetime.fromtimestamp(
+                state.queued_time).strftime(time_format))
         else:
             item.setText(3, "Not Queued Yet")
         if state.start_time:
-            item.setText(4, time.strftime(
-                time_format, time.gmtime(state.start_time)))
+            item.setText(4, datetime.datetime.fromtimestamp(
+                state.start_time).strftime(time_format))
         else:
             item.setText(4, "Not Started Yet")
         item.setText(5, str(datetime.timedelta(seconds=state.run_interval)))
