@@ -12,7 +12,6 @@ from communication import JobsCommunicator
 import data.communicator_conf as comconf
 import communication.installation as inst
 import data.transport_data as tdata
-from data.job import  Job
 
 logger = logging.getLogger("Remote")
 
@@ -20,18 +19,22 @@ def  mj_action_function_before(message):
     """before action function"""
     global mj_name, start_time
     if message.action_type == tdata.ActionType.get_state:
-        state = comunicator.get_state()
-        action = tdata.Action(tdata.ActionType.state)
-        action.data.set_data(state)
-        return False, action.get_message()        
+        if com_conf.output_type != comconf.OutputCommType.ssh or \
+           com_conf.direct_communication:
+            state = comunicator.get_state()
+            action = tdata.Action(tdata.ActionType.state)
+            action.data.set_data(state)
+            return False, action.get_message()        
     return comunicator.standart_action_function_before(message)
     
 def  mj_action_function_after(message,  response):
     """before action function"""
     global mj_name
     if message.action_type == tdata.ActionType.download_res:
-        states =  comunicator.get_jobs_states()
-        states.save_file(inst.Installation.get_result_dir_static(mj_name))
+        if com_conf.output_type != comconf.OutputCommType.ssh or \
+           com_conf.direct_communication:
+            states =  comunicator.get_jobs_states()
+            states.save_file(inst.Installation.get_result_dir_static(mj_name))
     return comunicator.standart_action_function_after(message,  response)
 
 i = 0
@@ -40,9 +43,9 @@ def  mj_idle_function():
     global i
     i += 1
     if i == 1:
-        comunicator.add_job("test1", Job("test1"))
+        comunicator.add_job("test1")
     if i == 2:
-        comunicator.add_job("test2", Job("test2"))
+        comunicator.add_job("test2")
 
 
 if len(sys.argv) < 2:

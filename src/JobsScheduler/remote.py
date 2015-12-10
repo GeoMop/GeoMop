@@ -13,7 +13,6 @@ import communication.installation as inst
 from communication import JobsCommunicator
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.exec_output_comm import  ExecOutputComm
-from data.job import  Job
 
 import signal
 def end_handler(signal, frame):
@@ -56,6 +55,12 @@ class JobStarter():
  
 def  remote_action_function_before(message):
     """before action function"""
+    global mj_name, start_time
+    if message.action_type == tdata.ActionType.get_state:
+        state = comunicator.get_state()
+        action = tdata.Action(tdata.ActionType.state)
+        action.data.set_data(state)
+        return False, action.get_message()        
     if message.action_type == tdata.ActionType.add_job:
         if comunicator.conf.direct_communication:
             if comunicator.conf.output_type == comconf.OutputCommType.none or \
@@ -79,12 +84,17 @@ def  remote_action_function_before(message):
             return False, mess 
         else:
             id = message.get_action().data.data['id']
-            comunicator.add_job(id, Job(id))
-            return False, mess
+            comunicator.add_job(id)
+            action = tdata.Action(tdata.ActionType.ok)
+            return False, action.get_message()
     return super(JobsCommunicator, comunicator).standart_action_function_before(message)
     
 def  remote_action_function_after(message):
     """after action function"""
+    global mj_name
+    if message.action_type == tdata.ActionType.download_res:
+        states =  comunicator.get_jobs_states()
+        states.save_file(inst.Installation.get_result_dir_static(mj_name))
     return super(JobsCommunicator, comunicator).standart_action_function_after(message)
     
 logger = logging.getLogger("Remote")

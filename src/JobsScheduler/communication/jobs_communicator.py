@@ -9,6 +9,7 @@ import threading
 from  communication.exec_output_comm import  ExecOutputComm
 import time
 from data.states import JobsState, MJState, TaskStatus
+from data.job import  Job
 
 logger = logging.getLogger("Remote")
 
@@ -74,7 +75,9 @@ class JobsCommunicator(Communicator):
             return resent, mess
         if message.action_type == tdata.ActionType.download_res:
             # processing in after function
-            return False, None
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
+               comconf.direct_communication:
+                return False, None
         if message.action_type == tdata.ActionType.stop:
             # processing in after function
             if self.conf.output_type != comconf.OutputCommType.ssh:
@@ -100,8 +103,10 @@ class JobsCommunicator(Communicator):
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         if message.action_type == tdata.ActionType.download_res:
-            action = tdata.Action(tdata.ActionType.ok)
-            return action.get_message()
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
+               comconf.direct_communication:
+                action = tdata.Action(tdata.ActionType.ok)
+                return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
 
     def  job_idle_func(self):
@@ -120,72 +125,97 @@ class JobsCommunicator(Communicator):
         already processed it.
         """
         if self._stopping:
-            id = self._get_next_id(self._last_check_id)
-            # ToDo in pbs try stop qued processes over qsub
-            if id is not None:
-                self.jobs[id].state_stopping()
-                action=tdata.Action(tdata.ActionType.stop)
-                logger.debug("Stop message to running job " + id + " is sent")
-                self.job_outputs[id].send(action.get_message())
-                mess = self.job_outputs[id].receive()
-                logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
-                if mess is not None and mess.action_type == tdata.ActionType.ok:
-                    self.ready_jobs[id] = self.jobs[id]
-                    self.jobs[id].state_stopped()
-                    self.job_outputs[id].disconnect()
+            if self.conf.output_type == comconf.OutputCommType.ssh and \
+                comconf.direct_communication:
+                for id in self.jobs:
                     del self.jobs[id]
                     del self.job_outputs[id]
-            return
+                return
+            else:
+                id = self._get_next_id(self._last_check_id)
+                # ToDo in pbs try stop qued processes over qsub
+                if id is not None:
+                    self.jobs[id].state_stopping()
+                    action=tdata.Action(tdata.ActionType.stop)
+                    logger.debug("Stop message to running job " + id + " is sent")
+                    self.job_outputs[id].send(action.get_message())
+                    mess = self.job_outputs[id].receive()
+                    logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
+                    if mess is not None and mess.action_type == tdata.ActionType.ok:
+                        self.ready_jobs[id] = self.jobs[id]
+                        self.jobs[id].state_stopped()
+                        self.job_outputs[id].disconnect()
+                        del self.jobs[id]
+                        del self.job_outputs[id]
+                return
         make_custom_action = True
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            id = self._get_next_id( self._last_send_id, False)
-            if id is not None:
-                action=tdata.Action(tdata.ActionType.add_job)
-                action.data.set_id(id)
-                mess = action.get_message()
-                self._last_send_id = id
-                self.send_message(mess)
-                mess = self.receive_message()
-                if mess is not None and mess.action_type == tdata.ActionType.job_conn:
-                    # connection over remote was established
-                    self.jobs[id].state_start()
-                    self.job_outputs[id].host = mess.get_action().data.data['host']
-                    self.job_outputs[id].port = mess.get_action().data.data['port']
-                    self._connect_socket(self.job_outputs[id], 1)
-                    make_custom_action = False
-                    self._job_running()
+            if self.conf.output_type == comconf.OutputCommType.ssh and \
+                not comconf.direct_communication:
+                for id in self.jobs:
+                    if self.jobs[id] is False:
+                        action=tdata.Action(tdata.ActionType.add_job)
+                        action.data.set_id(id)
+                        mess = action.get_message()
+                        self._last_send_id = id
+                        self.send_message(mess)
+                        mess = self.receive_message()
+                        if mess is not None and mess.action_type == tdata.ActionType.ok:
+                            self.jobs[id] = True
+                            break
+            else:
+                id = self._get_next_id( self._last_send_id, False)
+                if id is not None:
+                    action=tdata.Action(tdata.ActionType.add_job)
+                    action.data.set_id(id)
+                    mess = action.get_message()
+                    self._last_send_id = id
+                    self.send_message(mess)
+                    mess = self.receive_message()
+                    if mess is not None and mess.action_type == tdata.ActionType.job_conn:
+                        # connection over remote was established
+                        self.jobs[id].state_start()
+                        self.job_outputs[id].host = mess.get_action().data.data['host']
+                        self.job_outputs[id].port = mess.get_action().data.data['port']
+                        self._connect_socket(self.job_outputs[id], 1)
+                        make_custom_action = False
+                        self._job_running()
         else:
-            for id in self.jobs:
-                # connect
-                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
-                    self.jobs[id].state_start()
-                    self._connect_socket(self.job_outputs[id], 1)
-                    make_custom_action = False
-                    self._job_running()
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
+                    comconf.direct_communication:
+                for id in self.jobs:
+                    # connect
+                    if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                        self.jobs[id].state_start()
+                        self._connect_socket(self.job_outputs[id], 1)
+                        make_custom_action = False
+                        self._job_running()
         if make_custom_action:
             # get status
-            id = self._get_next_id(self._last_check_id)
-            if id is not None:    
-                action=tdata.Action(tdata.ActionType.get_state)
-                logger.debug("Get job status message to " + id + " is sent")
-                self.job_outputs[id].send(action.get_message())
-                mess = self.job_outputs[id].receive()
-                logger.debug("Answer to status nessage is receive (" + str(mess) + ')')
-                self._last_check_id = id
-                if mess is not None and mess.action_type == tdata.ActionType. job_state:
-                    if mess.get_action().data.data['ready']:
-                        action=tdata.Action(tdata.ActionType.stop)
-                        logger.debug("Stop message to ready job " + id + " is sent")
-                        self.job_outputs[id].send(action.get_message())
-                        mess = self.job_outputs[id].receive()
-                        logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
-                        if mess is not None and mess.action_type == tdata.ActionType.ok:
-                            self.ready_jobs[id] = self.jobs[id]
-                            self.jobs[id].state_ready()
-                            self.job_outputs[id].disconnect()
-                            del self.jobs[id]
-                            del self.job_outputs[id]
-                            self._job_ready()
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
+               comconf.direct_communication:
+                id = self._get_next_id(self._last_check_id)
+                if id is not None:    
+                    action=tdata.Action(tdata.ActionType.get_state)
+                    logger.debug("Get job status message to " + id + " is sent")
+                    self.job_outputs[id].send(action.get_message())
+                    mess = self.job_outputs[id].receive()
+                    logger.debug("Answer to status nessage is receive (" + str(mess) + ')')
+                    self._last_check_id = id
+                    if mess is not None and mess.action_type == tdata.ActionType. job_state:
+                        if mess.get_action().data.data['ready']:
+                            action=tdata.Action(tdata.ActionType.stop)
+                            logger.debug("Stop message to ready job " + id + " is sent")
+                            self.job_outputs[id].send(action.get_message())
+                            mess = self.job_outputs[id].receive()
+                            logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
+                            if mess is not None and mess.action_type == tdata.ActionType.ok:
+                                self.ready_jobs[id] = self.jobs[id]
+                                self.jobs[id].state_ready()
+                                self.job_outputs[id].disconnect()
+                                del self.jobs[id]
+                                del self.job_outputs[id]
+                                self._job_ready()
         if make_custom_action:
             self.anc_idle_func()
             
@@ -232,15 +262,19 @@ class JobsCommunicator(Communicator):
             super(JobsCommunicator, self)._exec_()
         self._state_ready()
         
-    def add_job(self, id, job):
+    def add_job(self, id):
         """Add job to dictionary, process it and make connection if is needed"""
-        self.jobs[id] = job
-        """Dictionary of jobs that is run by communicator"""
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
-            logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
-            self.job_outputs[id].initialized = True
+            if comconf.direct_communication:
+                self.jobs[id] = Job(id)
+                self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
+                logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
+                self.job_outputs[id].initialized = True
+            else:
+                self.jobs[id] = False
+                self.job_outputs[id] = None
         else:
+            self.jobs[id] = Job(id)
             self.job_outputs[id] = self.get_output(self.conf, id)
             self.job_outputs[id].installation.local_copy_path() # only copy path
             logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
