@@ -70,12 +70,20 @@ class ResourcesData(PersistentDict):
     FILE_NAME = "resources"
 
 
-class EnvData(PersistentDict):
+class EnvPresets(PersistentDict):
     """
     Child class for ENV data.
     """
     DIR = "environments"
     FILE_NAME = "environments"
+
+
+class SetData(PersistentDict):
+    """
+    Child class for SET data.
+    """
+    DIR = "settings"
+    FILE_NAME = "settings"
 
 
 class DataContainer(object):
@@ -86,7 +94,8 @@ class DataContainer(object):
     ssh_presets = SshData()
     pbs_presets = PbsData()
     resource_presets = ResourcesData()
-    env_presets = EnvData()
+    env_presets = EnvPresets()
+    set_data = SetData()
 
     def __init__(self):
         self.load_all()
@@ -101,6 +110,7 @@ class DataContainer(object):
         self.pbs_presets.save()
         self.resource_presets.save()
         self.env_presets.save()
+        self.set_data.save()
         logger.info('==== Everything saved successfully! ====')
 
     def load_all(self):
@@ -126,5 +136,9 @@ class DataContainer(object):
 
         self.env_presets.load()
         if not self.env_presets:
-            self.env_presets = EnvData()
+            self.env_presets = EnvPresets()
+
+        self.set_data.load()
+        if not self.set_data:
+            self.set_data = SetData()
         logger.info('==== Everything loaded successfully! ====')
