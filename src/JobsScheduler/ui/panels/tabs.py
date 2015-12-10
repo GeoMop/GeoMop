@@ -119,7 +119,7 @@ class JobsTab(AbstractTab):
         item.setText(1, time.strftime(
             time_format, time.gmtime(job.insert_time)))
         item.setText(2, time.strftime(
-            time_format, time.gmtime(job.qued_time)))
+            time_format, time.gmtime(job.queued_time)))
         item.setText(3, time.strftime(
             time_format, time.gmtime(job.start_time)))
         item.setText(4, str(job.run_interval))
