@@ -158,6 +158,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # reload view
         self.ui.overviewWidget.reload_items(self.data.multijobs)
 
+        # select last selected mj
+        if "selected_mj" in self.data.set_data:
+            self.ui.overviewWidget.setCurrentItem(
+                self.ui.overviewWidget.topLevelItem(
+                    int(self.data.set_data["selected_mj"])))
+
     def update_ui_locks(self, current, previous=None):
         if current is None:
             self.ui.menuBar.multiJob.lock_by_status(None)
@@ -272,7 +278,11 @@ class MainWindow(QtWidgets.QMainWindow):
             state = mj[key].state
             state.status = TaskStatus.none
         self.com_manager.terminate()
-        print("Exiting")
+
+        # save currently selected mj
+        current = self.ui.overviewWidget.currentItem()
+        sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
+        self.data.set_data["selected_mj"] = sel_index
 
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
