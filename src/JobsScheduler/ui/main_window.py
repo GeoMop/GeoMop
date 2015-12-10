@@ -165,9 +165,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # select last selected mj
         index = 0
         if "selected_mj" in self.data.set_data:
-            index = self.ui.overviewWidget.topLevelItem(
-                int(self.data.set_data["selected_mj"]))
-        self.ui.overviewWidget.setCurrentItem(index)
+            if self.ui.overviewWidget.topLevelItemCount()>0:
+                id=0
+                if self.ui.overviewWidget.topLevelItemCount() > int(self.data.set_data["selected_mj"]):
+                    id = int(self.data.set_data["selected_mj"])
+                index = self.ui.overviewWidget.topLevelItem(id)
+                self.ui.overviewWidget.setCurrentItem(index)
 
     def update_ui_locks(self, current, previous=None):
         if current is None:

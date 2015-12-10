@@ -41,9 +41,12 @@ if sys.platform == "win32":
             self.installation.prepare_ssh_env(self.ssh)
             try:
                 if self.installation.create_install_dir(self.ssh, self.ssh):
-                    if self.installation.lock_installation_over_ssh(self.ssh, self.ssh, True):
+                    ins_app, ins_data = self.installation.lock_installation_over_ssh(self.ssh, self.ssh, True)
+                    if ins_app:
                         self.installation.copy_install_files(self.ssh, self.ssh)
                         self.installation.lock_installation_over_ssh(self.ssh, self.ssh, False)
+                    if ins_data:
+                        self.installation.copy_data_files(self.ssh, self.ssh)
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
               
@@ -151,9 +154,12 @@ else:
             try:        
                 sftp = self._get_sftp()
                 if self.installation.create_install_dir(sftp, self.ssh):
-                    if self.installation.lock_installation_over_ssh(sftp, self.ssh, True):
+                    ins_app, ins_data = self.installation.lock_installation_over_ssh(sftp, self.ssh, True)
+                    if ins_app:
                         self.installation.copy_install_files(sftp, self.ssh)
                         self.installation.lock_installation_over_ssh(sftp, self.ssh, False)
+                    if ins_data:
+                        self.installation.copy_data_files(self.ssh, self.ssh)
                 sftp.close()
             except Exception as err:
                 logger.warning("Installation error: " + str(err))

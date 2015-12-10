@@ -5,6 +5,7 @@ import time
 __lock_dir__ = "lock"
 __version_dir__ = "versions"
 
+
 class Lock():
     """
     Class for locking application.
@@ -22,6 +23,10 @@ class Lock():
         - Library lock for save installing set library version
           files: lib.lock
     """
+    __data__ = 1
+    __app__ = 2
+    __nothing__ = 0
+    
     def __init__(self, mj_name, path):
         """init"""
         self._mj_name = mj_name
@@ -37,7 +42,7 @@ class Lock():
         self._version_dir = os.path.join(path, __version_dir__)        
         """Path to version files"""
         
-    def lock_app(self,  install_ver, data_ver,  res_dir):
+    def lock_app(self,  install_ver, data_ver, res_dir, conf_dir):
         """
         Check if application with mj_name is not runnig
         and is installed right version of installation.
@@ -51,9 +56,12 @@ class Lock():
             is not locked, install.lock is set and all js directory is 
             removed. Unlock install must be called after installation
           - If data version is diferent, remove multijob data dir
-        return True if install lock is set
+        return bite add of contant:
+            - __data__ = 1
+            - __app__ = 2
+            - __nothing__ = 0
         """
-        res = True
+        res = Lock.__nothing__
         if self._lock_file("app.lock"):
             if not self._lock_file(self._mj_name + "_app.lock", 0):
                 self._unlock_file("app.lock")
@@ -91,16 +99,20 @@ class Lock():
                     if os.path.isfile(path) and name != "locks.py":
                         os.remove(path)
                 self._write_version("install.version", install_ver )
+                res |= Lock.__app__
             else:
                 self._write_version("install.version", install_ver, False)
                 self._unlock_file("install.lock")
-                res = False
+               
             # installation ready
             dataed_ver = self._read_version(self._mj_name + "_data.version")
-            if dataed_ver is None or dataed_ver != data_ver:
+            if dataed_ver is None or dataed_ver != data_ver:                
+                if os.path.isdir(conf_dir):
+                    shutil.rmtree(conf_dir, ignore_errors=True)                 
                 if os.path.isdir(res_dir):
                     shutil.rmtree(res_dir, ignore_errors=True) 
-                self._write_version(self._mj_name + "_data.version", data_ver)          
+                self._write_version(self._mj_name + "_data.version", data_ver)   
+                res |= Lock.__data__
             # data_ready            
         else:
             raise LockFileError("Global lock can't be set.")
@@ -233,14 +245,15 @@ if __name__ == "__main__":
     """
     import sys
     
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
         raise Exception('Lock application seven parameters require')
     mj_name = sys.argv[1]
     path = sys.argv[2]
     install_ver = sys.argv[3]
     data_ver = sys.argv[4]
     res_path = sys.argv[5]
-    locking = sys.argv[6]
+    conf_path = sys.argv[6]
+    locking = sys.argv[7]
         
     lock = Lock(mj_name, path)
     if locking == "N":
@@ -248,12 +261,10 @@ if __name__ == "__main__":
         print("--0--")
         sys.exit(0)
     try:
-        if not lock.lock_app(install_ver, data_ver, res_path):
-            print("--1--")
-            sys.exit(1)
+        res = lock.lock_app(install_ver, data_ver, res_path, conf_path)
     except LockFileError as err:
         print("Lock instalation error: " + str(err))
-        print("--2--")
+        print("---1--")
         sys.exit(2)
-    print("--0--")
+    print("--" + str(res) + "--")
     sys.exit(0)
