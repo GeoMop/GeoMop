@@ -25,7 +25,9 @@ class ComManager:
     def install(self, key, com):
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
         req_install = ReqData(key=key, com_type=ComType.install)
+        req_results = ReqData(key=key, com_type=ComType.results)
         worker.req_queue.put(req_install)
+        worker.req_queue.put(req_results)
         self._workers[worker.key] = worker
 
     def pause(self, key):
@@ -129,7 +131,7 @@ class ComManagerMock:
         mess = tdata.Message()
         data = MJState(self._workers[key].mj_name)
         data.insert_time = 1448021814
-        data.qued_time = 1448021814
+        data.queued_time = 1448021814
         data.start_time = 1448021814
         data.run_interval = 20
         data.status = TaskStatus.running

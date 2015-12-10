@@ -111,9 +111,9 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.actionStopMultiJob.setDisabled(True)
         self.actionRestartMultiJob.setDisabled(True)
 
-    def lock_as_qued(self):
+    def lock_as_queued(self):
         """
-        Locks to state qued
+        Locks to state queued
         :return:
         """
         self.actionAddMultiJob.setDisabled(False)
@@ -235,7 +235,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         elif task_status is TaskStatus.installation:
             self.lock_as_installation()
         elif task_status is TaskStatus.qued:
-            self.lock_as_qued()
+            self.lock_as_queued()
         elif task_status is TaskStatus.running:
             self.lock_as_running()
         elif task_status is TaskStatus.pausing:

@@ -4,8 +4,10 @@ MujtiJob data structure.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import os
 import time
 
+from communication import Installation
 from data.states import TaskStatus
 
 
@@ -17,6 +19,41 @@ class MultiJob:
         self.jobs = None
         self.res = None
         self.conf = None
+
+    def action_run(self):
+        """
+        Reset times and remove previous results.
+        :return: None
+        """
+        # reset data
+        # self.logs = None
+        self.jobs = None
+        # self.res = None
+        # self.conf = None
+
+        # reset times
+        self.state.queued_time = None
+        self.state.start_time = time.time()
+
+        # set status to installation
+        self.change_status(TaskStatus.installation)
+
+        # delete previous results
+        res_path = Installation.get_result_dir_static(self.state.name)
+        for root, dirs, files in os.walk(res_path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+
+    def action_queued(self):
+        """
+        Changes status to queued and sets queued time.
+        :return: None
+        """
+        self.state.queued_time = time.time()
+        # set status to installation
+        self.change_status(TaskStatus.qued)
 
     def update_state(self, new_state):
         """
@@ -49,7 +86,7 @@ class MultiJobState:
         """Name of multijob"""
         self.insert_time = time.time()
         """When MultiJob was started"""
-        self.qued_time = None
+        self.queued_time = None
         """When MultiJob was qued"""
         self.start_time = None
         """When MultiJob was started"""
@@ -72,8 +109,8 @@ class MultiJobState:
         :param state: Communication state data
         :return: None
         """
-        self.qued_time = state.qued_time
-        self.start_time = state.start_time
+        # self.queued_time = state.queued_time
+        # self.start_time = state.start_time
         self.run_interval = state.run_interval
         self.status = state.status
         self.known_jobs = state.known_jobs

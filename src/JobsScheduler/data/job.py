@@ -13,7 +13,7 @@ class Job:
     def state_qued(self):
         """change state to qued"""
         self._data_lock.acquire()
-        self._state.qued_time = time.time()
+        self._state.queued_time = time.time()
         self._state.status = TaskStatus.qued
         self._data_lock.release()
         

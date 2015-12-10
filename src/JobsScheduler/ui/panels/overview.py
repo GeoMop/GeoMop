@@ -40,10 +40,16 @@ class Overview(QtWidgets.QTreeWidget):
         item.setText(1, str(state.name))
         item.setText(2, time.strftime(
             time_format, time.gmtime(state.insert_time)))
-        item.setText(3, time.strftime(
-            time_format, time.gmtime(state.qued_time)))
-        item.setText(4, time.strftime(
-            time_format, time.gmtime(state.start_time)))
+        if state.queued_time:
+            item.setText(3, time.strftime(
+                time_format, time.gmtime(state.queued_time)))
+        else:
+            item.setText(3, "Not Queued Yet")
+        if state.start_time:
+            item.setText(4, time.strftime(
+                time_format, time.gmtime(state.start_time)))
+        else:
+            item.setText(4, "Not Started Yet")
         item.setText(5, str(datetime.timedelta(seconds=state.run_interval)))
         item.setText(6, str(state.status.name))
         item.setText(7, str(state.known_jobs))

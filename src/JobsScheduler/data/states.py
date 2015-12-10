@@ -28,7 +28,7 @@ class MJState:
         """Name of multijob"""        
         self.insert_time = time.time()
         """when multiJob was started"""
-        self.qued_time = None
+        self.queued_time = None
         """when multiJob was qued"""
         self.start_time = None
         """when multiJob was started"""
@@ -54,7 +54,7 @@ class JobState:
         """Name of job"""
         self.insert_time = time.time()
         """when Job was started"""
-        self.qued_time = None
+        self.queued_time = None
         """when Job was qued"""
         self.start_time = None
         """when Job was started"""

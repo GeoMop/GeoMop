@@ -163,10 +163,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load_settings(self):
         # select last selected mj
+        index = 0
         if "selected_mj" in self.data.set_data:
-            self.ui.overviewWidget.setCurrentItem(
-                self.ui.overviewWidget.topLevelItem(
-                    int(self.data.set_data["selected_mj"])))
+            index = self.ui.overviewWidget.topLevelItem(
+                int(self.data.set_data["selected_mj"]))
+        self.ui.overviewWidget.setCurrentItem(index)
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -221,29 +222,24 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
         mj = self.data.multijobs[key]
-        mj.change_status(TaskStatus.installation)
-        self.ui.overviewWidget.update_item(key, mj.state)
+        mj.action_run()
 
+        self.ui.overviewWidget.update_item(key, mj.state)
         self.update_ui_locks(current)
 
         conf_builder = ConfigBuilder(self.data)
         app_conf = conf_builder.build(key)
         Communicator.lock_installation(app_conf)
         com = Communicator(app_conf)
+        self.com_manager.install(key, com)
+        Communicator.unlock_installation(com.mj_name)
+
         # reload log
         res_path = Installation.get_result_dir_static(com.mj_name)
         log_path = os.path.join(res_path, "log")
-        # delete results
-        for root, dirs, files in os.walk(res_path, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
         self.ui.tabWidget.ui.logsTab.reload_view(log_path)
         self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
-        mj.jobs = None
         self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
-        self.com_manager.install(key, com)
-        Communicator.unlock_installation(com.mj_name)
-        self.com_manager.results(key)
 
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -313,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_mj_qued(self, key):
         mj = self.data.multijobs[key]
-        mj.change_status(TaskStatus.qued)
+        mj.action_queued()
         self.ui.overviewWidget.update_item(key, mj.state)
 
         current = self.ui.overviewWidget.currentItem()
