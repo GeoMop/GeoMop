@@ -205,6 +205,7 @@ class ComType(IntEnum):
         pause = 3
         resume = 4
         stop = 5
+        qued = 6
 
 
 class ComWorker(threading.Thread):

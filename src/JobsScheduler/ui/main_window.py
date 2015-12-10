@@ -227,9 +227,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_pause_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.pausing
-        self.ui.overviewWidget.update_item(key, state)
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.pausing)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
 
@@ -238,9 +238,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.resuming
-        self.ui.overviewWidget.update_item(key, state)
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.resuming)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
 
@@ -249,11 +249,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_stop_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.stopping
-        self.ui.overviewWidget.update_item(key, state)
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.stopping)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
+
         self.com_manager.stop(key)
         Communicator.unlock_application(
             self.com_manager.get_communicator(key).mj_name)
@@ -269,43 +270,43 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.stopping
-        self.ui.overviewWidget.update_item(key, state)
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.stopping)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
         self.update_ui_locks(current)
 
         self.com_manager.restart(key)
 
     def handle_mj_installed(self, key):
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.running
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.running)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
-        self.ui.overviewWidget.update_item(key, state)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
     def handle_mj_paused(self, key):
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.paused
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.paused)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
-        self.ui.overviewWidget.update_item(key, state)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
     def handle_mj_resumed(self, key):
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.running
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.running)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
-        self.ui.overviewWidget.update_item(key, state)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
     def handle_mj_stopped(self, key):
-        state = self.data.multijobs[key].state
-        state.status = TaskStatus.none
+        mj = self.data.multijobs[key]
+        mj.change_status(TaskStatus.none)
+        self.ui.overviewWidget.update_item(key, mj.state)
 
-        self.ui.overviewWidget.update_item(key, state)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 

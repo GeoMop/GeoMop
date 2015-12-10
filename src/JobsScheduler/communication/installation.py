@@ -459,21 +459,29 @@ class Installation:
     def get_config_dir(self):
         """Return dir for configuration """
         return self.get_config_dir_static(self.mj_name)         
-        
-    def get_mj_data_dir(self):
+
+    @staticmethod
+    def get_mj_data_dir_static(mj_name):
         """Return dir for savings results"""
         try:
             path = os.path.join(__install_dir__, __jobs_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
-            path = os.path.join( path,  self.mj_name)
+            path = os.path.join( path, mj_name)
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:
             logger.warning("Get mj data dir error: " + str(err))
             return "."
         return path 
-       
+
+    def get_mj_data_dir(self):
+        """
+        Return dir for multijob data
+        :return:
+        """
+        return self.get_mj_data_dir_static(self.mj_name)
+
     def get_status_dir(self):
         """Return dir for savings status"""
         return  self.get_staus_dir_static(self.mj_name)
