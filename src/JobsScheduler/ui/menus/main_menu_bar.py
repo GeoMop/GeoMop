@@ -14,6 +14,7 @@ class MainMenuBar(QtWidgets.QMenuBar):
     """
     Main windows menu bar.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("MainMenuBar")
@@ -33,6 +34,7 @@ class AppMenu(QtWidgets.QMenu):
     """
     App sub menu.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Menu")
@@ -49,6 +51,7 @@ class MultiJobMenu(QtWidgets.QMenu):
     """
     MultiJob sub menu.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("MultiJob")
@@ -79,149 +82,148 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionStopMultiJob)
         self.addAction(self.actionRestartMultiJob)
 
+        self.lock_as_empty()
+
     def lock_as_none(self):
         """
         Locks to state None
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(False)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(False)
-
-        self.actionRunMultiJob.setDisabled(False)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=False, copy=False, delete=False,
+                        run=False, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_installation(self):
         """
         Locks to state Installation
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_queued(self):
         """
         Locks to state queued
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_running(self):
         """
         Locks to state Running
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(False)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(False)
-        self.actionRestartMultiJob.setDisabled(False)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=False, resume=True, stop=False,
+                        restart=False)
+        self.lock_as(**my_locks)
 
     def lock_as_pausing(self):
         """
         Locks to state Pausing
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_paused(self):
         """
         Locks to state Paused
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(False)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=True, resume=False, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_resuming(self):
         """
         Locks to state Resuming
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(True)
-
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+        my_locks = dict(add=False, edit=True, copy=False, delete=True,
+                        run=True, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_finished(self):
         """
         Locks to state finished
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(True)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(False)
+        my_locks = dict(add=False, edit=True, copy=False, delete=False,
+                        run=False, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
-        self.actionRunMultiJob.setDisabled(True)
-        self.actionPauseMultiJob.setDisabled(True)
-        self.actionResumeMultiJob.setDisabled(True)
-        self.actionStopMultiJob.setDisabled(True)
-        self.actionRestartMultiJob.setDisabled(True)
+    def lock_as_empty(self):
+        """
+        Locks as if no MultiJob is selected
+        :return:
+        """
+        my_locks = dict(add=False, edit=True, copy=True, delete=True,
+                        run=True, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
+
+    def lock_as(self, add, edit, copy, delete, run, pause, resume, stop,
+                restart):
+        """
+        Locks UI by parameters
+        :param add: Boolean to lock given property
+        :param edit: Boolean to lock given property
+        :param copy: Boolean to lock given property
+        :param delete: Boolean to lock given property
+        :param run: Boolean to lock given property
+        :param pause: Boolean to lock given property
+        :param resume: Boolean to lock given property
+        :param stop: Boolean to lock given property
+        :param restart: Boolean to lock given property
+        :return:
+        """
+        self.actionAddMultiJob.setDisabled(add)
+        self.actionEditMultiJob.setDisabled(edit)
+        self.actionCopyMultiJob.setDisabled(copy)
+        self.actionDeleteMultiJob.setDisabled(delete)
+
+        self.actionRunMultiJob.setDisabled(run)
+        self.actionPauseMultiJob.setDisabled(pause)
+        self.actionResumeMultiJob.setDisabled(resume)
+        self.actionStopMultiJob.setDisabled(stop)
+        self.actionRestartMultiJob.setDisabled(restart)
+
+    def lock_all(self, lock=True):
+        """
+        Locks all by lock
+        :param lock: Boolean that applies to all locks
+        :return:
+        """
+        my_locks = dict(add=lock, edit=lock, copy=lock, delete=lock,
+                        run=lock, pause=lock, resume=lock, stop=lock,
+                        restart=lock)
+        self.lock_as(**my_locks)
+
+    def lock(self):
+        """
+        Locks all
+        :return:
+        """
+        self.lock_all(True)
 
     def unlock(self):
         """
-        Unlocks all actions
+        Unlocks all
         :return:
         """
-        self.actionAddMultiJob.setDisabled(False)
-        self.actionEditMultiJob.setDisabled(False)
-        self.actionCopyMultiJob.setDisabled(False)
-        self.actionDeleteMultiJob.setDisabled(False)
-
-        self.actionRunMultiJob.setDisabled(False)
-        self.actionPauseMultiJob.setDisabled(False)
-        self.actionResumeMultiJob.setDisabled(False)
-        self.actionStopMultiJob.setDisabled(False)
-        self.actionRestartMultiJob.setDisabled(False)
+        self.lock_all(False)
 
     def lock_by_status(self, task_status=None):
         """
@@ -247,13 +249,14 @@ class MultiJobMenu(QtWidgets.QMenu):
         elif task_status is TaskStatus.finished:
             self.lock_as_finished()
         else:
-            self.unlock()
+            self.lock_as_empty()
 
 
 class SettingsMenu(QtWidgets.QMenu):
     """
     Settings sub menu.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Settings")
