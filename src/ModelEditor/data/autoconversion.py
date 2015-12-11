@@ -178,7 +178,7 @@ class ScalarConverter:
             'Integer': ScalarConverter._convert_to_int,
             'Double': ScalarConverter._convert_to_float,
             'String': ScalarConverter._convert_to_string,
-            'Filename': ScalarConverter._convert_to_string,
+            'FileName': ScalarConverter._convert_to_string,
             'Selection': ScalarConverter._convert_to_string,
         }
 
