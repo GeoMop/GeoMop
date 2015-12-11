@@ -32,7 +32,9 @@ except Exception as error:
     raise error
 
 comunicator = Communicator(com_conf, mj_id)
+comunicator.lock_installation(com_conf)
 comunicator.install()
+comunicator.unlock_installation(mj_name)
 
 old_phase = TaskStatus.installation
 sec = time.time() + 600
@@ -79,3 +81,4 @@ comunicator.download()
 
 mess = comunicator.send_long_action(tdata.Action(tdata.ActionType.stop))
 comunicator.close()
+comunicator.unlock_application(mj_name)

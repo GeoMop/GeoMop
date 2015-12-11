@@ -88,6 +88,7 @@ class ConfigBuilder:
         app.set_comm_name(CommType.app)\
             .set_python_env(mj_python_env)\
             .set_libs_env(mj_libs_env)
+        app.conf.central_log = True
 
         delegator = None
 

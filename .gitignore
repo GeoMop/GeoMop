@@ -85,6 +85,7 @@ src/JobsScheduler/lock/lib.lock
 
 #result files
 src/JobsScheduler/jobs
+src/JobsScheduler/log
 
 #temporary installed files
 src/JobsScheduler/ins-lib

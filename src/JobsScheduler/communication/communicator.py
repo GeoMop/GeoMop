@@ -12,7 +12,7 @@ from communication.std_input_comm import StdInputComm
 from  communication.socket_input_comm import SocketInputComm
 from  communication.ssh_output_comm import SshOutputComm
 from  communication.exec_output_comm import  ExecOutputComm
-from  communication.installation import  Installation
+from  communication.installation import Installation, __install_dir__
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
 from data.states import TaskStatus
@@ -37,8 +37,7 @@ class Communicator():
       - function action_func_after, that is possible set by
         constructor, end is call before resending answer received 
         from previous communicator        
-    """
-  
+    """  
     def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None, idle_func=None):
         self.input = None
         """class for input communication"""
@@ -77,7 +76,7 @@ class Communicator():
         self._load_status(init_conf.mj_name) 
         """Persistent communicator data"""
         self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
-            self.communicator_name, self.log_level)
+            self.communicator_name, self.log_level, init_conf.central_log)
         if action_func_before is None:
             self.action_func_before = self.standart_action_function_before
         else:
@@ -152,20 +151,34 @@ class Communicator():
             Installation.get_staus_dir_static(mj_name), name) 
         self.status.load()
 
-    def _set_loger(self,  path, name, level):
+    def _set_loger(self,  path, name, level, central_log):
         """set logger"""
-        log_path = os.path.join(path, "log")
-        if not os.path.isdir(log_path):
-            try:
-                os.makedirs(log_path)
-            except:
-                log_path = path
-        if self.id is None:
-            log_file = os.path.join(log_path, name +".log")
+        if central_log:
+            logger = logging.getLogger("Remote")
+            if len(logger.handlers)>0:
+                if logger.level>level:
+                    logger.setLevel(level)
+                    logger.handlers[0].setLevel(level)
+                    return
+            dir = os.path.join(__install_dir__, "log")
+            if not os.path.isdir(dir):
+                try:
+                    os.makedirs(dir)
+                except:
+                    dir = __install_dir__
+            log_file = os.path.join(dir, "app-centrall.log")
         else:
-            log_file = os.path.join(log_path, name + "_" + self.id + ".log")
-            
-        logger = logging.getLogger("Remote")
+            log_path = os.path.join(path, "log")
+            if not os.path.isdir(log_path):
+                try:
+                    os.makedirs(log_path)
+                except:
+                    log_path = path
+            if self.id is None:
+                log_file = os.path.join(log_path, name +".log")
+            else:
+                log_file = os.path.join(log_path, name + "_" + self.id + ".log")            
+            logger = logging.getLogger("Remote")
         logger.setLevel(level)
 
         fh = logging.FileHandler(log_file)

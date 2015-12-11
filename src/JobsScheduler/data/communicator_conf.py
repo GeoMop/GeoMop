@@ -130,6 +130,9 @@ class CommunicatorConfig(object):
         If parametr is true, this communicators comunicate directli 
         over socket. Only installation message is sent over remote.        
         """
+        
+        self.central_log = False
+        """Application log to centrall log"""
 
         self.input_type = InputCommType.none
         """Input communication type"""
