@@ -2,7 +2,7 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-# import pyperclip
+import pyperclip
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
@@ -169,5 +169,5 @@ class MainWindow(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         """Back up clipboard contents before exit."""
         clipboard = QtWidgets.QApplication.clipboard()
-#        pyperclip.copy(clipboard.text())
+        pyperclip.copy(clipboard.text())
         super(MainWindow, self).closeEvent(event)
