@@ -76,7 +76,7 @@ class JobsCommunicator(Communicator):
         if message.action_type == tdata.ActionType.download_res:
             # processing in after function
             if self.conf.output_type != comconf.OutputCommType.ssh or \
-               comconf.direct_communication:
+               self.conf.direct_communication:
                 return False, None
         if message.action_type == tdata.ActionType.stop:
             # processing in after function
@@ -104,7 +104,7 @@ class JobsCommunicator(Communicator):
             return action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if self.conf.output_type != comconf.OutputCommType.ssh or \
-               comconf.direct_communication:
+               self.conf.direct_communication:
                 action = tdata.Action(tdata.ActionType.ok)
                 return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
@@ -126,7 +126,7 @@ class JobsCommunicator(Communicator):
         """
         if self._stopping:
             if self.conf.output_type == comconf.OutputCommType.ssh and \
-                comconf.direct_communication:
+                self.conf.direct_communication:
                 for id in self.jobs:
                     del self.jobs[id]
                     del self.job_outputs[id]
@@ -150,8 +150,7 @@ class JobsCommunicator(Communicator):
                 return
         make_custom_action = True
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            if self.conf.output_type == comconf.OutputCommType.ssh and \
-                not comconf.direct_communication:
+            if not self.conf.direct_communication:
                 for id in self.jobs:
                     if self.jobs[id] is False:
                         action=tdata.Action(tdata.ActionType.add_job)
@@ -181,8 +180,8 @@ class JobsCommunicator(Communicator):
                         make_custom_action = False
                         self._job_running()
         else:
-            if self.conf.output_type != comconf.OutputCommType.ssh or \
-                    comconf.direct_communication:
+            if self.conf.output_type != self.conf.OutputCommType.ssh or \
+                    self.conf.direct_communication:
                 for id in self.jobs:
                     # connect
                     if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
@@ -192,8 +191,8 @@ class JobsCommunicator(Communicator):
                         self._job_running()
         if make_custom_action:
             # get status
-            if self.conf.output_type != comconf.OutputCommType.ssh or \
-               comconf.direct_communication:
+            if self.conf.output_type != self.conf.OutputCommType.ssh or \
+               self.conf.direct_communication:
                 id = self._get_next_id(self._last_check_id)
                 if id is not None:    
                     action=tdata.Action(tdata.ActionType.get_state)
@@ -265,7 +264,7 @@ class JobsCommunicator(Communicator):
     def add_job(self, id):
         """Add job to dictionary, process it and make connection if is needed"""
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            if comconf.direct_communication:
+            if self.conf.direct_communication:
                 self.jobs[id] = Job(id)
                 self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
                 logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
