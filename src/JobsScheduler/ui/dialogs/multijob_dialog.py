@@ -8,8 +8,7 @@ Multijob dialog
 import logging
 
 from PyQt5 import QtCore, QtWidgets
-
-from ui.data.preset_data import MjPreset
+from ui.data.mj_data import MultiJobPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import MultiJobNameValidator
 
@@ -89,7 +88,7 @@ class MultiJobDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = MjPreset(self.ui.nameLineEdit.text())
+        preset = MultiJobPreset(self.ui.nameLineEdit.text())
         preset.analysis = self.ui.analysisLineEdit.text()
         preset.resource_preset = self.ui.resourceComboBox.itemData(
                     self.ui.resourceComboBox.currentIndex())

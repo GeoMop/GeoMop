@@ -4,11 +4,11 @@ MujtiJob data structure.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import os
+import logging
 import time
 
-from communication import Installation
 from data.states import TaskStatus
+from ui.data.preset_data import APreset
 
 
 class MultiJob:
@@ -37,14 +37,6 @@ class MultiJob:
 
         # set status to installation
         self.change_status(TaskStatus.installation)
-
-        # delete previous results
-        res_path = Installation.get_result_dir_static(self.state.name)
-        for root, dirs, files in os.walk(res_path, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
 
     def action_queued(self):
         """
@@ -130,10 +122,28 @@ class MultiJobState:
         self.running_jobs = state.running_jobs
 
 
-class MultiJobPaths:
-    pass
+class MultiJobPreset(APreset):
+    """
+    MultiJob preset data container.
+    """
+
+    def __init__(self, name="Default MultiJob Preset Name"):
+        """
+        Default initialization.
+        :return: None
+        """
+        super().__init__(name)
+        self.analysis = ""
+        """Path to analysis folder"""
+        self.resource_preset = None
+        """Selected resource preset"""
+        self.pbs_preset = None
+        """AdHoc PBS preset override"""
+        self.log_level = logging.DEBUG
+        """Logging level"""
+        self.number_of_processes = "1"
+        """Number of processes used by MultiJob"""
 
 
 class JobState:
     pass
-
