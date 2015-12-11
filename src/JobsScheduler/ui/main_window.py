@@ -47,8 +47,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
 
-        self.res_handler.mj_qued.connect(
-            self.handle_mj_qued)
+        self.res_handler.mj_queued.connect(
+            self.handle_mj_queued)
 
         self.res_handler.mj_result.connect(
             self.handle_mj_result)
@@ -309,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
-    def handle_mj_qued(self, key):
+    def handle_mj_queued(self, key):
         mj = self.data.multijobs[key]
         mj.action_queued()
         self.ui.overviewWidget.update_item(key, mj.state)
