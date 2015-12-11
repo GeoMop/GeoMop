@@ -180,7 +180,7 @@ class JobsCommunicator(Communicator):
                         make_custom_action = False
                         self._job_running()
         else:
-            if self.conf.output_type != self.conf.OutputCommType.ssh or \
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
                     self.conf.direct_communication:
                 for id in self.jobs:
                     # connect
@@ -191,7 +191,7 @@ class JobsCommunicator(Communicator):
                         self._job_running()
         if make_custom_action:
             # get status
-            if self.conf.output_type != self.conf.OutputCommType.ssh or \
+            if self.conf.output_type != comconf.OutputCommType.ssh or \
                self.conf.direct_communication:
                 id = self._get_next_id(self._last_check_id)
                 if id is not None:    
