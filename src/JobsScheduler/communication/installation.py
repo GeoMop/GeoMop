@@ -28,6 +28,7 @@ __ins_dirs__.append("data")
 __ins_dirs__.append("twoparty") 
 __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
+__logs_dir__ = "log"
 __conf_dir__ = "mj_conf"
 __result_dir__ = "res"
 __status_dir__ = "status"
@@ -504,6 +505,34 @@ class Installation:
         :return:
         """
         return self.get_mj_data_dir_static(self.mj_name)
+
+    @staticmethod
+    def get_mj_log_dir_static(mj_name):
+        """Return dir for logging"""
+        try:
+            path = os.path.join(__install_dir__, __jobs_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path,  mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path, __result_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path, __logs_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logger.warning("Get mj result dir error: " + str(err))
+            return "."
+        return path
+
+    def get_mj_log_dir(self):
+        """
+        Return dir for multijob logs
+        :return:
+        """
+        return self.get_mj_log_dir_static(self.mj_name)
 
     def get_status_dir(self):
         """Return dir for savings status"""

@@ -5,8 +5,10 @@ MujtiJob data structure.
 @contact: jan.gabriel@tul.cz
 """
 import logging
+import os
 import time
 
+from communication import Installation
 from data.states import TaskStatus
 from ui.data.preset_data import APreset
 
@@ -15,7 +17,7 @@ class MultiJob:
     def __init__(self, preset):
         self.preset = preset
         self.state = MultiJobState(preset.name)
-        self.logs = None
+        self.logs = []
         self.jobs = None
         self.res = None
         self.conf = None
@@ -74,6 +76,19 @@ class MultiJob:
         """
         self.state.status = new_status
 
+    def get_logs(self):
+        log_path = Installation.get_mj_log_dir_static(self.preset.name)
+
+        logs = []
+
+        for file in os.listdir(log_path):
+            if os.path.isfile(os.path.join(log_path, file)):
+                log = MultiJobLog(log_path, file)
+                logs.append(log)
+
+        self.logs = logs
+        return self.logs
+
 
 class MultiJobState:
     """
@@ -120,6 +135,40 @@ class MultiJobState:
         self.estimated_jobs = state.estimated_jobs
         self.finished_jobs = state.finished_jobs
         self.running_jobs = state.running_jobs
+
+
+class MultiJobLog:
+    """
+    MultiJob preset data container.
+    """
+
+    def __init__(self, path, file):
+        """
+        Default initialization.
+        :return: None
+        """
+        self.file_name = file
+        """Short name of the file"""
+        self.file_path = os.path.join(path, file)
+        """Path to file"""
+
+        stat_info = os.stat(self.file_path)
+
+        def sizeof_fmt(num, suffix='B'):
+            for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
+                if abs(num) < 1024.0:
+                    return "%3.1f%s%s" % (num, unit, suffix)
+                num /= 1024.0
+            return "%.1f%s%s" % (num, 'Yi', suffix)
+
+        self.file_size = sizeof_fmt(stat_info.st_size)
+        """File size"""
+
+        self.modification_time = stat_info.st_mtime
+        """Time of the latest modification"""
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class MultiJobPreset(APreset):

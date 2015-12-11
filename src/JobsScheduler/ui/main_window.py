@@ -239,8 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # reload log
         res_path = Installation.get_result_dir_static(com.mj_name)
-        log_path = os.path.join(res_path, "log")
-        self.ui.tabWidget.ui.logsTab.reload_view(log_path)
+        self.ui.tabWidget.ui.logsTab.reload_view(mj.get_logs())
         self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
         self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
 
@@ -361,7 +360,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
         mj.jobs = result["jobs"]
-        mj.logs = result["logs"]
+        mj.get_logs()
         mj.conf = result["conf"]
         mj.res = result["res"]
         current = self.ui.overviewWidget.currentItem()
