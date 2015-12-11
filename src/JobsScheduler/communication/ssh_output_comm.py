@@ -159,7 +159,7 @@ else:
                         self.installation.copy_install_files(sftp, self.ssh)
                         self.installation.lock_installation_over_ssh(sftp, self.ssh, False)
                     if ins_data:
-                        self.installation.copy_data_files(self.ssh, self.ssh)
+                        self.installation.copy_data_files(sftp, self.ssh)
                 sftp.close()
             except Exception as err:
                 logger.warning("Installation error: " + str(err))

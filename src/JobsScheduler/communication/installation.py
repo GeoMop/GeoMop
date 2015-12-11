@@ -235,9 +235,10 @@ class Installation:
             return False, False
         else:
             import pexpect   
-            
+            logger.debug("Command:" + command)
             ssh.sendline(command)
             res = ssh.expect( ["--0--", "--1--", "--2--", "--3--", "---1--", pexpect.TIMEOUT], timeout=360)
+            logger.debug("Lock function result:" + str(res))
             if res == 1:
                 return False, True
             if res == 2 or res == 3:
@@ -248,6 +249,9 @@ class Installation:
         """Copy installation files"""
         if sys.platform == "win32":
             # copy mj configuration directory
+            res = conn.cd(self.copy_path)
+            if len(res)>0:
+                logger.warning("Sftp message (cd root): " + res)
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir + '/' + __conf_dir__)  
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
@@ -259,6 +263,12 @@ class Installation:
         else:
             import pexpect            
             # copy mj configuration directory
+            conn.sendline('cd ' + self.copy_path)
+            conn.expect('.*cd ' + self.copy_path + "\r\n")
+            conn.expect("sftp> ")
+            if len(conn.before) > 0:
+                logger.warning("Sftp message (cd root): " + str(conn.before,
+                                                                 'utf-8').strip())                                                                 
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir + '/' + __conf_dir__)  
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
