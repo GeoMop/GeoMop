@@ -107,7 +107,7 @@ class Lock():
             # installation ready
             dataed_ver = self._read_version(self._mj_name + "_data.version")
             if dataed_ver is None or dataed_ver != data_ver:                
-                if os.path.isdir(conf_dir):
+                if os.path.isdir(conf_dir) and not source:
                     shutil.rmtree(conf_dir, ignore_errors=True)                 
                 if os.path.isdir(res_dir):
                     shutil.rmtree(res_dir, ignore_errors=True) 
