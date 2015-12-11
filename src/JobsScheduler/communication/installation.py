@@ -217,14 +217,18 @@ class Installation:
         
         return - is app need install, is data need install
         """
+        mj_dir = self.copy_path + "/" + __jobs_dir__ + "/" + self.mj_name
+        res_dir = mj_dir + "/" + __result_dir__
+        conf_dir = mj_dir + "/" + __conf_dir__
+         
         command = self.python_env.python_exec + " "
         command += '"' + self.copy_path + '/' + __lock_file__ + '" '
         command += self.mj_name + " "
         command += '"' + self.copy_path + '" '
         command += self.app_version + " "
         command += self.data_version + " "
-        command += '"' + self.get_result_dir() + '" '
-        command += '"' + self.get_config_dir() + '" '
+        command += '"' + res_dir + '" '
+        command += '"' + conf_dir + '" '
         if lock:
             command += "Y"
         else:
