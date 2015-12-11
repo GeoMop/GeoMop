@@ -212,7 +212,7 @@ class Communicator():
                     t.start()
                 action = tdata.Action(tdata.ActionType.install_in_process)
                 if isinstance(self.output, PbsOutputComm):
-                    action.data.data['phase'] = TaskStatus.qued.value
+                    action.data.data['phase'] = TaskStatus.queued.value
                 return False, action.get_message()
         if message.action_type == tdata.ActionType.download_res:
             if isinstance(self.output, SshOutputComm):

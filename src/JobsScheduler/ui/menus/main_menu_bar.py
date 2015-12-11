@@ -193,7 +193,7 @@ class MultiJobMenu(QtWidgets.QMenu):
 
     def lock_as_finished(self):
         """
-        Locks to state qued
+        Locks to state finished
         :return:
         """
         self.actionAddMultiJob.setDisabled(False)
@@ -234,7 +234,7 @@ class MultiJobMenu(QtWidgets.QMenu):
             self.lock_as_none()
         elif task_status is TaskStatus.installation:
             self.lock_as_installation()
-        elif task_status is TaskStatus.qued:
+        elif task_status is TaskStatus.queued:
             self.lock_as_queued()
         elif task_status is TaskStatus.running:
             self.lock_as_running()

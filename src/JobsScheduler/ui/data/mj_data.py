@@ -53,7 +53,7 @@ class MultiJob:
         """
         self.state.queued_time = time.time()
         # set status to installation
-        self.change_status(TaskStatus.qued)
+        self.change_status(TaskStatus.queued)
 
     def action_running(self):
         """
@@ -98,7 +98,7 @@ class MultiJobState:
         self.insert_time = time.time()
         """When MultiJob was started"""
         self.queued_time = None
-        """When MultiJob was qued"""
+        """When MultiJob was queued"""
         self.start_time = None
         """When MultiJob was started"""
         self.run_interval = 0

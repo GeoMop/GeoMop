@@ -41,6 +41,8 @@ class MultiJobDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
+    PURPOSE_COPY_PREFIX = "Copy_of"
+
     def __init__(self, parent=None, resources=None):
         super().__init__(parent)
         # setup specific UI
