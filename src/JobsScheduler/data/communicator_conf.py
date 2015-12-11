@@ -48,7 +48,7 @@ class PbsConfig(object):
         self.walltime = ""
         self.nodes = "1"
         self.ppn = "1"
-        self.mem = "400mb"
+        self.memory = "400mb"
         self.scratch = "400mb"
         self.with_socket = True
         """

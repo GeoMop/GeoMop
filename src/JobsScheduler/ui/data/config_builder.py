@@ -255,7 +255,7 @@ class ConfFactory:
         pbs.walltime = preset.walltime
         pbs.nodes = preset.nodes
         pbs.ppn = preset.ppn
-        pbs.mem = preset.mem
+        pbs.memory = preset.memory
         pbs.scratch = preset.scratch
         pbs.with_socket = with_socket
         return pbs
