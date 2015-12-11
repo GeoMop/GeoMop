@@ -165,12 +165,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # select last selected mj
         index = 0
         if "selected_mj" in self.data.set_data:
-            if self.ui.overviewWidget.topLevelItemCount()>0:
-                id=0
-                if self.ui.overviewWidget.topLevelItemCount() > int(self.data.set_data["selected_mj"]):
-                    id = int(self.data.set_data["selected_mj"])
-                index = self.ui.overviewWidget.topLevelItem(id)
-                self.ui.overviewWidget.setCurrentItem(index)
+            item_count = self.ui.overviewWidget.topLevelItemCount()
+            tmp_index = int(self.data.set_data["selected_mj"])
+            if item_count > 0 and item_count > tmp_index:
+                index = tmp_index
+        item = self.ui.overviewWidget.topLevelItem(index)
+        self.ui.overviewWidget.setCurrentItem(item)
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
             key = self.ui.overviewWidget.currentItem().text(0)
             preset = copy.deepcopy(self.data.multijobs[key].preset)
             preset.name = self.mj_dlg.\
-                PURPOSE_COPY_PREFIX + " " + preset.name
+                PURPOSE_COPY_PREFIX + "_" + preset.name
             data = {
                 "key": key,
                 "preset": preset

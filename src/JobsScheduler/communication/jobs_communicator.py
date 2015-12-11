@@ -133,7 +133,7 @@ class JobsCommunicator(Communicator):
                 return
             else:
                 id = self._get_next_id(self._last_check_id)
-                # ToDo in pbs try stop qued processes over qsub
+                # ToDo in pbs try stop queued processes over qsub
                 if id is not None:
                     self.jobs[id].state_stopping()
                     action=tdata.Action(tdata.ActionType.stop)
@@ -343,7 +343,7 @@ class JobsCommunicator(Communicator):
         self._mj_state.status = TaskStatus.stopped
     
     def get_state(self):
-        """change state to qued"""
+        """change state to queued"""
         if self._mj_state.status == TaskStatus.running:
             self._mj_state.run_interval = int(time.time() - self._mj_state.start_time)
         new_state = copy.deepcopy(self._mj_state)

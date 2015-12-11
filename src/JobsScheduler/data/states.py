@@ -10,7 +10,7 @@ logger = logging.getLogger("Remote")
 class TaskStatus(IntEnum):
     """Action type"""
     installation = 0
-    qued = 1
+    queued = 1
     running = 2
     stopping = 3
     ready = 4
@@ -29,7 +29,7 @@ class MJState:
         self.insert_time = time.time()
         """when multiJob was started"""
         self.queued_time = None
-        """when multiJob was qued"""
+        """when multiJob was queued"""
         self.start_time = None
         """when multiJob was started"""
         self.run_interval = 0
@@ -55,7 +55,7 @@ class JobState:
         self.insert_time = time.time()
         """when Job was started"""
         self.queued_time = None
-        """when Job was qued"""
+        """when Job was queued"""
         self.start_time = None
         """when Job was started"""
         self.run_interval = 0

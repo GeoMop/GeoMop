@@ -11,10 +11,10 @@ class Job:
         """Job state"""
 
     def state_qued(self):
-        """change state to qued"""
+        """change state to queued"""
         self._data_lock.acquire()
         self._state.queued_time = time.time()
-        self._state.status = TaskStatus.qued
+        self._state.status = TaskStatus.queued
         self._data_lock.release()
         
     def state_start(self):
@@ -45,7 +45,7 @@ class Job:
         self._data_lock.release()
     
     def get_state(self):
-        """change state to qued"""
+        """change state to queued"""
         self._data_lock.acquire()
         if self._state.status == TaskStatus.running:
             self._state.run_interval = int(time.time() - self._state.start_time)
