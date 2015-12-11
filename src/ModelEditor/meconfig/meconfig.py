@@ -8,7 +8,8 @@ import os
 from copy import deepcopy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer, shortcuts
+from helpers import (notification_handler, AutocompleteHelper,
+                     StructureAnalyzer, shortcuts)
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments
@@ -42,6 +43,8 @@ class _Config:
         """a list of format files"""
         self.display_autocompletion = False
         """whether to display autocompletion automatically"""
+        self.symbol_completion = False
+        """whether to automatically complete brackets and array symbols"""
         self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
         """user customizable keyboard shortcuts"""
 
@@ -52,6 +55,8 @@ class _Config:
             self.format_files = getattr(data, 'format_files', self.format_files)
             self.display_autocompletion = getattr(data, 'display_autocompletion',
                                                   self.display_autocompletion)
+            self.symbol_completion = getattr(data, 'symbol_completion',
+                                             self.symbol_completion)
             if hasattr(data, 'shortcuts'):
                 self.shortcuts.update(data.shortcuts)
 
@@ -118,7 +123,7 @@ class _Config:
 
 class MEConfig:
     """Static data class"""
-    notification_handler = NotificationHandler()
+    notification_handler = notification_handler
     """error handler for reporting and buffering errors"""
     autocomplete_helper = AutocompleteHelper()
     """helpers for handling autocomplete options in editor"""
@@ -132,6 +137,8 @@ class MEConfig:
     """Serialized variables"""
     curr_file = None
     """Serialized variables"""
+    imported_file_name = None
+    """if a file was imported, this is its suggested name"""
     root = None
     """root DataNode structure"""
     document = ""
@@ -258,6 +265,7 @@ class MEConfig:
         cls.update_format()
         cls.changed = False
         cls.curr_file = None
+        cls.imported_file_name = None
 
     @classmethod
     def open_file(cls, file_name):
@@ -268,9 +276,10 @@ class MEConfig:
         """
         try:
             with open(file_name, 'r') as file_d:
-                cls.document = file_d.read()
+                cls.document = file_d.read().expandtabs(tabsize=2)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
+            cls.imported_file_name = None
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
@@ -293,6 +302,17 @@ class MEConfig:
             with open(file_name, 'r') as file_d:
                 con = file_d.read()
             cls.document = parse_con(con)
+            # find available file name
+            base_name = os.path.splitext(os.path.basename(file_name))[0]
+            cls.imported_file_name = base_name
+            i = 1
+            dir_path = cls.config.last_data_dir + os.path.sep
+            while os.path.isfile(dir_path + cls.imported_file_name + '.yaml'):
+                if i > 999:
+                    break
+                cls.imported_file_name = "{0}{1:03d}".format(base_name, i)
+                i += 1
+            cls.imported_file_name = dir_path + cls.imported_file_name + '.yaml'
             cls.curr_file = None
             cls.update()
             cls.document, need_move_forward = fix_tags(cls.document, cls.root)

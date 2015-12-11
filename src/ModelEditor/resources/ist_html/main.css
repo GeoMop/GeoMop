@@ -252,3 +252,11 @@ a.selected {
     pointer-events: none;
     cursor: default;
 }
+
+.key-type-obligatory {
+    font-weight: bold;
+}
+
+.key-type-optional {
+    font-style: italic;
+}

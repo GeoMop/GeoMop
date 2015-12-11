@@ -1,9 +1,7 @@
-"""
-Contains all ModelEditor notifications and their codes.
-"""
+"""Contains all ModelEditor notifications and their codes.
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 _NOTIFICATIONS = [
 
@@ -88,21 +86,21 @@ _NOTIFICATIONS = [
         'code': 305,
         'name': 'InvalidSelectionOption',
         'description': 'When validating Selection, the given option does not exist.',
-        'message': '{0} has not option {1}',
+        'message': '{0} has no option {1}',
         'example': 'example_validation_scalar.yaml',
     },
     {
         'code': 306,
         'name': 'NotEnoughItems',
         'description': 'Array is smaller than its specified minimum size.',
-        'message': 'Array has to have at least {0} item(s)',
+        'message': 'Array has to contain at least {0} item(s) and at most {1} item(s).',
         'example': 'example_validation_array.yaml',
     },
     {
         'code': 307,
         'name': 'TooManyItems',
         'description': 'Array is larger than its specified maximum size.',
-        'message': 'Array cannot have more than {0} items(s)',
+        'message': 'Array has to contain at least {0} item(s) and at most {1} item(s).',
         'example': 'example_validation_array.yaml',
     },
     {
@@ -123,7 +121,7 @@ _NOTIFICATIONS = [
         'code': 310,
         'name': 'InvalidAbstractRecordType',
         'description': 'AbstractRecord type is invalid.',
-        'message': 'Invalid TYPE "{0}" for record {1}',
+        'message': 'Invalid type (yaml tag) "{0}" for record {1}',
         'example': 'example_validation_abstract_record.yaml',
     },
 
@@ -224,6 +222,18 @@ _NOTIFICATIONS = [
         'example': 'example_validation_record.yaml',
     },
 
+    # -----------------------------------------------------
+    #               Autoconversion Warnings
+    # -----------------------------------------------------
+
+    {
+        'code': 700,
+        'name': 'ValueConversionError',
+        'description': 'Occurs when autoconversion of a scalar value to a correct type fails.',
+        'message': 'Could not convert value "{0}" to {1}.',
+        'example': 'example_validation_type_error.yaml'
+    },
+
     # =====================================================
     #                   INFO MESSAGES
     # =====================================================
@@ -284,6 +294,19 @@ _NOTIFICATIONS = [
         'description': 'Flow style is used across multiple lines.',
         'message': 'Using flow style across multiple lines is not recommended',
         'example': 'example_flow_style.yaml'
+    },
+
+    # -----------------------------------------------------
+    #                  Special Info
+    # -----------------------------------------------------
+
+    {
+        'code': 999,
+        'name': 'SilencedNotification',
+        'description': 'This is a placeholder notification that can be raised by the application, '
+                       'but is otherwise ignored and is never displayed.',
+        'message': 'If you see this notification, please report it as a bug.',
+        'example': ''
     },
 ]
 

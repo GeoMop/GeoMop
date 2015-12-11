@@ -103,7 +103,10 @@ class ModelEditor:
         """save file menu action"""
         cfg.update_yaml_file(self.mainwindow.editor.text())
         if cfg.curr_file is None:
-            new_file = cfg.config.last_data_dir + os.path.sep + "NewFile.yaml"
+            if cfg.imported_file_name is not None:
+                new_file = cfg.imported_file_name
+            else:
+                new_file = cfg.config.last_data_dir + os.path.sep + "NewFile.yaml"
         else:
             new_file = cfg.curr_file
         dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as YAML File', new_file,

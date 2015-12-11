@@ -856,13 +856,14 @@ class EditorPosition:
             indent = LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
             if index > -1 and index == indent:
+                indent_bullet = ("- " if cfg.config.symbol_completion else "")
                 if self.node is None or  \
-                   self.node != DataNode.Implementation.scalar or \
+                   self.node.implementation != DataNode.Implementation.scalar or \
                    (self.node.parent.start.line-1) == self.line:
                     self._new_line_indent = indent*' '+"  "
                 else:
-                    self._new_line_indent = indent*' '+"- "
-                self._old_line_prefix = indent*' '+"- "
+                    self._new_line_indent = indent*' ' + indent_bullet
+                self._old_line_prefix = indent*' ' + indent_bullet
             else:
                 self._new_line_indent = indent*' '
                 self._old_line_prefix = indent*' '
@@ -890,7 +891,7 @@ class EditorPosition:
                 self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
                                                                 editor.text(self.line))
             self._new_line_indent = None
-        if self._spec_char != "" and editor.lines() > line:
+        if cfg.config.symbol_completion and self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
             self._spec_char = ""
 
