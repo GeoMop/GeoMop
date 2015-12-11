@@ -1,6 +1,5 @@
 Markdown==2.6.2
 PyYAML==3.11
-pyperclip==1.5.24
 py==1.4.30
 Pygments==2.0.2
 pylint==1.4.4
