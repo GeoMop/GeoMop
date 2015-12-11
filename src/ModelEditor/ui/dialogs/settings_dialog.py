@@ -45,6 +45,7 @@ class SettingsDialog(QDialog):
     def accept(self):
         """Handles a confirmation."""
         cfg.config.display_autocompletion = self.general_tab.autocompletion_checkbox.isChecked()
+        cfg.config.symbol_completion = self.general_tab.symbol_completion_checkbox.isChecked()
         cfg.config.shortcuts = self.keyboard_shortcuts_tab.get_shortcuts()
         cfg.config.save()
         super(SettingsDialog, self).accept()
@@ -59,8 +60,13 @@ class GeneralTab(QWidget):
         if cfg.config.display_autocompletion:
             self.autocompletion_checkbox.setChecked(True)
 
+        self.symbol_completion_checkbox = QCheckBox("Complete brackets and array symbols")
+        if cfg.config.symbol_completion:
+            self.symbol_completion_checkbox.setChecked(True)
+
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.autocompletion_checkbox)
+        main_layout.addWidget(self.symbol_completion_checkbox)
         main_layout.addStretch(1)
         self.setLayout(main_layout)
 

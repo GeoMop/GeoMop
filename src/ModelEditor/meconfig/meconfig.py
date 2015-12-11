@@ -43,6 +43,8 @@ class _Config:
         """a list of format files"""
         self.display_autocompletion = False
         """whether to display autocompletion automatically"""
+        self.symbol_completion = False
+        """whether to automatically complete brackets and array symbols"""
         self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
         """user customizable keyboard shortcuts"""
 
@@ -53,6 +55,8 @@ class _Config:
             self.format_files = getattr(data, 'format_files', self.format_files)
             self.display_autocompletion = getattr(data, 'display_autocompletion',
                                                   self.display_autocompletion)
+            self.symbol_completion = getattr(data, 'symbol_completion',
+                                             self.symbol_completion)
             if hasattr(data, 'shortcuts'):
                 self.shortcuts.update(data.shortcuts)
 
