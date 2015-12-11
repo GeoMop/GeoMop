@@ -93,14 +93,14 @@ _NOTIFICATIONS = [
         'code': 306,
         'name': 'NotEnoughItems',
         'description': 'Array is smaller than its specified minimum size.',
-        'message': 'Array has to have at least {0} item(s)',
+        'message': 'Array has to contain at least {0} item(s) and at most {1} item(s).',
         'example': 'example_validation_array.yaml',
     },
     {
         'code': 307,
         'name': 'TooManyItems',
         'description': 'Array is larger than its specified maximum size.',
-        'message': 'Array cannot have more than {0} items(s)',
+        'message': 'Array has to contain at least {0} item(s) and at most {1} item(s).',
         'example': 'example_validation_array.yaml',
     },
     {

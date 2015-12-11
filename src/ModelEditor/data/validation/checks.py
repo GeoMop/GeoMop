@@ -80,9 +80,9 @@ def check_array(value, input_type):
     if not isinstance(value, (list, str)):
         raise ntf.Notification.from_name('ValidationTypeError', 'Array')
     if len(value) < input_type['min']:
-        raise ntf.Notification.from_name('NotEnoughItems', input_type['min'])
+        raise ntf.Notification.from_name('NotEnoughItems', input_type['min'], input_type['max'])
     elif len(value) > input_type['max']:
-        raise ntf.Notification.from_name('TooManyItems', input_type['max'])
+        raise ntf.Notification.from_name('TooManyItems', input_type['min'], input_type['max'])
     return True
 
 
