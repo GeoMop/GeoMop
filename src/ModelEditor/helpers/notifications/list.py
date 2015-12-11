@@ -1,9 +1,7 @@
-"""
-Contains all ModelEditor notifications and their codes.
-"""
+"""Contains all ModelEditor notifications and their codes.
 
-__author__ = 'Tomas Krizek'
-
+.. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
+"""
 
 _NOTIFICATIONS = [
 
@@ -88,7 +86,7 @@ _NOTIFICATIONS = [
         'code': 305,
         'name': 'InvalidSelectionOption',
         'description': 'When validating Selection, the given option does not exist.',
-        'message': '{0} has not option {1}',
+        'message': '{0} has no option {1}',
         'example': 'example_validation_scalar.yaml',
     },
     {
@@ -222,6 +220,18 @@ _NOTIFICATIONS = [
         'description': 'Unspecified key is encountered in Record.',
         'message': 'Unknown key "{0}" in record {1}',
         'example': 'example_validation_record.yaml',
+    },
+
+    # -----------------------------------------------------
+    #               Autoconversion Warnings
+    # -----------------------------------------------------
+
+    {
+        'code': 700,
+        'name': 'ValueConversionError',
+        'description': 'Occurs when autoconversion of a scalar value to a correct type fails.',
+        'message': 'Could not convert value "{0}" to {1}.',
+        'example': 'example_validation_type_error.yaml'
     },
 
     # =====================================================

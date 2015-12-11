@@ -8,7 +8,8 @@ import os
 from copy import deepcopy
 
 import config as cfg
-from helpers import NotificationHandler, AutocompleteHelper, StructureAnalyzer, shortcuts
+from helpers import (NotificationHandler, notification_handler, AutocompleteHelper,
+                     StructureAnalyzer, shortcuts)
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments
@@ -118,7 +119,7 @@ class _Config:
 
 class MEConfig:
     """Static data class"""
-    notification_handler = NotificationHandler()
+    notification_handler = notification_handler
     """error handler for reporting and buffering errors"""
     autocomplete_helper = AutocompleteHelper()
     """helpers for handling autocomplete options in editor"""
