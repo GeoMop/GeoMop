@@ -47,8 +47,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
 
-        self.res_handler.mj_qued.connect(
-            self.handle_mj_qued)
+        self.res_handler.mj_queued.connect(
+            self.handle_mj_queued)
 
         self.res_handler.mj_result.connect(
             self.handle_mj_result)
@@ -239,8 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # reload log
         res_path = Installation.get_result_dir_static(com.mj_name)
-        log_path = os.path.join(res_path, "log")
-        self.ui.tabWidget.ui.logsTab.reload_view(log_path)
+        self.ui.tabWidget.ui.logsTab.reload_view(mj.get_logs())
         self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
         self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
 
@@ -283,7 +282,8 @@ class MainWindow(QtWidgets.QMainWindow):
         mj = self.data.multijobs
         for key in mj:
             state = mj[key].state
-            state.status = TaskStatus.none
+            if state.status == TaskStatus.running:
+                state.status = TaskStatus.none
         self.com_manager.terminate()
 
         # save currently selected mj
@@ -309,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
-    def handle_mj_qued(self, key):
+    def handle_mj_queued(self, key):
         mj = self.data.multijobs[key]
         mj.action_queued()
         self.ui.overviewWidget.update_item(key, mj.state)
@@ -360,7 +360,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
         mj.jobs = result["jobs"]
-        mj.logs = result["logs"]
+        mj.get_logs()
         mj.conf = result["conf"]
         mj.res = result["res"]
         current = self.ui.overviewWidget.currentItem()

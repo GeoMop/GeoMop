@@ -4,7 +4,6 @@ Unified data structure for presets.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import logging
 import uuid
 
 
@@ -177,24 +176,3 @@ class EnvPreset(APreset):
         """
 
 
-class MjPreset(APreset):
-    """
-    MultiJob preset data container.
-    """
-
-    def __init__(self, name="Default MultiJob Preset Name"):
-        """
-        Default initialization.
-        :return: None
-        """
-        super().__init__(name)
-        self.analysis = ""
-        """Path to analysis folder"""
-        self.resource_preset = None
-        """Selected resource preset"""
-        self.pbs_preset = None
-        """AdHoc PBS preset override"""
-        self.log_level = logging.DEBUG
-        """Logging level"""
-        self.number_of_processes = "1"
-        """Number of processes used by MultiJob"""

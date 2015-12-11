@@ -22,10 +22,7 @@ class Tabs(QtWidgets.QTabWidget):
         self.show()
 
     def reload_view(self, results):
-        if results.logs is not None:
-            self.ui.logsTab.reload_view(results.logs)
-        else:
-            self.ui.logsTab.ui.treeWidget.clear()
+        self.ui.logsTab.reload_view(results.logs)
         if results.jobs is not None:
             self.ui.jobsTab.reload_items(results.jobs)
         else:
@@ -110,7 +107,7 @@ class JobsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("jobsTab")
-        self.ui.headers = ["Name", "Insert Time", "Qued Time", "Start Time",
+        self.ui.headers = ["Name", "Insert Time", "Queued Time", "Start Time",
                            "Run Interval", "Status"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
 
@@ -146,6 +143,30 @@ class ResultsTab(FilesTab):
         super().__init__(parent)
 
 
-class LogsTab(FilesTab):
+class LogsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("logsTab")
+        self.ui.headers = ["Name", "Size", "Modification", "Path"]
+        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
+        self.ui.treeWidget.itemDoubleClicked.connect(
+            lambda clicked_item, clicked_col: QDesktopServices.openUrl(
+                QUrl.fromLocalFile(clicked_item.text(3))))
+
+    @staticmethod
+    def _update_item(item, log, time_format):
+        item.setText(0, log.file_name)
+        item.setText(1, log.file_size)
+        item.setText(2, datetime.datetime.fromtimestamp(
+                log.modification_time).strftime(time_format))
+        item.setText(3, log.file_path)
+
+        return item
+
+    def reload_view(self, logs):
+        self.ui.treeWidget.clear()
+        for log in logs:
+            row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
+            self._update_item(row, log, self.time_format)
+        self.ui.treeWidget.resizeColumnToContents(0)
+        self.ui.treeWidget.resizeColumnToContents(2)
