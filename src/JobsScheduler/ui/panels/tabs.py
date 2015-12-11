@@ -21,16 +21,13 @@ class Tabs(QtWidgets.QTabWidget):
         self.ui.setup_ui(self)
         self.show()
 
-    def reload_view(self, results):
-        self.ui.logsTab.reload_view(results.logs)
-        if results.jobs is not None:
-            self.ui.jobsTab.reload_items(results.jobs)
+    def reload_view(self, mj):
+        self.ui.logsTab.reload_view(mj.get_logs())
+        self.ui.resultsTab.reload_view(mj.get_results())
+        if mj.jobs is not None:
+            self.ui.jobsTab.reload_items(mj.jobs)
         else:
             self.ui.jobsTab.ui.treeWidget.clear()
-        if results.res is not None:
-            self.ui.resultsTab.reload_view(results.res)
-        else:
-            self.ui.resultsTab.ui.treeWidget.clear()
 
 
 class UiTabs(object):
@@ -66,30 +63,6 @@ class AbstractTab(QtWidgets.QWidget):
     def resize_all_columns_to_contents(self):
         for idx, header in enumerate(self.headers):
             self.resizeColumnToContents(idx)
-
-
-class FilesTab(AbstractTab):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("filesTab")
-        self.ui.headers = ["Filename", "Path"]
-        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.itemDoubleClicked.connect(
-            lambda clicked_item, clicked_col: QDesktopServices.openUrl(
-                QUrl.fromLocalFile(clicked_item.text(1))))
-
-    def reload_view(self, path):
-        if not os.path.exists(path):
-            return
-        file_names = [f for f in os.listdir(path) if os.path.isfile(
-            os.path.join(path, f))]
-        self.ui.treeWidget.clear()
-        for idx, file_name in enumerate(file_names):
-            if len(file_name) < 5 or file_name[-4:] != ".log":
-                continue
-            row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
-            row.setText(0, file_name)
-            row.setText(1, os.path.join(path, file_name))
 
 
 class OverviewTab(AbstractTab):
@@ -138,15 +111,10 @@ class JobsTab(AbstractTab):
         self.ui.treeWidget.resizeColumnToContents(0)
 
 
-class ResultsTab(FilesTab):
+class FilesTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-
-class LogsTab(AbstractTab):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("logsTab")
+        self.setObjectName("FilesTab")
         self.ui.headers = ["Name", "Size", "Modification", "Path"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.itemDoubleClicked.connect(
@@ -154,19 +122,32 @@ class LogsTab(AbstractTab):
                 QUrl.fromLocalFile(clicked_item.text(3))))
 
     @staticmethod
-    def _update_item(item, log, time_format):
-        item.setText(0, log.file_name)
-        item.setText(1, log.file_size)
+    def _update_item(item, f, time_format):
+        item.setText(0, f.file_name)
+        item.setText(1, f.file_size)
         item.setText(2, datetime.datetime.fromtimestamp(
-                log.modification_time).strftime(time_format))
-        item.setText(3, log.file_path)
+                f.modification_time).strftime(time_format))
+        item.setText(3, f.file_path)
 
         return item
 
-    def reload_view(self, logs):
+    def reload_view(self, file_objects):
         self.ui.treeWidget.clear()
-        for log in logs:
+        for f in file_objects:
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
-            self._update_item(row, log, self.time_format)
+            self._update_item(row, f, self.time_format)
         self.ui.treeWidget.resizeColumnToContents(0)
+        self.ui.treeWidget.resizeColumnToContents(1)
         self.ui.treeWidget.resizeColumnToContents(2)
+
+
+class LogsTab(FilesTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("logsTab")
+
+
+class ResultsTab(FilesTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("resultsTab")

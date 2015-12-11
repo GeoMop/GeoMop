@@ -238,9 +238,8 @@ class MainWindow(QtWidgets.QMainWindow):
         Communicator.unlock_installation(com.mj_name)
 
         # reload log
-        res_path = Installation.get_result_dir_static(com.mj_name)
         self.ui.tabWidget.ui.logsTab.reload_view(mj.get_logs())
-        self.ui.tabWidget.ui.resultsTab.reload_view(res_path)
+        self.ui.tabWidget.ui.resultsTab.reload_view(mj.get_results())
         self.ui.tabWidget.ui.jobsTab.ui.treeWidget.clear()
 
     def _handle_pause_multijob_action(self):
@@ -360,9 +359,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_mj_result(self, key, result):
         mj = self.data.multijobs[key]
         mj.jobs = result["jobs"]
-        mj.get_logs()
         mj.conf = result["conf"]
-        mj.res = result["res"]
         current = self.ui.overviewWidget.currentItem()
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)

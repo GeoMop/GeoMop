@@ -17,10 +17,7 @@ class MultiJob:
     def __init__(self, preset):
         self.preset = preset
         self.state = MultiJobState(preset.name)
-        self.logs = []
         self.jobs = None
-        self.res = None
-        self.conf = None
 
     def action_run(self):
         """
@@ -28,10 +25,7 @@ class MultiJob:
         :return: None
         """
         # reset data
-        # self.logs = None
         self.jobs = None
-        # self.res = None
-        # self.conf = None
 
         # reset times
         self.state.queued_time = None
@@ -77,17 +71,30 @@ class MultiJob:
         self.state.status = new_status
 
     def get_logs(self):
+        """
+        Scans log directory and returns log files.
+        :return: List of MultiJobLog objects
+        """
         log_path = Installation.get_mj_log_dir_static(self.preset.name)
-
         logs = []
-
         for file in os.listdir(log_path):
             if os.path.isfile(os.path.join(log_path, file)):
                 log = MultiJobLog(log_path, file)
                 logs.append(log)
+        return logs
 
-        self.logs = logs
-        return self.logs
+    def get_results(self):
+        """
+        Scans res directory and returns results files.
+        :return: List of MultiJobRes objects
+        """
+        res_path = Installation.get_result_dir_static(self.preset.name)
+        ress = []
+        for file in os.listdir(res_path):
+            if os.path.isfile(os.path.join(res_path, file)):
+                res = MultiJobLog(res_path, file)
+                ress.append(res)
+        return ress
 
 
 class MultiJobState:
@@ -137,9 +144,9 @@ class MultiJobState:
         self.running_jobs = state.running_jobs
 
 
-class MultiJobLog:
+class AMultiJobFile:
     """
-    MultiJob preset data container.
+    Abstract data container.
     """
 
     def __init__(self, path, file):
@@ -152,23 +159,52 @@ class MultiJobLog:
         self.file_path = os.path.join(path, file)
         """Path to file"""
 
-        stat_info = os.stat(self.file_path)
+        self._stat_info = os.stat(self.file_path)
+        """Info about the file"""
 
         def sizeof_fmt(num, suffix='B'):
+            """
+            Represents size Integer as String with appropriate unit.
+            :param num: Integer representation
+            :param suffix: Default suffix
+            :return: String representation of size
+            """
             for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
                 if abs(num) < 1024.0:
                     return "%3.1f%s%s" % (num, unit, suffix)
                 num /= 1024.0
-            return "%.1f%s%s" % (num, 'Yi', suffix)
+            return "%.1f%s%s" % (num, 'Y', suffix)
 
-        self.file_size = sizeof_fmt(stat_info.st_size)
+        self.file_size = sizeof_fmt(self._stat_info.st_size)
         """File size"""
 
-        self.modification_time = stat_info.st_mtime
+        self.modification_time = self._stat_info.st_mtime
         """Time of the latest modification"""
 
     def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
+
+
+class MultiJobLog(AMultiJobFile):
+    """
+    MultiJob log data container.
+    """
+
+    def __init__(self, path, file):
+        super().__init__(path, file)
+
+
+class MultiJobRes(AMultiJobFile):
+    """
+    MultiJob log data container.
+    """
+
+    def __init__(self, path, file):
+        super().__init__(path, file)
 
 
 class MultiJobPreset(APreset):
@@ -192,6 +228,13 @@ class MultiJobPreset(APreset):
         """Logging level"""
         self.number_of_processes = "1"
         """Number of processes used by MultiJob"""
+
+    def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class JobState:
