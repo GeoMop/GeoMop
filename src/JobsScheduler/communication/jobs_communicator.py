@@ -282,7 +282,7 @@ class JobsCommunicator(Communicator):
                   args=( self.job_outputs[id].exec_,id))
             t.daemon = True            
             t.start()
-        self.jobs[id].state_qued()
+        self.jobs[id].state_queued()
         
     def _run_action(self, action, id):
         """

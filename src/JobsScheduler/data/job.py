@@ -3,6 +3,7 @@ import time
 import copy
 from data.states import JobState, TaskStatus
 
+
 class Job:
     def __init__(self, name):
         self._data_lock = threading.Lock()
@@ -10,7 +11,7 @@ class Job:
         self._state = JobState(name, True)
         """Job state"""
 
-    def state_qued(self):
+    def state_queued(self):
         """change state to queued"""
         self._data_lock.acquire()
         self._state.queued_time = time.time()
@@ -52,4 +53,4 @@ class Job:
         new_state = copy.deepcopy(self._state)
         self._data_lock.release()
         return new_state
-    
+
