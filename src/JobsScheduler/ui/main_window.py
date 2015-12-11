@@ -283,7 +283,8 @@ class MainWindow(QtWidgets.QMainWindow):
         mj = self.data.multijobs
         for key in mj:
             state = mj[key].state
-            state.status = TaskStatus.none
+            if state.status == TaskStatus.running:
+                state.status = TaskStatus.none
         self.com_manager.terminate()
 
         # save currently selected mj
