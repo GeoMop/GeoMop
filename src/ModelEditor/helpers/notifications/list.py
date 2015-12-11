@@ -121,7 +121,7 @@ _NOTIFICATIONS = [
         'code': 310,
         'name': 'InvalidAbstractRecordType',
         'description': 'AbstractRecord type is invalid.',
-        'message': 'Invalid TYPE "{0}" for record {1}',
+        'message': 'Invalid type (yaml tag) "{0}" for record {1}',
         'example': 'example_validation_abstract_record.yaml',
     },
 
@@ -294,6 +294,19 @@ _NOTIFICATIONS = [
         'description': 'Flow style is used across multiple lines.',
         'message': 'Using flow style across multiple lines is not recommended',
         'example': 'example_flow_style.yaml'
+    },
+
+    # -----------------------------------------------------
+    #                  Special Info
+    # -----------------------------------------------------
+
+    {
+        'code': 999,
+        'name': 'SilencedNotification',
+        'description': 'This is a placeholder notification that can be raised by the application, '
+                       'but is otherwise ignored and is never displayed.',
+        'message': 'If you see this notification, please report it as a bug.',
+        'example': ''
     },
 ]
 

@@ -90,6 +90,8 @@ def check_record_key(children_keys, key, input_type):
     """Checks a single key within a record."""
     # if key is not found in specifications, it is considered to be valid
     if key not in input_type['keys']:
+        if key == 'fatal_error':
+            raise ntf.Notification.from_name('SilencedNotification')
         raise ntf.Notification.from_name('UnknownRecordKey', key, input_type['type_name'])
 
     try:

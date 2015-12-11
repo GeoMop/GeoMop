@@ -27,6 +27,8 @@ class NotificationHandler:
 
     def report(self, notification):
         """Reports a notification."""
+        if notification.title == 'SilencedNotification':
+            return
         self._notifications.append(notification)
 
 

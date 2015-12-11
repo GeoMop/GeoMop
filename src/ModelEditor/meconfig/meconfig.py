@@ -276,7 +276,7 @@ class MEConfig:
         """
         try:
             with open(file_name, 'r') as file_d:
-                cls.document = file_d.read()
+                cls.document = file_d.read().expandtabs(tabsize=2)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.imported_file_name = None
