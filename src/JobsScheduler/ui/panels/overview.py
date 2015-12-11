@@ -13,7 +13,7 @@ from PyQt5 import QtCore
 class Overview(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.headers = ["Id", "Name", "Insert Time", "Qued Time",
+        self.headers = ["Id", "Name", "Insert Time", "Queued Time",
                         "Start Time", "Run Interval", "Status",
                         "Known Jobs", "Estimated Jobs", "Finished Jobs",
                         "Running Jobs"]

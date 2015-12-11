@@ -110,7 +110,7 @@ class JobsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("jobsTab")
-        self.ui.headers = ["Name", "Insert Time", "Qued Time", "Start Time",
+        self.ui.headers = ["Name", "Insert Time", "Queued Time", "Start Time",
                            "Run Interval", "Status"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
 
