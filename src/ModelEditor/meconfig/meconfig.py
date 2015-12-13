@@ -32,6 +32,8 @@ class _Config:
     COUNT_RECENT_FILES = 5
     """Count of recent files"""
 
+    CONFIG_DIR = os.path.join(cfg.__config_dir__, 'ModelEditor')
+
     def __init__(self, readfromconfig=True):
 
         from os.path import expanduser
@@ -66,7 +68,7 @@ class _Config:
 
     def save(self):
         """Save AddPictureWidget data"""
-        cfg.save_config_file(self.__class__.SERIAL_FILE, self)
+        cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
 
     def add_recent_file(self, file_name, format_file):
         """

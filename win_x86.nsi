@@ -2,11 +2,6 @@
 # 
 #--------------------------------
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO ModelEditorData.yaml - remove
-# (re)install - clear the installation folder first
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 # Define directories.
 !define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"
@@ -106,6 +101,15 @@ Section "Runtime Environment" SecRuntime
   # Section is mandatory.
   SectionIn RO
 
+  # Clean GeoMop source and env directories.
+  RMDir /r "$INSTDIR\env"
+  RMDir /r "$INSTDIR\common"
+
+  # TODO remove for next version
+  # Clear all configuration from APPDATA
+  RMDir /r "${APP_HOME_DIR}"
+  CreateDirectory "${APP_HOME_DIR}"
+
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
@@ -132,6 +136,7 @@ SectionEnd
 
 Section /o "JobsScheduler" SecJobsScheduler
 
+  RMDir /r "$INSTDIR\JobsScheduler"
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\JobsScheduler"
 
@@ -140,6 +145,7 @@ SectionEnd
 
 Section /o "LayerEditor" SecLayerEditor
 
+  RMDir /r "$INSTDIR\LayerEditor"
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\LayerEditor"
 
@@ -148,13 +154,9 @@ SectionEnd
 
 Section "ModelEditor" SecModelEditor
 
+  RMDir /r "$INSTDIR\ModelEditor"
   SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\ModelEditor"
-
-  # Create an empty log file.
-  FileOpen $9 "${APP_HOME_DIR}\model_editor_log.txt" w
-  FileWrite $9 ""
-  FileClose $9
 
 SectionEnd
 
@@ -179,10 +181,9 @@ Section "Start Menu shortcuts" SecStartShortcuts
     SetOutPath $INSTDIR\LayerEditor
     CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
 
-  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +4
+  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
     CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
-    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor Log.lnk" "${APP_HOME_DIR}\model_editor_log.txt" "" "${APP_HOME_DIR}\model_editor_log.txt" 0
 
 SectionEnd
 
