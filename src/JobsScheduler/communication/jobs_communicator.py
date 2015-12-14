@@ -269,9 +269,10 @@ class JobsCommunicator(Communicator):
                 self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
                 logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
                 self.job_outputs[id].initialized = True
+                self.jobs[id].state_queued()
             else:
                 self.jobs[id] = False
-                self.job_outputs[id] = None
+                self.job_outputs[id] = None                
         else:
             self.jobs[id] = Job(id)
             self.job_outputs[id] = self.get_output(self.conf, id)
@@ -281,7 +282,7 @@ class JobsCommunicator(Communicator):
                   args=( self.job_outputs[id].exec_,id))
             t.daemon = True            
             t.start()
-        self.jobs[id].state_queued()
+            self.jobs[id].state_queued()
         
     def _run_action(self, action, id):
         """
