@@ -151,6 +151,7 @@ class JobsCommunicator(Communicator):
         make_custom_action = True
         if self.conf.output_type == comconf.OutputCommType.ssh:
             if not self.conf.direct_communication:
+                logger.debug("Indirect communication over SSH")
                 for id in self.jobs:
                     if self.jobs[id] is False:
                         action=tdata.Action(tdata.ActionType.add_job)
@@ -161,6 +162,7 @@ class JobsCommunicator(Communicator):
                         mess = self.receive_message()
                         if mess is not None and mess.action_type == tdata.ActionType.ok:
                             self.jobs[id] = True
+                            make_custom_action = False
                             break
             else:
                 id = self._get_next_id( self._last_send_id, False)
@@ -180,19 +182,17 @@ class JobsCommunicator(Communicator):
                         make_custom_action = False
                         self._job_running()
         else:
-            if self.conf.output_type != comconf.OutputCommType.ssh or \
-                    self.conf.direct_communication:
-                for id in self.jobs:
-                    # connect
-                    if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
-                        self.jobs[id].state_start()
-                        self._connect_socket(self.job_outputs[id], 1)
-                        make_custom_action = False
-                        self._job_running()
+            for id in self.jobs:
+                # connect
+                if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
+                    self.jobs[id].state_start()
+                    self._connect_socket(self.job_outputs[id], 1)
+                    make_custom_action = False
+                    self._job_running()
         if make_custom_action:
             # get status
             if self.conf.output_type != comconf.OutputCommType.ssh or \
-               self.conf.direct_communication:
+               self.conf.direct_communication:                   
                 id = self._get_next_id(self._last_check_id)
                 if id is not None:    
                     action=tdata.Action(tdata.ActionType.get_state)
@@ -224,7 +224,7 @@ class JobsCommunicator(Communicator):
         cyrcularly for one job that is in the order. This function return job id that 
         is in the order. In idle function is can't be made long actions.
         """
-        id = None
+        ret = None
         pending_outputs = []
         next = 0
         for id in self.jobs:
@@ -239,8 +239,8 @@ class JobsCommunicator(Communicator):
         if len(pending_outputs) > 0:
             if len(pending_outputs) == next:
                 next = 0
-            id = pending_outputs[next]
-        return id
+            ret = pending_outputs[next]
+        return ret
 
     def  get_jobs_states(self):
         """return state all jobs"""
@@ -291,15 +291,26 @@ class JobsCommunicator(Communicator):
         """        
         action(self.next_communicator,self.mj_name, id)
         
-    def install(self):
+    def install(self, unlock=True):
         """make installation"""
         if self.conf.output_type == comconf.OutputCommType.ssh:
-            super(JobsCommunicator, self).install()
-            self.send_long_action(tdata.Action(tdata.ActionType.installation))
+            super(JobsCommunicator, self).install(False)
+            sec = time.time() + 600
+            message = tdata.Action(tdata.ActionType.installation).get_message()
+            mess = None
+            while sec > time.time():
+                self.send_message(message)
+                mess = self.receive_message(120)
+                if mess is None:
+                    break
+                if not mess.action_type == tdata.ActionType.install_in_process:
+                    break
+                time.sleep(10)            
         else:
             # socket based connection only install libs
             if self.libs_env.install_job_libs:
                 Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_env, self.conf.libs_env)
+        if unlock:
             self._install_lock.acquire()
             self._instaled = True
             self._install_lock.release()

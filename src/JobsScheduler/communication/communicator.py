@@ -335,7 +335,7 @@ class Communicator():
                 Installation.unlock_application(self.mj_name)
         logger.info("Connection to application " + self.communicator_name + " is stopped")
     
-    def install(self):
+    def install(self, unlock=True):
         """make installation"""
         if self.libs_env.install_job_libs:
             self.output.install_job_libs()
@@ -346,9 +346,10 @@ class Communicator():
         self._exec_()
         self.status.next_started = True
         self.status.save()
-        self._install_lock.acquire()
-        self._instaled = True
-        self._install_lock.release()
+        if unlock:
+            self._install_lock.acquire()
+            self._instaled = True
+            self._install_lock.release()
         
     def download(self):
         """download result files"""

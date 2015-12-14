@@ -60,8 +60,14 @@ def  remote_action_function_before(message):
         state = comunicator.get_state()
         action = tdata.Action(tdata.ActionType.state)
         action.data.set_data(state)
-        return False, action.get_message()        
-    if message.action_type == tdata.ActionType.add_job:
+        return False, action.get_message()  
+    if message.action_type == tdata.ActionType.installation:            
+        resent, mess = super(JobsCommunicator, comunicator).standart_action_function_before(message)
+        if comunicator.is_installed():
+            action = tdata.Action(tdata.ActionType.ok)
+            return False, action.get_message()                        
+        return resent, mess
+    if message.action_type == tdata.ActionType.add_job:        
         if comunicator.conf.direct_communication:
             if comunicator.conf.output_type == comconf.OutputCommType.none or \
                 comunicator.conf.output_type == comconf.OutputCommType.ssh:
@@ -89,13 +95,13 @@ def  remote_action_function_before(message):
             return False, action.get_message()
     return super(JobsCommunicator, comunicator).standart_action_function_before(message)
     
-def  remote_action_function_after(message):
+def  remote_action_function_after( message,  response):
     """after action function"""
     global mj_name
     if message.action_type == tdata.ActionType.download_res:
         states =  comunicator.get_jobs_states()
         states.save_file(inst.Installation.get_result_dir_static(mj_name))
-    return super(JobsCommunicator, comunicator).standart_action_function_after(message)
+    return super(JobsCommunicator, comunicator).standart_action_function_after( message,  response)
     
 logger = logging.getLogger("Remote")
 

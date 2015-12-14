@@ -117,7 +117,8 @@ else:
         def connect(self):
             """connect session"""
             self.ssh = pxssh.pxssh()
-            self.ssh.login(self.host, self.name, self.password)
+            self.ssh.login(self.host, self.name, self.password)            
+            self.ssh.setwinsize(128,512)
             self.last_mess = None
             self._connected = True
 
