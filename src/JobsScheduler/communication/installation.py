@@ -268,6 +268,7 @@ class Installation:
         else:
             import pexpect            
             # copy mj configuration directory
+            logger.debug("Copy data to: " + self.copy_path)                               
             conn.sendline('cd ' + self.copy_path)
             conn.expect('.*cd ' + self.copy_path + "\r\n")
             conn.expect("sftp> ")

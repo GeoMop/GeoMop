@@ -126,10 +126,9 @@ class JobsCommunicator(Communicator):
         """
         if self._stopping:
             if self.conf.output_type == comconf.OutputCommType.ssh and \
-                self.conf.direct_communication:
-                for id in self.jobs:
-                    del self.jobs[id]
-                    del self.job_outputs[id]
+                not self.conf.direct_communication:
+                self.jobs.clear()
+                self.job_outputs.clear()
                 return
             else:
                 id = self._get_next_id(self._last_check_id)
