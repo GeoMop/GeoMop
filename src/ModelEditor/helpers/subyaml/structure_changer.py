@@ -247,6 +247,18 @@ class StructureChanger:
                 del lines[l1]
 
     @staticmethod
+    def add_key(key, indent, value=None, tag=None):
+        """
+        Create new line with tet key
+        """
+        add = indent*" "+ key +":"
+        if tag is not None:
+            add += " !" + tag
+        if value is not None:
+            add += " " + value
+        return add
+
+    @staticmethod
     def copy_structure(lines, l1, c1, l2, c2, indent):
         """
         Copy structure from lines to separate array. Structure is
