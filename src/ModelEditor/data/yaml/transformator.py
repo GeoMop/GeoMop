@@ -248,6 +248,9 @@ class Transformator:
                     changes = self._add_key(root, lines, action)
                 if changes:
                     yaml = "\n".join(lines)
+        if not changes:
+            yaml = "\n".join(lines)
+            self.refresh(root_input_type, yaml, notification_handler, loader)
         return yaml
         
     def refresh(self, root_input_type, yaml, notification_handler, loader):
@@ -738,7 +741,7 @@ class Transformator:
         old = '!' + action['parameters']['old_name'] 
         new = '!' + action['parameters']['new_name']
  
-        return StructureChanger._change_tag(lines, node, old,  new)
+        return StructureChanger.change_tag(lines, node, old,  new)
 
     def _fix_end(self, lines, l1, c1, l2, c2 ):
         """If end of node is empty  on next line, end is move to end of preceding line"""

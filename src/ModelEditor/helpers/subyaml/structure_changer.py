@@ -171,17 +171,17 @@ class StructureChanger:
                 add[prepend_len] =  prepend_ident * " " +add[prepend_len]        
         return add
     
-    @staticmethod
-    def change_tag(lines, node, old,  new):
+    @classmethod
+    def change_tag(cls, lines, node, old,  new):
         """change node tag"""        
         l1, c1, l2, c2 = StructureChanger.node_pos(node)
-        return StructureChanger._replace(lines, new,  old,  l1, c1, l2, c2 )        
+        return cls.replace(lines, new,  old,  l1, c1, l2, c2 )        
         
-    @staticmethod
-    def add_tag(lines, node, new):
+    @classmethod
+    def add_tag(cls, lines, node, new):
         """add node tag"""
         l1, c1, l2, c2 = StructureChanger.key_pos(node)
-        return StructureChanger._replace(lines, ': ' + new,  ":",  l1, c1, l2, c2 )
+        return cls.replace(lines, ': ' + new,  ":",  l1, c1, l2, c2 )
         
     
     @staticmethod    
