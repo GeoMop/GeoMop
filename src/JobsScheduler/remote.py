@@ -56,6 +56,10 @@ class JobStarter():
 def  remote_action_function_before(message):
     """before action function"""
     global mj_name, start_time
+    if message.action_type == tdata.ActionType.download_res:
+        # processing in after function
+        if not comunicator.conf.direct_communication:
+            return False, None
     if message.action_type == tdata.ActionType.get_state:
         state = comunicator.get_state()
         action = tdata.Action(tdata.ActionType.state)
@@ -99,8 +103,11 @@ def  remote_action_function_after( message,  response):
     """after action function"""
     global mj_name
     if message.action_type == tdata.ActionType.download_res:
-        states =  comunicator.get_jobs_states()
-        states.save_file(inst.Installation.get_result_dir_static(mj_name))
+        if not comunicator.conf.direct_communication:
+            states =  comunicator.get_jobs_states()
+            states.save_file(inst.Installation.get_result_dir_static(mj_name))
+            action = tdata.Action(tdata.ActionType.ok)
+            return action.get_message()
     return super(JobsCommunicator, comunicator).standart_action_function_after( message,  response)
     
 logger = logging.getLogger("Remote")

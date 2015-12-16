@@ -258,7 +258,8 @@ class Installation:
             if len(res)>0:
                 logger.warning("Sftp message (cd root): " + res)
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
-            self._create_dir(conn, mjs_dir + '/' + __conf_dir__)  
+            self._create_dir(conn, mjs_dir, False)
+            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
                 conn.set_sftp_paths( conf_path , self.copy_path + '/' + self.mj_name)
@@ -274,9 +275,11 @@ class Installation:
             conn.expect("sftp> ")
             if len(conn.before) > 0:
                 logger.warning("Sftp message (cd root): " + str(conn.before,
-                                                                 'utf-8').strip())                                                                 
+                                                                 'utf-8').strip()) 
+                                                                
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
-            self._create_dir(conn, mjs_dir + '/' + __conf_dir__)  
+            self._create_dir(conn, mjs_dir, False)
+            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
             conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
                 mj_path = os.path.join(__install_dir__, mjs_dir)

@@ -276,7 +276,7 @@ class Communicator():
                         t.start()
                     if processed:
                         action = tdata.Action(tdata.ActionType.action_in_process)
-                        return False, False, action.get_message()
+                        return action.get_message()
                     action = tdata.Action(tdata.ActionType.ok)
                     return action.get_message()
                 else:

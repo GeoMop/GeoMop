@@ -248,9 +248,7 @@ class Transformator:
                     changes = self._add_key(root, lines, action)
                 if changes:
                     yaml = "\n".join(lines)
-        if not changes:
-            yaml = "\n".join(lines)
-            self.refresh(root_input_type, yaml, notification_handler, loader)
+        yaml = "\n".join(lines)
         return yaml
         
     def refresh(self, root_input_type, yaml, notification_handler, loader):
