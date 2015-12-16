@@ -19,7 +19,7 @@ sys.path.insert(2, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(3, './twoparty/enum')
 
-from ui.com_manager import ComManager, ComManagerMock
+from ui.com_manager import ComManager
 from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
 

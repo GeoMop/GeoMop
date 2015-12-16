@@ -16,7 +16,7 @@ class ResHandler(QTimer):
     mj_paused = QtCore.pyqtSignal(str)
     mj_resumed = QtCore.pyqtSignal(str)
     mj_stopped = QtCore.pyqtSignal(str)
-    mj_result = QtCore.pyqtSignal(str, dict)
+    mj_result = QtCore.pyqtSignal(str)
     mj_state = QtCore.pyqtSignal(str, object)
 
     def __init__(self, com_manager, parent=None):
@@ -38,8 +38,7 @@ class ResHandler(QTimer):
             elif res.com_type is ComType.resume:
                 self.mj_resumed.emit(res.key)
             elif res.com_type is ComType.results:
-                if res.data:
-                    self.mj_result.emit(res.key, res.data)
+                self.mj_result.emit(res.key)
             elif res.com_type is ComType.state:
                 if res.data:
                     self.mj_state.emit(res.key, res.data)

@@ -7,6 +7,8 @@ Table of MultiJobs
 import datetime
 import time
 import os
+from PyQt5 import QtCore
+
 import PyQt5.QtWidgets as QtWidgets
 
 from PyQt5.QtCore import QUrl
@@ -22,41 +24,40 @@ class Tabs(QtWidgets.QTabWidget):
         self.show()
 
     def reload_view(self, mj):
-        self.ui.logsTab.reload_view(mj.get_logs())
+        self.ui.jobsTab.reload_view(mj.get_jobs())
         self.ui.resultsTab.reload_view(mj.get_results())
-        if mj.jobs is not None:
-            self.ui.jobsTab.reload_items(mj.jobs)
-        else:
-            self.ui.jobsTab.ui.treeWidget.clear()
+        self.ui.logsTab.reload_view(mj.get_logs())
+        self.ui.confTab.reload_view(mj.get_configs())
 
 
 class UiTabs(object):
 
     def setup_ui(self, tab_widget):
-        tab_widget.setObjectName("MultiJobInfoTab")
-        self.overviewTab = OverviewTab(tab_widget)
+        tab_widget.setObjectName("tabs")
+        # self.overviewTab = OverviewTab(tab_widget)
         self.jobsTab = JobsTab(tab_widget)
         self.resultsTab = ResultsTab(tab_widget)
         self.logsTab = LogsTab(tab_widget)
-        tab_widget.addTab(self.overviewTab, "Overview")
+        self.confTab = ConfigTab(tab_widget)
+        # tab_widget.addTab(self.overviewTab, "Overview")
         tab_widget.addTab(self.jobsTab, "Jobs")
         tab_widget.addTab(self.resultsTab, "Results")
         tab_widget.addTab(self.logsTab, "Logs")
+        tab_widget.addTab(self.confTab, "Config")
 
 
 class AbstractTab(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("abstractTab")
+        self.time_format = "%X %x"
         self.ui = QtWidgets.QWidget(self)
         self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
         self.ui.horizontalLayout.setObjectName("horizontalLayout")
         self.ui.treeWidget = QtWidgets.QTreeWidget(self.ui)
-        self.ui.headers = ["Header"]
-        self.time_format = "%d. %m. %y; %H:%M:%S"
-        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
         self.ui.treeWidget.setAlternatingRowColors(True)
         self.ui.treeWidget.setSortingEnabled(True)
+        self.ui.treeWidget.setRootIsDecorated(False)
         self.ui.horizontalLayout.addWidget(self.ui.treeWidget)
         self.setLayout(self.ui.horizontalLayout)
 
@@ -83,6 +84,9 @@ class JobsTab(AbstractTab):
         self.ui.headers = ["Name", "Insert Time", "Queued Time", "Start Time",
                            "Run Interval", "Status"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
+        self.ui.treeWidget.header().resizeSection(1, 120)
+        self.ui.treeWidget.header().resizeSection(2, 120)
+        self.ui.treeWidget.header().resizeSection(3, 120)
 
     @staticmethod
     def _update_item(item, job, time_format):
@@ -101,22 +105,29 @@ class JobsTab(AbstractTab):
             item.setText(3, "Not Started Yet")
         item.setText(4, str(datetime.timedelta(seconds=job.run_interval)))
         item.setText(5, TaskStatus(job.status).name)
+
+        item.setTextAlignment(1, QtCore.Qt.AlignRight)
+        item.setTextAlignment(2, QtCore.Qt.AlignRight)
+        item.setTextAlignment(3, QtCore.Qt.AlignRight)
+        item.setTextAlignment(4, QtCore.Qt.AlignRight)
         return item
 
-    def reload_items(self, jobs):
+    def reload_view(self, jobs):
         self.ui.treeWidget.clear()
         for job in jobs:
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
             self._update_item(row, job, self.time_format)
         self.ui.treeWidget.resizeColumnToContents(0)
+        self.ui.treeWidget.resizeColumnToContents(4)
 
 
 class FilesTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("FilesTab")
-        self.ui.headers = ["Name", "Size", "Modification", "Path"]
-        self.ui.treeWidget.setHeaderLabels(self.ui.headers)
+        self.headers = ["Name", "Size", "Last Modification", "Path"]
+        self.ui.treeWidget.setHeaderLabels(self.headers)
+        self.ui.treeWidget.header().resizeSection(2, 120)
         self.ui.treeWidget.itemDoubleClicked.connect(
             lambda clicked_item, clicked_col: QDesktopServices.openUrl(
                 QUrl.fromLocalFile(clicked_item.text(3))))
@@ -128,7 +139,8 @@ class FilesTab(AbstractTab):
         item.setText(2, datetime.datetime.fromtimestamp(
                 f.modification_time).strftime(time_format))
         item.setText(3, f.file_path)
-
+        item.setTextAlignment(1, QtCore.Qt.AlignRight)
+        item.setTextAlignment(2, QtCore.Qt.AlignRight)
         return item
 
     def reload_view(self, file_objects):
@@ -138,7 +150,6 @@ class FilesTab(AbstractTab):
             self._update_item(row, f, self.time_format)
         self.ui.treeWidget.resizeColumnToContents(0)
         self.ui.treeWidget.resizeColumnToContents(1)
-        self.ui.treeWidget.resizeColumnToContents(2)
 
 
 class LogsTab(FilesTab):
@@ -151,3 +162,9 @@ class ResultsTab(FilesTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("resultsTab")
+
+
+class ConfigTab(FilesTab):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("configTab")

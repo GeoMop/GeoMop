@@ -17,20 +17,16 @@ class Overview(QtWidgets.QTreeWidget):
                         "Start Time", "Run Interval", "Status",
                         "Known Jobs", "Estimated Jobs", "Finished Jobs",
                         "Running Jobs"]
-        self.time_format = "%d. %m. %y; %H:%M:%S"
+        self.time_format = "%X %x"
         self.setObjectName("MultiJobOverview")
         self.setHeaderLabels(self.headers)
         self.setColumnHidden(0, True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
         self.setRootIsDecorated(False)
-        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-
-    def resize_all_columns_to_contents(self):
-        for idx, header in enumerate(self.headers):
-            self.resizeColumnToContents(idx)
+        self.header().resizeSection(2, 120)
+        self.header().resizeSection(3, 120)
+        self.header().resizeSection(4, 120)
 
     @staticmethod
     def _update_item(item, state, time_format):
@@ -80,7 +76,7 @@ class Overview(QtWidgets.QTreeWidget):
         index, item = self._get_item_by_key(key)
         if item:
             self._update_item(item, data, self.time_format)
-        self.resize_all_columns_to_contents()
+        self.resizeColumnToContents(1)
 
     def remove_item(self, key):
         index, item = self._get_item_by_key(key)
@@ -91,6 +87,6 @@ class Overview(QtWidgets.QTreeWidget):
         if data:
             for key in data:
                 self.add_item(key, data[key].state)
-        self.resize_all_columns_to_contents()
         self.setCurrentItem(self.topLevelItem(0))
+        self.resizeColumnToContents(1)
 

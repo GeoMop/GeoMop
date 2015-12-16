@@ -4,10 +4,7 @@ JobScheduler data structures
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import logging
 import config as cfg
-
-logger = logging.getLogger("UiTrace")
 
 
 class PersistentDict(dict):
@@ -111,7 +108,6 @@ class DataContainer(object):
         self.resource_presets.save()
         self.env_presets.save()
         self.set_data.save()
-        logger.info('==== Everything saved successfully! ====')
 
     def load_all(self):
         """
@@ -141,4 +137,3 @@ class DataContainer(object):
         self.set_data.load()
         if not self.set_data:
             self.set_data = SetData()
-        logger.info('==== Everything loaded successfully! ====')
