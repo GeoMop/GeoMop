@@ -98,4 +98,5 @@ class JobsState:
                     obj.__dict__=job
                     self.jobs.append(obj)                
         except Exception as error:
-            logger.error("Load state error:" + str(error))
+            # logger.error("Load state error:" + str(error))
+            pass

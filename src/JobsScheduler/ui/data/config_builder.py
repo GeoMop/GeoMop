@@ -122,7 +122,9 @@ class ConfigBuilder:
                 .set_python_env(mj_python_env)\
                 .set_libs_env(mj_libs_env)
             if mj_remote_execution_type == UiResourceDialog.EXEC_LABEL:
-                delegator.set_out_comm(OutputCommType.exec_) .set_pbs(mj_pbs)
+                delegator.set_out_comm(OutputCommType.exec_)\
+                    .set_pbs(mj_pbs)
+                # ToDo: Why set PBS?
                 mj.set_in_comm(InputCommType.socket)
             elif mj_remote_execution_type == UiResourceDialog.PBS_LABEL:
                 delegator.set_out_comm(OutputCommType.pbs).set_pbs(mj_pbs)

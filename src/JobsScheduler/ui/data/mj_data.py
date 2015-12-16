@@ -9,7 +9,7 @@ import os
 import time
 
 from communication import Installation
-from data.states import TaskStatus
+from data.states import TaskStatus, JobsState
 from ui.data.preset_data import APreset
 
 
@@ -17,58 +17,30 @@ class MultiJob:
     def __init__(self, preset):
         self.preset = preset
         self.state = MultiJobState(preset.name)
-        self.jobs = None
 
-    def action_run(self):
+    def get_preset(self):
         """
-        Reset times and remove previous results.
-        :return: None
+        Get MultiJob preset.
+        :return: MultiJobPreset object
         """
-        # reset data
-        self.jobs = None
+        return self.preset
 
-        # reset times
-        self.state.queued_time = None
-        self.state.start_time = None
+    def get_state(self):
+        """
+        Return MultiJob state.
+        :return: MultiJobState object
+        """
+        return self.state
 
-        # set status to installation
-        self.change_status(TaskStatus.installation)
-
-    def action_queued(self):
+    def get_jobs(self):
         """
-        Changes status to queued and sets queued time.
-        :return: None
+        Return list of Jobs that belong to MultiJob.
+        :return: List of Jobs
         """
-        self.state.queued_time = time.time()
-        # set status to installation
-        self.change_status(TaskStatus.queued)
-
-    def action_running(self):
-        """
-        Changes status to queued and sets queued time.
-        :return: None
-        """
-        if not self.state.queued_time:
-            self.state.queued_time = time.time()
-        self.state.start_time = time.time()
-        # set status to installation
-        self.change_status(TaskStatus.running)
-
-    def update_state(self, new_state):
-        """
-        Update MultiJob status with received data.
-        :param new_state: State object that updates current state.
-        :return: None
-        """
-        self.state.update(new_state)
-
-    def change_status(self, new_status):
-        """
-        Directly changes status of the MultiJob
-        :param new_status: TaskStatus o replace current.
-        :return: None
-        """
-        self.state.status = new_status
+        res_path = Installation.get_result_dir_static(self.preset.name)
+        states = JobsState()
+        states.load_file(res_path)
+        return states.jobs
 
     def get_logs(self):
         """
@@ -96,11 +68,25 @@ class MultiJob:
                 ress.append(res)
         return ress
 
+    def get_configs(self):
+        """
+        Scans res directory and returns config files.
+        :return: List of MultiJobConf objects
+        """
+        conf_path = Installation.get_config_dir_static(self.preset.name)
+        confs = []
+        for file in os.listdir(conf_path):
+            if os.path.isfile(os.path.join(conf_path, file)):
+                conf = MultiJobLog(conf_path, file)
+                confs.append(conf)
+        return confs
+
 
 class MultiJobState:
     """
     Data for current state of MultiJob
     """
+
     def __init__(self, name):
         """
         Default initialization.
@@ -128,20 +114,47 @@ class MultiJobState:
         self.running_jobs = 0
         """Count of running jobs"""
 
-    def update(self, state):
+        self.update_time = None
+        """When MultiJobState  was last updated"""
+
+    def update(self, new_state):
         """
-        Update state with received data
-        :param state: Communication state data
+        Update new_state with received data
+        :param new_state: Communication new_state data
         :return: None
         """
-        # self.queued_time = state.queued_time
-        # self.start_time = state.start_time
-        self.run_interval = state.run_interval
-        self.status = state.status
-        self.known_jobs = state.known_jobs
-        self.estimated_jobs = state.estimated_jobs
-        self.finished_jobs = state.finished_jobs
-        self.running_jobs = state.running_jobs
+        # self.queued_time = new_state.queued_time
+        # self.start_time = new_state.start_time
+        self.run_interval = new_state.run_interval
+        self.status = new_state.status
+        self.known_jobs = new_state.known_jobs
+        self.estimated_jobs = new_state.estimated_jobs
+        self.finished_jobs = new_state.finished_jobs
+        self.running_jobs = new_state.running_jobs
+
+        self.update_time = time.time()
+
+    def get_status(self):
+        """
+        Return MultiJob status
+        :return: Current TaskStatus
+        """
+        return self.status
+
+    def set_status(self, new_status):
+        """
+        Directly changes status of the MultiJob
+        :param new_status: TaskStatus o replace current.
+        :return: None
+        """
+        self.status = new_status
+
+    def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class AMultiJobFile:
@@ -159,8 +172,7 @@ class AMultiJobFile:
         self.file_path = os.path.join(path, file)
         """Path to file"""
 
-        self._stat_info = os.stat(self.file_path)
-        """Info about the file"""
+        stat_info = os.stat(self.file_path)
 
         def sizeof_fmt(num, suffix='B'):
             """
@@ -175,11 +187,15 @@ class AMultiJobFile:
                 num /= 1024.0
             return "%.1f%s%s" % (num, 'Y', suffix)
 
-        self.file_size = sizeof_fmt(self._stat_info.st_size)
+        self.file_size = sizeof_fmt(stat_info.st_size)
         """File size"""
 
-        self.modification_time = self._stat_info.st_mtime
+        self.modification_time = stat_info.st_mtime
         """Time of the latest modification"""
+
+        # for later details extension
+        # self._stat_info = stat_info
+        # """Info about the file"""
 
     def __repr__(self):
         """
@@ -201,6 +217,15 @@ class MultiJobLog(AMultiJobFile):
 class MultiJobRes(AMultiJobFile):
     """
     MultiJob log data container.
+    """
+
+    def __init__(self, path, file):
+        super().__init__(path, file)
+
+
+class MultiJobConf(AMultiJobFile):
+    """
+    MultiJob conf data container.
     """
 
     def __init__(self, path, file):
@@ -237,5 +262,102 @@ class MultiJobPreset(APreset):
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
-class JobState:
-    pass
+class MultiJobActions:
+    @classmethod
+    def run(cls, mj):
+        """
+        Reset times and remove previous results.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().queued_time = None
+        mj.get_state().start_time = None
+
+        mj.get_state().set_status(TaskStatus.installation)
+
+    @classmethod
+    def pausing(cls, mj):
+        """
+        Changes status to pausing.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.pausing)
+
+    @classmethod
+    def paused(cls, mj):
+        """
+        Changes status to paused.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.paused)
+
+    @classmethod
+    def resuming(cls, mj):
+        """
+        Changes status to resuming.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.resuming)
+
+    @classmethod
+    def resumed(cls, mj):
+        """
+        Changes status to resumed.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.running)
+
+    @classmethod
+    def stopping(cls, mj):
+        """
+        Changes status to stopping.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.stopping)
+
+    @classmethod
+    def stopped(cls, mj):
+        """
+        Changes status to stopped.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.none)
+
+    @classmethod
+    def queued(cls, mj):
+        """
+        Changes status to queued and sets queued time.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().queued_time = time.time()
+
+        mj.get_state().set_status(TaskStatus.queued)
+
+    @classmethod
+    def running(cls, mj):
+        """
+        Changes status to queued and sets queued time.
+        :param mj: MultiJob instance
+        :return:
+        """
+        if not mj.get_state().queued_time:
+            mj.get_state().queued_time = time.time()
+        mj.get_state().start_time = time.time()
+
+        mj.get_state().set_status(TaskStatus.running)
+
+    @classmethod
+    def finished(cls, mj):
+        """
+        Changes status to finished.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().set_status(TaskStatus.finished)
