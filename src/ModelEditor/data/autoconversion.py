@@ -253,7 +253,10 @@ class Transposer:
             # TODO what about AbstractRecord? or Array?
             return
 
-        cls._get_transformation_array_size(node, subtype)
+        try:
+            cls._get_transformation_array_size(node, subtype)
+        except Notification as notification:
+            notification_handler.report(notification)
         if cls.array_size is None:
             cls.array_size = 1
 
@@ -283,7 +286,6 @@ class Transposer:
     @classmethod
     def _get_transformation_array_size(cls, node, input_type):
         """Return transformation array size."""
-        # TODO: this won't work if there is another conversion (reducible_to_key)
         # find a children node that has an array instead of record or scalar
         for child in node.children:
             not_in_input_type = 'keys' not in input_type or child.key.value not in input_type['keys']
@@ -293,7 +295,13 @@ class Transposer:
             child_type = input_type['keys'][child.key.value]['type']
 
             if child.implementation == DataNode.Implementation.sequence:
-                if child_type['base_type'] != 'Array':
+                if child_type['base_type'] == 'Record':
+                    # TODO: does this prevent reducible_to_key incompatibility?
+                    # TODO create err msg
+                    notification = Notification.from_name("Error", "Transposition of record is not allowed.")
+                    notification.span = child.span
+                    raise notification
+                elif child_type['base_type'] != 'Array':
                     if cls.array_size is None:
                         cls.array_size = len(child.children)
                         cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
@@ -301,7 +309,7 @@ class Transposer:
                         # TODO create err msg
                         notification = Notification.from_name("Error", "Different length of arrays.")
                         notification.span = child.span
-                        notification_handler.report(notification)
+                        raise notification
                     else:
                         cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
 

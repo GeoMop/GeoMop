@@ -7,6 +7,7 @@ import os
 import pytest
 import data.autoconversion as ac
 from data import ScalarDataNode, MappingDataNode
+from helpers import notification_handler
 from util import TextValue
 
 DATA_DIR = os.path.join('data', 'autoconversion')
@@ -219,7 +220,6 @@ def test_transposition(loader):
         "  five: [one, two, ten]\n"
         "default: true\n"
     )
-
     root = loader.load(data)
     root = ac.autoconvert(root, root_input_type)
     assert len(root.children[0].children) == 3
@@ -247,6 +247,82 @@ def test_transposition(loader):
     assert node.children[2].children[1].value is False
     assert node.children[3].value == 3.5
     assert node.children[4].value == 'ten'
+
+    data = (
+        "set:\n"
+        "  one: 1\n"
+        "  two: [2,3]\n"
+        "  three:\n"
+        "    key_a: A\n"
+        "    key_b: false\n"
+        "  four: 1.5\n"
+        "  five: one\n"
+        "default: true\n"
+    )
+    root = loader.load(data)
+    root = ac.autoconvert(root, root_input_type)
+    assert len(root.children[0].children) == 1
+    assert root.children[1].value is True
+    node = root.children[0].children[0]
+    assert len(node.children) == 5
+    assert node.children[0].value == 1
+    assert len(node.children[1].children) == 2
+    assert len(node.children[2].children) == 2
+    assert node.children[2].children[0].value == 'A'
+    assert node.children[2].children[1].value is False
+    assert node.children[3].value == 1.5
+    assert node.children[4].value == 'one'
+
+    # TODO: verify correct notification types
+    data = (
+        "set:\n"
+        "  one: []\n"
+        "  two: [2,3]\n"
+        "  three:\n"
+        "    key_a: [A, B, C]\n"
+        "    key_b: false\n"
+        "  four: [1.5, 2.5, 3.5]\n"
+        "  five: one\n"
+        "default: true\n"
+    )
+    root = loader.load(data)
+    notification_handler.clear()
+    root = ac.autoconvert(root, root_input_type)
+    assert len(notification_handler.notifications) == 1
+
+    data = (
+        "set:\n"
+        "  one: [1, 2, 3]\n"
+        "  two: [2,3]\n"
+        "  three:\n"
+        "    key_a: [A, B]\n"
+        "    key_b: false\n"
+        "  four: [1.5, 2.5, 3.5]\n"
+        "  five: one\n"
+        "default: true\n"
+    )
+    root = loader.load(data)
+    notification_handler.clear()
+    root = ac.autoconvert(root, root_input_type)
+    assert len(notification_handler.notifications) == 1
+
+    data = (
+        "set:\n"
+        "  one: [1, 2]\n"
+        "  two: [2,3]\n"
+        "  three:\n"
+        "    - key_a: A\n"
+        "      key_b: false\n"
+        "    - key_a: B\n"
+        "      key_b: false\n"
+        "  four: 1.5\n"
+        "  five: one\n"
+        "default: true\n"
+    )
+    root = loader.load(data)
+    notification_handler.clear()
+    root = ac.autoconvert(root, root_input_type)
+    assert len(notification_handler.notifications) == 1
 
 
 if __name__ == '__main__':
