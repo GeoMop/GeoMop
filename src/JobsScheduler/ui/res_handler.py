@@ -13,6 +13,7 @@ from ui.com_manager import ComType
 class ResHandler(QTimer):
     mj_installed = QtCore.pyqtSignal(str)
     mj_queued = QtCore.pyqtSignal(str)
+    mj_installation = QtCore.pyqtSignal(str)
     mj_paused = QtCore.pyqtSignal(str)
     mj_resumed = QtCore.pyqtSignal(str)
     mj_stopped = QtCore.pyqtSignal(str)
@@ -31,8 +32,10 @@ class ResHandler(QTimer):
             res = self.com_manager.res_queue.get()
             if res.com_type is ComType.install:
                 self.mj_installed.emit(res.key)
-            elif res.com_type is ComType.qued:
+            elif res.com_type is ComType.queued:
                 self.mj_queued.emit(res.key)
+            elif res.com_type is ComType.installation:
+                self.mj_installation.emit(res.key)
             elif res.com_type is ComType.pause:
                 self.mj_paused.emit(res.key)
             elif res.com_type is ComType.resume:

@@ -47,6 +47,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
 
+        self.res_handler.mj_installation.connect(
+            self.handle_mj_installation)
+
         self.res_handler.mj_queued.connect(
             self.handle_mj_queued)
 
@@ -301,6 +304,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def handle_mj_installed(self, key):
         mj = self.data.multijobs[key]
         MultiJobActions.running(mj)
+        self.ui.overviewWidget.update_item(key, mj.get_state())
+
+        current = self.ui.overviewWidget.currentItem()
+        self.update_ui_locks(current)
+
+    def handle_mj_installation(self, key):
+        mj = self.data.multijobs[key]
+        MultiJobActions.installation(mj)
         self.ui.overviewWidget.update_item(key, mj.get_state())
 
         current = self.ui.overviewWidget.currentItem()
