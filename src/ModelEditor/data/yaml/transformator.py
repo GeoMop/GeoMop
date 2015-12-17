@@ -659,26 +659,25 @@ class Transformator:
         add[i] = re.sub(parent1.group(2) + r"\s*:", new_node + ":", add[i])        
         if action['parameters']['create_path'] and len(node_struct) > 0:
             add = StructureChanger.paste_absent_path(add, node_struct)        
-        if sl2 < dl1 or (sl2 == dl1 and sc2 < dc1) or \
-            (action['parameters']['create_path'] and len(node_struct) > 0):
+        if sl1<dl1 and sl2>dl1:
+            raise TransformationFileFormatError(
+                "Destination block (" + self._get_paths_str(action, 'destination_path') +
+                ") and source block (" + self._get_paths_str(action, 'source_path') +
+                " is overlapped")
+        if sl1 <= dl1:
             # source before dest, first copy
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])
             StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
             action['parameters']['path'] = action['parameters']['source_path']
             action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
-        elif dl2 < sl1 or (dl2 == sl1 and dl2 < sc1):
+        else:
             # source after dest, first delete
             action['parameters']['path'] = action['parameters']['source_path']
             action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
             intendation2 = re.search(r'^(\s*)(\S.*)$', lines[dl2])
-            StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
-        else:
-            raise TransformationFileFormatError(
-                "Destination block (" + self._get_paths_str(action, 'source_path') +
-                ") and source block (" + self._get_paths_str(action, 'destination_path') +
-                " is overlapped")
+            StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)        
         return True
         
     def _add_array(self, root, lines, action):
