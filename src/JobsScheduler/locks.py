@@ -42,7 +42,7 @@ class Lock():
         self._version_dir = os.path.join(path, __version_dir__)        
         """Path to version files"""
         
-    def lock_app(self,  install_ver, data_ver, res_dir, conf_dir):
+    def lock_app(self,  install_ver, data_ver, res_dir, conf_subdir):
         """
         Check if application with mj_name is not runnig
         and is installed right version of installation.
@@ -106,11 +106,17 @@ class Lock():
                
             # installation ready
             dataed_ver = self._read_version(self._mj_name + "_data.version")
-            if dataed_ver is None or dataed_ver != data_ver:                
-                if os.path.isdir(conf_dir) and not source:
-                    shutil.rmtree(conf_dir, ignore_errors=True)                 
-                if os.path.isdir(res_dir):
-                    shutil.rmtree(res_dir, ignore_errors=True) 
+            if dataed_ver is None or dataed_ver != data_ver:
+                job_dir = os.path.split(res_dir)[0]
+                if os.path.isdir(job_dir):
+                    names = os.listdir(job_dir)
+                    for name in names:
+                        path = os.path.join(job_dir,name)
+                        if os.path.isdir(path):
+                            if name != conf_subdir or not source:
+                                shutil.rmtree(path, ignore_errors=True) 
+                        if os.path.isfile(path) and name != "locks.py":
+                            os.remove(path)
                 self._write_version(self._mj_name + "_data.version", data_ver)   
                 res |= Lock.__data__
             # data_ready            

@@ -403,12 +403,11 @@ class StructureChanger:
                         nl2 -= 1
                         nc2 = 0
                 else:
-                    nc2 = 0
+                    break
                 ident = re.search(r'^(\s*)\S', lines[nl2])
                 if ident is not None:
                     nc2 = len(ident.group(1))
             else:
-                nl2 -= 1
                 nc2 = 0
                 ident = re.search(r'^(\s*)\S', lines[nl2])
                 if ident is not None:
