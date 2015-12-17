@@ -8,7 +8,7 @@ from meconfig.meconfig import _Config as Config
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
     cfg.init(None)
-    cfg.config = Config()
+    cfg.config = Config(False)
     # cfg.config is assigned
     assert cfg.config.__class__ == Config
 

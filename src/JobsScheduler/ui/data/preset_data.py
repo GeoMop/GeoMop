@@ -50,6 +50,8 @@ class PbsPreset(APreset):
         :return: None
         """
         super().__init__(name)
+        self.queue = ""
+        """Defines preferred queue for execution"""
         self.walltime = ""
         """Walltime defines maximum execution time in system"""
         self.nodes = "1"

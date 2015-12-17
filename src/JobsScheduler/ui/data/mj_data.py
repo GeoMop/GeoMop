@@ -270,8 +270,13 @@ class MultiJobActions:
         :param mj: MultiJob instance
         :return:
         """
+        mj.get_state().run_interval = 0
         mj.get_state().queued_time = None
         mj.get_state().start_time = None
+        mj.get_state().known_jobs = 0
+        mj.get_state().estimated_jobs = 0
+        mj.get_state().finished_jobs = 0
+        mj.get_state().running_jobs = 0
 
         mj.get_state().set_status(TaskStatus.installation)
 
@@ -328,6 +333,17 @@ class MultiJobActions:
         :return:
         """
         mj.get_state().set_status(TaskStatus.none)
+
+    @classmethod
+    def installation(cls, mj):
+        """
+        Changes status to installation.
+        :param mj: MultiJob instance
+        :return:
+        """
+        mj.get_state().queued_time = time.time()
+
+        mj.get_state().set_status(TaskStatus.installation)
 
     @classmethod
     def queued(cls, mj):

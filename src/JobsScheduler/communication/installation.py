@@ -445,7 +445,19 @@ class Installation:
         command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
         if mj_id is not None:
             command += " " + mj_id
-        return  command
+        return command
+
+    @staticmethod
+    def get_central_log_dir_static():
+        """Return dir for central log"""
+        try:
+            path = os.path.join(__install_dir__, "log")
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logger.warning("Get central log dir error: " + str(err))
+            return "."
+        return path
 
     @staticmethod
     def get_result_dir_static(mj_name):

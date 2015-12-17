@@ -16,6 +16,14 @@ class ActionExit(QtWidgets.QAction):
         self.setObjectName("actionExit")
 
 
+class ActionLog(QtWidgets.QAction):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("Log")
+        self.setShortcut("Ctrl+L")
+        self.setObjectName("actionLog")
+
+
 class ActionAddMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)

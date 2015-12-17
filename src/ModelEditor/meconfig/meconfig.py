@@ -51,7 +51,7 @@ class _Config:
         """user customizable keyboard shortcuts"""
 
         if readfromconfig:
-            data = cfg.get_config_file(self.__class__.SERIAL_FILE)
+            data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
             self.last_data_dir = getattr(data, 'last_data_dir', self.last_data_dir)
             self.recent_files = getattr(data, 'recent_files', self.recent_files)
             self.format_files = getattr(data, 'format_files', self.format_files)
