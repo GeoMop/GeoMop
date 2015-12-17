@@ -380,6 +380,9 @@ class YamlEditorWidget(QsciScintilla):
         :param int end_line: line where the selection ends
         :param int end_column: column where the selection ends
         """
+        # first call ensures scrolling to the end of the text
+        self.setSelection(end_line - 1, end_column - 1, start_line - 1, start_column - 1)
+        # the second call places the cursor at the front os selection and makes it visible as well
         self.setSelection(start_line - 1, start_column - 1, end_line - 1, end_column - 1)
 
     def set_selection_from_cursor(self, length):
