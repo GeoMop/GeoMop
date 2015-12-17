@@ -244,6 +244,8 @@ class APresetsDialog(QtWidgets.QDialog):
                 row.setText(0, str(key))
                 row.setText(1, data[key].get_name())
                 row.setText(2, data[key].get_description())
+            self.ui.presets.resizeColumnToContents(1)
+            self.ui.presets.resizeColumnToContents(2)
 
     def _handle_add_preset_action(self):
         self.presets_dlg.exec_add()

@@ -6,8 +6,12 @@ Main window module
 """
 import copy
 import os
+
 from PyQt5 import QtCore
-from communication import Communicator
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
+
+from communication import Communicator, Installation
 from data.states import TaskStatus
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
@@ -134,6 +138,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.app.actionExit.triggered.connect(
             QtWidgets.QApplication.quit)
 
+        # connect exit action
+        self.ui.menuBar.app.actionLog.triggered.connect(
+            self._handle_log_action)
+
         # connect multijob run action
         self.ui.menuBar.multiJob.actionRunMultiJob.triggered.connect(
             self._handle_run_multijob_action)
@@ -183,6 +191,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.menuBar.multiJob.lock_by_status(status)
             mj = self.data.multijobs[current.text(0)]
             self.ui.tabWidget.reload_view(mj)
+
+    @staticmethod
+    def _handle_log_action():
+        path = Installation.get_central_log_dir_static()
+        for file in os.listdir(path):
+            file_path = os.path.join(path, file)
+            if os.path.isfile(file_path):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
     def _handle_add_multijob_action(self):
         self.mj_dlg.exec_add()
