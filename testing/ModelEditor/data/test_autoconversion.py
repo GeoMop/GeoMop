@@ -3,11 +3,27 @@ Tests for auto-conversion module
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-
+import os
 import pytest
 import data.autoconversion as ac
 from data import ScalarDataNode, MappingDataNode
 from util import TextValue
+
+DATA_DIR = os.path.join('data', 'autoconversion')
+INPUT_TYPE_FILE = os.path.join('resources', 'format', '00_geomop_testing_ist.json')
+
+
+@pytest.fixture(scope='module')
+def loader():
+    from data import Loader
+    return Loader()
+
+
+@pytest.fixture(scope='module')
+def root_input_type():
+    from data import get_root_input_type_from_json
+    json_data = open(INPUT_TYPE_FILE).read()
+    return get_root_input_type_from_json(json_data)
 
 
 def test_get_expected_array_dimension():
@@ -134,8 +150,101 @@ def test_convert_data_type(base_type, data, expected):
     assert node.value == expected
 
 
-def test_convert_data_type_error():
-    pass
+def test_transposition(loader):
+    root_input_type = dict(
+        type_name='RootTransposeRec',
+        base_type='Record',
+        keys=dict(
+            set=dict(type=dict(
+                base_type='Array',
+                min=1,
+                max=4,
+                subtype=dict(
+                    type_name='TransposeSubRec1',
+                    base_type='Record',
+                    keys=dict(
+                        one=dict(type=dict(
+                            base_type='Integer'
+                        )),
+                        two=dict(type=dict(
+                            base_type='Array',
+                            min=1,
+                            max=10,
+                            subtype=dict(
+                                base_type='Integer'
+                            )
+                        )),
+                        three=dict(type=dict(
+                            type_name='TransposeSubRec2',
+                            base_type='Record',
+                            keys=dict(
+                                key_a=dict(type=dict(
+                                    base_type='String'
+                                )),
+                                key_b=dict(type=dict(
+                                    base_type='Bool'
+                                )),
+                            )
+                        )),
+                        four=dict(type=dict(
+                            base_type='Double'
+                        )),
+                        five=dict(type=dict(
+                            base_type='Selection',
+                            values=dict(
+                                one=None,
+                                two=None,
+                                ten=None
+                            )
+                        ))
+                    )
+                )
+            )),
+            default=dict(type=dict(
+                base_type='Bool'
+            ))
+        )
+    )
+
+    data = (
+        "set:\n"
+        "  one: [1,2,3]\n"
+        "  two: [2,3]\n"
+        "  three:\n"
+        "    key_a: [A, B, C]\n"
+        "    key_b: [false,true,false]\n"
+        "  four: [1.5, 2.5, 3.5]\n"
+        "  five: [one, two, ten]\n"
+        "default: true\n"
+    )
+
+    root = loader.load(data)
+    root = ac.autoconvert(root, root_input_type)
+    assert len(root.children[0].children) == 3
+    assert root.children[1].value is True
+    node = root.children[0]
+    assert len(node.children) == 5
+    assert node.children[0].value == 1
+    assert len(node.children[1].children) == 2
+    assert len(node.children[2].children) == 2
+    assert node.children[2].children[0].value == 'A'
+    assert node.children[2].children[1] is False
+    assert node.children[3].value == 1.5
+    assert node.children[4].value == 'one'
+    node = root.children[0]
+    assert len(node.children) == 5
+    assert node.children[0].value == 2
+    assert node.children[2].children[0].value == 'B'
+    assert node.children[2].children[1] is True
+    assert node.children[3].value == 2.5
+    assert node.children[4].value == 'two'
+    node = root.children[0]
+    assert len(node.children) == 5
+    assert node.children[0].value == 3
+    assert node.children[2].children[0].value == 'C'
+    assert node.children[2].children[1] is False
+    assert node.children[3].value == 3.5
+    assert node.children[4].value == 'ten'
 
 
 if __name__ == '__main__':
