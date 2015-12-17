@@ -26,18 +26,18 @@ def root_input_type():
     return get_root_input_type_from_json(json_data)
 
 
-def test_get_expected_array_dimension():
-    input_type = {
-        'base_type': 'Array',
-        'subtype': {
-            'base_type': 'Array',
-            'subtype': {
-                'base_type': 'Array',
-                'subtype': {'base_type': 'Integer'}
-            }
-        }
-    }
-    assert ac.AutoConverter._get_expected_array_dimension(input_type) == 3
+# def test_get_expected_array_dimension():
+#     input_type = {
+#         'base_type': 'Array',
+#         'subtype': {
+#             'base_type': 'Array',
+#             'subtype': {
+#                 'base_type': 'Array',
+#                 'subtype': {'base_type': 'Integer'}
+#             }
+#         }
+#     }
+#     assert ac.AutoConverter._get_expected_array_dimension(input_type) == 3
 
 
 def test_expand_value_to_array():
@@ -46,8 +46,10 @@ def test_expand_value_to_array():
     node.parent = MappingDataNode()
     node.key = TextValue()
     node.key.value = 'path'
-    expanded = ac.AutoConverter._expand_value_to_array(node, 3)
-    assert expanded.get_node_at_path('/path/0/0/0').value == 5
+    node = ac.transposer._expand_value_to_array(node)
+    node = ac.transposer._expand_value_to_array(node)
+    node = ac.transposer._expand_value_to_array(node)
+    assert node.get_node_at_path('/path/0/0/0').value == 5
 
 
 def test_expand_record():
@@ -222,27 +224,27 @@ def test_transposition(loader):
     root = ac.autoconvert(root, root_input_type)
     assert len(root.children[0].children) == 3
     assert root.children[1].value is True
-    node = root.children[0]
+    node = root.children[0].children[0]
     assert len(node.children) == 5
     assert node.children[0].value == 1
     assert len(node.children[1].children) == 2
     assert len(node.children[2].children) == 2
     assert node.children[2].children[0].value == 'A'
-    assert node.children[2].children[1] is False
+    assert node.children[2].children[1].value is False
     assert node.children[3].value == 1.5
     assert node.children[4].value == 'one'
-    node = root.children[0]
+    node = root.children[0].children[1]
     assert len(node.children) == 5
     assert node.children[0].value == 2
     assert node.children[2].children[0].value == 'B'
-    assert node.children[2].children[1] is True
+    assert node.children[2].children[1].value is True
     assert node.children[3].value == 2.5
     assert node.children[4].value == 'two'
-    node = root.children[0]
+    node = root.children[0].children[2]
     assert len(node.children) == 5
     assert node.children[0].value == 3
     assert node.children[2].children[0].value == 'C'
-    assert node.children[2].children[1] is False
+    assert node.children[2].children[1].value is False
     assert node.children[3].value == 3.5
     assert node.children[4].value == 'ten'
 
