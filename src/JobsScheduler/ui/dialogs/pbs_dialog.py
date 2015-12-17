@@ -72,6 +72,7 @@ class PbsDialog(AFormDialog):
     def get_data(self):
         key = self.ui.idLineEdit.text()
         preset = PbsPreset(self.ui.nameLineEdit.text())
+        preset.queue = self.ui.queueComboBox.currentText()
         preset.walltime = self.ui.walltimeLineEdit.text()
         preset.nodes = self.ui.nodesSpinBox.value()
         preset.ppn = self.ui.ppnSpinBox.value()
@@ -94,6 +95,7 @@ class PbsDialog(AFormDialog):
             preset = data["preset"]
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
+            self.ui.queueComboBox.setCurrentText(preset.queue)
             self.ui.walltimeLineEdit.setText(preset.walltime)
             self.ui.nodesSpinBox.setValue(preset.nodes)
             self.ui.ppnSpinBox.setValue(preset.ppn)
@@ -102,6 +104,7 @@ class PbsDialog(AFormDialog):
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
+            self.ui.queueComboBox.setCurrentIndex(-1)
             self.ui.walltimeLineEdit.clear()
             self.ui.nodesSpinBox.setValue(self.ui.nodesSpinBox.minimum())
             self.ui.ppnSpinBox.setValue(self.ui.ppnSpinBox.minimum())
@@ -159,12 +162,27 @@ class UiPbsDialog(UiFormDialog):
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
-
+        
         # 2 row
+        self.queueLabel = QtWidgets.QLabel(
+            self.mainVerticalLayoutWidget)
+        self.queueLabel.setObjectName("queueLabel")
+        self.queueLabel.setText("Queue:")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                  self.queueLabel)
+        self.queueComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.queueComboBox.setObjectName(
+            "queueComboBox")
+        self.queueComboBox.setEditable(True)
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                  self.queueComboBox)
+        
+        # 3 row
         self.walltimeLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.walltimeLabel.setObjectName("walltimeLabel")
         self.walltimeLabel.setText("Walltime:")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.walltimeLabel)
         self.walltimeLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
@@ -172,14 +190,14 @@ class UiPbsDialog(UiFormDialog):
         self.walltimeLineEdit.setPlaceholderText("1d4h or 20h")
         self.walltimeLineEdit.setProperty("clearButtonEnabled", True)
         self.walltimeLineEdit.setValidator(self.walltimeValidator)
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.walltimeLineEdit)
 
-        # 3 row
+        # 4 row
         self.nodesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nodesLabel.setObjectName("nodesLabel")
         self.nodesLabel.setText("Specify number of nodes:")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.nodesLabel)
         self.nodesSpinBox = QtWidgets.QSpinBox(
             self.mainVerticalLayoutWidget)
@@ -191,14 +209,14 @@ class UiPbsDialog(UiFormDialog):
         self.nodesSpinBox.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt
             .AlignVCenter)
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.nodesSpinBox)
 
-        # 4 row
+        # 5 row
         self.ppnLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.ppnLabel.setObjectName("ppnLabel")
         self.ppnLabel.setText("Processors per Node:")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.ppnLabel)
         self.ppnSpinBox = QtWidgets.QSpinBox(
             self.mainVerticalLayoutWidget)
@@ -210,14 +228,14 @@ class UiPbsDialog(UiFormDialog):
         self.ppnSpinBox.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt
             .AlignVCenter)
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.ppnSpinBox)
 
-        # 5 row
+        # 6 row
         self.memoryLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.memoryLabel.setObjectName("walltimeLabel")
         self.memoryLabel.setText("Memory:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.memoryLabel)
         self.memoryLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
@@ -225,14 +243,14 @@ class UiPbsDialog(UiFormDialog):
         self.memoryLineEdit.setPlaceholderText("300mb or 1gb")
         self.memoryLineEdit.setProperty("clearButtonEnabled", True)
         self.memoryLineEdit.setValidator(self.memoryValidator)
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.memoryLineEdit)
 
-        # 6 row
+        # 7 row
         self.scratchLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.scratchLabel.setObjectName("scratchLabel")
         self.scratchLabel.setText("Scratch:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
                                   self.scratchLabel)
         self.scratchLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
@@ -240,7 +258,7 @@ class UiPbsDialog(UiFormDialog):
         self.scratchLineEdit.setPlaceholderText("150mb or 10gb:ssd")
         self.scratchLineEdit.setProperty("clearButtonEnabled", True)
         self.scratchLineEdit.setValidator(self.scratchValidator)
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.scratchLineEdit)
 
         return dialog
