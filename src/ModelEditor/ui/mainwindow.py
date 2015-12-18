@@ -91,6 +91,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editor.elementChanged.connect(lambda new, old: self._update_info(new))
         self.editor.nodeSelected.connect(self._on_node_selected)
 
+        # initialize components
+        self._update_info(None)
+
         # set focus
         self.editor.setFocus()
 
@@ -160,6 +163,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         if self.editor.curr_node is not None:
             self.info.update_from_node(self.editor.curr_node, cursor_type)
+            return
+
+        # show root input type info by default
+        self.info.update_from_data({'record_id': cfg.root_input_type['id']})
+        return
 
     def _on_node_selected(self, line, column):
         """Handles nodeSelected event from editor."""

@@ -35,7 +35,6 @@ class ModelEditor:
 
         # set default values
         self._update_document_name()
-        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']})
 
         # show
         self.mainwindow.show()
