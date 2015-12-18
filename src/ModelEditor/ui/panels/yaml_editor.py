@@ -337,7 +337,7 @@ class YamlEditorWidget(QsciScintilla):
         """Delete selected text."""
         if not self.hasSelectedText():  # select a single character
             self.set_selection_from_cursor(1)
-        super(YamlEditorWidget, self).removeSelectedText()
+        self.remove_selection()
 
     def setText(self, text, keep_history=False):
         """Set editor text either with or without deleting the editing history.
@@ -396,6 +396,12 @@ class YamlEditorWidget(QsciScintilla):
     def clear_selection(self):
         """Clear the current selection."""
         self.set_selection_from_cursor(0)
+
+    def remove_selection(self):
+        """Remove the selected text and trigger a cursor changed action."""
+        self.removeSelectedText()
+        line, index = self.getCursorPosition()
+        self._cursor_position_changed(line, index)
 
 # ----------------------------- STRUCTURE RELATED ----------------------------
 
@@ -662,7 +668,7 @@ class YamlEditorWidget(QsciScintilla):
                     prev_line = line - 1
                     prev_column = len(self.text(prev_line))
                     self.setSelection(prev_line, prev_column - 1, line, column)
-        self.removeSelectedText()
+        self.remove_selection()
         cfg.autocomplete_helper.refresh_autocompletion()
 
     def _handle_keypress_tab(self, event):
@@ -1058,6 +1064,7 @@ class EditorPosition:
 
     def reload_autocompletion(self, editor):
         """Create new autocomplete options when newline is added."""
+        node = None
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
@@ -1067,9 +1074,12 @@ class EditorPosition:
                 node = self.node
 
         if node is None or getattr(node, 'input_type', None) is None:
-            return False
+            # use root input type
+            input_type = cfg.root_input_type
+        else:
+            input_type = node.input_type
 
-        cfg.autocomplete_helper.create_options(node.input_type)
+        cfg.autocomplete_helper.create_options(input_type)
         return True
 
     def node_init(self, node, editor):
@@ -1118,8 +1128,9 @@ class EditorPosition:
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
                                                             editor.text(self.line))
 
-        if node is not None:
-            self.reload_autocompletion(editor)
+        # if node is not None:
+        #     self.reload_autocompletion(editor)
+        self.reload_autocompletion(editor)
 
     def handle_line_changed(self):
         """Handle when cursor changes line."""
