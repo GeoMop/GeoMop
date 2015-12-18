@@ -266,6 +266,7 @@ class Transposer:
         template_node = deepcopy(node)
         template_node.parent = array_node
         template_node.input_type = subtype
+        template_node.origin = DataNode.Origin.ac_transposition
 
         # create and transpose items of the array
         for i in range(cls.array_size):
