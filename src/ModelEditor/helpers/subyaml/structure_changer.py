@@ -225,7 +225,7 @@ class StructureChanger:
             # more lines
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l2])
             if place is not None:
-                if len(place.group(1)) > c2:
+                if len(place.group(1)) < c2:
                     if (len(lines[l2]) - len(place.group(3))) <= c2:
                         del lines[l2]
                     else:
