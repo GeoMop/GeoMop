@@ -43,44 +43,6 @@ class Pbs():
         f.write (line + '\n')
         f.close()
 
-    def _get_pbs_directives(self):
-        """
-        Generates file directives for specific PBS system.
-        :return: List of PBS directives.
-        """
-        directives = list()
-        directives.append("#$ -cwd")
-        directives.append("#$ -S /bin/bash")
-        directives.append("#$ -terse")
-        directives.append("#$ -o " + self.mj_path + "/" +
-                          self.config.name + "/pbs_output")
-        directives.append("#$ -e " + self.mj_path + "/" +
-                          self.config.name + "/pbs_error")
-
-        # specify queue, i.e. all.q
-        if self.config.queue:
-            directives.append("#$ -q %s" % self.config.queue)
-
-        # request a parallel environment, i.e. 'openmpi' using n slots (CPUs)
-        if self.config.nodes and int(self.config.nodes) > 1:
-            directives.append("#$ -pe %s %s" % ("openmpi", self.config.nodes))
-
-        # -l resource=value, ...
-        # ToDo opravit, nejasny syntax a pouzitelne direktivy
-        resources = list()
-        res_dir = "#$ -l "
-        if self.config.walltime:
-            pass
-        if self.config.memory:
-            resources.append("mem=" + self.config.memory[:-2])
-        if self.config.scratch:
-            resources.append("scratch=" + self.config.scratch[:-2])
-        for res in resources:
-            res_dir = res_dir + ", " + res
-
-        directives.append(res_dir)
-        return directives
-
     def get_qsub_args(self):
         return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         
