@@ -7,6 +7,7 @@ Dialect for specific Metacentrum PBS environment.
 
 __dialect_name__ = "Hydra"
 __dialect_class__ = "PbsDialect"
+__queue_file__ = "hydra_queues.txt"
 
 
 class PbsDialect:

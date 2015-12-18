@@ -19,6 +19,7 @@ class DialectImporter:
         """
 
         # Cannot achieve cleaner way with inspect module (problem with path)
+        # ToDo: Remake mod_names to be independent of path
         path = os.path.join("helpers", "dialect")
         mod_names = [name for _, name, _ in pkgutil.iter_modules([path])]
 
