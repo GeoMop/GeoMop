@@ -255,8 +255,8 @@ class ConfFactory:
         pbs.name = preset.name
  #       pbs.queue = preset.queue
         pbs.walltime = preset.walltime
-        pbs.nodes = preset.nodes
-        pbs.ppn = preset.ppn
+        pbs.nodes = str(preset.nodes)
+        pbs.ppn = str(preset.ppn)
         pbs.memory = preset.memory
         pbs.scratch = preset.scratch
         pbs.with_socket = with_socket

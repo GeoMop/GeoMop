@@ -72,12 +72,16 @@ class PbsDialog(AFormDialog):
     def get_data(self):
         key = self.ui.idLineEdit.text()
         preset = PbsPreset(self.ui.nameLineEdit.text())
-        preset.queue = self.ui.queueComboBox.currentText()
-        preset.walltime = self.ui.walltimeLineEdit.text()
+        if self.ui.queueComboBox.currentText():
+            preset.queue = self.ui.queueComboBox.currentText()
+        if self.ui.walltimeLineEdit.text():
+            preset.walltime = self.ui.walltimeLineEdit.text()
         preset.nodes = self.ui.nodesSpinBox.value()
         preset.ppn = self.ui.ppnSpinBox.value()
-        preset.memory = self.ui.memoryLineEdit.text()
-        preset.scratch = self.ui.scratchLineEdit.text()
+        if self.ui.memoryLineEdit.text():
+            preset.memory = self.ui.memoryLineEdit.text()
+        if self.ui.scratchLineEdit.text():
+            preset.scratch = self.ui.scratchLineEdit.text()
         return {
             "key": key,
             "preset": preset

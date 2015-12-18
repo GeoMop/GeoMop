@@ -40,7 +40,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # setup UI
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
-
         self.data = data
         self.com_manager = com_manager
         self.req_scheduler = ReqScheduler(parent=self,

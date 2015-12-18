@@ -121,7 +121,7 @@ class WalltimeValidator(QRegExpValidator):
     """
     def __init__(self, parent=None):
         rx = QtCore.QRegExp(
-            "(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?")
+            "^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?")
         super().__init__(rx, parent)
 
 
@@ -130,7 +130,7 @@ class MemoryValidator(QRegExpValidator):
     Memory validator, accepts only valid memory string.
     """
     def __init__(self, parent=None):
-        rx = QtCore.QRegExp("\d+(mb|gb)")
+        rx = QtCore.QRegExp("^$|\d+(mb|gb)")
         super().__init__(rx, parent)
 
 
@@ -139,5 +139,5 @@ class ScratchValidator(QRegExpValidator):
     Scratch validator, accepts only valid scratch string.
     """
     def __init__(self, parent=None):
-        rx = QtCore.QRegExp("\d+(mb|gb)(:(ssd|shared|local|first))?")
+        rx = QtCore.QRegExp("^$|\d+(mb|gb)(:(ssd|shared|local|first))?")
         super().__init__(rx, parent)

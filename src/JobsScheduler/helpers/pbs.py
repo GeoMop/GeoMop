@@ -42,7 +42,7 @@ class Pbs():
         line += '\n'        
         f.write (line + '\n')
         f.close()
-        
+
     def get_qsub_args(self):
         return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         
