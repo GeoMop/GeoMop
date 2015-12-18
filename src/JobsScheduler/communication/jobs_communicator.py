@@ -177,9 +177,9 @@ class JobsCommunicator(Communicator):
                         self.jobs[id].state_start()
                         self.job_outputs[id].host = mess.get_action().data.data['host']
                         self.job_outputs[id].port = mess.get_action().data.data['port']
-                        self._connect_socket(self.job_outputs[id], 1)
-                        make_custom_action = False
-                        self._job_running()
+                        if self._connect_socket(self.job_outputs[id], 1):
+                            self._job_running()
+                        make_custom_action = False                       
         else:
             for id in self.jobs:
                 # connect
@@ -258,7 +258,7 @@ class JobsCommunicator(Communicator):
         """
         if self.conf.output_type == comconf.OutputCommType.ssh:
             super(JobsCommunicator, self)._exec_()
-        self._state_ready()
+        self._state_running()
         
     def add_job(self, id):
         """Add job to dictionary, process it and make connection if is needed"""
@@ -336,6 +336,7 @@ class JobsCommunicator(Communicator):
     def _state_running(self):
         """change state to running"""
         self._mj_state.start_time = time.time()
+        self._mj_state.run_interval = int(time.time() - self._mj_state.start_time) 
         self._mj_state.status = TaskStatus.running
        
     def _state_ready(self):
@@ -344,8 +345,7 @@ class JobsCommunicator(Communicator):
         self._mj_state.status = TaskStatus.ready
         
     def _state_stopping(self):
-        """change state to stopping"""
-        self._mj_state.run_interval = int(time.time() - self._mj_state.start_time) 
+        """change state to stopping"""        
         self._mj_state.status = TaskStatus.stopping
         
     def _state_stoped(self):
@@ -373,6 +373,6 @@ class JobsCommunicator(Communicator):
         "One process is moved from running to ready state"
         self._mj_state.running_jobs -= 1
         self._mj_state.finished_jobs += 1
-        if self._mj_state.known_jobs == 0 and self._mj_state.estimated_jobs == 0 and \
-            self._mj_state.running_jobs == 0:
+        if self._mj_state.known_jobs <= 0 and self._mj_state.estimated_jobs <= 0 and \
+            self._mj_state.running_jobs <= 0:
             self._state_ready()

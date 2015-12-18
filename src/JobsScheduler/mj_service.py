@@ -37,14 +37,14 @@ def  mj_action_function_after(message,  response):
             states.save_file(inst.Installation.get_result_dir_static(mj_name))
     return comunicator.standart_action_function_after(message,  response)
 
-i = 0
+idx = 0
 def  mj_idle_function():
     """This function will be call, if meesage is not receive in run function."""
-    global i
-    i += 1
-    if i == 1:
+    global idx
+    idx += 1
+    if idx == 1:
         comunicator.add_job("test1")
-    if i == 2:
+    if idx == 2:
         comunicator.add_job("test2")
 
 

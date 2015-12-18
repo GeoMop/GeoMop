@@ -383,7 +383,7 @@ class Communicator():
             while i<repeat:
                 try:
                     output.connect()            
-                    break
+                    return True
                 except ConnectionRefusedError as err:
                     i += 1
                     time.sleep(1)
@@ -392,7 +392,8 @@ class Communicator():
                 except err:
                     logger.error("Connect error (" + str(err) + ')')
                     break
-        
+        return False
+
     def run(self):
         """
         Infinite loop that is interupt by sending stop action by input,
