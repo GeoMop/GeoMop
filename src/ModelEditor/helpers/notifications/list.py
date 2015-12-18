@@ -145,6 +145,43 @@ _NOTIFICATIONS = [
         'example': '',
     },
 
+
+    # -----------------------------------------------------
+    #                  Autoconversion Errors
+    # -----------------------------------------------------
+
+
+    {
+        'code': 450,
+        'name': 'AutoconversionError',
+        'description': 'Occurs when format file is invalid. More specific warning should be used '
+                       'when possible.',
+        'message': '{0}',
+        'example': ''
+    },
+    {
+        'code': 451,
+        'name': 'UnsupportedTransposition',
+        'description': 'Transposition on unsupported input type. It should happen when Array of '
+                       'AbstractRecords would be expected from transposition.',
+        'message': 'Transposition is not supported for input_type "{0}"',
+        'example': '',  # no example - it's not be possible with the current IST
+    },
+    {
+        'code': 452,
+        'name': 'InvalidTransposition',
+        'description': 'Transposition of Record is not allowed.',
+        'message': 'Transposition of Record is not allowed',
+        'example': '',  # hard to create in the current IST
+    },
+    {
+        'code': 453,
+        'name': 'DifferentArrayLengthForTransposition',
+        'description': 'The arrays to be transposed are of different lengths.',
+        'message': 'Arrays to be transposed are of different length.',
+        'example': 'example_transposition.yaml',
+    },
+
     # -----------------------------------------------------
     #                  Syntax Errors
     # -----------------------------------------------------
