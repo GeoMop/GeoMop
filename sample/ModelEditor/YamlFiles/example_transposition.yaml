@@ -1,7 +1,23 @@
 problem: !SequentialCoupling
-  primary_equation: !Unsteady_MH
+  primary_equation: !Steady_MH
     input_fields: 
-      r_set: [1, 2, 3]
-      time: [0.5, 0.6, 0.3]
+      r_set: [1, 2]
+      # inconsistent array length for transposition
+      time: [0.5, 0.3, 0.4]
       region: abc
-      anisotropy: [3, 4.3, 2]
+      anisotropy: [3, 4]
+      bc_type:
+        - neumann
+        - !FieldPython
+          function: 2^3
+    output:
+      output_fields:
+        - pressure_p0
+      output_stream:
+        file: dual_por.pvd
+        time_step: 0.5
+    solver: !Petsc
+      a_tol: 1.0e-07
+    balance: true
+  mesh:
+    mesh_file: input/dual_por.msh

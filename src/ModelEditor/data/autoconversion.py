@@ -104,16 +104,6 @@ class AutoConverter:
             return node
 
     @staticmethod
-    def _get_expected_array_dimension(input_type):
-        """Returns the expected dimension of the input array."""
-        return 1  # TODO: remove the entire get expected array dimension function?
-        dim = 0
-        while input_type['base_type'] == 'Array':
-            dim += 1
-            input_type = input_type['subtype']
-        return dim
-
-    @staticmethod
     def _expand_reducible_to_key(node, input_type):
         """Initializes a record from the reducible_to_key value."""
         if input_type is None:
@@ -241,26 +231,34 @@ class Transposer:
     @classmethod
     def make_transposition(cls, node, input_type):
         """Transpose a record or scalar into an array."""
+        assert input_type['base_type'] == 'Array', "Only Array can be a result of transposition"
         cls.init()
 
         # if node is scalar, convert it to array
         if node.implementation == DataNode.Implementation.scalar:
             return cls._expand_value_to_array(node)
-        assert node.implementation == DataNode.Implementation.mapping,\
-            "Can not perform transposition on array"
+
+        # verify that subtype is record
         subtype = input_type['subtype']
         if subtype['base_type'] != 'Record':
-            # TODO what about AbstractRecord? or Array?
-            return
+            notification = Notification.from_name('UnsupportedTransposition',
+                                                  input_type['base_type'])
+            notification.span = node.span
+            notification_handler.report(notification)
+            return node
+        assert node.implementation == DataNode.Implementation.mapping,\
+            "Can not perform transposition on array"
 
+        # get array size
         try:
             cls._get_transformation_array_size(node, subtype)
         except Notification as notification:
             notification_handler.report(notification)
+            return node
         if cls.array_size is None:
             cls.array_size = 1
 
-        # perform conversion
+        # create array
         array_node = SequenceDataNode(node.key, node.parent)
         array_node.span = node.span
         array_node.input_type = node.input_type
@@ -269,6 +267,7 @@ class Transposer:
         template_node.parent = array_node
         template_node.input_type = subtype
 
+        # create and transpose items of the array
         for i in range(cls.array_size):
             child_node = deepcopy(template_node)
             child_node.key = TextValue(str(i))
@@ -288,17 +287,15 @@ class Transposer:
         """Return transformation array size."""
         # find a children node that has an array instead of record or scalar
         for child in node.children:
-            not_in_input_type = 'keys' not in input_type or child.key.value not in input_type['keys']
-            if not_in_input_type:
+            # the key is not specified in input type
+            if 'keys' not in input_type or child.key.value not in input_type['keys']:
                 continue
 
             child_type = input_type['keys'][child.key.value]['type']
 
             if child.implementation == DataNode.Implementation.sequence:
                 if child_type['base_type'] == 'Record':
-                    # TODO: does this prevent reducible_to_key incompatibility?
-                    # TODO create err msg
-                    notification = Notification.from_name("Error", "Transposition of record is not allowed.")
+                    notification = Notification.from_name("InvalidTransposition")
                     notification.span = child.span
                     raise notification
                 elif child_type['base_type'] != 'Array':
@@ -306,8 +303,8 @@ class Transposer:
                         cls.array_size = len(child.children)
                         cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
                     elif cls.array_size != len(child.children):
-                        # TODO create err msg
-                        notification = Notification.from_name("Error", "Different length of arrays.")
+                        notification = Notification.from_name(
+                            "DifferentArrayLengthForTransposition")
                         notification.span = child.span
                         raise notification
                     else:

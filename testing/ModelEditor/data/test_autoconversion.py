@@ -273,7 +273,6 @@ def test_transposition(loader):
     assert node.children[3].value == 1.5
     assert node.children[4].value == 'one'
 
-    # TODO: verify correct notification types
     data = (
         "set:\n"
         "  one: []\n"
@@ -289,6 +288,7 @@ def test_transposition(loader):
     notification_handler.clear()
     root = ac.autoconvert(root, root_input_type)
     assert len(notification_handler.notifications) == 1
+    assert notification_handler.notifications[0].name == 'DifferentArrayLengthForTransposition'
 
     data = (
         "set:\n"
@@ -305,6 +305,7 @@ def test_transposition(loader):
     notification_handler.clear()
     root = ac.autoconvert(root, root_input_type)
     assert len(notification_handler.notifications) == 1
+    assert notification_handler.notifications[0].name == 'DifferentArrayLengthForTransposition'
 
     data = (
         "set:\n"
@@ -323,6 +324,7 @@ def test_transposition(loader):
     notification_handler.clear()
     root = ac.autoconvert(root, root_input_type)
     assert len(notification_handler.notifications) == 1
+    assert notification_handler.notifications[0].name == 'InvalidTransposition'
 
 
 if __name__ == '__main__':
