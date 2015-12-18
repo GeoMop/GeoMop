@@ -253,7 +253,7 @@ class ConfFactory:
             return None
         pbs = PbsConfig()
         pbs.name = preset.name
-        pbs.queue = preset.queue
+ #       pbs.queue = preset.queue
         pbs.walltime = preset.walltime
         pbs.nodes = preset.nodes
         pbs.ppn = preset.ppn
