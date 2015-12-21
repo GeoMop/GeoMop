@@ -39,11 +39,17 @@ class UiTabs(object):
         self.resultsTab = ResultsTab(tab_widget)
         self.logsTab = LogsTab(tab_widget)
         self.confTab = ConfigTab(tab_widget)
+
         # tab_widget.addTab(self.overviewTab, "Overview")
         tab_widget.addTab(self.jobsTab, "Jobs")
         tab_widget.addTab(self.resultsTab, "Results")
         tab_widget.addTab(self.logsTab, "Logs")
         tab_widget.addTab(self.confTab, "Config")
+
+        # config tab hidden if not in --debug mode
+        if True:  # cfg.config.DEBUG_MODE:
+            # ToDo Implement as config
+            tab_widget.removeTab(3)
 
 
 class AbstractTab(QtWidgets.QWidget):

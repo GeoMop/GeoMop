@@ -57,6 +57,8 @@ class PbsPreset(APreset):
         :return: None
         """
         super().__init__(name)
+        self.dialect = None
+        """Defines PBS system"""
         self.queue = None
         """Defines preferred queue for execution"""
         self.walltime = None

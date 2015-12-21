@@ -45,6 +45,7 @@ class PbsConfig(object):
         """init"""
         self.name = None
         """name as unique job identifier for files"""
+        self.dialect = None
         self.queue = None
         self.walltime = None
         self.nodes = "1"

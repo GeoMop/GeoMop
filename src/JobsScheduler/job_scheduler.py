@@ -106,7 +106,6 @@ def main():
 
         log_unhandled_exceptions('JobsScheduler', on_unhandled_exception)
 
-
     # delete old lock files
     for root, dirs, files in os.walk("./lock", topdown=False):
         for name in files:
