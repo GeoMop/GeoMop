@@ -41,6 +41,10 @@ class JobsCommunicator(Communicator):
         """Multi Job state"""
         self._stopping = False        
         """if iapplication is stop before end"""
+        self._init_counts = None        
+        """If this variable is set, initialization of mj state in next communicator
+        is needed. This variable is :class:`data.transport_data.StartCountsData` 
+        structure"""
         if idle_func is None:
             self.anc_idle_func = self.standart_idle_function
             """
@@ -150,19 +154,29 @@ class JobsCommunicator(Communicator):
         make_custom_action = True
         if self.conf.output_type == comconf.OutputCommType.ssh:
             if not self.conf.direct_communication:
-                logger.debug("Indirect communication over SSH")
-                for id in self.jobs:
-                    if self.jobs[id] is False:
-                        action=tdata.Action(tdata.ActionType.add_job)
-                        action.data.set_id(id)
-                        mess = action.get_message()
-                        self._last_send_id = id
-                        self.send_message(mess)
-                        mess = self.receive_message()
-                        if mess is not None and mess.action_type == tdata.ActionType.ok:
-                            self.jobs[id] = True
-                            make_custom_action = False
-                            break
+                if self._init_counts is not None:
+                    logger.debug("Indirect communication over SSH")
+                    action=tdata.Action(tdata.ActionType.set_start_jobs_count)
+                    action.data = self._init_counts
+                    mess = action.get_message()
+                    self.send_message(mess)
+                    mess = self.receive_message()
+                    if mess is not None and mess.action_type == tdata.ActionType.ok:
+                        self._init_counts = None
+                    make_custom_action = False
+                else:
+                    for id in self.jobs:
+                        if self.jobs[id] is False:
+                            action=tdata.Action(tdata.ActionType.add_job)
+                            action.data.set_id(id)
+                            mess = action.get_message()
+                            self._last_send_id = id
+                            self.send_message(mess)
+                            mess = self.receive_message()
+                            if mess is not None and mess.action_type == tdata.ActionType.ok:
+                                self.jobs[id] = True
+                                make_custom_action = False
+                                break
             else:
                 id = self._get_next_id( self._last_send_id, False)
                 if id is not None:
@@ -361,8 +375,13 @@ class JobsCommunicator(Communicator):
         
     def set_start_jobs_count(self, known, estimated):
         "Set count of processes at start of application"
-        self._mj_state.known_jobs = known
-        self._mj_state.estimated_jobs = estimated
+        if self.conf.output_type == comconf.OutputCommType.ssh and \
+            not self.conf.direct_communication:
+            self._init_counts = tdata.StartCountsData()
+            self._init_counts.set_data(known, estimated)
+        else:
+            self._mj_state.known_jobs = known
+            self._mj_state.estimated_jobs = estimated
 
     def _job_running(self):
         "One process is moved from known to running state"
