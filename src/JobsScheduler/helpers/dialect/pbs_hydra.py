@@ -45,11 +45,10 @@ class PbsDialect:
             pass
         if pbs_config.memory:
             resources.append("mem=" + re.findall(r'\d+', pbs_config.memory)[0])
-        if pbs_config.scratch:
-            resources.append("scratch=" + re.findall(r'\d+',
-                                                     pbs_config.scratch)[0])
-        for res in resources:
-            res_dir = res_dir + ", " + res
+        #if pbs_config.scratch:
+            #resources.append("scratch=" + re.findall(r'\d+',
+            #                                        pbs_config.scratch)[0])
+        res_dir += ", ".join(resources)
 
         # only if there is some resource specification
         if resources:
