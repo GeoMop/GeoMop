@@ -26,6 +26,7 @@ class ActionType(Enum):
     job_conn = 11
     job_state = 12
     install_in_process = 13
+    set_start_jobs_count = 14
     
 
 class ProcessType(Enum):
@@ -185,6 +186,8 @@ class Action():
             self.data = JobConn(json_data)
         elif type == ActionType.install_in_process:
             self.data = InstallData(json_data)
+        elif type == ActionType.set_start_jobs_count:
+            self.data = StartCountsData(json_data)
             
     def get_message(self):
         """return message from action"""
@@ -282,6 +285,21 @@ class StateData(ActionData):
         state.status = TaskStatus(state.status)
         return state
 
+class StartCountsData(ActionData):
+    """Inicialize job state structure in remote communicator."""
+    def __init__(self, json_data):
+        self.data={}
+        if json_data is  not None:
+            self.data = json.loads(json_data) 
+        else:
+            self.data["estimated_jobs"] = 0
+            self.data["known_jobs"] = 0
+    
+    def set_data(self, known_jobs, estimated_jobs):
+        """fill JobState state"""
+        self.data["known_jobs"] = known_jobs
+        self.data["estimated_jobs"] = estimated_jobs
+            
 class JobStateData(ActionData):
     """Job status data."""    
     def __init__(self, json_data):
@@ -300,5 +318,3 @@ class JobStateData(ActionData):
         else:
             self.data["ready"] = True
             self.data["return_code"] = return_code
-            
-        
