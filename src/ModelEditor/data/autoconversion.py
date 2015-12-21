@@ -24,8 +24,8 @@ class AutoConverter:
         Performs recursive auto-conversion on root node.
 
         Auto-conversions:
-            1. If Array is expected and scalar/record is found, encapsulate it
-               in Array(s).
+            1. If Array is expected and scalar/record is found, either perform
+               a transposition or encapsulate it in Array(s).
             2. If Record is expected and scalar/array is found, check
                reducible_to_key. If present, create the Record.
             3. If AbstractRecord is expected and scalar/array is found, check if
@@ -97,38 +97,11 @@ class AutoConverter:
         is_array = node.implementation == DataNode.Implementation.sequence
         is_record = node.implementation == DataNode.Implementation.mapping
         if input_type['base_type'] == 'Array' and not is_array:
-            dim = AutoConverter._get_expected_array_dimension(input_type)
-            return AutoConverter._expand_value_to_array(node, dim)
+            return transposer.make_transposition(node, input_type)
         elif input_type['base_type'].endswith('Record') and not is_record:
             return AutoConverter._expand_reducible_to_key(node, input_type)
         else:
             return node
-
-    @staticmethod
-    def _get_expected_array_dimension(input_type):
-        """Returns the expected dimension of the input array."""
-        dim = 0
-        while input_type['base_type'] == 'Array':
-            dim += 1
-            input_type = input_type['subtype']
-        return dim
-
-    @staticmethod
-    def _expand_value_to_array(node, dim):
-        """Expands node value to specified dimension."""
-        while dim > 0:
-            array_node = SequenceDataNode(node.key, node.parent)
-            array_node.span = node.span
-            node.parent = array_node
-            node.key = TextValue('0')
-            if node.input_type is not None:
-                array_node.input_type = node.input_type
-                node.input_type = array_node.input_type['subtype']
-            array_node.children.append(node)
-            array_node.origin = DataNode.Origin.ac_array
-            node = array_node
-            dim -= 1
-        return node
 
     @staticmethod
     def _expand_reducible_to_key(node, input_type):
@@ -228,5 +201,140 @@ class ScalarConverter:
         return value
 
 
+class Transposer:
+    """Handle the transposition autoconversion.
+
+    This conversion happens when Array is expected, but Scalar od Record is encountered.
+    Scalar values are simply encapsulated in an array of the correct dimension.
+
+    If there is a Record, check if the sizes of all the unexpected arrays inside it
+    (recursively) match. If so, proceed with the conversion. Transpose the Record into an
+    Array of Records. The size of an Array is determined by the previous step. Finally,
+    ensure all of the unexpected Arrays are replaced by a single value at the correct
+    position.
+    """
+
+    paths_to_convert = None
+    """a list of path to keys which are to be converted"""
+    array_size = None
+    """the size of the array tobe created by transposition"""
+    current_path = None
+    """list of keys that lead to the current node"""
+
+    @classmethod
+    def init(cls):
+        """Initialize class for operation."""
+        cls.paths_to_convert = []
+        cls.array_size = None
+        cls.current_path = ['.']
+
+    @classmethod
+    def make_transposition(cls, node, input_type):
+        """Transpose a record or scalar into an array."""
+        assert input_type['base_type'] == 'Array', "Only Array can be a result of transposition"
+        cls.init()
+
+        # if node is scalar, convert it to array
+        if node.implementation == DataNode.Implementation.scalar:
+            return cls._expand_value_to_array(node)
+
+        # verify that subtype is record
+        subtype = input_type['subtype']
+        if subtype['base_type'] != 'Record':
+            notification = Notification.from_name('UnsupportedTransposition',
+                                                  input_type['base_type'])
+            notification.span = node.span
+            notification_handler.report(notification)
+            return node
+        assert node.implementation == DataNode.Implementation.mapping,\
+            "Can not perform transposition on array"
+
+        # get array size
+        try:
+            cls._get_transformation_array_size(node, subtype)
+        except Notification as notification:
+            notification_handler.report(notification)
+            return node
+        if cls.array_size is None:
+            cls.array_size = 1
+
+        # create array
+        array_node = SequenceDataNode(node.key, node.parent)
+        array_node.span = node.span
+        array_node.input_type = node.input_type
+        array_node.origin = DataNode.Origin.ac_array
+        template_node = deepcopy(node)
+        template_node.parent = array_node
+        template_node.input_type = subtype
+        template_node.origin = DataNode.Origin.ac_transposition
+
+        # create and transpose items of the array
+        for i in range(cls.array_size):
+            child_node = deepcopy(template_node)
+            child_node.key = TextValue(str(i))
+            # convert array to value
+            for path in cls.paths_to_convert:
+                node_to_convert = child_node.get_node_at_path(path)
+                converted_node = node_to_convert.children[i]
+                converted_node.parent = node_to_convert.parent
+                converted_node.key = node_to_convert.key
+                node_to_convert.parent.set_child(converted_node)
+            array_node.children.append(child_node)
+
+        return array_node
+
+    @classmethod
+    def _get_transformation_array_size(cls, node, input_type):
+        """Return transformation array size."""
+        # find a children node that has an array instead of record or scalar
+        for child in node.children:
+            # the key is not specified in input type
+            if 'keys' not in input_type or child.key.value not in input_type['keys']:
+                continue
+
+            child_type = input_type['keys'][child.key.value]['type']
+
+            if child.implementation == DataNode.Implementation.sequence:
+                if child_type['base_type'] == 'Record':
+                    notification = Notification.from_name("InvalidTransposition")
+                    notification.span = child.span
+                    raise notification
+                elif child_type['base_type'] != 'Array':
+                    if cls.array_size is None:
+                        cls.array_size = len(child.children)
+                        cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                    elif cls.array_size != len(child.children):
+                        notification = Notification.from_name(
+                            "DifferentArrayLengthForTransposition")
+                        notification.span = child.span
+                        raise notification
+                    else:
+                        cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+
+            # verify array size recursively
+            cls.current_path.append(child.key.value)
+            cls._get_transformation_array_size(child, child_type)
+            cls.current_path.pop()
+
+        return cls.array_size
+
+    @staticmethod
+    def _expand_value_to_array(node):
+        """Expands node value to an array."""
+        array_node = SequenceDataNode(node.key, node.parent)
+        array_node.span = node.span
+        node.parent = array_node
+        node.key = TextValue('0')
+        if node.input_type is not None:
+            array_node.input_type = node.input_type
+            node.input_type = array_node.input_type['subtype']
+        array_node.children.append(node)
+        array_node.origin = DataNode.Origin.ac_array
+        return array_node
+
+
 # initialize module
 autoconvert = AutoConverter.autoconvert
+transposer = Transposer()
+
+__all__ = ['autoconvert', 'AutoConverter']

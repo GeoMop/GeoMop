@@ -10,7 +10,6 @@ from data.format import get_root_input_type_from_json
 
 
 DATA_DIR = os.path.join('data', 'export_con')
-INPUT_TYPE_FILE = '00_geomop_testing_ist.json'
 
 
 @pytest.fixture(scope='module')
