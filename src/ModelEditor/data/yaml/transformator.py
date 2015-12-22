@@ -676,8 +676,8 @@ class Transformator:
             StructureChanger.paste_structure(lines, dl2, add, len(intendation2.group(1)) < dc2)
         else:
             raise TransformationFileFormatError(
-                "Destination block (" + self._get_paths_str(action, 'source_path') +
-                ") and source block (" + self._get_paths_str(action, 'destination_path') +
+                "Source block (" + self._get_paths_str(action, 'source_path') +
+                ") and destination block (" + self._get_paths_str(action, 'destination_path') +
                 " is overlapped")
         return True
         
