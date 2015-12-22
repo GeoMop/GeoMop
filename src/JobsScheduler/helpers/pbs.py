@@ -1,6 +1,9 @@
 import os
 import copy
 
+from helpers.importer import DialectImporter
+
+
 class Pbs():
     """
     Class for configuration qsub command
@@ -19,13 +22,21 @@ class Pbs():
         if not os.path.isdir(self.mj_path + "/" + self.config.name):
             os.makedirs(self.mj_path + "/" + self.config.name)
         f = open(self.mj_path + "/" + self.config.name  + "/com.qsub", 'w')
+        
         f.write ('#!/bin/bash\n')
         f.write ('#\n')
-        f.write ('#$ -cwd\n')
-        f.write ('#$ -S /bin/bash\n')
-        f.write ('#$ -terse\n')
-        f.write ('#$ -o ' + self.mj_path + "/" + self.config.name + '/pbs_output\n')
-        f.write ('#$ -e ' + self.mj_path + "/" + self.config.name + '/pbs_error\n')
+        
+        if self.config.dialect:
+            imp = DialectImporter.get_dialect_by_name(self.config.dialect)
+            dirs = imp.PbsDialect.get_pbs_directives(self.mj_path, self.config)
+            for dl in dirs:
+                f.write(dl + '\n')
+        else:
+            f.write ('#$ -cwd\n')
+            f.write ('#$ -S /bin/bash\n')
+            f.write ('#$ -terse\n')
+            f.write ('#$ -o ' + self.mj_path + "/" + self.config.name + '/pbs_output\n')
+            f.write ('#$ -e ' + self.mj_path + "/" + self.config.name + '/pbs_error\n')
         f.write ('#\n')
         f.write ('\n')
         for com in  load_commands:
@@ -42,7 +53,7 @@ class Pbs():
         line += '\n'        
         f.write (line + '\n')
         f.close()
-        
+
     def get_qsub_args(self):
         return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         

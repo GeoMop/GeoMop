@@ -118,7 +118,8 @@ class ComType(IntEnum):
         pause = 3
         resume = 4
         stop = 5
-        qued = 6
+        queued = 6
+        installation = 7
 
 
 class ComWorker(threading.Thread):
@@ -211,8 +212,11 @@ class ComExecutor(object):
             if mess.action_type == tdata.ActionType.install_in_process:
                 phase = mess.get_action().data.data['phase']
                 if phase is not old_phase:
-                    # add to queue
-                    res_queue.put(ResData(res.key, ComType.qued, mess))
+                    if phase == TaskStatus.installation.value:
+                        res_queue.put(
+                                ResData(res.key, ComType.installation, mess))
+                    if phase == TaskStatus.queued.value:
+                        res_queue.put(ResData(res.key, ComType.queued, mess))
             else:
                 break
             time.sleep(10)

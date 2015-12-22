@@ -42,9 +42,11 @@ class AppMenu(QtWidgets.QMenu):
 
         # app actions
         self.actionExit = action.ActionExit(self)
+        self.actionLog = action.ActionLog(self)
 
         # add actions to menu
         self.addAction(self.actionExit)
+        self.addAction(self.actionLog)
 
 
 class MultiJobMenu(QtWidgets.QMenu):

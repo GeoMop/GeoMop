@@ -107,8 +107,8 @@ class TreeWidget(QtWidgets.QTreeView):
                     span.start = data.delimiters.start
 
         if span.start is not None and span.end is not None:
-            self.itemSelected.emit(span.start.line, span.start.column,
-                                   span.end.line, span.end.column)
+            self.itemSelected.emit(span.end.line, span.end.column,
+                                   span.start.line, span.start.column)
 
     def select_data_node(self, data_node):
         """Mark data node as selected in the tree.

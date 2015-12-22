@@ -71,6 +71,12 @@ def  remote_action_function_before(message):
             action = tdata.Action(tdata.ActionType.ok)
             return False, action.get_message()                        
         return resent, mess
+    if message.action_type == tdata.ActionType.set_start_jobs_count:
+        comunicator.set_start_jobs_count(
+            message.get_action().data.data["known_jobs"], 
+            message.get_action().data.data["estimated_jobs"])
+        action = tdata.Action(tdata.ActionType.ok)
+        return False, action.get_message()
     if message.action_type == tdata.ActionType.add_job:        
         if comunicator.conf.direct_communication:
             if comunicator.conf.output_type == comconf.OutputCommType.none or \

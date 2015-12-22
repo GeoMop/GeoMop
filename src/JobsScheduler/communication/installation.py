@@ -151,7 +151,7 @@ class Installation:
         lock = Lock(mj_name, __install_dir__)
         try:
             if lock.lock_app(app_version, data_version, 
-                cls.get_result_dir_static(mj_name), cls.get_config_dir_static(mj_name))<1:
+                cls.get_result_dir_static(mj_name), __conf_dir__)<1:
                 return False
         except LockFileError as err:
             logger.warning("Lock instalation error: " + str(err))
@@ -220,8 +220,7 @@ class Installation:
         """
         mj_dir = self.copy_path + "/" + __jobs_dir__ + "/" + self.mj_name
         res_dir = mj_dir + "/" + __result_dir__
-        conf_dir = mj_dir + "/" + __conf_dir__
-         
+        
         command = self.python_env.python_exec + " "
         command += '"' + self.copy_path + '/' + __lock_file__ + '" '
         command += self.mj_name + " "
@@ -229,7 +228,7 @@ class Installation:
         command += self.app_version + " "
         command += self.data_version + " "
         command += '"' + res_dir + '" '
-        command += '"' + conf_dir + '" '
+        command += '"' + __conf_dir__ + '" '
         if lock:
             command += "Y"
         else:
@@ -446,7 +445,19 @@ class Installation:
         command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
         if mj_id is not None:
             command += " " + mj_id
-        return  command
+        return command
+
+    @staticmethod
+    def get_central_log_dir_static():
+        """Return dir for central log"""
+        try:
+            path = os.path.join(__install_dir__, "log")
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logger.warning("Get central log dir error: " + str(err))
+            return "."
+        return path
 
     @staticmethod
     def get_result_dir_static(mj_name):

@@ -38,6 +38,13 @@ class APreset:
         """
         return self.get_name()
 
+    def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
+
 
 class PbsPreset(APreset):
     """
@@ -50,15 +57,19 @@ class PbsPreset(APreset):
         :return: None
         """
         super().__init__(name)
-        self.walltime = ""
+        self.dialect = None
+        """Defines PBS system"""
+        self.queue = None
+        """Defines preferred queue for execution"""
+        self.walltime = None
         """Walltime defines maximum execution time in system"""
-        self.nodes = "1"
+        self.nodes = None
         """Number of nodes for parallel computations"""
-        self.ppn = "1"
+        self.ppn = None
         """Processors per node"""
-        self.memory = "400mb"
+        self.memory = None
         """Required memory size on node"""
-        self.scratch = "400mb"
+        self.scratch = None
         """Required disk space size on node"""
 
     def get_description(self):
@@ -66,7 +77,7 @@ class PbsPreset(APreset):
         Default description displayed in UI.
         :return: String
         """
-        return self.name + ": " + self.walltime
+        return self.name + ": " + str(self.walltime)
 
 
 class SshPreset(APreset):

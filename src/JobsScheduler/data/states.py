@@ -20,6 +20,7 @@ class TaskStatus(IntEnum):
     resuming = 8
     stopped = 9
     finished = 10
+    interrupted = 11
 
 
 class MJState:

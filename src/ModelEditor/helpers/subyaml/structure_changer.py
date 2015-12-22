@@ -225,7 +225,7 @@ class StructureChanger:
             # more lines
             place = re.search(r'^(\s*)(\S.*\S)(\s*)$', lines[l2])
             if place is not None:
-                if len(place.group(1)) > c2:
+                if len(place.group(1)) < c2:
                     if (len(lines[l2]) - len(place.group(3))) <= c2:
                         del lines[l2]
                     else:
@@ -403,12 +403,11 @@ class StructureChanger:
                         nl2 -= 1
                         nc2 = 0
                 else:
-                    nc2 = 0
+                    break
                 ident = re.search(r'^(\s*)\S', lines[nl2])
                 if ident is not None:
                     nc2 = len(ident.group(1))
             else:
-                nl2 -= 1
                 nc2 = 0
                 ident = re.search(r'^(\s*)\S', lines[nl2])
                 if ident is not None:

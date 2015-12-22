@@ -163,36 +163,28 @@ class ResourceDialog(AFormDialog):
         preset = ResPreset(self.ui.nameLineEdit.text())
 
         preset.mj_execution_type = \
-            self.ui.multiJobExecutionTypeComboBox.itemText(
-                    self.ui.multiJobExecutionTypeComboBox.currentIndex())
+            self.ui.multiJobExecutionTypeComboBox.currentText()
         if self.ui.multiJobSshPresetComboBox.isEnabled():
-            preset.mj_ssh_preset = self.ui.multiJobSshPresetComboBox.itemData(
-                    self.ui.multiJobSshPresetComboBox.currentIndex())
+            preset.mj_ssh_preset =\
+                self.ui.multiJobSshPresetComboBox.currentData()
         if self.ui.multiJobRemoteExecutionTypeComboBox.isEnabled():
             preset.mj_remote_execution_type = \
-                self.ui.multiJobRemoteExecutionTypeComboBox.itemText(
-                    self.ui.multiJobRemoteExecutionTypeComboBox.currentIndex())
+                self.ui.multiJobRemoteExecutionTypeComboBox.currentText()
         if self.ui.multiJobPbsPresetComboBox.isEnabled():
-            preset.mj_pbs_preset = self.ui.multiJobPbsPresetComboBox.itemData(
-                    self.ui.multiJobPbsPresetComboBox.currentIndex())
-        preset.mj_env = self.ui.mjEnvPresetComboBox.itemData(
-                    self.ui.mjEnvPresetComboBox.currentIndex())
+            preset.mj_pbs_preset =\
+                self.ui.multiJobPbsPresetComboBox.currentData()
+        preset.mj_env = self.ui.mjEnvPresetComboBox.currentData()
 
-        preset.j_execution_type = self.ui.jobExecutionTypeComboBox.itemText(
-                    self.ui.jobExecutionTypeComboBox.currentIndex())
+        preset.j_execution_type =\
+            self.ui.jobExecutionTypeComboBox.currentText()
         if self.ui.jobSshPresetComboBox.isEnabled():
-            preset.j_ssh_preset = self.ui.jobSshPresetComboBox.itemData(
-                    self.ui.jobSshPresetComboBox.currentIndex())
+            preset.j_ssh_preset = self.ui.jobSshPresetComboBox.currentData()
         if self.ui.jobRemoteExecutionTypeComboBox.isEnabled():
             preset.j_remote_execution_type = \
-                self.ui.jobRemoteExecutionTypeComboBox.itemText(
-                    self.ui.jobRemoteExecutionTypeComboBox.currentIndex())
+                self.ui.jobRemoteExecutionTypeComboBox.currentText()
         if self.ui.jobPbsPresetComboBox.isEnabled():
-            preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.itemData(
-                    self.ui.jobPbsPresetComboBox.currentIndex())
-
-        preset.j_env = self.ui.jobEnvPresetComboBox.itemData(
-                    self.ui.jobEnvPresetComboBox.currentIndex())
+            preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.currentData()
+        preset.j_env = self.ui.jobEnvPresetComboBox.currentData()
         return {
             "key": key,
             "preset": preset
@@ -229,7 +221,7 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobSshPresetComboBox.findData(preset.j_ssh_preset))
             self.ui.jobRemoteExecutionTypeComboBox.setCurrentIndex(
                 self.ui.jobRemoteExecutionTypeComboBox.findText(
-                    preset.j_execution_type))
+                    preset.j_remote_execution_type))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(preset.j_pbs_preset))
             self.ui.jobEnvPresetComboBox.setCurrentIndex(

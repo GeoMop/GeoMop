@@ -4,6 +4,8 @@ JobScheduler data structures
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import os
+
 import config as cfg
 
 
@@ -13,6 +15,7 @@ class PersistentDict(dict):
     DIR and FILE_NAME should be overridden in child for custom folder and
     filename.
     """
+    BASE_DIR = "JobScheduler"
     DIR = "mydictfolder"
     FILE_NAME = "mydictname"
 
@@ -21,14 +24,16 @@ class PersistentDict(dict):
         Method for saving data to custom DIR/FILE_NAME.
         :return:
         """
-        cfg.save_config_file(self.FILE_NAME, dict(self.items()), self.DIR)
+        directory = os.path.join(self.BASE_DIR, self.DIR)
+        cfg.save_config_file(self.FILE_NAME, dict(self.items()), directory)
 
     def load(self, clear=True):
         """
         Loads from custom DIR/FILE_NAME.
         :return:
         """
-        tmp = cfg.get_config_file(self.FILE_NAME, self.DIR)
+        directory = os.path.join(self.BASE_DIR, self.DIR)
+        tmp = cfg.get_config_file(self.FILE_NAME, directory)
         if clear:
             self.clear()
         if tmp:

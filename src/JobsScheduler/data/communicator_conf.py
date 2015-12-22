@@ -45,11 +45,13 @@ class PbsConfig(object):
         """init"""
         self.name = None
         """name as unique job identifier for files"""
-        self.walltime = ""
+        self.dialect = None
+        self.queue = None
+        self.walltime = None
         self.nodes = "1"
         self.ppn = "1"
-        self.memory = "400mb"
-        self.scratch = "400mb"
+        self.memory = None
+        self.scratch = None
         self.with_socket = True
         """
         Initialize communication over socket, True in case of MultiJob

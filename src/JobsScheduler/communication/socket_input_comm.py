@@ -4,6 +4,7 @@ import data.transport_data as tdata
 import socket
 import time
 import threading
+import struct
 
 from communication.communication import InputComm
 
@@ -46,7 +47,7 @@ class SocketInputComm(InputComm):
     def _connect(self):
         """connect session and send port number over stdout"""
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
         ok = False
         i = 0
         while not ok:
@@ -123,7 +124,7 @@ class SocketInputComm(InputComm):
         self._connected_lock.acquire()
         self._connected = False
         self._connected_lock.release()
- #       self.conn.shutdown(socket.SHUT_RDWR)        
+        self.conn.shutdown(socket.SHUT_RDWR)        
         self.conn.close() 
         logger.debug("Server close connection on port " + str(self.port))        
         
