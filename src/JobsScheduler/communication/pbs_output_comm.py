@@ -34,7 +34,7 @@ class PbsOutputComm(ExecOutputComm):
                 " (return code: " + str(return_code) + ")")    
         # wait for jobid
         out = process.stdout.readline()
-        job  = re.match( '(\d+)', str(out, 'utf-8'))
+        job  = re.match( '(\S+)', str(out, 'utf-8'))
         if job is not None:
             self.jobid  =  int(job.group(1))
             logger.debug("Job is queued (id:" + job.group(1) + ")")
