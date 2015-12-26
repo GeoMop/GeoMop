@@ -10,9 +10,9 @@ import icon
 from contextlib import ContextDecorator
 import math
 
-from PyQt5.Qsci import QsciScintilla, QsciLexerYAML
+from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciScintilla
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QSize
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
@@ -117,7 +117,12 @@ class YamlEditorWidget(QsciScintilla):
         self.setTabIndents(True)
         self.setTabWidth(2)
         self.setUtf8(True)
-        # self.setAutoIndent(True)
+
+        # line ending - CR LF vs LF
+        if self.SendScintilla(QsciScintilla.SCI_GETEOLMODE) == QsciScintilla.SC_EOL_CRLF:
+            self._eol_length = 2
+        else:
+            self._eol_length = 1
 
         # text wrapping
         self.setWrapMode(QsciScintilla.WrapWord)
@@ -666,8 +671,8 @@ class YamlEditorWidget(QsciScintilla):
                     self.setSelection(line, column, line, column - 1)
                 elif line > 0:  # delete from previous line
                     prev_line = line - 1
-                    prev_column = len(self.text(prev_line))
-                    self.setSelection(prev_line, prev_column - 1, line, column)
+                    prev_column = len(self.text(prev_line)) - self._eol_length
+                    self.setSelection(prev_line, prev_column, line, column)
         self.remove_selection()
         cfg.autocomplete_helper.refresh_autocompletion()
 
