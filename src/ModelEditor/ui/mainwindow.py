@@ -6,6 +6,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 
 import icon
+from helpers import LineAnalyzer
 from meconfig import cfg
 from ui import panels
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
@@ -126,7 +127,20 @@ class MainWindow(QtWidgets.QMainWindow):
         :param int end_column: column where the selection ends
         """
         self.editor.setFocus()
-        self.editor.mark_selected(start_line, start_column, end_line, end_column)
+
+        # remove empty line and whitespaces at the end of selection
+        if end_line > start_line and end_line > 1:
+            last_line_text = self.editor.text(end_line-1)
+            if end_column > len(last_line_text):
+                end_column = len(last_line_text) + 1
+            last_line_text_selected = last_line_text[:end_column-1]
+            if LineAnalyzer.is_empty(last_line_text_selected):
+                end_line -= 1
+                end_line_text = self.editor.text(end_line-1)
+                end_column = len(end_line_text)
+
+        # select in reversed order - move cursor to the beginning of selection
+        self.editor.mark_selected(end_line, end_column, start_line, start_column)
 
     def _reload_node(self, line, index):
         """reload info after changing node selection"""
