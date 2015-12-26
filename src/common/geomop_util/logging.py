@@ -50,6 +50,7 @@ def _get_root_context_logger(context_name):
     format_ = '%(asctime)s %(levelname)s %(message)s'
     filename = os.path.join(__config_dir__, name + '.log.txt')
     logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler(filename)
     formatter = logging.Formatter(format_)
     file_handler.setFormatter(formatter)

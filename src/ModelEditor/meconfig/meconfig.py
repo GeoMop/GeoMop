@@ -174,9 +174,6 @@ class MEConfig:
     logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
     """root context logger"""
 
-    def __init__(self):
-        pass
-
     @classmethod
     def init(cls, main_window):
         """Init class wit static method"""
