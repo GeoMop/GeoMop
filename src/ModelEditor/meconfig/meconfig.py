@@ -14,6 +14,7 @@ from helpers import (notification_handler, AutocompleteHelper,
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments
+from data import export_con
 from data.yaml import Loader
 from data.yaml import Transformator, TransformationFileFormatError
 from data.validation import Validator
@@ -343,6 +344,15 @@ class MEConfig:
             else:
                 raise err
         return False
+
+    @classmethod
+    def export_file(cls):
+        """Export the current YAML document to CON format.
+
+        :return: text of the exported file
+        :rtype: str
+        """
+        return export_con(cls.root)
 
     @classmethod
     def open_recent_file(cls, file_name):

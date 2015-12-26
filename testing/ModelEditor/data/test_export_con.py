@@ -4,9 +4,7 @@
 import pytest
 import os
 
-from data import (export_con, ScalarDataNode, SequenceDataNode, MappingDataNode,
-                  Loader)
-from data.format import get_root_input_type_from_json
+from data import (export_con, Loader)
 
 
 DATA_DIR = os.path.join('data', 'export_con')
