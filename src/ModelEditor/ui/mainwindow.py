@@ -2,8 +2,6 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-import pyperclip
-
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 
@@ -176,6 +174,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event):
         """Back up clipboard contents before exit."""
-        clipboard = QtWidgets.QApplication.clipboard()
-        pyperclip.copy(clipboard.text())
+        try:
+            # pyperclip in try/except block - throws exception on Win XP
+            import pyperclip
+            clipboard = QtWidgets.QApplication.clipboard()
+            pyperclip.copy(clipboard.text())
+        except Exception:
+            cfg.logger.error("Could not persist clipboard contents on application exit.")
         super(MainWindow, self).closeEvent(event)

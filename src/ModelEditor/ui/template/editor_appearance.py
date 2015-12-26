@@ -44,6 +44,6 @@ class EditorAppearance:
         editor.setCaretLineBackgroundColor(QtGui.QColor("#e4e4e4"))
 
 EditorAppearance.DEFAULT_FONT = QtGui.QFont()
-EditorAppearance.DEFAULT_FONT.setFamily('Courier')
+EditorAppearance.DEFAULT_FONT.setFamily('Courier')  # Consolas for Win 10 (7, 8?)
 EditorAppearance.DEFAULT_FONT.setFixedPitch(True)
 EditorAppearance.DEFAULT_FONT.setPointSize(11)

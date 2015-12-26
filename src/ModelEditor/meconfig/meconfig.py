@@ -5,6 +5,7 @@
 """
 
 import os
+import logging
 from copy import deepcopy
 
 import config as cfg
@@ -18,6 +19,8 @@ from data.yaml import Transformator, TransformationFileFormatError
 from data.validation import Validator
 from data.format import get_root_input_type_from_json
 from data.autoconversion import autoconvert
+from geomop_util.logging import LOGGER_PREFIX
+from util import constants
 
 
 class _Config:
@@ -168,6 +171,8 @@ class MEConfig:
     """path to a folder containing Qt stylesheets"""
     info_text_html_root_dir = os.path.join(resource_dir, 'ist_html')
     """path to a root folder for InfoText"""
+    logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
+    """root context logger"""
 
     def __init__(self):
         pass
