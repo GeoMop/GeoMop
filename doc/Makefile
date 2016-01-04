@@ -51,16 +51,16 @@ clean:
 	rm -rf aut/* 
 
 modules.LE.rst:
-	sphinx-apidoc -o ./aut/LayerEditor -s .rsta ../src/LayerEditor/
+	sphinx-apidoc -fo ./aut/LayerEditor -s .rsta ../src/LayerEditor/
 
 modules.ME.rst:
-	sphinx-apidoc -o ./aut/ModelEditor -s .rstc ../src/ModelEditor/
+	sphinx-apidoc -fo ./aut/ModelEditor -s .rstc ../src/ModelEditor/
 
 modules.JS.rst:
-	sphinx-apidoc -o ./aut/JobsScheduler -s .rstb ../src/JobsScheduler/
+	sphinx-apidoc -fo ./aut/JobsScheduler -s .rstb ../src/JobsScheduler/
 
 modules.common.rst:
-	sphinx-apidoc -o ./aut/common -s .rstd ../src/common/
+	sphinx-apidoc -fo ./aut/common -s .rstd ../src/common/
 
 
 autogen_src: modules.LE.rst modules.common.rst modules.JS.rst modules.ME.rst
