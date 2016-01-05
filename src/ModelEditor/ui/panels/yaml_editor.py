@@ -10,9 +10,9 @@ import icon
 from contextlib import ContextDecorator
 import math
 
-from PyQt5.Qsci import QsciScintilla, QsciLexerYAML, QsciScintilla
+from PyQt5.Qsci import QsciLexerYAML, QsciScintilla
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QSize
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
@@ -427,7 +427,7 @@ class YamlEditorWidget(QsciScintilla):
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
-        self._pos.node_init(node, self)
+        self._valid_bounds = self._pos.node_init(node, self)
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
@@ -1136,6 +1136,7 @@ class EditorPosition:
         # if node is not None:
         #     self.reload_autocompletion(editor)
         self.reload_autocompletion(editor)
+        return self.node is not None
 
     def handle_line_changed(self):
         """Handle when cursor changes line."""
