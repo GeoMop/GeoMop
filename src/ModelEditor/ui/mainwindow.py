@@ -187,7 +187,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree.select_data_node(node)
 
     def closeEvent(self, event):
-        """Back up clipboard contents before exit."""
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._model_editor.save_old_file():
+            return event.ignore()
+
+        # back up clipboard
         try:
             # pyperclip in try/except block - throws exception on Win XP
             import pyperclip
