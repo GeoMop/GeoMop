@@ -121,12 +121,15 @@ Section "Runtime Environment" SecRuntime
   File /r "${BUILD_DIR}\env"
 
   # Copy the common folder.
-  SetOutPath $INSTDIR
   File /r /x __pycache__ /x pylintrc "${SRC_DIR}\common"
 
   # Copy the sample folder.
-  SetOutPath $INSTDIR
   File /r "${GIT_DIR}\sample"
+
+  # Copy LICENSE, CHANGELOG, VERSION.
+  File "${GIT_DIR}\VERSION"
+  File "${GIT_DIR}\CHANGELOG.md"
+  File "${GIT_DIR}\LICENSE"
 
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
