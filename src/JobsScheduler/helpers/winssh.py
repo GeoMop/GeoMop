@@ -25,7 +25,8 @@ class Wssh():
         self.sftp_remote_path = ""
         """Sftp remote path"""
         self._buffer = ""
-        self._prefix = ""        
+        self._prefix = ""
+        self._prompt = False       
         
     def connect(self):
         """connect session"""
@@ -121,6 +122,39 @@ class Wssh():
         text = self._read_filter(command)
         self._clear()
         return text
+        
+    def exec_ret(self, command, quotes=""):
+        """
+        run async command, wait to finishing
+        
+        :return: result, err text
+        """
+        self.ssh.write(command + "\n")        
+        text = self._read_filter(command)
+        err = ""
+        ret = ""
+        while True:
+            if  text != "":                
+                if len(quotes)==0:
+                    if self._prompt:
+                        ret = text
+                    else:    
+                        if err != "":
+                            err += '\n'
+                        err += text
+                else:
+                    prefix = re.search( quotes+'(.*)'+quotes, text)
+                    if prefix is not None:
+                        ret = prefix.group(1)
+                    if prefix is None or text != ret.strip():
+                        # not quates or more than expected
+                        if err != "":
+                            err += '\n'
+                        err += text                    
+            if self._prompt:
+                break
+        self._clear()
+        return ret, err
 
     def write(self, text):
         """write text to stdin"""
@@ -143,6 +177,7 @@ class Wssh():
         while len(byte) > 0:
             byte = self.ssh.read(100)
         self._buffer = ""
+        self._prompt = False
 
     def _read_filter(self, echo=None):
         """read text without echo and ssh terminal prefix from std in"""
@@ -150,13 +185,9 @@ class Wssh():
         res = []
         # delete echo
         if echo is not None:
-            e = re.match( '(' + echo + '\r\n\x1b]0;)', text)
-            if e is None:
-                e = re.match( '(' + echo + '\r\n)', text)
-            if e is None:
-                e = re.match( '(' + echo + ')', text)
-            if e is not None:
-                text = text[len(e.group(1)):]
+            dis = self._get_prefix_distance(echo, text)            
+            if dis > 0:
+                text = text[dis:]
                 
         while len(text) > 0:
             prefix = True
@@ -167,19 +198,71 @@ class Wssh():
                     prefix = re.match( '\s*(' + self._prefix + '\x07\s*)', text)
                 if prefix is not None:
                     text = text[len(prefix.group(1)):]
+                    self._prompt = True
             # parse message
-            line = re.match('(.*)(\r\n\x1b]0;)', text)
-            if line is None:                    
-                line = prefix = re.match( '(.*)(\r\n)', text)
-            if line is None:                    
-                line = prefix = re.match( '(.*\S)(.*)$', text)
-            if line is not None:
+            line = re.match('(.*?)(\r\n\x1b]0;)', text)
+            line2 = re.match( '(.*?)(\r\n)', text)
+            if line is None or len(line.group(1))>len(line2.group(1)):
+                line = line2
+            if line is None:
+                if len(text.strip()) > 0:
+                    res.append(text.strip())
+                text = ""
+            else:
                 if len(line.group(1)) > 0:
                     res.append(line.group(1))
                 text = text[len(line.group(1))+len(line.group(2)):]
         if len(res) == 0:
             return ""
         return "\n".join(res)
+
+    def _get_prefix_distance(self, prefix, text):
+        """
+        Try find the prefix in begin of the text
+        
+        :return: distance from begin of text or 0 if no prefix in the text
+        """
+        if len(prefix)>len(text):
+            return 0
+        dis=0
+        for ch in prefix:
+            if dis >= len(text):
+                return 0
+            if ch == text[dis]:
+                dis += 1 
+                continue
+            dist_e = self._get_emptychars_distance(text[dis:])
+            if dist_e > 0 and ch == text[dis+dist_e]:
+                dis += 1 + dist_e  
+                continue
+            return 0            
+        dis += self._get_emptychars_distance(text[dis:])
+        return dis
+        
+    def _get_emptychars_distance(self, text):
+        """
+        Try find the empty chars sequence in begin of the text
+        
+        :return: distance from begin of text or 0 if no empty chars in text
+        """
+        dis=0
+        while dis<len(text):
+            if text[dis]  == '\r' and len(text) > (dis+5) and \
+                '\n\x1b]0;' == text[dis+1:dis+6]:
+                dis += 6
+                continue
+            if text[dis]  == '\r' and len(text) > (dis+1) and \
+                '\n' == text[dis+1]:
+                dis += 2
+                continue
+            if text[dis]  == ' ' and len(text) > (dis+1) and \
+                '\r' == text[dis+1]:
+                dis += 2
+                continue
+            if text[dis]  == '\x07': 
+                continue
+            break
+        return dis
 
     def _read(self):
         """read std in"""
