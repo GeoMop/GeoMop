@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
 from meconfig import cfg
 from ui.dialogs import SettingsDialog
+from ui.template import EditorAppearance
 
 
 class MainSettingsMenu(QMenu):
@@ -68,4 +69,6 @@ class MainSettingsMenu(QMenu):
 
     def on_options_action(self):
         """Handle options action - display settings."""
-        SettingsDialog(self.parent).exec_()
+        dialog = SettingsDialog(self.parent)
+        if dialog.exec_():
+            EditorAppearance.set_default_appearence(self._model_editor.mainwindow.editor)

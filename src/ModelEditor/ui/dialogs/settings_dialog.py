@@ -3,7 +3,9 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QMessageBox,
-                             QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton)
+                             QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QFontDialog,
+                             QHBoxLayout, QGroupBox)
+from PyQt5.QtGui import QFont
 
 from helpers import shortcuts
 from meconfig import cfg
@@ -44,6 +46,7 @@ class SettingsDialog(QDialog):
 
     def accept(self):
         """Handles a confirmation."""
+        cfg.config.font = self.general_tab.font.toString()
         cfg.config.display_autocompletion = self.general_tab.autocompletion_checkbox.isChecked()
         cfg.config.symbol_completion = self.general_tab.symbol_completion_checkbox.isChecked()
         cfg.config.shortcuts = self.keyboard_shortcuts_tab.get_shortcuts()
@@ -56,7 +59,16 @@ class GeneralTab(QWidget):
     def __init__(self, parent=None):
         super(GeneralTab, self).__init__(parent)
 
-        self.autocompletion_checkbox = QCheckBox("Display Autocompletion (automatically)")
+        self.font = QFont()
+        self.font.fromString(cfg.config.font)
+        self.font_label = QLabel("Font")
+        self.font_button = QPushButton(self.get_font_name(self.font))
+        self.font_button.clicked.connect(self.font_button_clicked)
+        font_layout = QHBoxLayout()
+        font_layout.addWidget(self.font_label)
+        font_layout.addWidget(self.font_button)
+
+        self.autocompletion_checkbox = QCheckBox("Display Automatically")
         if cfg.config.display_autocompletion:
             self.autocompletion_checkbox.setChecked(True)
 
@@ -64,11 +76,29 @@ class GeneralTab(QWidget):
         if cfg.config.symbol_completion:
             self.symbol_completion_checkbox.setChecked(True)
 
+        autocompletion_group = QGroupBox('Autocompletion')
+        autocompletion_layout = QVBoxLayout()
+        autocompletion_layout.addWidget(self.autocompletion_checkbox)
+        autocompletion_layout.addWidget(self.symbol_completion_checkbox)
+        autocompletion_group.setLayout(autocompletion_layout)
+
         main_layout = QVBoxLayout()
-        main_layout.addWidget(self.autocompletion_checkbox)
-        main_layout.addWidget(self.symbol_completion_checkbox)
+        main_layout.addLayout(font_layout)
+        main_layout.addWidget(autocompletion_group)
         main_layout.addStretch(1)
         self.setLayout(main_layout)
+
+    def font_button_clicked(self):
+        """Show font dialog to choose font."""
+        selected_font, ok = QFontDialog.getFont(self.font, self, options=QFontDialog.MonospacedFonts)
+        if ok:
+            self.font = selected_font
+            self.font_button.setText(self.get_font_name(self.font))
+
+    @staticmethod
+    def get_font_name(font):
+        """Get short font name."""
+        return ','.join(font.toString().split(',')[:2])  # don't display extra params
 
 
 class KeyboardShortcutsTab(QWidget):
