@@ -38,6 +38,8 @@ class StdInputComm(InputComm):
         """
         mess = None
         if sys.platform == "win32":
+            logger.error("Receive message over ssh is not implemented for windows platform")
+        else:
             import fdpexpect
             import pexpect
             try:
@@ -50,8 +52,7 @@ class StdInputComm(InputComm):
             except(tdata.MessageError) as err:
                 txt = str(txt, 'utf-8').strip()
                 logger.warning("Error(" + str(err) + ") during parsing input message: " + txt)
-        else:
-            logger.error("Reseve message over ssh is not implemented for windows platform")
+            
         return mess
     
     def disconnect(self):

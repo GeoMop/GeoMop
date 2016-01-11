@@ -167,9 +167,11 @@ class Wssh():
         text = self._read()
         while len_buffer == len(text) and sec < time.time():
             text += self._read()
-        len_buffer = text
-        text = self._read_filter(echo)
-        return text
+        if echo is not None:
+            dis = self._get_prefix_distance(echo, text)    
+            if dis > 0:
+                text = text[dis:]    
+        return self._trim_message(text)
 
     def _clear(self):
         """read std in and drop it"""
@@ -215,6 +217,15 @@ class Wssh():
         if len(res) == 0:
             return ""
         return "\n".join(res)
+        
+    def _trim_message(self, text):
+        """Remove spaces from the end of text"""
+        line = re.match('(.*?)(\r\n\x1b]0;)$', text)
+        if line is None:
+            line = re.match( '(.*?)(\r\n)', text)
+        if line is None:
+            return text.strip()
+        return line.group(1).strip()
 
     def _get_prefix_distance(self, prefix, text):
         """
@@ -289,7 +300,3 @@ class Wssh():
             self._prefix = prefix.group(1) + '\s*' + prefix.group(2)
         else:
             self._prefix = ""
-            
-        
-        
-            
