@@ -102,13 +102,9 @@ class YamlEditorWidget(QsciScintilla):
         self._find_replace_dialog = None
         """dialog for find/replace functionality"""
 
-        appearance.set_default_appearence(self)
-
         # Set Yaml lexer
-        self._lexer = QsciLexerYAML()
-        self._lexer.setFont(appearance.DEFAULT_FONT)
-        self.setLexer(self._lexer)
-        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
+        self.lexer = QsciLexerYAML()
+        self.setLexer(self.lexer)
 
         # editor behavior
         self.setIndentationGuides(True)
@@ -130,8 +126,8 @@ class YamlEditorWidget(QsciScintilla):
         self.setWrapVisualFlags(QsciScintilla.WrapFlagNone, QsciScintilla.WrapFlagByBorder)
 
         # colors
-        self._lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
-        self._lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        self.lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self.lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
         self.setIndentationGuidesBackgroundColor(QColor("#e5e5e5"))
         self.setIndentationGuidesForegroundColor(QColor("#e5e5e5"))
         self.setCaretLineBackgroundColor(QColor("#f8f8f8"))
@@ -188,6 +184,10 @@ class YamlEditorWidget(QsciScintilla):
 
         # start to monitor actions to enable undo/redo
         self.beginUndoAction()
+
+        # change editor appearance
+        appearance.set_default_appearence(self)
+        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
 # ------------------------------ PROPERTIES ----------------------------------
 
