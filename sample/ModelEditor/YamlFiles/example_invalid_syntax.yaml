@@ -4,9 +4,9 @@ problem: !SequentialCoupling
   primary_equation: !Steady_MH
     balance: true
     input_fields:
-        - bc_pressure: 0
-          bc_type: dirichlet
-          r_set: BOUNDARY
+      - bc_pressure: 0
+        bc_type: dirichlet
+        r_set: BOUNDARY
     output:
       output_fields:
         - pressure_p0

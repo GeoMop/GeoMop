@@ -216,7 +216,7 @@ class Installation:
         Lock over ssh is specific, becose lock is processed during
         ssh connection. In start of application is lock repeated.
         
-        return - is app need install, is data need install
+        :return: is app need install, is data need install
         """
         mj_dir = self.copy_path + "/" + __jobs_dir__ + "/" + self.mj_name
         res_dir = mj_dir + "/" + __result_dir__
@@ -235,8 +235,14 @@ class Installation:
             command += "N"
         
         if sys.platform == "win32":
-            # ToDo
-            return False, False
+            res, mess = conn.exec_ret(command, "--")
+            if not res:
+                logger.warning("Run python file: " + mess)  
+            else:
+                if res == "1":
+                    return False, True
+                if res == "2" or res == "3":
+                    return True, True
         else:
             import pexpect   
             logger.debug("Command:" + command)
@@ -259,9 +265,10 @@ class Installation:
             mjs_dir = __jobs_dir__  + '/' + self.mj_name
             self._create_dir(conn, mjs_dir, False)
             self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
-            conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
+            conf_path = os.path.join(__install_dir__, mjs_dir)
+            #conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
-                conn.set_sftp_paths( conf_path , self.copy_path + '/' + self.mj_name)
+                conn.set_sftp_paths( conf_path , self.copy_path + '/' +  mjs_dir)
                 res = conn.put_r(__conf_dir__) 
                 if len(res)>0:
                     logger.warning("Sftp message (put -r '" + __conf_dir__ + "'): " + res)

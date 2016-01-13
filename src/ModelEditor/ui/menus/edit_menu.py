@@ -67,7 +67,7 @@ class EditMenu(QMenu):
         self.select_all_action = QAction('Select &All', self)
         self.select_all_action.setShortcut(cfg.get_shortcut('select_all').key_sequence)
         self.select_all_action.setStatusTip('Select entire text')
-        self.select_all_action.triggered.connect(self._editor.selectAll)
+        self.select_all_action.triggered.connect(self.on_select_all_action)
 
         self.indent_action = QAction('Indent Block', self)
         self.indent_action.setStatusTip('Indents the selected lines')
@@ -82,6 +82,10 @@ class EditMenu(QMenu):
         self.comment_action.setShortcut(cfg.get_shortcut('comment').key_sequence)
         self.comment_action.setStatusTip('Toggles Comment for the selected lines')
         self.comment_action.triggered.connect(self._editor.comment)
+
+    def on_select_all_action(self):
+        """Handle selectAll action."""
+        self._editor.selectAll()
 
     def init_menu(self):
         """Initializes the menu user interface."""

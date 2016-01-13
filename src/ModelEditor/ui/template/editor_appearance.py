@@ -5,26 +5,26 @@ Editor appearance manager.
 from PyQt5.Qsci import QsciScintilla
 import PyQt5.QtGui as QtGui
 
+from meconfig import cfg
+
 
 class EditorAppearance:
     """Unique editors appearance class"""
 
-    DEFAULT_FONT = QtGui.QFont()
-
-    def __init__(self):
-        pass
+    font = QtGui.QFont()
 
     @classmethod
     def set_default_appearence(cls, editor):
         """Set default applicatin editor appearents"""
         # Set the default font
-
-        editor.setFont(cls.DEFAULT_FONT)
-        editor.setMarginsFont(cls.DEFAULT_FONT)
+        cls.font.fromString(cfg.config.font)
+        editor.setFont(cls.font)
+        editor.setMarginsFont(cls.font)
+        editor.lexer.setFont(cls.font)
 
         # Margin 0 is used for line numbers
-        fontmetrics = QtGui.QFontMetrics(cls.DEFAULT_FONT)
-        editor.setMarginsFont(cls.DEFAULT_FONT)
+        fontmetrics = QtGui.QFontMetrics(cls.font)
+        editor.setMarginsFont(cls.font)
         editor.setMarginWidth(0, fontmetrics.width("00000") + 6)
         editor.setMarginLineNumbers(0, True)
         editor.setMarginsBackgroundColor(QtGui.QColor("#cccccc"))
@@ -43,7 +43,4 @@ class EditorAppearance:
         editor.setCaretLineVisible(True)
         editor.setCaretLineBackgroundColor(QtGui.QColor("#e4e4e4"))
 
-EditorAppearance.DEFAULT_FONT = QtGui.QFont()
-EditorAppearance.DEFAULT_FONT.setFamily('Courier')  # Consolas for Win 10 (7, 8?)
-EditorAppearance.DEFAULT_FONT.setFixedPitch(True)
-EditorAppearance.DEFAULT_FONT.setPointSize(11)
+

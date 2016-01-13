@@ -76,6 +76,102 @@ from the `File` menu. You can also check out the editor features in the `Edit` m
 shortcuts.
 
 
+YAML Format
+-----------
+
+Instead of the old CON format, the configuration files for Flow123d since version 2 use YAML.
+This guide briefly describes the most common use cases and some key differences from the old CON
+format.
+
+Here is an example of a CON file.
+
+.. code-block:: json
+
+   {
+     // Example
+     problem = {
+       TYPE = "SequentialCoupling",
+       description = "Steady flow + transport with source",
+       mesh = {
+         mesh_file = "./input/test16.msh"
+       },
+       primary_equation = {
+         TYPE = "Steady_MH",
+         input_fields= [
+           {
+             r_set = "BOUNDARY",
+             bc_type = "dirichlet",
+             bc_pressure = {
+               TYPE="FieldFormula",
+               value="y"
+             }
+           },
+           {
+             r_set = "BULK",
+             cross_section = 1,
+             conductivity = 1
+           }
+         ],
+        ...
+       }
+     }
+   }
+
+This is what the same configuration file looks like in YAML.
+
+.. code-block:: yaml
+
+   # Example
+   problem: !SequentialCoupling
+     description: Steady flow + transport with source
+     mesh:
+       mesh_file: ./input/test16.msh
+     primary_equation: !SteadyMH
+       input_fields:
+         - r_set: BOUNDARY
+           bc_type: dirichlet
+           bc_pressure: !FieldFormula y
+         - r_set: BULK
+           cross_section: 1
+           conductivity: 1
+       ...
+
+There are a few key differences:
+
+   - Indentation
+
+      In YAML, brackets are replaced by indentation. Although any number or spaces or tabs may be used
+      for indentation (if used consistently across the whole file), it is recommended to use 2 spaces
+      for indentation. When you use the :kbd:`Tab` key in the Text Editor to indent, it automatically
+      uses 2 spaces for indentation.
+
+   - Specifying AbstractRecord type
+
+      Use ``!SelectedType`` tag to specify the type of the AbstractRecord.
+
+   - Strings do not need to be delimited by ``"``
+
+   - Key-Value pairs use ``:`` as a separator
+
+   - Array items are delimited by ``-``
+
+   - Everything behind a ``#`` character until the end of line is a comment
+
+For more information about YAML syntax and features, please refer to the
+`YAML 1.2 specification <http://yaml.org/spec/1.2/spec.html>`_.
+
+.. code-block:: yaml
+   problem = {
+       TYPE = "SequentialCoupling",
+       ...
+   }
+
+    problem: !SequentialCoupling
+       ...
+
+
+
+
 
 Transformation
 ---------------------

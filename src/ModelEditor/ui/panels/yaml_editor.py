@@ -102,13 +102,9 @@ class YamlEditorWidget(QsciScintilla):
         self._find_replace_dialog = None
         """dialog for find/replace functionality"""
 
-        appearance.set_default_appearence(self)
-
         # Set Yaml lexer
-        self._lexer = QsciLexerYAML()
-        self._lexer.setFont(appearance.DEFAULT_FONT)
-        self.setLexer(self._lexer)
-        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
+        self.lexer = QsciLexerYAML()
+        self.setLexer(self.lexer)
 
         # editor behavior
         self.setIndentationGuides(True)
@@ -130,8 +126,8 @@ class YamlEditorWidget(QsciScintilla):
         self.setWrapVisualFlags(QsciScintilla.WrapFlagNone, QsciScintilla.WrapFlagByBorder)
 
         # colors
-        self._lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
-        self._lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
+        self.lexer.setColor(QColor("#aa0000"), QsciLexerYAML.SyntaxErrorMarker)
+        self.lexer.setPaper(QColor("#ffe4e4"), QsciLexerYAML.SyntaxErrorMarker)
         self.setIndentationGuidesBackgroundColor(QColor("#e5e5e5"))
         self.setIndentationGuidesForegroundColor(QColor("#e5e5e5"))
         self.setCaretLineBackgroundColor(QColor("#f8f8f8"))
@@ -188,6 +184,10 @@ class YamlEditorWidget(QsciScintilla):
 
         # start to monitor actions to enable undo/redo
         self.beginUndoAction()
+
+        # change editor appearance
+        appearance.set_default_appearence(self)
+        self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
 
 # ------------------------------ PROPERTIES ----------------------------------
 
@@ -940,6 +940,8 @@ class EditorPosition:
 
             # set cursor_type_position
             anal = self._init_analyzer(editor, line, index)
+            if anal is None:
+                return True
             pos_type = anal.get_pos_type()
             key_type = None
             if pos_type is PosType.in_key:
@@ -1033,6 +1035,8 @@ class EditorPosition:
         # for delete  is index <> self.index
         line, index = editor.getCursorPosition()
         anal = self._init_analyzer(editor, line, index)
+        if anal is None:
+            return False
         # value or key changed and cursor is in opposite
         pos_type = anal.get_pos_type()
         if pos_type is PosType.in_key:
@@ -1114,11 +1118,14 @@ class EditorPosition:
         self._save_lines(editor)
         # set cursore_type_position
         anal = self._init_analyzer(editor, self.line, self.index)
-        pos_type = anal.get_pos_type()
-        key_type = None
-        if pos_type is PosType.in_key:
-            key_type = anal.get_key_pos_type()
-        self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
+        if anal is None:
+            self.cursor_type_position = None
+        else:
+            pos_type = anal.get_pos_type()
+            key_type = None
+            if pos_type is PosType.in_key:
+                key_type = anal.get_key_pos_type()
+            self.cursor_type_position = CursorType.get_cursor_type(pos_type, key_type)
 
 #        if  LineAnalyzer.is_array_char_only(self._old_text[self.line]):
 #            self.node = node
@@ -1144,6 +1151,8 @@ class EditorPosition:
 
     def _init_analyzer(self, editor, line, index):
         """Prepare data for analyzer, and return it."""
+        if line < self.begin_line:
+            return None
         in_line = line - self.begin_line
         in_index = index
         if line == self.begin_line:
