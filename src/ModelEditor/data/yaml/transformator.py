@@ -43,6 +43,9 @@ Actions:
     - add-key - add set key to path. Key parent should be existing abstract record.
       if optional parameters value or type is set, corresponding key parameter is 
       added.
+    - replace-value - Replace value on set path. Parameters pattern and 
+      replacement have same meaning as in python regular Expression 
+      function re.sub, where is pass on.
 
 Description:
     Transformator check se json transformation file. If this file is in bad format,
@@ -112,10 +115,10 @@ class Transformator:
                           "change-value", "merge-arrays", "add-key"]
     __source_paths__ = {"delete-key":"path","move-key-forward":"path", "move-key":"source_path", 
                                       "rename-type":"path", "change-value":"path", "merge-arrays":"source_path", 
-                                      "add-key":"path"}
+                                      "add-key":"path", "replace-value":"path"}
     __destination_paths__ = {"delete-key":None,"move-key-forward":None, "move-key":["destination_path"],
                                           "rename-type":None, "change-value":None, "merge-arrays":["destination_path",
-                                          "addition_path"], "add-key":None}
+                                          "addition_path"], "add-key":None, "replace-value":None}
     
     def __init__(self, transform_file, data=None):
         """init"""
@@ -160,6 +163,10 @@ class Transformator:
             elif action['action'] == "add-key":
                 self._check_parameter("path", action['parameters'], action['action'], i) 
                 self._check_parameter("key", action['parameters'], action['action'], i)
+            elif action['action'] == "replace-value":
+                self._check_parameter("path", action['parameters'], action['action'], i)
+                self._check_parameter("pattern", action['parameters'], action['action'], i)
+                self._check_parameter("replacement", action['parameters'], action['action'], i)
             i += 1
 
     def _check_parameter(self, name, dict_, act_type, line):
@@ -240,6 +247,8 @@ class Transformator:
                     changes = self._move_key_forward(root, lines, action)
                 elif action['action'] == "change-value":
                     changes = self._change_value(root, lines, action)
+                elif action['action'] == "replace-value":
+                    changes = self._replace_value(root, lines, action)
                 elif action['action'] == "merge-arrays":
                     changes = self._add_array(root, lines, action)
                     if 'destination_path' in action['parameters']:
@@ -775,6 +784,24 @@ class Transformator:
         new = '!' + action['parameters']['new_value']
         l1, c1, l2, c2 =  StructureChanger.value_pos(node)
         return StructureChanger.replace(lines, new,  old,  l1, c1, l2, c2 )
+        
+    def _replace_value(self, root, lines, action):
+        """Rename type transformation"""
+        try:
+            node = root.get_node_at_path(action['parameters']['path'])
+        except:
+            return False
+        if node.implementation != DataNode.Implementation.scalar:
+            raise TransformationFileFormatError(
+                    "Specified path (" + self._get_paths_str(action, 'path') + ") is not scalar type node." )
+        pattern = action['parameters']['pattern'] 
+        replacement = '!' + action['parameters']['replacement']
+        old = str(node.value)
+        new = re.sub( pattern, replacement, old)
+        if new != old:
+            l1, c1, l2, c2 =  StructureChanger.value_pos(node)
+            return StructureChanger.replace(lines, new,  old,  l1, c1, l2, c2 )
+        return False    
         
     def _add_key(self, root, lines, action):
         """Add key to abstract record"""
