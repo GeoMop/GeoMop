@@ -9,7 +9,7 @@
         "NAME": "Rename SoluteTransportDG neumann bc to total_flux",
         "action": "replace-value",
         "parameters":{
-          "path" : "/problem/secondary_equation/input_fields/*/bc_type",
+          "path" : "/problem/secondary_equation/input_fields/*",
           "pattern" : "^(neumann)$",
           "replacement" : "test(\\1)"
         }          

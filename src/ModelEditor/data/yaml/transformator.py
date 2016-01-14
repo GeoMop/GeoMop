@@ -105,6 +105,7 @@ Wildchars Example::
 import json
 import re
 import copy
+from enum import Enum
 
 from .loader import Loader
 from ..data_node import DataNode
@@ -126,6 +127,8 @@ class Transformator:
 
     def __init__(self, transform_file, data=None):
         """init"""
+        self.err=[]
+        """Array of transformation errors"""
         if transform_file is not None:
             self._transformation = json.loads(transform_file)
         else:
@@ -220,9 +223,26 @@ class Transformator:
             return self._transformation['name']
         return ""
 
+    class _Severity(Enum):
+        """Severity of a notification."""
+        info = "Info"
+        warning = "Warning"
+        error = "Error"
+
+    def _add_notification(self, text, severity, action, node=None):
+        """Add notification to err variable"""
+        location = "Action:"+action['action']
+        if Transformator.__source_paths__[action['action']] is not None:
+            path_parameter = Transformator.__source_paths__[action['action']]
+            path = action['parameters'][path_parameter]
+            location += ", "  + path_parameter + ":" + path 
+        if node is not None:
+            location += ", Node:"  + node.absolute_path  
+        self.err.append("{0}[{1}]:{2}".format(severity.value, location, text))
+
     def transform(self, yaml, cfg):
         """transform yaml file"""
-        # TODO: cls.root = autoconvert(cls.root, cls.root_input_type)
+        self.err=[]
         notification_handler = NotificationHandler()
         loader = Loader(notification_handler)
         root = loader.load(yaml)
@@ -800,8 +820,11 @@ class Transformator:
         except:
             return False
         if node.implementation != DataNode.Implementation.scalar:
-            raise TransformationFileFormatError(
-                    "Specified path (" + self._get_paths_str(action, 'path') + ") is not scalar type node." )
+            self._add_notification(
+                "Specified path '{0}',  is not scalar type node, action is ignored".format(
+                self._get_paths_str(action, 'path')),  self._Severity.warning , action, node
+            )
+            return False
         old = action['parameters']['old_value'] 
         new = action['parameters']['new_value']
         l1, c1, l2, c2 =  StructureChanger.value_pos(node)
@@ -815,14 +838,19 @@ class Transformator:
         except:
             return False
         if node.implementation != DataNode.Implementation.scalar:
-            raise TransformationFileFormatError(
-                    "Specified path (" + self._get_paths_str(action, 'path') + ") is not scalar type node." )
+            self._add_notification(
+                "Specified path '{0}', is not scalar type node, action is ignored".format(
+                self._get_paths_str(action, 'path')),  self._Severity.warning , action, node
+            )
+            return False
         try:
             value =  float(node.value)
         except ValueError:
-            raise TransformationFileFormatError(
-                    "Type of value in specified path (" 
-                    + self._get_paths_str(action, 'path') + ") is not numeric." )
+            self._add_notification(
+                "Type of value in specified path '{0}', is not numeric, action is ignored".format(
+                self._get_paths_str(action, 'path')),  self._Severity.warning , action, node
+            )
+            return False
         l1, c1, l2, c2 =  StructureChanger.value_pos(node)
         return StructureChanger.replace(lines, str(scale*value),   lines[l1][c1:c2],  l1, c1, l2, c2 )
 
@@ -833,8 +861,11 @@ class Transformator:
         except:
             return False
         if node.implementation != DataNode.Implementation.scalar:
-            raise TransformationFileFormatError(
-                    "Specified path (" + self._get_paths_str(action, 'path') + ") is not scalar type node." )
+            self._add_notification(
+                "Specified path '{0}',  is not scalar type node, action is ignored".format(
+                self._get_paths_str(action, 'path')),  self._Severity.warning , action, node
+            )
+            return False
         pattern = action['parameters']['pattern'] 
         replacement = action['parameters']['replacement']
         old = str(node.value)
