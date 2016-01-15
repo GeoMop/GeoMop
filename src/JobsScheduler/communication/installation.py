@@ -364,6 +364,9 @@ class Installation:
         res_dir = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__
         if sys.platform == "win32": 
             conn.set_sftp_paths(res_local, res_dir)
+            res = conn.get_r("*") 
+            if len(res)>0:
+                logger.warning("Sftp message (get -r '" + res_dir + "\\*'): " + res)
         else:
             import pexpect 
             
