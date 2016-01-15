@@ -120,7 +120,7 @@ class Transformator:
                           "change-value", "merge-arrays", "add-key", "scale-value",  "replace-value"]
     __source_paths__ = {"delete-key":"path","move-key-forward":"path", "move-key":"source_path", 
                                       "rename-type":"path", "change-value":"path", "merge-arrays":"source_path", 
-                                      "add-key":"path", "scale-value":None, "replace-value":"path"}
+                                      "add-key":"path", "scale-value":"path", "replace-value":"path"}
     __destination_paths__ = {"delete-key":None,"move-key-forward":None, "move-key":["destination_path"],
                                           "rename-type":None, "change-value":None, "merge-arrays":["destination_path",
                                           "addition_path"], "add-key":None, "scale-value":None, "replace-value":None}
