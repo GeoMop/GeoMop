@@ -12,3 +12,5 @@ source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv geomop --system-site-packages
 workon geomop
 pip3 install -r requirements.txt
+
+#DEBHELPER#
