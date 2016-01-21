@@ -442,6 +442,10 @@ class Installation:
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
+        if sys.platform == "win32": 
+            if mj_id is None:
+                return [self.python_env.python_exec,dest_path, mj_name]
+            return [self.python_env.python_exec,dest_path, mj_name, mj_id]
         if mj_id is None:
             return [self.python_env.python_exec,dest_path, mj_name, "&", "disown"]
         return [self.python_env.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
@@ -689,13 +693,15 @@ class Installation:
                                  " &>> " + log_file 
             logger.debug("Installation libraries started")
             term.sendline(command)
-            time.sleep(1)
             try:
-                term.expect('.*install.*') 
+                term.expect('.*install_mpi4.sh', timeout=10) 
                 term.expect('.*install.*', timeout=600)
             except pexpect.TIMEOUT:
+                msg = str(term.before, 'utf-8').strip()
+                if len(msg)<1:
+                    msg = "timeout"
                 logger.warning("Installation libraries failed ( " +
-                                          str(term.before, 'utf-8').strip()) 
+                                          msg + " )") 
             logger.debug("Installation libraries ended")
             term = term.sendline('exit')
         cls.unlock_lib()

@@ -201,7 +201,7 @@ class ComExecutor(object):
     def _install(com, res, res_queue):
         old_phase = TaskStatus.installation
         com.install()
-        sec = time.time() + 600
+        sec = time.time() + 1300
         message = tdata.Action(tdata.ActionType.installation).get_message()
         mess = None
         while sec > time.time():
