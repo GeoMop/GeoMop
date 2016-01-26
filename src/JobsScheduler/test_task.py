@@ -14,6 +14,7 @@ logging.basicConfig(filename=log_file,level=logging.DEBUG,
     format='%(asctime)s %(levelname)s %(message)s')
 logging.info("MPI Application " + str(number) + " is started")
 logging.info("Task lib directory:" + __ins_lib_dir__ )
+
 from mpi4py import MPI
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()

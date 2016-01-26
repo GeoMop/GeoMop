@@ -20,25 +20,30 @@ class Wssh():
         """Ssh subprocessed instance"""
         self.sftp = None
         """Sftp subprocessed instance"""
+        self._session = None
+        """pyssh oject for close"""
         self.sftp_local_path = ""
         """Sftp local path"""
         self.sftp_remote_path = ""
         """Sftp remote path"""
         self._buffer = ""
         self._prefix = ""
-        self._prompt = False       
+        self._prompt = False        
     
     def close(self):
         """Close ssh and sftp connection"""
-        # add close action to pyssh-types library instead __exit__ method
-        self.ssh = None
-        self.sftp = None
+        try:
+            self._session.close()
+        except (RuntimeError, exc.ResourceManagementError) as err:
+            return str(err)
+        return ""
+        
         
     def connect(self):
         """connect session"""
-        s = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
-        self.ssh = s.create_shell()
-        self.sftp = s.create_sftp()
+        self._session = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
+        self.ssh = self._session.create_shell()
+        self.sftp = self._session.create_sftp()
         self._prefix = ""
         self._read_prefix()
         i=0        
@@ -374,8 +379,12 @@ class Wssh():
         """filter std in"""
         text = self._read()
         self._buffer += text
-        prefix = re.search( '(' + self.name + '@\S*:)\s*(~[^@:]*)\$', text)
+        prefix = re.search( '(' + self.name + '@\S*:)\s*(~[^@:]*)\$', text)        
         if prefix is not None:
             self._prefix = prefix.group(1) + '\s*' + prefix.group(2)
         else:
-            self._prefix = ""
+            prefix = re.search( '\[(' + self.name + '@\S*)\s+([^\]]*)\]\$', text)
+            if prefix is not None:
+                self._prefix = "\[?" + prefix.group(1) + ':?\s*~?/?' + prefix.group(2) + "\]?"
+            else:
+                self._prefix = ""

@@ -33,7 +33,9 @@ if sys.platform == "win32":
             
         def disconnect(self):
             """disconnect session"""
-            self.ssh.close()
+            res = self.ssh.close()
+            if res != "":
+                logger.warning("SSH close connection error: " + res)
             self.connected = False
             
         def install(self):
@@ -82,6 +84,7 @@ if sys.platform == "win32":
                 temp_ssh = wssh.Wssh(self.host, self.name, self.password)
                 temp_ssh.connect()
                 self.installation.get_results(temp_ssh)
+                temp_ssh.close()
             except Exception as err:
                 logger.warning("Download file error: " + str(err))
                 return False
