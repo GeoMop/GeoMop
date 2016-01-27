@@ -1,0 +1,16 @@
+#!/bin/bash
+
+pip3 install virtualenvwrapper
+
+cd /usr/share/geomop/
+mkdir env
+
+export WORKON_HOME=/usr/share/geomop/env
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+source /usr/local/bin/virtualenvwrapper.sh
+
+mkvirtualenv geomop --system-site-packages
+workon geomop
+pip3 install -r requirements.txt
+
+#DEBHELPER#

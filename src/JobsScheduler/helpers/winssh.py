@@ -20,19 +20,30 @@ class Wssh():
         """Ssh subprocessed instance"""
         self.sftp = None
         """Sftp subprocessed instance"""
+        self._session = None
+        """pyssh oject for close"""
         self.sftp_local_path = ""
         """Sftp local path"""
         self.sftp_remote_path = ""
         """Sftp remote path"""
         self._buffer = ""
         self._prefix = ""
-        self._prompt = False       
+        self._prompt = False        
+    
+    def close(self):
+        """Close ssh and sftp connection"""
+        try:
+            self._session.close()
+        except (RuntimeError, exc.ResourceManagementError) as err:
+            return str(err)
+        return ""
+        
         
     def connect(self):
         """connect session"""
-        s = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
-        self.ssh = s.create_shell()
-        self.sftp = s.create_sftp()
+        self._session = pyssh.new_session(hostname=self.host, username=self.name, password=self.password)
+        self.ssh = self._session.create_shell()
+        self.sftp = self._session.create_sftp()
         self._prefix = ""
         self._read_prefix()
         i=0        
@@ -53,6 +64,22 @@ class Wssh():
             time.sleep(2)
             self._read_prefix()
         return self._read_filter("cd " + dir)
+        
+    def ls(self, path):
+        """return list of files, directories"""
+        f=[]
+        d=[]
+        self.ssh.write("ls -p -1 --color=never " + path + "\n")
+        files = self._read_filter("ls -p -1 --color=never " + path)
+        lines = files.splitlines(False)
+        for line in lines:
+            poz = line.find("/")
+            if poz>-1:
+                if poz>0:
+                    d.append(line[:poz])
+            else:
+                f.append(line)
+        return f, d
     
     def pwd(self):
         """ssh pwd"""
@@ -71,8 +98,9 @@ class Wssh():
 
     def put(self, file):
         """sftp put"""
+        import os
         remote = self.sftp_remote_path + '/' + file
-        local = self.sftp_local_path + '\\' + file
+        local =  os.path.join(self.sftp_local_path, file)
         try:
             self.sftp.put(local, remote)
         except (RuntimeError, exc.ConnectionError) as err:
@@ -114,7 +142,63 @@ class Wssh():
                     err.append(str(error))
         if len(err) == 0:
             return ""
-        return "\n".join(err)            
+        return "\n".join(err)
+
+    def get(self, remote, local):
+        """
+        sftp get
+        
+        :param str remote: relative remote file path
+        :param str local: relative local file path
+        """
+        import os
+        remote = self.sftp_remote_path + '/' + remote
+        local =  os.path.join(self.sftp_local_path, local)
+        try:
+            self.sftp.get(remote, local)
+        except (RuntimeError, exc.ConnectionError) as err:
+            return str(err)
+        return ""
+        
+    def _get_files(self, mask,  remote, local):
+        """"
+        Get all files in set directory
+        
+        :return: array of errors
+        """
+        import os
+        errs = []
+        if mask == "*":
+            mask = ""
+        if len(remote)>0:
+            remote += '/'
+        files,  dirs = self.ls(self.sftp_remote_path + '/' + remote + mask)       
+        for file in files:
+            err = self.get(remote + file, os.path.join(local, file))
+            if err != '':
+                errs.append(err)
+        for dir in dirs:
+            if len(local)>0:
+                new_local =  os.path.join(local, dir)
+            else:
+                new_local = dir
+            abs_new_local = os.path.join(self.sftp_local_path, new_local)
+            if not os.path.isdir(abs_new_local):
+                os.makedirs(abs_new_local)
+            errs.extend(self._get_files('*', remote + dir, new_local))
+        return errs
+            
+
+    def get_r(self, mask="*", remote_path="", local_path=""):
+        """ 
+        sftp get file recursivly
+        
+        :param str mask: mask for file or dir in remote_path folder
+        :param str remote_path: relative remote file path
+        :param str local_path: relative local file path
+        """
+        err = self._get_files(mask, remote_path, local_path)
+        return "\n".join(err)         
 
     def exec_(self, command):
         """run async command"""
@@ -295,8 +379,12 @@ class Wssh():
         """filter std in"""
         text = self._read()
         self._buffer += text
-        prefix = re.search( '(' + self.name + '@\S*:)\s*(~[^@:]*)\$', text)
+        prefix = re.search( '(' + self.name + '@\S*:)\s*(~[^@:]*)\$', text)        
         if prefix is not None:
             self._prefix = prefix.group(1) + '\s*' + prefix.group(2)
         else:
-            self._prefix = ""
+            prefix = re.search( '\[(' + self.name + '@\S*)\s+([^\]]*)\]\$', text)
+            if prefix is not None:
+                self._prefix = "\[?" + prefix.group(1) + ':?\s*~?/?' + prefix.group(2) + "\]?"
+            else:
+                self._prefix = ""

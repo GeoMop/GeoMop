@@ -4,9 +4,9 @@ import os
 import re
 import logging
 import copy
-import time
 import subprocess
 import uuid
+import time
 
 from locks import Lock, LockFileError
 
@@ -26,6 +26,7 @@ __ins_dirs__.append("communication")
 __ins_dirs__.append("helpers")
 __ins_dirs__.append("data") 
 __ins_dirs__.append("twoparty") 
+__ins_libs_log__ = "install_job_libs.log"
 __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
 __logs_dir__ = "log"
@@ -364,6 +365,9 @@ class Installation:
         res_dir = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__
         if sys.platform == "win32": 
             conn.set_sftp_paths(res_local, res_dir)
+            res = conn.get_r("*") 
+            if len(res)>0:
+                logger.warning("Sftp message (get -r '" + res_dir + "\\*'): " + res)
         else:
             import pexpect 
             
@@ -439,6 +443,10 @@ class Installation:
         # use / instead join because destination os is linux and is not 
         # same with current os
         dest_path = self.copy_path + '/' + __ins_files__[name]
+        if sys.platform == "win32": 
+            if mj_id is None:
+                return [self.python_env.python_exec,dest_path, mj_name]
+            return [self.python_env.python_exec,dest_path, mj_name, mj_id]
         if mj_id is None:
             return [self.python_env.python_exec,dest_path, mj_name, "&", "disown"]
         return [self.python_env.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
@@ -675,10 +683,11 @@ class Installation:
             term = pexpect.spawn('bash')
             cls.prepare_python_env_static(term, python_env)
             cls.prepare_mpi_env_static(term, libs_env)
-            term.sendline('cd twoparty/install')            
+            term.sendline('cd twoparty/install')
+            time.sleep(1)            
             term.expect('.*cd twoparty/install.*')
             log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
-            log_file= os.path.join(log_file, "install_job_libs.log")
+            log_file= os.path.join(log_file, __ins_libs_log__)
             if libs_env.libs_mpicc is None:
                 command = "./install_mpi4.sh " + python_env.python_exec + " &>> " + log_file
             else:
@@ -687,12 +696,18 @@ class Installation:
             logger.debug("Installation libraries started")
             term.sendline(command)
             time.sleep(1)
+            logger.debug("Command: " + command)
             try:
-                term.expect('.*install.*') 
+                term.expect('.*'+__ins_libs_log__, timeout=10) 
+                logger.debug("1: before:" +  str(term.before, 'utf-8') + ",after:" +  str(term.after, 'utf-8'))
                 term.expect('.*install.*', timeout=600)
+                logger.debug("2: before:" +  str(term.before, 'utf-8') + ",after:" +  str(term.after, 'utf-8'))
             except pexpect.TIMEOUT:
+                msg = str(term.before, 'utf-8').strip()
+                if len(msg)<1:
+                    msg = "timeout"
                 logger.warning("Installation libraries failed ( " +
-                                          str(term.before, 'utf-8').strip()) 
+                                          msg + " )") 
             logger.debug("Installation libraries ended")
             term = term.sendline('exit')
         cls.unlock_lib()

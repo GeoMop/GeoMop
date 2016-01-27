@@ -8,7 +8,10 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-build/
+build/*
+!build/Makefile
+!build/debian
+!build/scripts
 develop-eggs/
 dist/
 downloads/

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=GeoMop - Model Editor
+Comment=Editor for Flow123d configuration files
+Exec=geomop-me %U
+Terminal=false
+Type=Application
+MimeType=text/plain;
+Icon=/usr/share/geomop/src/common/icon/128x128/me-geomap.png
+Categories=TextEditor;Development;
+StartupNotify=true

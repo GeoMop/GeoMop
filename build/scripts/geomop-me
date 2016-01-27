@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export WORKON_HOME=/usr/share/geomop/env
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+source /usr/local/bin/virtualenvwrapper.sh
+
+workon geomop && python /usr/share/geomop/src/ModelEditor/model_editor.py
+
