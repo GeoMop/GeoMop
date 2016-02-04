@@ -74,6 +74,17 @@ _eric6project/
 #gedit
 *~
 
+#Emacs
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
 #config files
 *.cfg
 src/config/*.yaml
