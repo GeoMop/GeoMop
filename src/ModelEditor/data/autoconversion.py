@@ -28,7 +28,7 @@ class AutoConverter:
                a transposition or encapsulate it in Array(s).
             2. If Record is expected and scalar/array is found, check
                reducible_to_key. If present, create the Record.
-            3. If AbstractRecord is expected and scalar/array is found, check if
+            3. If Abstract is expected and scalar/array is found, check if
                default_descendant fits rule 2.
 
         The function also converts data to the expected data types (if possible).
@@ -46,7 +46,7 @@ class AutoConverter:
         if input_type is None:
             return
 
-        if input_type['base_type'] == 'AbstractRecord':
+        if input_type['base_type'] == 'Abstract':
             try:
                 it_concrete = input_type['implementations'][node.type.value]
             except (KeyError, AttributeError):
@@ -98,7 +98,7 @@ class AutoConverter:
         is_record = node.implementation == DataNode.Implementation.mapping
         if input_type['base_type'] == 'Array' and not is_array:
             return transposer.make_transposition(node, input_type)
-        elif input_type['base_type'].endswith('Record') and not is_record:
+        elif (input_type['base_type'] in ['Record', 'Abstract']) and not is_record:
             return AutoConverter._expand_reducible_to_key(node, input_type)
         else:
             return node

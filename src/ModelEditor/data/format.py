@@ -14,6 +14,7 @@ def get_root_input_type_from_json(data):
 def parse_format(data):
     """Returns root input type from data."""
     input_types = {}
+    data = data['ist_nodes']
     root_id = data[0]['id']      # set root type
 
     for item in data:
@@ -42,7 +43,7 @@ def _substitute_ids_with_references(input_types):
         impls = {}
         for id_ in input_type['implementations']:
             type_ = input_types[id_]
-            impls[type_['type_name']] = type_
+            impls[type_['name']] = type_
         input_type['implementations'] = impls
 
     def _substitute_default_descendant():
@@ -61,7 +62,7 @@ def _substitute_ids_with_references(input_types):
     for __, input_type in input_types.items():
         if input_type['base_type'] == 'Array':
             input_type['subtype'] = input_types[input_type['subtype']]
-        elif input_type['base_type'] == 'AbstractRecord':
+        elif input_type['base_type'] == 'Abstract':
             _substitute_implementations()
             _substitute_default_descendant()
         elif input_type['base_type'] == 'Record':
@@ -92,12 +93,10 @@ def _get_input_type(data):
     elif input_type['base_type'] == 'Selection':
         input_type['values'] = _list_to_dict(data['values'], 'name')
     elif input_type['base_type'] == 'Record':
-        input_type['type_name'] = data['type_name']
         input_type['keys'] = _list_to_dict(data['keys'])
-        input_type['type_full_name'] = data.get('type_full_name', '')
         input_type['implements'] = data.get('implements', [])
         input_type['reducible_to_key'] = data.get('reducible_to_key', None)
-    elif input_type['base_type'] == 'AbstractRecord':
+    elif input_type['base_type'] == 'Abstract':
         input_type['implementations'] = data['implementations']
         input_type['default_descendant'] = data.get('default_descendant', None)
     return input_type

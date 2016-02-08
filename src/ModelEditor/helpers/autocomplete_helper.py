@@ -83,7 +83,7 @@ class AutocompleteHelper:
                                       input_type['implemented_abstract_record']['implementations']})
         elif input_type['base_type'] == 'Selection':  # input type Selection
             self._options.update({value: 'selection' for value in input_type['values']})
-        elif input_type['base_type'] == 'AbstractRecord':  # input typeAbstractRecord
+        elif input_type['base_type'] == 'Abstract':  # input typeAbstract
             self._options.update({'!' + type_: 'type' for type_ in
                                   input_type['implementations']})
         elif input_type['base_type'] == 'Bool':  # input tye Bool

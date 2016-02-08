@@ -8,7 +8,7 @@ from data.format import parse_format, _list_to_dict
 
 
 def test_root():
-    data = [
+    data = {"ist_nodes":[
         {
             "id": "cde734cca8c6d536",
             "input_type": "Bool",
@@ -17,20 +17,20 @@ def test_root():
             "id": "282546d52edd4",
             "input_type": "Bool"
         }
-    ]
+    ]}
     root_format = parse_format(data)
 
     assert root_format['id'] == 'cde734cca8c6d536'
 
 
 def test_optional_params():
-    data = [{
+    data = {"ist_nodes":[{
         "id": "151ce92dd201d44b",
         "input_type": "",
         "name": "Integer",
         "full_name": "Integer",
         "description": "description"
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "151ce92dd201d44b"
@@ -41,14 +41,14 @@ def test_optional_params():
 
 
 def test_integer():
-    data = [{
+    data = {"ist_nodes":[{
         "id": "151ce92dd201d44b",
         "input_type": "Integer",
         "range": [
             0,
             3
         ]
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "151ce92dd201d44b"
@@ -58,14 +58,14 @@ def test_integer():
 
 
 def test_double():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "6b1c4ede475775aa",
         "input_type": "Double",
         "range": [
             0,
             1.79769E+308
         ]
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "6b1c4ede475775aa"
@@ -75,10 +75,10 @@ def test_double():
 
 
 def test_bool():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "282546d52edd4",
         "input_type": "Bool"
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "282546d52edd4"
@@ -86,10 +86,10 @@ def test_bool():
 
 
 def test_string():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "29b5533100b6f60f",
         "input_type": "String"
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "29b5533100b6f60f"
@@ -97,11 +97,11 @@ def test_string():
 
 
 def test_filename():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "89a808b8e9515bf8",
         "input_type": "FileName",
         "file_mode": "input"
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "89a808b8e9515bf8"
@@ -110,7 +110,7 @@ def test_filename():
 
 
 def test_selection():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "f9756fb2f66076a1",
         "input_type": "Selection",
         "values": [
@@ -123,7 +123,7 @@ def test_selection():
                 "description": "METIS description"
             }
         ]
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "f9756fb2f66076a1"
@@ -133,7 +133,7 @@ def test_selection():
 
 
 def test_array():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "eee3033466b9ffa2",
         "input_type": "Array",
         "range": [
@@ -144,7 +144,7 @@ def test_array():
     }, {
         "id": "6b1c4ede475775aa",
         "input_type": "String"
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "eee3033466b9ffa2"
@@ -155,11 +155,11 @@ def test_array():
 
 
 def test_record():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "b9614d55a6c3462e",
         "input_type": "Record",
-        "type_name": "Region",
-        "type_full_name": "Region",
+        "name": "Region",
+        "full_name": "Region",
         "keys": [
             {
                 "key": "name",
@@ -170,22 +170,22 @@ def test_record():
                 "type": "b9614d55a6c3462e"
             }
         ]
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "b9614d55a6c3462e"
     assert root_format['base_type'] == "Record"
-    assert root_format['type_name'] == "Region"
-    assert root_format['type_full_name'] == "Region"
+    assert root_format['name'] == "Region"
+    assert root_format['full_name'] == "Region"
     assert root_format['keys']['name']['default']['type'] == 'obligatory'
     assert root_format['keys']['name']['default']['value'] == 'OBLIGATORY'
     assert root_format['keys']['name']['type'] == root_format
 
 
 def test_abstract_record():
-    data = [{
+    data = {"ist_nodes": [{
         "id": "89b3f44e8ecaec1b",
-        "input_type": "AbstractRecord",
+        "input_type": "Abstract",
         "default_descendant": "59d2b27373f5effe",
         "implementations": [
             "59d2b27373f5effe"
@@ -193,13 +193,13 @@ def test_abstract_record():
     }, {
         "id": "59d2b27373f5effe",
         "input_type": "Record",
-        "type_name": "Descendant",
+        "name": "Descendant",
         "keys": []
-    }]
+    }]}
     root_format = parse_format(data)
 
     assert root_format['id'] == "89b3f44e8ecaec1b"
-    assert root_format['base_type'] == "AbstractRecord"
+    assert root_format['base_type'] == "Abstract"
     assert root_format['default_descendant']['base_type'] == 'Record'
     assert "Descendant" in root_format['implementations']
 

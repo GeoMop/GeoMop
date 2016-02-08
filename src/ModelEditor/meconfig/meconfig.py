@@ -407,10 +407,14 @@ class MEConfig:
         if cls.curr_format_file is None:
             return
         text = cls.get_curr_format_text()
-        cls.root_input_type = get_root_input_type_from_json(text)
-        InfoTextGenerator.init(text)
-        cls.autocomplete_helper.create_options(cls.root_input_type)
-        cls.update()
+        try:
+            cls.root_input_type = get_root_input_type_from_json(text)
+        except Exception as e:
+            cls._report_error("Can't open format file", e)
+        else:
+            InfoTextGenerator.init(text)
+            cls.autocomplete_helper.create_options(cls.root_input_type)
+            cls.update()
 
     @classmethod
     def save_file(cls):
@@ -522,8 +526,11 @@ class MEConfig:
     def _report_error(cls, mess, err):
         """Report an error with dialog."""
         from geomop_dialogs import GMErrorDialog
-        err_dialog = GMErrorDialog(cls.main_window)
-        err_dialog.open_error_dialog(mess, err)
+        if cls.main_window is not None:
+            err_dialog = GMErrorDialog(cls.main_window)
+            err_dialog.open_error_dialog(mess, err)
+        else:
+            raise Exception(mess)
         
     @classmethod
     def _report_notify(cls, errs):
