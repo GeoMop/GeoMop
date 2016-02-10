@@ -55,8 +55,10 @@ class _Config:
         """user customizable keyboard shortcuts"""
         self.font = constants.DEFAULT_FONT
         """text editor font"""
-        self.workspace = None
-        """editor workspace"""
+        self._project = None
+        self._workspace = None
+        self.observers = []
+        """objects to be notified of changes (currently only used for project)"""
 
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
@@ -68,13 +70,20 @@ class _Config:
             self.symbol_completion = getattr(data, 'symbol_completion',
                                              self.symbol_completion)
             self.font = getattr(data, 'font', self.font)
-            self.workspace = getattr(data, 'workspace', self.workspace)
+            self.workspace = getattr(data, '_workspace', self._workspace)
+            self.project = getattr(data, '_project', self._project)
             if hasattr(data, 'shortcuts'):
                 self.shortcuts.update(data.shortcuts)
+            self.notifyAll()
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
-        self.last_data_dir = os.path.dirname(os.path.realpath(file_name))
+        project_directory = None
+        directory = os.path.dirname(os.path.realpath(file_name))
+        if self.workspace is not None and self.project is not None:
+            project_dir = os.path.join(self.workspace, self.project)
+        if project_directory is None or directory != project_dir:
+            self.last_data_dir = directory
 
     def save(self):
         """Save AddPictureWidget data"""
@@ -131,6 +140,43 @@ class _Config:
             if self.recent_files[i] == file_name:
                 return self.format_files[i]
         return None
+
+    @property
+    def data_dir(self):
+        """Data directory - either a project dir or the last udes dir."""
+        if self.workspace and self.project:
+            return os.path.join(self.workspace, self.project)
+        else:
+            return self.last_data_dir
+
+    @property
+    def workspace(self):
+        """path to workspace"""
+        return self._workspace
+
+    @workspace.setter
+    def workspace(self, value):
+        if value == '' or value is None:
+            self._workspace = None
+            self.project = None
+        self._workspace = value
+
+    @property
+    def project(self):
+        """name of the project in the workspace"""
+        return self._project
+
+    @project.setter
+    def project(self, value):
+        if value == '':
+            self._project = None
+        self._project = value
+        self.notifyAll()
+
+    def notifyAll(self):
+        """Notify all observers about changes."""
+        for observer in self.observers:
+            observer.config_changed()
 
 
 class MEConfig:

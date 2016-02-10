@@ -5,6 +5,8 @@
 
 import os
 import yaml
+from copy import deepcopy
+
 
 if 'APPDATA' in os.environ:
     __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
@@ -52,9 +54,15 @@ def save_config_file(name, config, directory=None):
     else:
         directory = __config_dir__
     file_name = os.path.join(directory, name+'.yaml')
+    observers = None
+    if 'observers' in config.__dict__:
+        observers = config.observers
+        del config.__dict__['observers']
     yaml_file = open(file_name, 'w')
     yaml.dump(config, yaml_file)
     yaml_file.close()
+    if observers is not None:
+        config.observers = observers
 
 
 def delete_config_file(name, directory=None):
