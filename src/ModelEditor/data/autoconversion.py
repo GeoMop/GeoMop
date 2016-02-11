@@ -12,7 +12,7 @@ from helpers import notification_handler, Notification
 from util.util import TextValue
 
 from .data_node import DataNode, MappingDataNode, SequenceDataNode
-from .format import SCALAR
+from .format import SCALAR, is_param
 
 
 class AutoConverter:
@@ -146,6 +146,11 @@ class ScalarConverter:
         node: :py:class:`DataNode` data structure
         input_type: definition of input_type
         """
+
+        # do not convert parametrs
+        if is_param(node.value):
+            return
+
         conversions = {
             'Bool': ScalarConverter._convert_to_bool,
             'Integer': ScalarConverter._convert_to_int,

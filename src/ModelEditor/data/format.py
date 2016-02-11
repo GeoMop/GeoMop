@@ -4,6 +4,7 @@ Contains format specification class and methods to parse it from JSON.
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 import json
+import re
 
 
 def get_root_input_type_from_json(data):
@@ -32,6 +33,16 @@ SCALAR = ['Integer', 'Double', 'Bool', 'String', 'Selection', 'FileName']
 def is_scalar(input_type):
     """Returns True if input_type is scalar."""
     return input_type['base_type'] in SCALAR
+
+
+RE_PARAM = re.compile('^[$]{([a-zA-Z0-9_-]+)}$')
+
+
+def is_param(value):
+    """Determine whether given value is a parameter string."""
+    if not isinstance(value, str):
+        return False
+    return RE_PARAM.match(value)
 
 
 def _substitute_ids_with_references(input_types):

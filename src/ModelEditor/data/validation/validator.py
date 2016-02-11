@@ -2,13 +2,12 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-
 from helpers import Notification
 from util import TextValue, Span
 
 from . import checks
 from ..data_node import DataNode
-from ..format import is_scalar
+from ..format import is_scalar, is_param
 
 
 class Validator:
@@ -41,6 +40,10 @@ class Validator:
         """
         if node is None:
             raise Notification.from_name('ValidationError', 'Invalid node (None)')
+
+        # assume parameters are correct, do not validate further
+        if hasattr(node, 'value') and is_param(node.value):
+            return
 
         if input_type['base_type'] != 'Abstract' and hasattr(node, 'type') \
                 and node.type is not None and 'implemented_abstract_record' not in input_type:
