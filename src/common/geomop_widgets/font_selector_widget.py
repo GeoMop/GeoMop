@@ -15,7 +15,8 @@ class FontSelectorWidget(SelectorWidget):
     """Widget for selecting the font."""
 
     def __init__(self, parent=None, font_string=None):
-        value = QtGui.QFont(font_string)
+        value = QtGui.QFont()
+        value.fromString(font_string)
         super(FontSelectorWidget, self).__init__(parent, 'Font', value)
         self.button.clicked.connect(self.select_font)
 

@@ -63,7 +63,6 @@ class GeneralTab(QWidget):
 
         self.workspace_selector = WorkspaceSelectorWidget(self, cfg.config.workspace)
         self.font_selector = FontSelectorWidget(self, cfg.config.font)
-
         self.autocompletion_checkbox = QCheckBox("Display Automatically")
         if cfg.config.display_autocompletion:
             self.autocompletion_checkbox.setChecked(True)
