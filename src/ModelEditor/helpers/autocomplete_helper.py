@@ -3,8 +3,10 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 from copy import copy
-
 from PyQt5.Qsci import QsciScintilla
+
+from data.format import is_scalar
+from geomop_project import Project
 
 
 class AutocompleteHelper:
@@ -12,7 +14,7 @@ class AutocompleteHelper:
 
     SORTING_ALPHABET = [chr(x) for x in range(48, 57)]  # generate number 0-9
     SORTING_ALPHABET.extend([chr(x) for x in range(97, 123)])  # generate lowercase a-z
-    SORTING_ALPHABET.extend(['!', '*', '_', '-'])
+    SORTING_ALPHABET.extend(['!', '$', '*', '_', '-', '{', '}'])
 
     def __init__(self, editor=None):
         """Initialize the class.
@@ -75,6 +77,13 @@ class AutocompleteHelper:
         """
         prev_options = copy(self._options)
         self._options.clear()
+
+        # parameter options
+        if Project.current is not None and is_scalar(input_type):
+            self._options.update({
+                '${' + param.name + '}': 'param'
+                for param in Project.current.params.all()
+            })
 
         if input_type['base_type'] == 'Record':  # input type Record
             self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
