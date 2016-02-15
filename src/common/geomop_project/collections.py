@@ -108,4 +108,61 @@ class ParameterCollection(AbstractCollection):
         return [param.dump() for name, param in self._data.items()]
 
 
+class FileCollection(AbstractCollection):
+    """Collection of files."""
+    def __init__(self, project_dir=None):
+        self._data = []
+        self.project_dir = project_dir
+        """this part of the path is stripped from the saved paths to make them relative"""
+
+    def add(self, file_path):
+        file_path = self.make_relative(file_path)
+        if file_path not in self._data:
+            self._data.append(file_path)
+            return True
+        return False
+
+    def get(self, file_path):
+        file_path = self.make_relative(file_path)
+        try:
+            return self._data[self._data.index(file_path)]
+        except ValueError:
+            return None
+
+    def remove(self, file_path):
+        try:
+            self._data.remove(file_path)
+        except ValueError:
+            pass
+
+    def all(self):
+        return copy.copy(self._data)
+
+    def exists_in_project_dir(self, file_path):
+        """Whether file exists in the project directory or subdirectories."""
+        if not file_path or not self.project_dir:
+            return False
+        return file_path.startswith(self.project_dir)
+
+    def make_relative(self, file_path):
+        """Makes the path relative to project_dir."""
+        if not self.project_dir:
+            return file_path
+        if not file_path.startswith(self.project_dir):
+            # assume file_path is already relative to project
+            return file_path
+        return file_path[len(self.project_dir):]
+
+    @staticmethod
+    def load(data):
+        if not isinstance(data, list):
+            raise InvalidDeserializationData("FileCollection is not a collection")
+        collection = FileCollection()
+        for file_path in data:
+            collection.add(file_path)
+        return collection
+
+    def dump(self):
+        return self.all()
+
 

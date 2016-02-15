@@ -180,7 +180,6 @@ class _Config:
                 project = Project.open(self._workspace, self._project)
             except InvalidProject:
                 self._project = None
-                # TODO user should be notified somehow
             else:
                 Project.current = project
         self.notify_all()
@@ -352,6 +351,10 @@ class MEConfig:
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
+            if (Project.current is not None and
+                    Project.current.files.exists_in_project_dir(cls.curr_file)):
+                Project.current.files.add(cls.curr_file)
+                Project.current.save()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -438,6 +441,10 @@ class MEConfig:
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
+            if (Project.current is not None and
+                    Project.current.files.exists_in_project_dir(cls.curr_file)):
+                Project.current.files.add(cls.curr_file)
+                Project.current.save()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -461,10 +468,9 @@ class MEConfig:
         cls.validator.validate(cls.root, cls.root_input_type)
 
         # handle parameters
-        if cls.is_project_file(cls.curr_file):
-            updated = Project.current.params.merge(cls.validator.params)
-            if updated:
-                Project.current.save()
+        if (Project.current is not None and
+                Project.current.files.exists_in_project_dir(cls.curr_file)):
+            Project.current.params.merge(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -499,6 +505,11 @@ class MEConfig:
                 cls._report_error("Can't save file", err)
             else:
                 raise err
+        else:
+            if (Project.current is not None and
+                    Project.current.files.exists_in_project_dir(cls.curr_file)):
+                Project.current.files.add(cls.curr_file)
+                Project.current.save()
 
     @classmethod
     def save_as(cls, file_name):
@@ -516,6 +527,11 @@ class MEConfig:
                 cls._report_error("Can't save file", err)
             else:
                 raise err
+        else:
+            if (Project.current is not None and
+                    Project.current.files.exists_in_project_dir(file_name)):
+                Project.current.files.add(file_name)
+                Project.current.save()
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
@@ -589,14 +605,6 @@ class MEConfig:
         if shortcut:
             return shortcuts.get_shortcut(shortcut)
         return None
-
-    @classmethod
-    def is_project_file(cls, path):
-        """Determine if given filepath belongs to a current project."""
-        if not path or not cls.config.workspace or not cls.config.project:
-            return False
-        project_dir = os.path.join(cls.config.workspace, cls.config.project) + os.path.sep
-        return path.startswith(project_dir)
 
     @classmethod
     def _report_error(cls, mess, err):

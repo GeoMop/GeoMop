@@ -5,7 +5,7 @@
 import os
 import yaml
 
-from .collections import YAMLSerializable, ParameterCollection
+from .collections import YAMLSerializable, ParameterCollection, FileCollection
 
 
 PROJECT_MAIN_FILE = 'main.yaml'
@@ -24,16 +24,28 @@ class Project(YAMLSerializable):
     def __init__(self, filename=None):
         self.filename = filename
         self.params = ParameterCollection()
+        self.files = FileCollection()
+        self.set_project_dir()
+
+    def set_project_dir(self):
+        """Sets the correct project dir for files."""
+        if self.filename is None:
+            return
+        assert self.filename.endswith(PROJECT_MAIN_FILE), "Invalid project file!"
+        self.files.project_dir = self.filename[:-len(PROJECT_MAIN_FILE)]
 
     @staticmethod
     def load(data):
         project = Project()
         if 'params' in data:
             project.params = ParameterCollection.load(data['params'])
+        if 'files' in data:
+            project.files = FileCollection.load(data['files'])
         return project
 
     def dump(self):
-        return dict(params=self.params.dump())
+        return dict(params=self.params.dump(),
+                    files=self.files.dump())
 
     @staticmethod
     def open(workspace, project):
@@ -50,6 +62,7 @@ class Project(YAMLSerializable):
                 raise InvalidProject("Could not load project settings.")
             else:
                 project.filename = project_filename
+                project.set_project_dir()
                 return project
 
     def save(self):
