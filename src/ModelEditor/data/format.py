@@ -35,7 +35,7 @@ def is_scalar(input_type):
     return input_type['base_type'] in SCALAR
 
 
-RE_PARAM = re.compile('^[$]{([a-zA-Z0-9_-]+)}$')
+RE_PARAM = re.compile('^<([a-zA-Z][a-zA-Z0-9_]*)>$')
 
 
 def is_param(value):

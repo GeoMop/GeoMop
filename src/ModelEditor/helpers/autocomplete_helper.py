@@ -14,7 +14,7 @@ class AutocompleteHelper:
 
     SORTING_ALPHABET = [chr(x) for x in range(48, 57)]  # generate number 0-9
     SORTING_ALPHABET.extend([chr(x) for x in range(97, 123)])  # generate lowercase a-z
-    SORTING_ALPHABET.extend(['!', '$', '*', '_', '-', '{', '}'])
+    SORTING_ALPHABET.extend(['!', '<', '>', '*', '_', '-'])
 
     def __init__(self, editor=None):
         """Initialize the class.
@@ -81,7 +81,7 @@ class AutocompleteHelper:
         # parameter options
         if Project.current is not None and is_scalar(input_type):
             self._options.update({
-                '${' + param.name + '}': 'param'
+                '<' + param.name + '>': 'param'
                 for param in Project.current.params.all()
             })
 

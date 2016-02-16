@@ -493,6 +493,7 @@ class MEConfig:
     @classmethod
     def save_file(cls):
         """save file"""
+        cls.update()
         try:
             file_d = open(cls.curr_file, 'w')
             file_d.write(cls.document)
@@ -514,6 +515,7 @@ class MEConfig:
     @classmethod
     def save_as(cls, file_name):
         """save file as"""
+        cls.update()
         try:
             file_d = open(file_name, 'w')
             file_d.write(cls.document)
