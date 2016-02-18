@@ -23,6 +23,8 @@ class Project(YAMLSerializable):
 
     def __init__(self, filename=None):
         self.filename = filename
+        self.workspace = None
+        self.name = None
         self.params = ParameterCollection()
         self.files = FileCollection()
         self.set_project_dir()
@@ -50,9 +52,9 @@ class Project(YAMLSerializable):
                     files=self.files.dump())
 
     @staticmethod
-    def open(workspace, project):
+    def open(workspace, project_name):
         """Retrieve project from settings by its name and workspace."""
-        project_filename = os.path.join(workspace, project, PROJECT_MAIN_FILE)
+        project_filename = os.path.join(workspace, project_name, PROJECT_MAIN_FILE)
         if not os.path.isfile(project_filename):
             raise InvalidProject("Current project is invalid.")
         else:
@@ -64,6 +66,8 @@ class Project(YAMLSerializable):
                 raise InvalidProject("Could not load project settings.")
             else:
                 project.filename = project_filename
+                project.workspace = workspace
+                project.name = project_name
                 project.set_project_dir()
                 return project
 
@@ -74,11 +78,34 @@ class Project(YAMLSerializable):
             yaml.dump(self.dump(), project_file)
 
     @staticmethod
-    def exists(workspace, project):
+    def exists(workspace, project_name):
         """Determine whether project exists in a workspace."""
-        if not workspace or not project:
+        if not workspace or not project_name:
             return False
-        project_filename = os.path.join(workspace, project, PROJECT_MAIN_FILE)
+        project_filename = os.path.join(workspace, project_name, PROJECT_MAIN_FILE)
         if not os.path.isfile(project_filename):
             return False
         return True
+
+    @staticmethod
+    def notify(data):
+        """Observer method to update current project."""
+        if data.workspace is None or data.project is None:
+            Project.current = None
+            return
+        if (Project.current is None or data.workspace != Project.current.workspace or
+                data.project != Project.current.name):
+            if Project.exists(data.workspace, data.project):
+                project = Project.open(data.workspace, data.project)
+                Project.current = project
+            else:
+                Project.current = None
+
+    @staticmethod
+    def reload_current():
+        """Read the current project file and updated the project data."""
+        if Project.current is None:
+            return None
+        project = Project.open(Project.current.workspace, Project.current.name)
+        Project.current = project
+        return project

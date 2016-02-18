@@ -53,6 +53,7 @@ class Validator:
                 # extract parameters
                 param = Parameter(match.group(1))
                 self.params.add(param)
+                node.input_type = input_type
                 # assume parameters are correct, do not validate further
                 return
 

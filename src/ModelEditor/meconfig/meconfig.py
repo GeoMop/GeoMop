@@ -351,10 +351,7 @@ class MEConfig:
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
-            if (Project.current is not None and
-                    Project.current.files.exists_in_project_dir(cls.curr_file)):
-                Project.current.files.add(cls.curr_file)
-                Project.current.save()
+            cls.sync_project_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -441,10 +438,7 @@ class MEConfig:
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
-            if (Project.current is not None and
-                    Project.current.files.exists_in_project_dir(cls.curr_file)):
-                Project.current.files.add(cls.curr_file)
-                Project.current.save()
+            cls.sync_project_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -469,7 +463,7 @@ class MEConfig:
 
         # handle parameters
         if (Project.current is not None and
-                Project.current.files.exists_in_project_dir(cls.curr_file)):
+                Project.current.files.path_is_in_project_dir(cls.curr_file)):
             Project.current.params.merge(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
@@ -507,10 +501,7 @@ class MEConfig:
             else:
                 raise err
         else:
-            if (Project.current is not None and
-                    Project.current.files.exists_in_project_dir(cls.curr_file)):
-                Project.current.files.add(cls.curr_file)
-                Project.current.save()
+            cls.sync_project_for_curr_file()
 
     @classmethod
     def save_as(cls, file_name):
@@ -530,10 +521,16 @@ class MEConfig:
             else:
                 raise err
         else:
-            if (Project.current is not None and
-                    Project.current.files.exists_in_project_dir(file_name)):
-                Project.current.files.add(file_name)
-                Project.current.save()
+            cls.sync_project_for_curr_file()
+
+    @classmethod
+    def sync_project_for_curr_file(cls):
+        """Write current file and params to a project file."""
+        if (Project.current is not None and
+                Project.current.files.path_is_in_project_dir(cls.curr_file)):
+            Project.current.params.merge(cls.validator.params)
+            Project.current.files.add(cls.curr_file, cls.validator.params.keys())
+            Project.current.save()
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
