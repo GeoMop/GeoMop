@@ -5,6 +5,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox)
 
 from geomop_widgets import WorkspaceSelectorWidget
+from geomop_project import Project
 
 
 class OptionsDialog(QDialog):
@@ -20,6 +21,7 @@ class OptionsDialog(QDialog):
         """Initializes the class."""
         super(OptionsDialog, self).__init__(parent)
 
+        self.config = config
         self.workspace_selector = WorkspaceSelectorWidget(self, config.workspace)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -37,5 +39,7 @@ class OptionsDialog(QDialog):
     def accept(self):
         """Handles a confirmation."""
         self.config.workspace = self.workspace_selector.value
+        if not Project.exists(self.config.workspace, self.config.project):
+            self.config.project = None
         self.config.save()
         super(OptionsDialog, self).accept()

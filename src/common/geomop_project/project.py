@@ -72,3 +72,13 @@ class Project(YAMLSerializable):
         assert self.filename is not None, "Project file is not set"
         with open(self.filename, 'w') as project_file:
             yaml.dump(self.dump(), project_file)
+
+    @staticmethod
+    def exists(workspace, project):
+        """Determine whether project exists in a workspace."""
+        if not workspace or not project:
+            return False
+        project_filename = os.path.join(workspace, project, PROJECT_MAIN_FILE)
+        if not os.path.isfile(project_filename):
+            return False
+        return True

@@ -17,8 +17,10 @@ from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
+from ui.data import PersistentDictConfigAdapter
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
+from ui.dialogs.options_dialog import OptionsDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
@@ -133,6 +135,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.env_presets_dlg.presets_changed.connect(
             self.resource_presets_dlg.presets_dlg.set_env_presets)
 
+        # project menu
+        self.ui.menuBar.project.config = PersistentDictConfigAdapter(self.data.set_data)
+
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
             QtWidgets.QApplication.quit)
@@ -161,6 +166,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.multiJob.actionRestartMultiJob.triggered.connect(
             self._handle_restart_multijob_action)
 
+        # connect create analysis
+        self.ui.menuBar.analysis.actionCreateAnalysis.triggered.connect(
+            self._handle_create_analysis)
+
+        # connect options
+        self.ui.menuBar.settings.actionOptions.triggered.connect(
+            self._handle_options)
+
         # connect current multijob changed
         self.ui.overviewWidget.currentItemChanged.connect(
             self.update_ui_locks)
@@ -170,6 +183,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # load settings
         self.load_settings()
+        # workspace and project observer
+        self.data.set_data.observers.append(self)
 
     def load_settings(self):
         # select last selected mj
@@ -181,6 +196,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
+        # load current project
+        project = self.data.set_data['project'] or '(No Project)'
+        self.setWindowTitle('Jobs Scheduler - ' + project)
+
+    def notify(self):
+        """Handle update of data.set_data."""
+        self.load_settings()
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -292,6 +314,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.stop(key)
         Communicator.unlock_application(
             self.com_manager.get_communicator(key).mj_name)
+
+    def _handle_create_analysis(self):
+        # parameters
+
+        print("create analysis")
+
+    def _handle_options(self):
+        OptionsDialog(self, PersistentDictConfigAdapter(self.data.set_data)).show()
 
     def handle_terminate(self):
         mj = self.data.multijobs

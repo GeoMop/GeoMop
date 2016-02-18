@@ -7,7 +7,6 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMenu, QAction
 
-from meconfig import cfg
 from geomop_dialogs import CreateProjectDialog
 
 
