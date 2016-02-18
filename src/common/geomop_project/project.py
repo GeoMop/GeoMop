@@ -37,6 +37,8 @@ class Project(YAMLSerializable):
     @staticmethod
     def load(data):
         project = Project()
+        if data is None:
+            return project
         if 'params' in data:
             project.params = ParameterCollection.load(data['params'])
         if 'files' in data:

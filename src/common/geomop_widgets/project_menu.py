@@ -14,10 +14,10 @@ from geomop_dialogs import CreateProjectDialog
 class ProjectMenu(QMenu):
     """Menu with projects."""
 
-    def __init__(self, parent, cfg, title='&Project'):
+    def __init__(self, parent, config, title='&Project'):
         """Initializes the class."""
         super(ProjectMenu, self).__init__(parent)
-        self.cfg = cfg
+        self.config = config
         self._group = QtWidgets.QActionGroup(self, exclusive=True)
         self._group.triggered.connect(self._project_selected)
         self._actions = []
@@ -36,13 +36,13 @@ class ProjectMenu(QMenu):
             self._group.removeAction(action)
         self._actions = []
         # find projects in workspace
-        if not self.cfg.config.workspace:
+        if not self.config.workspace:
             return
-        for name in os.listdir(self.cfg.config.workspace):
-            path = os.path.join(self.cfg.config.workspace, name)
+        for name in os.listdir(self.config.workspace):
+            path = os.path.join(self.config.workspace, name)
             if is_project(path):
                 action = QtWidgets.QAction(name, self, checkable=True)
-                action.setChecked(self.cfg.config.project == name)
+                action.setChecked(self.config.project == name)
                 self.addAction(action)
                 self._group.addAction(action)
                 self._actions.append(action)
@@ -53,17 +53,17 @@ class ProjectMenu(QMenu):
     def _project_selected(self):
         """Handle project selection."""
         action = self._group.checkedAction()
-        self.cfg.config.project = action.text()
-        self.cfg.config.save()
+        self.config.project = action.text()
+        self.config.save()
 
     def _create_new_project(self):
         """Handle creation of a new project."""
-        if not self.cfg.config.workspace:
+        if not self.config.workspace:
             QtWidgets.QMessageBox.information(
                 self, 'No Workspace',
                 'Please select workspace in Settings before creating a project.')
         else:
-            CreateProjectDialog(self, self.cfg).show()
+            CreateProjectDialog(self, self.config).show()
 
 
 PROJECT_FILE = 'main.yaml'
