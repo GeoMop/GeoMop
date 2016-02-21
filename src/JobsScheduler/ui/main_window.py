@@ -18,6 +18,7 @@ from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
 from ui.data import PersistentDictConfigAdapter
+from ui.dialogs import AnalysisDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.options_dialog import OptionsDialog
@@ -29,6 +30,8 @@ from ui.res_handler import ResHandler
 from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
+
+from geomop_project import Project
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -183,8 +186,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # load settings
         self.load_settings()
-        # workspace and project observer
+        # attach workspace and project observers
         self.data.set_data.observers.append(self)
+        PersistentDictConfigAdapter(self.data.set_data).observers.append(Project)
+
+        # trigger notify
+        self.data.set_data.notify()
 
     def load_settings(self):
         # select last selected mj
@@ -200,7 +207,7 @@ class MainWindow(QtWidgets.QMainWindow):
         project = self.data.set_data['project'] or '(No Project)'
         self.setWindowTitle('Jobs Scheduler - ' + project)
 
-    def notify(self):
+    def notify(self, data):
         """Handle update of data.set_data."""
         self.load_settings()
 
@@ -316,6 +323,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.com_manager.get_communicator(key).mj_name)
 
     def _handle_create_analysis(self):
+        # is project selected?
+        if not Project.current:
+            self.report_error("Project is not selected.")
+            return
+
+        # reload params
+        Project.reload_current()
+
+        # show new analysis dialog
+        dialog = AnalysisDialog(self, Project.current)
+        dialog.show()
         # parameters
 
         print("create analysis")
@@ -416,6 +434,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)
 
+    def report_error(self, msg, err=None):
+        """Report an error with dialog."""
+        from geomop_dialogs import GMErrorDialog
+        err_dialog = GMErrorDialog(self)
+        err_dialog.open_error_dialog(msg, err)
+
 
 class UiMainWindow(object):
     """
@@ -450,4 +474,3 @@ class UiMainWindow(object):
 
         # set central widget
         main_window.setCentralWidget(self.centralwidget)
-

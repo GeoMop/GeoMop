@@ -31,10 +31,14 @@ class Project(YAMLSerializable):
 
     def set_project_dir(self):
         """Sets the correct project dir for files."""
+        self.files.project_dir = self.project_dir
+
+    @property
+    def project_dir(self):
         if self.filename is None:
-            return
+            return None
         assert self.filename.endswith(PROJECT_MAIN_FILE), "Invalid project file!"
-        self.files.project_dir = self.filename[:-len(PROJECT_MAIN_FILE)]
+        return self.filename[:-len(PROJECT_MAIN_FILE)]
 
     @staticmethod
     def load(data):
@@ -99,6 +103,7 @@ class Project(YAMLSerializable):
                 project = Project.open(data.workspace, data.project)
                 Project.current = project
             else:
+                data.project = None
                 Project.current = None
 
     @staticmethod

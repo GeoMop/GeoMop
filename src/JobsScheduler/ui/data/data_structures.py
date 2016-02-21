@@ -45,9 +45,12 @@ class PersistentDict(dict):
 
     def __setitem__(self, key, value):
         super(PersistentDict, self).__setitem__(key, value)
+        self.notify()
+
+    def notify(self):
         if self.observers:
             for observer in self.observers:
-                observer.notify()
+                observer.notify(self)
 
 
 class PersistentDictConfigAdapter:
@@ -55,10 +58,12 @@ class PersistentDictConfigAdapter:
 
     def __init__(self, data):
         self.__dict__['_data'] = data
+        data.observers.append(self)
+        self.__dict__['observers'] = []
 
     def __setattr__(self, key, value):
         if key == 'observers':
-            self.__dict__['_data'].observers = value
+            self.__dict__['observers'] = value
         else:
             self.__dict__['_data'][key] = value
 
@@ -67,6 +72,11 @@ class PersistentDictConfigAdapter:
             return self.__dict__['_data'][item]
         except KeyError:
             return None
+
+    def notify(self, data):
+        if self.observers:
+            for observer in self.observers:
+                observer.notify(self)
 
     def save(self):
         self._data.save()
