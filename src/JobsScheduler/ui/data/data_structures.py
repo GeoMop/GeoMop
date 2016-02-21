@@ -19,6 +19,10 @@ class PersistentDict(dict):
     DIR = "mydictfolder"
     FILE_NAME = "mydictname"
 
+    def __init__(self):
+        self.observers = []
+        """List of observer objects to be notified on change."""
+
     def save(self):
         """
         Method for saving data to custom DIR/FILE_NAME.
@@ -38,6 +42,47 @@ class PersistentDict(dict):
             self.clear()
         if tmp:
             self.update(tmp.items())
+
+    def __setitem__(self, key, value):
+        super(PersistentDict, self).__setitem__(key, value)
+        self.notify()
+
+    def notify(self):
+        if self.observers:
+            for observer in self.observers:
+                observer.notify(self)
+
+
+class PersistentDictConfigAdapter:
+    """Enables to access PersistentDict as Config"""
+
+    def __init__(self, data):
+        self.__dict__['_data'] = data
+        data.observers.append(self)
+        self.__dict__['observers'] = []
+
+    def __setattr__(self, key, value):
+        if key == 'observers':
+            self.__dict__['observers'] = value
+        else:
+            self.__dict__['_data'][key] = value
+
+    def __getattr__(self, item):
+        try:
+            return self.__dict__['_data'][item]
+        except KeyError:
+            return None
+
+    def notify(self, data):
+        if self.observers:
+            for observer in self.observers:
+                observer.notify(self)
+
+    def save(self):
+        self._data.save()
+
+    def load(self):
+        self._data.load()
 
 
 class MultiJobData(PersistentDict):

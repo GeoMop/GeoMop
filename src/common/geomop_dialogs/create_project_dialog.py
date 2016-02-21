@@ -10,10 +10,10 @@ from PyQt5 import QtWidgets
 class CreateProjectDialog(QtWidgets.QDialog):
     """Dialog for creating projects within a workspace."""
 
-    def __init__(self, parent, cfg, title='New Project'):
+    def __init__(self, parent, config, title='New Project'):
         """Initialize the class."""
         super(CreateProjectDialog, self).__init__(parent)
-        self.cfg = cfg
+        self.config = config
         name_label = QtWidgets.QLabel('Project Name')
         self.name_field = QtWidgets.QLineEdit()
         button_box = QtWidgets.QDialogButtonBox(
@@ -35,7 +35,7 @@ class CreateProjectDialog(QtWidgets.QDialog):
     def accept(self):
         """Handle a confirmation."""
         name = self.name_field.text()
-        path = os.path.join(self.cfg.config.workspace, name)
+        path = os.path.join(self.config.workspace, name)
         if os.path.exists(path):
             QtWidgets.QMessageBox.critical(
                 self, 'Name is not unique',
@@ -44,7 +44,7 @@ class CreateProjectDialog(QtWidgets.QDialog):
             return
         os.mkdir(path)
         open(os.path.join(path, 'main.yaml'), 'w').close()
-        self.cfg.config.project = name
-        self.cfg.config.save()
+        self.config.project = name
+        self.config.save()
         return super(CreateProjectDialog, self).accept()
 

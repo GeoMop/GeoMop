@@ -55,7 +55,7 @@ def save_config_file(name, config, directory=None):
         directory = __config_dir__
     file_name = os.path.join(directory, name+'.yaml')
     observers = None
-    if 'observers' in config.__dict__:
+    if hasattr(config, '__dict__') and 'observers' in config.__dict__:
         observers = config.observers
         del config.__dict__['observers']
     yaml_file = open(file_name, 'w')

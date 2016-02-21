@@ -21,6 +21,7 @@ from data.validation import Validator
 from data.format import get_root_input_type_from_json
 from data.autoconversion import autoconvert
 from geomop_util.logging import LOGGER_PREFIX
+from geomop_project import Project, InvalidProject
 from util import constants
 
 
@@ -74,7 +75,7 @@ class _Config:
             self.project = getattr(data, '_project', self._project)
             if hasattr(data, 'shortcuts'):
                 self.shortcuts.update(data.shortcuts)
-            self.notifyAll()
+            self.notify_all()
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
@@ -158,6 +159,8 @@ class _Config:
     def workspace(self, value):
         if value == '' or value is None:
             self._workspace = None
+        if value != self._workspace:
+            # close project is workspace is changed
             self.project = None
         self._workspace = value
 
@@ -168,12 +171,20 @@ class _Config:
 
     @project.setter
     def project(self, value):
-        if value == '':
+        if value == '' or value is None:
             self._project = None
-        self._project = value
-        self.notifyAll()
+            Project.current = None
+        else:
+            self._project = value
+            try:
+                project = Project.open(self._workspace, self._project)
+            except InvalidProject:
+                self._project = None
+            else:
+                Project.current = project
+        self.notify_all()
 
-    def notifyAll(self):
+    def notify_all(self):
         """Notify all observers about changes."""
         for observer in self.observers:
             observer.config_changed()
@@ -340,6 +351,7 @@ class MEConfig:
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
+            cls.sync_project_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -426,6 +438,7 @@ class MEConfig:
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update_format()
             cls.changed = False
+            cls.sync_project_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -447,6 +460,12 @@ class MEConfig:
             return
         cls.root = autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
+
+        # handle parameters
+        if (Project.current is not None and
+                Project.current.files.path_is_in_project_dir(cls.curr_file)):
+            Project.current.params.merge(cls.validator.params)
+
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
 
@@ -468,6 +487,7 @@ class MEConfig:
     @classmethod
     def save_file(cls):
         """save file"""
+        cls.update()
         try:
             file_d = open(cls.curr_file, 'w')
             file_d.write(cls.document)
@@ -480,10 +500,13 @@ class MEConfig:
                 cls._report_error("Can't save file", err)
             else:
                 raise err
+        else:
+            cls.sync_project_for_curr_file()
 
     @classmethod
     def save_as(cls, file_name):
         """save file as"""
+        cls.update()
         try:
             file_d = open(file_name, 'w')
             file_d.write(cls.document)
@@ -497,6 +520,17 @@ class MEConfig:
                 cls._report_error("Can't save file", err)
             else:
                 raise err
+        else:
+            cls.sync_project_for_curr_file()
+
+    @classmethod
+    def sync_project_for_curr_file(cls):
+        """Write current file and params to a project file."""
+        if (Project.current is not None and
+                Project.current.files.path_is_in_project_dir(cls.curr_file)):
+            Project.current.params.merge(cls.validator.params)
+            Project.current.files.add(cls.curr_file, cls.validator.params.keys())
+            Project.current.save()
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):

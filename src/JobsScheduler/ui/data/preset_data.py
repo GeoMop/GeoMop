@@ -14,6 +14,7 @@ class Id:
 
 
 class APreset:
+
     def __init__(self, name="Default Preset Name"):
         """
         Default initialization.
@@ -44,6 +45,18 @@ class APreset:
         :return: String representation of object.
         """
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
+
+    @staticmethod
+    def clone(prototype):
+        """Create a new instance from the given prototype.
+
+        This function is used as a workaround for using YAML loaded presets. Because
+        YAML doesn't call __init__, any update and change in config presents a problem.
+        Using the cloning function solve this.
+        """
+        clone = type(prototype)()  # create a new instance of the same type
+        clone.__dict__.update(prototype.__dict__)  # copy the data
+        return clone
 
 
 class PbsPreset(APreset):
@@ -174,16 +187,11 @@ class EnvPreset(APreset):
         self.module_add = None
         """Module name of required python version"""
 
-        # Libs environment
-        self.mpi_scl_enable_exec = None
-        """Enable python exec set name over scl"""
-        self.mpi_module_add = None
-        """Module name required for mpi"""
-        self.libs_mpicc = None
-        """
-        Special location or name for the mpicc compiler wrapper
-        used during libs for jobs installation
-        (None - use server standard configuration)
-        """
-
+        # Flow123d runtime
+        self.flow_path = None
+        """Execution path to flow123d"""
+        self.pbs_params = None
+        """PBS parameters for running flow123d"""
+        self.cli_params = None
+        """Command line parameters for flow123d"""
 

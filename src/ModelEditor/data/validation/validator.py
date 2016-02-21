@@ -5,6 +5,8 @@
 from helpers import Notification
 from util import TextValue, Span
 
+from geomop_project import ParameterCollection, Parameter
+
 from . import checks
 from ..data_node import DataNode
 from ..format import is_scalar, is_param
@@ -17,6 +19,7 @@ class Validator:
         """Initializes the validator with a NotificationHandler."""
         self.notification_handler = notification_handler
         self.valid = True
+        self.params = None
 
     def validate(self, node, input_type):
         """
@@ -29,6 +32,7 @@ class Validator:
         Attribute errors contains a list of occurred errors.
         """
         self.valid = True
+        self.params = ParameterCollection()
         self._validate_node(node, input_type)
         return self.valid
 
@@ -41,9 +45,17 @@ class Validator:
         if node is None:
             raise Notification.from_name('ValidationError', 'Invalid node (None)')
 
-        # assume parameters are correct, do not validate further
-        if hasattr(node, 'value') and is_param(node.value):
-            return
+        # parameters
+        # TODO: enable parameters in unknown IST?
+        if hasattr(node, 'value'):
+            match = is_param(node.value)
+            if match:
+                # extract parameters
+                param = Parameter(match.group(1))
+                self.params.add(param)
+                node.input_type = input_type
+                # assume parameters are correct, do not validate further
+                return
 
         if input_type['base_type'] != 'Abstract' and hasattr(node, 'type') \
                 and node.type is not None and 'implemented_abstract_record' not in input_type:

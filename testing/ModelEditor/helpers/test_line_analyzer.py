@@ -82,6 +82,8 @@ def test_strip_comment(line, expected):
     ('# key: 3', 3, (None, None)),
     ('  key: 3 # comment', 3, ('key: ', 1)),
     ('problem', 0, ('problem', 0)),
+    ('<a>', 1, ('<a>', 1)),
+    ('  <a>', 2, ('<a>', 0)),
 ])
 def test_get_autocomplete_context(line, index, expected):
     assert LineAnalyzer.get_autocomplete_context(line, index) == expected
@@ -124,6 +126,8 @@ def test_get_indent(line, expected):
     ('  key: 3', 2, 'key: '),
     ('!tag  ', None, '!tag'),
     ('*link  ', None, '*link'),
+    ('<', None, '<'),
+    ('<a>  ', None, '<a>'),
 ])
 def test_get_autocompletion_word(line, start_index, expected):
     assert LineAnalyzer.get_autocompletion_word(line, start_index) == expected
