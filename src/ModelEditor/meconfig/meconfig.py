@@ -86,7 +86,7 @@ class _Config:
             self.last_data_dir = directory
 
     def save(self):
-        """Save AddPictureWidget data"""
+        """Save config data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
 
     def add_recent_file(self, file_name, format_file):
