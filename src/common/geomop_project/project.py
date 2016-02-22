@@ -114,3 +114,18 @@ class Project(YAMLSerializable):
         project = Project.open(Project.current.workspace, Project.current.name)
         Project.current = project
         return project
+
+    def load_analysis(self, name):
+        """Loads a project analysis by its name."""
+        from .analysis import ANALYSIS_FILE_EXT, load_analysis_file
+        file_path = os.path.join(self.project_dir, name + ANALYSIS_FILE_EXT)
+        try:
+            return load_analysis_file(file_path)
+        except Exception:
+            return None
+
+    def save_analysis(self, analysis):
+        """Save the analysis within the current project."""
+        from .analysis import ANALYSIS_FILE_EXT, save_analysis_file
+        file_path = os.path.join(self.project_dir, analysis.name + ANALYSIS_FILE_EXT)
+        save_analysis_file(file_path, analysis)

@@ -31,7 +31,7 @@ from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
-from geomop_project import Project
+from geomop_project import Project, Analysis
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -92,6 +92,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.env_presets_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
+
+        self.analysis_dialog = None
 
         # multijob dialog
         self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
@@ -332,11 +334,20 @@ class MainWindow(QtWidgets.QMainWindow):
         Project.reload_current()
 
         # show new analysis dialog
-        dialog = AnalysisDialog(self, Project.current)
-        dialog.show()
+        self.analysis_dialog = AnalysisDialog(self, Project.current)
+        self.analysis_dialog.accepted.connect(self._handle_analysis_accepted)
+        self.analysis_dialog.show()
         # parameters
 
         print("create analysis")
+
+    def _handle_analysis_accepted(self, purpose, data):
+        if not Project.current:
+            self.report_error("Project is not selected.")
+            return
+        if purpose == AnalysisDialog.PURPOSE_ADD:
+            analysis = Analysis.load(data)
+            Project.current.save_analysis(analysis)
 
     def _handle_options(self):
         OptionsDialog(self, PersistentDictConfigAdapter(self.data.set_data)).show()

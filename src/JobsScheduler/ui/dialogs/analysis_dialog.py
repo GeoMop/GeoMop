@@ -4,6 +4,7 @@
 
 from PyQt5 import QtWidgets, QtGui
 
+from geomop_project import Analysis
 from .dialogs import AFormDialog, UiFormDialog
 
 
@@ -47,16 +48,7 @@ class AnalysisDialog(AFormDialog):
         self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
-        # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
-        # specific slots
-        # TODO slots
-        # self.ui.sclEnableCheckBox.stateChanged.connect(
-        #     lambda state: self.ui.sclEnableLineEdit.setDisabled(not state)
-        # )
-        # self.ui.addModuleCheckBox.stateChanged.connect(
-        #     lambda state: self.ui.addModuleLineEdit.setDisabled(not state)
-        # )
 
     def valid(self):
         valid = True
@@ -66,25 +58,23 @@ class AnalysisDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        # key = self.ui.idLineEdit.text()
-        # preset = EnvPreset(self.ui.nameLineEdit.text())
-        # if self.ui.pythonExecLineEdit.text():
-        #     preset.python_exec = self.ui.pythonExecLineEdit.text()
-        # if self.ui.sclEnableCheckBox.isChecked():
-        #     preset.scl_enable_exec = self.ui.addModuleLineEdit.text()
-        # if self.ui.addModuleCheckBox.isChecked():
-        #     preset.module_add = self.ui.addModuleLineEdit.text()
-        # if self.ui.flowPathEdit.text():
-        #     preset.flow_path = self.ui.flowPathEdit.text()
-        # if self.ui.pbsParamsTextEdit.toPlainText():
-        #     preset.pbs_params = self.ui.pbsParamsTextEdit.toPlainText()
-        # if self.ui.cliParamsTextEdit.toPlainText():
-        #     preset.cli_params = self.ui.cliParamsTextEdit.toPlainText()
-        # return {
-        #     "key": key,
-        #     "preset": preset
-        # }
-        pass
+        name = self.ui.nameLineEdit.text()
+        files = []
+        params = {}
+
+        # get all files
+        for i in range(self.ui.filesLayout.count()):
+            checkbox = self.ui.filesLayout.itemAt(i).widget()
+            if checkbox.isChecked():
+                files.append(checkbox.file.file_path)
+
+        # get all params
+        for i in range(self.ui.paramsLayout.count()):
+            widget = self.ui.paramsLayout.itemAt(i).widget()
+            if widget.include_in_data:
+                params[widget.param.name] = widget.text()
+
+        return Analysis(name, files, params).dump()
 
     def set_data(self, data=None):
         # reset validation colors
@@ -243,4 +233,5 @@ class UiAnalysisDialog(UiFormDialog):
         # set visibility for all widgets
         for i in range(self.paramsLayout.count()):
             widget = self.paramsLayout.itemAt(i).widget()
-            widget.setVisible(widget.param.name in params)
+            widget.include_in_data = widget.param.name in params
+            widget.setVisible(widget.include_in_data)

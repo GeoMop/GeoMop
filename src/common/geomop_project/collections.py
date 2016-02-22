@@ -197,5 +197,3 @@ class FileCollection(AbstractCollection):
 
     def dump(self):
         return [file.dump() for file in self.all()]
-
-
