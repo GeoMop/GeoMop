@@ -6,6 +6,7 @@ Main window module
 """
 import copy
 import os
+from shutil import copyfile
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -268,6 +269,32 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Todo properly edit state, change folder name etc.
             self.data.multijobs[data["key"]] = MultiJob(data["preset"])
+
+        # sync mj analyses + files
+        if Project.current is not None:
+            mj_name = data["preset"].name
+            mj_dir = Installation.get_config_dir_static(mj_name)
+            proj_dir = Project.current.project_dir
+            
+            # get all files used by analyses
+            files = []
+            for analysis in Project.current.get_all_analyses():
+                files.extend(analysis.files)
+                # copy analysis file into mj_conf folder
+                src = os.path.join(proj_dir, analysis.filename)
+                dst = os.path.join(mj_dir, analysis.filename)
+                copyfile(src, dst)
+
+            # copy all files to mj_conf folder
+            for file in set(files):
+                src = os.path.join(proj_dir, file)
+                dst = os.path.join(mj_dir, file)
+                # create directory structure if not present
+                dst_dir = os.path.dirname(dst)
+                if not os.path.isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                copyfile(src, dst)
+
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):

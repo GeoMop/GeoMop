@@ -3,7 +3,7 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-import yaml
+import json
 
 from .collections import YAMLSerializable
 
@@ -23,6 +23,11 @@ class Analysis(YAMLSerializable):
             self.files = files
         if params is not None and isinstance(params, dict):
             self.params = params
+
+    @property
+    def filename(self):
+        """filename of the analysis"""
+        return self.name + ANALYSIS_FILE_EXT
 
     @staticmethod
     def load(data):
@@ -44,7 +49,7 @@ class Analysis(YAMLSerializable):
 def load_analysis_file(file_path):
     """Load the analysis files."""
     with open(file_path) as file:
-        data = yaml.load(file)
+        data = json.load(file)
         analysis = Analysis.load(data)
     return analysis
 
@@ -52,4 +57,4 @@ def load_analysis_file(file_path):
 def save_analysis_file(file_path, analysis):
     """Load the analysis files."""
     with open(file_path, 'w') as file:
-        yaml.dump(analysis.dump(), file)
+        json.dump(analysis.dump(), file)
