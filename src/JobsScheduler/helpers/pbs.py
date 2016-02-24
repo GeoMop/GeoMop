@@ -39,6 +39,8 @@ class Pbs():
             f.write ('#$ -e ' + self.mj_path + "/" + self.config.name + '/pbs_error\n')
         f.write ('#\n')
         f.write ('\n')
+        for line in self.config.pbs_params:
+            f.write(line + '\n')
         for com in  load_commands:
             f.write(com + '\n')
         if len(load_commands)>0:

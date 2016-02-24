@@ -7,6 +7,7 @@ JobScheduler data structures
 import os
 
 import config as cfg
+from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 
 
 class PersistentDict(dict):
@@ -18,6 +19,7 @@ class PersistentDict(dict):
     BASE_DIR = "JobScheduler"
     DIR = "mydictfolder"
     FILE_NAME = "mydictname"
+    DATA_TYPE_TEMPLATE_CLASS = None
 
     def __init__(self):
         self.observers = []
@@ -41,7 +43,10 @@ class PersistentDict(dict):
         if clear:
             self.clear()
         if tmp:
-            self.update(tmp.items())
+            for key, item in tmp.items():
+                if self.DATA_TYPE_TEMPLATE_CLASS:
+                    item = self.DATA_TYPE_TEMPLATE_CLASS.clone(item)
+                self[key] = item
 
     def __setitem__(self, key, value):
         super(PersistentDict, self).__setitem__(key, value)
@@ -99,6 +104,7 @@ class SshData(PersistentDict):
     """
     DIR = "ssh"
     FILE_NAME = "ssh"
+    DATA_TYPE_TEMPLATE_CLASS = SshPreset
 
 
 class PbsData(PersistentDict):
@@ -107,6 +113,7 @@ class PbsData(PersistentDict):
     """
     DIR = "pbs"
     FILE_NAME = "pbs"
+    DATA_TYPE_TEMPLATE_CLASS = PbsPreset
 
 
 class ResourcesData(PersistentDict):
@@ -115,6 +122,7 @@ class ResourcesData(PersistentDict):
     """
     DIR = "resources"
     FILE_NAME = "resources"
+    DATA_TYPE_TEMPLATE_CLASS = ResPreset
 
 
 class EnvPresets(PersistentDict):
@@ -123,6 +131,7 @@ class EnvPresets(PersistentDict):
     """
     DIR = "environments"
     FILE_NAME = "environments"
+    DATA_TYPE_TEMPLATE_CLASS = EnvPreset
 
 
 class SetData(PersistentDict):

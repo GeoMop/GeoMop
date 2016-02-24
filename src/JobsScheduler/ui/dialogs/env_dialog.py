@@ -81,9 +81,9 @@ class EnvDialog(AFormDialog):
         if self.ui.flowPathEdit.text():
             preset.flow_path = self.ui.flowPathEdit.text()
         if self.ui.pbsParamsTextEdit.toPlainText():
-            preset.pbs_params = self.ui.pbsParamsTextEdit.toPlainText()
+            preset.pbs_params = self.ui.pbsParamsTextEdit.toPlainText().splitlines()
         if self.ui.cliParamsTextEdit.toPlainText():
-            preset.cli_params = self.ui.cliParamsTextEdit.toPlainText()
+            preset.cli_params = self.ui.cliParamsTextEdit.toPlainText().splitlines()
         return {
             "key": key,
             "preset": preset
@@ -106,8 +106,8 @@ class EnvDialog(AFormDialog):
                 self.ui.addModuleCheckBox.setCheckState(Qt.Checked)
                 self.ui.addModuleLineEdit.setText(preset.module_add)
             self.ui.flowPathEdit.setText(preset.flow_path)
-            self.ui.pbsParamsTextEdit.setPlainText(preset.pbs_params)
-            self.ui.cliParamsTextEdit.setPlainText(preset.cli_params)
+            self.ui.pbsParamsTextEdit.setPlainText('\n'.join(preset.pbs_params))
+            self.ui.cliParamsTextEdit.setPlainText('\n'.join(preset.cli_params))
 
         else:
             self.ui.idLineEdit.clear()
