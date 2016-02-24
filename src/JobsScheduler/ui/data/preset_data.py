@@ -190,8 +190,8 @@ class EnvPreset(APreset):
         # Flow123d runtime
         self.flow_path = None
         """Execution path to flow123d"""
-        self.pbs_params = None
+        self.pbs_params = []
         """PBS parameters for running flow123d"""
-        self.cli_params = None
+        self.cli_params = []
         """Command line parameters for flow123d"""
 

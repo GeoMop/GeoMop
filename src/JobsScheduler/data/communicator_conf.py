@@ -57,6 +57,7 @@ class PbsConfig(object):
         Initialize communication over socket, True in case of MultiJob
         otherwise False.
         """
+        self.pbs_params = []
 
 
 class SshConfig(object):
@@ -187,6 +188,12 @@ class CommunicatorConfig(object):
         Python environment settings class
         :class:`data.communicator_conf.PythonEnvConfig`
         """
+
+        self.flow_path = None
+        """Execution path to flow123d"""
+
+        self.cli_params = []
+        """Command line parameters for flow123d"""
 
 
 class CommunicatorConfigService(object):

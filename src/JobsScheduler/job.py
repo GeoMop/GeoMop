@@ -84,16 +84,28 @@ except Exception as error:
 comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_action_function_after)
 logger.info("Start")
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
-process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py", 
+process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py",
     Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
 return_code = process.poll()
 if return_code is not None:
     logger.info("read_line")
     out =  read_err(process.stderr)
-    logger.error("Can not start test task (return code: " + str(return_code) + 
+    logger.error("Can not start test task (return code: " + str(return_code) +
         ",stderr:" + out + ")")
     sys.exit("Can not start test task")
-    
+
+# run flow123d --version
+import pexpect
+term = pexpect.spawn('bash')
+for line in com_conf.cli_params:
+    term.sendline(line)
+    term.expect('.*' + line + '\r\n')
+flow_execute = com_conf.flow_path + ' --version'
+term.sendline(flow_execute)
+term.expect('.*' + flow_execute + '\r\n')
+logger.debug(str(term.readline(), 'utf-8').strip())
+term.sendline('exit')
+
 out = read_err(process.stderr)
 if out is not None and len(out)>0 and not out.isspace():
     logger.warning("Message in stderr:" + out)

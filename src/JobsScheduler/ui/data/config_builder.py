@@ -97,6 +97,8 @@ class ConfigBuilder:
         mj.set_comm_name(CommType.multijob)\
             .set_python_env(r_python_env)\
             .set_libs_env(r_libs_env)
+        # TODO r_python_env, r_libs_env are derived from j_env instead of mj_env - why?
+        mj.set_env_extras(mj_env)
 
         remote = None
 
@@ -104,6 +106,7 @@ class ConfigBuilder:
         job.set_comm_name(CommType.job)\
             .set_python_env(j_python_env)\
             .set_libs_env(j_libs_env)
+        job.set_env_extras(j_env)
 
         # set data with builders
         if mj_execution_type == UiResourceDialog.EXEC_LABEL:
@@ -122,6 +125,7 @@ class ConfigBuilder:
                 .set_in_comm(InputCommType.std)\
                 .set_python_env(mj_python_env)\
                 .set_libs_env(mj_libs_env)
+            delegator.set_env_extras(mj_env)
             if mj_remote_execution_type == UiResourceDialog.EXEC_LABEL:
                 delegator.set_out_comm(OutputCommType.exec_)
                 mj.set_in_comm(InputCommType.socket)
@@ -146,6 +150,7 @@ class ConfigBuilder:
                 .set_in_comm(InputCommType.std)\
                 .set_python_env(r_python_env)\
                 .set_libs_env(r_libs_env)
+            remote.set_env_extras(j_env)
             if j_remote_execution_type == UiResourceDialog.EXEC_LABEL:
                 remote.set_out_comm(OutputCommType.exec_)
                 job.set_in_comm(InputCommType.socket)
@@ -223,6 +228,12 @@ class ConfBuilder:
         self.conf.libs_env = libs_env
         return self
 
+    def set_env_extras(self, env):
+        if self.conf.pbs:
+            self.conf.pbs.pbs_params = env.pbs_params
+        self.conf.flow_path = env.flow_path
+        self.conf.cli_params = env.cli_params
+
     def get_conf(self):
         """
         Gets internal conf state.
@@ -297,9 +308,6 @@ class ConfFactory:
         python_env.module_add = preset.module_add
 
         libs_env = LibsEnvConfig()
-        libs_env.mpi_scl_enable_exec = preset.mpi_scl_enable_exec
-        libs_env.mpi_module_add = preset.mpi_module_add
-        libs_env.libs_mpicc = preset.libs_mpicc
         libs_env.install_job_libs = install_job_libs
         libs_env.start_job_libs = start_job_libs
         return python_env, libs_env

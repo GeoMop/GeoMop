@@ -364,9 +364,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.analysis_dialog = AnalysisDialog(self, Project.current)
         self.analysis_dialog.accepted.connect(self._handle_analysis_accepted)
         self.analysis_dialog.show()
-        # parameters
-
-        print("create analysis")
 
     def _handle_analysis_accepted(self, purpose, data):
         if not Project.current:
