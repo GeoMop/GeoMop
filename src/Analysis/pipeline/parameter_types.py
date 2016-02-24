@@ -28,6 +28,24 @@ class BaseData(metaclass=abc.ABCMeta):
         return if structure contain real data
         """
         pass
+    
+    @abc.abstractmethod 
+    def assigne(self):
+        """
+        Assigne appropriate python variable to data     
+        """
+        pass
+        
+    @abc.abstractmethod 
+    def getter(self):
+        """
+        Return appropriate python variable to data     
+        """
+        pass
+        
+    @property
+    def value(self):
+        return self.getter()
         
 class Int(BaseData):
     """
@@ -46,6 +64,21 @@ class Int(BaseData):
         return if structure contain real data
         """
         return  self.integer is not None
+
+    def assigne(self,  value):
+        """
+        Assigne appropriate python variable to data     
+        """
+        if isinstance(value, BaseData):
+            self.integer = int(value.value) 
+        else:
+            self.integer = int(value) 
+
+    def getter(self):
+        """
+        Return appropriate python variable to data     
+        """
+        return self.integer
         
 class String(BaseData):
     """
@@ -65,6 +98,21 @@ class String(BaseData):
         """
         return  self.string is not None
         
+    def assigne(self,  value):
+        """
+        Assigne appropriate python variable to data     
+        """
+        if isinstance(value, BaseData):
+            self.string = str(value.value) 
+        else:
+            self.string = str(value)            
+
+    def getter(self):
+        """
+        Return appropriate python variable to data     
+        """
+        return self.string
+        
 class Float(BaseData):
     """
     String
@@ -83,8 +131,22 @@ class Float(BaseData):
         """
         return  self.float is not None
 
+    def assigne(self,  value):
+        """
+        Assigne appropriate python variable to data     
+        """
+        if isinstance(value, BaseData):
+            self.float = float(value.value) 
+        else:
+            self.float = float(value)
 
-class CompositeData(BaseData, metaclass=abc.ABCMeta):
+    def getter(self):
+        """
+        Return appropriate python variable to data     
+        """
+        return self.float
+
+class CompositeData(metaclass=abc.ABCMeta):
     """
     Abbstract class od port types, that define user for
     validation and translation to string
@@ -139,7 +201,7 @@ class CompositeData(BaseData, metaclass=abc.ABCMeta):
         return if structure contain real data
         """
         return True
-
+ 
 class Struct(CompositeData):
     """
     Object
@@ -222,6 +284,24 @@ class Struct(CompositeData):
                     return False
         return True
         
+    def __setattr__(self, name, value): 
+        """save assignation"""
+        if name not in self.__dict__:
+            if isinstance(value, BaseData) or isinstance(value, CompositeData):
+                self.__dict__[name]=value
+            else:
+                raise ValueError('Not supported assignation type.')
+        elif isinstance(self.__dict__[name], BaseData):
+            self.__dict__[name].assigne(value)
+        else:
+            raise ValueError('Not supported reassignation type.')
+            
+    def __getattr__(self, name): 
+        """save assignation"""
+        if name not in self.__dict__:
+            raise ValueError('Variable is not assignated.')
+        return self.__dict__[name].getter()
+
 class List(CompositeData):
     """
     Array

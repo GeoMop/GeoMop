@@ -21,7 +21,13 @@ def test_parameters():
     var2.reduce_keys("test1", "test2")
     var2.test1=5
     var2.test2="ooo"
+    test = var2.test1
+    test == 5
+    assert var2.test1.value == 5
+    assert var2.test2.value == "ooo"    
     assert var1.contain(var2)
+    var2.test1= var1.test1
+    assert var2.test1.value == 1
     
     
     
