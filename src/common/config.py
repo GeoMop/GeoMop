@@ -5,7 +5,6 @@
 
 import os
 import yaml
-from copy import deepcopy
 
 
 if 'APPDATA' in os.environ:

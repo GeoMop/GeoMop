@@ -6,6 +6,7 @@ import os
 import yaml
 
 from .collections import YAMLSerializable, ParameterCollection, FileCollection
+from .analysis import ANALYSIS_FILE_EXT, save_analysis_file, load_analysis_file
 
 
 PROJECT_MAIN_FILE = 'main.yaml'
@@ -114,3 +115,25 @@ class Project(YAMLSerializable):
         project = Project.open(Project.current.workspace, Project.current.name)
         Project.current = project
         return project
+
+    def load_analysis(self, name):
+        """Loads a project analysis by its name."""
+        file_path = os.path.join(self.project_dir, name + ANALYSIS_FILE_EXT)
+        try:
+            return load_analysis_file(file_path)
+        except Exception:
+            return None
+
+    def save_analysis(self, analysis):
+        """Save the analysis within the current project."""
+        file_path = os.path.join(self.project_dir, analysis.name + ANALYSIS_FILE_EXT)
+        save_analysis_file(file_path, analysis)
+
+    def get_all_analyses(self):
+        """Return all project analyses."""
+        analyses = []
+        for file_name in os.listdir(self.project_dir):
+            if file_name.endswith(ANALYSIS_FILE_EXT):
+                analysis = self.load_analysis(file_name[:-len(ANALYSIS_FILE_EXT)])
+                analyses.append(analysis)
+        return analyses

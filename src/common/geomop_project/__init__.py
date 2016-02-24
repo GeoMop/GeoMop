@@ -5,3 +5,4 @@
 
 from .project import Project, PROJECT_MAIN_FILE, InvalidProject
 from .collections import ParameterCollection, Parameter, FileCollection
+from .analysis import Analysis
