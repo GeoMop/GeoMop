@@ -57,13 +57,13 @@ class String(BaseData):
     
     def to_string(self):
         """Presentation of type in json yaml"""
-        return string
+        return self.string
       
     def is_set(self):
         """
         return if structure contain real data
         """
-        return  self.integer is not None
+        return  self.string is not None
         
 class Float(BaseData):
     """
@@ -84,7 +84,7 @@ class Float(BaseData):
         return  self.float is not None
 
 
-class CompositeType(BaseData, metaclass=abc.ABCMeta):
+class CompositeData(BaseData, metaclass=abc.ABCMeta):
     """
     Abbstract class od port types, that define user for
     validation and translation to string
@@ -94,13 +94,40 @@ class CompositeType(BaseData, metaclass=abc.ABCMeta):
         """Contained type"""
         self.list = []
         for arg in args:
-            self.list.append(args)
+            self.list.append(arg)
    
     @abc.abstractmethod 
+    def merge(self, composite):
+        """merge to composite types of same type"""
+        pass
+        
+    @abc.abstractmethod 
+    def reduce_values(self, *values):
+        """delete all values diferent from set"""
+        pass
+
+    def add(self, *values):
+        """add values to composite"""
+        for arg in values:
+            self.list.append(arg)
+    
     def to_string(self, value):
         """Presentation of type in json yaml"""
-        pass
-    
+        if self.subtype is None:
+            return None
+        try:
+            res = "[\n"
+            first = True
+            for subvalue in value:
+                if first:
+                    first = False
+                else:
+                    res += ",\n"
+                res += self.subtype.to_string(subvalue)
+            res += "]\n"
+        except:
+            return None    
+            
     def contain(self, data):
         """
         return if structure contain set data
@@ -113,19 +140,43 @@ class CompositeType(BaseData, metaclass=abc.ABCMeta):
         """
         return True
 
-class DictionaryType(CompositeType):
+class Struct(CompositeData):
     """
-    Dictionary
+    Object
     """
-    def __init__(self, subtype=None):
-        self.comp_name = "Dictionary"
-        """Display name of port"""
-        self.comp_description = "Dictionary"
-        """Display description of port"""
-        self.subtype = subtype
+    def __init__(self, **kwargs):
         """Contained type"""
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+   
+    def merge(self, composite):
+        """merge to composite types of same type"""
+        for name, value in composite.__dict__.items():
+            setattr(self, name, value)
         
-    @abc.abstractmethod 
+    def reduce_values(self, *values):
+        """delete all values diferent from set"""
+        dell_list=[]
+        for name, value in self.__dict__.items():
+            if value not in values: 
+                dell_list.append(name)
+        for name in dell_list:
+            delattr(self, name)
+
+    def reduce_keys(self, *values):
+        """delete all keys diferent from set"""
+        dell_list=[]
+        for name, value in self.__dict__.items():
+            if name not in values: 
+                dell_list.append(name)
+        for name in dell_list:
+            delattr(self, name)
+
+    def add(self, **values):
+        """add values to composite"""
+        for name, value in values.items():
+            setattr(self, name, value)
+    
     def to_string(self, value):
         """Presentation of type in json yaml"""
         if self.subtype is None:
@@ -144,64 +195,49 @@ class DictionaryType(CompositeType):
             res += "}\n"
         except:
             return None
-
-    @abc.abstractmethod
-    def validate(self, value):
+            
+    def contain(self, data):
         """
-        validate value, and return string with problem        
-        
-        :return: None if validation is ok
+        return if structure contain set data
         """
-        if self.subtype is None:
-            return "Typ contained in {0} type must be set".format(self.comp_name)
-        for subvalue in value:
-            res = self.subtype.validate(value[subvalue])
-            if res is not None:
-                return res
-        return None
+        for name, value in data.__dict__.items():
+            if not name in self.__dict__:
+                return False
+            if type(value) is not type(self.__dict__[name]):
+                return False
+            if isinstance(value, CompositeData):
+                if not self.__dict__[name].contain(value):
+                    return False
+        return True
         
-class ArrayType(CompositeType):
+    def is_set(self):
+        """
+        return if structure contain real data
+        """
+        for name, value in self.__dict__.items():
+            if value is None:
+                return False
+            if isinstance(value, BaseData):
+                if not self.__dict__[name].is_set():
+                    return False
+        return True
+        
+class List(CompositeData):
     """
     Array
     """
-    
-    def __init__(self, subtype=None):
-        self.comp_name = "Array"
-        """Display name of port"""
-        self.comp_description = "Array"
-        """Display description of port"""
-        self.subtype = subtype
-        """Contained type"""
+    def __init__(self, subtype, *args):
+        super(List, self).__init__()
+   
+    def merge(self, composite):
+        """merge to composite types of same type"""
+        for arg in composite.list:
+                self.list.append(arg)
         
-    @abc.abstractmethod 
-    def to_string(self, value):
-        """Presentation of type in json yaml"""
-        if self.subtype is None:
-            return None
-        try:
-            res = "[\n"
-            first = True
-            for subvalue in value:
-                if first:
-                    first = False
-                else:
-                    res += ",\n"
-                res += self.subtype.to_string(subvalue)
-            res += "]\n"
-        except:
-            return None
-
-    @abc.abstractmethod
-    def validate(self, value):
-        """
-        validate value, and return string with problem        
-        
-        :return: None if validation is ok
-        """
-        if self.subtype is None:
-            return "Typ contained in {0} type must be set".format(self.comp_name)
-        for subvalue in value:
-            res = self.subtype.validate(subvalue)
-            if res is not None:
-                return res
-        return None
+    def reduce_values(self, *values):
+        """delete all values diferent from set"""
+        new_list=[]
+        for arg in self.list:
+            if arg in values: 
+                new_list.append(arg)
+        self.list=new_list
