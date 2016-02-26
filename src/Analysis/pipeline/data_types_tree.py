@@ -1,9 +1,14 @@
 import abc
 
-class BaseData(metaclass=abc.ABCMeta):
+class BaseDTT(metaclass=abc.ABCMeta):
     """
-    Abbstract class od port types, that define user for
-    validation and translation to string
+    Abstract class for defination data tree , that is use for
+    description structures flow thrue pipeline
+    
+    :description:
+    Structures may be defined as empty (by empty constructor),
+    or with data. If structure is empty, it is supossed that is assigned
+    later.    
     """
     def __init__(self):
         self.name = ""
@@ -16,9 +21,9 @@ class BaseData(metaclass=abc.ABCMeta):
         """Presentation of type in json yaml"""
         pass
 
-    def contain(self, data):
+    def match_type(self, type_tree):
         """
-        return if structure contain set data
+        Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         return True
         
@@ -47,7 +52,7 @@ class BaseData(metaclass=abc.ABCMeta):
     def value(self):
         return self.getter()
         
-class Int(BaseData):
+class Int(BaseDTT):
     """
     Integer
     """
@@ -69,7 +74,7 @@ class Int(BaseData):
         """
         Assigne appropriate python variable to data     
         """
-        if isinstance(value, BaseData):
+        if isinstance(value, BaseDTT):
             self.integer = int(value.value) 
         else:
             self.integer = int(value) 
@@ -80,7 +85,7 @@ class Int(BaseData):
         """
         return self.integer
         
-class String(BaseData):
+class String(BaseDTT):
     """
     String
     """
@@ -102,7 +107,7 @@ class String(BaseData):
         """
         Assigne appropriate python variable to data     
         """
-        if isinstance(value, BaseData):
+        if isinstance(value, BaseDTT):
             self.string = str(value.value) 
         else:
             self.string = str(value)            
@@ -113,7 +118,7 @@ class String(BaseData):
         """
         return self.string
         
-class Float(BaseData):
+class Float(BaseDTT):
     """
     String
     """
@@ -135,7 +140,7 @@ class Float(BaseData):
         """
         Assigne appropriate python variable to data     
         """
-        if isinstance(value, BaseData):
+        if isinstance(value, BaseDTT):
             self.float = float(value.value) 
         else:
             self.float = float(value)
@@ -146,7 +151,7 @@ class Float(BaseData):
         """
         return self.float
 
-class CompositeData(metaclass=abc.ABCMeta):
+class CompositeDTT(metaclass=abc.ABCMeta):
     """
     Abbstract class od port types, that define user for
     validation and translation to string
@@ -190,9 +195,9 @@ class CompositeData(metaclass=abc.ABCMeta):
         except:
             return None    
             
-    def contain(self, data):
+    def match_type(self, type_tree):
         """
-        return if structure contain set data
+        Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         return True
         
@@ -202,7 +207,7 @@ class CompositeData(metaclass=abc.ABCMeta):
         """
         return True
  
-class Struct(CompositeData):
+class Struct(CompositeDTT):
     """
     Object
     """
@@ -258,17 +263,17 @@ class Struct(CompositeData):
         except:
             return None
             
-    def contain(self, data):
+    def match_type(self, type_tree):
         """
-        return if structure contain set data
+        Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
-        for name, value in data.__dict__.items():
-            if not name in self.__dict__:
+        for name, value in self.__dict__.items():
+            if not name in type_tree.__dict__:
                 return False
-            if type(value) is not type(self.__dict__[name]):
+            if type(value) is not type(type_tree.__dict__[name]):
                 return False
-            if isinstance(value, CompositeData):
-                if not self.__dict__[name].contain(value):
+            if isinstance(value, CompositeDTT):
+                if not type_tree.__dict__[name].match_type(value):
                     return False
         return True
         
@@ -279,7 +284,7 @@ class Struct(CompositeData):
         for name, value in self.__dict__.items():
             if value is None:
                 return False
-            if isinstance(value, BaseData):
+            if isinstance(value, BaseDTT):
                 if not self.__dict__[name].is_set():
                     return False
         return True
@@ -287,11 +292,11 @@ class Struct(CompositeData):
     def __setattr__(self, name, value): 
         """save assignation"""
         if name not in self.__dict__:
-            if isinstance(value, BaseData) or isinstance(value, CompositeData):
+            if isinstance(value, BaseDTT) or isinstance(value, CompositeDTT):
                 self.__dict__[name]=value
             else:
                 raise ValueError('Not supported assignation type.')
-        elif isinstance(self.__dict__[name], BaseData):
+        elif isinstance(self.__dict__[name], BaseDTT):
             self.__dict__[name].assigne(value)
         else:
             raise ValueError('Not supported reassignation type.')
@@ -302,7 +307,7 @@ class Struct(CompositeData):
             raise ValueError('Variable is not assignated.')
         return self.__dict__[name].getter()
 
-class List(CompositeData):
+class List(CompositeDTT):
     """
     Array
     """
