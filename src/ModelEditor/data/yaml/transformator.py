@@ -685,7 +685,7 @@ class Transformator:
                     ") must exist")
         sl1, sc1, sl2, sc2 = StructureChanger.node_pos(node1)
         dl1, dc1, dl2, dc2 = StructureChanger.node_pos(node2)
-        if parent1.group(1) == parent2.group(1):
+        if parent1.group(1) == parent2.group(1) and len(node_struct) == 0:
             # rename
             i = node1.key.span.start.line-1
             lines[i] = re.sub(parent1.group(2) + r"\s*:", parent2.group(2) + ":", lines[i])
