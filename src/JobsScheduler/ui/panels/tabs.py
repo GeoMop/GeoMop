@@ -132,11 +132,22 @@ class FilesTab(AbstractTab):
         super().__init__(parent)
         self.setObjectName("FilesTab")
         self.headers = ["Name", "Size", "Last Modification", "Path"]
+        self.files = []
         self.ui.treeWidget.setHeaderLabels(self.headers)
-        self.ui.treeWidget.header().resizeSection(2, 120)
+        self.ui.treeWidget.header().resizeSection(2, 150)
         self.ui.treeWidget.itemDoubleClicked.connect(
             lambda clicked_item, clicked_col: QDesktopServices.openUrl(
                 QUrl.fromLocalFile(clicked_item.text(3))))
+        QtCore.QObjectCleanupHandler().add(self.layout())
+        self.ui.saveButton = QtWidgets.QPushButton('Save')
+        self.ui.saveButton.setMinimumWidth(120)
+        self.ui.buttonLayout = QtWidgets.QHBoxLayout()
+        self.ui.buttonLayout.addWidget(self.ui.saveButton)
+        self.ui.buttonLayout.addStretch(1)
+        self.ui.mainLayout = QtWidgets.QVBoxLayout()
+        self.ui.mainLayout.addWidget(self.ui.treeWidget)
+        self.ui.mainLayout.addLayout(self.ui.buttonLayout)
+        self.setLayout(self.ui.mainLayout)
 
     @staticmethod
     def _update_item(item, f, time_format):
@@ -150,6 +161,7 @@ class FilesTab(AbstractTab):
         return item
 
     def reload_view(self, file_objects):
+        self.files = file_objects
         self.ui.treeWidget.clear()
         for f in file_objects:
             row = QtWidgets.QTreeWidgetItem(self.ui.treeWidget)
@@ -162,15 +174,18 @@ class LogsTab(FilesTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("logsTab")
+        self.ui.saveButton.setText('Save Results && Logs')
 
 
 class ResultsTab(FilesTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("resultsTab")
+        self.ui.saveButton.setText('Save Results && Logs')
 
 
 class ConfigTab(FilesTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("configTab")
+
