@@ -58,6 +58,6 @@ class PipeLine:
     """
     
     def __init__(self):
-        self.tasks = []
+        self.actions = []
         """Array of tasks"""
         
