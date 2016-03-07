@@ -1,4 +1,24 @@
 import abc
+from enum import IntEnum
+
+class ActionType(IntEnum):
+    """Action type"""
+    simple = 0
+    complex = 1
+
+class Runner():
+    """
+    Data crate for action process runner description 
+    """
+    def __init__(self, type=ActionType.simple):
+        self.name = ""
+        """Runner name for loging"""
+        self.command = ""
+        """Command for popen"""
+        self.params = {}
+        """dictionary names => types of input ports"""
+        self.type =  type   
+    
         
 class BaseActionType(metaclass=abc.ABCMeta):
     """
@@ -18,19 +38,29 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self.variables = {}
         """dictionary names => types of variables"""
         for name, value in kwargs.items():
-            if name == 'input':
+            if name == 'Input':
                 self.inputs.append(value)
-            elif name == 'inputs':
+            elif name == 'Inputs':
                 self.inputs.extend(value)
-            elif name == 'output':
+            elif name == 'Output':
                 self.outputs.append(value)
-            elif name == 'outputs':
+            elif name == 'Outputs':
                 self.outputs.extend(value)
-            elif name == 'variables':
+            elif name == 'Variables':
                 self.outputs.extend(value)
                 
     @abc.abstractmethod 
-    def run_script(self):    
+    def get_script(self):    
+        """return action python script"""
+        pass
+        
+    @abc.abstractmethod 
+    def _get_runner(self):    
+        """prepare process environment and return Runner class with process description"""
+        pass
+        
+    @abc.abstractmethod 
+    def validate(self):    
         """return action python script"""
         pass
         
