@@ -100,10 +100,12 @@ term = pexpect.spawn('bash')
 for line in com_conf.cli_params:
     term.sendline(line)
     term.expect('.*' + line + '\r\n')
+    logger.debug('CLI PARAMS> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
 flow_execute = com_conf.flow_path + ' --version'
 term.sendline(flow_execute)
 term.expect('.*' + flow_execute + '\r\n')
-logger.debug(str(term.readline(), 'utf-8').strip())
+term.expect(".*\$ ")
+logger.debug('FLOW OUTPUT> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
 term.sendline('exit')
 
 out = read_err(process.stderr)

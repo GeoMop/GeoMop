@@ -173,12 +173,12 @@ class StructureChanger:
         # add indentation to origin add variable
         for i in range( prepend_len,  prepend_len + add_len):
             if add_dash:
-                if len(add[prepend_len]) >  prepend_ident:
-                    add[prepend_len] =  (add_ident + prepend_ident)  * " " + "- " + add[i][add_ident:]
+                if len(add[i]) >  prepend_ident:
+                    add[i] =  (add_ident + prepend_ident)  * " " + "- " + add[i][add_ident:]
                     prepend_ident += 2
                     add_dash = False
             else:
-                add[prepend_len] =  prepend_ident * " " +add[prepend_len]        
+                add[i] =  prepend_ident * " " +add[i]        
         return add
     
     @classmethod

@@ -7,6 +7,7 @@ Main window module
 import copy
 import os
 from shutil import copyfile
+import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -14,12 +15,13 @@ from PyQt5.QtGui import QDesktopServices
 
 from communication import Communicator, Installation
 from data.states import TaskStatus
+from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
 from ui.data import PersistentDictConfigAdapter
-from ui.dialogs import AnalysisDialog
+from ui.dialogs import AnalysisDialog, FilesSavedMessageBox
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.options_dialog import OptionsDialog
@@ -183,6 +185,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect current multijob changed
         self.ui.overviewWidget.currentItemChanged.connect(
             self.update_ui_locks)
+
+        # connect tabWidget
+        self.ui.tabWidget.ui.resultsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
+        self.ui.tabWidget.ui.logsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
 
         # reload view
         self.ui.overviewWidget.reload_items(self.data.multijobs)
@@ -469,11 +477,70 @@ class MainWindow(QtWidgets.QMainWindow):
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)
 
+    def _handle_save_results_button_clicked(self):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_name = installation.__result_dir__
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self._handle_save_results(src_dir_path, dst_dir_name, files)
+
+    def _handle_save_res_log_button_clicked(self):
+        # if not project - alert
+        if not Project.current:
+            self.report_error("No project selected!")
+
+        dst_dir_location = os.path.join(Project.current.project_dir,
+                                        "analysis",
+                                        time.strftime("%Y%m%d_%H%M%S"))
+        self._save_results(dst_dir_location)
+        self._save_logs(dst_dir_location)
+        # alert with open dir option
+        FilesSavedMessageBox(self, dst_dir_location).show()
+
+    def _save_logs(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__,
+                                    installation.__logs_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__logs_dir__)
+        files = self.ui.tabWidget.ui.logsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    def _save_results(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__result_dir__)
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    @staticmethod
+    def copy_files(src_dir_path, dst_dir_path, files):
+        # create folder
+        os.makedirs(dst_dir_path, exist_ok=True)
+
+        # copy files
+        for file_name in [f.file_name for f in files]:
+            copyfile(os.path.join(src_dir_path, file_name), os.path.join(dst_dir_path, file_name))
+
     def report_error(self, msg, err=None):
         """Report an error with dialog."""
         from geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(self)
         err_dialog.open_error_dialog(msg, err)
+
+    @property
+    def current_mj(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        mj = self.data.multijobs[key]
+        return mj
 
 
 class UiMainWindow(object):
