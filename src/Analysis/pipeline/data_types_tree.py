@@ -26,7 +26,12 @@ class BaseDTT(metaclass=abc.ABCMeta):
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         return True
-        
+    
+    @abc.abstractmethod
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        pass
+
     @abc.abstractmethod 
     def is_set(self):
         """
