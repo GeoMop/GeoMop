@@ -215,7 +215,10 @@ class MainWindow(QtWidgets.QMainWindow):
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
         # load current project
-        project = self.data.set_data['project'] or '(No Project)'
+        if "project" in self.data.set_data and self.data.set_data:
+            project = self.data.set_data["project"]
+        else:
+            project = '(No Project)'
         self.setWindowTitle('Jobs Scheduler - ' + project)
 
     def notify(self, data):
