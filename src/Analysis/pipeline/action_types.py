@@ -1,7 +1,7 @@
 import abc
 from enum import IntEnum
-from data_types_tree import BaseDTT
-from code_formater import Formater
+from .data_types_tree import BaseDTT, CompositeDTT
+from .code_formater import Formater
 
 class ActionType(IntEnum):
     """Action type"""
@@ -26,16 +26,18 @@ __action_counter__ = 0
         
 class BaseActionType(metaclass=abc.ABCMeta):
     """
-    Abbstract class of action type, that define tasks method for
+    Abstract class of action type, that define tasks method for
     tasks classes
     """
-    
+
+    _name = ""
+    """Display name of action"""
+    _description = ""
+    """Display description of action"""
+
     def __init__(self, **kwargs):
         global __action_counter__
-        self.name = ""
-        """Display name of action"""
-        self.description = ""
-        """Display description of action"""
+ 
         __action_counter__ += 1
         self.id = __action_counter__
         """unique action number"""
@@ -58,7 +60,15 @@ class BaseActionType(metaclass=abc.ABCMeta):
                 self.outputs.extend(value)
             else:
                 self.variables[name] = value
-                
+    
+    @property
+    def name(self):
+        return self._name
+        
+    @property
+    def description(self):
+        return self._description
+
     def get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = []
@@ -67,10 +77,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         is_emty=True
         for input in self.inputs:
             is_emty=False
-            if isinstance(input, BaseDTT):
-                lines.append("            (")
-                lines.extend(Formater(input.get_settings_script(), 16))
-                lines.append("            ),")
+            if isinstance(input, BaseDTT) or  isinstance(input, CompositeDTT):
+                lines.extend(Formater.format_parameter(input.get_settings_script(), 12))
             elif isinstance(input, BaseActionType):
                 lines.append("            {0},".format(input.get_instance_name()))
             else:
@@ -81,16 +89,16 @@ class BaseActionType(metaclass=abc.ABCMeta):
         lines.append("        Output = [")
         
         is_emty=True
-        for output in self.otputs:
-            if not isinstance(output, BaseActionType):
+        for output in self.outputs:
+            if not (isinstance(input, BaseDTT) or  isinstance(input, CompositeDTT)):
                 raise Exception("Unknown output type")
             is_emty=False
-            lines.append("            {0},".format(output.get_instance_name()))            
+            lines.extend(Formater.format_parameter(output.get_settings_script(), 12))
         if not is_emty:
             lines[-1] = lines[-1][:-1]
         lines.append("        ],") 
         for script in self._get_variables_script():
-            lines.append("            {0},".format(script))
+            lines.append("        {0},".format(script))
         lines[-1] = lines[-1][:-1]
         lines.append("    )")
         return lines
@@ -99,7 +107,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         return "{0}_{1}".format(self.name, str(self.id))
         
     def _get_variables_script(self):    
-        """return array of variables python scripts"""
+        """return array of variables as python scripts"""
         return []
         
     @abc.abstractmethod 
@@ -124,7 +132,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod 
-    def _check_params(self):    
+    def _check_params(self):
         """check if all require params is set"""
         pass
 

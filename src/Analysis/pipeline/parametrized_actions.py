@@ -1,23 +1,25 @@
 from .action_types import ParametrizedActionType, Runner, ActionType
 
 class Flow123dAction(ParametrizedActionType):
+    
+    _name = "Flow123d"
+    """Display name of action"""
+    _description = "Flow123d"
+    """Display description of action"""  
+
     def __init__(self, **kwargs):
         super(Flow123dAction, self).__init__(**kwargs)
-        
-        self.name = "Flow123d"
-        """Display name of action"""
-        self.description = "Flow123d"
-        """Display description of action"""  
+
         self.file = None
         """Input Yaml file"""
         self.type = ActionType.complex
-            
+
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
-        var.append("YAMLFile={0}".Format(self.variables["YAMLFile"]))
+        var.append("YAMLFile='{0}'".format(self.variables["YAMLFile"]))
         return var
-        
+
     def _get_runner(self, params):    
         """
         return Runner class with process description
@@ -49,6 +51,10 @@ class Flow123dAction(ParametrizedActionType):
                     err.append("Yaml parameter {0} is not set in input")
         return err
         
+    def validate(self):    
+        """validate variables, input and output"""
+        pass
+        
     def get_require_params(self):
         """Return list of params needed for completation of Yaml file"""
         # ToDo logic
@@ -58,3 +64,5 @@ class Flow123dAction(ParametrizedActionType):
         """Rename and make completation of Yaml file and return new file path"""
         # ToDo logic
         pass
+        
+    

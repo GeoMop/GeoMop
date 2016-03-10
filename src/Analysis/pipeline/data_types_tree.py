@@ -1,4 +1,5 @@
 import abc
+from .code_formater import Formater
 
 class BaseDTT(metaclass=abc.ABCMeta):
     """
@@ -68,6 +69,10 @@ class Int(BaseDTT):
     def to_string(self, value):
         """Presentation of type in json yaml"""
         return str(value)
+        
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        return ["Int({0})".format(str(self.integer))]
       
     def is_set(self):
         """
@@ -101,6 +106,10 @@ class String(BaseDTT):
     def to_string(self):
         """Presentation of type in json yaml"""
         return self.string
+        
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        return ["String('{0}')".format(self.string)]
       
     def is_set(self):
         """
@@ -134,6 +143,10 @@ class Float(BaseDTT):
     def to_string(self):
         """Presentation of type in json yaml"""
         return float 
+        
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        return ["Float({0})".format(str(self.float))]
       
     def is_set(self):
         """
@@ -256,24 +269,38 @@ class Struct(CompositeDTT):
         for name, value in values.items():
             setattr(self, name, value)
     
-    def to_string(self, value):
+    def to_string(self):
         """Presentation of type in json yaml"""
-        if self.subtype is None:
-            return None
         try:
             res = "{\n"
             first = True
-            for subvalue in value:
+            for name, value in self.__dict__.items():
                 if first:
                     first = False
                 else:
                     res += ",\n"
-                res += subvalue 
+                res += name 
                 res += ":"
-                res += self.subtype.to_string(value[subvalue])
-            res += "}\n"
+                res += self.subtype.to_string(value)
+                res += "}\n"
         except:
             return None
+            
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        try:
+            lines = ["Struct("]
+            is_emty=True
+            for name, value in self.__dict__.items():
+                is_emty=False
+                param = value.get_settings_script()
+                lines.extend(Formater.format_parameter(param, 4))
+            if not is_emty:
+                lines[-1] = lines[-1][:-1]
+            lines.append(")")
+        except Exception as ex:
+            raise Exception("Unknown input type" +str(ex))
+        return lines
             
     def match_type(self, type_tree):
         """
