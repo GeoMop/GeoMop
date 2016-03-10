@@ -276,8 +276,9 @@ class JobsCommunicator(Communicator):
         
     def add_job(self, id):
         """Add job to dictionary, process it and make connection if is needed"""
-        if self.conf.output_type == comconf.OutputCommType.ssh:
+        if self.conf.output_type == comconf.OutputCommType.ssh:  # if is remote
             if self.conf.direct_communication:
+                # remote only runs the job; then the job communicates over socket
                 self.jobs[id] = Job(id)
                 self.job_outputs[id] = ExecOutputComm(self.conf.mj_name, self.conf.port)
                 logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")

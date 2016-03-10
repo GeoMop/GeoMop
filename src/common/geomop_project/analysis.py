@@ -8,7 +8,7 @@ import json
 from .collections import YAMLSerializable
 
 
-ANALYSIS_FILE_EXT = '.anal'
+ANALYSIS_FILE_EXT = '.data'
 
 
 class Analysis(YAMLSerializable):

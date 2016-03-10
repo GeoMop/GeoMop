@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMenu, QAction
 
 from geomop_dialogs import CreateProjectDialog
+from geomop_project import PROJECT_MAIN_FILE
 
 
 class ProjectMenu(QMenu):
@@ -65,14 +66,11 @@ class ProjectMenu(QMenu):
             CreateProjectDialog(self, self.config).show()
 
 
-PROJECT_FILE = 'main.yaml'
-
-
 def is_project(path):
     """Determine if a path is a project directory."""
     if os.path.isdir(path):
         for file_ in os.listdir(path):
-            if file_.lower() == PROJECT_FILE:
+            if file_.lower() == PROJECT_MAIN_FILE:
                 return True
     return False
 

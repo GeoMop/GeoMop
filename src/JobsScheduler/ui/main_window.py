@@ -35,6 +35,7 @@ from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
 from geomop_project import Project, Analysis
+import flow_util
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -291,12 +292,11 @@ class MainWindow(QtWidgets.QMainWindow):
             files = []
             for analysis in Project.current.get_all_analyses():
                 files.extend(analysis.files)
-                # copy analysis file into mj_conf folder
-                src = os.path.join(proj_dir, analysis.filename)
-                dst = os.path.join(mj_dir, analysis.filename)
-                copyfile(src, dst)
 
-            # copy all files to mj_conf folder
+            analysis = Project.current.get_current_analysis()
+            assert analysis is not None, "No analysis file exists for the project!"
+
+            # fill in parameters and copy the files
             for file in set(files):
                 src = os.path.join(proj_dir, file)
                 dst = os.path.join(mj_dir, file)
@@ -304,7 +304,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dst_dir = os.path.dirname(dst)
                 if not os.path.isdir(dst_dir):
                     os.makedirs(dst_dir)
-                copyfile(src, dst)
+                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
 
         self.multijobs_changed.emit(self.data.multijobs)
 

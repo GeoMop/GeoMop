@@ -9,7 +9,7 @@ from .collections import YAMLSerializable, ParameterCollection, FileCollection
 from .analysis import ANALYSIS_FILE_EXT, save_analysis_file, load_analysis_file
 
 
-PROJECT_MAIN_FILE = 'main.yaml'
+PROJECT_MAIN_FILE = '.project'
 
 
 class InvalidProject(Exception):
@@ -137,3 +137,9 @@ class Project(YAMLSerializable):
                 analysis = self.load_analysis(file_name[:-len(ANALYSIS_FILE_EXT)])
                 analyses.append(analysis)
         return analyses
+
+    def get_current_analysis(self):
+        """Return current analysis."""
+        # TODO if multiple analysis will be supported, return the current one here
+        analyses = self.get_all_analyses()
+        return analyses[0] if len(analyses) > 0 else None
