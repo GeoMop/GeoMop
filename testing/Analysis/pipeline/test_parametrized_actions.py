@@ -23,7 +23,9 @@ def test_flow_code_init():
     flow=Flow123dAction(Input=Struct(test1=String("test")), Output=String("File"), YAMLFile="test.yaml")
     test=flow.get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "flow1.txt"), test)
-    exec('\n'.join(test))
- #   assert Flow123d_1.variables['YAMLFile'] == flow.variables['YAMLFile']
+    exec ('\n'.join(test), globals())
+    assert Flow123d_1.variables['YAMLFile'] == flow.variables['YAMLFile']
+    # assert Flow123d_1.inputs[0].test == flow.inputs[0].test
+    # assert Flow123d_1.outputs[0] == flow.outputs[0]
     
     

@@ -10,7 +10,7 @@ class Formater:
             else:
                 res.append(spaces*" "+lines[i])
         return res
-        
+
     @classmethod
     def format_parameter(cls, param, spaces):
         """

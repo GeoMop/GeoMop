@@ -184,21 +184,6 @@ class CompositeDTT(metaclass=abc.ABCMeta):
         else:
             for arg in args:
                 self.list.append(arg)
-   
-    @abc.abstractmethod 
-    def merge(self, composite):
-        """merge to composite types of same type"""
-        pass
-        
-    @abc.abstractmethod 
-    def reduce_values(self, *values):
-        """delete all values diferent from set"""
-        pass
-
-    def add(self, *values):
-        """add values to composite"""
-        for arg in values:
-            self.list.append(arg)
     
     def to_string(self, value):
         """Presentation of type in json yaml"""
@@ -346,12 +331,12 @@ class Struct(CompositeDTT):
             raise ValueError('Variable is not assignated.')
         return self.__dict__[name].getter()
 
-class List(CompositeDTT):
+class Ensemble(CompositeDTT):
     """
     Array
     """
     def __init__(self, subtype, *args):
-        super(List, self).__init__()
+        super(Ensemble, self).__init__()
    
     def merge(self, composite):
         """merge to composite types of same type"""

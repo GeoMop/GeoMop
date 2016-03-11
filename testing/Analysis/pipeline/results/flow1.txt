@@ -1,13 +1,13 @@
 Flow123d_1 = Flow123dAction(
-        Input = [
+        Inputs = [
             (
                 Struct(
                     String('test')
                 )
             )
         ],
-        Output = [
+        Output = ( 
             String('File')
-        ],
+        ),
         YAMLFile='test.yaml'
     )

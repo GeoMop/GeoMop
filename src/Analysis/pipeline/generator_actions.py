@@ -1,33 +1,43 @@
-from .action_types import ParametrizedActionType, Runner, ActionType, BaseActionType
+from .action_types import GeneratorActionType, Runner, ActionType, BaseActionType
 from .data_types_tree import CompositeDTT
 
-class Flow123dAction(ParametrizedActionType):
+class RangeGenerator(GeneratorActionType):
     
-    _name = "Flow123d"
+    _name = "RangeGenerator"
     """Display name of action"""
-    _description = "Flow123d"
+    _description = "Generator for generation parallel list"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
         """
-        :param string YAMLFile: path to Yaml file
-        :param action or DTT Input: action DTT variable
-        :param DTT Output: DTT variable if variable is set
-            output is reduce to this variable (variable is check with
-            params in YAML file), if variable is not set, output is 
-            set accoding params in YAML file
+        :param DTT Output: type of data, that is use in constructor as
+            template for resalt structure if empty, type is constructed
+            from values as Struct of set names 
+        :param Dictionary Items: Dictionary that describe generated
+            way how generate result. Values have this attributes::
+                - :name(string):require  variable name 
+                - :value(float): require variable middle value
+                - :step(float): default 1, step for generation
+                - :n_plus(integer): default 1, amount of plus steps
+                - :n_minus(integer): default 1, amount of minus steps
+                - :exponential(bool): default False, if true value is processed exponencially 
+        :param AllCases bool: Cartesian product, default value False:
         """
-
-        super(Flow123dAction, self).__init__(**kwargs)
-        self.type = ActionType.complex
+        super(RangeGenerator, self).__init__(**kwargs)
         self.file_output = self._get_output()
         if self.output is None:
-            self.output = self.file_output
+            self.output = self._get_output_from_items()
+
+    def _get_output_from_items(self):
+        """Construct output from set items"""
+        # ToDo
+        pass
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
-        var = super(Flow123dAction, self)._get_variables_script()
-        var.append("YAMLFile='{0}'".format(self.variables["YAMLFile"]))
+        var = super(RangeGenerator, self)._get_variables_script()
+        if self.variables["AllCases"]:
+            var.append("AllCases=False")
         return var
 
     def _get_runner(self, params):    

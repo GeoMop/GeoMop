@@ -43,8 +43,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """unique action number"""
         self.inputs = []
         """dictionary names => types of input ports"""
-        self.outputs = []
-        """dictionary names => types of output ports"""
+        self.output = None
+        """DTT type on output port"""
         self.variables = {}
         """dictionary names => types of variables"""
         self.type = ActionType.simple
@@ -55,9 +55,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
             elif name == 'Inputs':
                 self.inputs.extend(value)
             elif name == 'Output':
-                self.outputs.append(value)
-            elif name == 'Outputs':
-                self.outputs.extend(value)
+                self.output=value
             else:
                 self.variables[name] = value
     
@@ -73,7 +71,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self.id), self.__class__.__name__))
-        lines.append("        Input = [")
+        lines.append("        Inputs = [")
         is_emty=True
         for input in self.inputs:
             is_emty=False
@@ -86,17 +84,14 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if not is_emty:
             lines[-1] = lines[-1][:-1]
         lines.append("        ],")
-        lines.append("        Output = [")
-        
-        is_emty=True
-        for output in self.outputs:
-            if not (isinstance(input, BaseDTT) or  isinstance(input, CompositeDTT)):
+
+        if self.output is not None:
+            lines.append("        Output = (")
+            if not (isinstance(self.output, BaseDTT) or  isinstance(self.output, CompositeDTT)):
                 raise Exception("Unknown output type")
-            is_emty=False
-            lines.extend(Formater.format_parameter(output.get_settings_script(), 12))
-        if not is_emty:
+            lines.extend(Formater.format_parameter(self.output.get_settings_script(), 12))
             lines[-1] = lines[-1][:-1]
-        lines.append("        ],") 
+        lines.append("        ),") 
         for script in self._get_variables_script():
             lines.append("        {0},".format(script))
         lines[-1] = lines[-1][:-1]
@@ -136,6 +131,19 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """check if all require params is set"""
         pass
 
+class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
+        def __init__(self, **kwargs):
+            super(GeneratorActionType, self).__init__(**kwargs)
+            
+        def _check_params(self):    
+            """check if all require params is set"""
+            err = []
+            if len(self.inputs)<1:
+                err.append("Convertor action require at least one input parameter")
+            if self.output is not None:
+                err.append("Convertor action require exactly one output parameter")
+            return err
+
 class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
         def __init__(self, **kwargs):
             super(GeneratorActionType, self).__init__(**kwargs)
@@ -145,8 +153,8 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
             err = []
             if len(self.inputs)>0:
                 err.append("Generator action not use input parameter")
-            if len(self.outputs)>0:
-                err.append("Generator action require exactly one output parameter")
+            if self.output is None:
+                err.append("Generator action require output parameter")
             return err
             
 class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -156,8 +164,6 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
         def _check_params(self):    
             """check if all require params is set"""
             err = []
-            if len(self.inputs)>0:
+            if len(self.inputs)  != 1:
                 err.append("Parametrized action require exactly one input parameter")
-            if len(self.outputs)>0:
-                err.append("Parametrized action require exactly one output parameter")
             return err
