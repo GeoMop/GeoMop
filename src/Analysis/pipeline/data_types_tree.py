@@ -32,6 +32,10 @@ class BaseDTT(metaclass=abc.ABCMeta):
     def get_settings_script(self):
         """return python script, that create instance of this class"""
         pass
+        
+    def __str__(self):
+        """return string description"""
+        return "\n".join(self.get_settings_script())
 
     @abc.abstractmethod 
     def is_set(self):
@@ -174,45 +178,38 @@ class CompositeDTT(metaclass=abc.ABCMeta):
     Abbstract class od port types, that define user for
     validation and translation to string
     """
-    def __init__(self, subtype, *args):
-        self.subtype = subtype
-        """Contained type"""
-        self.list = []
-        if len(args) == 1 and isinstance(args[0], list):
-            for value in args[0]:
-                self.list.append(value)
-        else:
-            for arg in args:
-                self.list.append(arg)
+    def __init__(self, *args):
+        pass
+                
     
+    @abc.abstractmethod
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        pass
+        
+    def __str__(self):
+        """return string description"""
+        return "\n".join(self.get_settings_script())
+
+
+    @abc.abstractmethod
     def to_string(self, value):
         """Presentation of type in json yaml"""
-        if self.subtype is None:
-            return None
-        try:
-            res = "[\n"
-            first = True
-            for subvalue in value:
-                if first:
-                    first = False
-                else:
-                    res += ",\n"
-                res += self.subtype.to_string(subvalue)
-            res += "]\n"
-        except:
-            return None    
-            
+        pass
+    
+    @abc.abstractmethod    
     def match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
-        return True
-        
+        pass
+    
+    @abc.abstractmethod
     def is_set(self):
         """
         return if structure contain real data
         """
-        return True
+        pass
  
 class Struct(CompositeDTT):
     """
@@ -226,34 +223,6 @@ class Struct(CompositeDTT):
         for name, value in kwargs.items():
             setattr(self, name, value)
    
-    def merge(self, composite):
-        """merge to composite types of same type"""
-        for name, value in composite.__dict__.items():
-            setattr(self, name, value)
-        
-    def reduce_values(self, *values):
-        """delete all values diferent from set"""
-        dell_list=[]
-        for name, value in self.__dict__.items():
-            if value not in values: 
-                dell_list.append(name)
-        for name in dell_list:
-            delattr(self, name)
-
-    def reduce_keys(self, *values):
-        """delete all keys diferent from set"""
-        dell_list=[]
-        for name, value in self.__dict__.items():
-            if name not in values: 
-                dell_list.append(name)
-        for name in dell_list:
-            delattr(self, name)
-
-    def add(self, **values):
-        """add values to composite"""
-        for name, value in values.items():
-            setattr(self, name, value)
-    
     def to_string(self):
         """Presentation of type in json yaml"""
         try:
@@ -336,17 +305,80 @@ class Ensemble(CompositeDTT):
     Array
     """
     def __init__(self, subtype, *args):
-        super(Ensemble, self).__init__()
-   
-    def merge(self, composite):
-        """merge to composite types of same type"""
-        for arg in composite.list:
-                self.list.append(arg)
+        self.subtype = subtype
+        """Contained type as DTT, this is for checking type"""
+        self.pos=0
+        """iterator possition"""
+        self.list = []
+        """Items is save internaly as list"""
+        if len(args) == 1 and isinstance(args[0], list):
+            for value in args[0]:
+                self._add_item(value)
+        else:
+            for arg in args:
+                self._add_item(arg)
+                
+    def _add_item(self, value):
+        if not isinstance(value, BaseDTT) and \
+            not isinstance(value, CompositeDTT):
+                raise ValueError('Ensemble must have DTT value type.')
+        if self.subtype.match_type(value):
+            self.list.append(value)
+        else:
+            raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
         
-    def reduce_values(self, *values):
-        """delete all values diferent from set"""
-        new_list=[]
-        for arg in self.list:
-            if arg in values: 
-                new_list.append(arg)
-        self.list=new_list
+    def to_string(self, value):
+        """Presentation of type in json yaml"""
+        try:
+            res = "[\n"
+            first = True
+            for value in self.list:
+                if first:
+                    first = False
+                else:
+                    res += ",\n"
+                res += self.value.to_string()
+            res += "]\n"
+        except:
+            return None    
+    
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        try:
+            lines = ["Ensemble("]
+            lines.extend(Formater.format_parameter(self.subtype, 4))
+            for value in self.list():
+                param = value.get_settings_script()
+                lines.extend(Formater.format_parameter(param, 4))
+            lines[-1] = lines[-1][:-1]
+            lines.append(")")
+        except Exception as ex:
+            raise Exception("Unknown input type" +str(ex))
+        return lines
+
+    def match_type(self, type_tree):
+        """
+        Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
+        """
+        return  self.subtype.match_type(type_tree.subtype)
+        
+    def is_set(self):
+        """
+        return if structure contain real data
+        """
+        for value in self.list:
+            if not value.is_set():
+                return False
+        return True
+        
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self.pos < self.list:
+            ret = self.list[self.pos]
+            self.pos += 1
+            return ret
+        else:
+            raise StopIteration()
+    

@@ -59,8 +59,9 @@ class Flow123dAction(ParametrizedActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = self._check_params()
-        if not self.output.match_type(self.file_output):
-            err.append("Output type validation fails")
+        if self.output is not None:
+            if not self.output.match_type(self.file_output):
+                err.append("Output type validation fails")
         if isinstance(input[0], BaseActionType) and len(self.inputs)>0:
             input_type = self.inputs[0].output
             if input_type is None:

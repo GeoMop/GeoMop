@@ -1,5 +1,5 @@
-from .action_types import GeneratorActionType, Runner, ActionType, BaseActionType
-from .data_types_tree import CompositeDTT
+from .action_types import GeneratorActionType
+from .data_types_tree import Ensemble, Struc, Float
 
 class RangeGenerator(GeneratorActionType):
     
@@ -24,28 +24,36 @@ class RangeGenerator(GeneratorActionType):
         :param AllCases bool: Cartesian product, default value False:
         """
         super(RangeGenerator, self).__init__(**kwargs)
-        self.file_output = self._get_output()
         if self.output is None:
             self.output = self._get_output_from_items()
 
     def _get_output_from_items(self):
         """Construct output from set items"""
-        # ToDo
-        pass
-
+        params = {}
+        if 'Items' in self.variables:
+            if isinstance(self.variables['Items'], list):
+                for item in self.variables['Items']:
+                    if isinstance(item,  dict):
+                        if 'name' in item:
+                            try:
+                                params[item['name']] = Float()
+                            except:
+                                pass
+        if len(params)>1:                    
+            self.output = Ensemble(Struc(params)) 
+ 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(RangeGenerator, self)._get_variables_script()
         if self.variables["AllCases"]:
-            var.append("AllCases=False")
+            var.append("AllCases=True")            
         return var
 
     def _get_runner(self, params):    
         """
         return Runner class with process description
-        """
-        runner = Runner("flow123d", [], self.type)
-        return runner
+        """        
+        return None
         
     def run(self):    
         """
@@ -53,52 +61,42 @@ class RangeGenerator(GeneratorActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        
-        file = self._parametrise_file()
-        return  self._get_runner(file)
+        # ToDo generate ensemble
+        return  self._get_runner(None)
 
     def _check_params(self):    
         """check if all require params is set"""
-        err = super(Flow123dAction, self)._check_params()
-        if 'YAMLFile' not in self.variables:
-            err.append("Flow123d action require YAMLFile parameter")
+        err = super(RangeGenerator, self)._check_params()
         if self.output is None:
-                    err.append("Can't determine output from YAML file")
+            err.append("Can't determine output from items parameter")
+        else:            
+            if not isinstance(self.variables['Output'],Ensemble):
+                err.append("Output type must be Ensemble type")
+        if 'Items' not in self.variables:
+            err.append("Parameter 'Items' must have at least one item")
+        else:    
+            if not isinstance(self.variables['Items'], list):
+                err.append("Items parameter must be List")
+            else:
+                if len(self.variables['Items'])<1:
+                    err.append("Items parameter must be List")
+                else:
+                    i=0
+                    for item in self.variables['Items']:
+                        if not isinstance(item,  dict):
+                            err.append("Item[{0}] in Items list is not Dictionary".format(str(i)))
+                        else:
+                            if not 'name' in item:
+                                err.append("Parameter 'name' in item[{0}] is required".format(str(i)))
+                            if not 'value' in item:
+                                err.append("Parameter 'value' in item[{0}] is required".format(str(i)))
+                        i += 1
         return err
         
     def validate(self):    
         """validate variables, input and output"""
         err = self._check_params()
-        if not self.output.match_type(self.file_output):
-            err.append("Output type validation fails")
-        if isinstance(input[0], BaseActionType) and len(self.inputs)>0:
-            input_type = self.inputs[0].output
-            if input_type is None:
-                err.append("Can't validate input (Output slot of input action is empty)")
-            else:
-                params =  self.get_require_params(self)
-                for param in params:
-                    if not hasattr(self.inputs[0],  param) :
-                        err.append("Yaml parameter {0} is not set in input")                
-        else:
-            if len(self.inputs)>0 and isinstance(input[0], CompositeDTT):
-                if not input[0].is_set():
-                    err.append("Input data can't be empty DTT")
+        if self.output is None:
+            if not self.output.match_type(self._get_output_from_items):
+                err.append("Comparation of output type and items fails")
         return err
-        
-    def get_require_params(self):
-        """Return list of params needed for completation of Yaml file"""
-        # ToDo logic
-        pass
-        
-    def _get_output(self):
-        """Return DTT output structure from Yaml file"""
-        # ToDo logic
-        pass
-        
-    def _parametrise_file(self):
-        """Rename and make completation of Yaml file and return new file path"""
-        # ToDo logic
-        pass
-        
-    
