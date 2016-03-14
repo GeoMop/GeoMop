@@ -313,12 +313,12 @@ class Ensemble(CompositeDTT):
         """Items is save internaly as list"""
         if len(args) == 1 and isinstance(args[0], list):
             for value in args[0]:
-                self._add_item(value)
+                self.add_item(value)
         else:
             for arg in args:
                 self._add_item(arg)
                 
-    def _add_item(self, value):
+    def add_item(self, value):
         if not isinstance(value, BaseDTT) and \
             not isinstance(value, CompositeDTT):
                 raise ValueError('Ensemble must have DTT value type.')

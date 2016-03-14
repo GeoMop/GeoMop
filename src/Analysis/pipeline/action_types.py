@@ -2,6 +2,7 @@ import abc
 from enum import IntEnum
 from .data_types_tree import BaseDTT, CompositeDTT
 from .code_formater import Formater
+import math
 
 class ActionType(IntEnum):
     """Action type"""
@@ -130,6 +131,62 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _check_params(self):
         """check if all require params is set"""
         pass
+    
+    @staticmethod
+    def _check_var_name(value):
+        """Check if value is correct variable name"""
+        if isinstance(value, str):
+            class A:
+                def __init__(self):
+                    pass
+            a = A()
+        try:
+            setattr(a, value, 1)
+            return getattr(a, value)==1
+        except:
+            pass
+        return False
+        
+    @staticmethod
+    def _check_int(value):
+        """Check if value is correct integer"""
+        if isinstance(value, int):
+            return True
+        if isinstance(value, float):
+            v1=int(value)
+            v2=math.floor(value)
+            return v1==v2
+        if isinstance(value, str):    
+            try:
+                int(value)
+                return True
+            except ValueError:
+                pass
+        return False
+        
+    
+    @staticmethod
+    def _check_float(value):
+        """Check if value is correct float"""
+        if isinstance(value, int):
+            return True
+        if isinstance(value, float):
+            return True
+        if isinstance(value, str):    
+            try:
+                float(value)
+                return True
+            except ValueError:
+                pass
+        return False
+
+    @staticmethod
+    def _check_bool(value):
+        """Check if value is correct Boolean"""
+        if isinstance(value, bool):
+            return True
+        return False
+
 
 class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
         def __init__(self, **kwargs):

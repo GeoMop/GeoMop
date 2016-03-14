@@ -1,5 +1,6 @@
 from .action_types import GeneratorActionType
 from .data_types_tree import Ensemble, Struc, Float
+import copy
 
 class RangeGenerator(GeneratorActionType):
     
@@ -61,8 +62,59 @@ class RangeGenerator(GeneratorActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
+        if 'Items' not in self.variables:
+            return None
+        if not isinstance(self.variables['Items'], list):
+            return None
+        if self.output is None:
+            return None
+        if not isinstance(self.variables['Output'],Ensemble):    
+            return None
+        template =copy.deepcopy(self.output.subtype)
+        # first is middle
+        self.output.add_item(template)
+        for item in self.variables['Items']:
+            if not isinstance(item,  dict):
+                continue                
+            if 'name' in item and item['name'] in template:
+                if 'name' in item:
+                    setattr(template, item['value'])
+        for item in self.variables['Items']:
+            if 'AllCases' in self.variables and self.variables['AllCases']:
+                ready = copy.deepcopy(self.output)
+                for template_i in ready:
+                    self._generate_step(template_i, item)
+            else:
+                self._generate_step(template, item)
+                
         # ToDo generate ensemble
         return  self._get_runner(None)
+        
+    def _generate_step(self, template, item):
+        """generate plus and minus variants for one item"""
+        plus = 1
+        if 'n_plus' in item:
+            plus = item['n_plus']
+        minus = 1
+        if 'n_minus' in item:
+            minus = item['n_minus']
+        step = 1
+        if 'step' in item:
+            step = item['step']
+        for i in range(0, plus):
+            template2 =copy.deepcopy(template)
+            rstep = (i+1)*step
+            if 'exponential' in item and item['exponential']:
+                rstep *= 2**i
+            template2.value += rstep
+            self.output.add_item(template2)
+        for i in range(0, minus):
+            template2 =copy.deepcopy(template)
+            rstep = (i+1)*step
+            if 'exponential' in item and item['exponential']:
+                rstep *= 2**i
+            template2.value -= rstep
+            self.output.add_item(template2)                
 
     def _check_params(self):    
         """check if all require params is set"""
@@ -88,8 +140,26 @@ class RangeGenerator(GeneratorActionType):
                         else:
                             if not 'name' in item:
                                 err.append("Parameter 'name' in item[{0}] is required".format(str(i)))
+                            else:
+                                if not self._check_var_name(item['name']):
+                                    err.append("Parameter 'name' in item[{0}] is not valid attribut name".format(str(i)))
                             if not 'value' in item:
                                 err.append("Parameter 'value' in item[{0}] is required".format(str(i)))
+                            else:
+                                if not self._check_float(item['value']):
+                                    err.append("Parameter 'value' in item[{0}] is not valid float".format(str(i)))
+                            if 'step' in item:
+                                if not self._check_float(item['step']):
+                                    err.append("Parameter 'step' in item[{0}] is not valid float".format(str(i)))
+                            if 'n_plus' in item:
+                                if not self._check_int(item['n_plus']):
+                                    err.append("Parameter 'n_plus' in item[{0}] is not valid integer".format(str(i)))
+                            if 'n_minus' in item:
+                                if not self._check_int(item['n_minus']):
+                                    err.append("Parameter 'n_minus' in item[{0}] is not valid integer".format(str(i)))
+                            if 'exponential' in item:
+                                if not self._check_int(item['exponential']):
+                                    err.append("Parameter 'exponential' in item[{0}] is not valid boolean".format(str(i)))
                         i += 1
         return err
         
