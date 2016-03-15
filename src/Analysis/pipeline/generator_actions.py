@@ -1,5 +1,5 @@
 from .action_types import GeneratorActionType
-from .data_types_tree import Ensemble, Struc, Float
+from .data_types_tree import Ensemble, Struct, Float
 import copy
 
 class RangeGenerator(GeneratorActionType):
@@ -16,7 +16,7 @@ class RangeGenerator(GeneratorActionType):
             from values as Struct of set names 
         :param Dictionary Items: Dictionary that describe generated
             way how generate result. Values have this attributes::
-                - :name(string):require  variable name 
+                - :name(string):require  variabvar.append(["AllCases=True"])le name 
                 - :value(float): require variable middle value
                 - :step(float): default 1, step for generation
                 - :n_plus(integer): default 1, amount of plus steps
@@ -41,13 +41,39 @@ class RangeGenerator(GeneratorActionType):
                             except:
                                 pass
         if len(params)>1:                    
-            self.output = Ensemble(Struc(params)) 
+            self.output = Ensemble(Struct(params)) 
  
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(RangeGenerator, self)._get_variables_script()
-        if self.variables["AllCases"]:
-            var.append("AllCases=True")            
+        if 'Items' in self.variables:
+            if isinstance(self.variables['Items'], list):
+                i=1
+                items=['Items = [']
+                for item in self.variables['Items']:
+                    if isinstance(item,  dict):
+                        if not 'name' in item or not 'value' in item:
+                            continue
+                        items.append("    {0}'name':'{1}'".format('{', item['name']))
+                        if 'value' in item:
+                            items[i] += (", 'value':{0}".format(str(item['value'])))
+                        if 'step' in item:
+                            items[i] += (", 'step':{0}".format(str(item['step'])))
+                        if 'n_plus' in item:
+                            items[i] += (", 'n_plus':{0}".format(str(item['n_plus'])))
+                        if 'n_minus' in item:
+                            items[i] += (", 'n_minus':{0}".format(str(item['n_minus'])))
+                        if 'exponential' in item and item['exponential']:
+                            items[i] += (", 'exponential':True")
+                        items[i] += "},"
+                        i += 1
+                if i>1:
+                    items[i-1]=items[i-1][:-1]
+                    items.append(']')
+                    var.append(items)
+        if 'AllCases' in self.variables and self.variables["AllCases"]:
+            var.append(["AllCases=True"])
+            
         return var
 
     def _get_runner(self, params):    

@@ -45,7 +45,7 @@ class BaseDTT(metaclass=abc.ABCMeta):
         pass
     
     @abc.abstractmethod 
-    def assigne(self):
+    def assigne(self, value):
         """
         Assigne appropriate python variable to data     
         """
@@ -61,6 +61,46 @@ class BaseDTT(metaclass=abc.ABCMeta):
     @property
     def value(self):
         return self.getter()
+
+    @value.setter
+    def my_attr(self, value):
+        self.assigne(value)
+    
+    def __lt__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__lt__(other.value)
+        return self.value.__lt__(other)
+        
+    def __le__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__le__(other.value)
+        return self.value.__le__(other)
+        
+    def __eq__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__eq__(other.value)
+        return self.value.__eq__(other)
+        
+    def __ne__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__ne__(other.value)
+        return self.value.__ne__(other)
+        
+    def __gt__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__gt__(other.value)
+        return self.value.__gt__(other)
+        
+    def __ge__(self, other):
+        """operators for comaration"""
+        if isinstance(other, BaseDTT):
+            return self.value.__ge__(other.value)
+        return self.value.__ge__(other)
         
 class Int(BaseDTT):
     """
@@ -245,10 +285,10 @@ class Struct(CompositeDTT):
         try:
             lines = ["Struct("]
             is_emty=True
-            for name, value in self.__dict__.items():
+            for name in sorted(self.__dict__):
                 is_emty=False
-                param = value.get_settings_script()
-                lines.extend(Formater.format_parameter(param, 4))
+                param = self.__dict__[name].get_settings_script()
+                lines.extend(Formater.format_variable(name, param, 4))
             if not is_emty:
                 lines[-1] = lines[-1][:-1]
             lines.append(")")
@@ -316,7 +356,7 @@ class Ensemble(CompositeDTT):
                 self.add_item(value)
         else:
             for arg in args:
-                self._add_item(arg)
+                self.add_item(arg)
                 
     def add_item(self, value):
         if not isinstance(value, BaseDTT) and \
@@ -346,14 +386,15 @@ class Ensemble(CompositeDTT):
         """return python script, that create instance of this class"""
         try:
             lines = ["Ensemble("]
-            lines.extend(Formater.format_parameter(self.subtype, 4))
-            for value in self.list():
+            param = self.subtype.get_settings_script()
+            lines.extend(Formater.format_parameter(param, 4))
+            for value in self.list:
                 param = value.get_settings_script()
                 lines.extend(Formater.format_parameter(param, 4))
             lines[-1] = lines[-1][:-1]
             lines.append(")")
         except Exception as ex:
-            raise Exception("Unknown input type" +str(ex))
+            raise Exception("Unknown input type ({0})".format(str(ex)))
         return lines
 
     def match_type(self, type_tree):

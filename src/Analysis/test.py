@@ -1,17 +1,15 @@
 from pipeline.data_types_tree import *
-from pipeline.parametrized_actions import *
+from pipeline.generator_actions import *
 
-var1 = Struct(test1=Int(1), test2=String("Test"))
-var2 = Struct(test1=Int(), test2=String(), test3=Int())
+output = Ensemble(Struct(a=Int(1), b=Int(10)))
+items = [
+    {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
+    {'name':'b', 'value':10, 'step':1, 'n_plus':2, 'n_minus':3,'exponential':True} 
+]
+gen=RangeGenerator(Output=output, Items=items)
+test=gen.get_settings_script()
+res = "\n".join(test)
+i=1
 
-ens1 = Ensemble(var1, 
-    Struct(test1=Int(1), test2=String("Test1")), 
-    Struct(test1=Int(2), test2=String("Test2")), 
-    Struct(test1=Int(3), test2=String("Test3"))) 
-ens2 = Ensemble(var2, 
-    Struct(test1=Int(1), test2=String("Test1"), test3=Int()), 
-    Struct(test1=Int(2), test2=String("Test2"), test3=Int()), 
-    Struct(test1=Int(3), test2=String("Test3"), test3=Int())) 
-    
-set = ens1.is_set()
-match = ens1.match_type(ens2)  
+
+

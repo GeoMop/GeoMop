@@ -27,7 +27,7 @@ class Flow123dAction(ParametrizedActionType):
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
-        var.append("YAMLFile='{0}'".format(self.variables["YAMLFile"]))
+        var.append(["YAMLFile='{0}'".format(self.variables["YAMLFile"])])
         return var
 
     def _get_runner(self, params):    

@@ -72,38 +72,45 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self.id), self.__class__.__name__))
-        lines.append("        Inputs = [")
-        is_emty=True
-        for input in self.inputs:
-            is_emty=False
-            if isinstance(input, BaseDTT) or  isinstance(input, CompositeDTT):
-                lines.extend(Formater.format_parameter(input.get_settings_script(), 12))
-            elif isinstance(input, BaseActionType):
-                lines.append("            {0},".format(input.get_instance_name()))
-            else:
-                raise Exception("Unknown input type")
-        if not is_emty:
-            lines[-1] = lines[-1][:-1]
-        lines.append("        ],")
-
+        if len(self.inputs)>0: 
+            lines.append("    Inputs = [")
+            is_emty=True
+            for input in self.inputs:
+                is_emty=False
+                if isinstance(input, BaseDTT) or  isinstance(input, CompositeDTT):
+                    lines.extend(Formater.format_parameter(input.get_settings_script(), 8))
+                elif isinstance(input, BaseActionType):
+                    lines.append("        {0},".format(input.get_instance_name()))
+                else:
+                    raise Exception("Unknown input type")
+            if not is_emty:
+                lines[-1] = lines[-1][:-1]
+            lines.append("    ],")
         if self.output is not None:
-            lines.append("        Output = (")
+            lines.append("    Output = (")
             if not (isinstance(self.output, BaseDTT) or  isinstance(self.output, CompositeDTT)):
                 raise Exception("Unknown output type")
-            lines.extend(Formater.format_parameter(self.output.get_settings_script(), 12))
-            lines[-1] = lines[-1][:-1]
-        lines.append("        ),") 
+            lines.extend(Formater.indent(self.output.get_settings_script(), 8))
+            lines.append("    ),") 
         for script in self._get_variables_script():
-            lines.append("        {0},".format(script))
-        lines[-1] = lines[-1][:-1]
-        lines.append("    )")
+            lines.extend(Formater.indent(script, 4))
+            lines[-1] += ","
+        if len(lines)==1:
+            lines[0] = lines[0]+')'
+        else:
+            lines[-1] = lines[-1][:-1]
+            lines.append(")")
         return lines
             
     def get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self.id))
         
     def _get_variables_script(self):    
-        """return array of variables as python scripts"""
+        """
+        return array of variables as python scripts
+        each item is array of variables in format 'variable=value'
+        if value is extend to more lines, value must be closed to bracked
+        """
         return []
         
     @abc.abstractmethod 
