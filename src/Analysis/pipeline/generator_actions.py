@@ -41,7 +41,8 @@ class RangeGenerator(GeneratorActionType):
                             except:
                                 pass
         if len(params)>1:                    
-            self.output = Ensemble(Struct(params)) 
+            return Ensemble(Struct(params))
+        return None
  
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -94,7 +95,7 @@ class RangeGenerator(GeneratorActionType):
             return None
         if self.output is None:
             return None
-        if not isinstance(self.variables['Output'],Ensemble):    
+        if not isinstance(self.output,Ensemble):    
             return None
         template =copy.deepcopy(self.output.subtype)
         # first is middle
@@ -104,7 +105,7 @@ class RangeGenerator(GeneratorActionType):
                 continue                
             if 'name' in item and item['name'] in template:
                 if 'name' in item:
-                    setattr(template, item['value'])
+                    setattr(template, item['name'], item['value'])
         for item in self.variables['Items']:
             if 'AllCases' in self.variables and self.variables['AllCases']:
                 ready = copy.deepcopy(self.output)
@@ -131,15 +132,17 @@ class RangeGenerator(GeneratorActionType):
             template2 =copy.deepcopy(template)
             rstep = (i+1)*step
             if 'exponential' in item and item['exponential']:
-                rstep *= 2**i
-            template2.value += rstep
+                rstep = 2**i*step
+            setattr(template2, item['name'], 
+                getattr(template2, item['name']).value+rstep)    
             self.output.add_item(template2)
         for i in range(0, minus):
             template2 =copy.deepcopy(template)
             rstep = (i+1)*step
             if 'exponential' in item and item['exponential']:
-                rstep *= 2**i
-            template2.value -= rstep
+                rstep = 2**i*step
+            setattr(template2, item['name'], 
+                getattr(template2, item['name']).value-rstep)    
             self.output.add_item(template2)                
 
     def _check_params(self):    
@@ -148,7 +151,7 @@ class RangeGenerator(GeneratorActionType):
         if self.output is None:
             err.append("Can't determine output from items parameter")
         else:            
-            if not isinstance(self.variables['Output'],Ensemble):
+            if not isinstance(self.output,Ensemble):
                 err.append("Output type must be Ensemble type")
         if 'Items' not in self.variables:
             err.append("Parameter 'Items' must have at least one item")
@@ -192,7 +195,7 @@ class RangeGenerator(GeneratorActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = self._check_params()
-        if self.output is None:
-            if not self.output.match_type(self._get_output_from_items):
-                err.append("Comparation of output type and items fails")
+        if self.output is not None:
+            if not self.output.match_type(self._get_output_from_items()):
+                err.append("Comparation of output type and type from items fails")
         return err

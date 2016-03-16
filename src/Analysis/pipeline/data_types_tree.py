@@ -251,6 +251,23 @@ class CompositeDTT(metaclass=abc.ABCMeta):
         """
         pass
  
+class CompositiIter:
+    """Help class for iteration composites"""
+    def __init__(self,  composite):
+        self.i = 0
+        self.c=composite
+        
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        ret = self.c.get_item(self.i)
+        if ret is None:
+            raise StopIteration()
+        else:
+            self.i += 1
+        return ret
+ 
 class Struct(CompositeDTT):
     """
     Object
@@ -269,6 +286,8 @@ class Struct(CompositeDTT):
             res = "{\n"
             first = True
             for name, value in self.__dict__.items():
+                if name[:2] == '__' and name[-2:] == '__':
+                    continue
                 if first:
                     first = False
                 else:
@@ -286,6 +305,8 @@ class Struct(CompositeDTT):
             lines = ["Struct("]
             is_emty=True
             for name in sorted(self.__dict__):
+                if name[:2] == '__' and name[-2:] == '__':
+                    continue
                 is_emty=False
                 param = self.__dict__[name].get_settings_script()
                 lines.extend(Formater.format_variable(name, param, 4))
@@ -301,6 +322,8 @@ class Struct(CompositeDTT):
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         for name, value in self.__dict__.items():
+            if name[:2] == '__' and name[-2:] == '__':
+                continue
             if not name in type_tree.__dict__:
                 return False
             if type(value) is not type(type_tree.__dict__[name]):
@@ -315,6 +338,8 @@ class Struct(CompositeDTT):
         return if structure contain real data
         """
         for name, value in self.__dict__.items():
+            if name[:2] == '__' and name[-2:] == '__':
+                continue
             if value is None:
                 return False
             if isinstance(value, BaseDTT):
@@ -331,14 +356,24 @@ class Struct(CompositeDTT):
                 raise ValueError('Not supported assignation type.')
         elif isinstance(self.__dict__[name], BaseDTT):
             self.__dict__[name].assigne(value)
+        elif name[:2] == '__' and name[-2:] == '__':
+            self.__dict__[name]=value
         else:
             raise ValueError('Not supported reassignation type.')
             
     def __getattr__(self, name): 
         """save assignation"""
+        if name[:2] == '__' and name[-2:] == '__':
+            if name in self.__dict__:
+                return self.__dict__[name]
+            else:
+                raise AttributeError(name)
         if name not in self.__dict__:
             raise ValueError('Variable is not assignated.')
         return self.__dict__[name].getter()
+        
+    def __contains__(self, key):
+        return key in self.__dict__
 
 class Ensemble(CompositeDTT):
     """
@@ -346,8 +381,6 @@ class Ensemble(CompositeDTT):
     """
     def __init__(self, subtype, *args):
         self.subtype = subtype
-        """Contained type as DTT, this is for checking type"""
-        self.pos=0
         """iterator possition"""
         self.list = []
         """Items is save internaly as list"""
@@ -413,13 +446,9 @@ class Ensemble(CompositeDTT):
         return True
         
     def __iter__(self):
-        return self
+        return CompositiIter(self)
 
-    def next(self):
-        if self.pos < self.list:
-            ret = self.list[self.pos]
-            self.pos += 1
-            return ret
-        else:
-            raise StopIteration()
-    
+    def get_item(self, i):       
+        if i < len(self.list):
+            return self.list[i]
+        return None    

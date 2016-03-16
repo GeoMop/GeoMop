@@ -196,38 +196,67 @@ class BaseActionType(metaclass=abc.ABCMeta):
 
 
 class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
-        def __init__(self, **kwargs):
-            super(GeneratorActionType, self).__init__(**kwargs)
-            
-        def _check_params(self):    
-            """check if all require params is set"""
-            err = []
-            if len(self.inputs)<1:
-                err.append("Convertor action require at least one input parameter")
-            if self.output is not None:
-                err.append("Convertor action require exactly one output parameter")
-            return err
+    def __init__(self, **kwargs):
+        super(GeneratorActionType, self).__init__(**kwargs)
+        
+    def _check_params(self):    
+        """check if all require params is set"""
+        err = []
+        if len(self.inputs)<1:
+            err.append("Convertor action require at least one input parameter")
+        if self.output is not None:
+            err.append("Convertor action require exactly one output parameter")
+        return err
 
 class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
-        def __init__(self, **kwargs):
-            super(GeneratorActionType, self).__init__(**kwargs)
-            
-        def _check_params(self):    
-            """check if all require params is set"""
-            err = []
-            if len(self.inputs)>0:
-                err.append("Generator action not use input parameter")
-            if self.output is None:
-                err.append("Generator action require output parameter")
-            return err
+    def __init__(self, **kwargs):
+        super(GeneratorActionType, self).__init__(**kwargs)
+        
+    def _check_params(self):    
+        """check if all require params is set"""
+        err = []
+        if len(self.inputs)>0:
+            err.append("Generator action not use input parameter")
+        if self.output is None:
+            err.append("Generator action require output parameter")
+        return err
             
 class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
-        def __init__(self, **kwargs):
-            super(ParametrizedActionType, self).__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super(ParametrizedActionType, self).__init__(**kwargs)
+        
+    def _check_params(self):    
+        """check if all require params is set"""
+        err = []
+        if len(self.inputs)  != 1:
+            err.append("Parametrized action require exactly one input parameter")
+        return err
             
-        def _check_params(self):    
-            """check if all require params is set"""
-            err = []
-            if len(self.inputs)  != 1:
-                err.append("Parametrized action require exactly one input parameter")
-            return err
+class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
+    """
+    Wrapper for some action (usualy workflow), that provide cyclic
+    procesing
+    
+    :param BaseActionType WrappedAction: Wrapped action
+    """
+    def __init__(self, **kwargs):
+        super(WrapperActionType, self).__init__(**kwargs)
+        
+    def _check_params(self):    
+        """check if all require params is set"""
+        err = []
+        if  not 'WrappedAction' in self.variables:
+            err.append("Parameter 'WrappedAction' is require")
+        else:
+            if not isinstance(self.variables['WrappedAction'],  BaseActionType):
+                err.append("Parameter 'WrappedAction' must be BaseActionType")            
+        if len(self.inputs)  != 1:
+            err.append("Wrapper action require exactly one input parameter")
+        return err
+        
+    def _get_variables_script(self):    
+        """return array of variables python scripts"""
+        var = super(WrapperActionType, self)._get_variables_script()
+        if 'WrappedAction' in self.variablesand and \
+            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            var.append(["WrappedAction={0}".format(self.variables['WrappedAction'].get_instance_name())])
