@@ -220,7 +220,6 @@ class ConfigBuilder:
             for filename in filenames:
                 if filename.endswith('.yaml'):
                     abs_path = os.path.join(root, filename)
-                    # TODO correct path? mj_conf/abc.yaml or abc.yaml
                     rel_path = os.path.relpath(abs_path, start=mj_dir)
                     # windows path workaround
                     rel_path_unix = '/'.join(rel_path.split(os.path.sep))
