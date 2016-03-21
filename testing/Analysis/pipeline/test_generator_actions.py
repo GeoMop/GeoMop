@@ -4,7 +4,7 @@ from .pomfce import *
 import pipeline.action_types as action
 import os
 
-def test_flow_code_init():
+def test_generator_code_init():
     output = Ensemble(Struct(a=Int(1), b=Int(10)))
     items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
@@ -13,6 +13,7 @@ def test_flow_code_init():
     action.__action_counter__ = 0
     #init generator
     gen=RangeGenerator(Output=output, Items=items)
+    gen.inicialize()
     test=gen.get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "gen1.py"), test)
     # generator by exec
@@ -27,10 +28,11 @@ def test_flow_code_init():
         assert RangeGenerator_1.variables['Items'][i]['n_minus'] == gen.variables['Items'][i]['n_minus']
     assert RangeGenerator_1.variables['Items'][1]['exponential'] == gen.variables['Items'][1]['exponential']
     
-    assert RangeGenerator_1.output.subtype.a == gen.output.subtype.a
-    assert RangeGenerator_1.output.subtype.b == gen.output.subtype.b
+    assert RangeGenerator_1.outputs[0].subtype.a == gen.outputs[0].subtype.a
+    assert RangeGenerator_1.outputs[0].subtype.b == gen.outputs[0].subtype.b
     
     # test validation
+    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==1
     if len(err)>0:
@@ -38,22 +40,26 @@ def test_flow_code_init():
         assert err[0]=="Comparation of output type and type from items fails"
     output2 = Ensemble(Struct(a=Float(1), b=Float(10)))
     gen=RangeGenerator(Output=output2, Items=items)
+    gen.inicialize()
     # valid output
+    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0
     
     #without output
     action.__action_counter__ = 0
     gen=RangeGenerator(Items=items)
+    gen.inicialize()
+    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0    
-    assert isinstance(gen.output.subtype.a, Float)
-    assert isinstance(gen.output.subtype.b, Float)
+    assert isinstance(gen.outputs[0].subtype.a, Float)
+    assert isinstance(gen.outputs[0].subtype.b, Float)
     
     #range generation
     assert gen. run() == None
     i=0
-    for out in gen.output:
+    for out in gen.outputs[0]:
         if i== 0:
             assert out.a == 1
             assert out.b == 10
@@ -87,15 +93,17 @@ def test_flow_code_init():
         {'name':'b', 'value':10, 'step':1, 'n_plus':2, 'n_minus':0,'exponential':True} 
     ]
     gen=RangeGenerator(Items=items, AllCases=True)
+    gen.inicialize()
+    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0    
-    assert isinstance(gen.output.subtype.a, Float)
-    assert isinstance(gen.output.subtype.b, Float)
+    assert isinstance(gen.outputs[0].subtype.a, Float)
+    assert isinstance(gen.outputs[0].subtype.b, Float)
     
     #range generation
     assert gen. run() == None
     i=0
-    for out in gen.output:
+    for out in gen.outputs[0]:
         if i== 0:
             assert out.a == 1
             assert out.b == 10

@@ -6,8 +6,8 @@ Flow123d_1 = Flow123dAction(
             )
         )
     ],
-    Output = ( 
+    Outputs = [ 
         String('File')
-    ),
+    ],
     YAMLFile='test.yaml'
 )

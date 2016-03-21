@@ -1,4 +1,4 @@
-from .action_types import GeneratorActionType
+from .action_types import GeneratorActionType, ActionStateType
 from .data_types_tree import Ensemble, Struct, Float
 import copy
 
@@ -25,8 +25,19 @@ class RangeGenerator(GeneratorActionType):
         :param AllCases bool: Cartesian product, default value False:
         """
         super(RangeGenerator, self).__init__(**kwargs)
-        if self.output is None:
-            self.output = self._get_output_from_items()
+       
+            
+    def inicialize(self):
+        """inicialize action run variables"""
+        if self.state.value > ActionStateType.created.value:
+            return
+        if len(self.outputs) == 0:
+            self.outputs.append(self._get_output_from_items())
+        self.state = ActionStateType.initialized
+        
+    def get_output(self, number):
+        """return output relevant for set action"""
+        return self.outputs[number]
 
     def _get_output_from_items(self):
         """Construct output from set items"""
@@ -93,13 +104,13 @@ class RangeGenerator(GeneratorActionType):
             return None
         if not isinstance(self.variables['Items'], list):
             return None
-        if self.output is None:
+        if len(self.outputs)==0:
             return None
-        if not isinstance(self.output,Ensemble):    
+        if not isinstance(self.outputs[0],Ensemble):    
             return None
-        template =copy.deepcopy(self.output.subtype)
+        template =copy.deepcopy(self.outputs[0].subtype)
         # first is middle
-        self.output.add_item(template)
+        self.outputs[0].add_item(template)
         for item in self.variables['Items']:
             if not isinstance(item,  dict):
                 continue                
@@ -108,7 +119,7 @@ class RangeGenerator(GeneratorActionType):
                     setattr(template, item['name'], item['value'])
         for item in self.variables['Items']:
             if 'AllCases' in self.variables and self.variables['AllCases']:
-                ready = copy.deepcopy(self.output)
+                ready = copy.deepcopy(self.outputs[0])
                 for template_i in ready:
                     self._generate_step(template_i, item)
             else:
@@ -135,7 +146,7 @@ class RangeGenerator(GeneratorActionType):
                 rstep = 2**i*step
             setattr(template2, item['name'], 
                 getattr(template2, item['name']).value+rstep)    
-            self.output.add_item(template2)
+            self.outputs[0].add_item(template2)
         for i in range(0, minus):
             template2 =copy.deepcopy(template)
             rstep = (i+1)*step
@@ -143,15 +154,15 @@ class RangeGenerator(GeneratorActionType):
                 rstep = 2**i*step
             setattr(template2, item['name'], 
                 getattr(template2, item['name']).value-rstep)    
-            self.output.add_item(template2)                
+            self.outputs[0].add_item(template2)                
 
     def _check_params(self):    
         """check if all require params is set"""
         err = super(RangeGenerator, self)._check_params()
-        if self.output is None:
+        if len(self.outputs)==0:
             err.append("Can't determine output from items parameter")
         else:            
-            if not isinstance(self.output,Ensemble):
+            if not isinstance(self.outputs[0], Ensemble):
                 err.append("Output type must be Ensemble type")
         if 'Items' not in self.variables:
             err.append("Parameter 'Items' must have at least one item")
@@ -194,8 +205,8 @@ class RangeGenerator(GeneratorActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
-        if self.output is not None:
-            if not self.output.match_type(self._get_output_from_items()):
+        err = super(RangeGenerator, self).validate()
+        if len(self.outputs)>0:
+            if not self.outputs[0].match_type(self._get_output_from_items()):
                 err.append("Comparation of output type and type from items fails")
         return err

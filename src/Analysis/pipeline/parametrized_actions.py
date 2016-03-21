@@ -1,4 +1,4 @@
-from .action_types import ParametrizedActionType, Runner, ActionType, BaseActionType
+from .action_types import ParametrizedActionType, Runner, ActionType, BaseActionType, ActionStateType
 from .data_types_tree import CompositeDTT
 
 class Flow123dAction(ParametrizedActionType):
@@ -21,8 +21,21 @@ class Flow123dAction(ParametrizedActionType):
         super(Flow123dAction, self).__init__(**kwargs)
         self.type = ActionType.complex
         self.file_output = self._get_output()
-        if self.output is None:
-            self.output = self.file_output
+        
+            
+    def inicialize(self):
+        """inicialize action run variables"""
+        if self.state.value > ActionStateType.created.value:
+            return
+        if len(self.outputs)==0:
+            self.outputs.append(self.file_output)
+        self.state = ActionStateType.initialized    
+
+    def get_output(self, number):
+        """return output relevant for set action"""
+        if number>0:
+            return None
+        return self.outputs[0]
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -52,18 +65,19 @@ class Flow123dAction(ParametrizedActionType):
         err = super(Flow123dAction, self)._check_params()
         if 'YAMLFile' not in self.variables:
             err.append("Flow123d action require YAMLFile parameter")
-        if self.output is None:
+        if len(self.outputs)==0:
                     err.append("Can't determine output from YAML file")
         return err
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
-        if self.output is not None:
-            if not self.output.match_type(self.file_output):
+        err = super(Flow123dAction, self).validate()
+        if len(self.outputs)>0:
+            if not self.outputs[0].match_type(self.file_output):
                 err.append("Output type validation fails")
-        if isinstance(input[0], BaseActionType) and len(self.inputs)>0:
-            input_type = self.inputs[0].output
+        if isinstance(input[0], BaseActionType) and \
+            len(self.inputs)>0:
+            input_type = self.inputs[0]. get_output(self)
             if input_type is None:
                 err.append("Can't validate input (Output slot of input action is empty)")
             else:

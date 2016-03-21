@@ -1,4 +1,4 @@
-from .action_types import WrapperActionType
+from .action_types import WrapperActionType, ActionStateType, BaseActionType
 from .data_types_tree import Ensemble
 
 class ForEach(WrapperActionType):
@@ -13,19 +13,36 @@ class ForEach(WrapperActionType):
        Class for cyclic action processing.      
         :param BaseActionType WrappedAction: Wrapped action
         :param Ensemble Output: This variable is ignore,  outputs
-             is construct WrappedAction placed in Ensemble
-        :param Ensemble Input: Composite of WrappedAction cyclic  inputs
+            is constructed from WrappedAction and placed in Ensemble
+        :param Ensemble Input: Composite of WrappedAction cyclic  inputs, 
+            this parameter is set after declaration this action by function
+           set_wrapped_action 
         """
+        self.wa_instances=[]
+        """
+        Set wrapper class serve only as template, for run is make
+        copy of this class. The variable is for the copies.
+        """
+        self.wa_inputs=[]
+        """input for the copy of wrapper class"""        
         super(ForEach, self).__init__(**kwargs)
-        self.output = self._get_output_from_wa()
 
-    def _get_output_from_wa(self):
-        res = None
-        if self.output is None and \
-            'WrappedAction' in self.variables and \
-            len(self.variables['WrappedAction'])>0:            
-            res = Ensemble(self.variables['WrappedAction'])
-        return res
+    def get_output(self, number):
+        """return output relevant for set action"""
+        if number>0:
+            return None
+        if 'WrappedAction' in self.variables and \
+            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            output=self.variables['WrappedAction'].get_output(0)
+            if self._is_DTT(output):    
+                return None
+            res=Ensemble(output)
+            if self.state != ActionStateType.finished:
+                for instance in self.wa_instances:
+                    """Running instance, get input from generator"""
+                    res.add_item(instance.get_output(0))
+            return res
+        return None
 
     def _get_runner(self, params):    
         """
@@ -48,6 +65,9 @@ class ForEach(WrapperActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        # ToDo logic
-        err = self._check_params()
+        err = super(ForEach, self).validate()
+        err.extend(self._check_params())
+        if 'WrappedAction' in self.variables and \
+            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            err.extend(self.variables['WrappedAction'].validate())
         return err
