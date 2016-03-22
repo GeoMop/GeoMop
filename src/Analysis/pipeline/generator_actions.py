@@ -35,7 +35,7 @@ class RangeGenerator(GeneratorActionType):
             self.outputs.append(self._get_output_from_items())
         self.state = ActionStateType.initialized
         
-    def get_output(self, number):
+    def get_output(self, action, number):
         """return output relevant for set action"""
         return self.outputs[number]
 
@@ -205,7 +205,7 @@ class RangeGenerator(GeneratorActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = super(RangeGenerator, self).validate()
+        err = self._check_params()
         if len(self.outputs)>0:
             if not self.outputs[0].match_type(self._get_output_from_items()):
                 err.append("Comparation of output type and type from items fails")

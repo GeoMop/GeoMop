@@ -66,8 +66,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """dictionary names => types of variables"""
         self.type = ActionType.simple
         """action type"""
-        self._checking=False
-        """Variable for prevent recursive validation"""
         for name, value in kwargs.items():
             if name == 'Input':
                 self.inputs.append(value)
@@ -92,9 +90,21 @@ class BaseActionType(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod
-    def get_output(self,number):
+    def get_output(self, action, number):
         """return output relevant for set action"""
         pass
+    
+    def get_input_val(self, number):
+        """
+        if input is action type, return output from previous action,
+        else return input. Both action must be inicialized
+        """
+        if len(self.inputs)>number:
+            if isinstance(self.inputs[number],  BaseActionType):
+                return self.inputs[number].get_output(self, elf.inputs_os[number])
+            else:
+                return self.inputs[number]                
+        return None
     
     @property
     def name(self):
@@ -172,23 +182,18 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """
         pass
 
-    def prepare_validation(self):
-        """set start validation for all actions recursivly"""
-        self.checking=True
-        for input in  self.inputs:
-            if isinstance(input,  BaseActionType):
-                input.prepare_validation() 
-    
+    @abc.abstractmethod
     def validate(self):    
         """validate variables, input and output"""
-        if not self.checking:
-            return []
-        err = self._check_params()
-        self.checking=False
+        pass
+    
+    def _get_dependences(self):
+        """return all direct inputs deoendences"""
+        dependency=[]
         for input in  self.inputs:
             if isinstance(input,  BaseActionType):
-                err.extend(input.validate())
-        return err
+                dependency.append(input)
+        return dependency
         
     @abc.abstractmethod 
     def _check_params(self):
@@ -317,9 +322,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if  'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
                 self.variables['WrappedAction'].inicialize()
-                if len(self.outputs)==0:
-                    self.outputs.append(self.get_output(0))
-    
+ 
     def _check_params(self):    
         """check if all require params is set"""
         err = []
@@ -333,13 +336,17 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if len(self.inputs)  != 1:
             err.append("Wrapper action require exactly one input parameter")
         return err
-        
-    def _get_variables_script(self):    
-        """return array of variables python scripts"""
-        var = super(WrapperActionType, self)._get_variables_script()
-        if 'WrappedAction' in self.variablesand and \
+
+    def get_settings_script(self):    
+        """return python script, that create instance of this class"""
+        lines=super(WrapperActionType, self).get_settings_script()
+        if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
-            var.append(["WrappedAction={0}".format(self.variables['WrappedAction'].get_instance_name())])
+            lines.extend(self.variables['WrappedAction'].get_settings_script())
+            lines.append("{0}.set_wrapped_action({1})".format(
+                self.get_instance_name(), 
+                self.variables['WrappedAction'].get_instance_name()))
+        return lines
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -354,4 +361,64 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         if self.state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         return err
+    
+    @abc.abstractmethod 
+    def _get_child_list(self):
+        """Get list of child action, ordered by input-output dependency"""
+        pass
+        
+    @classmethod
+    def _order_child_list(cls, actions):
+        """
+        return ordered list from actions. If all dependencies is not
+        in list, raise exception. First action in list must be one of 
+        end actions. If list is partly ordered, function is faster
+        """
+        last_count = len(actions)
+        ordered_action=[actions.pop(0)]
+        while len(actions)>0:
+            if last_count==len(actions):
+                raise Exception("All Dependencies aren't in list")
+            last_count=len(actions)
+            for i in range(0, len(actions)):
+                if cls._check_action_dependencies(actions[i], ordered_action):
+                    ordered_action.append(actions.pop(i))
+                    break
+        return ordered_action
+
+    @staticmethod 
+    def _get_action_list(action, stop_action=None):
+        """
+        get not-ordered list of dependent action. If stop 
+        action is set, list end in this action
+        """
+        before_end=stop_action is None
+        actions=[action]
+        process=[]
+        while True: 
+            for action_next in action._get_dependences():
+                if stop_action and action_next==stop_action:
+                    before_end=True
+                    continue
+                if action_next in actions:
+                    continue                
+                process.append(action_next)
+                actions.append(action_next)
+            if len(process)==0:
+                if not before_end:
+                    return []
+                if stop_action is not None:
+                    actions.append(stop_action)
+                break
+            action=process.pop(0)
+        return actions
+
+    @staticmethod
+    def _check_action_dependencies(action, list):
+        """check if all direct dependecies is in set action list"""
+        for dep_action in action._get_dependences():
+            if dep_action not in list:
+                return False
+        return True
+
     

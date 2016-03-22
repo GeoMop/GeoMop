@@ -27,20 +27,23 @@ class ForEach(WrapperActionType):
         """input for the copy of wrapper class"""        
         super(ForEach, self).__init__(**kwargs)
 
-    def get_output(self, number):
+    def get_output(self, action, number):
         """return output relevant for set action"""
         if number>0:
             return None
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
-            output=self.variables['WrappedAction'].get_output(0)
+            if action==self.variables['WrappedAction'] and len(self.inputs)>0:
+                # for wraped action return previous input
+                return self.get_input_val(number)
+            output=self.variables['WrappedAction'].get_output(number)
             if self._is_DTT(output):    
                 return None
             res=Ensemble(output)
             if self.state != ActionStateType.finished:
                 for instance in self.wa_instances:
                     """Running instance, get input from generator"""
-                    res.add_item(instance.get_output(0))
+                    res.add_item(instance.get_output(number))
             return res
         return None
 
@@ -65,7 +68,7 @@ class ForEach(WrapperActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = super(ForEach, self).validate()
+        err = self._check_params()
         err.extend(self._check_params())
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):

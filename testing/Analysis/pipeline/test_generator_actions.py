@@ -32,7 +32,6 @@ def test_generator_code_init():
     assert RangeGenerator_1.outputs[0].subtype.b == gen.outputs[0].subtype.b
     
     # test validation
-    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==1
     if len(err)>0:
@@ -42,7 +41,6 @@ def test_generator_code_init():
     gen=RangeGenerator(Output=output2, Items=items)
     gen.inicialize()
     # valid output
-    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0
     
@@ -50,7 +48,6 @@ def test_generator_code_init():
     action.__action_counter__ = 0
     gen=RangeGenerator(Items=items)
     gen.inicialize()
-    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0    
     assert isinstance(gen.outputs[0].subtype.a, Float)
@@ -94,7 +91,6 @@ def test_generator_code_init():
     ]
     gen=RangeGenerator(Items=items, AllCases=True)
     gen.inicialize()
-    gen.prepare_validation()
     err = gen.validate()
     assert len(err)==0    
     assert isinstance(gen.outputs[0].subtype.a, Float)

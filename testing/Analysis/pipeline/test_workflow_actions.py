@@ -17,14 +17,17 @@ def test_workflow_code_init():
     foreach = ForEach(Input=gen)
     flow=Flow123dAction(Input=foreach, Output=String("File"), YAMLFile="test.yaml")
     foreach.set_wrapped_action(flow)
-    workflow=Workflow(Input=String("test"), Output=foreach)
+    workflow=Workflow(InputAction=gen, OutputAction=foreach)
     workflow.inicialize()    
     test=workflow.get_settings_script()
     
-#    compare_with_file(os.path.join("pipeline", "results", "workflow1.py"), test)
-#    exec ('\n'.join(test), globals())
-#    assert Flow123d_1.variables['YAMLFile'] == flow.variables['YAMLFile']
-#    assert Flow123d_1.inputs[0].test1 == flow.inputs[0].test1
-#    assert Flow123d_1.output == flow.output
+    compare_with_file(os.path.join("pipeline", "results", "workflow1.py"), test)
+    exec ('\n'.join(test), globals())
+    assert Flow123d_3.variables['YAMLFile'] == flow.variables['YAMLFile']
     
-    
+    # test validation
+    err = gen.validate()
+#    assert len(err)==1
+#    if len(err)>0:
+#        # invalid output
+#        assert err[0]=="Comparation of output type and type from items fails"

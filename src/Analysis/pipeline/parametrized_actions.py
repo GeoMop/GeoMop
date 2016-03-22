@@ -1,5 +1,4 @@
 from .action_types import ParametrizedActionType, Runner, ActionType, BaseActionType, ActionStateType
-from .data_types_tree import CompositeDTT
 
 class Flow123dAction(ParametrizedActionType):
     
@@ -21,7 +20,6 @@ class Flow123dAction(ParametrizedActionType):
         super(Flow123dAction, self).__init__(**kwargs)
         self.type = ActionType.complex
         self.file_output = self._get_output()
-        
             
     def inicialize(self):
         """inicialize action run variables"""
@@ -31,11 +29,12 @@ class Flow123dAction(ParametrizedActionType):
             self.outputs.append(self.file_output)
         self.state = ActionStateType.initialized    
 
-    def get_output(self, number):
+    def get_output(self, action, number):
         """return output relevant for set action"""
-        if number>0:
-            return None
-        return self.outputs[0]
+        if len(self.outputs)>number:
+            return self.outputs[number]
+        return None
+        
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -71,22 +70,20 @@ class Flow123dAction(ParametrizedActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = super(Flow123dAction, self).validate()
+        err = self._check_params()
         if len(self.outputs)>0:
             if not self.outputs[0].match_type(self.file_output):
                 err.append("Output type validation fails")
-        if isinstance(input[0], BaseActionType) and \
-            len(self.inputs)>0:
-            input_type = self.inputs[0]. get_output(self)
-            if input_type is None:
-                err.append("Can't validate input (Output slot of input action is empty)")
-            else:
-                params =  self.get_require_params(self)
-                for param in params:
-                    if not hasattr(self.inputs[0],  param) :
-                        err.append("Yaml parameter {0} is not set in input")                
+        input_type = self.get_input_val(0)
+        if input_type is None:
+            err.append("Can't validate input (Output slot of input action is empty)")
         else:
-            if len(self.inputs)>0 and isinstance(input[0], CompositeDTT):
+            params =  self.get_require_params(self)
+            for param in params:
+                if not hasattr(self.inputs[0],  param) :
+                    err.append("Yaml parameter {0} is not set in input")   
+            if len(self.inputs)>0 and not isinstance(input[0], BaseActionType):
+                # for DTT check if data is set
                 if not input[0].is_set():
                     err.append("Input data can't be empty DTT")
         return err
