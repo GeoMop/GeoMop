@@ -27,6 +27,11 @@ class ForEach(WrapperActionType):
         """input for the copy of wrapper class"""        
         super(ForEach, self).__init__(**kwargs)
 
+    def inicialize(self):
+        """inicialize action run variables"""
+        super(ForEach, self).inicialize()
+        self.outputs=[]
+
     def get_output(self, action, number):
         """return output relevant for set action"""
         if number>0:
@@ -35,9 +40,11 @@ class ForEach(WrapperActionType):
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             if action==self.variables['WrappedAction'] and len(self.inputs)>0:
                 # for wraped action return previous input
-                return self.get_input_val(number)
-            output=self.variables['WrappedAction'].get_output(number)
-            if self._is_DTT(output):    
+                ensemble = self.get_input_val(number)
+                if isinstance(ensemble,  Ensemble):
+                    return ensemble.subtype
+            output=self.variables['WrappedAction'].get_output(self, number)
+            if not self._is_DTT(output):    
                 return None
             res=Ensemble(output)
             if self.state != ActionStateType.finished:
@@ -64,12 +71,15 @@ class ForEach(WrapperActionType):
     def _check_params(self):    
         """check if all require params is set"""
         err = super(ForEach, self)._check_params()
+        for i in range(0, len(self.inputs)):
+            ensemble = self.get_input_val(i)
+            if not isinstance(ensemble,  Ensemble):
+                err.append("Input action {0} not produce Ensemble type variable".format(str(i))) 
         return err
         
     def validate(self):    
         """validate variables, input and output"""
         err = self._check_params()
-        err.extend(self._check_params())
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             err.extend(self.variables['WrappedAction'].validate())

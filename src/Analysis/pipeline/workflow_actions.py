@@ -46,7 +46,10 @@ class Workflow(WorkflowActionType):
         """return output relevant for set action"""
         if number>0:
             return None
-        return self.outputs[0].get_output(self, 0)
+        if 'OutputAction' in self.variables and \
+            isinstance(self.variables['OutputAction'],  BaseActionType):
+            return self.variables['OutputAction'].get_output(self, 0)
+        return None
 
     def _get_runner(self, params):    
         """
@@ -133,10 +136,4 @@ class Workflow(WorkflowActionType):
                 isinstance(self.variables['OutputAction'],  BaseActionType):
             var.append(["OutputAction={0}".format(self.variables['OutputAction'].get_instance_name())])
         return var
-
-            
-            
-        
-        
-        
 

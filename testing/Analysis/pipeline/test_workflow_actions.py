@@ -27,7 +27,16 @@ def test_workflow_code_init():
     
     # test validation
     err = gen.validate()
-    assert len(err)==1
-    if len(err)>0:
-        # invalid output
-        assert err[0]=="Comparation of output type and type from items fails"
+    assert len(err)==0
+ 
+    # check output types directly
+    assert isinstance(gen.get_output( foreach, 0), Ensemble)
+    assert isinstance(gen.get_output( foreach, 0).subtype, Struct)
+    assert isinstance(foreach.get_output( workflow, 0), Ensemble)
+    assert isinstance(foreach.get_output( workflow, 0).subtype, String)
+    assert isinstance(foreach.get_output( flow, 0), Struct)
+    assert 'a' in foreach.get_output( flow, 0)
+    assert 'b' in foreach.get_output( flow, 0)
+    assert 'c' not in foreach.get_output( flow, 0)    
+    assert isinstance(flow.get_output( workflow, 0), String)
+    assert isinstance(workflow.get_output( workflow, 0).subtype, String)

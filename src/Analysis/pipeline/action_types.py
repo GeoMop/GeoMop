@@ -93,7 +93,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def get_output(self, action, number):
         """return output relevant for set action"""
         pass
-    
+   
     def get_input_val(self, number):
         """
         if input is action type, return output from previous action,
@@ -259,8 +259,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
                 return True
             except ValueError:
                 pass
-        return False
-        
+        return False        
     
     @staticmethod
     def _check_float(value):
@@ -344,6 +343,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         self.variables['WrappedAction']=action
         
     def inicialize(self):
+        """inicialize action run variables"""
         if self.state.value > ActionStateType.created.value:
             return
         # set state before recursion, inicialize ending if return to this action
