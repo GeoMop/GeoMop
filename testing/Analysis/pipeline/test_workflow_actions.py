@@ -27,7 +27,7 @@ def test_workflow_code_init():
     
     # test validation
     err = gen.validate()
-#    assert len(err)==1
-#    if len(err)>0:
-#        # invalid output
-#        assert err[0]=="Comparation of output type and type from items fails"
+    assert len(err)==1
+    if len(err)>0:
+        # invalid output
+        assert err[0]=="Comparation of output type and type from items fails"

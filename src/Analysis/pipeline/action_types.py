@@ -73,7 +73,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
                 self.inputs.extend(value)
             elif name == 'InputOpposite':
                 self.inputs_os.append(value)
-            elif name == 'InputOpposite':
+            elif name == 'InputOpposites':
                 self.inputs_os.extend(value)
             elif name == 'Output':                
                 self.outputs.append(value)
@@ -101,7 +101,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """
         if len(self.inputs)>number:
             if isinstance(self.inputs[number],  BaseActionType):
-                return self.inputs[number].get_output(self, elf.inputs_os[number])
+                return self.inputs[number].get_output(self, self.inputs_os[number])
             else:
                 return self.inputs[number]                
         return None
@@ -118,33 +118,62 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _is_DTT(var):
         """return if is var instance of DTT"""
         return isinstance(var, BaseDTT) or  isinstance(var, CompositeDTT)
-        
+     
+    @classmethod
+    def format_array(cls, name, array, spaces, err):
+        """
+        return lines with formated array
+        """
+        res = []
+        if len(array)>0: 
+            res.append(spaces*" "+name+"=[")
+            for var in array:
+                if cls._is_DTT(var):
+                    res.extend(Formater.format_parameter(var.get_settings_script(), spaces+4))
+                elif isinstance(var, BaseActionType):
+                    res.append((spaces+4)*" "+"{0},".format(var.get_instance_name()))
+                else:
+                    raise Exception(err)
+            res[-1] = res[-1][:-1]
+            res.append(spaces*" "+"],")   
+            return res
+            
+    @classmethod
+    def format_param(cls, name, var, spaces, err):
+        """
+        return lines with formated param
+        """
+        res = []
+        if cls._is_DTT(var):
+            res.extend(Formater.format_variable(name, var.get_settings_script(), spaces))
+        elif isinstance(var, BaseActionType):
+            res.append(spaces*" "+name + "={0},".format(var.get_instance_name()))
+        else:
+            raise Exception(err)
+        return res
+
     def get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self.id), self.__class__.__name__))
-        if len(self.inputs)>0: 
-            lines.append("    Inputs = [")
-            for input in self.inputs:
-                if self._is_DTT(input):
-                    lines.extend(Formater.format_parameter(input.get_settings_script(), 8))
-                elif isinstance(input, BaseActionType):
-                    lines.append("        {0},".format(input.get_instance_name()))
-                else:
-                    raise Exception("Unknown input type")
-            lines[-1] = lines[-1][:-1]
-            lines.append("    ],")
-        if len(self.outputs)>0:
-            lines.append("    Outputs = [")
-            for output in self.outputs:
-                if self._is_DTT(output):
-                    lines.extend(Formater.format_parameter(output.get_settings_script(), 8))
-                elif isinstance(output, BaseActionType):
-                    lines.append("        {0},".format(output.get_instance_name()))
-                else:
-                    raise Exception("Unknown output type")
-            lines[-1] = lines[-1][:-1]
-            lines.append("    ],")
+        if len(self.inputs)==1:
+            lines.extend(self.format_param("Input", self.inputs[0], 4, "Unknown input type"))
+        elif len(self.inputs)>1:
+            lines.extend(self.format_array("Inputs", self.inputs, 4, "Unknown input type"))
+        if len(self.inputs_os)>1:
+            nonzer = False
+            var="["
+            for id in self.inputs_os:
+                var += str(id)
+                if id!=0:
+                    nonzer = True
+            if nonzer:
+                var = var[:-1]+']'
+                lines.extend(Formater.format_variable('InputOpposites', var, 4))
+        if len(self.outputs)==1:
+            lines.extend(self.format_param("Output", self.outputs[0], 4, "Unknown output type"))
+        elif len(self.outputs)>1:
+            lines.extend(self.format_array("Outputs", self.outputs, 4, "Unknown output type"))                        
         for script in self._get_variables_script():
             lines.extend(Formater.indent(script, 4))
             lines[-1] += ","
