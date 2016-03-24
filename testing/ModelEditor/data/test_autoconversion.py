@@ -61,7 +61,7 @@ def test_expand_record():
                 'default': {'type': 'obligatory'},
                 'type': dict(
                     base_type='String')}},
-        type_name='MyRecord',
+        name='MyRecord',
         reducible_to_key='a')
     root = ScalarDataNode(None, None, 'str')
     expanded = ac.AutoConverter._expand_reducible_to_key(root, input_type)
@@ -70,7 +70,7 @@ def test_expand_record():
 
 def test_expand_abstract_record():
     input_type = dict(
-        base_type='AbstractRecord',
+        base_type='Abstract',
         default_descendant=dict(
             base_type='Record',
             keys={
@@ -78,7 +78,7 @@ def test_expand_abstract_record():
                     'default': {'type': 'obligatory'},
                     'type': dict(
                         base_type='String')}},
-            type_name='MyRecord',
+            name='MyRecord',
             reducible_to_key='a')
     )
     root = ScalarDataNode(None, None, 'str')
@@ -97,7 +97,7 @@ def test_autoconvert():
                 'default': {'type': 'obligatory'},
                 'type': dict(
                     base_type='Integer')}},
-        type_name='MyRecord',
+        name='MyRecord',
         reducible_to_key='a')
     it_array = dict(
         base_type='Array',
@@ -111,7 +111,7 @@ def test_autoconvert():
                 'type': it_array
             }
         },
-        type_name='Root')
+        name='Root')
     root = MappingDataNode()
     node = ScalarDataNode(TextValue('path'), root, 2)
     root.children.append(node)
@@ -155,7 +155,7 @@ def test_convert_data_type(base_type, data, expected):
 
 def test_transposition(loader):
     root_input_type = dict(
-        type_name='RootTransposeRec',
+        name='RootTransposeRec',
         base_type='Record',
         keys=dict(
             set=dict(type=dict(
@@ -163,7 +163,7 @@ def test_transposition(loader):
                 min=1,
                 max=4,
                 subtype=dict(
-                    type_name='TransposeSubRec1',
+                    name='TransposeSubRec1',
                     base_type='Record',
                     keys=dict(
                         one=dict(type=dict(
@@ -178,7 +178,7 @@ def test_transposition(loader):
                             )
                         )),
                         three=dict(type=dict(
-                            type_name='TransposeSubRec2',
+                            name='TransposeSubRec2',
                             base_type='Record',
                             keys=dict(
                                 key_a=dict(type=dict(

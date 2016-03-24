@@ -144,7 +144,7 @@ def test_check_record_key():
         'c': {'default': {'type': 'value at read time'}},
         'd': {'default': {'type': 'optional'}}
     }
-    input_type = dict(keys=keys, type_name='MyRecord')
+    input_type = dict(keys=keys, name='MyRecord')
 
     assert checks.check_record_key(['a1'], 'a1', input_type) is True
     assert checks.check_record_key(['a1'], 'b', input_type) is True
@@ -161,11 +161,11 @@ def test_check_record_key():
 
 
 def test_check_abstractrecord():
-    type1 = dict(type_name='type1')
-    type2 = dict(type_name='type2')
-    type3 = dict(type_name='type3')
+    type1 = dict(name='type1')
+    type2 = dict(name='type2')
+    type3 = dict(name='type3')
     input_type = dict(default_descendant=type1, implementations={
-        'type1': type1, 'type2': type2, 'type3': type3}, name='MyAbstractRecord')
+        'type1': type1, 'type2': type2, 'type3': type3}, name='MyAbstract')
     input_type_no_default = dict(implementations={'type1': type1,
                                                   'type2': type2,
                                                   'type3': type3})
@@ -181,9 +181,9 @@ def test_check_abstractrecord():
     assert checks.get_abstractrecord_type(node, input_type_no_default) == type3
     with pytest.raises(Notification) as excinfo:
         checks.get_abstractrecord_type(MappingDataNode(), input_type_no_default)
-    assert excinfo.value.name == 'MissingAbstractRecordType'
+    assert excinfo.value.name == 'MissingAbstractType'
 
     node.type.value = 'invalid'
     with pytest.raises(Notification) as excinfo:
         checks.get_abstractrecord_type(node, input_type)
-    assert excinfo.value.name == 'InvalidAbstractRecordType'
+    assert excinfo.value.name == 'InvalidAbstractType'

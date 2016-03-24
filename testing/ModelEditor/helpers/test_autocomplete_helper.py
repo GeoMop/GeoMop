@@ -31,7 +31,7 @@ input_type_selection = {
 }
 
 input_type_abstract_record = {
-    'base_type': 'AbstractRecord',
+    'base_type': 'Abstract',
     'implementations': {
         'Steady_MH': None,
         'Unsteady_MH': None,
@@ -83,7 +83,7 @@ def test_get_autocompletion_selection(achelper):
 
 
 def test_get_autocompletion_abstract_record(achelper):
-    """Test if types are listed as AbstractRecord options."""
+    """Test if types are listed as Abstract options."""
     options = achelper.create_options(input_type_abstract_record)
     assert len(options) == 3
     assert '!Steady_MH' in options

@@ -38,18 +38,18 @@ def test_validator():
                   'type': it_int},
             'd': {'default': {'type': 'optional'}, 'type': it_int},
             'TYPE': {'type': it_string}},
-        type_name='MyRecord')
+        name='MyRecord')
 
     it_record2 = dict(
         base_type='Record',
         keys={
             'b': {'default': {'type': 'obligatory'}, 'type': it_int},
             'TYPE': {'type': it_string}},
-        type_name='MyRecord2')
+        name='MyRecord2')
 
     it_abstract = dict(
-        name='MyAbstractRecord',
-        base_type='AbstractRecord',
+        name='MyAbstract',
+        base_type='Abstract',
         implementations={
             'record1': it_record,
             'record2': it_record2})

@@ -6,6 +6,8 @@ Main window module
 """
 import copy
 import os
+from shutil import copyfile
+import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -13,12 +15,15 @@ from PyQt5.QtGui import QDesktopServices
 
 from communication import Communicator, Installation
 from data.states import TaskStatus
+from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
+from ui.dialogs import AnalysisDialog, FilesSavedMessageBox
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
+from ui.dialogs.options_dialog import OptionsDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
@@ -27,6 +32,10 @@ from ui.res_handler import ResHandler
 from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
+
+from geomop_project import Project, Analysis
+from geomop_util import Serializable
+import flow_util
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -88,6 +97,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.env_presets_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
 
+        self.analysis_dialog = None
+
         # multijob dialog
         self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
@@ -133,6 +144,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.env_presets_dlg.presets_changed.connect(
             self.resource_presets_dlg.presets_dlg.set_env_presets)
 
+        # project menu
+        self.ui.menuBar.project.config = self.data.config
+
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
             QtWidgets.QApplication.quit)
@@ -161,26 +175,56 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.multiJob.actionRestartMultiJob.triggered.connect(
             self._handle_restart_multijob_action)
 
+        # connect create analysis
+        self.ui.menuBar.analysis.actionCreateAnalysis.triggered.connect(
+            self._handle_create_analysis)
+
+        # connect options
+        self.ui.menuBar.settings.actionOptions.triggered.connect(
+            self._handle_options)
+
         # connect current multijob changed
         self.ui.overviewWidget.currentItemChanged.connect(
             self.update_ui_locks)
+
+        # connect tabWidget
+        self.ui.tabWidget.ui.resultsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
+        self.ui.tabWidget.ui.logsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
 
         # reload view
         self.ui.overviewWidget.reload_items(self.data.multijobs)
 
         # load settings
         self.load_settings()
+        # attach workspace and project observers
+        self.data.config.observers.append(self)
+        self.data.config.observers.append(Project)
+
+        # trigger notify
+        self.data.config.notify()
 
     def load_settings(self):
         # select last selected mj
         index = 0
-        if "selected_mj" in self.data.set_data:
+        if self.data.config.selected_mj is not None:
             item_count = self.ui.overviewWidget.topLevelItemCount()
-            tmp_index = int(self.data.set_data["selected_mj"])
+            tmp_index = int(self.data.config.selected_mj)
             if item_count > 0 and item_count > tmp_index:
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
+        # load current project
+        if self.data.config.project is not None:
+            project = self.data.config.project
+        else:
+            project = '(No Project)'
+        self.setWindowTitle('Jobs Scheduler - ' + project)
+
+    def notify(self, data):
+        """Handle update of data.set_data."""
+        self.load_settings()
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -237,6 +281,31 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Todo properly edit state, change folder name etc.
             self.data.multijobs[data["key"]] = MultiJob(data["preset"])
+
+        # sync mj analyses + files
+        if Project.current is not None:
+            mj_name = data["preset"].name
+            mj_dir = Installation.get_config_dir_static(mj_name)
+            proj_dir = Project.current.project_dir
+            
+            # get all files used by analyses
+            files = []
+            for analysis in Project.current.get_all_analyses():
+                files.extend(analysis.files)
+
+            analysis = Project.current.get_current_analysis()
+            assert analysis is not None, "No analysis file exists for the project!"
+
+            # fill in parameters and copy the files
+            for file in set(files):
+                src = os.path.join(proj_dir, file)
+                dst = os.path.join(mj_dir, file)
+                # create directory structure if not present
+                dst_dir = os.path.dirname(dst)
+                if not os.path.isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
+
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
@@ -293,6 +362,31 @@ class MainWindow(QtWidgets.QMainWindow):
         Communicator.unlock_application(
             self.com_manager.get_communicator(key).mj_name)
 
+    def _handle_create_analysis(self):
+        # is project selected?
+        if not Project.current:
+            self.report_error("Project is not selected.")
+            return
+
+        # reload params
+        Project.reload_current()
+
+        # show new analysis dialog
+        self.analysis_dialog = AnalysisDialog(self, Project.current)
+        self.analysis_dialog.accepted.connect(self._handle_analysis_accepted)
+        self.analysis_dialog.show()
+
+    def _handle_analysis_accepted(self, purpose, data):
+        if not Project.current:
+            self.report_error("Project is not selected.")
+            return
+        if purpose == AnalysisDialog.PURPOSE_ADD:
+            analysis = Analysis(**data)
+            Project.current.save_analysis(analysis)
+
+    def _handle_options(self):
+        OptionsDialog(self, self.data.config).show()
+
     def handle_terminate(self):
         mj = self.data.multijobs
         for key in mj:
@@ -304,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # save currently selected mj
         current = self.ui.overviewWidget.currentItem()
         sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
-        self.data.set_data["selected_mj"] = sel_index
+        self.data.config.selected_mj = sel_index
 
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -386,6 +480,71 @@ class MainWindow(QtWidgets.QMainWindow):
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)
 
+    def _handle_save_results_button_clicked(self):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_name = installation.__result_dir__
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self._handle_save_results(src_dir_path, dst_dir_name, files)
+
+    def _handle_save_res_log_button_clicked(self):
+        # if not project - alert
+        if not Project.current:
+            self.report_error("No project selected!")
+
+        dst_dir_location = os.path.join(Project.current.project_dir,
+                                        "analysis",
+                                        time.strftime("%Y%m%d_%H%M%S"))
+        self._save_results(dst_dir_location)
+        self._save_logs(dst_dir_location)
+        # alert with open dir option
+        FilesSavedMessageBox(self, dst_dir_location).show()
+
+    def _save_logs(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__,
+                                    installation.__logs_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__logs_dir__)
+        files = self.ui.tabWidget.ui.logsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    def _save_results(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__result_dir__)
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    @staticmethod
+    def copy_files(src_dir_path, dst_dir_path, files):
+        # create folder
+        os.makedirs(dst_dir_path, exist_ok=True)
+
+        # copy files
+        for file_name in [f.file_name for f in files]:
+            copyfile(os.path.join(src_dir_path, file_name), os.path.join(dst_dir_path, file_name))
+
+    def report_error(self, msg, err=None):
+        """Report an error with dialog."""
+        from geomop_dialogs import GMErrorDialog
+        err_dialog = GMErrorDialog(self)
+        err_dialog.open_error_dialog(msg, err)
+
+    @property
+    def current_mj(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        mj = self.data.multijobs[key]
+        return mj
+
 
 class UiMainWindow(object):
     """
@@ -420,4 +579,3 @@ class UiMainWindow(object):
 
         # set central widget
         main_window.setCentralWidget(self.centralwidget)
-

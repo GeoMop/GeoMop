@@ -3,6 +3,8 @@
 import sys
 import time
 import logging
+import json
+import os
 
 sys.path.insert(1, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
@@ -12,6 +14,8 @@ from communication import JobsCommunicator
 import data.communicator_conf as comconf
 import communication.installation as inst
 import data.transport_data as tdata
+
+from communication.installation import __ins_files__
 
 logger = logging.getLogger("Remote")
 
@@ -37,15 +41,28 @@ def  mj_action_function_after(message,  response):
             states.save_file(inst.Installation.get_result_dir_static(mj_name))
     return comunicator.standart_action_function_after(message,  response)
 
-idx = 0
+
+def load_jobs(filepath):
+    """Load job configuration from file."""
+    data = {}
+    try:
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+    except Exception as exc:
+        logger.error(exc)
+    return data
+
+
+jobs_to_exec = []
+"""names of the jobs to execute"""
+
+
 def  mj_idle_function():
     """This function will be call, if meesage is not receive in run function."""
-    global idx
-    idx += 1
-    if idx == 1:
-        comunicator.add_job("test1")
-    if idx == 2:
-        comunicator.add_job("test2")
+    global jobs_to_exec
+    if jobs_to_exec:
+        job_name = jobs_to_exec.pop()
+        comunicator.add_job(job_name)
 
 
 if len(sys.argv) < 2:
@@ -67,6 +84,9 @@ try:
 except Exception as error:
     logger.error(error)
     raise error
+
+jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
+jobs_to_exec = list(jobs.keys())
 
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)

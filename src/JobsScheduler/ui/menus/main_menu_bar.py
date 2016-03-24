@@ -8,6 +8,7 @@ Main window menus
 import PyQt5.QtWidgets as QtWidgets
 import ui.actions.main_menu_actions as action
 from data.states import TaskStatus
+from geomop_widgets import ProjectMenu
 
 
 class MainMenuBar(QtWidgets.QMenuBar):
@@ -23,10 +24,14 @@ class MainMenuBar(QtWidgets.QMenuBar):
         self.app = AppMenu(self)
         self.multiJob = MultiJobMenu(self)
         self.settings = SettingsMenu(self)
+        self.analysis = AnalysisMenu(self)
+        self.project = ProjectMenu(self, {})
 
         # add menus to main menu
         self.addAction(self.app.menuAction())
         self.addAction(self.multiJob.menuAction())
+        self.addAction(self.analysis.menuAction())
+        self.addAction(self.project.menuAction())
         self.addAction(self.settings.menuAction())
 
 
@@ -269,9 +274,29 @@ class SettingsMenu(QtWidgets.QMenu):
         self.actionPbsPresets = action.ActionPbsPresets(self)
         self.actionResourcesPresets = action.ActionResourcesPresets(self)
         self.actionEnvPresets = action.ActionEnvPresets(self)
+        self.actionOptions = action.ActionOptions(self)
 
         # add actions to menu
         self.addAction(self.actionSshPresets)
         self.addAction(self.actionPbsPresets)
         self.addAction(self.actionResourcesPresets)
         self.addAction(self.actionEnvPresets)
+        self.addSeparator()
+        self.addAction(self.actionOptions)
+
+
+class AnalysisMenu(QtWidgets.QMenu):
+    """
+    Analysis menu.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle("Analysis")
+        self.setObjectName("analysisMenu")
+
+        # creating actions
+        self.actionCreateAnalysis = action.ActionCreateAnalysis(self)
+
+        # add actions to menu
+        self.addAction(self.actionCreateAnalysis)

@@ -7,13 +7,17 @@ Factory for generating config files.
 import copy
 import os
 import uuid
+import json
 
 from communication import Installation
+from communication.installation import __ins_files__
 from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
 from ui.dialogs.resource_dialog import UiResourceDialog
 from version import Version
+
+JOB_NAME_LABEL = "flow"
 
 
 class ConfigBuilder:
@@ -73,15 +77,16 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True)
+        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset)
+        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
-        r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, True)
-        j_python_env, j_libs_env = ConfFactory.get_env_conf(j_env, False, True)
+        # TODO vyresit instalaci a spousteni knihovny
+        r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, False, False)
+        j_python_env, j_libs_env = ConfFactory.get_env_conf(j_env, False, False)
 
         # declare builders
         app = ConfBuilder(basic_conf)
@@ -96,6 +101,8 @@ class ConfigBuilder:
         mj.set_comm_name(CommType.multijob)\
             .set_python_env(r_python_env)\
             .set_libs_env(r_libs_env)
+        # TODO r_python_env, r_libs_env are derived from j_env instead of mj_env - why?
+        mj.set_env_extras(mj_env)
 
         remote = None
 
@@ -103,6 +110,7 @@ class ConfigBuilder:
         job.set_comm_name(CommType.job)\
             .set_python_env(j_python_env)\
             .set_libs_env(j_libs_env)
+        job.set_env_extras(j_env)
 
         # set data with builders
         if mj_execution_type == UiResourceDialog.EXEC_LABEL:
@@ -121,6 +129,7 @@ class ConfigBuilder:
                 .set_in_comm(InputCommType.std)\
                 .set_python_env(mj_python_env)\
                 .set_libs_env(mj_libs_env)
+            delegator.set_env_extras(mj_env)
             if mj_remote_execution_type == UiResourceDialog.EXEC_LABEL:
                 delegator.set_out_comm(OutputCommType.exec_)
                 mj.set_in_comm(InputCommType.socket)
@@ -145,6 +154,7 @@ class ConfigBuilder:
                 .set_in_comm(InputCommType.std)\
                 .set_python_env(r_python_env)\
                 .set_libs_env(r_libs_env)
+            remote.set_env_extras(j_env)
             if j_remote_execution_type == UiResourceDialog.EXEC_LABEL:
                 remote.set_out_comm(OutputCommType.exec_)
                 job.set_in_comm(InputCommType.socket)
@@ -182,8 +192,42 @@ class ConfigBuilder:
         with open(job.get_path(), "w") as job_file:
             CommunicatorConfigService.save_file(
                 job_file, job.get_conf())
+
+        # build job configuration
+        self._build_jobs_config(mj_name)
+
         # return app_config, it is always entry point for next operations
         return app.get_conf()
+
+    def _build_jobs_config(self, mj_name):
+        """Create jobs and associate them with individual configuration files."""
+        jobs = {}
+        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
+        job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name),
+                                       __ins_files__['job_configurations'])
+        job_counter = 1
+
+        def create_job(configuration_file):
+            """Generate job name and create its configuration."""
+            nonlocal job_counter
+            name = JOB_NAME_LABEL + str(job_counter)
+            data = {'configuration_file': configuration_file}
+            jobs[name] = data
+            job_counter += 1
+
+        # recursively find all configuration files (ending with .yaml)
+        for root, directories, filenames in os.walk(mj_dir):
+            for filename in filenames:
+                if filename.endswith('.yaml'):
+                    abs_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(abs_path, start=mj_dir)
+                    # windows path workaround
+                    rel_path_unix = '/'.join(rel_path.split(os.path.sep))
+                    create_job(rel_path_unix)
+
+        # save job configurations to json
+        with open(job_configs_path, 'w') as job_configs:
+            json.dump(jobs, job_configs, indent=4, sort_keys=True)
 
 
 class ConfBuilder:
@@ -222,6 +266,12 @@ class ConfBuilder:
         self.conf.libs_env = libs_env
         return self
 
+    def set_env_extras(self, env):
+        if self.conf.pbs:
+            self.conf.pbs.pbs_params = env.pbs_params
+        self.conf.flow_path = env.flow_path
+        self.conf.cli_params = env.cli_params
+
     def get_conf(self):
         """
         Gets internal conf state.
@@ -241,7 +291,7 @@ class ConfBuilder:
 
 class ConfFactory:
     @staticmethod
-    def get_pbs_conf(preset, with_socket=True):
+    def get_pbs_conf(preset, with_socket=True, pbs_params=None):
         """
         Converts preset data to communicator config for PBS.
         :param preset: Preset data object from UI.
@@ -261,6 +311,8 @@ class ConfFactory:
         pbs.memory = preset.memory
         pbs.scratch = preset.scratch
         pbs.with_socket = with_socket
+        if pbs_params is not None:
+            pbs.pbs_params = pbs_params
         return pbs
 
     @staticmethod
@@ -296,9 +348,6 @@ class ConfFactory:
         python_env.module_add = preset.module_add
 
         libs_env = LibsEnvConfig()
-        libs_env.mpi_scl_enable_exec = preset.mpi_scl_enable_exec
-        libs_env.mpi_module_add = preset.mpi_module_add
-        libs_env.libs_mpicc = preset.libs_mpicc
         libs_env.install_job_libs = install_job_libs
         libs_env.start_job_libs = start_job_libs
         return python_env, libs_env

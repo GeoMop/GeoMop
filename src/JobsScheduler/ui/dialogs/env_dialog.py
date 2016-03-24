@@ -61,13 +61,6 @@ class EnvDialog(AFormDialog):
         self.ui.addModuleCheckBox.stateChanged.connect(
             lambda state: self.ui.addModuleLineEdit.setDisabled(not state)
         )
-        self.ui.mpiSclEnableCheckBox.stateChanged.connect(
-            lambda state: self.ui.mpiSclEnableLineEdit.setDisabled(not
-                                                                   state)
-        )
-        self.ui.mpiAddModuleCheckBox.stateChanged.connect(
-            lambda state: self.ui.mpiAddModuleLineEdit.setDisabled(not state)
-        )
 
     def valid(self):
         valid = True
@@ -78,19 +71,19 @@ class EnvDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = EnvPreset(self.ui.nameLineEdit.text())
+        preset = EnvPreset(name=self.ui.nameLineEdit.text())
         if self.ui.pythonExecLineEdit.text():
             preset.python_exec = self.ui.pythonExecLineEdit.text()
         if self.ui.sclEnableCheckBox.isChecked():
-            preset.scl_enable_exec = self.ui.addModuleLineEdit.text()
+            preset.scl_enable_exec = self.ui.sclEnableLineEdit.text()
         if self.ui.addModuleCheckBox.isChecked():
             preset.module_add = self.ui.addModuleLineEdit.text()
-        if self.ui.mpiSclEnableCheckBox.isChecked():
-            preset.mpi_scl_enable_exec = self.ui.mpiSclEnableLineEdit.text()
-        if self.ui.mpiAddModuleCheckBox.isChecked():
-            preset.mpi_module_add = self.ui.mpiAddModuleLineEdit.text()
-        if self.ui.mpiccPathLineEdit.text():
-            preset.libs_mpicc = self.ui.mpiccPathLineEdit.text()
+        if self.ui.flowPathEdit.text():
+            preset.flow_path = self.ui.flowPathEdit.text()
+        if self.ui.pbsParamsTextEdit.toPlainText():
+            preset.pbs_params = self.ui.pbsParamsTextEdit.toPlainText().splitlines()
+        if self.ui.cliParamsTextEdit.toPlainText():
+            preset.cli_params = self.ui.cliParamsTextEdit.toPlainText().splitlines()
         return {
             "key": key,
             "preset": preset
@@ -112,14 +105,9 @@ class EnvDialog(AFormDialog):
             if preset.module_add:
                 self.ui.addModuleCheckBox.setCheckState(Qt.Checked)
                 self.ui.addModuleLineEdit.setText(preset.module_add)
-            if preset.mpi_scl_enable_exec:
-                self.ui.mpiSclEnableCheckBox.setCheckState(Qt.Checked)
-                self.ui.mpiSclEnableLineEdit.setText(
-                    preset.mpi_scl_enable_exec)
-            if preset.mpi_module_add:
-                self.ui.mpiAddModuleCheckBox.setCheckState(Qt.Checked)
-                self.ui.mpiAddModuleLineEdit.setText(preset.mpi_module_add)
-            self.ui.mpiccPathLineEdit.setText(preset.libs_mpicc)
+            self.ui.flowPathEdit.setText(preset.flow_path)
+            self.ui.pbsParamsTextEdit.setPlainText('\n'.join(preset.pbs_params))
+            self.ui.cliParamsTextEdit.setPlainText('\n'.join(preset.cli_params))
 
         else:
             self.ui.idLineEdit.clear()
@@ -129,11 +117,9 @@ class EnvDialog(AFormDialog):
             self.ui.sclEnableLineEdit.clear()
             self.ui.addModuleCheckBox.setCheckState(Qt.Unchecked)
             self.ui.addModuleLineEdit.clear()
-            self.ui.mpiSclEnableCheckBox.setCheckState(Qt.Unchecked)
-            self.ui.mpiSclEnableLineEdit.clear()
-            self.ui.mpiAddModuleCheckBox.setCheckState(Qt.Unchecked)
-            self.ui.mpiAddModuleLineEdit.clear()
-            self.ui.mpiccPathLineEdit.clear()
+            self.ui.flowPathEdit.clear()
+            self.ui.pbsParamsTextEdit.clear()
+            self.ui.cliParamsTextEdit.clear()
 
 
 class UiEnvDialog(UiFormDialog):
@@ -274,12 +260,12 @@ class UiEnvDialog(UiFormDialog):
         self.formDivider1.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mainVerticalLayout.addWidget(self.formDivider1)
 
-        # mpi label
-        self.mpiLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.mpiLabel.setObjectName("mpiLabel")
-        self.mpiLabel.setFont(labelFont)
-        self.mpiLabel.setText("Mpi")
-        self.mainVerticalLayout.addWidget(self.mpiLabel)
+        # flow label
+        self.flowLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.flowLabel.setObjectName("flowLabel")
+        self.flowLabel.setFont(labelFont)
+        self.flowLabel.setText("Flow123d")
+        self.mainVerticalLayout.addWidget(self.flowLabel)
 
         # form layout3
         self.mainVerticalLayout.removeWidget(self.buttonBox)
@@ -289,66 +275,49 @@ class UiEnvDialog(UiFormDialog):
         self.mainVerticalLayout.addLayout(self.formLayout3)
 
         # 1 row
-        self.mpiSclEnableLabel = QtWidgets.QLabel(
+        self.flowPathLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.mpiSclEnableLabel.setObjectName("mpiSclEnableLabel")
-        self.mpiSclEnableLabel.setText("SCL Enable:")
+        self.flowPathLabel.setObjectName("flowPathLabel")
+        self.flowPathLabel.setText("Flow123d path:")
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.LabelRole,
-                                   self.mpiSclEnableLabel)
-        self.mpiSclEnableRowSplit = QtWidgets.QHBoxLayout()
-        self.mpiSclEnableRowSplit.setObjectName("mpiSclEnableRowSplit")
-        self.mpiSclEnableLineEdit = QtWidgets.QLineEdit(
+                                   self.flowPathLabel)
+        self.flowPathEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
-        self.mpiSclEnableLineEdit.setObjectName("mpiSclEnableLineEdit")
-        self.mpiSclEnableLineEdit.setPlaceholderText("for example: "
-                                                     "rock-openmpi")
-        self.mpiSclEnableLineEdit.setProperty("clearButtonEnabled", True)
-        self.mpiSclEnableLineEdit.setDisabled(True)
-        self.mpiSclEnableCheckBox = QtWidgets.QCheckBox(
-            self.mainVerticalLayoutWidget)
-        self.mpiSclEnableCheckBox.setObjectName("mpiSclEnableCheckBox")
-        self.mpiSclEnableRowSplit.addWidget(self.mpiSclEnableCheckBox)
-        self.mpiSclEnableRowSplit.addWidget(self.mpiSclEnableLineEdit)
-        self.formLayout3.setLayout(1, QtWidgets.QFormLayout.FieldRole,
-                                   self.mpiSclEnableRowSplit)
+        self.flowPathEdit.setObjectName("flowPathEdit")
+        self.flowPathEdit.setPlaceholderText("flow123d")
+        #self.flowPathEdit.setProperty("clearButtonEnabled", True)
+        self.formLayout3.setWidget(1, QtWidgets.QFormLayout.FieldRole,
+                                   self.flowPathEdit)
 
         # 2 row
-        self.mpiAddModuleLabel = QtWidgets.QLabel(
+        self.pbsParamsLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.mpiAddModuleLabel.setObjectName("mpiAddModuleLabel")
-        self.mpiAddModuleLabel.setText("Add module:")
+        self.pbsParamsLabel.setObjectName("pbsParamsLabel")
+        self.pbsParamsLabel.setText("PBS Params:")
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.LabelRole,
-                                   self.mpiAddModuleLabel)
-        self.mpiAddModuleRowSplit = QtWidgets.QHBoxLayout()
-        self.mpiAddModuleRowSplit.setObjectName("mpiAddModuleRowSplit")
-        self.mpiAddModuleLineEdit = QtWidgets.QLineEdit(
+                                   self.pbsParamsLabel)
+        self.pbsParamsTextEdit = QtWidgets.QPlainTextEdit(
             self.mainVerticalLayoutWidget)
-        self.mpiAddModuleLineEdit.setObjectName("mpiAddModuleLineEdit")
-        self.mpiAddModuleLineEdit.setPlaceholderText("for example: "
-                                                     "rock-openmpi")
-        self.mpiAddModuleLineEdit.setProperty("clearButtonEnabled", True)
-        self.mpiAddModuleLineEdit.setDisabled(True)
-        self.mpiAddModuleCheckBox = QtWidgets.QCheckBox(
-            self.mainVerticalLayoutWidget)
-        self.mpiAddModuleCheckBox.setObjectName("mpiAddModuleCheckBox")
-        self.mpiAddModuleRowSplit.addWidget(self.mpiAddModuleCheckBox)
-        self.mpiAddModuleRowSplit.addWidget(self.mpiAddModuleLineEdit)
-        self.formLayout3.setLayout(2, QtWidgets.QFormLayout.FieldRole,
-                                   self.mpiAddModuleRowSplit)
+        self.pbsParamsTextEdit.setObjectName("pbsParamsTextEdit")
+        self.pbsParamsTextEdit.setMinimumHeight(55)
+        self.pbsParamsTextEdit.setTabChangesFocus(True)
+        self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                   self.pbsParamsTextEdit)
 
         # 3 row
-        self.mpiccPathLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.mpiccPathLabel.setObjectName("mpiccPathLabel")
-        self.mpiccPathLabel.setText("Mpicc path:")
-        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                   self.mpiccPathLabel)
-        self.mpiccPathLineEdit = QtWidgets.QLineEdit(
+        self.cliParamsLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.mpiccPathLineEdit.setObjectName("mpiccPathLineEdit")
-        self.mpiccPathLineEdit.setPlaceholderText("alternative path to mpicc")
-        self.mpiccPathLineEdit.setProperty("clearButtonEnabled", True)
+        self.cliParamsLabel.setObjectName("cliParamsLabel")
+        self.cliParamsLabel.setText("CLI Params:")
+        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+                                   self.cliParamsLabel)
+        self.cliParamsTextEdit = QtWidgets.QPlainTextEdit(
+            self.mainVerticalLayoutWidget)
+        self.cliParamsTextEdit.setObjectName("cliParamsTextEdit")
+        self.cliParamsTextEdit.setMinimumHeight(55)
+        self.cliParamsTextEdit.setTabChangesFocus(True)
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                   self.mpiccPathLineEdit)
+                                   self.cliParamsTextEdit)
         
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)

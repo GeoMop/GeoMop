@@ -94,7 +94,7 @@ class TreeWidget(QtWidgets.QTreeView):
             span = deepcopy(data.key.span)
         elif model_index.column() == 1 and \
                 data.implementation == DataNode.Implementation.mapping and \
-                data.type is not None:  # AbstractRecord type
+                data.type is not None:  # Abstract type
             span = deepcopy(data.type.span)
         else:  # entire node (value)
             span = deepcopy(data.span)
@@ -205,7 +205,7 @@ class DataNodeTreeModel(QtCore.QAbstractItemModel):
         elif role == QtCore.Qt.ForegroundRole:
             if column == 1:
                 if data.implementation == DataNode.Implementation.mapping and data.type is not None:
-                    return QColor(QtCore.Qt.darkGreen)  # AbstractRecord type
+                    return QColor(QtCore.Qt.darkGreen)  # Abstract type
                 return QColor(QtCore.Qt.black)
 
     # virtual function

@@ -160,7 +160,7 @@ class ResourceDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = ResPreset(self.ui.nameLineEdit.text())
+        preset = ResPreset(name=self.ui.nameLineEdit.text())
 
         preset.mj_execution_type = \
             self.ui.multiJobExecutionTypeComboBox.currentText()
