@@ -216,7 +216,8 @@ class MainWindow(QtWidgets.QMainWindow):
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
         # load current project
-        if "project" in self.data.set_data and self.data.set_data:
+        if "project" in self.data.set_data and self.data.set_data and\
+                self.data.set_data['project'] is not None:
             project = self.data.set_data["project"]
         else:
             project = '(No Project)'
