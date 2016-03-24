@@ -4,6 +4,7 @@
 """
 
 import copy
+from enum import Enum
 
 
 class Serializable:
@@ -45,8 +46,10 @@ class Serializable:
                 deserialized.append(Serializable.load(item, cls))
             return deserialized
 
-        if not isinstance(data, dict):
+        if data is None:
             return cls()
+        elif not isinstance(data, dict):
+            return cls(data)
 
         for exclude in (rules.excluded + rules.deleted):
             if exclude in data:
@@ -56,8 +59,16 @@ class Serializable:
             if key not in data:
                 data[key] = value
 
+        # __all__: set default composite
+        composite = {}
+        if '__all__' in rules.composite:
+            default_type = rules.composite['__all__']
+            composite = {key: default_type for key in data}
+        # override default composite
+        composite.update(rules.composite)
+
         # recursively resolve composite
-        for key, class_ in rules.composite.items():
+        for key, class_ in composite.items():
             if key in data:
                 subdata = data[key]
                 data[key] = Serializable.load(subdata, class_)
@@ -81,14 +92,28 @@ class Serializable:
             # nothing to do, no rules defined
             return data
 
-        out = copy.copy(data.__dict__)
+        # different serialization for dict, enum and class
+        if isinstance(data, dict):
+            out = copy.copy(data)
+        elif isinstance(data, Enum):
+            return data.value
+        else:
+            out = copy.copy(data.__dict__)
 
         for exclude in (rules.excluded + rules.deleted):
             if exclude in out:
                 del out[exclude]
 
+        # __all__: set default composite
+        composite = {}
+        if '__all__' in rules.composite:
+            default_type = rules.composite['__all__']
+            composite = {key: default_type for key in out}
+        # override default composite
+        composite.update(rules.composite)
+
         # recursively resolve composite
-        for key, class_ in rules.composite.items():
+        for key, class_ in composite.items():
             if key in out:
                 subdata = out[key]
                 out[key] = Serializable.dump(subdata)

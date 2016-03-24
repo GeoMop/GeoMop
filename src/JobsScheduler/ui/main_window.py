@@ -20,7 +20,6 @@ from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
-from ui.data import PersistentDictConfigAdapter
 from ui.dialogs import AnalysisDialog, FilesSavedMessageBox
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -35,6 +34,7 @@ from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
 from geomop_project import Project, Analysis
+from geomop_util import Serializable
 import flow_util
 
 
@@ -145,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # project menu
-        self.ui.menuBar.project.config = PersistentDictConfigAdapter(self.data.set_data)
+        self.ui.menuBar.project.config = self.data.config
 
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
@@ -199,26 +199,25 @@ class MainWindow(QtWidgets.QMainWindow):
         # load settings
         self.load_settings()
         # attach workspace and project observers
-        self.data.set_data.observers.append(self)
-        PersistentDictConfigAdapter(self.data.set_data).observers.append(Project)
+        self.data.config.observers.append(self)
+        self.data.config.observers.append(Project)
 
         # trigger notify
-        self.data.set_data.notify()
+        self.data.config.notify()
 
     def load_settings(self):
         # select last selected mj
         index = 0
-        if "selected_mj" in self.data.set_data:
+        if self.data.config.selected_mj is not None:
             item_count = self.ui.overviewWidget.topLevelItemCount()
-            tmp_index = int(self.data.set_data["selected_mj"])
+            tmp_index = int(self.data.config.selected_mj)
             if item_count > 0 and item_count > tmp_index:
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
         # load current project
-        if "project" in self.data.set_data and self.data.set_data and\
-                self.data.set_data['project'] is not None:
-            project = self.data.set_data["project"]
+        if self.data.config.project is not None:
+            project = self.data.config.project
         else:
             project = '(No Project)'
         self.setWindowTitle('Jobs Scheduler - ' + project)
@@ -382,11 +381,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.report_error("Project is not selected.")
             return
         if purpose == AnalysisDialog.PURPOSE_ADD:
-            analysis = Analysis.load(data)
+            analysis = Analysis(**data)
             Project.current.save_analysis(analysis)
 
     def _handle_options(self):
-        OptionsDialog(self, PersistentDictConfigAdapter(self.data.set_data)).show()
+        OptionsDialog(self, self.data.config).show()
 
     def handle_terminate(self):
         mj = self.data.multijobs
@@ -399,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # save currently selected mj
         current = self.ui.overviewWidget.currentItem()
         sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
-        self.data.set_data["selected_mj"] = sel_index
+        self.data.config.selected_mj = sel_index
 
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()

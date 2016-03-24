@@ -5,6 +5,8 @@
 from PyQt5 import QtWidgets, QtGui
 
 from geomop_project import Analysis
+from geomop_util import Serializable
+
 from .dialogs import AFormDialog, UiFormDialog
 
 
@@ -74,7 +76,10 @@ class AnalysisDialog(AFormDialog):
             if widget.include_in_data:
                 params[widget.param.name] = widget.text()
 
-        return Analysis(name, files, params).dump()
+        analysis = Analysis(name=name,
+                            files=files,
+                            params=params)
+        return analysis.__dict__
 
     def set_data(self, data=None):
         # reset validation colors

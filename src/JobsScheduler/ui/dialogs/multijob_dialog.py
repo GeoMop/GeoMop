@@ -88,7 +88,7 @@ class MultiJobDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = MultiJobPreset(self.ui.nameLineEdit.text())
+        preset = MultiJobPreset(name=self.ui.nameLineEdit.text())
         preset.analysis = self.ui.analysisLineEdit.text()
         preset.resource_preset = self.ui.resourceComboBox.itemData(
                     self.ui.resourceComboBox.currentIndex())

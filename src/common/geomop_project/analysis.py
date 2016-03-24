@@ -5,13 +5,12 @@
 
 import json
 
-
 ANALYSIS_FILE_EXT = 'data'
 
 
 class Analysis:
 
-    def __init__(self, name, files=None, params=None, **kwargs):
+    def __init__(self, name=None, files=None, params=None, **kwargs):
         self.name = name
         """name of the analysis"""
         self.files = []
