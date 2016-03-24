@@ -21,12 +21,17 @@ from data.validation import Validator
 from data.format import get_root_input_type_from_json
 from data.autoconversion import autoconvert
 from geomop_util.logging import LOGGER_PREFIX
+from geomop_util import Serializable
 from geomop_project import Project, InvalidProject
 from util import constants
 
 
 class _Config:
     """Class for ModelEditor serialization"""
+
+    __serializable__ = Serializable(
+        excluded=['observers']
+    )
 
     DEBUG_MODE = False
     """debug mode changes the behaviour"""
@@ -39,43 +44,36 @@ class _Config:
 
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'ModelEditor')
 
-    def __init__(self, readfromconfig=True):
+    def __init__(self, **kwargs):
+
+        def kw_or_def(key, default=None):
+            """Get keyword arg or default value."""
+            return kwargs[key] if key in kwargs else default
 
         from os.path import expanduser
-        self.last_data_dir = expanduser("~")
-        """directory of the most recently opened data file"""
-        self.recent_files = []
-        """a list of recently opened files"""
-        self.format_files = []
-        """a list of format files"""
-        self.display_autocompletion = False
-        """whether to display autocompletion automatically"""
-        self.symbol_completion = False
-        """whether to automatically complete brackets and array symbols"""
-        self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
-        """user customizable keyboard shortcuts"""
-        self.font = constants.DEFAULT_FONT
-        """text editor font"""
-        self._project = None
-        self._workspace = None
         self.observers = []
         """objects to be notified of changes (currently only used for project)"""
+        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        """directory of the most recently opened data file"""
+        self.recent_files = kw_or_def('recent_files', [])
+        """a list of recently opened files"""
+        self.format_files = kw_or_def('format_files', [])
+        """a list of format files"""
+        self.display_autocompletion = kw_or_def('display_autocompletion', False)
+        """whether to display autocompletion automatically"""
+        self.symbol_completion = kw_or_def('symbol_completion', False)
+        """whether to automatically complete brackets and array symbols"""
+        self.shortcuts = kw_or_def('shortcuts',
+                                           deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+        """user customizable keyboard shortcuts"""
+        self.font = kw_or_def('font', constants.DEFAULT_FONT)
+        """text editor font"""
+        self._project = kw_or_def('_project')
+        self._workspace = kw_or_def('_workspace')
 
-        if readfromconfig:
-            data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
-            self.last_data_dir = getattr(data, 'last_data_dir', self.last_data_dir)
-            self.recent_files = getattr(data, 'recent_files', self.recent_files)
-            self.format_files = getattr(data, 'format_files', self.format_files)
-            self.display_autocompletion = getattr(data, 'display_autocompletion',
-                                                  self.display_autocompletion)
-            self.symbol_completion = getattr(data, 'symbol_completion',
-                                             self.symbol_completion)
-            self.font = getattr(data, 'font', self.font)
-            self.workspace = getattr(data, '_workspace', self._workspace)
-            self.project = getattr(data, '_project', self._project)
-            if hasattr(data, 'shortcuts'):
-                self.shortcuts.update(data.shortcuts)
-            self.notify_all()
+        # initialize project and workspace
+        self.workspace = self._workspace
+        self.project = self._project
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
@@ -85,6 +83,15 @@ class _Config:
             project_dir = os.path.join(self.workspace, self.project)
         if project_directory is None or directory != project_dir:
             self.last_data_dir = directory
+
+    @staticmethod
+    def open():
+        """Open config from saved file (if exists)."""
+        config = cfg.get_config_file(_Config.SERIAL_FILE,
+                                     _Config.CONFIG_DIR, cls=_Config)
+        if config is None:
+            config = _Config()
+        return config
 
     def save(self):
         """Save config data"""
@@ -202,7 +209,7 @@ class MEConfig:
     """Array of transformation files"""
     curr_format_file = None
     """selected format file"""
-    config = _Config()
+    config = _Config.open()
     """Serialized variables"""
     curr_file = None
     """Serialized variables"""
@@ -463,8 +470,8 @@ class MEConfig:
 
         # handle parameters
         if (Project.current is not None and
-                Project.current.files.path_is_in_project_dir(cls.curr_file)):
-            Project.current.params.merge(cls.validator.params)
+                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
+            Project.current.merge_params(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -527,9 +534,10 @@ class MEConfig:
     def sync_project_for_curr_file(cls):
         """Write current file and params to a project file."""
         if (Project.current is not None and
-                Project.current.files.path_is_in_project_dir(cls.curr_file)):
-            Project.current.params.merge(cls.validator.params)
-            Project.current.files.add(cls.curr_file, cls.validator.params.keys())
+                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
+            Project.current.merge_params(cls.validator.params)
+            params = [param.name for param in cls.validator.params]
+            Project.current.add_file(cls.curr_file, params)
             Project.current.save()
 
     @classmethod

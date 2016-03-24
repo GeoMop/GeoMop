@@ -45,6 +45,9 @@ class Serializable:
                 deserialized.append(Serializable.load(item, cls))
             return deserialized
 
+        if not isinstance(data, dict):
+            return cls()
+
         for exclude in (rules.excluded + rules.deleted):
             if exclude in data:
                 del data[exclude]
@@ -78,7 +81,7 @@ class Serializable:
             # nothing to do, no rules defined
             return data
 
-        out = copy.deepcopy(data.__dict__)
+        out = copy.copy(data.__dict__)
 
         for exclude in (rules.excluded + rules.deleted):
             if exclude in out:
