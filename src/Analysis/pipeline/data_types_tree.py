@@ -116,6 +116,8 @@ class Int(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.integer is None:
+            return ["Int()"]
         return ["Int({0})".format(str(self.integer))]
       
     def is_set(self):
@@ -153,6 +155,8 @@ class String(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.string is None:
+            return ["String()"]
         return ["String('{0}')".format(self.string)]
       
     def is_set(self):
@@ -190,13 +194,15 @@ class Float(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.float is None:
+            return ["Float()"]
         return ["Float({0})".format(str(self.float))]
       
     def is_set(self):
         """
         return if structure contain real data
         """
-        return  self.float is not None
+        return self.float is not None
 
     def assigne(self,  value):
         """

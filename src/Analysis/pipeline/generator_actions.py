@@ -35,7 +35,7 @@ class RangeGenerator(GeneratorActionType):
             self.outputs.append(self._get_output_from_items())
         self.state = ActionStateType.initialized
         
-    def get_output(self, action, number):
+    def get_output(self, number):
         """return output relevant for set action"""
         return self.outputs[number]
 

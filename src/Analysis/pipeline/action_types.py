@@ -12,10 +12,15 @@ class ActionType(IntEnum):
 class ActionStateType(IntEnum):
     """Action type"""
     created = 0
+    """action is created"""
     initialized = 1
+    """action is inicialized"""
     wait = 2
+    """action is ready for processing or validation"""
     process = 3
-    finished = 4   
+    """action is processed"""
+    finished = 4
+    """action is finished"""
 
 class Runner():
     """
@@ -31,7 +36,7 @@ class Runner():
         self.type =  type   
 
 __action_counter__ = 0
-"""action counter"""
+"""action counter for unique settings in created script for code generation"""
         
 class BaseActionType(metaclass=abc.ABCMeta):
     """
@@ -53,15 +58,14 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self.state = ActionStateType.created
         """action state"""
         self.inputs = []
-        """dictionary names => types of input ports"""
+        """list names => types of input ports"""
         self.inputs_os = []
         """
-        number of output slot where is action join (opposite slot)
-        default is first slot
-        """
-        """dictionary names => types of input ports"""
+        List of integers, where integer is number of output slot 
+        where is action join (opposite slot) default is first slot
+        """        
         self.outputs = []
-        """dictionary names => DTT typse on output ports"""
+        """list names => DTT typse on output ports"""
         self.variables = {}
         """dictionary names => types of variables"""
         self.type = ActionType.simple
@@ -90,7 +94,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod
-    def get_output(self, action, number):
+    def get_output(self, number):
         """return output relevant for set action"""
         pass
    
@@ -101,7 +105,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """
         if len(self.inputs)>number:
             if isinstance(self.inputs[number],  BaseActionType):
-                return self.inputs[number].get_output(self, self.inputs_os[number])
+                return self.inputs[number].get_output(self.inputs_os[number])
             else:
                 return self.inputs[number]                
         return None
@@ -120,7 +124,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         return isinstance(var, BaseDTT) or  isinstance(var, CompositeDTT)
      
     @classmethod
-    def format_array(cls, name, array, spaces, err):
+    def _format_array(cls, name, array, spaces, err):
         """
         return lines with formated array
         """
@@ -139,7 +143,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
             return res
             
     @classmethod
-    def format_param(cls, name, var, spaces, err):
+    def _format_param(cls, name, var, spaces, err):
         """
         return lines with formated param
         """
@@ -157,9 +161,9 @@ class BaseActionType(metaclass=abc.ABCMeta):
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self.id), self.__class__.__name__))
         if len(self.inputs)==1:
-            lines.extend(self.format_param("Input", self.inputs[0], 4, "Unknown input type"))
+            lines.extend(self._format_param("Input", self.inputs[0], 4, "Unknown input type"))
         elif len(self.inputs)>1:
-            lines.extend(self.format_array("Inputs", self.inputs, 4, "Unknown input type"))
+            lines.extend(self._format_array("Inputs", self.inputs, 4, "Unknown input type"))
         if len(self.inputs_os)>1:
             nonzer = False
             var="["
@@ -169,11 +173,11 @@ class BaseActionType(metaclass=abc.ABCMeta):
                     nonzer = True
             if nonzer:
                 var = var[:-1]+']'
-                lines.extend(Formater.format_variable('InputOpposites', var, 4))
+                lines.extend(Formater._format_variable('InputOpposites', var, 4))
         if len(self.outputs)==1:
-            lines.extend(self.format_param("Output", self.outputs[0], 4, "Unknown output type"))
+            lines.extend(self._format_param("Output", self.outputs[0], 4, "Unknown output type"))
         elif len(self.outputs)>1:
-            lines.extend(self.format_array("Outputs", self.outputs, 4, "Unknown output type"))                        
+            lines.extend(self._format_array("Outputs", self.outputs, 4, "Unknown output type"))                        
         for script in self._get_variables_script():
             lines.extend(Formater.indent(script, 4))
             lines[-1] += ","
@@ -283,6 +287,43 @@ class BaseActionType(metaclass=abc.ABCMeta):
             return True
         return False
 
+class Bridge(BaseActionType):
+    """Action that directed output to output method of link class"""
+    
+    def __init__(self, workflow):
+        self.workflow =workflow
+        """Workflow action"""        
+        self.link=None
+        """Real action for gaining output"""
+        self.get_func =None
+        
+    def set_new_link(self, link, get_func):
+        self.link=link
+        self.get_func = link.get_output
+        if get_func is not None:
+            self.get_func = get_func
+
+    def inicialize(self):
+        pass
+        
+    def get_output(self, number):
+        if self.link is not None:
+            return self.get_func(number)
+
+    def _check_params(self):    
+        return []
+    
+    def validate(self):
+        return []
+    
+    def _get_runner(self, params):    
+        return None
+        
+    def run(self):    
+        return  self._get_runner(None) 
+ 
+    def get_instance_name(self):
+        return "{0}.input()".format(self.workflow.get_instance_name())
 
 class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -332,15 +373,16 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     Wrapper for some action (usualy workflow), that provide cyclic
     procesing
     
-    :param BaseActionType WrappedAction: Wrapped action
-        this parameter is set after declaration this action by function
-        set_wrapped_action 
+    :param WorkflowActionType WrappedAction: Wrapped action
+        that is processed by wrapper action.
     """
+    
+    def _set_bridge(self, bridge):
+        """redirect bridge to wrapper"""
+        bridge.set_new_link(self)
+    
     def __init__(self, **kwargs):
         super(WrapperActionType, self).__init__(**kwargs)
-
-    def set_wrapped_action(self, action):
-        self.variables['WrappedAction']=action
         
     def inicialize(self):
         """inicialize action run variables"""
@@ -349,8 +391,10 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         # set state before recursion, inicialize ending if return to this action
         self.state = ActionStateType.initialized
         if  'WrappedAction' in self.variables and \
-            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            isinstance(self.variables['WrappedAction'],  WorkflowActionType):
                 self.variables['WrappedAction'].inicialize()
+                #set workflow bridge to special wrapper action bridge
+                self._set_bridge(self.variables['WrappedAction'].bridge)
  
     def _check_params(self):    
         """check if all require params is set"""
@@ -360,21 +404,19 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if  not 'WrappedAction' in self.variables:
             err.append("Parameter 'WrappedAction' is require")
         else:
-            if not isinstance(self.variables['WrappedAction'],  BaseActionType):
-                err.append("Parameter 'WrappedAction' must be BaseActionType")            
+            if not isinstance(self.variables['WrappedAction'],  WorkflowActionType):
+                err.append("Parameter 'WrappedAction' must be WorkflowActionType")            
         if len(self.inputs)  != 1:
             err.append("Wrapper action require exactly one input parameter")
         return err
 
     def get_settings_script(self):    
         """return python script, that create instance of this class"""
-        lines=super(WrapperActionType, self).get_settings_script()
+        lines = []
         if 'WrappedAction' in self.variables and \
-            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            isinstance(self.variables['WrappedAction'],  WorkflowActionType):
             lines.extend(self.variables['WrappedAction'].get_settings_script())
-            lines.append("{0}.set_wrapped_action({1})".format(
-                self.get_instance_name(), 
-                self.variables['WrappedAction'].get_instance_name()))
+        lines.extend(super(WrapperActionType, self).get_settings_script())
         return lines
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -390,11 +432,6 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         if self.state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         return err
-    
-    @abc.abstractmethod 
-    def _get_child_list(self):
-        """Get list of child action, ordered by input-output dependency"""
-        pass
         
     @classmethod
     def _order_child_list(cls, actions):
@@ -423,6 +460,8 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         """
         before_end=stop_action is None
         actions=[action]
+        if action == stop_action:
+            return actions
         process=[]
         while True: 
             for action_next in action._get_dependences():
@@ -441,6 +480,19 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 break
             action=process.pop(0)
         return actions
+
+    @staticmethod 
+    def _merge_actions_lists(list1, list2):
+        """
+        get not-ordered list of dependent action. If stop 
+        action is set, list end in this action
+        """
+        for action in list2:
+            if action in list1:
+                break
+            else:
+                list1.insert(0, action)
+        return list1
 
     @staticmethod
     def _check_action_dependencies(action, list):

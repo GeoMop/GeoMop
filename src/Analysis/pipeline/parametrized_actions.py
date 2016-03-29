@@ -29,7 +29,7 @@ class Flow123dAction(ParametrizedActionType):
             self.outputs.append(self.file_output)
         self.state = ActionStateType.initialized    
 
-    def get_output(self, action, number):
+    def get_output(self, number):
         """return output relevant for set action"""
         if len(self.outputs)>number:
             return self.outputs[number]
