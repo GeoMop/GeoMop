@@ -94,7 +94,7 @@ class Serializable:
 
         # different serialization for dict, enum and class
         if isinstance(data, dict):
-            out = copy.copy(data)
+            out = dict(copy.copy(data))
         elif isinstance(data, Enum):
             return data.value
         else:
