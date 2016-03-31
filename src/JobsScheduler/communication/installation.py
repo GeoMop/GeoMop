@@ -22,6 +22,7 @@ __ins_files__['remote'] = "remote.py"
 __ins_files__['test_task'] = "test_task.py"
 __ins_files__['mj_service'] = "mj_service.py"
 __ins_files__['job_configurations'] = "job_configurations.json"
+__ins_files__['remove_pyc'] = "remove_pyc.py"
 __ins_dirs__ = []
 __ins_dirs__.append("communication")
 __ins_dirs__.append("helpers")
