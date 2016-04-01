@@ -1,4 +1,4 @@
-from .action_types import ParametrizedActionType, Runner, ActionType, BaseActionType, ActionStateType
+from .action_types import ParametrizedActionType, Runner, ActionType, ActionStateType
 
 class Flow123dAction(ParametrizedActionType):
     
@@ -11,9 +11,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         :param string YAMLFile: path to Yaml file
         :param action or DTT Input: action DTT variable
-        :param DTT Output: DTT variable if variable is set
-            output is reduce to this variable (variable is check with
-            params in YAML file), if variable is not set, output is 
+        :param DTT Output:  output is 
             set accoding params in YAML file
         """
 
@@ -25,16 +23,8 @@ class Flow123dAction(ParametrizedActionType):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.created.value:
             return
-        if len(self.outputs)==0:
-            self.outputs.append(self.file_output)
+        self.output = self.file_output
         self.state = ActionStateType.initialized    
-
-    def get_output(self, number):
-        """return output relevant for set action"""
-        if len(self.outputs)>number:
-            return self.outputs[number]
-        return None
-        
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -64,16 +54,13 @@ class Flow123dAction(ParametrizedActionType):
         err = super(Flow123dAction, self)._check_params()
         if 'YAMLFile' not in self.variables:
             err.append("Flow123d action require YAMLFile parameter")
-        if len(self.outputs)==0:
+        if self.output is None:
                     err.append("Can't determine output from YAML file")
         return err
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
-        if len(self.outputs)>0:
-            if not self.outputs[0].match_type(self.file_output):
-                err.append("Output type validation fails")
+        err = super(Flow123dAction, self).validate()
         input_type = self.get_input_val(0)
         if input_type is None:
             err.append("Can't validate input (Output slot of input action is empty)")
@@ -81,11 +68,7 @@ class Flow123dAction(ParametrizedActionType):
             params =  self.get_require_params(self)
             for param in params:
                 if not hasattr(self.inputs[0],  param) :
-                    err.append("Yaml parameter {0} is not set in input")   
-            if len(self.inputs)>0 and not isinstance(input[0], BaseActionType):
-                # for DTT check if data is set
-                if not input[0].is_set():
-                    err.append("Input data can't be empty DTT")
+                    err.append("Yaml parameter {0} is not set in input")              
         return err
         
     def get_require_params(self):
@@ -102,5 +85,3 @@ class Flow123dAction(ParametrizedActionType):
         """Rename and make completation of Yaml file and return new file path"""
         # ToDo logic
         pass
-        
-    

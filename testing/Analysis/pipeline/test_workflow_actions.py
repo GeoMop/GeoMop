@@ -16,11 +16,10 @@ def test_workflow_code_init():
     ]
     gen = RangeGenerator(Items=items)    
     workflow=Workflow()
-    flow=Flow123dAction(Input=workflow.input(), Output=String("File"), YAMLFile="test.yaml")
-    workflow.set_input_action(flow)
-    workflow.set_output_action(flow)
-    foreach = ForEach(Input=gen, WrappedAction=workflow)
-    pipeline=Pipeline(OutputActions=[foreach])
+    flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow)
+    foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
+    pipeline=Pipeline(ResultActions=[foreach])
     pipeline.inicialize()    
     test=pipeline.get_settings_script()
     
@@ -33,12 +32,13 @@ def test_workflow_code_init():
     assert len(err)==0
  
     # check output types directly
-    assert isinstance(gen.get_output(0), Ensemble)
-    assert isinstance(gen.get_output(0).subtype, Struct)
-    assert isinstance(foreach.get_output(0), Ensemble)
-    assert isinstance(foreach.get_output(0).subtype, String)
-    assert isinstance(workflow.bridge.get_output(0), Struct)
-    assert 'a' in workflow.bridge.get_output(0)
-    assert 'b' in workflow.bridge.get_output(0)
-    assert 'c' not in workflow.bridge.get_output(0)    
-    assert isinstance(flow.get_output(0), String)
+    assert isinstance(gen.get_output(), Ensemble)
+    assert isinstance(gen.get_output().subtype, Struct)
+    flow.output=String()
+    assert isinstance(foreach.get_output(), Ensemble)
+    assert isinstance(foreach.get_output().subtype, String)
+    assert isinstance(workflow.bridge.get_output(), Struct)
+    assert 'a' in workflow.bridge.get_output()
+    assert 'b' in workflow.bridge.get_output()
+    assert 'c' not in workflow.bridge.get_output()    
+    assert isinstance(flow.get_output(), String)

@@ -34,34 +34,39 @@ class ForEach(WrapperActionType):
     def inicialize(self):
         """inicialize action run variables"""
         super(ForEach, self).inicialize()
-        self.outputs=[]
 
-    def get_output_to_wrapper(self, number):
+    def get_output_to_wrapper(self):
         """return output relevant for wrapper action"""
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             # for wraped action return previous input
-            ensemble = self.get_input_val(number)
+            ensemble = self.get_input_val(0)
             if isinstance(ensemble,  Ensemble):
                 return ensemble.subtype
         return None
 
-    def get_output(self, number):
+    def get_output(self):
         """return output relevant for set action"""
-        if number>0:
-            return None
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
-            output=self.variables['WrappedAction'].get_output(number)
+            output=self.variables['WrappedAction'].get_output()
             if not self._is_DTT(output):    
                 return None
             res=Ensemble(output)
             if self.state != ActionStateType.finished:
                 for instance in self.wa_instances:
                     """Running instance, get input from generator"""
-                    res.add_item(instance.get_output(number))
+                    res.add_item(instance.get_output())
             return res
         return None
+        
+    def _get_variables_script(self):
+        """return array of variables python scripts"""
+        var = super(ForEach, self)._get_variables_script()        
+        if 'WrappedAction' in self.variables:
+            wrapper = 'WrapperActions={0}'.format(self.variables['WrappedAction'].get_instance_name())                   
+            var.append([wrapper])
+        return var
 
     def _get_runner(self, params):    
         """
@@ -88,7 +93,7 @@ class ForEach(WrapperActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
+        err = super(ForEach, self).validate()
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             err.extend(self.variables['WrappedAction'].validate())

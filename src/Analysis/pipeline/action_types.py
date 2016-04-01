@@ -58,57 +58,49 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self.state = ActionStateType.created
         """action state"""
         self.inputs = []
-        """list names => types of input ports"""
-        self.inputs_os = []
-        """
-        List of integers, where integer is number of output slot 
-        where is action join (opposite slot) default is first slot
-        """        
-        self.outputs = []
-        """list names => DTT typse on output ports"""
+        """list names => base action types on input ports"""        
+        self.output = None
+        """DTT type on output ports (not settable)"""
         self.variables = {}
         """dictionary names => types of variables"""
         self.type = ActionType.simple
         """action type"""
+        self._load_errs = []
+        """initialiyacion or sets errors"""
+        self.set_config(**kwargs)
+
+    def set_config(self, **kwargs):
+        """set action config variables"""
         for name, value in kwargs.items():
-            if name == 'Input':
-                self.inputs.append(value)
-            elif name == 'Inputs':
-                self.inputs.extend(value)
-            elif name == 'InputOpposite':
-                self.inputs_os.append(value)
-            elif name == 'InputOpposites':
-                self.inputs_os.extend(value)
-            elif name == 'Output':                
-                self.outputs.append(value)
-            elif name == 'Outputs':
-                self.outputs.extend(value)
+            if name == 'Inputs':
+                self.set_input(value)
+            elif name == 'Output':
+               self._load_errs.append("Output variable is not settable.")
             else:
                 self.variables[name] = value
-        for i in range(len(self.inputs_os), len(self.inputs)):
-            self.inputs_os.append(0)
+
+    def set_input(self, input):
+        """set action input variables"""
+        if not isinstance(input, list):
+            self._load_errs.append("Inputs parameter must be list.")
+            return        
+        self.inputs.extend(input)
 
     @abc.abstractmethod
     def inicialize(self):
         """inicialize action run variables"""
         pass
         
-    @abc.abstractmethod
-    def get_output(self, number):
+    def get_output(self):
         """return output relevant for set action"""
-        pass
+        return self.output
    
     def get_input_val(self, number):
         """
         if input is action type, return output from previous action,
         else return input. Both action must be inicialized
         """
-        if len(self.inputs)>number:
-            if isinstance(self.inputs[number],  BaseActionType):
-                return self.inputs[number].get_output(self.inputs_os[number])
-            else:
-                return self.inputs[number]                
-        return None
+        return self.inputs[number].get_output()
     
     @property
     def name(self):
@@ -140,7 +132,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
                     raise Exception(err)
             res[-1] = res[-1][:-1]
             res.append(spaces*" "+"],")   
-            return res
+        return res        
             
     @classmethod
     def _format_param(cls, name, var, spaces, err):
@@ -155,29 +147,35 @@ class BaseActionType(metaclass=abc.ABCMeta):
         else:
             raise Exception(err)
         return res
-
+ 
+    def _format_config_to_setter(self, names, values):
+        """
+        return lines with formated setter with set config params
+        
+        length of value and names paramer must be same
+        :param list names: list of config parameter names, 
+            that will be formated in setter
+        :param list names: list of config parameter values, 
+            value is next list, that can have more lines            
+        """
+        if len(names)<1:
+            return
+        res = []
+        res.append("{0}.set_config(".format(self.get_instance_name()))
+        if len(names)==1 and len(values[0]) == 1:
+            return ["{0}.set_config({%1}={_2})".format(
+                self.get_instance_name(), names[0], values[0])] 
+        for i in range(0, len(names)):
+            res.extend(Formater.format_variable(names[i], values[i], 4))
+        res[-1] = res[-1][:-1]
+        res.append(")")
+        return res           
+            
     def get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self.id), self.__class__.__name__))
-        if len(self.inputs)==1:
-            lines.extend(self._format_param("Input", self.inputs[0], 4, "Unknown input type"))
-        elif len(self.inputs)>1:
-            lines.extend(self._format_array("Inputs", self.inputs, 4, "Unknown input type"))
-        if len(self.inputs_os)>1:
-            nonzer = False
-            var="["
-            for id in self.inputs_os:
-                var += str(id)
-                if id!=0:
-                    nonzer = True
-            if nonzer:
-                var = var[:-1]+']'
-                lines.extend(Formater._format_variable('InputOpposites', var, 4))
-        if len(self.outputs)==1:
-            lines.extend(self._format_param("Output", self.outputs[0], 4, "Unknown output type"))
-        elif len(self.outputs)>1:
-            lines.extend(self._format_array("Outputs", self.outputs, 4, "Unknown output type"))                        
+        lines.extend(self._format_array("Inputs", self.inputs, 4, "Unknown input type"))
         for script in self._get_variables_script():
             lines.extend(Formater.indent(script, 4))
             lines[-1] += ","
@@ -215,19 +213,13 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """
         pass
 
-    @abc.abstractmethod
     def validate(self):    
         """validate variables, input and output"""
-        pass
+        err = []
+        err.extend(self._load_errs)
+        err.extend(self._check_params())        
+        return err
     
-    def _get_dependences(self):
-        """return all direct inputs deoendences"""
-        dependency=[]
-        for input in  self.inputs:
-            if isinstance(input,  BaseActionType):
-                dependency.append(input)
-        return dependency
-        
     @abc.abstractmethod 
     def _check_params(self):
         """check if all require params is set"""
@@ -306,9 +298,9 @@ class Bridge(BaseActionType):
     def inicialize(self):
         pass
         
-    def get_output(self, number):
+    def get_output(self):
         if self.link is not None:
-            return self.get_func(number)
+            return self.get_func()
 
     def _check_params(self):    
         return []
@@ -336,8 +328,6 @@ class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)<1:
             err.append("Convertor action require at least one input parameter")
-        if len(self.outputs) !=1:
-            err.append("Convertor action require exactly one output parameter")
         return err
 
 class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -351,8 +341,6 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)>0:
             err.append("Generator action not use input parameter")
-        if len(self.outputs)!=1:
-            err.append("Generator action require exactly one output parameter")
         return err
             
 class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -413,9 +401,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     def get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = []
-        if 'WrappedAction' in self.variables and \
-            isinstance(self.variables['WrappedAction'],  WorkflowActionType):
-            lines.extend(self.variables['WrappedAction'].get_settings_script())
+        lines.extend(self.variables['WrappedAction'].get_settings_script())
         lines.extend(super(WrapperActionType, self).get_settings_script())
         return lines
 
@@ -423,15 +409,10 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         """
         Class for actions grouping.
+        :param list of BaseActionType ResultActions: Action that is blined , that created
+            pipeline side effects (result)
         """
         super(WorkflowActionType, self).__init__(**kwargs)
-                    
-    def _check_params(self):    
-        """check if all require params is set"""
-        err = []
-        if self.state is ActionStateType.created:
-            err.append("Inicialize method should be processed before checking")
-        return err
         
     @classmethod
     def _order_child_list(cls, actions):
@@ -464,7 +445,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             return actions
         process=[]
         while True: 
-            for action_next in action._get_dependences():
+            for action_next in action.inputs:
                 if stop_action and action_next==stop_action:
                     before_end=True
                     continue
@@ -497,9 +478,26 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     @staticmethod
     def _check_action_dependencies(action, list):
         """check if all direct dependecies is in set action list"""
-        for dep_action in action._get_dependences():
+        for dep_action in action.inputs:
             if dep_action not in list:
                 return False
         return True
+        
+    def _check_params(self):           
+        """check if all require params is set"""
+        err = []
+        if self.state is ActionStateType.created:
+            err.append("Inicialize method should be processed before checking")
+        if  'ResultActions' in self.variables:
+            if isinstance(self.variables['ResultActions'], list):
+                err.append("Parameter 'ResultActions' must be list of output actions")
+            elif len(self.variables['ResultActions'], list)<1:
+                err.append("Parameter 'ResultActions' must contains least one action")
+            else:
+                for i in range(0, len(self.variables['ResultActions'], list)):
+                    if not isinstance(self.variables['ResultActions'],  BaseActionType):
+                        err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
+        return err
+    
 
     

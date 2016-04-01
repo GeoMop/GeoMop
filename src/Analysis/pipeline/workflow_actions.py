@@ -13,6 +13,9 @@ class Workflow(WorkflowActionType):
             is set by set_output_action after class defination 
         :param BaseActionType OutputAction: Action that is exit from workflow
             is set by set_output_action after class defination
+        :param list of BaseActionType ResultActions: Action that is blined , that created
+            pipeline side effects (result)
+        is set by set_output_action after class defination
         :param BaseActionType Input: This variable is input action,
             for direct link to previous action, or may be omited for using in
             wrapper action
@@ -22,20 +25,11 @@ class Workflow(WorkflowActionType):
         super(Workflow, self).__init__(**kwargs)
         self.bridge = Bridge(self)
         """link to bridge class"""
-
-    
-    def set_input_action(self, action):
-        """ Set action that is enter to workflow, call after class defination """
-        self.variables['InputAction']=action
-
-    def set_output_action(self, action):
-        """ Set action that is exit from workflow, call after class defination """
-        self.variables['OutputAction']=action
-        
+      
     def input(self):
         """ Return input type"""
         return self.bridge
-
+       
     def _get_child_list(self):
         """check outputAction variable and get list of child actions"""
         actions = []
@@ -43,7 +37,17 @@ class Workflow(WorkflowActionType):
             isinstance(self.variables['OutputAction'],  BaseActionType) and \
             'InputAction' in self.variables and \
             isinstance(self.variables['InputAction'],  BaseActionType):
-            actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
+            actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])        
+        if 'ResultActions' in self.variables and \
+            isinstance(self.variables['ResultActions'], list) and \
+            len(self.variables['ResultActions'])>0 and \
+            isinstance(self.variables['ResultActions'][0],  BaseActionType) and \
+           'InputAction' in self.variables and \
+            isinstance(self.variables['InputAction'],  BaseActionType):
+            for i in range(1, len(self.variables['ResultActions'])):
+                if isinstance(self.variables['ResultActions'][i], BaseActionType):
+                    actions2 = self._get_action_list(self.variables['ResultActions'][i], self.variables['InputAction'])
+                    actions=self._merge_actions_lists(actions, actions2)
         return actions
 
     def inicialize(self):
@@ -68,27 +72,28 @@ class Workflow(WorkflowActionType):
         lines = super(Workflow, self).get_settings_script()
         list = self._get_child_list()
         list.reverse()
+        names=['OutputAction', 'InputAction']
+        values=[
+                ["{0}".format(self.variables['OutputAction'].get_instance_name())], 
+                ["{0}".format(self.variables['InputAction'].get_instance_name())]
+            ]
         for action in list:
             lines.extend(action.get_settings_script())
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType):
-            lines.append("{0}.set_output_action({1})".format(
-                self.get_instance_name(), 
-                self.variables['OutputAction'].get_instance_name()))
-        if 'InputAction' in self.variables and \
-            isinstance(self.variables['InputAction'],  BaseActionType):
-            lines.append("{0}.set_input_action({1})".format(
-                self.get_instance_name(), 
-                self.variables['InputAction'].get_instance_name()))
+        if 'ResultActions' in self.variables and len(self.variables['ResultActions'])>0:
+            names.append('ResultActions')
+            value = '['
+            for action in self.variables['ResultActions']:
+                value += "{0},".format(action.get_instance_name())
+            value = value[:-1]+"]"
+            values.append([value])
+        lines.extend(self._format_config_to_setter(names, values))
         return lines
 
-    def get_output(self, number):
+    def get_output(self):
         """return output relevant for set action"""
-        if number>0:
-            return None
         if 'OutputAction' in self.variables and \
             isinstance(self.variables['OutputAction'],  BaseActionType):
-            return self.variables['OutputAction'].get_output(0)
+            return self.variables['OutputAction'].get_output()
         return None
 
     def _get_runner(self, params):    
@@ -110,13 +115,15 @@ class Workflow(WorkflowActionType):
         err = super(Workflow, self)._check_params()
         if  not 'InputAction' in self.variables:
             err.append("Parameter 'InputAction' is require")
-        else:
+        else:            
             if not isinstance(self.variables['InputAction'],  BaseActionType):
                 err.append("Parameter 'InputAction' must be BaseActionType") 
             else:
                 # during inicialiyation should be processed all chain action
+                if len(self.variables['InputAction'])!=1:
+                    err.append("Workflow require 'InputAction' with exactly one input parameter.") 
                 if self.variables['InputAction'] is ActionStateType.created:
-                    err.append("Inicializatin of 'InputAction' is not processed. Is all workflow actions chained?") 
+                    err.append("Inicialization of 'InputAction' is not processed. Is all workflow actions chained?") 
         if  not 'OutputAction' in self.variables:
             err.append("Parameter 'OutputAction' is require")
         else:
@@ -126,7 +133,7 @@ class Workflow(WorkflowActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
+        err = super(Workflow, self).validate()
         err.extend(self._check_params())
         actions = self._get_child_list()
         for action in actions:
