@@ -82,7 +82,7 @@ class AutocompleteHelper:
         if Project.current is not None and is_scalar(input_type):
             self._options.update({
                 '<' + param.name + '>': 'param'
-                for param in Project.current.params.all()
+                for param in Project.current.params
             })
 
         if input_type['base_type'] == 'Record':  # input type Record

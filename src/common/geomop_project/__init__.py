@@ -3,6 +3,5 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from .project import Project, PROJECT_MAIN_FILE, InvalidProject
-from .collections import ParameterCollection, Parameter, FileCollection
+from .project import Project, PROJECT_MAIN_FILE, InvalidProject, Parameter, File
 from .analysis import Analysis

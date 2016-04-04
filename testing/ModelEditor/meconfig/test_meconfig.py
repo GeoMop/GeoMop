@@ -8,7 +8,7 @@ from meconfig.meconfig import _Config as Config
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
     cfg.init(None)
-    cfg.config = Config(False)
+    cfg.config = Config()
     # cfg.config is assigned
     assert cfg.config.__class__ == Config
 
@@ -21,7 +21,7 @@ def test_config(request):
     home = expanduser("~")
     # last_data_dir for first opened config is home
     assert home == cfg.config.last_data_dir
-    config = Config(False)
+    config = Config()
     # new config have last_data_dir == home
     assert home == config.last_data_dir
 
@@ -64,7 +64,7 @@ def test_config(request):
     cfg.config.save()
     cfg.config.recent_files = []
     cfg.config.format_files = []
-    cfg.config = Config()
+    cfg.config = Config().open()
 
     # save config
     assert len(cfg.config.format_files) == 3

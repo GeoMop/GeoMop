@@ -7,13 +7,17 @@ Factory for generating config files.
 import copy
 import os
 import uuid
+import json
 
 from communication import Installation
+from communication.installation import __ins_files__
 from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
 from ui.dialogs.resource_dialog import UiResourceDialog
 from version import Version
+
+JOB_NAME_LABEL = "flow"
 
 
 class ConfigBuilder:
@@ -188,8 +192,42 @@ class ConfigBuilder:
         with open(job.get_path(), "w") as job_file:
             CommunicatorConfigService.save_file(
                 job_file, job.get_conf())
+
+        # build job configuration
+        self._build_jobs_config(mj_name)
+
         # return app_config, it is always entry point for next operations
         return app.get_conf()
+
+    def _build_jobs_config(self, mj_name):
+        """Create jobs and associate them with individual configuration files."""
+        jobs = {}
+        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
+        job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name),
+                                       __ins_files__['job_configurations'])
+        job_counter = 1
+
+        def create_job(configuration_file):
+            """Generate job name and create its configuration."""
+            nonlocal job_counter
+            name = JOB_NAME_LABEL + str(job_counter)
+            data = {'configuration_file': configuration_file}
+            jobs[name] = data
+            job_counter += 1
+
+        # recursively find all configuration files (ending with .yaml)
+        for root, directories, filenames in os.walk(mj_dir):
+            for filename in filenames:
+                if filename.endswith('.yaml'):
+                    abs_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(abs_path, start=mj_dir)
+                    # windows path workaround
+                    rel_path_unix = '/'.join(rel_path.split(os.path.sep))
+                    create_job(rel_path_unix)
+
+        # save job configurations to json
+        with open(job_configs_path, 'w') as job_configs:
+            json.dump(jobs, job_configs, indent=4, sort_keys=True)
 
 
 class ConfBuilder:

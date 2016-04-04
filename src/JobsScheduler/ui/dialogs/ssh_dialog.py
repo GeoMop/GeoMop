@@ -67,7 +67,7 @@ class SshDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = SshPreset(self.ui.nameLineEdit.text())
+        preset = SshPreset(name=self.ui.nameLineEdit.text())
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
         preset.uid = self.ui.userLineEdit.text()

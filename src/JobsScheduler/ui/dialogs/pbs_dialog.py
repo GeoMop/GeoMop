@@ -84,7 +84,7 @@ class PbsDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = PbsPreset(self.ui.nameLineEdit.text())
+        preset = PbsPreset(name=self.ui.nameLineEdit.text())
         if self.ui.dialectComboBox.currentText():
             preset.dialect = self.ui.dialectComboBox.currentData()
         if self.ui.queueComboBox.currentText():

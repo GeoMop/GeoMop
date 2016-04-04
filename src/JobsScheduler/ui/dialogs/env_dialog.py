@@ -71,11 +71,11 @@ class EnvDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = EnvPreset(self.ui.nameLineEdit.text())
+        preset = EnvPreset(name=self.ui.nameLineEdit.text())
         if self.ui.pythonExecLineEdit.text():
             preset.python_exec = self.ui.pythonExecLineEdit.text()
         if self.ui.sclEnableCheckBox.isChecked():
-            preset.scl_enable_exec = self.ui.addModuleLineEdit.text()
+            preset.scl_enable_exec = self.ui.sclEnableLineEdit.text()
         if self.ui.addModuleCheckBox.isChecked():
             preset.module_add = self.ui.addModuleLineEdit.text()
         if self.ui.flowPathEdit.text():
@@ -95,7 +95,7 @@ class EnvDialog(AFormDialog):
 
         if data:
             key = data["key"]
-            preset = EnvPreset.clone(data["preset"])
+            preset = data["preset"]
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.pythonExecLineEdit.setText(preset.python_exec)

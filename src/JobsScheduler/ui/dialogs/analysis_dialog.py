@@ -5,6 +5,8 @@
 from PyQt5 import QtWidgets, QtGui
 
 from geomop_project import Analysis
+from geomop_util import Serializable
+
 from .dialogs import AFormDialog, UiFormDialog
 
 
@@ -74,7 +76,10 @@ class AnalysisDialog(AFormDialog):
             if widget.include_in_data:
                 params[widget.param.name] = widget.text()
 
-        return Analysis(name, files, params).dump()
+        analysis = Analysis(name=name,
+                            files=files,
+                            params=params)
+        return analysis.__dict__
 
     def set_data(self, data=None):
         # reset validation colors
@@ -181,7 +186,7 @@ class UiAnalysisDialog(UiFormDialog):
         self.filesLayout.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.filesLayout)
 
-        for file in self.project.files.all():
+        for file in self.project.files:
             checkbox = QtWidgets.QCheckBox()
             checkbox.setChecked(True)
             checkbox.file = file
@@ -202,7 +207,7 @@ class UiAnalysisDialog(UiFormDialog):
 
         # create GUI components for all project params
         self.paramWidgets = []
-        for i, param in enumerate(self.project.params.all()):
+        for i, param in enumerate(self.project.params):
             label = QtWidgets.QLabel()
             label.setText(param.name)
             label.param = param
