@@ -1,6 +1,6 @@
 import abc
 from enum import IntEnum
-from .data_types_tree import BaseDTT, CompositeDTT
+from .data_types_tree import DTT
 from .code_formater import Formater
 import math
 
@@ -73,13 +73,13 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """set action config variables"""
         for name, value in kwargs.items():
             if name == 'Inputs':
-                self.set_input(value)
+                self.set_inputs(value)
             elif name == 'Output':
                self._load_errs.append("Output variable is not settable.")
             else:
                 self.variables[name] = value
 
-    def set_input(self, input):
+    def set_inputs(self, inputs):
         """set action input variables"""
         if not isinstance(input, list):
             self._load_errs.append("Inputs parameter must be list.")
@@ -109,11 +109,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
     @property
     def description(self):
         return self._description
-    
-    @staticmethod
-    def _is_DTT(var):
-        """return if is var instance of DTT"""
-        return isinstance(var, BaseDTT) or  isinstance(var, CompositeDTT)
      
     @classmethod
     def _format_array(cls, name, array, spaces, err):
@@ -124,7 +119,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if len(array)>0: 
             res.append(spaces*" "+name+"=[")
             for var in array:
-                if cls._is_DTT(var):
+                if isinstance(var, DTT):
                     res.extend(Formater.format_parameter(var.get_settings_script(), spaces+4))
                 elif isinstance(var, BaseActionType):
                     res.append((spaces+4)*" "+"{0},".format(var.get_instance_name()))
@@ -140,7 +135,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         return lines with formated param
         """
         res = []
-        if cls._is_DTT(var):
+        if  isinstance(var, DTT):
             res.extend(Formater.format_variable(name, var.get_settings_script(), spaces))
         elif isinstance(var, BaseActionType):
             res.append(spaces*" "+name + "={0},".format(var.get_instance_name()))
@@ -319,7 +314,7 @@ class Bridge(BaseActionType):
 
 class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
-        super(GeneratorActionType, self).__init__(**kwargs)
+        super(ConvertorActionType, self).__init__(**kwargs)
         
     def _check_params(self):    
         """check if all require params is set"""
@@ -342,7 +337,7 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
         if len(self.inputs)>0:
             err.append("Generator action not use input parameter")
         return err
-            
+
 class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super(ParametrizedActionType, self).__init__(**kwargs)

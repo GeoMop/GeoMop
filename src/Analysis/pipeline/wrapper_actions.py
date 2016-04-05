@@ -1,5 +1,5 @@
 from .action_types import WrapperActionType, ActionStateType, BaseActionType
-from .data_types_tree import Ensemble
+from .data_types_tree import Ensemble, DTT
 
 class ForEach(WrapperActionType):
     
@@ -50,7 +50,7 @@ class ForEach(WrapperActionType):
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             output=self.variables['WrappedAction'].get_output()
-            if not self._is_DTT(output):    
+            if not isinstance(output, DTT):    
                 return None
             res=Ensemble(output)
             if self.state != ActionStateType.finished:

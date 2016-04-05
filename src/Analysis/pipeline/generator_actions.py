@@ -1,5 +1,5 @@
 from .action_types import GeneratorActionType, ActionStateType
-from .data_types_tree import Ensemble, Struct, Float
+from .data_types_tree import Ensemble, Struct, Float, DTT
 import copy
 from .code_formater import Formater
 
@@ -25,7 +25,7 @@ class VariableGenerator(GeneratorActionType):
         
     def _get_valid_output(self):
         """Construct output from set items"""
-        if "Variable" in self.variables and self._is_DTT(self.variables["Variable"]):
+        if "Variable" in self.variables and  isinstance(self.variables["Variable"], DTT):
             return self.variables["Variable"]
         
     def _get_variables_script(self):    

@@ -1,7 +1,12 @@
 import abc
 from .code_formater import Formater
 
-class BaseDTT(metaclass=abc.ABCMeta):
+class DTT(metaclass=abc.ABCMeta):
+    """
+    Abstract class for defination data treer
+    """
+
+class BaseDTT(DTT, metaclass=abc.ABCMeta):
     """
     Abstract class for defination data tree , that is use for
     description structures flow thrue pipeline
@@ -219,7 +224,7 @@ class Float(BaseDTT):
         """
         return self.float
 
-class CompositeDTT(metaclass=abc.ABCMeta):
+class CompositeDTT(DTT, metaclass=abc.ABCMeta):
     """
     Abbstract class od port types, that define user for
     validation and translation to string
@@ -356,7 +361,7 @@ class Struct(CompositeDTT):
     def __setattr__(self, name, value): 
         """save assignation"""
         if name not in self.__dict__:
-            if isinstance(value, BaseDTT) or isinstance(value, CompositeDTT):
+            if isinstance(value, DTT):
                 self.__dict__[name]=value
             else:
                 raise ValueError('Not supported assignation type.')
