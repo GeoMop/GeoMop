@@ -20,9 +20,18 @@ class GDTT(DTT):
     def set_path(self, value):
         self._path = value
            
+    def get_main_settings_script(self):
+        """return python script, that create only main class of DTT structure"""
+        ret = "GDDT("
+        for type in self._types:
+            ret += type.__name__
+        ret = ret[:-1]+")"
+        return [ret]
+        
     def get_settings_script(self):
-        """return python script, that create instance of this class"""
+        """return python script, that create instance of this class"""        
         return [self._path]
+
     
     def __setattr__(self, name, value): 
         """ assignation"""
