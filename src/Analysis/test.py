@@ -31,4 +31,12 @@ k.inicialize()
 test2=k.get_settings_script()
 test3=k.get_output().get_settings_script()
 
+k2 = k.duplicate()
+test4=k2.get_settings_script()
+k2.inicialize()
+
+test5=k2.get_settings_script()
+test6=k2.get_output().get_settings_script()
+
+
 test = 0

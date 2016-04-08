@@ -1,10 +1,31 @@
 import abc
 from .code_formater import Formater
 
-class DTT(metaclass=abc.ABCMeta):
+class TT(metaclass=abc.ABCMeta):
     """
-    Abstract class for defination data treer
+    Abstract class for defination general tree
     """
+    @abc.abstractmethod
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        pass
+
+class DTT(TT, metaclass=abc.ABCMeta):
+    """
+    Abstract class for defination data tree
+    """
+    @abc.abstractmethod 
+    def to_string(self, value):
+        """Presentation of type in json yaml"""
+        pass
+        
+    @abc.abstractmethod 
+    def is_set(self):
+        """
+        return if structure contain real data
+        """
+        pass
+
 
 class BaseDTT(DTT, metaclass=abc.ABCMeta):
     """
@@ -21,34 +42,17 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         """Display name of port"""
         self.description = ""
         """Display description of port"""
-    
-    @abc.abstractmethod 
-    def to_string(self, value):
-        """Presentation of type in json yaml"""
-        pass
 
     def match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         return True
-    
-    @abc.abstractmethod
-    def get_settings_script(self):
-        """return python script, that create instance of this class"""
-        pass
         
     def __str__(self):
         """return string description"""
         return "\n".join(self.get_settings_script())
 
-    @abc.abstractmethod 
-    def is_set(self):
-        """
-        return if structure contain real data
-        """
-        pass
-    
     @abc.abstractmethod 
     def assigne(self, value):
         """

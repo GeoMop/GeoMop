@@ -10,7 +10,7 @@ def test_convertor_code_init():
     p1.output (time and value and bc_type)
     
     p2 = Predicate(Inputs=[GDTT(Struct), GDTT(Struct)]) 
-    p2.output (time1 > time2)
+    p2.output ( p.input[0].time < p.input[1].time )
     
     k = CommonConverter(Inputs=[GDTT(Struct), GDTT(Struct), GDTT(Ensemble)])    
     a = k.input[0].a

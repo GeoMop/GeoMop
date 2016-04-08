@@ -1,4 +1,5 @@
 from .action_types import ParametrizedActionType, Runner, ActionType, ActionStateType
+from .data_types_tree import Struct
 
 class Flow123dAction(ParametrizedActionType):
     
@@ -65,6 +66,8 @@ class Flow123dAction(ParametrizedActionType):
         if input_type is None:
             err.append("Can't validate input (Output slot of input action is empty)")
         else:
+            if not isinstance(input_type, Struct):
+                err.append("Flow123d input parameter must return Struct") 
             params =  self.get_require_params(self)
             for param in params:
                 if not hasattr(self.inputs[0],  param) :

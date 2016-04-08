@@ -62,8 +62,8 @@ class Workflow(WorkflowActionType):
             actions.reverse()
             for action in actions:
                action.inicialize()
-        except:
-            pass    
+        except Exception as err:
+            self._load_errs.append("Inicialize child workflow action error ({0})".format(err))
         if  len(self.inputs)==1:
             self._set_bridge(self.variables['Inputs'][0])            
                     
@@ -113,6 +113,13 @@ class Workflow(WorkflowActionType):
     def _check_params(self):    
         """check if all require params is set"""
         err = super(Workflow, self)._check_params()
+        if len(self.inputs)  != 1:
+            err.append("Parametrized action require exactly one input parameter")
+        else:
+            for input in self.inputs:
+                if not isinstance(input, BaseActionType):
+                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                        self.name))        
         if  not 'InputAction' in self.variables:
             err.append("Parameter 'InputAction' is require")
         else:            
@@ -129,6 +136,7 @@ class Workflow(WorkflowActionType):
         else:
             if not isinstance(self.variables['OutputAction'],  BaseActionType):
                 err.append("Parameter 'OutputAction' must be BaseActionType")
+                
         return err
         
     def validate(self):    

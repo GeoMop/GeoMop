@@ -66,6 +66,8 @@ class Pipeline(WorkflowActionType):
     def _check_params(self):    
         """check if all require params is set"""
         err = super(Pipeline, self)._check_params()
+        if len(self.inputs)>0:
+            err.append("Pipeline action not use input parameter")
         if  not 'ResultActions' in self.variables:
             err.append("Parameter 'ResultActions' is require for pipeline")
         elif isinstance(self.variables['ResultActions'], list):

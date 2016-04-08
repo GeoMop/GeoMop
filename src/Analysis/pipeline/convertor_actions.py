@@ -1,6 +1,5 @@
 from .action_types import ConvertorActionType, ActionStateType
 from .generic_tree import GDTT
-from .code_formater import Formater
 from .data_types_tree import *
 
 class CommonConvertor(ConvertorActionType):
@@ -25,57 +24,76 @@ class CommonConvertor(ConvertorActionType):
             self.variables['DefInputs'][i].set_path("{0}.input({1})".format(
                 self.get_instance_name(),str(i)))
        
+    def duplicate(self):
+        """Duplicate convertor. Returned convertor is not inicialized and checked"""
+        new = CommonConvertor()
+        #duplicate DefInputs
+        for i in range(0, len(self.variables['DefInputs'])):
+            def_input = self.variables['DefInputs'][i].duplicate()
+            def_input.set_path("{0}.input({1})".format(
+                new.get_instance_name(),str(i)))
+            new.variables['DefInputs'].append(def_input)            
+        #duplicate DefOutput
+        try:
+            script = '\n'.join(self.variables['DefOutput'].get_settings_script())
+            script = script.replace(self.get_instance_name()+".input", "new.input")
+            new.variables['DefOutput'] = eval(script)
+        except Exception as err:
+            new._load_errs.append("Duplicate output error ({0})".format(err))    
+        #duplicate inputs
+        for input in self.inputs:
+            new.inputs.append(input)
+        new.state = ActionStateType.created
+        return new
+ 
+    def _check_params(self):    
+        """check if all require params is set"""
+        err = super(CommonConvertor, self)._check_params()
+        for input in self.variables['DefInputs']:
+            if not isinstance(input, GDTT):
+                err.append("Parameter 'DefInputs' ({0}) must be GDTT".format(
+                        self.name))
+        if len(self.inputs)<len(self.variables['DefInputs']):
+            err.append("Convertor require more input parameters ({0})".format(
+                str(len(self.variables['DefInputs']))))
+        if 'DefOutput' not in self.variables:
+            err.append("Convertor action require DefOutput parameter")
+        else:
+            if not isinstance(self.variables['DefOutput'], TT):
+                err.append("Convertor parameter 'DefOutput' must be TT")
+        return err
+    
+    def validate(self):
+        """validate variables, input and output"""
+        err = super(CommonConvertor, self).validate()
+        if len(self.inputs)>=len(self.variables['DefInputs']):
+            for i in range(len(self.variables['DefInputs'])):
+                if not self.variables['DefInputs'][i].check_type(type(self.get_input_val(i))):
+                    err.append("Convertor input '{0}' return wrong type variable '{1}'".format(
+                str(i), self.variables['DefInputs'][i].get_main_settings_script()))
+        return err
+    
+    def _get_runner(self, params):
+        """
+        return Runner class with process description
+        """    
+        return None
+    
     def inicialize(self):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.created.value:
-            return            
+            return
+        try:
+            self.set_output()
+        except Exception as err:
+            self._load_errs.append(str(err))
         self.state = ActionStateType.initialized
 
-    def input(self, i):
-        if len(self.inputs)>i:
-            return self.inputs[i]
-        while len(self.variables['DefInputs'])<=i:
-            attr = GDTT()
-            attr.set_path("{0}.input({1})".format(self.get_instance_name(), str(i)))
-            self.variables['DefInputs'].append(attr)
-        return self.variables['DefInputs'][i]
-    
-    def get_settings_script(self):    
-        """return python script, that create instance of this class"""
-        lines = super(CommonConvertor, self).get_settings_script()
-        names=['DefOutput']
-        values=[self.variables['DefOutput'].get_settings_script()]
-        lines.extend(self._format_config_to_setter(names, values))
-        return lines
-    
-    def _get_variables_script(self):    
-        """return array of variables python scripts"""
-        var = super(CommonConvertor, self)._get_variables_script()
-        
-        lines=["DefInputs=["]
-        for input in self.variables['DefInputs']:
-            script = input.get_main_settings_script()
-            lines.extend(Formater.format_parameter(script, 4))
-        lines[-1] = lines[-1][:-1]
-        lines.append("]")
-        var.append(lines)        
-        return var
-        
-    def get_output(self):  
-        try:
-            output = eval('\n'.join(self.variables['DefOutput'].get_settings_script()))
-        except Exception as err:
-            test = str(err)
-        return output 
-       
-    def _check_params(self):    
-        return []
-    
-    def validate(self):
-        return []
-    
-    def _get_runner(self, params):    
-        return None
-        
-    def run(self):    
+    def run(self):
+        """
+        Process action on client site or prepare process environment and 
+        return Runner class with  process description or None if action not 
+        need externall processing.
+        """
+        self.set_output()
         return  self._get_runner(None)

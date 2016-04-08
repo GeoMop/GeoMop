@@ -1,6 +1,7 @@
 import abc
 from enum import IntEnum
-from .data_types_tree import DTT
+from .data_types_tree import *
+from .generic_tree import GDTT
 from .code_formater import Formater
 import math
 
@@ -81,10 +82,10 @@ class BaseActionType(metaclass=abc.ABCMeta):
 
     def set_inputs(self, inputs):
         """set action input variables"""
-        if not isinstance(input, list):
+        if not isinstance(inputs, list):
             self._load_errs.append("Inputs parameter must be list.")
             return        
-        self.inputs.extend(input)
+        self.inputs = inputs
 
     @abc.abstractmethod
     def inicialize(self):
@@ -274,6 +275,54 @@ class BaseActionType(metaclass=abc.ABCMeta):
             return True
         return False
 
+class InputType(BaseActionType, metaclass=abc.ABCMeta):
+    def __init__(self, **kwargs):
+        """
+        :param BaseAction or GDTT DefInputs: Convertor template may have 
+            GDTT types for checking. when is set real input, input typ is compare
+            with this parameter
+        """
+        super(InputType, self).__init__(**kwargs)
+    
+    def set_output(self):
+        """inicialize action run variables"""
+        try:
+            script = '\n'.join(self.variables['DefOutput'].get_settings_script())
+            script = script.replace(self.get_instance_name()+".input", "self.input")
+            self.output = eval(script)
+        except Exception as err:
+            raise Exception("Output processing error ({0})".format(err))
+
+    def input(self, i):
+        if len(self.inputs)>i:
+            return self. get_input_val(i)
+        while len(self.variables['DefInputs'])<=i:
+            attr = GDTT()
+            attr.set_path("{0}.input({1})".format(self.get_instance_name(), str(i)))
+            self.variables['DefInputs'].append(attr)
+        return self.variables['DefInputs'][i]
+    
+    def get_settings_script(self):    
+        """return python script, that create instance of this class"""
+        lines = super( InputType, self).get_settings_script()
+        names=['DefOutput']
+        values=[self.variables['DefOutput'].get_settings_script()]
+        lines.extend(self._format_config_to_setter(names, values))
+        return lines
+    
+    def _get_variables_script(self):    
+        """return array of variables python scripts"""
+        var = super( InputType, self)._get_variables_script()
+        
+        lines=["DefInputs=["]
+        for input in self.variables['DefInputs']:
+            script = input.get_main_settings_script()
+            lines.extend(Formater.format_parameter(script, 4))
+        lines[-1] = lines[-1][:-1]
+        lines.append("]")
+        var.append(lines)        
+        return var
+
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
     
@@ -312,7 +361,7 @@ class Bridge(BaseActionType):
     def get_instance_name(self):
         return "{0}.input()".format(self.workflow.get_instance_name())
 
-class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
+class ConvertorActionType(InputType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super(ConvertorActionType, self).__init__(**kwargs)
         
@@ -323,6 +372,12 @@ class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)<1:
             err.append("Convertor action require at least one input parameter")
+        else:
+            for input in self.inputs:
+                if not isinstance(input, BaseActionType):
+                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                        self.name))
+
         return err
 
 class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -349,6 +404,11 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)  != 1:
             err.append("Parametrized action require exactly one input parameter")
+        else:
+            for input in self.inputs:
+                if not isinstance(input, BaseActionType):
+                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                        self.name))
         return err
             
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -391,6 +451,12 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
                 err.append("Parameter 'WrappedAction' must be WorkflowActionType")            
         if len(self.inputs)  != 1:
             err.append("Wrapper action require exactly one input parameter")
+        else:
+            for input in self.inputs:
+                if not isinstance(input, BaseActionType):
+                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                        self.name))
+
         return err
 
     def get_settings_script(self):    
