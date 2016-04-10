@@ -38,6 +38,8 @@ class Runner():
 
 __action_counter__ = 0
 """action counter for unique settings in created script for code generation"""
+__initialized_predicators__ = []
+"""This variable guard duplicit inicialization of predicators"""
         
 class BaseActionType(metaclass=abc.ABCMeta):
     """
@@ -159,8 +161,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         res = []
         res.append("{0}.set_config(".format(self.get_instance_name()))
         if len(names)==1 and len(values[0]) == 1:
-            return ["{0}.set_config({%1}={_2})".format(
-                self.get_instance_name(), names[0], values[0])] 
+            return ["{0}.set_config({1}={2})".format(
+                self.get_instance_name(), names[0], values[0][0])] 
         for i in range(0, len(names)):
             res.extend(Formater.format_variable(names[i], values[i], 4))
         res[-1] = res[-1][:-1]
@@ -274,26 +276,50 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if isinstance(value, bool):
             return True
         return False
+        
+    @staticmethod
+    def clear_predicates():
+        """delete all predicates"""
+        global __initialized_predicators__
+        __initialized_predicators__ = []
+        
+    @staticmethod
+    def add_predicate(predicate):
+        """add predicate if not exist and return if is added"""
+        global __initialized_predicators__
+        if not predicate in __initialized_predicators__:
+            __initialized_predicators__.append(predicate)
+            return True
+        return False
 
 class InputType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         """
-        :param BaseAction or GDTT DefInputs: Convertor template may have 
+        :param GDTT DefInputs: Convertor template may have 
             GDTT types for checking. when is set real input, input typ is compare
             with this parameter
         """
         super(InputType, self).__init__(**kwargs)
-    
-    def set_output(self):
+        if 'DefInputs' not in self.variables:
+            self.variables['DefInputs']=[]
+        for i in range(0, len(self.variables['DefInputs'])):
+            self.variables['DefInputs'][i].set_path("{0}.input({1})".format(
+                self.get_instance_name(),str(i)))
+
+    def set_output(self, preinit_script=[]):
         """inicialize action run variables"""
-        try:
+        try:            
             script = '\n'.join(self.variables['DefOutput'].get_settings_script())
             script = script.replace(self.get_instance_name()+".input", "self.input")
+            if len(preinit_script)>0:
+                prescript = '\n'.join(preinit_script)
+                exec(prescript, globals())
             self.output = eval(script)
         except Exception as err:
             raise Exception("Output processing error ({0})".format(err))
 
     def input(self, i):
+        """Function for generic input defination"""
         if len(self.inputs)>i:
             return self. get_input_val(i)
         while len(self.variables['DefInputs'])<=i:
@@ -371,7 +397,7 @@ class ConvertorActionType(InputType, metaclass=abc.ABCMeta):
         if self.state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)<1:
-            err.append("Convertor action require at least one input parameter")
+            err.append("Convertor action requires at least one input parameter")
         else:
             for input in self.inputs:
                 if not isinstance(input, BaseActionType):
@@ -403,14 +429,14 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
         if self.state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         if len(self.inputs)  != 1:
-            err.append("Parametrized action require exactly one input parameter")
+            err.append("Parametrized action requires exactly one input parameter")
         else:
             for input in self.inputs:
                 if not isinstance(input, BaseActionType):
                     err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
                         self.name))
         return err
-            
+
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     """
     Wrapper for some action (usualy workflow), that provide cyclic
@@ -445,12 +471,12 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if self.state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         if  not 'WrappedAction' in self.variables:
-            err.append("Parameter 'WrappedAction' is require")
+            err.append("Parameter 'WrappedAction' is required")
         else:
             if not isinstance(self.variables['WrappedAction'],  WorkflowActionType):
                 err.append("Parameter 'WrappedAction' must be WorkflowActionType")            
         if len(self.inputs)  != 1:
-            err.append("Wrapper action require exactly one input parameter")
+            err.append("Wrapper action requires exactly one input parameter")
         else:
             for input in self.inputs:
                 if not isinstance(input, BaseActionType):
@@ -560,5 +586,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                         err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
         return err
     
-
-    
+    @staticmethod
+    def clear_predicates(self):
+        global __initialized_predicators__
+        __initialized_predicators__ = []

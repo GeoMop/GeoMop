@@ -1,14 +1,6 @@
 import abc
+from .generic_tree import TT
 from .code_formater import Formater
-
-class TT(metaclass=abc.ABCMeta):
-    """
-    Abstract class for defination general tree
-    """
-    @abc.abstractmethod
-    def get_settings_script(self):
-        """return python script, that create instance of this class"""
-        pass
 
 class DTT(TT, metaclass=abc.ABCMeta):
     """
@@ -25,6 +17,10 @@ class DTT(TT, metaclass=abc.ABCMeta):
         return if structure contain real data
         """
         pass
+        
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        return []
 
 
 class BaseDTT(DTT, metaclass=abc.ABCMeta):
@@ -314,6 +310,14 @@ class Struct(CompositeDTT):
         except:
             return None
             
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        ret=[]
+        for name, value in self.__dict__.items():
+            if isinstance(value, TT):
+                ret.extend(value.get_predicates())
+        return ret
+            
     def get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
@@ -365,7 +369,7 @@ class Struct(CompositeDTT):
     def __setattr__(self, name, value): 
         """save assignation"""
         if name not in self.__dict__:
-            if isinstance(value, DTT):
+            if isinstance(value, TT):
                 self.__dict__[name]=value
             else:
                 raise ValueError('Not supported assignation type.')
@@ -390,7 +394,20 @@ class Struct(CompositeDTT):
     def __contains__(self, key):
         return key in self.__dict__
 
-class Ensemble(CompositeDTT):
+class SortableDTT(CompositeDTT, metaclass=abc.ABCMeta):
+    """Sortable composite data tree"""
+    
+    @abc.abstractmethod
+    def sort(self, predicate):
+        """return sorted Ensamble accoding set predicate"""
+        pass
+        
+    @abc.abstractmethod
+    def select(self, predicate):
+        """return selected Ensamble accoding set predicate"""
+        pass
+
+class Ensemble(SortableDTT):
     """
     Array
     """
@@ -414,7 +431,15 @@ class Ensemble(CompositeDTT):
             self.list.append(value)
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
-        
+    
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        ret=[]
+        for value in self.list:
+            if isinstance(value, TT):
+                ret.extend(value.get_predicates())
+        return ret
+
     def to_string(self, value):
         """Presentation of type in json yaml"""
         try:
@@ -466,4 +491,18 @@ class Ensemble(CompositeDTT):
     def get_item(self, i):       
         if i < len(self.list):
             return self.list[i]
-        return None    
+        return None
+    
+    def sort(self, predicate):
+        """return sorted Ensamble accoding set predicate"""
+        sorted = Ensemble(self.subtype, self.list)
+        sorted.list.sort(key=lambda item: predicate.get_key(item))
+        return sorted
+
+    def select(self, predicate):
+        """return selected Ensamble accoding set predicate"""
+        selected = Ensemble(self.subtype)
+        for item in self.list:
+            if predicate.get_bool():
+                selected.add_item(item)
+        return selected

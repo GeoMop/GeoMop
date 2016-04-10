@@ -1,6 +1,19 @@
 from pipeline.convertor_actions import *
 from pipeline.generator_actions import *
 from pipeline.data_types_tree import *
+from pipeline.predicate import *
+
+p1 = Predicate(DefInput=GDTT(Struct)) 
+time = (p1.input(0).time > 600) & (p1.input(0).time<1000)
+value = (p1.input(0).value > 3.0) | (p1.input(0).value < 1.0)
+bc_type = p1.input(0).bc_type == 4
+p1.set_config(DefOutput = time & value & bc_type)
+    
+p2 = Predicate(DefInput=GDTT(Struct)) 
+p2.set_config(DefOutput = p2.input(0).value)
+
+test01=p1.get_settings_script()
+test02=p2.get_settings_script()
 
 v1 = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
 v2 = VariableGenerator(Variable=Struct(a=String("test new"), b=Int(8)))
@@ -18,7 +31,7 @@ v3 = VariableGenerator(Variable=Ensemble(
 k = CommonConvertor(DefInputs=[GDTT(Struct), GDTT(Struct), GDTT(Ensemble)])    
 a = k.input(0).a
 b = k.input(1).b
-k.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2)))
+k.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2).sort(p2)))
 
 test1=k.get_settings_script()
 
@@ -37,6 +50,5 @@ k2.inicialize()
 
 test5=k2.get_settings_script()
 test6=k2.get_output().get_settings_script()
-
 
 test = 0

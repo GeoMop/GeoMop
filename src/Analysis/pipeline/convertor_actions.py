@@ -1,5 +1,5 @@
 from .action_types import ConvertorActionType, ActionStateType
-from .generic_tree import GDTT
+from .generic_tree import TT, GDTT
 from .data_types_tree import *
 
 class CommonConvertor(ConvertorActionType):
@@ -11,18 +11,17 @@ class CommonConvertor(ConvertorActionType):
 
     def __init__(self, **kwargs):
         """
-        :param BaseAction or GDTT DefInputs: Convertor template may have 
+        :param GDTT DefInputs: Convertor template may have 
             GDTT types for checking. when is set real input, input typ is compare
             with this parameter
-        :param DTT DefOutput: Define output from convertor. Output can contain
-            DTT types, their functions and inputs. (self.input[0], self.input[1], ...)
+        :param TT DefOutput: Define output from convertor. Output can contain
+            TT types, their functions and inputs. (self.input[0], self.input[1], ...)
         """
         super(CommonConvertor, self).__init__(**kwargs)
-        if 'DefInputs' not in self.variables:
-            self.variables['DefInputs']=[]
-        for i in range(0, len(self.variables['DefInputs'])):
-            self.variables['DefInputs'][i].set_path("{0}.input({1})".format(
-                self.get_instance_name(),str(i)))
+        self._predicates=[]
+        """list of predicates in DefInputs"""
+        self._predicates_script=[]
+        """Script for predicates inicialization"""
        
     def duplicate(self):
         """Duplicate convertor. Returned convertor is not inicialized and checked"""
@@ -37,6 +36,9 @@ class CommonConvertor(ConvertorActionType):
         try:
             script = '\n'.join(self.variables['DefOutput'].get_settings_script())
             script = script.replace(self.get_instance_name()+".input", "new.input")
+            if len(self._predicates_script)>0:
+                prescript = '\n'.join(self._predicates_script)
+                exec(prescript, globals())
             new.variables['DefOutput'] = eval(script)
         except Exception as err:
             new._load_errs.append("Duplicate output error ({0})".format(err))    
@@ -83,8 +85,14 @@ class CommonConvertor(ConvertorActionType):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.created.value:
             return
+        self._predicates_script=[]
+        self._predicates = self.variables['DefOutput'].get_predicates()
+        if len(self._predicates)>0:
+            self._predicates_script.append("from .predicate import Predicate")
+        for predicate in self._predicates:
+            self._predicates_script.extend(predicate.predicate.get_settings_script())
         try:
-            self.set_output()
+            self.set_output(self._predicates_script)
         except Exception as err:
             self._load_errs.append(str(err))
         self.state = ActionStateType.initialized
@@ -95,5 +103,14 @@ class CommonConvertor(ConvertorActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        self.set_output()
+        self.set_output(self._predicates_script)
         return  self._get_runner(None)
+        
+    def get_settings_script(self):    
+        """return python script, that create instance of this class"""
+        lines = []
+        for predicate in self._predicates:
+            if self.add_predicate(predicate):
+                lines.extend(predicate.predicate.get_settings_script())
+        lines.extend(super(CommonConvertor, self).get_settings_script())
+        return lines
