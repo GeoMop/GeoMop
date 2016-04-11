@@ -1,5 +1,5 @@
 from .action_types import WrapperActionType, ActionStateType, BaseActionType
-from .data_types_tree import Ensemble
+from .data_types_tree import Ensemble, DTT
 
 class ForEach(WrapperActionType):
     
@@ -24,35 +24,49 @@ class ForEach(WrapperActionType):
         copy of this class. The variable is for the copies.
         """
         self.wa_inputs=[]
-        """input for the copy of wrapper class"""        
+        """input for the copy of wrapper class"""
         super(ForEach, self).__init__(**kwargs)
+
+    def _set_bridge(self, bridge):
+        """redirect bridge to wrapper"""
+        bridge.set_new_link(self, self.get_output_to_wrapper)
 
     def inicialize(self):
         """inicialize action run variables"""
         super(ForEach, self).inicialize()
-        self.outputs=[]
 
-    def get_output(self, action, number):
-        """return output relevant for set action"""
-        if number>0:
-            return None
+    def get_output_to_wrapper(self):
+        """return output relevant for wrapper action"""
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
-            if action==self.variables['WrappedAction'] and len(self.inputs)>0:
-                # for wraped action return previous input
-                ensemble = self.get_input_val(number)
-                if isinstance(ensemble,  Ensemble):
-                    return ensemble.subtype
-            output=self.variables['WrappedAction'].get_output(self, number)
-            if not self._is_DTT(output):    
+            # for wraped action return previous input
+            ensemble = self.get_input_val(0)
+            if isinstance(ensemble,  Ensemble):
+                return ensemble.subtype
+        return None
+
+    def get_output(self):
+        """return output relevant for set action"""
+        if 'WrappedAction' in self.variables and \
+            isinstance(self.variables['WrappedAction'],  BaseActionType):
+            output=self.variables['WrappedAction'].get_output()
+            if not isinstance(output, DTT):    
                 return None
             res=Ensemble(output)
             if self.state != ActionStateType.finished:
                 for instance in self.wa_instances:
                     """Running instance, get input from generator"""
-                    res.add_item(instance.get_output(number))
+                    res.add_item(instance.get_output())
             return res
         return None
+        
+    def _get_variables_script(self):
+        """return array of variables python scripts"""
+        var = super(ForEach, self)._get_variables_script()        
+        if 'WrappedAction' in self.variables:
+            wrapper = 'WrapperActions={0}'.format(self.variables['WrappedAction'].get_instance_name())                   
+            var.append([wrapper])
+        return var
 
     def _get_runner(self, params):    
         """
@@ -79,7 +93,7 @@ class ForEach(WrapperActionType):
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
+        err = super(ForEach, self).validate()
         if 'WrappedAction' in self.variables and \
             isinstance(self.variables['WrappedAction'],  BaseActionType):
             err.extend(self.variables['WrappedAction'].validate())

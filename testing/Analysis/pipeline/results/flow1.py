@@ -1,9 +1,13 @@
-Flow123d_1 = Flow123dAction(
-    Input=(
+VariableGenerator_1 = VariableGenerator(
+    Variable=(
         Struct(
             test1=String('test')
         )
-    ),
-    Output=String('File'),
+    )
+)
+Flow123d_2 = Flow123dAction(
+    Inputs=[
+        VariableGenerator_1
+    ],
     YAMLFile='test.yaml'
 )

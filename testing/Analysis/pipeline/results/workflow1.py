@@ -1,29 +1,26 @@
 RangeGenerator_1 = RangeGenerator(
-    Output=(
-        Ensemble(
-            (
-                Struct(
-                    a=Float(None),
-                    b=Float(None)
-                )
-            )
-        )
-    ),
     Items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1},
         {'name':'b', 'value':10, 'step':1, 'n_plus':2, 'n_minus':0, 'exponential':True}
     ]
 )
-ForEach_2 = ForEach(
-    Input=RangeGenerator_1
-)
+Workflow_2 = Workflow()
 Flow123d_3 = Flow123dAction(
-    Input=ForEach_2,
-    Output=String('File'),
+    Inputs=[
+        Workflow_2.input()
+    ],
     YAMLFile='test.yaml'
 )
-ForEach_2.set_wrapped_action(Flow123d_3)
-Workflow_4 = Workflow(
-    InputAction=RangeGenerator_1,
-    OutputAction=ForEach_2
+Workflow_2.set_config(
+    OutputAction=Flow123d_3,
+    InputAction=Flow123d_3
+)
+ForEach_4 = ForEach(
+    Inputs=[
+        RangeGenerator_1
+    ],
+    WrapperActions=Workflow_2
+)
+Pipeline_5 = Pipeline(
+    ResultActions=[ForEach_4]
 )

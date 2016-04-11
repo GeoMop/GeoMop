@@ -1,7 +1,29 @@
 import abc
+from .generic_tree import TT
 from .code_formater import Formater
 
-class BaseDTT(metaclass=abc.ABCMeta):
+class DTT(TT, metaclass=abc.ABCMeta):
+    """
+    Abstract class for defination data tree
+    """
+    @abc.abstractmethod 
+    def to_string(self, value):
+        """Presentation of type in json yaml"""
+        pass
+        
+    @abc.abstractmethod 
+    def is_set(self):
+        """
+        return if structure contain real data
+        """
+        pass
+        
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        return []
+
+
+class BaseDTT(DTT, metaclass=abc.ABCMeta):
     """
     Abstract class for defination data tree , that is use for
     description structures flow thrue pipeline
@@ -16,34 +38,17 @@ class BaseDTT(metaclass=abc.ABCMeta):
         """Display name of port"""
         self.description = ""
         """Display description of port"""
-    
-    @abc.abstractmethod 
-    def to_string(self, value):
-        """Presentation of type in json yaml"""
-        pass
 
     def match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         return True
-    
-    @abc.abstractmethod
-    def get_settings_script(self):
-        """return python script, that create instance of this class"""
-        pass
         
     def __str__(self):
         """return string description"""
         return "\n".join(self.get_settings_script())
 
-    @abc.abstractmethod 
-    def is_set(self):
-        """
-        return if structure contain real data
-        """
-        pass
-    
     @abc.abstractmethod 
     def assigne(self, value):
         """
@@ -116,6 +121,8 @@ class Int(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.integer is None:
+            return ["Int()"]
         return ["Int({0})".format(str(self.integer))]
       
     def is_set(self):
@@ -153,6 +160,8 @@ class String(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.string is None:
+            return ["String()"]
         return ["String('{0}')".format(self.string)]
       
     def is_set(self):
@@ -190,13 +199,15 @@ class Float(BaseDTT):
         
     def get_settings_script(self):
         """return python script, that create instance of this class"""
+        if self.float is None:
+            return ["Float()"]
         return ["Float({0})".format(str(self.float))]
       
     def is_set(self):
         """
         return if structure contain real data
         """
-        return  self.float is not None
+        return self.float is not None
 
     def assigne(self,  value):
         """
@@ -213,7 +224,7 @@ class Float(BaseDTT):
         """
         return self.float
 
-class CompositeDTT(metaclass=abc.ABCMeta):
+class CompositeDTT(DTT, metaclass=abc.ABCMeta):
     """
     Abbstract class od port types, that define user for
     validation and translation to string
@@ -299,6 +310,14 @@ class Struct(CompositeDTT):
         except:
             return None
             
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        ret=[]
+        for name, value in self.__dict__.items():
+            if isinstance(value, TT):
+                ret.extend(value.get_predicates())
+        return ret
+            
     def get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
@@ -350,7 +369,7 @@ class Struct(CompositeDTT):
     def __setattr__(self, name, value): 
         """save assignation"""
         if name not in self.__dict__:
-            if isinstance(value, BaseDTT) or isinstance(value, CompositeDTT):
+            if isinstance(value, TT):
                 self.__dict__[name]=value
             else:
                 raise ValueError('Not supported assignation type.')
@@ -375,7 +394,20 @@ class Struct(CompositeDTT):
     def __contains__(self, key):
         return key in self.__dict__
 
-class Ensemble(CompositeDTT):
+class SortableDTT(CompositeDTT, metaclass=abc.ABCMeta):
+    """Sortable composite data tree"""
+    
+    @abc.abstractmethod
+    def sort(self, predicate):
+        """return sorted Ensamble accoding set predicate"""
+        pass
+        
+    @abc.abstractmethod
+    def select(self, predicate):
+        """return selected Ensamble accoding set predicate"""
+        pass
+
+class Ensemble(SortableDTT):
     """
     Array
     """
@@ -399,7 +431,15 @@ class Ensemble(CompositeDTT):
             self.list.append(value)
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
-        
+    
+    def get_predicates(self):
+        """return dictionary (path->predicate) of predicates containing in this structure"""
+        ret=[]
+        for value in self.list:
+            if isinstance(value, TT):
+                ret.extend(value.get_predicates())
+        return ret
+
     def to_string(self, value):
         """Presentation of type in json yaml"""
         try:
@@ -451,4 +491,18 @@ class Ensemble(CompositeDTT):
     def get_item(self, i):       
         if i < len(self.list):
             return self.list[i]
-        return None    
+        return None
+    
+    def sort(self, predicate):
+        """return sorted Ensamble accoding set predicate"""
+        sorted = Ensemble(self.subtype, self.list)
+        sorted.list.sort(key=lambda item: predicate.get_key(item))
+        return sorted
+
+    def select(self, predicate):
+        """return selected Ensamble accoding set predicate"""
+        selected = Ensemble(self.subtype)
+        for item in self.list:
+            if predicate.get_bool():
+                selected.add_item(item)
+        return selected

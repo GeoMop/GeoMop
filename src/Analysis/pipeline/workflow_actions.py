@@ -1,4 +1,4 @@
-from .action_types import WorkflowActionType, ActionStateType, BaseActionType
+from .action_types import WorkflowActionType, ActionStateType, BaseActionType, Bridge
 
 class Workflow(WorkflowActionType):
     _name = "Workflow"
@@ -9,46 +9,91 @@ class Workflow(WorkflowActionType):
     def __init__(self, **kwargs):
         """
         Class for actions grouping.      
-        :param BaseActionType InputAction: Action that is enter to workflow
+        :param BaseActionType InputAction: Action that is enter to workflow 
+            is set by set_output_action after class defination 
         :param BaseActionType OutputAction: Action that is exit from workflow
-        :param BaseActionType Input: This variable is ignore, during inicialize
-            is set accoding InputAction
+            is set by set_output_action after class defination
+        :param list of BaseActionType ResultActions: Action that is blined , that created
+            pipeline side effects (result)
+        is set by set_output_action after class defination
+        :param BaseActionType Input: This variable is input action,
+            for direct link to previous action, or may be omited for using in
+            wrapper action
         :param object Output: This variable is ignore, during inicialize
             is set accoding OutputAction's outputs
         """
         super(Workflow, self).__init__(**kwargs)
-        
+        self.bridge = Bridge(self)
+        """link to bridge class"""
+      
+    def input(self):
+        """ Return input type"""
+        return self.bridge
+       
+    def _get_child_list(self):
+        """check outputAction variable and get list of child actions"""
+        actions = []
+        if 'OutputAction' in self.variables and \
+            isinstance(self.variables['OutputAction'],  BaseActionType) and \
+            'InputAction' in self.variables and \
+            isinstance(self.variables['InputAction'],  BaseActionType):
+            actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])        
+        if 'ResultActions' in self.variables and \
+            isinstance(self.variables['ResultActions'], list) and \
+            len(self.variables['ResultActions'])>0 and \
+            isinstance(self.variables['ResultActions'][0],  BaseActionType) and \
+           'InputAction' in self.variables and \
+            isinstance(self.variables['InputAction'],  BaseActionType):
+            for i in range(1, len(self.variables['ResultActions'])):
+                if isinstance(self.variables['ResultActions'][i], BaseActionType):
+                    actions2 = self._get_action_list(self.variables['ResultActions'][i], self.variables['InputAction'])
+                    actions=self._merge_actions_lists(actions, actions2)
+        return actions
+
     def inicialize(self):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.initialized.value:
             return
         # set state before recursion, inicialize ending if return to this action
         self.state = ActionStateType.initialized
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType) and \
-            'InputAction' in self.variables and \
-            isinstance(self.variables['InputAction'],  BaseActionType):
-            actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-            try:
-                actions  = self._order_child_list(actions)
-                actions.reverse()
-                for action in actions:
-                   action.inicialize()
-            except:
-                pass    
-        if  'InputAction' in self.variables and \
-            isinstance(self.variables['InputAction'],  BaseActionType):
-            self.inputs=[]
-            for input in self.variables['InputAction'].inputs:
-                    self.inputs.append(input)
+        actions = self._get_child_list()
+        try:
+            actions  = self._order_child_list(actions)
+            actions.reverse()
+            for action in actions:
+               action.inicialize()
+        except Exception as err:
+            self._load_errs.append("Inicialize child workflow action error ({0})".format(err))
+        if  len(self.inputs)==1:
+            self._set_bridge(self.variables['Inputs'][0])            
+                    
+    def get_settings_script(self):    
+        """return python script, that create instance of this class"""
+        lines = super(Workflow, self).get_settings_script()
+        list = self._get_child_list()
+        list.reverse()
+        names=['OutputAction', 'InputAction']
+        values=[
+                ["{0}".format(self.variables['OutputAction'].get_instance_name())], 
+                ["{0}".format(self.variables['InputAction'].get_instance_name())]
+            ]
+        for action in list:
+            lines.extend(action.get_settings_script())
+        if 'ResultActions' in self.variables and len(self.variables['ResultActions'])>0:
+            names.append('ResultActions')
+            value = '['
+            for action in self.variables['ResultActions']:
+                value += "{0},".format(action.get_instance_name())
+            value = value[:-1]+"]"
+            values.append([value])
+        lines.extend(self._format_config_to_setter(names, values))
+        return lines
 
-    def get_output(self, action, number):
+    def get_output(self):
         """return output relevant for set action"""
-        if number>0:
-            return None
         if 'OutputAction' in self.variables and \
             isinstance(self.variables['OutputAction'],  BaseActionType):
-            return self.variables['OutputAction'].get_output(self, 0)
+            return self.variables['OutputAction'].get_output()
         return None
 
     def _get_runner(self, params):    
@@ -68,72 +113,39 @@ class Workflow(WorkflowActionType):
     def _check_params(self):    
         """check if all require params is set"""
         err = super(Workflow, self)._check_params()
+        if len(self.inputs)  != 1:
+            err.append("Parametrized action require exactly one input parameter")
+        else:
+            for input in self.inputs:
+                if not isinstance(input, BaseActionType):
+                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                        self.name))        
         if  not 'InputAction' in self.variables:
             err.append("Parameter 'InputAction' is require")
-        else:
+        else:            
             if not isinstance(self.variables['InputAction'],  BaseActionType):
                 err.append("Parameter 'InputAction' must be BaseActionType") 
             else:
                 # during inicialiyation should be processed all chain action
+                if len(self.variables['InputAction'])!=1:
+                    err.append("Workflow require 'InputAction' with exactly one input parameter.") 
                 if self.variables['InputAction'] is ActionStateType.created:
-                    err.append("Inicializatin of 'InputAction' is not processed. Is all workflow actions chained?") 
+                    err.append("Inicialization of 'InputAction' is not processed. Is all workflow actions chained?") 
         if  not 'OutputAction' in self.variables:
             err.append("Parameter 'OutputAction' is require")
         else:
             if not isinstance(self.variables['OutputAction'],  BaseActionType):
                 err.append("Parameter 'OutputAction' must be BaseActionType")
+                
         return err
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
+        err = super(Workflow, self).validate()
         err.extend(self._check_params())
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType):            
-            if  'InputAction' in self.variables and \
-                isinstance(self.variables['InputAction'],  BaseActionType):
-                actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-                for action in actions:
-                    err.extend(action.validate())
-            else:
-                err.extend(self.variables['OutputAction'].validate())
+        actions = self._get_child_list()
+        for action in actions:
+            err.extend(action.validate())
         return err
         
-    def _get_child_list(self):
-        """Get list of child action, ordered by input-output dependency"""
-        if  'OutputAction'not in self.variables or \
-            not isinstance(self.variables['OutputAction'],  BaseActionType):
-            return None
-        if  'InputAction' not in self.variables or \
-            not isinstance(self.variables['InputAction'],  BaseActionType):
-            return None
-        if self.variables['OutputAction']==self.variables['InputAction']:
-            return [self.variables['OutputAction']]
-        actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-        try:
-            actions  = self._order_child_list(actions)
-        except:
-            return None
-        return actions
-        
-    def get_settings_script(self):    
-        """return python script, that create instance of this class"""
-        list = self._get_child_list()
-        lines=[]
-        list.reverse()
-        for action in list:
-            lines.extend(action.get_settings_script())
-        lines.extend(super(Workflow, self).get_settings_script())
-        return lines
-        
-    def _get_variables_script(self):    
-        """return array of variables python scripts"""
-        var = super(Workflow, self)._get_variables_script()
-        if  'InputAction' in self.variables and \
-                isinstance(self.variables['InputAction'],  BaseActionType):
-            var.append(["InputAction={0}".format(self.variables['InputAction'].get_instance_name())])
-        if  'OutputAction' in self.variables and \
-                isinstance(self.variables['OutputAction'],  BaseActionType):
-            var.append(["OutputAction={0}".format(self.variables['OutputAction'].get_instance_name())])
-        return var
 

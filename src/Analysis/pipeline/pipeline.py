@@ -19,7 +19,8 @@ class Pipeline(WorkflowActionType):
         any input action, and least one output action. Outputs
         action define action contained in pipeline. Otpust action
         would be actions, theirs results will be downloaded
-        :param array of BaseActionType OutputActions: Action that is exit from pipeline
+        :param list of BaseActionType ResultActions: Action that is blined , that created
+            pipeline side effects (result)
         :param BaseActionType Input: This variable is ignore
         :param object Output: This variable is ignore, during inicialize
             is set accoding OutputAction's outputs
@@ -31,33 +32,22 @@ class Pipeline(WorkflowActionType):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.initialized.value:
             return
+        self.clear_predicates()
         # set state before recursion, inicialize ending if return to this action
         self.state = ActionStateType.initialized
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType) and \
-            'InputAction' in self.variables and \
-            isinstance(self.variables['InputAction'],  BaseActionType):
-            actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-            try:
-                actions  = self._order_child_list(actions)
-                actions.reverse()
-                for action in actions:
-                   action.inicialize()
-            except:
-                pass    
-        if  'InputAction' in self.variables and \
-            isinstance(self.variables['InputAction'],  BaseActionType):
-            self.inputs=[]
-            for input in self.variables['InputAction'].inputs:
-                    self.inputs.append(input)
+        actions = self._get_child_list()
+        try:
+            actions  = self._order_child_list(actions)
+            actions.reverse()
+            for action in actions:
+               action.inicialize()
+        except:
+            pass    
 
-    def get_output(self, action, number):
+    def get_output(self, number):
         """return output relevant for set action"""
-        if number>0:
-            return None
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType):
-            return self.variables['OutputAction'].get_output(self, 0)
+        if isinstance(self.variables['ResultActions'][number],  BaseActionType):
+            return self.variables['ResultActions'][number].get_output(self)
         return None
 
     def _get_runner(self, params):    
@@ -76,53 +66,43 @@ class Pipeline(WorkflowActionType):
 
     def _check_params(self):    
         """check if all require params is set"""
-        err = super(Workflow, self)._check_params()
-        if  not 'InputAction' in self.variables:
-            err.append("Parameter 'InputAction' is require")
+        err = super(Pipeline, self)._check_params()
+        if len(self.inputs)>0:
+            err.append("Pipeline action not use input parameter")
+        if  not 'ResultActions' in self.variables:
+            err.append("Parameter 'ResultActions' is require for pipeline")
+        elif isinstance(self.variables['ResultActions'], list):
+            err.append("Parameter 'ResultActions' must be list of output actions")
+        elif len(self.variables['ResultActions'], list)<1:
+            err.append("Parameter 'ResultActions' must contains least one action")
         else:
-            if not isinstance(self.variables['InputAction'],  BaseActionType):
-                err.append("Parameter 'InputAction' must be BaseActionType") 
-            else:
-                # during inicialiyation should be processed all chain action
-                if self.variables['InputAction'] is ActionStateType.created:
-                    err.append("Inicializatin of 'InputAction' is not processed. Is all workflow actions chained?") 
-        if  not 'OutputAction' in self.variables:
-            err.append("Parameter 'OutputAction' is require")
-        else:
-            if not isinstance(self.variables['OutputAction'],  BaseActionType):
-                err.append("Parameter 'OutputAction' must be BaseActionType")
+            for i in range(0, len(self.variables['ResultActions'], list)):
+                if not isinstance(self.variables['ResultActions'],  BaseActionType):
+                    err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
         return err
         
     def validate(self):    
         """validate variables, input and output"""
-        err = self._check_params()
+        err = super(Pipeline, self).validate()
         err.extend(self._check_params())
-        if 'OutputAction' in self.variables and \
-            isinstance(self.variables['OutputAction'],  BaseActionType):            
-            if  'InputAction' in self.variables and \
-                isinstance(self.variables['InputAction'],  BaseActionType):
-                actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-                for action in actions:
-                    err.extend(action.validate())
-            else:
-                err.extend(self.variables['OutputAction'].validate())
+        # existence of output params is make in _get_child_list
+        actions = self._get_child_list()            
+        for action in actions:
+            err.extend(action.validate())
         return err
         
     def _get_child_list(self):
-        """Get list of child action, ordered by input-output dependency"""
-        if  'OutputAction'not in self.variables or \
-            not isinstance(self.variables['OutputAction'],  BaseActionType):
-            return None
-        if  'InputAction' not in self.variables or \
-            not isinstance(self.variables['InputAction'],  BaseActionType):
-            return None
-        if self.variables['OutputAction']==self.variables['InputAction']:
-            return [self.variables['OutputAction']]
-        actions = self._get_action_list(self.variables['OutputAction'], self.variables['InputAction'])
-        try:
-            actions  = self._order_child_list(actions)
-        except:
-            return None
+        """check outputAction variable and get list of child actions"""
+        actions = []
+        if 'ResultActions' in self.variables and \
+            isinstance(self.variables['ResultActions'], list) and \
+            len(self.variables['ResultActions'])>0 and \
+            isinstance(self.variables['ResultActions'][0],  BaseActionType):            
+            actions = self._get_action_list(self.variables['ResultActions'][0])
+            for i in range(1, len(self.variables['ResultActions'])):
+                if isinstance(self.variables['ResultActions'][i], BaseActionType):
+                    actions2 = self._get_action_list(self.variables['ResultActions'][i])
+                    actions=self._merge_actions_lists(actions, actions2)
         return actions
         
     def get_settings_script(self):    
@@ -132,16 +112,24 @@ class Pipeline(WorkflowActionType):
         list.reverse()
         for action in list:
             lines.extend(action.get_settings_script())
-        lines.extend(super(Workflow, self).get_settings_script())
+        lines.extend(super(Pipeline, self).get_settings_script())
         return lines
         
     def _get_variables_script(self):
         """return array of variables python scripts"""
-        var = super(Workflow, self)._get_variables_script()
-        if  'InputAction' in self.variables and \
-                isinstance(self.variables['InputAction'],  BaseActionType):
-            var.append(["InputAction={0}".format(self.variables['InputAction'].get_instance_name())])
-        if  'OutputAction' in self.variables and \
-                isinstance(self.variables['OutputAction'],  BaseActionType):
-            var.append(["OutputAction={0}".format(self.variables['OutputAction'].get_instance_name())])
+        var = super(Pipeline, self)._get_variables_script()        
+        if 'ResultActions' in self.variables and \
+            isinstance(self.variables['ResultActions'], list) and \
+            len(self.variables['ResultActions'])>0:
+            array = 'ResultActions=['
+            first = True
+            for out in self.variables['ResultActions']:
+                if isinstance(out,  BaseActionType):            
+                    if first:
+                        first = False
+                    else:
+                        array += ", "
+                    array += out.get_instance_name()                    
+            var.append([array+']'])
+        # ToDo PipelineResult
         return var
