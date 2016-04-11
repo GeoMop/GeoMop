@@ -1,0 +1,46 @@
+Predicate_1 = Predicate(
+    DefInput=GDTT(Struct)
+)
+Predicate_1.set_config(
+    DefOutput=(
+        Bool.__and__(
+            (
+                Bool.__and__(
+                    (
+                        Bool.__and__(
+                            (
+                                Bool.__gt__(Predicate_1.input(0).time,
+                                    ['600']
+                                )
+                            ),
+                            (
+                                Bool.__lt__(Predicate_1.input(0).time,
+                                    ['1000']
+                                )
+                            )
+                        )
+                    ),
+                    (
+                        Bool.__or__(
+                            (
+                                Bool.__gt__(Predicate_1.input(0).value,
+                                    ['3.0']
+                                )
+                            ),
+                            (
+                                Bool.__lt__(Predicate_1.input(0).value,
+                                    ['1.0']
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+            (
+                Bool.__eq__(Predicate_1.input(0).bc_type,
+                    ['4']
+                )
+            )
+        )
+    )
+)

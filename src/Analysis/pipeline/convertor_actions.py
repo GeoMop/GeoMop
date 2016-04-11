@@ -33,6 +33,7 @@ class CommonConvertor(ConvertorActionType):
                 new.get_instance_name(),str(i)))
             new.variables['DefInputs'].append(def_input)            
         #duplicate DefOutput
+        self._inicialize_predicates()
         try:
             script = '\n'.join(self.variables['DefOutput'].get_settings_script())
             script = script.replace(self.get_instance_name()+".input", "new.input")
@@ -85,17 +86,22 @@ class CommonConvertor(ConvertorActionType):
         """inicialize action run variables"""
         if self.state.value > ActionStateType.created.value:
             return
+        self._inicialize_predicates()
+        try:
+            self.set_output(self._predicates_script)
+        except Exception as err:
+            self._load_errs.append(str(err))
+        self.state = ActionStateType.initialized
+
+    def _inicialize_predicates(self):
+        """inicialize predicates variables"""
+        self._predicates=[]
         self._predicates_script=[]
         self._predicates = self.variables['DefOutput'].get_predicates()
         if len(self._predicates)>0:
             self._predicates_script.append("from .predicate import Predicate")
         for predicate in self._predicates:
             self._predicates_script.extend(predicate.predicate.get_settings_script())
-        try:
-            self.set_output(self._predicates_script)
-        except Exception as err:
-            self._load_errs.append(str(err))
-        self.state = ActionStateType.initialized
 
     def run(self):
         """

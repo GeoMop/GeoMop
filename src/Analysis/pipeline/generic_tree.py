@@ -159,40 +159,34 @@ class GDTT(TT):
         return fp
 
     def __lt__(a, b):
-        return GDTTFunc(a, b, 'lt')
+        return GDTTFunc(a, b, 'Bool.__lt__')
         
     def __le__(a, b):
-        return GDTTFunc(a, b, 'le')
+        return GDTTFunc(a, b, 'Bool.__le__')
         
     def __eq__(a, b):
-        return GDTTFunc(a, b, 'eq')
+        return GDTTFunc(a, b, 'Bool.__eq__')
         
     def __ne__(a, b):
-        return GDTTFunc(a, b, 'ne')
+        return GDTTFunc(a, b, 'Bool.__ne__')
         
     def __ge__(a, b):
-        return GDTTFunc(a, b, 'ge')
+        return GDTTFunc(a, b, 'Bool.__ge__')
         
     def __gt__(a, b):
-        return GDTTFunc(a, b, 'gt')
+        return GDTTFunc(a, b, 'Bool.__gt__')
 
     def __not__(a):
-        return GDTTFunc(a, None, 'not')
-        
-    def __abs__(a):
-        return GDTTFunc(a, None, 'abs')
+        return GDTTFunc(a, None, 'Bool.__not__')
         
     def __and__(a, b):
-        return GDTTFunc(a, b, 'and_')
-        
-    def __mul__(a, b):
-        return GDTTFunc(a, b, 'mul')
+        return GDTTFunc(a, b, 'Bool.__and__')
         
     def __neg__(a, b):
-        return GDTTFunc(a, None, 'neg')
+        return GDTTFunc(a, None, 'Bool.__neg__')
         
     def __or__(a, b):
-        return GDTTFunc(a, b, 'or_')
+        return GDTTFunc(a, b, 'Bool.__or__')
 
 class GDTTFunc(TT):
     """
@@ -273,48 +267,42 @@ class GDTTFunc(TT):
 
     def return_bool(self):
         """check if function return bool"""
-        return self.operator == 'lt' or \
-                    self.operator == 'le' or \
-                    self.operator == 'eq' or \
-                    self.operator == 'ne' or \
-                    self.operator == 'ge' or \
-                    self.operator == 'gt' or \
-                    self.operator == 'not' or \
-                    self.operator == 'and_' or \
-                    self.operator == 'or_'
+        return self.operator == 'Bool.__lt__' or \
+                    self.operator == 'Bool.__le__' or \
+                    self.operator == 'Bool.__eq__' or \
+                    self.operator == 'Bool.__ne__' or \
+                    self.operator == 'Bool.__ge__' or \
+                    self.operator == 'Bool.__gt__' or \
+                    self.operator == 'Bool.__not__' or \
+                    self.operator == 'Bool.__and__' or \
+                    self.operator == 'Bool.__or__'
 
     def __lt__(a, b):
-        return GDTTFunc(a, b, 'lt')
+        return GDTTFunc(a, b, 'Bool.__lt__')
         
     def __le__(a, b):
-        return GDTTFunc(a, b, 'le')
+        return GDTTFunc(a, b, 'Bool.__le__')
         
     def __eq__(a, b):
-        return GDTTFunc(a, b, 'eq')
+        return GDTTFunc(a, b, 'Bool.__eq__')
         
     def __ne__(a, b):
-        return GDTTFunc(a, b, 'ne')
+        return GDTTFunc(a, b, 'Bool.__ne__')
         
     def __ge__(a, b):
-        return GDTTFunc(a, b, 'ge')
+        return GDTTFunc(a, b, 'Bool.__ge__')
         
     def __gt__(a, b):
-        return GDTTFunc(a, b, 'gt')
+        return GDTTFunc(a, b, 'Bool.__gt__')
 
     def __not__(a):
-        return GDTTFunc(a, None, 'not')
-        
-    def __abs__(a):
-        return GDTTFunc(a, None, 'abs')
+        return GDTTFunc(a, None, 'Bool.__not__')
         
     def __and__(a, b):
-        return GDTTFunc(a, b, 'and_')
-        
-    def __mul__(a, b):
-        return GDTTFunc(a, b, 'mul')
+        return GDTTFunc(a, b, 'Bool.__and__')
         
     def __neg__(a, b):
-        return GDTTFunc(a, None, 'neg')
+        return GDTTFunc(a, None, 'Bool.__neg__')
         
     def __or__(a, b):
-        return GDTTFunc(a, b, 'or_')
+        return GDTTFunc(a, b, 'Bool.__or__')

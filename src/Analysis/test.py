@@ -51,4 +51,11 @@ k2.inicialize()
 test5=k2.get_settings_script()
 test6=k2.get_output().get_settings_script()
 
+test=v1.get_settings_script()
+test.extend(v2.get_settings_script())
+test.extend(v3.get_settings_script())
+test.extend(k2.get_settings_script())
+
+script = '\n'.join(test01)
+
 test = 0

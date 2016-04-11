@@ -320,7 +320,7 @@ class InputType(BaseActionType, metaclass=abc.ABCMeta):
 
     def input(self, i):
         """Function for generic input defination"""
-        if len(self.inputs)>i:
+        if len(self.inputs)>i and self.state.value > ActionStateType.created.value:
             return self. get_input_val(i)
         while len(self.variables['DefInputs'])<=i:
             attr = GDTT()
@@ -587,6 +587,6 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         return err
     
     @staticmethod
-    def clear_predicates(self):
+    def clear_predicates():
         global __initialized_predicators__
         __initialized_predicators__ = []

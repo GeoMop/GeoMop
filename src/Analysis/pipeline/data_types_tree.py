@@ -74,39 +74,49 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
     def __lt__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__lt__(other.value)
-        return self.value.__lt__(other)
+            return Bool(self.value.__lt__(other.value))
+        return Bool(self.value.__lt__(other))
         
     def __le__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__le__(other.value)
-        return self.value.__le__(other)
+            return Bool(self.value.__le__(other.value))
+        return Bool(self.value.__le__(other))
         
     def __eq__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__eq__(other.value)
-        return self.value.__eq__(other)
+            return Bool(self.value.__eq__(other.value))
+        return Bool(self.value.__eq__(other))
         
     def __ne__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__ne__(other.value)
-        return self.value.__ne__(other)
+            return Bool(self.value.__ne__(other.value))
+        return Bool(self.value.__ne__(other))
         
     def __gt__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__gt__(other.value)
-        return self.value.__gt__(other)
+            return Bool(self.value.__gt__(other.value))
+        return Bool(self.value.__gt__(other))
         
     def __ge__(self, other):
         """operators for comaration"""
         if isinstance(other, BaseDTT):
-            return self.value.__ge__(other.value)
-        return self.value.__ge__(other)
+            return Bool(self.value.__ge__(other.value))
+        return Bool(self.value.__ge__(other))
         
+    def __and__(self, other):
+        if isinstance(other, BaseDTT):
+            return Bool(self.value and other.value)
+        return Bool(self.value or other)
+        
+    def __or__(self, other):
+        if isinstance(other, BaseDTT):
+            return Bool(self.value or other.value)
+        return Bool(self.value or other)            
+
 class Int(BaseDTT):
     """
     Integer
@@ -223,6 +233,53 @@ class Float(BaseDTT):
         Return appropriate python variable to data     
         """
         return self.float
+
+class Bool(BaseDTT):
+    """
+    String
+    """
+    def __init__(self, bool=None):
+        self.bool = bool
+        """value"""
+    
+    def to_string(self):
+        """Presentation of type in json yaml"""
+        if self.bool:
+            return "True"
+        return "False"
+        
+    def get_settings_script(self):
+        """return python script, that create instance of this class"""
+        if self.bool is None:
+            return ["Bool()"]
+        if self.bool:
+            return ["Bool(True)"]
+        return ["Bool(False)"]
+      
+    def is_set(self):
+        """
+        return if structure contain real data
+        """
+        return self.bool is not None
+
+    def assigne(self,  value):
+        """
+        Assigne appropriate python variable to data     
+        """
+        if isinstance(value, BaseDTT):
+            self.bool = value.value 
+        else:
+            self.bool = bool(value)
+
+    def getter(self):
+        """
+        Return appropriate python variable to data     
+        """
+        return self.bool
+        
+    def __bool__(self):
+        return self.value
+
 
 class CompositeDTT(DTT, metaclass=abc.ABCMeta):
     """

@@ -1,0 +1,111 @@
+VariableGenerator_1 = VariableGenerator(
+    Variable=(
+        Struct(
+            a=String('test'),
+            b=Int(3)
+        )
+    )
+)
+VariableGenerator_2 = VariableGenerator(
+    Variable=(
+        Struct(
+            a=String('test new'),
+            b=Int(8)
+        )
+    )
+)
+VariableGenerator_3 = VariableGenerator(
+    Variable=(
+        Ensemble(
+            (
+                Struct(
+                    a=String(),
+                    bc_type=Int(),
+                    time=Int(),
+                    value=Float()
+                )
+            ),
+            (
+                Struct(
+                    a=String('a1'),
+                    bc_type=Int(4),
+                    time=Int(500),
+                    value=Float(5.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a2'),
+                    bc_type=Int(4),
+                    time=Int(650),
+                    value=Float(2.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a3'),
+                    bc_type=Int(3),
+                    time=Int(700),
+                    value=Float(8.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a4'),
+                    bc_type=Int(4),
+                    time=Int(750),
+                    value=Float(12.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a5'),
+                    bc_type=Int(3),
+                    time=Int(850),
+                    value=Float(2.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a6'),
+                    bc_type=Int(4),
+                    time=Int(900),
+                    value=Float(13.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a7'),
+                    bc_type=Int(6),
+                    time=Int(1100),
+                    value=Float(18.0)
+                )
+            )
+        )
+    )
+)
+Predicate_8 = Predicate(
+    DefInput=GDTT(Struct)
+)
+Predicate_8.set_config(DefOutput=Predicate_8.input(0).value)
+CommonConvertor_7 = CommonConvertor(
+    Inputs=[
+        VariableGenerator_1,
+        VariableGenerator_2,
+        VariableGenerator_3
+    ],
+    DefInputs=[
+        GDTT(Struct),
+        GDTT(Struct),
+        GDTT(Ensemble)
+    ]
+)
+CommonConvertor_7.set_config(
+    DefOutput=(
+        Struct(
+            a=CommonConvertor_7.input(0).a,
+            b=CommonConvertor_7.input(1).b,
+            c=CommonConvertor_7.input(2).sort(Predicate_8)
+        )
+    )
+)
