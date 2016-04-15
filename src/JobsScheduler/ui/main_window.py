@@ -226,7 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Handle update of data.set_data."""
         self.load_settings()
         # update analysis menu label - create / edit
-        if Project.current.get_current_analysis() is None:
+        if Project.current is None or Project.current.get_current_analysis() is None:
             self.ui.menuBar.analysis.actionCreateAnalysis.setText('Create')
         else:
             self.ui.menuBar.analysis.actionCreateAnalysis.setText('Edit')
