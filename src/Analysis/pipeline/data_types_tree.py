@@ -160,8 +160,12 @@ class CompositeDTT(metaclass=abc.ABCMeta):
         self.subtype = subtype
         """Contained type"""
         self.list = []
-        for arg in args:
-            self.list.append(arg)
+        if len(args) == 1 and isinstance(args[0], list):
+            for value in args[0]:
+                self.list.append(value)
+        else:
+            for arg in args:
+                self.list.append(arg)
    
     @abc.abstractmethod 
     def merge(self, composite):
@@ -211,8 +215,11 @@ class Struct(CompositeDTT):
     """
     Object
     """
-    def __init__(self, **kwargs):
+    def __init__(self, *args,  **kwargs):
         """Contained type"""
+        if len(args) > 0 and isinstance(args[0], dict):
+            for name, value in args[0].items():
+                setattr(self, name, value)
         for name, value in kwargs.items():
             setattr(self, name, value)
    
