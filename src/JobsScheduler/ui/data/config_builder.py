@@ -49,7 +49,6 @@ class ConfigBuilder:
         # multijob preset properties
         mj_preset = self.multijobs[key].preset
         mj_name = mj_preset.name
-        mj_analysis = mj_preset.analysis
         res_preset = self.resource_presets[mj_preset.resource_preset]
         mj_log_level = mj_preset.log_level
         mj_number_of_processes = mj_preset.number_of_processes

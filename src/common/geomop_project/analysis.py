@@ -6,11 +6,12 @@
 import json
 
 ANALYSIS_FILE_EXT = 'data'
+ANALYSIS_DEFAULT_NAME = 'analysis'
 
 
 class Analysis:
 
-    def __init__(self, name=None, files=None, params=None, **kwargs):
+    def __init__(self, name=ANALYSIS_DEFAULT_NAME, files=None, params=None, **kwargs):
         self.name = name
         """name of the analysis"""
         self.files = []

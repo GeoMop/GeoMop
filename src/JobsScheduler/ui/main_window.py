@@ -199,8 +199,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # load settings
         self.load_settings()
         # attach workspace and project observers
-        self.data.config.observers.append(self)
         self.data.config.observers.append(Project)
+        self.data.config.observers.append(self)
 
         # trigger notify
         self.data.config.notify()
@@ -225,6 +225,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def notify(self, data):
         """Handle update of data.set_data."""
         self.load_settings()
+        # update analysis menu label - create / edit
+        if Project.current.get_current_analysis() is None:
+            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Create')
+        else:
+            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Edit')
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -380,7 +385,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not Project.current:
             self.report_error("Project is not selected.")
             return
-        if purpose == AnalysisDialog.PURPOSE_ADD:
+        if purpose in (AnalysisDialog.PURPOSE_ADD, AnalysisDialog.PURPOSE_EDIT):
             analysis = Analysis(**data)
             Project.current.save_analysis(analysis)
 

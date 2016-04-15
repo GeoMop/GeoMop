@@ -7,7 +7,8 @@ import os
 from geomop_util import Serializable
 import config
 
-from .analysis import ANALYSIS_FILE_EXT, save_analysis_file, load_analysis_file
+from .analysis import (ANALYSIS_FILE_EXT, save_analysis_file, load_analysis_file,
+                       ANALYSIS_DEFAULT_NAME)
 
 
 PROJECT_MAIN_FILE_EXT = 'project'
@@ -113,7 +114,7 @@ class Project:
         """Save the current project as a config file."""
         config.save_config_file('', self, self.project_dir, PROJECT_MAIN_FILE_EXT)
 
-    def load_analysis(self, name):
+    def load_analysis(self, name=ANALYSIS_DEFAULT_NAME):
         """Loads a project analysis by its name."""
         file_path = os.path.join(self.project_dir, name + '.' + ANALYSIS_FILE_EXT)
         try:
@@ -137,9 +138,12 @@ class Project:
 
     def get_current_analysis(self):
         """Return current analysis."""
-        # TODO if multiple analysis will be supported, return the current one here
         analyses = self.get_all_analyses()
-        return analyses[0] if len(analyses) > 0 else None
+        for analysis in analyses:
+            if analysis.name == ANALYSIS_DEFAULT_NAME:
+                return analysis
+        else:
+            return analyses[0] if len(analyses) > 0 else None
 
     def make_relative_path(self, file_path):
         """Makes the path relative to project_dir."""

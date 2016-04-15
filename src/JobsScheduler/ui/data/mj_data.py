@@ -111,8 +111,6 @@ class MultiJobPreset(APreset):
         name = kw_or_def('name', 'Default MultiJob Preset Name')
         super().__init__(name)
 
-        self.analysis = kw_or_def('analysis', '')
-        """Path to analysis folder"""
         self.resource_preset = kw_or_def('resource_preset')
         """Selected resource preset"""
         self.pbs_preset = kw_or_def('pbs_preset')

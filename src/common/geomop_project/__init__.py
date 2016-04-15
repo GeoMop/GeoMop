@@ -4,4 +4,4 @@
 """
 
 from .project import Project, PROJECT_MAIN_FILE, InvalidProject, Parameter, File
-from .analysis import Analysis
+from .analysis import Analysis, ANALYSIS_DEFAULT_NAME, ANALYSIS_FILE_EXT
