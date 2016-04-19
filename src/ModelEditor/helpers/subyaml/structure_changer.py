@@ -103,20 +103,28 @@ class StructureChanger:
                     path_exist = True
                     break
         node_struct = []
-        for i in range(1, len(dest)+1): 
-            if source_node is None:
-                return [], None            
-            if source_node.parent is not None:
-                na = NodeAnalyzer(lines, source_node.parent)
-                node_type = na. get_node_structure_type()
-            else:
-                # root element is dictionary
-                node_type =  DataNode.StructureType.dict
-            if source_node.key is None:
-                node_struct.insert(0, NodeDescription(node_type))
-            else:
-                node_struct.insert(0, NodeDescription(node_type, dest[len(dest)-i]))
-            source_node = source_node.parent
+        #first node accoding source
+        if source_node is None:
+            return [], None            
+        if source_node.parent is not None:
+            na = NodeAnalyzer(lines, source_node.parent)
+            node_type = na. get_node_structure_type()
+        else:
+            # root element is dictionary
+            node_type =  DataNode.StructureType.dict            
+        if source_node.key is None:
+            node_struct.insert(0, NodeDescription(node_type))
+        else:
+            node_struct.insert(0, NodeDescription(node_type, dest[len(dest)-1]))
+        # next nodes accoding syntax (array have number)
+        for i in range(2, len(dest)+1): 
+            try:
+                int(dest[len(dest)-i]) 
+                # array
+                node_struct.insert(0, NodeDescription(DataNode.StructureType.dict))
+            except ValueError:
+                #struct
+                node_struct.insert(0, NodeDescription(DataNode.StructureType.dict, dest[len(dest)-i]))
         if known_path == "":
             known_path = "/"
         return node_struct, known_path

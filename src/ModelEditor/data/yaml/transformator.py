@@ -18,7 +18,9 @@ Filter:
     - type-filter is a optional parameter for a key in possition path or source_path.
       If is the parameter set, a opperation is processed only for the key of set type.
     - parent-type-filter is a optional filter parameter similar as type-filter but for
-      parent of set key      
+      parent of set key 
+    - path-type-filter and path-type-filter-path are optional filter parameters 
+      similar as type-filter but for path of set key      
     
 Actions:
     - move-key - Move value of set key from source_path to destination_path.
@@ -375,6 +377,15 @@ class Transformator:
             try:
                 node = root.get_node_at_path(path).parent
                 if node.type.value != action['parameters']['parent-type-filter']:
+                    return False
+            except:
+                return False
+        if 'path-type-filter' in action['parameters'] and \
+            'path-type-filter-path' in action['parameters']:
+            try:
+                node = root.get_node_at_path(
+                    action['parameters']['path-type-filter-path'])
+                if node.type.value != action['parameters']['path-type-filter']:
                     return False
             except:
                 return False
