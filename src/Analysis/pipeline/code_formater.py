@@ -1,4 +1,5 @@
 class Formater:
+    __ROW_LEN__ = 80
     
     @staticmethod
     def indent(lines, spaces):

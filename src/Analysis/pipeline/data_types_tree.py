@@ -390,7 +390,7 @@ class Struct(CompositeDTT):
                 lines[-1] = lines[-1][:-1]
             lines.append(")")
         except Exception as ex:
-            raise Exception("Unknown input type" +str(ex))
+            raise Exception("Unknown input type " +str(ex))
         return lines
             
     def match_type(self, type_tree):

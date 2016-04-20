@@ -23,11 +23,65 @@ class TT(metaclass=abc.ABCMeta):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         pass
 
-class GDTT(TT):
+class GDTT_Operators(TT):
+    def __lt__(a, b):
+        return GDTTFunc('<', a, b)
+        
+    def __le__(a, b):
+        return GDTTFunc('<=', a, b)
+        
+    def __eq__(a, b):
+        return GDTTFunc('==', a, b)
+        
+    def __ne__(a, b):
+        return GDTTFunc( '!=', a, b)
+        
+    def __ge__(a, b):
+        return GDTTFunc('>=', a, b)
+        
+    def __gt__(a, b):
+        return GDTTFunc('>', a, b)
+
+    def __not__(a):
+        return GDTTFunc('not', a)
+        
+    def And(self, *args):
+        return GDTTFunc('And', *args)
+        
+    def Or(self, *args):
+        return GDTTFunc('Or', *args)
+        
+def And(*args):
+    """Global and opperator"""
+    try:
+        for arg in args:
+            if not isinstance(arg, bool):
+                return arg.And(*args)
+    except Exception as ex:
+            raise Exception("And parameter error " +str(ex))            
+    ret = True
+    for arg in args:
+        ret = ret and arg
+    return ret
+    
+def Or(*args):
+    """Global or opperator"""
+    try:
+        for arg in args:
+            if not isinstance(arg, bool):
+                return arg.Or(*args)
+    except Exception as ex:
+            raise Exception("And parameter error " +str(ex))            
+    ret = False
+    for arg in args:
+        ret = ret or arg
+    return ret
+
+class GDTT(GDTT_Operators):
     """
     Class for abstract code, wothout acurate determination DTT type
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent=None):
         """
         Initialize generic instance. Parameters are classes, that my be use
         instead this class. If is not set, class not process check during 
@@ -51,19 +105,9 @@ class GDTT(TT):
         if GDTT represent function that use predicate for sort, 
         this variable is set to predicate instance
         """
-        self._parent=None
+        self._parent=parent
         """Parent GDTT strukture"""
-        for value in args:
-            self._types.append(value)
-        for name, value in kwargs.items():
-            if name == "parent":
-                self._parent=value
       
-    def duplicate(self):
-        """Get new GTT with defined types, without addet attributes"""
-        new = GDTT(*self._types)
-        return new 
-        
     def check_type(self, type):
         """Check if set type is in list of supported types"""
         if len(self._types)==0:
@@ -83,10 +127,7 @@ class GDTT(TT):
         
     def get_main_settings_script(self):
         """return python script, that create only main class of DTT structure"""
-        ret = "GDTT("
-        for type in self._types:
-            ret += type.__name__+","
-        ret = ret[:-1]+")"
+        ret = "GDTT()"
         return [ret]
         
     def get_settings_script(self):
@@ -158,45 +199,15 @@ class GDTT(TT):
         fp.set_path("{0}.sort({1})".format(self._path, predicate.get_instance_name()))
         return fp
 
-    def __lt__(a, b):
-        return GDTTFunc(a, b, 'Bool.__lt__')
-        
-    def __le__(a, b):
-        return GDTTFunc(a, b, 'Bool.__le__')
-        
-    def __eq__(a, b):
-        return GDTTFunc(a, b, 'Bool.__eq__')
-        
-    def __ne__(a, b):
-        return GDTTFunc(a, b, 'Bool.__ne__')
-        
-    def __ge__(a, b):
-        return GDTTFunc(a, b, 'Bool.__ge__')
-        
-    def __gt__(a, b):
-        return GDTTFunc(a, b, 'Bool.__gt__')
-
-    def __not__(a):
-        return GDTTFunc(a, None, 'Bool.__not__')
-        
-    def __and__(a, b):
-        return GDTTFunc(a, b, 'Bool.__and__')
-        
-    def __neg__(a, b):
-        return GDTTFunc(a, None, 'Bool.__neg__')
-        
-    def __or__(a, b):
-        return GDTTFunc(a, b, 'Bool.__or__')
-
-class GDTTFunc(TT):
+class GDTTFunc(GDTT_Operators):
     """
     Class for save function code with GDTT variables
     """
-    def __init__(self,o1, o2, operator):
+    def __init__(self, operator,  *o):
         """test"""
-        self.o1 = o1
-        """first operand"""
-        self.o2 = o2
+        self.o = []
+        for arg in o:
+            self.o.append(arg)
         """second operand"""
         self.operator = operator
         """operator"""
@@ -204,10 +215,9 @@ class GDTTFunc(TT):
     def get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         ret = []
-        if isinstance(self.o1, TT):
-            ret.extend(self.o1.get_predicates())
-        if isinstance(self.o2, TT):
-            ret.extend(self.o2.get_predicates())
+        for o in self.o:
+            if isinstance(o, TT):
+                ret.extend(o.get_predicates())
         return ret
     
     def check_generic_type(self):
@@ -221,8 +231,6 @@ class GDTTFunc(TT):
     @staticmethod
     def _get_str(o):
         """return objecct string presentation for get_settings_script function"""        
-        if o is None:
-            return None
         if isinstance(o, TT):
             return o.get_settings_script()
         elif isinstance(o, str): 
@@ -230,79 +238,89 @@ class GDTTFunc(TT):
         return ["{0}".format(str(o))]
     
     def get_settings_script(self):
-        """return python script, that create instance of this class"""
-        s_o1 = self._get_str(self.o1)
-        s_o2 = self._get_str(self.o2)
+        """return python script, that create instance of this class""" 
+        if self.operator == "And" or self.operator == "Or":
+            return self._get_func_settings_script()
+        elif len(self.o)<1:
+            return self._get_simple_settings_script()
+        else:
+            return self._get_dual_settings_script()
+
+    def _get_dual_settings_script(self):
+        """script two member operators"""
+        s_o1 = self._get_str(self.o[0])
+        s_o2 = self._get_str(self.o[1])
         if len(s_o1)==1:
-           if s_o2 is None:
-               return ["{0}({1})".format(self.operator, s_o1[0])]
-           elif len(s_o2)==1:
-                return ["{0}({1},".format(self.operator, s_o1[0]),
-                    "    {0}".format( s_o2), ")"]
+           if len(s_o2)==1:
+                if (len(s_o1)+len(s_o2))<Formater.__ROW_LEN__:
+                    return ["{0}{1}{2}".format(s_o1[0], self.operator, s_o2[0])]
+                else:
+                    return ["{0}{1}(".format(s_o1[0], self.operator),
+                        "    {0}".format( s_o2[0]), ")"]
            else:
-                ret = ["{0}({1},".format(self.operator, s_o1[0])]
-                ret.extend(Formater.format_parameter(s_o2, 0))
-                ret[-1] = ret[-1][:-1]
+                ret = ["{0}{1}(".format(self.operator, s_o1[0])]
+                ret.extend(Formater.indent(s_o2, 4))
                 ret.append(")")
                 return ret   
         else:
-            if s_o2 is None:
-                ret = ["{0}(".format(self.operator)]
-                ret.extend(Formater.format_parameter(s_o1, 4))
-                ret.append(")")
-                return ret
-            elif len(s_o2)==1:
-                ret = ["{0}(".format(self.operator)]
-                ret.extend(Formater.format_parameter(s_o1, 4))
-                ret.append("    {0}".format( s_o2[0]))
-                ret.append(")")
+            if len(s_o2)==1:
+                ret = ["("]
+                ret.extend(Formater.indent(s_o1, 4))
+                ret.append("){0}{1}".format(self.operator, s_o2[0]))
                 return ret
             else:
-                ret = ["{0}(".format(self.operator)]
-                ret.extend(Formater.format_parameter(s_o1, 4))                                
-                ret.extend(Formater.format_parameter(s_o2, 4))
-                ret[-1] = ret[-1][:-1] 
+                ret = ["("]
+                ret.extend(Formater.indent(s_o1, 4))                                
+                ret.append("){0}(".format(self.operator))
+                ret.extend(Formater.indent(s_o2, 4))
                 ret.append(")")
                 return ret
+                
+    def _get_simple_settings_script(self):
+        """Script for one member operators"""
+        s = self._get_str(self.o[0])
+        if len(s)==1:
+            return ["{0} {1}".format(self.operator, s[0])]
+        else:
+            ret = ["{0}(".format(self.operator)]
+            ret.extend(Formater.format_parameter(s[0], 4))
+            ret.append(")")
+            return ret
 
-    def return_bool(self):
-        """check if function return bool"""
-        return self.operator == 'Bool.__lt__' or \
-                    self.operator == 'Bool.__le__' or \
-                    self.operator == 'Bool.__eq__' or \
-                    self.operator == 'Bool.__ne__' or \
-                    self.operator == 'Bool.__ge__' or \
-                    self.operator == 'Bool.__gt__' or \
-                    self.operator == 'Bool.__not__' or \
-                    self.operator == 'Bool.__and__' or \
-                    self.operator == 'Bool.__or__'
+    def _get_func_settings_script(self):
+        """Script for more member operators"""
+        ret=["{0}(".format(self.operator)]
+        s_len=0
+        multiline=False
+        for o in self.o:
+            s_o = self._get_str(o)
+            if len(s_o)>1:
+                multiline=True
+                return
+            s_len += len(s_o[0])
+        if not multiline and s_len > Formater.__ROW_LEN__ :
+            multiline=True
+        for o in self.o:
+            s_o = self._get_str(o)
+            if len(s_o)==1:
+                if multiline:
+                    ret.append("    {0},".format(s_o[0]))
+                else:
+                    ret[-1] += " {0},".format(s_o[0])
+            else:
+                ret.extend(Formater.format_parameter(s_o, 4))
+        ret[-1] = ret[-1][:-1]
+        if multiline:
+            ret.append(")")
+        else:
+            ret[0] += ")"
+        return ret
 
-    def __lt__(a, b):
-        return GDTTFunc(a, b, 'Bool.__lt__')
-        
-    def __le__(a, b):
-        return GDTTFunc(a, b, 'Bool.__le__')
-        
-    def __eq__(a, b):
-        return GDTTFunc(a, b, 'Bool.__eq__')
-        
-    def __ne__(a, b):
-        return GDTTFunc(a, b, 'Bool.__ne__')
-        
-    def __ge__(a, b):
-        return GDTTFunc(a, b, 'Bool.__ge__')
-        
-    def __gt__(a, b):
-        return GDTTFunc(a, b, 'Bool.__gt__')
-
-    def __not__(a):
-        return GDTTFunc(a, None, 'Bool.__not__')
-        
-    def __and__(a, b):
-        return GDTTFunc(a, b, 'Bool.__and__')
-        
-    def __neg__(a, b):
-        return GDTTFunc(a, None, 'Bool.__neg__')
-        
-    def __or__(a, b):
-        return GDTTFunc(a, b, 'Bool.__or__')
+class Input(GDTT):
+    """Class for defination connector input and its number"""
+    def __init__(self, num=0):
+        super(Input, self).__init__()
+        self.num = num
+        """Number of unput"""
+        self.tts = None
+        """Generic data trees represented this input"""

@@ -26,23 +26,18 @@ class CommonConvertor(ConvertorActionType):
     def duplicate(self):
         """Duplicate convertor. Returned convertor is not inicialized and checked"""
         new = CommonConvertor()
-        #duplicate DefInputs
-        for i in range(0, len(self.variables['DefInputs'])):
-            def_input = self.variables['DefInputs'][i].duplicate()
-            def_input.set_path("{0}.input({1})".format(
-                new.get_instance_name(),str(i)))
-            new.variables['DefInputs'].append(def_input)            
         #duplicate DefOutput
-        self._inicialize_predicates()
-        try:
-            script = '\n'.join(self.variables['DefOutput'].get_settings_script())
-            script = script.replace(self.get_instance_name()+".input", "new.input")
-            if len(self._predicates_script)>0:
-                prescript = '\n'.join(self._predicates_script)
-                exec(prescript, globals())
-            new.variables['DefOutput'] = eval(script)
-        except Exception as err:
-            new._load_errs.append("Duplicate output error ({0})".format(err))    
+        if 'DefOutput' in self.variables:
+            self._inicialize_predicates()
+            try:
+                script = '\n'.join(self.variables['DefOutput'].get_settings_script())
+                script = script.replace(self.get_instance_name()+".input", "new.input")
+                if len(self._predicates_script)>0:
+                    prescript = '\n'.join(self._predicates_script)
+                    exec(prescript, globals())
+                new.variables['DefOutput'] = eval(script)
+            except Exception as err:
+                new._load_errs.append("Duplicate output error ({0})".format(err))    
         #duplicate inputs
         for input in self.inputs:
             new.inputs.append(input)
