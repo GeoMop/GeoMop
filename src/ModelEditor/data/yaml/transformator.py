@@ -20,7 +20,8 @@ Filter:
     - parent-type-filter is a optional filter parameter similar as type-filter but for
       parent of set key 
     - path-type-filter and path-type-filter-path are optional filter parameters 
-      similar as type-filter but for path of set key      
+      similar as type-filter but for data in set path (path-type-filter-path) and
+      set type
     
 Actions:
     - move-key - Move value of set key from source_path to destination_path.
