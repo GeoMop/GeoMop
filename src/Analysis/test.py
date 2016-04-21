@@ -4,6 +4,8 @@ from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
 from pipeline.predicate import *
 
+And(Bool(True), Bool(False))
+
 p1 = Predicate() 
 time = And(p1.input(0).time > 600,p1.input(0).time<1000)
 value = Or(p1.input(0).value > 3.0, p1.input(0).value < 1.0)

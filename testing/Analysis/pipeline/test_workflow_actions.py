@@ -20,25 +20,25 @@ def test_workflow_code_init():
     workflow.set_config(OutputAction=flow, InputAction=flow)
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
     pipeline=Pipeline(ResultActions=[foreach])
-    pipeline.inicialize()    
-    test=pipeline.get_settings_script()
+    pipeline._inicialize()    
+    test=pipeline._get_settings_script()
     
     compare_with_file(os.path.join("pipeline", "results", "workflow1.py"), test)
     exec ('\n'.join(test), globals())
-    assert Flow123d_3.variables['YAMLFile'] == flow.variables['YAMLFile']
+    assert Flow123d_3._variables['YAMLFile'] == flow._variables['YAMLFile']
     
     # test validation
     err = gen.validate()
     assert len(err)==0
  
     # check output types directly
-    assert isinstance(gen.get_output(), Ensemble)
-    assert isinstance(gen.get_output().subtype, Struct)
-    flow.output=String()
-    assert isinstance(foreach.get_output(), Ensemble)
-    assert isinstance(foreach.get_output().subtype, String)
-    assert isinstance(workflow.bridge.get_output(), Struct)
-    assert 'a' in workflow.bridge.get_output()
-    assert 'b' in workflow.bridge.get_output()
-    assert 'c' not in workflow.bridge.get_output()    
-    assert isinstance(flow.get_output(), String)
+    assert isinstance(gen._get_output(), Ensemble)
+    assert isinstance(gen._get_output().subtype, Struct)
+    flow._output=String()
+    assert isinstance(foreach._get_output(), Ensemble)
+    assert isinstance(foreach._get_output().subtype, String)
+    assert isinstance(workflow.bridge._get_output(), Struct)
+    assert 'a' in workflow.bridge._get_output()
+    assert 'b' in workflow.bridge._get_output()
+    assert 'c' not in workflow.bridge._get_output()    
+    assert isinstance(flow._get_output(), String)

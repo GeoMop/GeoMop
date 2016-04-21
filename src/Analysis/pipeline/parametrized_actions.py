@@ -17,20 +17,20 @@ class Flow123dAction(ParametrizedActionType):
         """
 
         super(Flow123dAction, self).__init__(**kwargs)
-        self.type = ActionType.complex
-        self.file_output = self._get_output()
+        self._type = ActionType.complex
+        self._file_output = self.__file_output()
             
-    def inicialize(self):
+    def _inicialize(self):
         """inicialize action run variables"""
-        if self.state.value > ActionStateType.created.value:
+        if self._state.value > ActionStateType.created.value:
             return
-        self.output = self.file_output
-        self.state = ActionStateType.initialized    
+        self._output = self.__file_output
+        self._state = ActionStateType.initialized    
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
-        var.append(["YAMLFile='{0}'".format(self.variables["YAMLFile"])])
+        var.append(["YAMLFile='{0}'".format(self._variables["YAMLFile"])])
         return var
 
     def _get_runner(self, params):    
@@ -40,22 +40,22 @@ class Flow123dAction(ParametrizedActionType):
         runner = Runner("flow123d", [], self.type)
         return runner
         
-    def run(self):    
+    def _run(self):    
         """
         Process action on client site or prepare process environment and 
         return Runner class with  process description or None if action not 
         need externall processing.
         """
         
-        file = self._parametrise_file()
+        file = self.__parametrise_file()
         return  self._get_runner(file)
 
     def _check_params(self):    
         """check if all require params is set"""
         err = super(Flow123dAction, self)._check_params()
-        if 'YAMLFile' not in self.variables:
+        if 'YAMLFile' not in self._variables:
             err.append("Flow123d action require YAMLFile parameter")
-        if self.output is None:
+        if self._output is None:
                     err.append("Can't determine output from YAML file")
         return err
         
@@ -70,7 +70,7 @@ class Flow123dAction(ParametrizedActionType):
                 err.append("Flow123d input parameter must return Struct") 
             params =  self.get_require_params(self)
             for param in params:
-                if not hasattr(self.inputs[0],  param) :
+                if not hasattr(self._inputs[0],  param) :
                     err.append("Yaml parameter {0} is not set in input")              
         return err
         
@@ -79,12 +79,12 @@ class Flow123dAction(ParametrizedActionType):
         # ToDo logic
         pass
         
-    def _get_output(self):
+    def __file_output(self):
         """Return DTT output structure from Yaml file"""
         # ToDo logic
         pass
         
-    def _parametrise_file(self):
+    def __parametrise_file(self):
         """Rename and make completation of Yaml file and return new file path"""
         # ToDo logic
         pass

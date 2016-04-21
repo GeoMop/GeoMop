@@ -16,23 +16,23 @@ class VariableGenerator(GeneratorActionType):
         """
         super(VariableGenerator, self).__init__(**kwargs)
        
-    def inicialize(self):
+    def _inicialize(self):
         """inicialize action run variables"""
-        if self.state.value > ActionStateType.created.value:
+        if self._state.value > ActionStateType.created.value:
             return
-        self.output = self._get_valid_output()
-        self.state = ActionStateType.initialized
+        self._output = self._get_valid_output()
+        self._state = ActionStateType.initialized
         
     def _get_valid_output(self):
         """Construct output from set items"""
-        if "Variable" in self.variables and  isinstance(self.variables["Variable"], DTT):
-            return self.variables["Variable"]
+        if "Variable" in self._variables and  isinstance(self._variables["Variable"], DTT):
+            return self._variables["Variable"]
         
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super(VariableGenerator, self)._get_variables_script()
         variable=Formater.format_variable(
-            "Variable", self.variables["Variable"].get_settings_script(), 0)
+            "Variable", self._variables["Variable"]._get_settings_script(), 0)
         if len(variable)>0 and len(variable[-1])>0: 
             variable[-1] = variable[-1][:-1]
             var.append(variable)
@@ -44,24 +44,24 @@ class VariableGenerator(GeneratorActionType):
         """        
         return None
         
-    def run(self):    
+    def _run(self):    
         """
         Process action on client site or prepare process environment and 
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        self.output = self._get_valid_output()
+        self._output = self._get_valid_output()
         return  self._get_runner(None)
 
     def _check_params(self):    
         """check if all require params is set"""
         err = super(RangeGenerator, self)._check_params()
-        if "Variable" not in self.variables:
+        if "Variable" not in self._variables:
            err.append("Variable parameter is required")
-        elif not self._is_DTT(self.variables["Variable"]):
+        elif not self._is_DTT(self._variables["Variable"]):
             err.append("Parameter 'Variable' is not valid DTT variable")
         else:
-            if self.output is None:
+            if self._output is None:
                 err.append("Can't determine valid output")
         return err
         
@@ -92,19 +92,19 @@ class RangeGenerator(GeneratorActionType):
         super(RangeGenerator, self).__init__(**kwargs)
        
             
-    def inicialize(self):
+    def _inicialize(self):
         """inicialize action run variables"""
-        if self.state.value > ActionStateType.created.value:
+        if self._state.value > ActionStateType.created.value:
             return
-        self.output = self._get_output_from_items()
-        self.state = ActionStateType.initialized
+        self._output = self.__get_output_from_items()
+        self._state = ActionStateType.initialized
         
-    def _get_output_from_items(self):
+    def __get_output_from_items(self):
         """Construct output from set items"""
         params = {}
-        if 'Items' in self.variables:
-            if isinstance(self.variables['Items'], list):
-                for item in self.variables['Items']:
+        if 'Items' in self._variables:
+            if isinstance(self._variables['Items'], list):
+                for item in self._variables['Items']:
                     if isinstance(item,  dict):
                         if 'name' in item:
                             try:
@@ -120,7 +120,7 @@ class RangeGenerator(GeneratorActionType):
         var = super(RangeGenerator, self)._get_variables_script()
         i=1
         items=['Items = [']
-        for item in self.variables['Items']:
+        for item in self._variables['Items']:
             if not 'name' in item or not 'value' in item:
                 continue
             items.append("    {0}'name':'{1}'".format('{', item['name']))
@@ -140,7 +140,7 @@ class RangeGenerator(GeneratorActionType):
             items[i-1]=items[i-1][:-1]
             items.append(']')
             var.append(items)
-        if 'AllCases' in self.variables and self.variables["AllCases"]:
+        if 'AllCases' in self._variables and self._variables["AllCases"]:
             var.append(["AllCases=True"])
             
         return var
@@ -151,24 +151,24 @@ class RangeGenerator(GeneratorActionType):
         """        
         return None
         
-    def run(self):    
+    def _run(self):    
         """
         Process action on client site or prepare process environment and 
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        template =copy.deepcopy(self.output.subtype)
+        template =copy.deepcopy(self._output.subtype)
         # first is middle
-        self.output.add_item(template)
-        for item in self.variables['Items']:
+        self._output.add_item(template)
+        for item in self._variables['Items']:
             if not isinstance(item,  dict):
                 continue                
             if 'name' in item and item['name'] in template:
                 if 'name' in item:
                     setattr(template, item['name'], item['value'])
-        for item in self.variables['Items']:
-            if 'AllCases' in self.variables and self.variables['AllCases']:
-                ready = copy.deepcopy(self.output)
+        for item in self._variables['Items']:
+            if 'AllCases' in self._variables and self._variables['AllCases']:
+                ready = copy.deepcopy(self._output)
                 for template_i in ready:
                     self._generate_step(template_i, item)
             else:
@@ -195,7 +195,7 @@ class RangeGenerator(GeneratorActionType):
                 rstep = 2**i*step
             setattr(template2, item['name'], 
                 getattr(template2, item['name']).value+rstep)    
-            self.output.add_item(template2)
+            self._output.add_item(template2)
         for i in range(0, minus):
             template2 =copy.deepcopy(template)
             rstep = (i+1)*step
@@ -203,27 +203,27 @@ class RangeGenerator(GeneratorActionType):
                 rstep = 2**i*step
             setattr(template2, item['name'], 
                 getattr(template2, item['name']).value-rstep)    
-            self.output.add_item(template2)                
+            self._output.add_item(template2)                
 
     def _check_params(self):    
         """check if all require params is set"""
         err = super(RangeGenerator, self)._check_params()
-        if self.output is None:
+        if self._output is None:
             err.append("Can't determine output from items parameter")
         else:            
-            if not isinstance(self.output, Ensemble):
+            if not isinstance(self._output, Ensemble):
                 err.append("Output type must be Ensemble type")
-        if 'Items' not in self.variables:
+        if 'Items' not in self._variables:
             err.append("Parameter 'Items' must have at least one item")
         else:    
-            if not isinstance(self.variables['Items'], list):
+            if not isinstance(self._variables['Items'], list):
                 err.append("Items parameter must be List")
             else:
-                if len(self.variables['Items'])<1:
+                if len(self._variables['Items'])<1:
                     err.append("Items parameter must be List")
                 else:
                     i=0
-                    for item in self.variables['Items']:
+                    for item in self._variables['Items']:
                         if not isinstance(item,  dict):
                             err.append("Item[{0}] in Items list is not Dictionary".format(str(i)))
                         else:

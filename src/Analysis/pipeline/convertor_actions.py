@@ -27,48 +27,43 @@ class CommonConvertor(ConvertorActionType):
         """Duplicate convertor. Returned convertor is not inicialized and checked"""
         new = CommonConvertor()
         #duplicate DefOutput
-        if 'DefOutput' in self.variables:
-            self._inicialize_predicates()
+        if 'DefOutput' in self._variables:
+            self.__inicialize_predicates()
             try:
-                script = '\n'.join(self.variables['DefOutput'].get_settings_script())
-                script = script.replace(self.get_instance_name()+".input", "new.input")
+                script = '\n'.join(self._variables['DefOutput']._get_settings_script())
+                script = script.replace(self._get_instance_name()+".input", "new.input")
                 if len(self._predicates_script)>0:
                     prescript = '\n'.join(self._predicates_script)
                     exec(prescript, globals())
-                new.variables['DefOutput'] = eval(script)
+                new._variables['DefOutput'] = eval(script)
             except Exception as err:
                 new._load_errs.append("Duplicate output error ({0})".format(err))    
         #duplicate inputs
-        for input in self.inputs:
-            new.inputs.append(input)
-        new.state = ActionStateType.created
+        for input in self._inputs:
+            new._inputs.append(input)
+        new._state = ActionStateType.created
         return new
  
     def _check_params(self):    
         """check if all require params is set"""
         err = super(CommonConvertor, self)._check_params()
-        for input in self.variables['DefInputs']:
+        for input in self._variables['DefInputs']:
             if not isinstance(input, GDTT):
                 err.append("Parameter 'DefInputs' ({0}) must be GDTT".format(
                         self.name))
-        if len(self.inputs)<len(self.variables['DefInputs']):
+        if len(self._inputs)<len(self._variables['DefInputs']):
             err.append("Convertor require more input parameters ({0})".format(
-                str(len(self.variables['DefInputs']))))
-        if 'DefOutput' not in self.variables:
+                str(len(self._variables['DefInputs']))))
+        if 'DefOutput' not in self._variables:
             err.append("Convertor action require DefOutput parameter")
         else:
-            if not isinstance(self.variables['DefOutput'], TT):
+            if not isinstance(self._variables['DefOutput'], TT):
                 err.append("Convertor parameter 'DefOutput' must be TT")
         return err
     
     def validate(self):
         """validate variables, input and output"""
         err = super(CommonConvertor, self).validate()
-        if len(self.inputs)>=len(self.variables['DefInputs']):
-            for i in range(len(self.variables['DefInputs'])):
-                if not self.variables['DefInputs'][i].check_type(type(self.get_input_val(i))):
-                    err.append("Convertor input '{0}' return wrong type variable '{1}'".format(
-                str(i), self.variables['DefInputs'][i].get_main_settings_script()))
         return err
     
     def _get_runner(self, params):
@@ -77,41 +72,41 @@ class CommonConvertor(ConvertorActionType):
         """    
         return None
     
-    def inicialize(self):
+    def _inicialize(self):
         """inicialize action run variables"""
-        if self.state.value > ActionStateType.created.value:
+        if self._state.value > ActionStateType.created.value:
             return
-        self._inicialize_predicates()
+        self.__inicialize_predicates()
         try:
-            self.set_output(self._predicates_script)
+            self._set_output(self._predicates_script)
         except Exception as err:
             self._load_errs.append(str(err))
-        self.state = ActionStateType.initialized
+        self._state = ActionStateType.initialized
 
-    def _inicialize_predicates(self):
+    def __inicialize_predicates(self):
         """inicialize predicates variables"""
         self._predicates=[]
         self._predicates_script=[]
-        self._predicates = self.variables['DefOutput'].get_predicates()
+        self._predicates = self._variables['DefOutput']._get_predicates()
         if len(self._predicates)>0:
             self._predicates_script.append("from .predicate import Predicate")
         for predicate in self._predicates:
-            self._predicates_script.extend(predicate.predicate.get_settings_script())
+            self._predicates_script.extend(predicate.predicate._get_settings_script())
 
-    def run(self):
+    def _run(self):
         """
         Process action on client site or prepare process environment and 
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        self.set_output(self._predicates_script)
+        self._set_output(self._predicates_script)
         return  self._get_runner(None)
         
-    def get_settings_script(self):    
+    def _get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = []
         for predicate in self._predicates:
-            if self.add_predicate(predicate):
-                lines.extend(predicate.predicate.get_settings_script())
-        lines.extend(super(CommonConvertor, self).get_settings_script())
+            if self._add_predicate(predicate):
+                lines.extend(predicate.predicate._get_settings_script())
+        lines.extend(super(CommonConvertor, self)._get_settings_script())
         return lines

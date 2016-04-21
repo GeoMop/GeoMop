@@ -30,23 +30,23 @@ class Predicate(InputType):
     def _check_params(self):    
         """check if all require params is set"""
         err = []
-        if len(self.variables['DefInputs']) != 1:
+        if len(self._variables['DefInputs']) != 1:
             err.append("Predicate requires 'DefInput' parameter")        
         else:
-            if not isinstance(self.variables['DefInputs'][0], GDTT):
+            if not isinstance(self._variables['DefInputs'][0], GDTT):
                 err.append("Parameter 'DefInput' ({0}) GDTT".format(
                         self.name))        
-        if 'DefOutput' not in self.variables:
+        if 'DefOutput' not in self._variables:
             err.append("Predicator require DefOutput parameter")
         else:
-            if not isinstance(self.variables['DefOutput'], GDTTFunc):
+            if not isinstance(self._variables['DefOutput'], GDTTFunc):
                 err.append("Convertor parameter 'DefOutput' must be GDTTFunc")
         return err
         
     def _get_variables_script(self):    
         """return array of variables python scripts"""
         var = super( InputType, self)._get_variables_script()
-        script=self.variables['DefInputs'][0].get_main_settings_script()
+        script=self._variables['DefInputs'][0]._get_main_settings_script()
         lines = Formater.format_variable('DefInput', script,0)
         lines[-1] = lines[-1][:-1]        
         var.append(lines)        
@@ -54,9 +54,9 @@ class Predicate(InputType):
     
     def input(self, i):
         """Function for generic input defination"""
-        if len(self.inputs)>i:
+        if len(self._inputs)>i:
             # predicator input is structure
-            return self.inputs[i]
+            return self._inputs[i]
         return super(Predicate, self).input(i)
 
 
@@ -68,7 +68,7 @@ class Predicate(InputType):
         err = super(Predicate, self).validate()
         return err
         
-    def inicialize(self):
+    def _inicialize(self):
         """
         Predicate is make so that not need this function becose inputs is change during
         using this class, and result is return after each set by process funcion
@@ -79,7 +79,7 @@ class Predicate(InputType):
         """use predicate"""
         self.set_inputs([input])
         self.set_output()
-        return self.get_output()
+        return self._get_output()
         
     def get_key(self, input):
         """return output suitable for sorte function"""
@@ -93,5 +93,5 @@ class Predicate(InputType):
     def _get_runner(self, params):    
         return None
         
-    def run(self):    
+    def _run(self):    
         return  self._get_runner(None) 

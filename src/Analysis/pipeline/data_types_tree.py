@@ -7,18 +7,18 @@ class DTT(TT, metaclass=abc.ABCMeta):
     Abstract class for defination data tree
     """
     @abc.abstractmethod 
-    def to_string(self, value):
+    def _to_string(self, value):
         """Presentation of type in json yaml"""
         pass
         
     @abc.abstractmethod 
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
         pass
         
-    def get_predicates(self):
+    def _get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         return []
 
@@ -39,7 +39,7 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         self.description = ""
         """Display description of port"""
 
-    def match_type(self, type_tree):
+    def _match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
@@ -50,14 +50,14 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         return "\n".join(self.get_settings_script())
 
     @abc.abstractmethod 
-    def assigne(self, value):
+    def _assigne(self, value):
         """
         Assigne appropriate python variable to data     
         """
         pass
         
     @abc.abstractmethod 
-    def getter(self):
+    def _getter(self):
         """
         Return appropriate python variable to data     
         """
@@ -65,11 +65,11 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         
     @property
     def value(self):
-        return self.getter()
+        return self._getter()
 
     @value.setter
     def my_attr(self, value):
-        self.assigne(value)
+        self._assigne(value)
     
     def __lt__(self, other):
         """operators for comaration"""
@@ -122,160 +122,160 @@ class Int(BaseDTT):
     Integer
     """
     def __init__(self, integer=None):
-        self.integer = integer
+        self.__integer = integer
         """value"""
     
-    def to_string(self, value):
+    def _to_string(self, value):
         """Presentation of type in json yaml"""
         return str(value)
         
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.integer is None:
+        if self.__integer is None:
             return ["Int()"]
-        return ["Int({0})".format(str(self.integer))]
+        return ["Int({0})".format(str(self.__integer))]
       
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
-        return  self.integer is not None
+        return  self.__integer is not None
 
-    def assigne(self,  value):
+    def _assigne(self,  value):
         """
         Assigne appropriate python variable to data     
         """
         if isinstance(value, BaseDTT):
-            self.integer = int(value.value) 
+            self.__integer = int(value.value) 
         else:
-            self.integer = int(value) 
+            self.__integer = int(value) 
 
-    def getter(self):
+    def _getter(self):
         """
         Return appropriate python variable to data     
         """
-        return self.integer
+        return self.__integer
         
 class String(BaseDTT):
     """
     String
     """
     def __init__(self, string=None):
-        self.string = string
+        self.__string = string
         """value"""
     
-    def to_string(self):
+    def _to_string(self):
         """Presentation of type in json yaml"""
-        return self.string
+        return self.__string
         
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.string is None:
+        if self.__string is None:
             return ["String()"]
-        return ["String('{0}')".format(self.string)]
+        return ["String('{0}')".format(self.__string)]
       
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
-        return  self.string is not None
+        return  self.__string is not None
         
-    def assigne(self,  value):
+    def _assigne(self,  value):
         """
         Assigne appropriate python variable to data     
         """
         if isinstance(value, BaseDTT):
-            self.string = str(value.value) 
+            self.__string = str(value.value) 
         else:
-            self.string = str(value)            
+            self.__string = str(value)            
 
-    def getter(self):
+    def _getter(self):
         """
         Return appropriate python variable to data     
         """
-        return self.string
+        return self.__string
         
 class Float(BaseDTT):
     """
-    String
+    Float
     """
     def __init__(self, float=None):
-        self.float = float
+        self.__float = float
         """value"""
     
-    def to_string(self):
+    def _to_string(self):
         """Presentation of type in json yaml"""
-        return float 
+        return str(self.__float )
         
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.float is None:
+        if self.__float is None:
             return ["Float()"]
-        return ["Float({0})".format(str(self.float))]
+        return ["Float({0})".format(str(self.__float))]
       
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
-        return self.float is not None
+        return self.__float is not None
 
-    def assigne(self,  value):
+    def _assigne(self,  value):
         """
         Assigne appropriate python variable to data     
         """
         if isinstance(value, BaseDTT):
-            self.float = float(value.value) 
+            self.__float = float(value.value) 
         else:
-            self.float = float(value)
+            self.__float = float(value)
 
-    def getter(self):
+    def _getter(self):
         """
         Return appropriate python variable to data     
         """
-        return self.float
+        return self.__float
 
 class Bool(BaseDTT):
     """
     String
     """
     def __init__(self, bool=None):
-        self.bool = bool
+        self.__bool = bool
         """value"""
     
-    def to_string(self):
+    def _to_string(self):
         """Presentation of type in json yaml"""
-        if self.bool:
+        if self.__bool:
             return "True"
         return "False"
         
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.bool is None:
+        if self.__bool is None:
             return ["Bool()"]
-        if self.bool:
+        if self.__bool:
             return ["Bool(True)"]
         return ["Bool(False)"]
       
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
-        return self.bool is not None
+        return self.__bool is not None
 
-    def assigne(self,  value):
+    def _assigne(self,  value):
         """
         Assigne appropriate python variable to data     
         """
         if isinstance(value, BaseDTT):
-            self.bool = value.value 
+            self.__bool = value.value 
         else:
-            self.bool = bool(value)
+            self.__bool = bool(value)
 
-    def getter(self):
+    def _getter(self):
         """
         Return appropriate python variable to data     
         """
-        return self.bool
+        return self.__bool
         
     def __bool__(self):
         return self.value
@@ -291,29 +291,29 @@ class CompositeDTT(DTT, metaclass=abc.ABCMeta):
                 
     
     @abc.abstractmethod
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
         pass
         
     def __str__(self):
         """return string description"""
-        return "\n".join(self.get_settings_script())
+        return "\n".join(self._get_settings_script())
 
 
     @abc.abstractmethod
-    def to_string(self, value):
+    def _to_string(self, value):
         """Presentation of type in json yaml"""
         pass
     
     @abc.abstractmethod    
-    def match_type(self, type_tree):
+    def _match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
         pass
     
     @abc.abstractmethod
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
@@ -322,18 +322,18 @@ class CompositeDTT(DTT, metaclass=abc.ABCMeta):
 class CompositiIter:
     """Help class for iteration composites"""
     def __init__(self,  composite):
-        self.i = 0
-        self.c=composite
+        self.__i = 0
+        self.__c=composite
         
     def __iter__(self):
         return self
 
     def __next__(self):
-        ret = self.c.get_item(self.i)
+        ret = self.__c.get_item(self.__i)
         if ret is None:
             raise StopIteration()
         else:
-            self.i += 1
+            self.__i += 1
         return ret
  
 class Struct(CompositeDTT):
@@ -348,7 +348,7 @@ class Struct(CompositeDTT):
         for name, value in kwargs.items():
             setattr(self, name, value)
    
-    def to_string(self):
+    def _to_string(self):
         """Presentation of type in json yaml"""
         try:
             res = "{\n"
@@ -362,20 +362,20 @@ class Struct(CompositeDTT):
                     res += ",\n"
                 res += name 
                 res += ":"
-                res += self.subtype.to_string(value)
+                res += self.subtype._to_string(value)
                 res += "}\n"
         except:
             return None
             
-    def get_predicates(self):
+    def _get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         ret=[]
         for name, value in self.__dict__.items():
             if isinstance(value, TT):
-                ret.extend(value.get_predicates())
+                ret.extend(value._get_predicates())
         return ret
             
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
             lines = ["Struct("]
@@ -384,7 +384,7 @@ class Struct(CompositeDTT):
                 if name[:2] == '__' and name[-2:] == '__':
                     continue
                 is_emty=False
-                param = self.__dict__[name].get_settings_script()
+                param = self.__dict__[name]._get_settings_script()
                 lines.extend(Formater.format_variable(name, param, 4))
             if not is_emty:
                 lines[-1] = lines[-1][:-1]
@@ -393,7 +393,7 @@ class Struct(CompositeDTT):
             raise Exception("Unknown input type " +str(ex))
         return lines
             
-    def match_type(self, type_tree):
+    def _match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
@@ -405,11 +405,11 @@ class Struct(CompositeDTT):
             if type(value) is not type(type_tree.__dict__[name]):
                 return False
             if isinstance(value, CompositeDTT):
-                if not type_tree.__dict__[name].match_type(value):
+                if not type_tree.__dict__[name]._match_type(value):
                     return False
         return True
         
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
@@ -419,7 +419,7 @@ class Struct(CompositeDTT):
             if value is None:
                 return False
             if isinstance(value, BaseDTT):
-                if not self.__dict__[name].is_set():
+                if not self.__dict__[name]._is_set():
                     return False
         return True
         
@@ -431,7 +431,7 @@ class Struct(CompositeDTT):
             else:
                 raise ValueError('Not supported assignation type.')
         elif isinstance(self.__dict__[name], BaseDTT):
-            self.__dict__[name].assigne(value)
+            self.__dict__[name]._assigne(value)
         elif name[:2] == '__' and name[-2:] == '__':
             self.__dict__[name]=value
         else:
@@ -446,7 +446,7 @@ class Struct(CompositeDTT):
                 raise AttributeError(name)
         if name not in self.__dict__:
             raise ValueError('Variable is not assignated.')
-        return self.__dict__[name].getter()
+        return self.__dict__[name]._getter()
         
     def __contains__(self, key):
         return key in self.__dict__
@@ -484,20 +484,20 @@ class Ensemble(SortableDTT):
         if not isinstance(value, BaseDTT) and \
             not isinstance(value, CompositeDTT):
                 raise ValueError('Ensemble must have DTT value type.')
-        if self.subtype.match_type(value):
+        if self.subtype._match_type(value):
             self.list.append(value)
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
     
-    def get_predicates(self):
+    def _get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         ret=[]
         for value in self.list:
             if isinstance(value, TT):
-                ret.extend(value.get_predicates())
+                ret.extend(value._get_predicates())
         return ret
 
-    def to_string(self, value):
+    def _to_string(self, value):
         """Presentation of type in json yaml"""
         try:
             res = "[\n"
@@ -507,19 +507,19 @@ class Ensemble(SortableDTT):
                     first = False
                 else:
                     res += ",\n"
-                res += self.value.to_string()
+                res += self.value._to_string()
             res += "]\n"
         except:
             return None    
     
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
             lines = ["Ensemble("]
-            param = self.subtype.get_settings_script()
+            param = self.subtype._get_settings_script()
             lines.extend(Formater.format_parameter(param, 4))
             for value in self.list:
-                param = value.get_settings_script()
+                param = value._get_settings_script()
                 lines.extend(Formater.format_parameter(param, 4))
             lines[-1] = lines[-1][:-1]
             lines.append(")")
@@ -527,18 +527,18 @@ class Ensemble(SortableDTT):
             raise Exception("Unknown input type ({0})".format(str(ex)))
         return lines
 
-    def match_type(self, type_tree):
+    def _match_type(self, type_tree):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
-        return  self.subtype.match_type(type_tree.subtype)
+        return  self.subtype._match_type(type_tree.subtype)
         
-    def is_set(self):
+    def _is_set(self):
         """
         return if structure contain real data
         """
         for value in self.list:
-            if not value.is_set():
+            if not value._is_set():
                 return False
         return True
         

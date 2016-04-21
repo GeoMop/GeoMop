@@ -14,12 +14,12 @@ class TT(metaclass=abc.ABCMeta):
     Abstract class for defination general tree
     """
     @abc.abstractmethod
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""
         pass
 
     @abc.abstractmethod
-    def get_predicates(self):
+    def _get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         pass
 
@@ -45,36 +45,37 @@ class GDTT_Operators(TT):
     def __not__(a):
         return GDTTFunc('not', a)
         
-    def And(self, *args):
+    def _And(self, *args):
         return GDTTFunc('And', *args)
         
-    def Or(self, *args):
+    def _Or(self, *args):
         return GDTTFunc('Or', *args)
         
 def And(*args):
     """Global and opperator"""
+    for arg in args:
+        if isinstance(arg, GDTT_Operators):
+            return arg._And(*args)
+    ret = True
     try:
         for arg in args:
-            if not isinstance(arg, bool):
-                return arg.And(*args)
+            ret = ret and arg
     except Exception as ex:
-            raise Exception("And parameter error " +str(ex))            
-    ret = True
-    for arg in args:
-        ret = ret and arg
+        raise Exception("And parameter error " +str(ex))            
+
     return ret
     
 def Or(*args):
     """Global or opperator"""
+    for arg in args:
+        if isinstance(arg, GDTT_Operators):
+            return arg._Or(*args)
+    ret = False
     try:
         for arg in args:
-            if not isinstance(arg, bool):
-                return arg.Or(*args)
+            ret = ret or arg
     except Exception as ex:
-            raise Exception("And parameter error " +str(ex))            
-    ret = False
-    for arg in args:
-        ret = ret or arg
+        raise Exception("And parameter error " +str(ex))            
     return ret
 
 class GDTT(GDTT_Operators):
@@ -87,52 +88,41 @@ class GDTT(GDTT_Operators):
         instead this class. If is not set, class not process check during 
         replecement
         """
-        self._path=""
+        self.__path=""
         """Path to this variable in generic tree"""
-        self._types = []
-        """GDDT types for substitution"""
-        self._fpredicates = []
+        self.__fpredicates = []
         """
         list of GDTT represented predicate functions to this GDTT points 
         """
-        self._select_predicate=None        
+        self.__select_predicate=None        
         """
         if GDTT represent function that use predicate for select, 
         this variable is set to predicate instance
         """
-        self._sort_predicate=None        
+        self.__sort_predicate=None        
         """
         if GDTT represent function that use predicate for sort, 
         this variable is set to predicate instance
         """
-        self._parent=parent
+        self.__parent=parent
         """Parent GDTT strukture"""
-      
-    def check_type(self, type):
-        """Check if set type is in list of supported types"""
-        if len(self._types)==0:
-            return True
-        for t in self._types:
-            if type is t:
-                return True
-        return False
     
-    def set_path(self, value):
+    def _set_path(self, value):
         """set text describing variable"""
-        self._path = value
+        self.__path = value
         
-    def get_path(self):
+    def _get_path(self):
         """get text describing variable"""
-        return self._path
+        return self.__path
         
-    def get_main_settings_script(self):
+    def _get_main_settings_script(self):
         """return python script, that create only main class of DTT structure"""
         ret = "GDTT()"
         return [ret]
         
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class"""        
-        return [self._path]
+        return [self.__path]
     
     def __setattr__(self, name, value): 
         """ assignation"""
@@ -146,57 +136,57 @@ class GDTT(GDTT_Operators):
         if name[0] != '_':
             if name not in self.__dict__:
                 self.__dict__[name] = GDTT(parent=self)
-                self.__dict__[name].set_path(self._path + "." + name)
+                self.__dict__[name]._set_path(self.__path + "." + name)
         return self.__dict__[name]
     
-    def set_sort_predicate(self, predicate):
-        self._sort_predicate = predicate
+    def _set_sort_predicate(self, predicate):
+        self.__sort_predicate = predicate
 
-    def set_select_predicate(self, predicate):
-        self._sort_predicate = predicate
+    def _set_select_predicate(self, predicate):
+        self.__sort_predicate = predicate
 
-    def get_sort_predicate(self):
-        return self._sort_predicate
+    def _get_sort_predicate(self):
+        return self.__sort_predicate
         
-    def get_select_predicate(self):
-        return self._sort_predicate
+    def _get_select_predicate(self):
+        return self.__sort_predicate
 
-    def get_predicates(self):        
+    def _get_predicates(self):        
         """return dictionary (path->predicate) of predicates containing in this structure"""
         ret = []
-        if self._parent is None:
+        if self.__parent is None:
             return ret
-        if self._select_predicate is not None:
-           ret.append(PredicatePoint(self._select_predicate, self._parent.get_path()))
-        if self._sort_predicate is not None:
-            ret.append(PredicatePoint(self._sort_predicate, self._parent.get_path()))
-        ret.extend(self._parent.get_predicates())
+        if self.__select_predicate is not None:
+           ret.append(PredicatePoint(self.__select_predicate, self.__parent._get_path()))
+        if self.__sort_predicate is not None:
+            ret.append(PredicatePoint(self.__sort_predicate, self.__parent._get_path()))
+        ret.extend(self.__parent._get_predicates())
         return ret        
 
     def select(self, predicate):
         """GDTT call select function"""
         if type(predicate).__name__ != "Predicate":
             raise ValueError("Unknown type of select predicate '{0}'".format(type(predicate).__name__ ))
-        for fp in self._fpredicates:
-            if fp.get_select_predicate() == predicate:
+        for fp in self.__fpredicates:
+            if fp._get_select_predicate() == predicate:
                 return fp
         fp = GDTT(parent=self)
-        self._fpredicates.append(fp)
-        fp.set_select_predicate(predicate)
-        fp.set_path("{0}.select({1})".format(self._path, predicate.get_instance_name()))
+        self.__fpredicates.append(fp)
+        fp._set_select_predicate(predicate)
+        fp._set_path("{0}.select({1})".format(self.__path, predicate._get_instance_name()))
         return fp
 
     def sort(self, predicate):
         """GDTT call sort function"""
         if type(predicate).__name__ != "Predicate":
             raise ValueError("Unknown type of sort predicate '{0}'".format(type(predicate).__name__ ))
-        for fp in self._fpredicates:
-            if fp.get_sort_predicate() == predicate:
+        for fp in self.__fpredicates:
+            if fp._get_sort_predicate() == predicate:
                 return fp
         fp = GDTT(parent=self)
-        self._fpredicates.append(fp)
-        fp.set_sort_predicate(predicate)
-        fp.set_path("{0}.sort({1})".format(self._path, predicate.get_instance_name()))
+        self.__fpredicates.append(fp)
+        fp._set_sort_predicate(predicate)
+        fp._set_path("{0}.sort({1})".format(self.__path, predicate._get_instance_name()))
         return fp
 
 class GDTTFunc(GDTT_Operators):
@@ -212,44 +202,36 @@ class GDTTFunc(GDTT_Operators):
         self.operator = operator
         """operator"""
     
-    def get_predicates(self):
+    def _get_predicates(self):
         """return dictionary (path->predicate) of predicates containing in this structure"""
         ret = []
         for o in self.o:
             if isinstance(o, TT):
-                ret.extend(o.get_predicates())
+                ret.extend(o._get_predicates())
         return ret
-    
-    def check_generic_type(self):
-        """Check if function is supported for set generic type"""
-        return []
-        
-    def check_type(self):
-        """Check if finction is supported for substitued type"""
-        return []
     
     @staticmethod
     def _get_str(o):
-        """return objecct string presentation for get_settings_script function"""        
+        """return objecct string presentation for _get_settings_script function"""        
         if isinstance(o, TT):
-            return o.get_settings_script()
+            return o._get_settings_script()
         elif isinstance(o, str): 
             return ["'{0}'".format(o)]
         return ["{0}".format(str(o))]
     
-    def get_settings_script(self):
+    def _get_settings_script(self):
         """return python script, that create instance of this class""" 
         if self.operator == "And" or self.operator == "Or":
-            return self._get_func_settings_script()
+            return self.__get_func_settings_script()
         elif len(self.o)<1:
-            return self._get_simple_settings_script()
+            return self.__get_simple_settings_script()
         else:
-            return self._get_dual_settings_script()
+            return self.__get_dual_settings_script()
 
-    def _get_dual_settings_script(self):
+    def __get_dual_settings_script(self):
         """script two member operators"""
-        s_o1 = self._get_str(self.o[0])
-        s_o2 = self._get_str(self.o[1])
+        s_o1 = self.__get_str(self.o[0])
+        s_o2 = self.__get_str(self.o[1])
         if len(s_o1)==1:
            if len(s_o2)==1:
                 if (len(s_o1)+len(s_o2))<Formater.__ROW_LEN__:
@@ -276,9 +258,9 @@ class GDTTFunc(GDTT_Operators):
                 ret.append(")")
                 return ret
                 
-    def _get_simple_settings_script(self):
+    def __get_simple_settings_script(self):
         """Script for one member operators"""
-        s = self._get_str(self.o[0])
+        s = self.__get_str(self.o[0])
         if len(s)==1:
             return ["{0} {1}".format(self.operator, s[0])]
         else:
@@ -287,13 +269,13 @@ class GDTTFunc(GDTT_Operators):
             ret.append(")")
             return ret
 
-    def _get_func_settings_script(self):
+    def __get_func_settings_script(self):
         """Script for more member operators"""
         ret=["{0}(".format(self.operator)]
         s_len=0
         multiline=False
         for o in self.o:
-            s_o = self._get_str(o)
+            s_o = self.__get_str(o)
             if len(s_o)>1:
                 multiline=True
                 return
@@ -301,7 +283,7 @@ class GDTTFunc(GDTT_Operators):
         if not multiline and s_len > Formater.__ROW_LEN__ :
             multiline=True
         for o in self.o:
-            s_o = self._get_str(o)
+            s_o = self.__get_str(o)
             if len(s_o)==1:
                 if multiline:
                     ret.append("    {0},".format(s_o[0]))
@@ -320,7 +302,7 @@ class Input(GDTT):
     """Class for defination connector input and its number"""
     def __init__(self, num=0):
         super(Input, self).__init__()
-        self.num = num
-        """Number of unput"""
-        self.tts = None
+        self.__num = num
+        """Number of input"""
+        self.__tts = None
         """Generic data trees represented this input"""
