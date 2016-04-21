@@ -53,6 +53,7 @@ Actions:
       function re.sub, where is pass on. Json style of transformation script
       requare duplication of all backslashed characters in pattern and 
       replacement parameters.
+    - move-key-forward - move key on set path to first position in structure
 
 Description:
     Transformator check se json transformation file. If this file is in bad format,
@@ -678,7 +679,7 @@ class Transformator:
         except:
             if action['parameters']['create_path'] and parent2 is not None:
                 node_struct,new_path = StructureChanger.copy_absent_path(root, 
-                    lines, node1.parent, parent2.group(1))
+                    lines, parent2.group(1))
                 if len(node_struct) == 0:
                     raise TransformationFileFormatError(
                         "Can't constract destination path (" + 
@@ -779,14 +780,14 @@ class Transformator:
         al1, ac1, al2, ac2 = StructureChanger.add_comments(lines, al1, ac1, al2, ac2)
         add = StructureChanger.copy_structure(lines, al1, ac1, al2, ac2, indentation1)
  
-        if al2 < sl1 or (al2 == sl1 and al2 < sc1):
-            # source after addition, first delete
+        if sl2 < al1 or (sl2 == al1 and sl2 < ac1):
+            # addition after source, first delete
             action['parameters']['path'] = action['parameters']['addition_path']
             action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
-        self._add_comma(lines, sl2, sc2 )
+        self._add_comma(lines, sl1, sl2, sc2 )
         StructureChanger.paste_structure(lines, sl2,  add, True)
-        if not(al2 < sl1 or (al2 == sl1 and al2 < sc1)):
+        if not(sl2 < al1 or (sl2 == al1 and sl2 < ac1)):
             action['parameters']['path'] = action['parameters']['addition_path']
             action['parameters']['deep'] = True
             self._delete_key(root, lines, action)
@@ -811,9 +812,11 @@ class Transformator:
                 return l2-1, len(lines[l2-1])
         return l2, c2
         
-    def _add_comma(self, lines, l2, c2 ):
+    def _add_comma(self, lines, l1, l2, c2 ):
         """add comma to the end of array"""
-        sep = re.search(r'^(\s*)-(\s+)$', lines[l2])
+        sep = re.search(r'^(\s*)-(\s+)', lines[l1])
+        if sep is None:
+            sep = re.search(r'^(\s*)-$', lines[l1])
         if sep is not None:
             return
         if c2 < len(lines[l2]) and not lines[l2][c2:].isspace():
