@@ -23,7 +23,7 @@
 
 
 # Maximum compression.
-#SetCompressor /SOLID lzma
+SetCompressor /SOLID lzma
 
 
 # Read version information from file.
@@ -120,9 +120,6 @@ Section "Runtime Environment" SecRuntime
   # Copy the common folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
 
-  # Copy the sample folder.
-  File /r /x *~ "${GIT_DIR}\sample"
-
   # Copy LICENSE, CHANGELOG, VERSION.
   File "${GIT_DIR}\VERSION"
   File "${GIT_DIR}\CHANGELOG.md"
@@ -130,6 +127,11 @@ Section "Runtime Environment" SecRuntime
 
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
+
+  # Copy the sample folder.
+  CreateDirectory "$INSTDIR\sample"
+  SetOutPath "$INSTDIR\sample"
+  File /r /x *~ "${GIT_DIR}\sample\*"
 
   # Copy the DLLs.
   SetOutPath "$WINDIR\System32\"
