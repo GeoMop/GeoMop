@@ -23,7 +23,7 @@
 
 
 # Maximum compression.
-SetCompressor /SOLID lzma
+#SetCompressor /SOLID lzma
 
 
 # Read version information from file.
@@ -101,13 +101,10 @@ Section "Runtime Environment" SecRuntime
   # Section is mandatory.
   SectionIn RO
 
-  # Clean GeoMop source and env directories.
+  # Clean GeoMop source, env directories.
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
-  # TODO remove for next version
-  # Clear all configuration from APPDATA
-  RMDir /r "${APP_HOME_DIR}"
   CreateDirectory "${APP_HOME_DIR}"
 
   # Install virtualenv.
@@ -121,10 +118,10 @@ Section "Runtime Environment" SecRuntime
   File /r "${BUILD_DIR}\env"
 
   # Copy the common folder.
-  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\common"
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
 
   # Copy the sample folder.
-  File /r "${GIT_DIR}\sample"
+  File /r /x *~ "${GIT_DIR}\sample"
 
   # Copy LICENSE, CHANGELOG, VERSION.
   File "${GIT_DIR}\VERSION"
@@ -134,32 +131,50 @@ Section "Runtime Environment" SecRuntime
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
+  # Copy the DLLs.
+  SetOutPath "$WINDIR\System32\"
+  File /r "${BUILD_DIR}\dll\"
+
 SectionEnd
 
 
-Section /o "JobsScheduler" SecJobsScheduler
+Section "JobsScheduler" SecJobsScheduler
+
+  # Section is mandatory.
+  SectionIn RO
 
   RMDir /r "$INSTDIR\JobsScheduler"
   SetOutPath $INSTDIR
-  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\JobsScheduler"
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc /x jobs /x log "${SRC_DIR}\JobsScheduler"
+
+  CreateDirectory "$INSTDIR\JobsScheduler\jobs"
+  CreateDirectory "$INSTDIR\JobsScheduler\log"
+
+  # Grant jobs, lock folder permissions to Users
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
 
 SectionEnd
 
 
-Section /o "LayerEditor" SecLayerEditor
+# Section /o "LayerEditor" SecLayerEditor
 
-  RMDir /r "$INSTDIR\LayerEditor"
-  SetOutPath $INSTDIR
-  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\LayerEditor"
+#   RMDir /r "$INSTDIR\LayerEditor"
+#   SetOutPath $INSTDIR
+#   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
 
-SectionEnd
+# SectionEnd
 
 
 Section "ModelEditor" SecModelEditor
 
+  # Section is mandatory.
+  SectionIn RO
+
   RMDir /r "$INSTDIR\ModelEditor"
   SetOutPath $INSTDIR
-  File /r /x __pycache__ /x pylintrc "${SRC_DIR}\ModelEditor"
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\ModelEditor"
 
 SectionEnd
 
@@ -208,6 +223,17 @@ Section "Desktop icons" SecDesktopIcons
 SectionEnd
 
 
+# TODO next version - unchecked by default
+# Section /o "Wipe settings" SecWipeSettings
+Section "Wipe settings" SecWipeSettings
+
+  # Clear all configuration from APPDATA
+  RMDir /r "${APP_HOME_DIR}"
+  CreateDirectory "${APP_HOME_DIR}"
+
+SectionEnd
+
+
 Section -post
   
   ; Set output path to the installation directory.
@@ -233,14 +259,14 @@ SectionEnd
 "The runtime environment for GeoMop - Python 3.4 with PyQt5."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
 "The jobs scheduler."
-!insertmacro MUI_DESCRIPTION_TEXT ${SecLayerEditor} \
-"The layer editor."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecModelEditor} \
 "The interactive editor for Flow123d configuration files."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcuts} \
 "This adds shortcuts to your Start Menu."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopIcons} \
 "This creates icons on your Desktop."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecWipeSettings} \
+"Deletes all user settings. Check this option if you're experiencing issues with launching the applications."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
@@ -263,3 +289,4 @@ Section "Uninstall"
   RMDir /r "$INSTDIR"
 
 SectionEnd
+
