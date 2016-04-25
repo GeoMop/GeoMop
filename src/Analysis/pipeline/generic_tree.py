@@ -1,14 +1,6 @@
 import abc
 from .code_formater import Formater
 
-class PredicatePoint():
-    """class for determining predicates"""
-    def __init__(self, predicate, path):
-        self.path = path
-        """path to sortable CompositeDTT"""
-        self.predicate = predicate
-        """path to predicate"""
-
 class TT(metaclass=abc.ABCMeta):
     """
     Abstract class for defination general tree
@@ -18,12 +10,18 @@ class TT(metaclass=abc.ABCMeta):
         """return python script, that create instance of this class"""
         pass
 
+class GTT(TT):
     @abc.abstractmethod
-    def _get_predicates(self):
-        """return dictionary (path->predicate) of predicates containing in this structure"""
+    def _get_convertors(self):
+        """return array of convertors containing in this structure"""
         pass
 
-class GDTT_Operators(TT):
+    @abc.abstractmethod
+    def _get_inputs(self):
+        """return array of inputs containing in this structure"""
+        pass
+
+    
     def __lt__(a, b):
         return GDTTFunc('<', a, b)
         
@@ -54,7 +52,7 @@ class GDTT_Operators(TT):
 def And(*args):
     """Global and opperator"""
     for arg in args:
-        if isinstance(arg, GDTT_Operators):
+        if isinstance(arg, GTT):
             return arg._And(*args)
     ret = True
     try:
@@ -68,7 +66,7 @@ def And(*args):
 def Or(*args):
     """Global or opperator"""
     for arg in args:
-        if isinstance(arg, GDTT_Operators):
+        if isinstance(arg, GTT):
             return arg._Or(*args)
     ret = False
     try:
@@ -78,42 +76,43 @@ def Or(*args):
         raise Exception("And parameter error " +str(ex))            
     return ret
 
-class GDTT(GDTT_Operators):
+class GDTT(GTT):
     """
     Class for abstract code, wothout acurate determination DTT type
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Initialize generic instance. Parameters are classes, that my be use
         instead this class. If is not set, class not process check during 
         replecement
         """
-        self.__path=""
+        self._path=""
         """Path to this variable in generic tree"""
-        self.__fpredicates = []
-        """
-        list of GDTT represented predicate functions to this GDTT points 
-        """
-        self.__select_predicate=None        
-        """
-        if GDTT represent function that use predicate for select, 
-        this variable is set to predicate instance
-        """
-        self.__sort_predicate=None        
+        self.__predicate = None        
         """
         if GDTT represent function that use predicate for sort, 
         this variable is set to predicate instance
+        """
+        self.__selector = None        
+        """
+        if GDTT represent function that use selector for select, 
+        this variable is set to selector instance
+        """
+        self.__convertor = None        
+        """
+        if GDTT represent function that use convertor for each, 
+        this variable is set to convertor instance
         """
         self.__parent=parent
         """Parent GDTT strukture"""
     
     def _set_path(self, value):
         """set text describing variable"""
-        self.__path = value
+        self._path = value
         
     def _get_path(self):
         """get text describing variable"""
-        return self.__path
+        return self._path
         
     def _get_main_settings_script(self):
         """return python script, that create only main class of DTT structure"""
@@ -122,7 +121,7 @@ class GDTT(GDTT_Operators):
         
     def _get_settings_script(self):
         """return python script, that create instance of this class"""        
-        return [self.__path]
+        return [self._path]
     
     def __setattr__(self, name, value): 
         """ assignation"""
@@ -134,62 +133,79 @@ class GDTT(GDTT_Operators):
     def __getattr__(self, name): 
         """save assignation"""
         if name[0] != '_':
-            if name not in self.__dict__:
-                self.__dict__[name] = GDTT(parent=self)
-                self.__dict__[name]._set_path(self.__path + "." + name)
+            ret = GDTT(parent=self)
+            ret._set_path(self._path + "." + name)
         return self.__dict__[name]
     
-    def _set_sort_predicate(self, predicate):
-        self.__sort_predicate = predicate
+    def _set_predicate(self, predicate):
+        self.__predicate = predicate
 
-    def _set_select_predicate(self, predicate):
-        self.__sort_predicate = predicate
-
-    def _get_sort_predicate(self):
-        return self.__sort_predicate
+    def _set_selector(self, selector):
+        self.__selector = selector
         
-    def _get_select_predicate(self):
-        return self.__sort_predicate
+    def _set_convertor(self, convertor):
+        self.__convertor = convertor
 
-    def _get_predicates(self):        
-        """return dictionary (path->predicate) of predicates containing in this structure"""
+    def _get_predicate(self):
+        return self.__predicate
+        
+    def _get_selector(self):
+        return self.__selector
+
+    def _get_convertor(self):
+        return self.__convertor
+
+    def _get_convertors(self):
+        """return array of convertors containing in this structure"""
+    
         ret = []
         if self.__parent is None:
             return ret
-        if self.__select_predicate is not None:
-           ret.append(PredicatePoint(self.__select_predicate, self.__parent._get_path()))
-        if self.__sort_predicate is not None:
-            ret.append(PredicatePoint(self.__sort_predicate, self.__parent._get_path()))
-        ret.extend(self.__parent._get_predicates())
-        return ret        
+        if self.__selector is not None:
+           ret.append(self.__selector)
+           ret.extend(self.__selector._get_convertors())
+        if self.__predicate is not None:
+           ret.append(self.__predicate)
+           ret.extend(self.__predicate._get_convertors())
+        if self.__convertor is not None:
+           ret.append(self.__convertor)
+           ret.extend(self.__convertor._get_convertors())
+        ret.extend(self.__parent._get_convertors())
+        return ret 
+ 
+    def _get_inputs(self):
+        if self.__parent is None:
+            return [self]
+        return self.__parent._get_inputs()
 
     def select(self, predicate):
         """GDTT call select function"""
         if type(predicate).__name__ != "Predicate":
             raise ValueError("Unknown type of select predicate '{0}'".format(type(predicate).__name__ ))
-        for fp in self.__fpredicates:
-            if fp._get_select_predicate() == predicate:
-                return fp
         fp = GDTT(parent=self)
-        self.__fpredicates.append(fp)
-        fp._set_select_predicate(predicate)
-        fp._set_path("{0}.select({1})".format(self.__path, predicate._get_instance_name()))
+        fp._set_predicate(predicate)
+        fp._set_path("{0}.select({1})".format(self._path, predicate._get_instance_name()))
         return fp
 
-    def sort(self, predicate):
+    def sort(self, selector):
         """GDTT call sort function"""
-        if type(predicate).__name__ != "Predicate":
-            raise ValueError("Unknown type of sort predicate '{0}'".format(type(predicate).__name__ ))
-        for fp in self.__fpredicates:
-            if fp._get_sort_predicate() == predicate:
-                return fp
+        if type(selector).__name__ != "Selector":
+            raise ValueError("Unknown type of sort selector '{0}'".format(type(selector).__name__ ))
         fp = GDTT(parent=self)
-        self.__fpredicates.append(fp)
-        fp._set_sort_predicate(predicate)
-        fp._set_path("{0}.sort({1})".format(self.__path, predicate._get_instance_name()))
+        fp._set_selector(selector)
+        fp._set_path("{0}.sort({1})".format(self._path, selector._get_instance_name()))
+        return fp
+        
+    def each(self, convertor):
+        """GDTT call sort function"""
+        if type(convertor).__name__ != "Convertor":
+            raise ValueError("Unknown type of sort convertor '{0}'".format(type(convertor).__name__ ))
+        fp = GDTT(parent=self)
+        fp._set_convertor(convertor)
+        fp._set_path("{0}.each({1})".format(self._path, convertor._get_instance_name()))
         return fp
 
-class GDTTFunc(GDTT_Operators):
+class GDTTFunc(GTT):
     """
     Class for save function code with GDTT variables
     """
@@ -202,12 +218,20 @@ class GDTTFunc(GDTT_Operators):
         self.operator = operator
         """operator"""
     
-    def _get_predicates(self):
-        """return dictionary (path->predicate) of predicates containing in this structure"""
+    def _get_convertors(self):
+        """return array of convertors containing in this structure"""
         ret = []
         for o in self.o:
-            if isinstance(o, TT):
-                ret.extend(o._get_predicates())
+            if isinstance(o, GTT):
+                ret.extend(o._get_convertors())
+        return ret
+        
+    def _get_inputs(self):
+        """return array of inputs containing in this structure"""
+        ret = []
+        for o in self.o:
+            if isinstance(o, GTT):
+                ret.extend(o._get_inputs())
         return ret
     
     @staticmethod
@@ -301,8 +325,7 @@ class GDTTFunc(GDTT_Operators):
 class Input(GDTT):
     """Class for defination connector input and its number"""
     def __init__(self, num=0):
-        super(Input, self).__init__()
-        self.__num = num
+        super(Input, self).__init__(None)
+        self._num = num
         """Number of input"""
-        self.__tts = None
-        """Generic data trees represented this input"""
+        self._set_path("Input({0})".format(str(num)))

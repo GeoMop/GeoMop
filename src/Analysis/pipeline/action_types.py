@@ -1,7 +1,6 @@
 import abc
 from enum import IntEnum
 from .data_types_tree import *
-from .generic_tree import GDTT
 from .code_formater import Formater
 import math
 
@@ -38,8 +37,6 @@ class Runner():
 
 __action_counter__ = 0
 """action counter for unique settings in created script for code generation"""
-__initialized_predicates__ = []
-"""This variable guard duplicit inicialization of predicators"""
         
 class BaseActionType(metaclass=abc.ABCMeta):
     """
@@ -54,7 +51,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
 
     def __init__(self, **kwargs):
         global __action_counter__
- 
+        
         __action_counter__ += 1
         self._id = __action_counter__
         """unique action number"""
@@ -276,78 +273,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if isinstance(value, bool):
             return True
         return False
-        
-    @staticmethod
-    def _clear_predicates():
-        """delete all predicates"""
-        global __initialized_predicates__
-        __initialized_predicates__ = []
-        
-    @staticmethod
-    def _add_predicate(predicate):
-        """add predicate if not exist and return if is added"""
-        global __initialized_predicates__
-        if not predicate in __initialized_predicates__:
-            __initialized_predicates__.append(predicate)
-            return True
-        return False
-
-class InputType(BaseActionType, metaclass=abc.ABCMeta):
-    def __init__(self, **kwargs):
-        """
-        :param GDTT DefInputs: Convertor template may have 
-            GDTT types for checking. when is set real input, input typ is compare
-            with this parameter
-        """
-        super(InputType, self).__init__(**kwargs)
-        if 'DefInputs' not in self._variables:
-            self._variables['DefInputs']=[]
-        for i in range(0, len(self._variables['DefInputs'])):
-            self._variables['DefInputs'][i]._set_path("{0}.input({1})".format(
-                self._get_instance_name(),str(i)))
-
-    def _set_output(self, preinit_script=[]):
-        """inicialize action run variables"""
-        try:            
-            script = '\n'.join(self._variables['DefOutput']._get_settings_script())
-            script = script.replace(self._get_instance_name()+".input", "self.input")
-            if len(preinit_script)>0:
-                prescript = '\n'.join(preinit_script)
-                exec(prescript, globals())
-            self._output = eval(script)
-        except Exception as err:
-            raise Exception("Output processing error ({0})".format(err))
-
-    def input(self, i):
-        """Function for generic input defination"""
-        if len(self._inputs)>i and self._state.value > ActionStateType.created.value:
-            return self. get_input_val(i)
-        while len(self._variables['DefInputs'])<=i:
-            attr = GDTT()
-            attr._set_path("{0}.input({1})".format(self._get_instance_name(), str(i)))
-            self._variables['DefInputs'].append(attr)
-        return self._variables['DefInputs'][i]
-    
-    def _get_settings_script(self):    
-        """return python script, that create instance of this class"""
-        lines = super( InputType, self)._get_settings_script()
-        names=['DefOutput']
-        values=[self._variables['DefOutput']._get_settings_script()]
-        lines.extend(self._format_config_to_setter(names, values))
-        return lines
-    
-    def _get_variables_script(self):    
-        """return array of variables python scripts"""
-        var = super( InputType, self)._get_variables_script()
-        
-        lines=["DefInputs=["]
-        for input in self._variables['DefInputs']:
-            script = input._get_main_settings_script()
-            lines.extend(Formater.format_parameter(script, 4))
-        lines[-1] = lines[-1][:-1]
-        lines.append("]")
-        var.append(lines)        
-        return var
 
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
@@ -387,7 +312,7 @@ class Bridge(BaseActionType):
     def _get_instance_name(self):
         return "{0}.input()".format(self.workflow._get_instance_name())
 
-class ConvertorActionType(InputType, metaclass=abc.ABCMeta):
+class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super(ConvertorActionType, self).__init__(**kwargs)
         

@@ -17,11 +17,6 @@ class DTT(TT, metaclass=abc.ABCMeta):
         return if structure contain real data
         """
         pass
-        
-    def _get_predicates(self):
-        """return dictionary (path->predicate) of predicates containing in this structure"""
-        return []
-
 
 class BaseDTT(DTT, metaclass=abc.ABCMeta):
     """
@@ -367,14 +362,6 @@ class Struct(CompositeDTT):
         except:
             return None
             
-    def _get_predicates(self):
-        """return dictionary (path->predicate) of predicates containing in this structure"""
-        ret=[]
-        for name, value in self.__dict__.items():
-            if isinstance(value, TT):
-                ret.extend(value._get_predicates())
-        return ret
-            
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
@@ -488,14 +475,6 @@ class Ensemble(SortableDTT):
             self.list.append(value)
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
-    
-    def _get_predicates(self):
-        """return dictionary (path->predicate) of predicates containing in this structure"""
-        ret=[]
-        for value in self.list:
-            if isinstance(value, TT):
-                ret.extend(value._get_predicates())
-        return ret
 
     def _to_string(self, value):
         """Presentation of type in json yaml"""
