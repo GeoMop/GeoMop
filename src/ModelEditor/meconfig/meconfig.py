@@ -267,6 +267,8 @@ class MEConfig:
             if (isfile(join(cls.format_dir, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.format_files.append(file_name[:-5])
+        # reverse sorting 9 - 0
+        cls.format_files = cls.format_files[::-1]
 
     @classmethod
     def _read_transformation_files(cls):
@@ -434,9 +436,10 @@ class MEConfig:
 
         return: if file have good format (boolean)
         """
-        format_file = cls.config.get_format_file(file_name)
-        if format_file is not None:
-            cls.curr_format_file = format_file
+        # If we want to use this code, GUI has to be updated as well.
+        # format_file = cls.config.get_format_file(file_name)
+        # if format_file is not None:
+        #     cls.curr_format_file = format_file
         try:
             with open(file_name, 'r') as file_d:
                 cls.document = file_d.read()

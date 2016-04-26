@@ -163,7 +163,7 @@ class Session(object):
             the size of a virtual terminal
         :param dict env: addiotional environ variables
         """
-        warnings.warn("Shell feature is very experimental and uncomplete.", Warning)
+        # warnings.warn("Shell feature is very experimental and uncomplete.", Warning)
         return shell.Shell(self, pty_size, env)
 
     @_check_open_session
