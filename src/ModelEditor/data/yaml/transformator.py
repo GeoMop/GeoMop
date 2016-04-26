@@ -25,12 +25,15 @@ Filter:
     
 Actions:
     - move-key - Move value of set key from source_path to destination_path.
-      Not existing directory of destination_path cause exception. If both path
-      is same, only key is different, key is renamed. Destination_path placed in
-      source_path cause exception. If source_path not exist action si skipped.
+      If create_path parameter is not set to True, not existing directory of 
+      destination_path cause exception. If create_path is set to True, absent 
+      path is created. Path with number is created as array with index one more 
+      than last existing index, other path is created as record.
+      If both path is same, only key is different, key is renamed. Destination_path 
+      placed in source_path cause exception. If source_path not exist action si skipped.
       Refference or anchors is moved and if its relative possition is changed,
       result must be fixed by user. In this action can be used parameters
-      set_type_path and new_type for replacing tag new_type in path "set_type_path"
+      set_type_path and new_type for replacing tag new_type in path "set_type_path"      
     - delete-key - Delete key on set path. If key contains anchor or refference,
       transporter try resolve reference. If path not exist, or contains some children
       action si skipped. If parameter deep is set to true, key is delete with containing 
