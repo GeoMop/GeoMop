@@ -312,9 +312,9 @@ class Bridge(BaseActionType):
     def _get_instance_name(self):
         return "{0}.input()".format(self.workflow._get_instance_name())
 
-class ConvertorActionType(BaseActionType, metaclass=abc.ABCMeta):
+class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
-        super(ConvertorActionType, self).__init__(**kwargs)
+        super(ConnectorActionType, self).__init__(**kwargs)
         
     def _check_params(self):    
         """check if all require params is set"""

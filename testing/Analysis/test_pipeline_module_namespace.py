@@ -11,11 +11,13 @@ def test_data_classes():
         And(Bool(True), Bool(False))
         Or(Bool(True), Bool(False))
         Input()
-        CommonConvertor()
+        Connector()
         RangeGenerator()
         VariableGenerator()
         Flow123dAction()
-        Predicate()
+        Convertor(Input(0))
+        Predicate(Input(0))
+        KeyConvertor(Input(0))
         Pipeline()
         Workflow()
         ForEach()
@@ -24,7 +26,11 @@ def test_data_classes():
     
     for types in (
         "DTT", "BaseDTT", "CompositeDTT", "CompositiIter", "SortableDTT"
-        "PredicatePoint", "TT", "GDTT_Operators", "GDTT",  " GDTTFunc"
+        "PredicatePoint", "TT", "GDTT_Operators", "GDTT",  " GDTTFunc", 
+        "Bridge", " ActionType", "ActionStateType", "BaseActionType", 
+        "ConnectorActionType", "  GeneratorActionType", "ParametrizedActionType", 
+        "WrapperActionType", "WorkflowActionType", 
+
     ):
         try:
             test = eval(types+"()")

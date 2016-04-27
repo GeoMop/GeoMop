@@ -1,13 +1,13 @@
-from pipeline.convertor_actions import *
+from pipeline.connector_actions import *
 from pipeline.generator_actions import *
-from pipeline.predicate import *
+from pipeline.convertors import *
 from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
 import pipeline.action_types as action
 from .pomfce import *
 import os
 
-def test_convertor_code_init():
+def test_connector_code_init():
     action.__action_counter__ = 0
     v1 = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     v2 = VariableGenerator(Variable=Struct(a=String("test new"), b=Int(8)))
@@ -22,21 +22,20 @@ def test_convertor_code_init():
             Struct(a=String("a7"), time=Int(1100), value = Float(18.0), bc_type=Int(6))
         ))
     
-    p1 = Predicate() 
-    time = And(p1.input(0).time > 600,p1.input(0).time<1000)
-    value = Or(p1.input(0).value > 3.0, p1.input(0).value < 1.0)
-    bc_type = p1.input(0).bc_type == 4
-    p1.set_config(DefOutput = And( time, value, bc_type))
-        
-    p2 = Predicate() 
-    p2.set_config(DefOutput = p2.input(0).value)
+    
+    time = And(Input(0).time > 600,Input(0).time<1000)
+    value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
+    bc_type = Input(0).bc_type == 4
+    p1 = Predicate(And( time, value, bc_type)) 
+    c1 = Comparator(Input(0).value) 
  
-    k = CommonConvertor()    
-    a = k.input(0).a
-    b = k.input(1).b
+    k = Connector()    
+    a = Input(0).a
+    b = Input(1).b
     # for later using
     k3 = k.duplicate()    
-    k.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2).sort(p2)))
+    conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
+    k.set_config(Convertor = conv)
     
     k2 = k.duplicate()
     k2.set_inputs([v1, v2, v3])

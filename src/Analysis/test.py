@@ -1,22 +1,17 @@
-from pipeline.convertor_actions import *
+from pipeline.connector_actions import *
 from pipeline.generator_actions import *
 from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
-from pipeline.predicate import *
+from pipeline.convertors import *
 
-And(Bool(True), Bool(False))
+time = And(Input(0).time > 600,Input(0).time<1000)
+value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
+bc_type = Input(0).bc_type == 4
+p1 = Predicate(And( time, value, bc_type)) 
+c1 = KeyConvertor(Input(0).value) 
 
-p1 = Predicate() 
-time = And(p1.input(0).time > 600,p1.input(0).time<1000)
-value = Or(p1.input(0).value > 3.0, p1.input(0).value < 1.0)
-bc_type = p1.input(0).bc_type == 4
-p1.set_config(DefOutput = And( time, value, bc_type))
-    
-p2 = Predicate() 
-p2.set_config(DefOutput = p2.input(0).value)
-
-test01=p1.get_settings_script()
-test02=p2.get_settings_script()
+test01=p1._get_settings_script()
+test02=c1._get_settings_script()
 
 v1 = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
 v2 = VariableGenerator(Variable=Struct(a=String("test new"), b=Int(8)))
@@ -31,34 +26,36 @@ v3 = VariableGenerator(Variable=Ensemble(
     Struct(a=String("a7"), time=Int(1100), value = Float(18.0), bc_type=Int(6)),
 ))
 
-k = CommonConvertor()    
-a = k.input(0).a
-b = k.input(1).b
-k3 = k.duplicate()  
-k.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2).sort(p2)))
+k = Connector()    
+a = Input(0).a
+b = Input(1).b
+# for later using
+k3 = k.duplicate()    
+conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
+k.set_config(Convertor = conv)
 
-test1=k.get_settings_script()
+test1=k._get_settings_script()
 
 k.set_inputs([v1, v2, v3])
-v1.inicialize()
-v2.inicialize()
-v3.inicialize()
-k.inicialize()
+v1._inicialize()
+v2._inicialize()
+v3._inicialize()
+k._inicialize()
 
-test2=k.get_settings_script()
-test3=k.get_output().get_settings_script()
+test2=k._get_settings_script()
+test3=k._get_output()._get_settings_script()
 
 k2 = k.duplicate()
-test4=k2.get_settings_script()
-k2.inicialize()
+test4=k2._get_settings_script()
+k2._inicialize()
 
-test5=k2.get_settings_script()
-test6=k2.get_output().get_settings_script()
+test5=k2._get_settings_script()
+test6=k2.get_output()._get_settings_script()
 
-test=v1.get_settings_script()
-test.extend(v2.get_settings_script())
-test.extend(v3.get_settings_script())
-test.extend(k2.get_settings_script())
+test=v1._get_settings_script()
+test.extend(v2._get_settings_script())
+test.extend(v3._get_settings_script())
+test.extend(k2._get_settings_script())
 
 script = '\n'.join(test01)
 

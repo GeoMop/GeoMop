@@ -11,11 +11,13 @@ def test_classes():
         p.And(p.Bool(True), p.Bool(False))
         p.Or(p.Bool(True), p.Bool(False))
         p.Input()
-        p.CommonConvertor()
+        p.Connector()
         p.RangeGenerator()
         p.VariableGenerator()
         p.Flow123dAction()
-        p.Predicate()
+        p.Convertor(p.Input(0))
+        p.Predicate(p.Input(0))
+        p.KeyConvertor(p.Input(0))
         p.Pipeline()
         p.Workflow()
         p.ForEach()
@@ -24,7 +26,10 @@ def test_classes():
     
     for types in (
         "DTT", "BaseDTT", " CompositeDTT", "CompositiIter", "SortableDTT",
-        "PredicatePoint", "TT", "GDTT_Operators", "GDTT",  " GDTTFunc"
+        "PredicatePoint", "TT", "GDTT",  "GDTTFunc", 
+        "Bridge", " ActionType", "ActionStateType", "BaseActionType", 
+        "ConnectorActionType", "  GeneratorActionType", "ParametrizedActionType", 
+        "WrapperActionType", "WorkflowActionType"
     ):
         try:
             test = eval("p."+types+"()")

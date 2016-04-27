@@ -90,13 +90,13 @@ class GDTT(GTT):
         """Path to this variable in generic tree"""
         self.__predicate = None        
         """
-        if GDTT represent function that use predicate for sort, 
-        this variable is set to predicate instance
+        if GDTT represent function that use predicate for select, 
+        this variable is set to Predicate instance
         """
-        self.__selector = None        
+        self.__key_convertor = None        
         """
-        if GDTT represent function that use selector for select, 
-        this variable is set to selector instance
+        if GDTT represent function that use key_convertor for sort, 
+        this variable is set to key_convertor instance
         """
         self.__convertor = None        
         """
@@ -135,13 +135,14 @@ class GDTT(GTT):
         if name[0] != '_':
             ret = GDTT(parent=self)
             ret._set_path(self._path + "." + name)
+            return ret
         return self.__dict__[name]
     
     def _set_predicate(self, predicate):
         self.__predicate = predicate
 
-    def _set_selector(self, selector):
-        self.__selector = selector
+    def _set_key_convertor(self, key_convertor):
+        self.__key_convertor = key_convertor
         
     def _set_convertor(self, convertor):
         self.__convertor = convertor
@@ -149,10 +150,10 @@ class GDTT(GTT):
     def _get_predicate(self):
         return self.__predicate
         
-    def _get_selector(self):
+    def _get_key_convertor(self):
         return self.__selector
 
-    def _get_convertor(self):
+    def _get_key_convertor(self):
         return self.__convertor
 
     def _get_convertors(self):
@@ -161,15 +162,12 @@ class GDTT(GTT):
         ret = []
         if self.__parent is None:
             return ret
-        if self.__selector is not None:
-           ret.append(self.__selector)
-           ret.extend(self.__selector._get_convertors())
+        if self.__key_convertor is not None:
+           ret.append(self.__key_convertor)
         if self.__predicate is not None:
            ret.append(self.__predicate)
-           ret.extend(self.__predicate._get_convertors())
         if self.__convertor is not None:
            ret.append(self.__convertor)
-           ret.extend(self.__convertor._get_convertors())
         ret.extend(self.__parent._get_convertors())
         return ret 
  
@@ -187,13 +185,13 @@ class GDTT(GTT):
         fp._set_path("{0}.select({1})".format(self._path, predicate._get_instance_name()))
         return fp
 
-    def sort(self, selector):
+    def sort(self, key_convertor):
         """GDTT call sort function"""
-        if type(selector).__name__ != "Selector":
-            raise ValueError("Unknown type of sort selector '{0}'".format(type(selector).__name__ ))
+        if type(key_convertor).__name__ != "KeyConvertor":
+            raise ValueError("Unknown type of sort key_convertor '{0}'".format(type(key_convertor).__name__ ))
         fp = GDTT(parent=self)
-        fp._set_selector(selector)
-        fp._set_path("{0}.sort({1})".format(self._path, selector._get_instance_name()))
+        fp._set_key_convertor(key_convertor)
+        fp._set_path("{0}.sort({1})".format(self._path, key_convertor._get_instance_name()))
         return fp
         
     def each(self, convertor):
@@ -235,7 +233,7 @@ class GDTTFunc(GTT):
         return ret
     
     @staticmethod
-    def _get_str(o):
+    def __get_str(o):
         """return objecct string presentation for _get_settings_script function"""        
         if isinstance(o, TT):
             return o._get_settings_script()

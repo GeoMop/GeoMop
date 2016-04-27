@@ -14,9 +14,9 @@ class Convertor():
     some output restrictions and is use by composite DDT
     functions.
     """
-    _name = "con"
+    name = "conv"
     """Display name of action"""
-    _description = "Convertor"
+    description = "Convertor"
     """Display description of action"""
     
     def __init__(self, def_output):
@@ -37,9 +37,9 @@ class Convertor():
         """list of convertors needed for this connector"""
         self._inputs = []
         """list of inputs needed for this connector"""
-        self._load_err = []
+        self._load_errs = []
         """Contain init state errors"""
-        self.inicialize()
+        self._inicialize()
 
     def _get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self._id))
@@ -55,7 +55,7 @@ class Convertor():
 
     def _get_output(self, inputs):
         """inicialize action run variables"""        
-        script = '\n'.join(self.output._get_settings_script())
+        script = '\n'.join(self._output._get_settings_script())
         internal_var = {}
         #inputs are replaced in script by internal dictionary, that is created from inputs
         for input in self._inputs:
@@ -74,13 +74,13 @@ class Convertor():
             raise Exception("Output processing error ({0})".format(err))
         return output
         
-    def _get_variables_script(self):    
+    def _get_settings_script(self):    
         """return array of variables python scripts"""
         lines = []
         for convertor in self._convertors:
             lines.extend(convertor._get_variables_script())
         lines.append("{0}_{1} = {2}(".format(self.name, str(self._id), self.__class__.__name__))
-        lines.extend(Formater.indent(self.output._get_variables_script(), 4))
+        lines.extend(Formater.indent(self._output._get_settings_script(), 4))
         lines.append(")")
         return lines
         
@@ -104,9 +104,9 @@ class Convertor():
 
 class Predicate(Convertor):
     """Class for filter defination"""
-    _name = "pred"
+    name = "pred"
     """Display name of action"""
-    _description = "Predicate"
+    description = "Predicate"
     """Display description of action"""  
         
     def __init__(self, output):
@@ -118,26 +118,26 @@ class Predicate(Convertor):
     def _check_output(self):    
         """check output variable type"""
         err = []
-        if not isinstance(self._output, GDTT):
+        if not isinstance(self._output, GTT):
             err.append("Bad predicate output type")
         return err
 
-class Selector(Convertor):
+class KeyConvertor(Convertor):
     """Class for filter defination"""
-    _name = "sel"
+    name = "key"
     """Display name of action"""
-    _description = "Selector"
+    description = "Convert structuru to key for comaparation"
     """Display description of action"""  
         
     def __init__(self, output):
         """
         convertor for select action
         """
-        super(Predicate, self).__init__(output)
+        super(KeyConvertor, self).__init__(output)
         
     def _check_output(self):    
         """check output variable type"""
         err = []
-        if not isinstance(self._output, GTT):
+        if not isinstance(self._output, GDTT):
             err.append("Bad selector output type")
         return err

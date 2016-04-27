@@ -1,7 +1,7 @@
-from .action_types import ConvertorActionType, ActionStateType
+from .action_types import ConnectorActionType, ActionStateType
 from .data_types_tree import *
 
-class Connector(ConvertorActionType):
+class Connector(ConnectorActionType):
     
     _name = "CommonConvertor"
     """Display name of action"""
@@ -11,13 +11,14 @@ class Connector(ConvertorActionType):
     def __init__(self, **kwargs):
         """
         :param Convertor Convertor: Convertor output defination
-        """
-        self._variables['Convertor'] = None
+        """        
         super(Connector, self).__init__(**kwargs)
+        if 'Convertor' not in self._variables: 
+            self._variables['Convertor'] = None
        
     def duplicate(self):
         """Duplicate convertor. Returned convertor is not inicialized and checked"""
-        new = CommonConvertor()
+        new = Connector()
         #set Convertor
         new._variables['Convertor'] = self._variables['Convertor']
         #duplicate inputs
@@ -33,7 +34,7 @@ class Connector(ConvertorActionType):
         if 'Convertor' not in self._variables or self._variables['Convertor'] is None:
             err.append("Convertor parameter is not set")
         else:
-            err.extend(self._variables['Convertor']._check_params(self.inputs))
+            err.extend(self._variables['Convertor']._check_params(self._inputs))
         return err
     
     def validate(self):
@@ -50,7 +51,7 @@ class Connector(ConvertorActionType):
     def _inicialize(self):
         """inicialize action run variables"""
         try:
-            self._output = self._variables['Convertor']._set_output() 
+            self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
             self._load_errs.append(str(err))
         self._state = ActionStateType.initialized
