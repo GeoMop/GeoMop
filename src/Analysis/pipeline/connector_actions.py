@@ -1,9 +1,8 @@
 from .action_types import ConnectorActionType, ActionStateType
-from .data_types_tree import *
 
 class Connector(ConnectorActionType):
     
-    _name = "CommonConvertor"
+    _name = "Conn"
     """Display name of action"""
     _description = "Convertor for base variable manipulation"
     """Display description of action"""  
@@ -39,7 +38,7 @@ class Connector(ConnectorActionType):
     
     def validate(self):
         """validate variables, input and output"""
-        err = super(CommonConvertor, self).validate()
+        err = super(Connector, self).validate()
         return err
     
     def _get_runner(self, params):
@@ -71,3 +70,11 @@ class Connector(ConnectorActionType):
         lines.extend(self._variables['Convertor']._get_settings_script())
         lines.extend(super(Connector, self)._get_settings_script())
         return lines
+        
+    def _get_variables_script(self):
+        """return array of variables python scripts"""
+        var = super(Connector, self)._get_variables_script()        
+        if 'Convertor' in self._variables:
+            wrapper = 'Convertor={0}'.format(self._variables['Convertor']._get_instance_name())                   
+            var.append([wrapper])
+        return var    

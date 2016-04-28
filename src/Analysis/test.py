@@ -50,13 +50,21 @@ test4=k2._get_settings_script()
 k2._inicialize()
 
 test5=k2._get_settings_script()
-test6=k2.get_output()._get_settings_script()
+test6=k2._get_output()._get_settings_script()
 
 test=v1._get_settings_script()
 test.extend(v2._get_settings_script())
 test.extend(v3._get_settings_script())
 test.extend(k2._get_settings_script())
 
-script = '\n'.join(test01)
+exec ('\n'.join(test), globals())    
+VariableGenerator_1._inicialize()
+VariableGenerator_2._inicialize()
+VariableGenerator_3._inicialize()
+
+Conn_13._inicialize()
+testx3=Conn_13._get_output()._get_settings_script()
+
+script = '\n'.join(testx3)
 
 test = 0

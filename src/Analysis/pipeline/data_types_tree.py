@@ -1,5 +1,5 @@
 import abc
-from .generic_tree import TT
+from .generic_tree import TT, GDTT
 from .code_formater import Formater
 
 class DTT(TT, metaclass=abc.ABCMeta):
@@ -396,6 +396,19 @@ class Struct(CompositeDTT):
                     return False
         return True
         
+    def _get_generics(self):
+        """return list of generic contained in this structure"""
+        ret = []
+        for name, value in self.__dict__.items():
+            if name[:2] == '__' and name[-2:] == '__':
+                continue
+            if isinstance(value, GDTT):
+                ret.append(value)
+                continue
+            if isinstance(value, TT):
+                ret.extend(value._get_generics())
+        return ret
+        
     def _is_set(self):
         """
         return if structure contain real data
@@ -470,6 +483,9 @@ class Ensemble(SortableDTT):
     def add_item(self, value):
         if not isinstance(value, BaseDTT) and \
             not isinstance(value, CompositeDTT):
+                if isinstance(value, GDTT):
+                    self.list.append(value)
+                    return
                 raise ValueError('Ensemble must have DTT value type.')
         if self.subtype._match_type(value):
             self.list.append(value)
@@ -520,7 +536,22 @@ class Ensemble(SortableDTT):
             if not value._is_set():
                 return False
         return True
+    
+    def _get_generics(self):
+        """
+        return list of generic contained in this structure
         
+        Ensemble can have generic type only in value.        
+        """
+        ret = []
+        for value in self.list:
+            if isinstance(value, GDTT):
+                ret.append(value)
+                continue
+            if isinstance(value, TT):
+                ret.extend(value._get_generics())
+        return ret
+
     def __iter__(self):
         return CompositiIter(self)
 
@@ -532,13 +563,13 @@ class Ensemble(SortableDTT):
     def sort(self, predicate):
         """return sorted Ensamble accoding set predicate"""
         sorted = Ensemble(self.subtype, self.list)
-        sorted.list.sort(key=lambda item: predicate.get_key(item))
+        sorted.list.sort(key=lambda item: predicate._get_key(item))
         return sorted
 
     def select(self, predicate):
         """return selected Ensamble accoding set predicate"""
         selected = Ensemble(self.subtype)
         for item in self.list:
-            if predicate.get_bool():
+            if predicate._get_bool():
                 selected.add_item(item)
         return selected

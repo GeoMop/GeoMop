@@ -4,11 +4,13 @@ from pipeline.convertors import *
 from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
 import pipeline.action_types as action
+import pipeline.convertors as convertor
 from .pomfce import *
 import os
 
 def test_connector_code_init():
     action.__action_counter__ = 0
+    convertor.__convertor_counter__ = 0
     v1 = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     v2 = VariableGenerator(Variable=Struct(a=String("test new"), b=Int(8)))
     v3 = VariableGenerator(Variable=Ensemble(
@@ -27,7 +29,7 @@ def test_connector_code_init():
     value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
     bc_type = Input(0).bc_type == 4
     p1 = Predicate(And( time, value, bc_type)) 
-    c1 = Comparator(Input(0).value) 
+    c1 = KeyConvertor(Input(0).value) 
  
     k = Connector()    
     a = Input(0).a
@@ -43,7 +45,7 @@ def test_connector_code_init():
     v2._inicialize()
     v3._inicialize()
     k2._inicialize()
-    
+  
     test=v1._get_settings_script()
     test.extend(v2._get_settings_script())
     test.extend(v3._get_settings_script())
@@ -51,18 +53,27 @@ def test_connector_code_init():
     
     # test code generation
     compare_with_file(os.path.join("pipeline", "results", "convertor1.py"), test)
+    
+    test2 = k2._get_output()._get_settings_script()
+    #check sorting result
+    compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test2)
+    
+    # test generated code
     exec ('\n'.join(test), globals())    
     
-    CommonConvertor_8._inicialize()
-    # test sorting
-    test = CommonConvertor_8._get_output()._get_settings_script()
-#    compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test)
-#    
+    VariableGenerator_1._inicialize()
+    VariableGenerator_2._inicialize()
+    VariableGenerator_3._inicialize()
+    Conn_6._inicialize()    
+    # test sorting result from generate code
+    test = Conn_6._get_output()._get_settings_script()
+    compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test)
+    
 #    k3.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2).select(p1)))
 #    k3.set_inputs([v1, v2, v3])
 #    # test select
 #    k3._inicialize()
 #    test = k3.get_output()._get_settings_script()
-#    compare_with_file(os.path.join("pipeline", "results", "convertor3.py"), test)
-#    
+ #   compare_with_file(os.path.join("pipeline", "results", "convertor3.py"), test)
+    
 #    assert False

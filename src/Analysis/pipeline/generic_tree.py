@@ -9,6 +9,10 @@ class TT(metaclass=abc.ABCMeta):
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
         pass
+        
+    def _get_generics(self):
+        """return list of generic contained in this structure"""
+        return []
 
 class GTT(TT):
     @abc.abstractmethod
@@ -151,14 +155,13 @@ class GDTT(GTT):
         return self.__predicate
         
     def _get_key_convertor(self):
-        return self.__selector
+        return self.__key_convertor
 
-    def _get_key_convertor(self):
+    def _get_convertor(self):
         return self.__convertor
 
     def _get_convertors(self):
-        """return array of convertors containing in this structure"""
-    
+        """return array of convertors containing in this structure"""    
         ret = []
         if self.__parent is None:
             return ret

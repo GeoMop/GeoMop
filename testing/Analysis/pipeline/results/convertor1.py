@@ -84,28 +84,21 @@ VariableGenerator_3 = VariableGenerator(
         )
     )
 )
-Predicate_9 = Predicate(
-    DefInput=GDTT()
+Key_2 = KeyConvertor(
+    Input(0).value
 )
-Predicate_9.set_config(DefOutput=Predicate_9.input(0).value)
-CommonConvertor_8 = CommonConvertor(
+Conv_3 = Convertor(
+    Struct(
+        a=Input(0).a,
+        b=Input(1).b,
+        c=Input(2).sort(Key_2)
+    )
+)
+Conn_6 = Connector(
     Inputs=[
         VariableGenerator_1,
         VariableGenerator_2,
         VariableGenerator_3
     ],
-    DefInputs=[
-        GDTT(),
-        GDTT(),
-        GDTT()
-    ]
-)
-CommonConvertor_8.set_config(
-    DefOutput=(
-        Struct(
-            a=CommonConvertor_8.input(0).a,
-            b=CommonConvertor_8.input(1).b,
-            c=CommonConvertor_8.input(2).sort(Predicate_9)
-        )
-    )
+    Convertor=Conv_3
 )

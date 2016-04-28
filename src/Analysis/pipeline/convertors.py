@@ -1,5 +1,7 @@
-from .generic_tree import GTT, GDTT
+from .generic_tree import GTT, GDTT, GDTTFunc, TT
+from .generator_actions import VariableGenerator
 from .code_formater import Formater
+from .data_types_tree import *
 
 __convertor_counter__ = 0
 """convertor counter for unique settings in created script for code generation"""
@@ -14,7 +16,7 @@ class Convertor():
     some output restrictions and is use by composite DDT
     functions.
     """
-    name = "conv"
+    name = "Conv"
     """Display name of action"""
     description = "Convertor"
     """Display description of action"""
@@ -51,7 +53,22 @@ class Convertor():
             self._convertors.extend(convertors)           
             self._inputs = self._output._get_inputs()
         else:
-            self._load_errs.append("Invalid input convertor type.")
+            if isinstance(self._output, TT):
+                gdtts = self._output._get_generics()
+                for gdtt in gdtts:
+                    convertors = gdtt._get_convertors()
+                    self._convertors.extend(convertors)           
+                    self._inputs.extend(gdtt._get_inputs())                    
+            else:     
+                self._load_errs.append("Invalid input convertor type.")
+
+    def _get_input_number(self):
+        """return number of set inputs"""
+        number=0
+        for input in self._inputs:
+            if number<=input._num:
+                number = input._num+1
+        return number
 
     def _get_output(self, inputs):
         """inicialize action run variables"""        
@@ -60,14 +77,14 @@ class Convertor():
         #inputs are replaced in script by internal dictionary, that is created from inputs
         for input in self._inputs:
             input_str = input._get_path()
-            local_str = "input_" + input._num
-            internal_var[input_str] = inputs.get_input_val(input._num)
-            script = script.replace(input_str, "internal_var["+local_str+"]")
+            local_str = "input_" + str(input._num)
+            internal_var[local_str] = inputs[input._num]._get_output()
+            script = script.replace(input_str, "internal_var['"+local_str+"']")
         #convertor are replaced in script by internal dictionary, that is created
         for convertor in self._convertors:
             conv_str = convertor._get_instance_name()
             internal_var[conv_str] = convertor
-            script = script.replace(conv_str, "internal_var["+conv_str+"]")        
+            script = script.replace(conv_str, "internal_var['"+conv_str+"']")        
         try:            
             output = eval(script)
         except Exception as err:
@@ -78,7 +95,7 @@ class Convertor():
         """return array of variables python scripts"""
         lines = []
         for convertor in self._convertors:
-            lines.extend(convertor._get_variables_script())
+            lines.extend(convertor._get_settings_script())
         lines.append("{0}_{1} = {2}(".format(self.name, str(self._id), self.__class__.__name__))
         lines.extend(Formater.indent(self._output._get_settings_script(), 4))
         lines.append(")")
@@ -104,7 +121,7 @@ class Convertor():
 
 class Predicate(Convertor):
     """Class for filter defination"""
-    name = "pred"
+    name = "Pred"
     """Display name of action"""
     description = "Predicate"
     """Display description of action"""  
@@ -118,13 +135,23 @@ class Predicate(Convertor):
     def _check_output(self):    
         """check output variable type"""
         err = []
-        if not isinstance(self._output, GTT):
+        if not isinstance(self._output, GDTTFunc):
             err.append("Bad predicate output type")
+        if self._get_input_number() != 1:
+            err.append("Only Input(0) is permited in predicate")
         return err
+        
+    def _get_bool(self, input):
+        """return key"""
+        v = VariableGenerator(Variable=input)
+        v._inicialize()
+        output = self._get_output([v])
+        #ToDo check bool
+        return output
 
 class KeyConvertor(Convertor):
     """Class for filter defination"""
-    name = "key"
+    name = "Key"
     """Display name of action"""
     description = "Convert structuru to key for comaparation"
     """Display description of action"""  
@@ -138,6 +165,16 @@ class KeyConvertor(Convertor):
     def _check_output(self):    
         """check output variable type"""
         err = []
-        if not isinstance(self._output, GDTT):
+        if not isinstance(self._output, GTT):
             err.append("Bad selector output type")
+        if self._get_input_number() != 1:
+            err.append("Only Input(0) is permited in key converter")
         return err
+        
+    def _get_key(self, input):
+        """return key"""
+        v = VariableGenerator(Variable=input)
+        v._inicialize()
+        output = self._get_output([v])
+        #ToDo check scalar
+        return output  
