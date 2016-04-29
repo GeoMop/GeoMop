@@ -22,8 +22,7 @@ def test_connector_code_init():
             Struct(a=String("a5"), time=Int(850), value = Float(2.0), bc_type=Int(3)),
             Struct(a=String("a6"), time=Int(900), value = Float(13.0), bc_type=Int(4)),
             Struct(a=String("a7"), time=Int(1100), value = Float(18.0), bc_type=Int(6))
-        ))
-    
+        ))   
     
     time = And(Input(0).time > 600,Input(0).time<1000)
     value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
@@ -69,11 +68,12 @@ def test_connector_code_init():
     test = Conn_6._get_output()._get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test)
     
-#    k3.set_config(DefOutput = Struct(a=a, b=b, c=k.input(2).select(p1)))
-#    k3.set_inputs([v1, v2, v3])
-#    # test select
-#    k3._inicialize()
-#    test = k3.get_output()._get_settings_script()
- #   compare_with_file(os.path.join("pipeline", "results", "convertor3.py"), test)
+    conv2 = Convertor(Struct(a=a, b=b, c=Input(2).select(p1)))
+    k3.set_config(Convertor=conv2)
+    k3.set_inputs([v1, v2, v3])
+    # test select
+    k3._inicialize()
+    test = k3._get_output()._get_settings_script()
+    compare_with_file(os.path.join("pipeline", "results", "convertor3.py"), test)
     
 #    assert False

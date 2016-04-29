@@ -9,7 +9,7 @@ class TT(metaclass=abc.ABCMeta):
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
         pass
-        
+    
     def _get_generics(self):
         """return list of generic contained in this structure"""
         return []
@@ -19,12 +19,6 @@ class GTT(TT):
     def _get_convertors(self):
         """return array of convertors containing in this structure"""
         pass
-
-    @abc.abstractmethod
-    def _get_inputs(self):
-        """return array of inputs containing in this structure"""
-        pass
-
     
     def __lt__(a, b):
         return GDTTFunc('<', a, b)
@@ -97,12 +91,20 @@ class GDTT(GTT):
         if GDTT represent function that use predicate for select, 
         this variable is set to Predicate instance
         """
+        self.__name = None        
+        """
+        if GDTT represent structure, name is set
+        """
+        self.__func_name = None        
+        """
+        if GDTT represent function, func_name is set 
+        """
         self.__key_convertor = None        
         """
         if GDTT represent function that use key_convertor for sort, 
         this variable is set to key_convertor instance
         """
-        self.__convertor = None        
+        self.__iterator = None        
         """
         if GDTT represent function that use convertor for each, 
         this variable is set to convertor instance
@@ -139,8 +141,23 @@ class GDTT(GTT):
         if name[0] != '_':
             ret = GDTT(parent=self)
             ret._set_path(self._path + "." + name)
+            ret._set_name(name)
             return ret
         return self.__dict__[name]
+        
+    def head(self): 
+        """save head function"""
+        ret = GDTT(parent=self)
+        ret._set_path(self._path + ".head()")
+        ret._set_func_name("head")
+        return ret
+        
+    def tail(self): 
+        """save tail function"""
+        ret = GDTT(parent=self)
+        ret._set_path(self._path + ".tail()")
+        ret._set_func_name("tail")
+        return ret
     
     def _set_predicate(self, predicate):
         self.__predicate = predicate
@@ -148,8 +165,14 @@ class GDTT(GTT):
     def _set_key_convertor(self, key_convertor):
         self.__key_convertor = key_convertor
         
-    def _set_convertor(self, convertor):
-        self.__convertor = convertor
+    def _set_iterator(self, convertor):
+        self.__iterator = convertor
+
+    def _set_name(self, name):
+        self.__name = name
+        
+    def _set_func_name(self, func_name):
+        self.__func_name = func_name
 
     def _get_predicate(self):
         return self.__predicate
@@ -157,8 +180,8 @@ class GDTT(GTT):
     def _get_key_convertor(self):
         return self.__key_convertor
 
-    def _get_convertor(self):
-        return self.__convertor
+    def _get_iterator(self):
+        return self.__iterator
 
     def _get_convertors(self):
         """return array of convertors containing in this structure"""    
@@ -169,8 +192,8 @@ class GDTT(GTT):
            ret.append(self.__key_convertor)
         if self.__predicate is not None:
            ret.append(self.__predicate)
-        if self.__convertor is not None:
-           ret.append(self.__convertor)
+        if self.__iterator is not None:
+           ret.append(self.__iterator)
         ret.extend(self.__parent._get_convertors())
         return ret 
  
@@ -178,6 +201,10 @@ class GDTT(GTT):
         if self.__parent is None:
             return [self]
         return self.__parent._get_inputs()
+        
+    def _get_generics(self):
+        """return list of generic contained in this structure"""
+        return [self]
 
     def select(self, predicate):
         """GDTT call select function"""
@@ -202,9 +229,80 @@ class GDTT(GTT):
         if type(convertor).__name__ != "Convertor":
             raise ValueError("Unknown type of sort convertor '{0}'".format(type(convertor).__name__ ))
         fp = GDTT(parent=self)
-        fp._set_convertor(convertor)
+        fp._set_iterator(convertor)
         fp._set_path("{0}.each({1})".format(self._path, convertor._get_instance_name()))
         return fp
+    
+    @staticmethod
+    def __check_func(cls, func):
+        """check if function exist in class"""
+        try:
+            fnc = getattr(cls, func)
+            if not callable(fnc):
+                return False
+        except:
+            return False
+        return True
+    
+    def validate(self, output):
+        """validate structure and return erros array and structure to next validation"""
+        if self.__parent is None:
+            return [], output
+        err, struc = self.__parent.validate(output)
+        if struc is None:
+            return err, struc
+        if self.__predicate is not None:
+            if not self.__check_func(struc, "select"):
+                err.append("Class has not function select")
+            elif not self.__check_func(struc, "_get_template"):
+                err.append("Selected class has not function _get_template")            
+            elif self.__predicate.__class__.__name__ == "Predicate":
+                err2 = self.__predicate._check_params_one(struc)
+                err.extend(err2)
+                return err, struc._get_template()    
+            else:
+                err.append("Only Predicate is permited in select")            
+        if  self.__key_convertor is not None:
+            if not self.__check_func(struc, "sort"):
+                err.append("Class has not function sort")
+            elif not self.__check_func(struc, "_get_template"):
+                err.append("Sorted class has not function _get_template")            
+            elif self.__key_convertor.__class__.__name__ == "KeyConverter":
+                err2 = self.__key_convertor._check_params_one(struc)
+                err.extend(err2)
+                return err, struc._get_template() 
+            else:
+                err.append("Only KeyConverter is permited in sort")  
+        if  self.__iterator is not None:
+            if not self.__check_func(struc, "each"):
+                err.append("Class has not function each")
+            elif not self.__check_func(struc, "_get_template"):
+                err.append("Iterated class has not function _get_template")            
+            elif self.__iterator.__class__.__name__ != "Iterator":
+                err.append("Only Iterator is permited in each")
+            else:
+                err2 = self.__iterator._check_params_one(struc)
+                err.extend(err2) 
+                return err, struc._get_template()
+        if  self.__func_name is not None:
+            # only function without parameters is implemented !!!
+            if not self.__check_func(struc, self.__func_name):
+                err.append("Class has not function " + self.__func_name)
+            else:
+                try:
+                    return getattr(struc, self.__func_name)()
+                except Exception as error:
+                    err.append(str(error))
+        if  self.__name is not None:
+            if struc.__class__.__name__ != "Struct":
+                err.append("Only Struct can have dot operator")
+            else:
+                try:
+                    return err, getattr(struc, self.__name)
+                except Exception as error:
+                    err.append(str(error))
+        return err, None
+
 
 class GDTTFunc(GTT):
     """
@@ -227,12 +325,12 @@ class GDTTFunc(GTT):
                 ret.extend(o._get_convertors())
         return ret
         
-    def _get_inputs(self):
-        """return array of inputs containing in this structure"""
+    def _get_generics(self):
+        """return list of generic contained in this structure"""
         ret = []
         for o in self.o:
-            if isinstance(o, GTT):
-                ret.extend(o._get_inputs())
+            if isinstance(o, TT):
+                ret.extend(o._get_generics())
         return ret
     
     @staticmethod

@@ -1,7 +1,7 @@
-from .generic_tree import GTT, GDTT, GDTTFunc, TT
 from .generator_actions import VariableGenerator
 from .code_formater import Formater
 from .data_types_tree import *
+from .generic_tree import *
 
 __convertor_counter__ = 0
 """convertor counter for unique settings in created script for code generation"""
@@ -39,6 +39,8 @@ class Convertor():
         """list of convertors needed for this connector"""
         self._inputs = []
         """list of inputs needed for this connector"""
+        self._generics = []
+        """list of generic structures in output, that is first in not generic structure"""
         self._load_errs = []
         """Contain init state errors"""
         self._inicialize()
@@ -48,19 +50,14 @@ class Convertor():
 
     def _inicialize(self):
         """Inicialize covertor. Convertors are inicialized in constructor"""
-        if isinstance(self._output, GTT):
-            convertors = self._output._get_convertors()
-            self._convertors.extend(convertors)           
-            self._inputs = self._output._get_inputs()
-        else:
-            if isinstance(self._output, TT):
-                gdtts = self._output._get_generics()
-                for gdtt in gdtts:
-                    convertors = gdtt._get_convertors()
-                    self._convertors.extend(convertors)           
-                    self._inputs.extend(gdtt._get_inputs())                    
-            else:     
-                self._load_errs.append("Invalid input convertor type.")
+        if isinstance(self._output, TT):
+            self._generics =  self._output._get_generics()
+            for gdtt in self._generics:
+                convertors = gdtt._get_convertors()
+                self._convertors.extend(convertors)           
+                self._inputs.extend(gdtt._get_inputs())
+        else:     
+            self._load_errs.append("Invalid input convertor type.")
 
     def _get_input_number(self):
         """return number of set inputs"""
@@ -101,25 +98,51 @@ class Convertor():
         lines.append(")")
         return lines
         
+    def _check_params_one(self, input_var):
+        """check params with one input set as variable"""
+        err = self._check_output()
+        for gdtt in self._generics:
+            err.extend(self._check_input(gdtt, input_var))
+        return err
+
     def _check_params(self, inputs):    
         """check if all require params is set"""
-        err = []
+        err = self._check_output()    
         num = len(inputs)
         for input in self._inputs:
             if input._num>=num:
                 err.append("Requsted input ({0}) is bigger than number of set Inputs ({1})".
                     input._num, num)
-        err.extend(self._check_output())    
+        for gdtt in self._generics:
+            err.extend(self._check_input(gdtt, inputs[input._num]._get_output()))
         return err
         
     def _check_output(self):    
         """check output variable type"""
         err = []
-        if not isinstance(self._output, GDTT):
+        if not isinstance(self._output, TT):
             err.append("Bad connector output type")
         return err
+        
+    def _check_input(self, gdtt, input):    
+        """check output variable type"""
+        err = []
+        errors, struc = gdtt.validate(input)
+        err.extend(errors)        
+        return err
 
-class Predicate(Convertor):
+class IConvertor(Convertor):
+    def _check_input(self, gdtt, input):    
+        """check output variable type"""
+        err = []
+        if not isinstance(input, ListDTT):
+            err.append("Input structure for iterable convertors must be ListDTT")
+        else:
+            errors, struc = gdtt.validate(input._get_template())
+            err.extend(errors)        
+        return err
+
+class Predicate(IConvertor):
     """Class for filter defination"""
     name = "Pred"
     """Display name of action"""
@@ -149,7 +172,7 @@ class Predicate(Convertor):
         #ToDo check bool
         return output
 
-class KeyConvertor(Convertor):
+class KeyConvertor(IConvertor):
     """Class for filter defination"""
     name = "Key"
     """Display name of action"""
@@ -166,7 +189,7 @@ class KeyConvertor(Convertor):
         """check output variable type"""
         err = []
         if not isinstance(self._output, GTT):
-            err.append("Bad selector output type")
+            err.append("Bad key converter output type")
         if self._get_input_number() != 1:
             err.append("Only Input(0) is permited in key converter")
         return err
@@ -178,3 +201,33 @@ class KeyConvertor(Convertor):
         output = self._get_output([v])
         #ToDo check scalar
         return output  
+
+class Iterator(IConvertor):
+    """Class for filter defination"""
+    name = "Iter"
+    """Display name of action"""
+    description = "Iterator"
+    """Display description of action"""  
+        
+    def __init__(self, output):
+        """
+        convertor for sort action
+        """
+        super(Iterator, self).__init__(output)
+        
+    def _check_output(self):    
+        """check output variable type"""
+        err = []
+        if not isinstance(self._output, TT):
+            err.append("Bad iterator output type")
+        if self._get_input_number() != 1:
+            err.append("Only Input(0) is permited in iterator")
+        return err
+        
+    def _get_item(self, input):
+        """return key"""
+        v = VariableGenerator(Variable=input)
+        v._inicialize()
+        output = self._get_output([v])
+        #ToDo check item
+        return output

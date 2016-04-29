@@ -26,6 +26,8 @@ v3 = VariableGenerator(Variable=Ensemble(
     Struct(a=String("a7"), time=Int(1100), value = Float(18.0), bc_type=Int(6)),
 ))
 
+v3._inicialize()
+
 k = Connector()    
 a = Input(0).a
 b = Input(1).b
@@ -33,6 +35,8 @@ b = Input(1).b
 k3 = k.duplicate()    
 conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
 k.set_config(Convertor = conv)
+
+errs = conv._check_params([v1, v2, v3])
 
 test1=k._get_settings_script()
 

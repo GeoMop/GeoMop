@@ -445,13 +445,21 @@ class Struct(CompositeDTT):
             else:
                 raise AttributeError(name)
         if name not in self.__dict__:
-            raise ValueError('Variable is not assignated.')
+            raise ValueError("Variable '{0}' is not assignated.".format(name))
         return self.__dict__[name]._getter()
         
     def __contains__(self, key):
         return key in self.__dict__
 
-class SortableDTT(CompositeDTT, metaclass=abc.ABCMeta):
+class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
+    """Sortable composite data tree"""
+    
+    @abc.abstractmethod
+    def _get_template(self):
+        """return template of nested structure"""
+        pass
+
+class SortableDTT(ListDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
     
     @abc.abstractmethod
@@ -570,6 +578,10 @@ class Ensemble(SortableDTT):
         """return selected Ensamble accoding set predicate"""
         selected = Ensemble(self.subtype)
         for item in self.list:
-            if predicate._get_bool():
+            if predicate._get_bool(item):
                 selected.add_item(item)
         return selected
+        
+    def _get_template(self):
+        """return template of nested structure"""
+        return self.subtype

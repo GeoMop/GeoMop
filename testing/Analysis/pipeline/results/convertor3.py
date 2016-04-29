@@ -1,44 +1,30 @@
-Predicate_1 = Predicate(
-    DefInput=GDTT(Struct)
-)
-Predicate_1.set_config(
-    DefOutput=(
-        Bool.__and__(
+Struct(
+    a=String('test'),
+    b=Int(8),
+    c=(
+        Ensemble(
             (
-                Bool.__and__(
-                    (
-                        Bool.__and__(
-                            (
-                                Bool.__gt__(Predicate_1.input(0).time,
-                                    ['600']
-                                )
-                            ),
-                            (
-                                Bool.__lt__(Predicate_1.input(0).time,
-                                    ['1000']
-                                )
-                            )
-                        )
-                    ),
-                    (
-                        Bool.__or__(
-                            (
-                                Bool.__gt__(Predicate_1.input(0).value,
-                                    ['3.0']
-                                )
-                            ),
-                            (
-                                Bool.__lt__(Predicate_1.input(0).value,
-                                    ['1.0']
-                                )
-                            )
-                        )
-                    )
+                Struct(
+                    a=String(),
+                    bc_type=Int(),
+                    time=Int(),
+                    value=Float()
                 )
             ),
             (
-                Bool.__eq__(Predicate_1.input(0).bc_type,
-                    ['4']
+                Struct(
+                    a=String('a4'),
+                    bc_type=Int(4),
+                    time=Int(750),
+                    value=Float(12.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a6'),
+                    bc_type=Int(4),
+                    time=Int(900),
+                    value=Float(13.0)
                 )
             )
         )
