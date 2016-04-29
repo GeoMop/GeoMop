@@ -60,7 +60,7 @@ class PbsPreset(APreset):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
 
-        name = kw_or_def('name', 'Default PBS Preset Name')
+        name = kw_or_def('name', 'Default PBS options name')
         super().__init__(name)
 
         self.dialect = kw_or_def('dialect')
@@ -75,8 +75,8 @@ class PbsPreset(APreset):
         """Processors per node"""
         self.memory = kw_or_def('memory')
         """Required memory size on node"""
-        self.scratch = kw_or_def('scratch')
-        """Required disk space size on node"""
+        self.infiniband = kw_or_def('infiniband', False)
+        """infiniband (metacentrum settings)"""
 
     def get_description(self):
         """
@@ -99,7 +99,7 @@ class SshPreset(APreset):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
 
-        name = kw_or_def('name', 'Default SSH Preset Name')
+        name = kw_or_def('name', 'Default SSH host name')
         super().__init__(name)
 
         self.host = kw_or_def('host', 'localhost')
@@ -132,7 +132,7 @@ class ResPreset(APreset):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
 
-        name = kw_or_def('name', 'Default Resource Preset Name')
+        name = kw_or_def('name', 'Default Resource name')
         super().__init__(name)
 
         # MJ
@@ -184,7 +184,7 @@ class EnvPreset(APreset):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
 
-        name = kw_or_def('name', 'Default Environment Preset Name')
+        name = kw_or_def('name', 'Default Environment name')
         super().__init__(name)
 
         # Python environment

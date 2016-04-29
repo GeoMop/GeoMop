@@ -163,6 +163,7 @@ class DataContainer:
     """
 
     BASE_DIR = "JobScheduler"
+    DEBUG_MODE = False
 
     def __init__(self):
         self.multijobs = None

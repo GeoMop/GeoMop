@@ -21,8 +21,8 @@ class MultiJobDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddMultiJobDialog",
-                       windowTitle="Job Scheduler - Add new MultiJob",
-                       title="Add new MultiJob",
+                       windowTitle="Job Scheduler - Add MultiJob",
+                       title="Add MultiJob",
                        subtitle="Please select details to schedule set of "
                                 "tasks for computation.")
 

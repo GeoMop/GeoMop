@@ -20,21 +20,21 @@ class SshDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddSshDialog",
-                       windowTitle="Job Scheduler - Add new SSH Preset",
-                       title="Add new SSH Preset",
-                       subtitle="Please select details for new SSH preset.")
+                       windowTitle="Job Scheduler - Add SSH host",
+                       title="Add SSH host",
+                       subtitle="Please select details for new SSH host.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditSshDialog",
-                        windowTitle="Job Scheduler - Edit SSH Preset",
-                        title="Edit SSH Preset",
+                        windowTitle="Job Scheduler - Edit SSH host",
+                        title="Edit SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopySshDialog",
-                        windowTitle="Job Scheduler - Copy SSH Preset",
-                        title="Copy SSH Preset",
+                        windowTitle="Job Scheduler - Copy SSH host",
+                        title="Copy SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -50,13 +50,6 @@ class SshDialog(AFormDialog):
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
-        # specific slots
-        self.ui.showPushButton.pressed.connect(
-            lambda: self.ui.passwordLineEdit.setEchoMode(
-                QtWidgets.QLineEdit.Normal))
-        self.ui.showPushButton.released.connect(
-            lambda: self.ui.passwordLineEdit.setEchoMode(
-                QtWidgets.QLineEdit.Password))
 
     def valid(self):
         valid = True
@@ -137,7 +130,7 @@ class UiSshDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the host")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
@@ -192,21 +185,13 @@ class UiSshDialog(UiFormDialog):
         self.passwordLabel.setText("Password:")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
-        self.passwordRowSplit = QtWidgets.QHBoxLayout()
-        self.passwordRowSplit.setObjectName("passwordRowSplit")
         self.passwordLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.passwordLineEdit.setObjectName("passwordLineEdit")
         self.passwordLineEdit.setPlaceholderText("User password")
         self.passwordLineEdit.setProperty("clearButtonEnabled", True)
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.passwordRowSplit.addWidget(self.passwordLineEdit)
-        self.showPushButton = QtWidgets.QPushButton(
-            self.mainVerticalLayoutWidget)
-        self.showPushButton.setObjectName("showPushButton")
-        self.showPushButton.setText("Show")
-        self.passwordRowSplit.addWidget(self.showPushButton)
-        self.formLayout.setLayout(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.passwordRowSplit)
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+                                  self.passwordLineEdit)
 
         return dialog

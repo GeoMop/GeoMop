@@ -308,7 +308,7 @@ class ConfFactory:
         pbs.nodes = str(preset.nodes)
         pbs.ppn = str(preset.ppn)
         pbs.memory = preset.memory
-        pbs.scratch = preset.scratch
+        pbs.infiniband = preset.infiniband
         pbs.with_socket = with_socket
         if pbs_params is not None:
             pbs.pbs_params = pbs_params

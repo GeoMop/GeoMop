@@ -9,7 +9,6 @@ from PyQt5 import QtGui, QtWidgets
 
 from ui.data.preset_data import ResPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
 class ResourceDialog(AFormDialog):
@@ -20,22 +19,21 @@ class ResourceDialog(AFormDialog):
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddResourcehDialog",
-                       windowTitle="Job Scheduler - Add new Resource Preset",
-                       title="Add new Resource Preset",
-                       subtitle="Please select details for new Resource "
-                                "preset.")
+                       windowTitle="Job Scheduler - Add Resource",
+                       title="Add Resource",
+                       subtitle="Please select details for new Resource.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditResourceDialog",
-                        windowTitle="Job Scheduler - Edit Resource Preset",
-                        title="Edit Resource Preset",
+                        windowTitle="Job Scheduler - Edit Resource",
+                        title="Edit Resource",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyResourceDialog",
-                        windowTitle="Job Scheduler - Copy Resource Preset",
-                        title="Copy Resource Preset",
+                        windowTitle="Job Scheduler - Copy Resource",
+                        title="Copy Resource",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -52,8 +50,8 @@ class ResourceDialog(AFormDialog):
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
         # specific slots
-        self.ui.multiJobExecutionTypeComboBox.currentIndexChanged.connect(
-            self._handle_mj_exec_change)
+        self.ui.multiJobSshPresetComboBox.currentIndexChanged.connect(
+            self._handle_mj_ssh_change)
         self.ui.multiJobRemoteExecutionTypeComboBox.currentIndexChanged \
             .connect(self._handle_mj_delegator_exec_change)
         self.ui.jobExecutionTypeComboBox.currentIndexChanged.connect(
@@ -63,22 +61,23 @@ class ResourceDialog(AFormDialog):
 
     def valid(self):
         valid = True
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.nameLineEdit):
-            valid = False
         return valid
 
-    def _handle_mj_exec_change(self, index):
-        if index == self.ui.multiJobExecutionTypeComboBox.findText(
-                self.ui.EXEC_LABEL):
+    def accept(self):
+        if self.ui.nameLineEdit.text() == "":
+            self.ui.nameLineEdit.setText(self.ui.multiJobSshPresetComboBox.currentText() + " " + \
+                self.ui.multiJobPbsPresetComboBox.currentText())
+        return super(ResourceDialog, self).accept()
+
+    def _handle_mj_ssh_change(self, index):
+        if index == 0:  # local
             self.ui.jobExecutionTypeComboBox.clear()
             self.ui.jobExecutionTypeComboBox.addItems([self.ui.EXEC_LABEL,
                                                        self.ui.REMOTE_LABEL])
-            self.ui.multiJobSshPresetComboBox.setDisabled(True)
             self.ui.multiJobRemoteExecutionTypeComboBox.setDisabled(True)
+            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
             self.ui.multiJobPbsPresetComboBox.setDisabled(True)
         else:
-            self.ui.multiJobSshPresetComboBox.setDisabled(False)
             self.ui.multiJobRemoteExecutionTypeComboBox.setDisabled(False)
             self._handle_mj_delegator_exec_change(
                 self.ui.multiJobRemoteExecutionTypeComboBox.currentIndex())
@@ -86,6 +85,7 @@ class ResourceDialog(AFormDialog):
     def _handle_mj_delegator_exec_change(self, index):
         if index == self.ui.multiJobRemoteExecutionTypeComboBox.findText(
                 self.ui.EXEC_LABEL):
+            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
             self.ui.multiJobPbsPresetComboBox.setDisabled(True)
             self.ui.jobExecutionTypeComboBox.clear()
             self.ui.jobExecutionTypeComboBox.addItems([
@@ -101,6 +101,7 @@ class ResourceDialog(AFormDialog):
                 self.ui.EXEC_LABEL):
             self.ui.jobSshPresetComboBox.setDisabled(True)
             self.ui.jobRemoteExecutionTypeComboBox.setDisabled(True)
+            self.ui.jobPbsPresetComboBox.setCurrentIndex(0)
             self.ui.jobPbsPresetComboBox.setDisabled(True)
         elif index == self.ui.jobExecutionTypeComboBox.findText(
                 self.ui.PBS_LABEL):
@@ -127,6 +128,7 @@ class ResourceDialog(AFormDialog):
         if index > 0 and index == \
                 self.ui.jobRemoteExecutionTypeComboBox.findText(
                 self.ui.EXEC_LABEL):
+            self.ui.jobPbsPresetComboBox.setCurrentIndex(0)
             self.ui.jobPbsPresetComboBox.setDisabled(True)
         else:
             self.ui.jobPbsPresetComboBox.setDisabled(False)
@@ -134,6 +136,11 @@ class ResourceDialog(AFormDialog):
     def set_pbs_presets(self, pbs):
         self.ui.multiJobPbsPresetComboBox.clear()
         self.ui.jobPbsPresetComboBox.clear()
+
+        # add default PBS options (none)
+        self.ui.multiJobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
+        self.ui.jobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
+
         if pbs:
             # sort dict by list, not sure how it works
             for key in pbs:
@@ -143,6 +150,10 @@ class ResourceDialog(AFormDialog):
     def set_ssh_presets(self, ssh):
         self.ui.multiJobSshPresetComboBox.clear()
         self.ui.jobSshPresetComboBox.clear()
+
+        # add default SSH option for local execution
+        self.ui.multiJobSshPresetComboBox.addItem(self.ui.SSH_LOCAL_EXEC, self.ui.SSH_LOCAL_EXEC)
+
         if ssh:
             # sort dict by list, not sure how it works
             for key in ssh:
@@ -162,15 +173,16 @@ class ResourceDialog(AFormDialog):
         key = self.ui.idLineEdit.text()
         preset = ResPreset(name=self.ui.nameLineEdit.text())
 
-        preset.mj_execution_type = \
-            self.ui.multiJobExecutionTypeComboBox.currentText()
-        if self.ui.multiJobSshPresetComboBox.isEnabled():
-            preset.mj_ssh_preset =\
-                self.ui.multiJobSshPresetComboBox.currentData()
+        preset.mj_execution_type = self.ui.DELEGATOR_LABEL
+        if self.ui.multiJobSshPresetComboBox.currentText() == self.ui.SSH_LOCAL_EXEC:
+            preset.mj_execution_type = self.ui.EXEC_LABEL
+        preset.mj_ssh_preset =\
+            self.ui.multiJobSshPresetComboBox.currentData()
         if self.ui.multiJobRemoteExecutionTypeComboBox.isEnabled():
             preset.mj_remote_execution_type = \
                 self.ui.multiJobRemoteExecutionTypeComboBox.currentText()
-        if self.ui.multiJobPbsPresetComboBox.isEnabled():
+        if self.ui.multiJobPbsPresetComboBox.isEnabled() and \
+                self.ui.multiJobPbsPresetComboBox.currentIndex() != 0:
             preset.mj_pbs_preset =\
                 self.ui.multiJobPbsPresetComboBox.currentData()
         preset.mj_env = self.ui.mjEnvPresetComboBox.currentData()
@@ -182,7 +194,8 @@ class ResourceDialog(AFormDialog):
         if self.ui.jobRemoteExecutionTypeComboBox.isEnabled():
             preset.j_remote_execution_type = \
                 self.ui.jobRemoteExecutionTypeComboBox.currentText()
-        if self.ui.jobPbsPresetComboBox.isEnabled():
+        if self.ui.jobPbsPresetComboBox.isEnabled() and \
+                self.ui.jobPbsPresetComboBox.currentIndex() != 0:
             preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.currentData()
         preset.j_env = self.ui.jobEnvPresetComboBox.currentData()
         return {
@@ -191,17 +204,11 @@ class ResourceDialog(AFormDialog):
         }
 
     def set_data(self, data=None):
-        # reset validation colors
-        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
-
         if data:
             key = data["key"]
             preset = data["preset"]
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
-            self.ui.multiJobExecutionTypeComboBox.setCurrentIndex(
-                self.ui.multiJobExecutionTypeComboBox.findText(
-                    preset.mj_execution_type))
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
                     preset.mj_ssh_preset))
@@ -230,15 +237,13 @@ class ResourceDialog(AFormDialog):
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
-            self.ui.multiJobExecutionTypeComboBox.setCurrentIndex(-1)
-            self.ui.multiJobSshPresetComboBox.setCurrentIndex(-1)
+            self.ui.multiJobSshPresetComboBox.setCurrentIndex(0)
             self.ui.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(-1)
-            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(-1)
+            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
 
             self.ui.jobExecutionTypeComboBox.setCurrentIndex(-1)
-            self.ui.multiJobSshPresetComboBox.setCurrentIndex(-1)
             self.ui.jobRemoteExecutionTypeComboBox.setCurrentIndex(-1)
-            self.ui.jobPbsPresetComboBox.setCurrentIndex(-1)
+            self.ui.jobPbsPresetComboBox.setCurrentIndex(0)
 
             self.ui.mjEnvPresetComboBox.setCurrentIndex(-1)
             self.ui.jobEnvPresetComboBox.setCurrentIndex(-1)
@@ -250,8 +255,8 @@ class UiResourceDialog(UiFormDialog):
     """
     EXECUTE_USING_LABEL = "Execute using:"
     EXECUTION_TYPE_LABEL = "Execution type:"
-    SSH_PRESET_LABEL = "SSH preset:"
-    PBS_PRESET_LABEL = "PBS preset:"
+    SSH_PRESET_LABEL = "SSH host:"
+    PBS_PRESET_LABEL = "PBS options:"
     MJ_ENV_LABEL = "MultiJob environment:"
     JOB_ENV_LABEL = "Job environment:"
 
@@ -259,16 +264,14 @@ class UiResourceDialog(UiFormDialog):
     DELEGATOR_LABEL = "DELEGATOR"
     REMOTE_LABEL = "REMOTE"
     PBS_LABEL = "PBS"
+    SSH_LOCAL_EXEC = "local"
+    PBS_OPTION_NONE = "no PBS"
 
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
 
         # dialog properties
         dialog.resize(400, 260)
-
-        # validators
-        self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row
@@ -293,9 +296,8 @@ class UiResourceDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the resource")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
@@ -328,24 +330,6 @@ class UiResourceDialog(UiFormDialog):
         self.mainVerticalLayout.addLayout(self.formLayout2)
 
         # 1 row
-        self.multiJobExecutionTypeLabel = QtWidgets.QLabel(
-            self.mainVerticalLayoutWidget)
-        self.multiJobExecutionTypeLabel.setObjectName(
-            "multiJobExecutionTypeLabel")
-        self.multiJobExecutionTypeLabel.setText(self.EXECUTE_USING_LABEL)
-        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole,
-                                   self.multiJobExecutionTypeLabel)
-        self.multiJobExecutionTypeComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.multiJobExecutionTypeComboBox.setObjectName(
-            "multiJobExecutionTypeComboBox")
-        self.multiJobExecutionTypeComboBox.addItems([self.EXEC_LABEL,
-                                                     self.DELEGATOR_LABEL])
-        self.multiJobExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole,
-                                   self.multiJobExecutionTypeComboBox)
-
-        # 2 row
         self.multiJobSshPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.multiJobSshPresetLabel.setObjectName("multiJobSshPresetLabel")
@@ -359,6 +343,20 @@ class UiResourceDialog(UiFormDialog):
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobSshPresetComboBox)
 
+        # 2 row
+        self.multiJobPbsPresetLabel = QtWidgets.QLabel(
+            self.mainVerticalLayoutWidget)
+        self.multiJobPbsPresetLabel.setObjectName("multiJobPbsPresetLabel")
+        self.multiJobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
+        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                   self.multiJobPbsPresetLabel)
+        self.multiJobPbsPresetComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.multiJobPbsPresetComboBox.setObjectName(
+            "multiJobPbsPresetComboBox")
+        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                   self.multiJobPbsPresetComboBox)
+
         # 3 row
         self.multiJobRemoteExecutionTypeLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
@@ -366,7 +364,7 @@ class UiResourceDialog(UiFormDialog):
             "multiJobRemoteExecutionTypeLabel")
         self.multiJobRemoteExecutionTypeLabel.setText(
             self.EXECUTION_TYPE_LABEL)
-        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                    self.multiJobRemoteExecutionTypeLabel)
         self.multiJobRemoteExecutionTypeComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
@@ -375,24 +373,11 @@ class UiResourceDialog(UiFormDialog):
         self.multiJobRemoteExecutionTypeComboBox.addItems([self.EXEC_LABEL,
                                                            self.PBS_LABEL])
         self.multiJobRemoteExecutionTypeComboBox.setCurrentIndex(0)
-        self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobRemoteExecutionTypeComboBox)
 
-        # 4 row
-        self.multiJobPbsPresetLabel = QtWidgets.QLabel(
-            self.mainVerticalLayoutWidget)
-        self.multiJobPbsPresetLabel.setObjectName("multiJobPbsPresetLabel")
-        self.multiJobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
-        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                   self.multiJobPbsPresetLabel)
-        self.multiJobPbsPresetComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.multiJobPbsPresetComboBox.setObjectName(
-            "multiJobPbsPresetComboBox")
-        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                   self.multiJobPbsPresetComboBox)
 
-        # 5 row
+        # 4 row
         self.mjEnvPresetLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.mjEnvPresetLabel.setObjectName("mjEnvPresetLabel")
         self.mjEnvPresetLabel.setText(self.MJ_ENV_LABEL)
@@ -488,6 +473,7 @@ class UiResourceDialog(UiFormDialog):
             self.mainVerticalLayoutWidget)
         self.jobPbsPresetComboBox.setObjectName(
             "jobPbsPresetComboBox")
+        self.jobPbsPresetComboBox.setEnabled(False)
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.jobPbsPresetComboBox)
 

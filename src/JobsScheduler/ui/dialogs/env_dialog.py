@@ -22,23 +22,21 @@ class EnvDialog(AFormDialog):
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddEnvDialog",
-                       windowTitle="Job Scheduler - Add new Environment "
-                                   "Preset",
-                       title="Add new Environment Preset",
-                       subtitle="Please select details for new Environment "
-                                "preset.")
+                       windowTitle="Job Scheduler - Add Environment",
+                       title="Add Environment",
+                       subtitle="Please select details for new Environment.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditEnvDialog",
-                        windowTitle="Job Scheduler - Edit Environment Preset",
-                        title="Edit Environment Preset",
+                        windowTitle="Job Scheduler - Edit Environment",
+                        title="Edit Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyEnvDialog",
-                        windowTitle="Job Scheduler - Copy Environment Preset",
-                        title="Copy Environment Preset",
+                        windowTitle="Job Scheduler - Copy Environment",
+                        title="Copy Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -160,7 +158,7 @@ class UiEnvDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the environment")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,

@@ -550,6 +550,21 @@ class MainWindow(QtWidgets.QMainWindow):
         mj = self.data.multijobs[key]
         return mj
 
+    def showEvent(self, event):
+        super(MainWindow, self).showEvent(event)
+        self.raise_()
+
+        # select workspace if none is selected
+        if self.data.config.workspace is None:
+            import sys
+            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace")
+            if not sel_dir:
+                sel_dir = None
+            elif sys.platform == "win32":
+                sel_dir = sel_dir.replace('/', '\\')
+            self.data.config.workspace = sel_dir
+            self.data.config.save()
+
 
 class UiMainWindow(object):
     """

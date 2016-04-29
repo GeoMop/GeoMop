@@ -23,21 +23,21 @@ class PbsDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddPbsDialog",
-                       windowTitle="Job Scheduler - Add new PBS Preset",
-                       title="Add new PBS Preset",
-                       subtitle="Please select details for new PBS preset.")
+                       windowTitle="Job Scheduler - Add PBS options",
+                       title="Add PBS options",
+                       subtitle="Please select details for PBS options.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditPbsDialog",
-                        windowTitle="Job Scheduler - Edit PBS Preset",
-                        title="Edit PBS Preset",
+                        windowTitle="Job Scheduler - Edit PBS options",
+                        title="Edit PBS options",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyPbsDialog",
-                        windowTitle="Job Scheduler - Copy PBS Preset",
-                        title="Copy PBS Preset",
+                        windowTitle="Job Scheduler - Copy PBS options",
+                        title="Copy PBS options",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -77,9 +77,6 @@ class PbsDialog(AFormDialog):
         if not ValidationColorizer.colorize_by_validator(
                 self.ui.memoryLineEdit):
             valid = False
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.scratchLineEdit):
-            valid = False
         return valid
 
     def get_data(self):
@@ -95,8 +92,10 @@ class PbsDialog(AFormDialog):
         preset.ppn = self.ui.ppnSpinBox.value()
         if self.ui.memoryLineEdit.text():
             preset.memory = self.ui.memoryLineEdit.text()
-        if self.ui.scratchLineEdit.text():
-            preset.scratch = self.ui.scratchLineEdit.text()
+        if self.ui.infinibandCheckbox.isChecked():
+            preset.infiniband = True
+        else:
+            preset.infiniband = False
         return {
             "key": key,
             "preset": preset
@@ -107,7 +106,6 @@ class PbsDialog(AFormDialog):
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
         ValidationColorizer.colorize_white(self.ui.walltimeLineEdit)
         ValidationColorizer.colorize_white(self.ui.memoryLineEdit)
-        ValidationColorizer.colorize_white(self.ui.scratchLineEdit)
 
         if data:
             key = data["key"]
@@ -121,7 +119,7 @@ class PbsDialog(AFormDialog):
             self.ui.nodesSpinBox.setValue(preset.nodes)
             self.ui.ppnSpinBox.setValue(preset.ppn)
             self.ui.memoryLineEdit.setText(preset.memory)
-            self.ui.scratchLineEdit.setText(preset.scratch)
+            self.ui.infinibandCheckbox.setChecked(preset.infiniband)
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -131,7 +129,7 @@ class PbsDialog(AFormDialog):
             self.ui.nodesSpinBox.setValue(self.ui.nodesSpinBox.minimum())
             self.ui.ppnSpinBox.setValue(self.ui.ppnSpinBox.minimum())
             self.ui.memoryLineEdit.clear()
-            self.ui.scratchLineEdit.clear()
+            self.ui.infinibandCheckbox.setChecked(False)
 
 
 class UiPbsDialog(UiFormDialog):
@@ -179,7 +177,7 @@ class UiPbsDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the PBS options")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
@@ -236,7 +234,7 @@ class UiPbsDialog(UiFormDialog):
         # 5 row
         self.nodesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nodesLabel.setObjectName("nodesLabel")
-        self.nodesLabel.setText("Specify number of nodes:")
+        self.nodesLabel.setText("Number of  Nodes:")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.nodesLabel)
         self.nodesSpinBox = QtWidgets.QSpinBox(
@@ -255,7 +253,7 @@ class UiPbsDialog(UiFormDialog):
         # 6 row
         self.ppnLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.ppnLabel.setObjectName("ppnLabel")
-        self.ppnLabel.setText("Processors per Node:")
+        self.ppnLabel.setText("Processes per Node:")
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.ppnLabel)
         self.ppnSpinBox = QtWidgets.QSpinBox(
@@ -287,18 +285,15 @@ class UiPbsDialog(UiFormDialog):
                                   self.memoryLineEdit)
 
         # 8 row
-        self.scratchLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.scratchLabel.setObjectName("scratchLabel")
-        self.scratchLabel.setText("Scratch:")
+        self.infinibandLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.infinibandLabel.setObjectName("infinibandLabel")
+        self.infinibandLabel.setText("Infiniband:")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
-                                  self.scratchLabel)
-        self.scratchLineEdit = QtWidgets.QLineEdit(
+                                  self.infinibandLabel)
+        self.infinibandCheckbox = QtWidgets.QCheckBox(
             self.mainVerticalLayoutWidget)
-        self.scratchLineEdit.setObjectName("scratchLineEdit")
-        self.scratchLineEdit.setPlaceholderText("150mb or 10gb:ssd")
-        self.scratchLineEdit.setProperty("clearButtonEnabled", True)
-        self.scratchLineEdit.setValidator(self.scratchValidator)
+        self.infinibandCheckbox.setObjectName("infinibandCheckbox")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
-                                  self.scratchLineEdit)
+                                  self.infinibandCheckbox)
 
         return dialog
