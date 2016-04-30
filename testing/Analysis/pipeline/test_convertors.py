@@ -64,6 +64,13 @@ def test_convertors_validation():
     assert len(errs)==1     
     assert errs[0] == "Variable 'value' is not assignated."
     
+    adap = Adapter(Struct(a=Struct(a=Input(0).a), b=Struct(a=Input(0).value)))
+    errs = adap._check_params([v1])
+    assert len(errs)==0 
+    errs = adap._check_params([v3])
+    assert len(errs)==1
+    assert errs[0] == "Variable 'a' is not assignated."
+    
     a = Input(0).a
     b = Input(1).b 
     conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(key)))
@@ -71,6 +78,15 @@ def test_convertors_validation():
     assert len(errs)==0 
     errs = conv._check_params([v7, v8])
     assert len(errs)==1
-    assert errs[0] == "Variable 'value' is not assignated."
+    assert errs[0] == "Requsted input (2) is bigger than number of set Inputs (2)"
+    errs = conv._check_params([v1, v7, v8])
+    assert len(errs)==2
+    assert errs[0] == "Class has not function sort" or \
+        errs[0] == "Only Struct can have dot operator"
+    assert errs[1] == "Class has not function sort" or \
+        errs[1] == "Only Struct can have dot operator"
+    errs = conv._check_params([v7, v8, v4])
+    assert len(errs)==1
+    assert errs[0] == "Class has not function sort"
     
  

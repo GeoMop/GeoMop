@@ -26,17 +26,14 @@ v3 = VariableGenerator(Variable=Ensemble(
     Struct(a=String("a7"), time=Int(1100), value = Float(18.0), bc_type=Int(6)),
 ))
 
-v3._inicialize()
-
 k = Connector()    
 a = Input(0).a
 b = Input(1).b
 # for later using
 k3 = k.duplicate()    
-conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
+adap = Adapter(Struct(a=Struct(a=Input(0).a), b=Struct(a=Input(0).value)))
+conv = Convertor(Struct(a=a, b=b, c=Input(2).each(adap)))
 k.set_config(Convertor = conv)
-
-errs = conv._check_params([v1, v2, v3])
 
 test1=k._get_settings_script()
 
@@ -46,8 +43,12 @@ v2._inicialize()
 v3._inicialize()
 k._inicialize()
 
+errs = conv._check_params([v1, v2, v3])
+
 test2=k._get_settings_script()
 test3=k._get_output()._get_settings_script()
+
+struc = k._get_output()
 
 k2 = k.duplicate()
 test4=k2._get_settings_script()
@@ -66,8 +67,8 @@ VariableGenerator_1._inicialize()
 VariableGenerator_2._inicialize()
 VariableGenerator_3._inicialize()
 
-Conn_13._inicialize()
-testx3=Conn_13._get_output()._get_settings_script()
+Conn_14._inicialize()
+testx3=Conn_14._get_output()._get_settings_script()
 
 script = '\n'.join(testx3)
 

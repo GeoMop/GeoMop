@@ -18,6 +18,7 @@ def test_classes():
         p.Convertor(p.Input(0))
         p.Predicate(p.Input(0))
         p.KeyConvertor(p.Input(0))
+        p.Adapter(p.Input(0))
         p.Pipeline()
         p.Workflow()
         p.ForEach()

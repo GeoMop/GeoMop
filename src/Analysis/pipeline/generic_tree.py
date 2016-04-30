@@ -104,7 +104,7 @@ class GDTT(GTT):
         if GDTT represent function that use key_convertor for sort, 
         this variable is set to key_convertor instance
         """
-        self.__iterator = None        
+        self.__adapter = None        
         """
         if GDTT represent function that use convertor for each, 
         this variable is set to convertor instance
@@ -165,8 +165,8 @@ class GDTT(GTT):
     def _set_key_convertor(self, key_convertor):
         self.__key_convertor = key_convertor
         
-    def _set_iterator(self, convertor):
-        self.__iterator = convertor
+    def _set_adapter(self, convertor):
+        self.__adapter = convertor
 
     def _set_name(self, name):
         self.__name = name
@@ -180,8 +180,8 @@ class GDTT(GTT):
     def _get_key_convertor(self):
         return self.__key_convertor
 
-    def _get_iterator(self):
-        return self.__iterator
+    def _get_adapter(self):
+        return self.__adapter
 
     def _get_convertors(self):
         """return array of convertors containing in this structure"""    
@@ -192,15 +192,15 @@ class GDTT(GTT):
            ret.append(self.__key_convertor)
         if self.__predicate is not None:
            ret.append(self.__predicate)
-        if self.__iterator is not None:
-           ret.append(self.__iterator)
+        if self.__adapter is not None:
+           ret.append(self.__adapter)
         ret.extend(self.__parent._get_convertors())
         return ret 
  
-    def _get_inputs(self):
+    def _get_input(self):
         if self.__parent is None:
-            return [self]
-        return self.__parent._get_inputs()
+            return self
+        return self.__parent._get_input()
         
     def _get_generics(self):
         """return list of generic contained in this structure"""
@@ -226,10 +226,10 @@ class GDTT(GTT):
         
     def each(self, convertor):
         """GDTT call sort function"""
-        if type(convertor).__name__ != "Convertor":
+        if type(convertor).__name__ != "Adapter":
             raise ValueError("Unknown type of sort convertor '{0}'".format(type(convertor).__name__ ))
         fp = GDTT(parent=self)
-        fp._set_iterator(convertor)
+        fp._set_adapter(convertor)
         fp._set_path("{0}.each({1})".format(self._path, convertor._get_instance_name()))
         return fp
     
@@ -267,21 +267,21 @@ class GDTT(GTT):
                 err.append("Class has not function sort")
             elif not self.__check_func(struc, "_get_template"):
                 err.append("Sorted class has not function _get_template")            
-            elif self.__key_convertor.__class__.__name__ == "KeyConverter":
+            elif self.__key_convertor.__class__.__name__ == "KeyConvertor":
                 err2 = self.__key_convertor._check_params_one(struc)
                 err.extend(err2)
                 return err, struc._get_template() 
             else:
                 err.append("Only KeyConverter is permited in sort")  
-        if  self.__iterator is not None:
+        if  self.__adapter is not None:
             if not self.__check_func(struc, "each"):
                 err.append("Class has not function each")
             elif not self.__check_func(struc, "_get_template"):
                 err.append("Iterated class has not function _get_template")            
-            elif self.__iterator.__class__.__name__ != "Iterator":
-                err.append("Only Iterator is permited in each")
+            elif self.__adapter.__class__.__name__ != "adapter":
+                err.append("Only Adapter is permited in each")
             else:
-                err2 = self.__iterator._check_params_one(struc)
+                err2 = self.__adapter._check_params_one(struc)
                 err.extend(err2) 
                 return err, struc._get_template()
         if  self.__func_name is not None:

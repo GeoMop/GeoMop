@@ -34,7 +34,7 @@ def test_connector_code_init():
     a = Input(0).a
     b = Input(1).b
     # for later using
-    k3 = k.duplicate()    
+    k3 = k.duplicate()
     conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
     k.set_config(Convertor = conv)
     
@@ -68,6 +68,7 @@ def test_connector_code_init():
     test = Conn_6._get_output()._get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test)
     
+    k4 = k3.duplicate() 
     conv2 = Convertor(Struct(a=a, b=b, c=Input(2).select(p1)))
     k3.set_config(Convertor=conv2)
     k3.set_inputs([v1, v2, v3])
@@ -75,5 +76,14 @@ def test_connector_code_init():
     k3._inicialize()
     test = k3._get_output()._get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "convertor3.py"), test)
+    
+    adap = Adapter(Struct(a=Struct(a=Input(0).a), b=Struct(a=Input(0).value)))
+    conv3 = Convertor(Struct(a=a, b=b, c=Input(2).each(adap)))
+    k4.set_config(Convertor=conv3)
+    k4.set_inputs([v1, v2, v3])
+    # test each
+    k4._inicialize()
+    test = k4._get_output()._get_settings_script()
+    compare_with_file(os.path.join("pipeline", "results", "convertor4.py"), test)
     
 #    assert False

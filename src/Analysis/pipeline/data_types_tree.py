@@ -459,6 +459,12 @@ class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
         """return template of nested structure"""
         pass
 
+    @abc.abstractmethod
+    def each(self):
+        """Adapt list items structure"""
+        pass
+
+
 class SortableDTT(ListDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
     
@@ -568,10 +574,19 @@ class Ensemble(SortableDTT):
             return self.list[i]
         return None
     
-    def sort(self, predicate):
+    def each(self, adapter):
+        """Adapt list items structure"""
+        new_subtype = adapter._get_adapted_item(self.subtype)
+        adapted = Ensemble(new_subtype)
+        for item in self.list:
+            new_item = adapter._get_adapted_item(item)
+            adapted.add_item(new_item)
+        return adapted
+    
+    def sort(self, key_selector):
         """return sorted Ensamble accoding set predicate"""
         sorted = Ensemble(self.subtype, self.list)
-        sorted.list.sort(key=lambda item: predicate._get_key(item))
+        sorted.list.sort(key=lambda item: key_selector._get_key(item))
         return sorted
 
     def select(self, predicate):

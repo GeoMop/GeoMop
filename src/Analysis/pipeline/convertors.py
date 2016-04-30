@@ -55,7 +55,7 @@ class Convertor():
             for gdtt in self._generics:
                 convertors = gdtt._get_convertors()
                 self._convertors.extend(convertors)           
-                self._inputs.extend(gdtt._get_inputs())
+                self._inputs.append(gdtt._get_input())
         else:     
             self._load_errs.append("Invalid input convertor type.")
 
@@ -111,10 +111,12 @@ class Convertor():
         num = len(inputs)
         for input in self._inputs:
             if input._num>=num:
-                err.append("Requsted input ({0}) is bigger than number of set Inputs ({1})".
-                    input._num, num)
+                err.append("Requsted input ({0}) is bigger than number of set Inputs ({1})".format(
+                    input._num, num))
         for gdtt in self._generics:
-            err.extend(self._check_input(gdtt, inputs[input._num]._get_output()))
+            input = gdtt._get_input()
+            if input._num<len(inputs):
+                err.extend(self._check_input(gdtt, inputs[input._num]._get_output()))
         return err
         
     def _check_output(self):    
@@ -202,29 +204,29 @@ class KeyConvertor(IConvertor):
         #ToDo check scalar
         return output  
 
-class Iterator(IConvertor):
+class Adapter(IConvertor):
     """Class for filter defination"""
-    name = "Iter"
+    name = "Adap"
     """Display name of action"""
-    description = "Iterator"
+    description = "Adapter"
     """Display description of action"""  
         
     def __init__(self, output):
         """
         convertor for sort action
         """
-        super(Iterator, self).__init__(output)
+        super(Adapter, self).__init__(output)
         
     def _check_output(self):    
         """check output variable type"""
         err = []
         if not isinstance(self._output, TT):
-            err.append("Bad iterator output type")
+            err.append("Bad Adapter output type")
         if self._get_input_number() != 1:
-            err.append("Only Input(0) is permited in iterator")
+            err.append("Only Input(0) is permited in Adapter")
         return err
         
-    def _get_item(self, input):
+    def _get_adapted_item(self, input):
         """return key"""
         v = VariableGenerator(Variable=input)
         v._inicialize()

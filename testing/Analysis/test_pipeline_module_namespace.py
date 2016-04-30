@@ -18,6 +18,7 @@ def test_data_classes():
         Convertor(Input(0))
         Predicate(Input(0))
         KeyConvertor(Input(0))
+        Adapter(Input(0))
         Pipeline()
         Workflow()
         ForEach()
