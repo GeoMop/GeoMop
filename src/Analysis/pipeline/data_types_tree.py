@@ -485,7 +485,7 @@ class Ensemble(SortableDTT):
     def __init__(self, subtype, *args):
         self.subtype = subtype
         """iterator possition"""
-        self.list = []
+        self._list = []
         """Items is save internaly as list"""
         if len(args) == 1 and isinstance(args[0], list):
             for value in args[0]:
@@ -498,11 +498,11 @@ class Ensemble(SortableDTT):
         if not isinstance(value, BaseDTT) and \
             not isinstance(value, CompositeDTT):
                 if isinstance(value, GDTT):
-                    self.list.append(value)
+                    self._list.append(value)
                     return
                 raise ValueError('Ensemble must have DTT value type.')
         if self.subtype._match_type(value):
-            self.list.append(value)
+            self._list.append(value)
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
 
@@ -511,7 +511,7 @@ class Ensemble(SortableDTT):
         try:
             res = "[\n"
             first = True
-            for value in self.list:
+            for value in self._list:
                 if first:
                     first = False
                 else:
@@ -524,10 +524,10 @@ class Ensemble(SortableDTT):
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
         try:
-            lines = ["Ensemble("]
+            lines = [self.__class__.__name__+"("]
             param = self.subtype._get_settings_script()
             lines.extend(Formater.format_parameter(param, 4))
-            for value in self.list:
+            for value in self._list:
                 param = value._get_settings_script()
                 lines.extend(Formater.format_parameter(param, 4))
             lines[-1] = lines[-1][:-1]
@@ -546,7 +546,7 @@ class Ensemble(SortableDTT):
         """
         return if structure contain real data
         """
-        for value in self.list:
+        for value in self._list:
             if not value._is_set():
                 return False
         return True
@@ -558,7 +558,7 @@ class Ensemble(SortableDTT):
         Ensemble can have generic type only in value.        
         """
         ret = []
-        for value in self.list:
+        for value in self._list:
             if isinstance(value, GDTT):
                 ret.append(value)
                 continue
@@ -570,29 +570,29 @@ class Ensemble(SortableDTT):
         return CompositiIter(self)
 
     def get_item(self, i):       
-        if i < len(self.list):
-            return self.list[i]
+        if i < len(self._list):
+            return self._list[i]
         return None
     
     def each(self, adapter):
         """Adapt list items structure"""
         new_subtype = adapter._get_adapted_item(self.subtype)
         adapted = Ensemble(new_subtype)
-        for item in self.list:
+        for item in self._list:
             new_item = adapter._get_adapted_item(item)
             adapted.add_item(new_item)
         return adapted
     
     def sort(self, key_selector):
         """return sorted Ensamble accoding set predicate"""
-        sorted = Ensemble(self.subtype, self.list)
-        sorted.list.sort(key=lambda item: key_selector._get_key(item))
+        sorted = Sequence(self.subtype, self._list)
+        sorted._list.sort(key=lambda item: key_selector._get_key(item))
         return sorted
 
     def select(self, predicate):
         """return selected Ensamble accoding set predicate"""
         selected = Ensemble(self.subtype)
-        for item in self.list:
+        for item in self._list:
             if predicate._get_bool(item):
                 selected.add_item(item)
         return selected
@@ -600,3 +600,14 @@ class Ensemble(SortableDTT):
     def _get_template(self):
         """return template of nested structure"""
         return self.subtype
+
+class Sequence(Ensemble):
+    
+    def __init__(self, subtype, *args):
+        super(Sequence, self).__init__(subtype, *args)
+
+    def head(self):
+        return self._list[0]
+        
+    def tail(self):
+        return self._list[-1]

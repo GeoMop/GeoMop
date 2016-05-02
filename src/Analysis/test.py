@@ -32,7 +32,7 @@ b = Input(1).b
 # for later using
 k3 = k.duplicate()    
 adap = Adapter(Struct(a=Struct(a=Input(0).a), b=Struct(a=Input(0).value)))
-conv = Convertor(Struct(a=a, b=b, c=Input(2).each(adap)))
+conv = Convertor(Struct(a=a, b=b, c=Input(2).sort(c1)))
 k.set_config(Convertor = conv)
 
 test1=k._get_settings_script()

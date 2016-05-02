@@ -2,7 +2,7 @@ Struct(
     a=String('test'),
     b=Int(8),
     c=(
-        Ensemble(
+        Sequence(
             (
                 Struct(
                     a=String(),
