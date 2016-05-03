@@ -26,8 +26,8 @@ class Pipeline(WorkflowActionType):
             is set accoding OutputAction's outputs
         :param array of PipelineResult: Action that is exit from pipeline
         """
-        super(Pipeline, self).__init__(**kwargs)
-        
+        super(Pipeline, self).__init__(**kwargs)        
+
     def _inicialize(self):
         """inicialize action run variables"""
         if self._state.value > ActionStateType.initialized.value:

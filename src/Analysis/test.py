@@ -4,6 +4,8 @@ from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
 from pipeline.convertors import *
 
+a=Tuple(Struct(a=Int(1)), Struct(a=Int(2)), Struct(a=Int(3)))
+a[0].a.value=5
 time = And(Input(0).time > 600,Input(0).time<1000)
 value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
 bc_type = Input(0).bc_type == 4

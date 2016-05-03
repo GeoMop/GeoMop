@@ -63,7 +63,7 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         return self._getter()
 
     @value.setter
-    def my_attr(self, value):
+    def value(self, value):
         self._assigne(value)
     
     def __lt__(self, other):
@@ -418,7 +418,7 @@ class Struct(CompositeDTT):
                 continue
             if value is None:
                 return False
-            if isinstance(value, BaseDTT):
+            if isinstance(value, DTT):
                 if not self.__dict__[name]._is_set():
                     return False
         return True
@@ -450,6 +450,98 @@ class Struct(CompositeDTT):
         
     def __contains__(self, key):
         return key in self.__dict__
+
+class Tuple(CompositeDTT):
+    """
+    Object
+    """
+    def __init__(self, *args):
+        """Contained type"""
+        self._list = []
+        for arg in args:
+            if isinstance(arg, TT):
+                self._list.append(arg)
+            else:
+                raise ValueError('Not supported assignation type.')
+   
+    def _to_string(self, value):
+        """Presentation of type in json yaml"""
+        try:
+            res = "(\n"
+            first = True
+            for value in self._list:
+                if first:
+                    first = False
+                else:
+                    res += ",\n"
+                res += self.value._to_string()
+            res += ")\n"
+        except:
+            return None    
+    
+    def _get_settings_script(self):
+        """return python script, that create instance of this class"""
+        try:
+            lines = ["Tuple("]
+            for value in self._list:
+                param = value._get_settings_script()
+                lines.extend(Formater.format_parameter(param, 4))
+            lines[-1] = lines[-1][:-1]
+            lines.append(")")
+        except Exception as ex:
+            raise Exception("Unknown input type ({0})".format(str(ex)))
+        return lines
+            
+    def _match_type(self, type_tree):
+        """
+        Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
+        """
+        if len(self._list) != len(type_tree._list):
+                return False
+        for i in range(0, self._list):
+            if type(self._list[i]) is not type(type_tree._list[i]):
+                return False
+            if isinstance(self._list[i], CompositeDTT):
+                if not type_tree._list[i]._match_type(self._list[i]):
+                    return False
+        return True
+        
+    def _get_generics(self):
+        """return list of generic contained in this structure"""
+        ret = []
+        for item in self._list:
+            if isinstance(item, GDTT):
+                ret.append(item)
+                continue
+            if isinstance(item, TT):
+                ret.extend(item._get_generics())
+        return ret
+        
+    def _is_set(self):
+        """
+        return if structure contain real data
+        """
+        for item in self._list:
+            if item is None:
+                return False
+            if isinstance(item, DTT):
+                if not item._is_set():
+                    return False
+        return True
+        
+    def __getitem__(self, i):       
+        if i < len(self._list):
+            return self._list[i]
+        raise IndexError()
+        
+    def __setitem__(self, i,  value): 
+        """save assignation"""
+        if i >= len(self._list):
+            raise IndexError()
+        if isinstance(self._list[i], BaseDTT):
+            self._list[i]._assigne(value)
+            return
+        raise ValueError('Not supported reassignation type.')
 
 class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
