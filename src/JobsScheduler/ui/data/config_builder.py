@@ -76,18 +76,19 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
+        mj_dialect = mj_ssh_preset.pbs_system if hasattr(mj_ssh_preset, "pbs_system") else None
         mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params,
-                                          dialect=mj_ssh_preset.pbs_system)
+                                          dialect=mj_dialect)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_dialect = j_ssh_preset.pbs_system
+        j_dialect = j_ssh_preset.pbs_system if hasattr(j_ssh_preset, "pbs_system") else None
         if (res_preset.mj_execution_type == UiResourceDialog.EXEC_LABEL and
                 res_preset.j_execution_type == UiResourceDialog.PBS_LABEL) or \
                 (res_preset.mj_execution_type == UiResourceDialog.PBS_LABEL and
                 res_preset.j_execution_type == UiResourceDialog.PBS_LABEL):
-            j_dialect = mj_ssh_preset.pbs_system
+            j_dialect = mj_dialect
         j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params,
                                          dialect=j_dialect)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
@@ -310,7 +311,7 @@ class ConfFactory:
             return None
         pbs = PbsConfig()
         pbs.name = preset.name
-        pbs.dialect = preset.dialect
+        pbs.dialect = dialect
         pbs.queue = preset.queue
         pbs.walltime = preset.walltime
         pbs.nodes = str(preset.nodes)
@@ -320,7 +321,6 @@ class ConfFactory:
         pbs.with_socket = with_socket
         if pbs_params is not None:
             pbs.pbs_params = pbs_params
-        pbs.dialect = dialect
         return pbs
 
     @staticmethod
