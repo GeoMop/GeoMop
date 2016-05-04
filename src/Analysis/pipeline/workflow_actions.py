@@ -95,13 +95,7 @@ class Workflow(WorkflowActionType):
             isinstance(self._variables['OutputAction'],  BaseActionType):
             return self._variables['OutputAction']._get_output()
         return None
-
-    def _get_runner(self, params):    
-        """
-        return Runner class with process description
-        """        
-        return None
-        
+       
     def _run(self):    
         """
         Process action on client site or prepare process environment and 

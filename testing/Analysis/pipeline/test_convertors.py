@@ -89,4 +89,8 @@ def test_convertors_validation():
     assert len(errs)==1
     assert errs[0] == "Class has not function sort"
     
+    def test_convertors_recursive():
+        #Todo test each, sort, select that contain next convertors
+        pass
+    
  

@@ -10,8 +10,7 @@ def test_struc():
     assert not var2._match_type(var1)
     
     var1 = Struct(test1=Int(1), test2=String("Test"), tests=Struct(iner1=Int(5)))
-    var2 = Struct(test1=Int(), test2=String(), tests=Struct(iner1=Int(),iner2=Int()))
-    
+    var2 = Struct(test1=Int(), test2=String(), tests=Struct(iner1=Int(),iner2=Int()))    
     
     assert var1._is_set()
     assert not var1._match_type(var2)  
@@ -27,6 +26,13 @@ def test_struc():
     assert var2._match_type(var1)
     var2.test1= var1.test1
     assert var2.test1.value == 1
+    
+    var3 = var2.duplicate()
+    var3.test1 = 5
+    assert var2.test1.value == 1
+    assert var3.test1.value == 5
+    assert var2.test2.value == var3.test2.value
+    
 
 def test_ensemble():    
     var1 = Struct(test1=Int(1), test2=String("Test"))
@@ -62,4 +68,7 @@ def test_ensemble():
     assert ens1._match_type(ens2)  
     assert not ens2._is_set()
     assert not ens2._match_type(ens1)
-        
+    
+    #Todo sequence test
+    
+    #Todo tuple test

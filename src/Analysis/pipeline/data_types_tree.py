@@ -1,4 +1,5 @@
 import abc
+import copy
 from .generic_tree import TT, GDTT
 from .code_formater import Formater
 
@@ -17,6 +18,12 @@ class DTT(TT, metaclass=abc.ABCMeta):
         return if structure contain real data
         """
         pass
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        pass
 
 class BaseDTT(DTT, metaclass=abc.ABCMeta):
     """
@@ -28,11 +35,13 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
     or with data. If structure is empty, it is supossed that is assigned
     later.    
     """
+    name = ""
+    """Display name of variable type"""
+    description = ""
+    """Display description of variable type"""
+
     def __init__(self):
-        self.name = ""
-        """Display name of port"""
-        self.description = ""
-        """Display description of port"""
+        pass
 
     def _match_type(self, type_tree):
         """
@@ -116,9 +125,20 @@ class Int(BaseDTT):
     """
     Integer
     """
+    name = "Integer"
+    """Display name of variable type"""
+    description = "Wrapper for standart python integer variable"    
+    """Display description of variable type"""
+    
     def __init__(self, integer=None):
         self.__integer = integer
         """value"""
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        return Int(self.__integer)
     
     def _to_string(self, value):
         """Presentation of type in json yaml"""
@@ -158,6 +178,12 @@ class String(BaseDTT):
     def __init__(self, string=None):
         self.__string = string
         """value"""
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        return String(self.__string)
     
     def _to_string(self):
         """Presentation of type in json yaml"""
@@ -194,9 +220,20 @@ class Float(BaseDTT):
     """
     Float
     """
+    name = "Float"
+    """Display name of variable type"""
+    description = "Wrapper for standart python float variable"    
+    """Display description of variable type"""
+
     def __init__(self, float=None):
         self.__float = float
         """value"""
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        return Float(self.__float)
     
     def _to_string(self):
         """Presentation of type in json yaml"""
@@ -231,11 +268,22 @@ class Float(BaseDTT):
 
 class Bool(BaseDTT):
     """
-    String
+    Bool
     """
+    name = "Bool"
+    """Display name of variable type"""
+    description = "Wrapper for standart python Boolean variable"    
+    """Display description of variable type"""
+
     def __init__(self, bool=None):
         self.__bool = bool
         """value"""
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        return Bool(self.__bool)
     
     def _to_string(self):
         """Presentation of type in json yaml"""
@@ -335,6 +383,11 @@ class Struct(CompositeDTT):
     """
     Object
     """
+    name = "Struct"
+    """Display name of variable type"""
+    description = "Composite structure variable"    
+    """Display description of variable type"""
+
     def __init__(self, *args,  **kwargs):
         """Contained type"""
         if len(args) > 0 and isinstance(args[0], dict):
@@ -342,6 +395,20 @@ class Struct(CompositeDTT):
                 setattr(self, name, value)
         for name, value in kwargs.items():
             setattr(self, name, value)
+            
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        new_dict={}
+        for name, value in self.__dict__.items():
+            if name[:2] == '__' and name[-2:] == '__':
+                continue
+            if isinstance(value, DTT):
+                new_dict[name] = value.duplicate()
+            else:
+                new_dict[name]=copy.deepcopy(value)
+        return Struct(new_dict)
    
     def _to_string(self):
         """Presentation of type in json yaml"""
@@ -455,6 +522,11 @@ class Tuple(CompositeDTT):
     """
     Object
     """
+    name = "Tuple"
+    """Display name of variable type"""
+    description = "Composite tuple variable like python tuple"    
+    """Display description of variable type"""
+
     def __init__(self, *args):
         """Contained type"""
         self._list = []
@@ -463,6 +535,18 @@ class Tuple(CompositeDTT):
                 self._list.append(arg)
             else:
                 raise ValueError('Not supported assignation type.')
+                
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        new_list=[]
+        for value in self._list:
+            if value.isinstance(value, DTT):
+                new_list.append(value.duplicate())
+            else:
+                new_list.append(copy.deepcopy(value))
+        return Tuple(*new_list)
    
     def _to_string(self, value):
         """Presentation of type in json yaml"""
@@ -555,8 +639,7 @@ class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
     def each(self):
         """Adapt list items structure"""
         pass
-
-
+        
 class SortableDTT(ListDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
     
@@ -574,6 +657,11 @@ class Ensemble(SortableDTT):
     """
     Array
     """
+    name = "Ensemble"
+    """Display name of variable type"""
+    description = "Not ordered type list"    
+    """Display description of variable type"""
+
     def __init__(self, subtype, *args):
         self.subtype = subtype
         """iterator possition"""
@@ -585,6 +673,23 @@ class Ensemble(SortableDTT):
         else:
             for arg in args:
                 self.add_item(arg)
+                
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        new_list=self._duplicate_list()
+        return Ensemble(*new_list)
+
+    def _duplicate_list(self):
+        new_list=[]
+        for value in self._list:
+            if isinstance(value, DTT):
+                new_list.append(value.duplicate())
+            else:
+                new_list.append(copy.deepcopy(value))
+        return new_list
+
                 
     def add_item(self, value):
         if not isinstance(value, BaseDTT) and \
@@ -694,9 +799,25 @@ class Ensemble(SortableDTT):
         return self.subtype
 
 class Sequence(Ensemble):
-    
+    name = "Sequence"
+    """Display name of variable type"""
+    description = "Ordered type list"    
+    """Display description of variable type"""
+
+    """Display name of variable type"""
+    description = "Ordered type list"    
+    """Display description of variable type"""
+        
     def __init__(self, subtype, *args):
         super(Sequence, self).__init__(subtype, *args)
+        
+    def duplicate(self):
+        """
+        make deep copy
+        """
+        new_list=self._duplicate_list()
+        return Sequence(*new_list)
+
 
     def head(self):
         return self._list[0]

@@ -48,12 +48,6 @@ class Pipeline(WorkflowActionType):
         if isinstance(self._variables['ResultActions'][number],  BaseActionType):
             return self._variables['ResultActions'][number]._get_output(self)
         return None
-
-    def _get_runner(self, params):    
-        """
-        return Runner class with process description
-        """        
-        return None
         
     def _run(self):    
         """
@@ -85,7 +79,7 @@ class Pipeline(WorkflowActionType):
         err = super(Pipeline, self).validate()
         err.extend(self._check_params())
         # existence of output params is make in _get_child_list
-        actions = self._get_child_list()            
+        actions = self._get_child_list()
         for action in actions:
             err.extend(action.validate())
         return err

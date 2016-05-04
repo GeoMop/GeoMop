@@ -67,6 +67,11 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """action type"""
         self._load_errs = []
         """initialiyacion or sets errors"""
+        self._pending_actions = 0
+        """
+        If action can contain some complex actions that are not known in 
+        current time, there is theirs number
+        """
         self.set_config(**kwargs)
 
     def set_config(self, **kwargs):
@@ -97,10 +102,13 @@ class BaseActionType(metaclass=abc.ABCMeta):
    
     def get_input_val(self, number):
         """
-        if input is action type, return output from previous action,
-        else return input. Both action must be inicialized
+        Gain input from preceding action, check type and
+        duplicate it.
         """
-        return self._inputs[number]._get_output()
+        input_val = self._inputs[number]._get_output()
+        if isinstance( input_val, GDTT):
+            input_val =  input_val.duplicate()
+        return input_val
     
     @property
     def name(self):
@@ -191,14 +199,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if value is extend to more lines, value must be closed to bracked
         """
         return []
-        
-    @abc.abstractmethod 
-    def _get_runner(self,  params):    
-        """
-        return Runner class with process description
-        """
-        pass
-        
+       
     @abc.abstractmethod 
     def _run(self):    
         """
@@ -207,6 +208,12 @@ class BaseActionType(metaclass=abc.ABCMeta):
         need externall processing.
         """
         pass
+        
+    def _after_run(self):    
+        """
+        Set real output variable and set finished state.
+        """
+        self._state = ActionStateType.finished
 
     def validate(self):    
         """validate variables, input and output"""
@@ -302,9 +309,6 @@ class Bridge(BaseActionType):
     
     def validate(self):
         return []
-    
-    def _get_runner(self, params):    
-        return None
         
     def _run(self):    
         return  self._get_runner(None) 

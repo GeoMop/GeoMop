@@ -37,12 +37,6 @@ class VariableGenerator(GeneratorActionType):
             variable[-1] = variable[-1][:-1]
             var.append(variable)
         return var
-
-    def _get_runner(self, params):    
-        """
-        return Runner class with process description
-        """        
-        return None
         
     def _run(self):    
         """

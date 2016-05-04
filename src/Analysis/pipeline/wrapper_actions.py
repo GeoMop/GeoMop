@@ -68,12 +68,6 @@ class ForEach(WrapperActionType):
             var.append([wrapper])
         return var
 
-    def _get_runner(self, params):    
-        """
-        return Runner class with process description
-        """        
-        return None
-        
     def _run(self):    
         """
         Process action on client site or prepare process environment and 
