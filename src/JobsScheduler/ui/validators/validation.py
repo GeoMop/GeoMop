@@ -101,18 +101,46 @@ class PresetNameValidator(QRegExpValidator):
     """
     Preset name validator.
     """
-    def __init__(self, parent=None):
-        rx = QtCore.QRegExp("([a-zA-Z0-9])([a-zA-Z0-9]|[_-\s])*")
-        super().__init__(rx, parent)
+    def __init__(self, rx=None, parent=None, excluded=None):
+        if excluded is None:
+            excluded = []
+        self.excluded = excluded
+        if rx is None:
+            rx = QtCore.QRegExp("([a-zA-Z0-9])([a-zA-Z0-9]|[_-\s])*")
+        super(PresetNameValidator, self).__init__(rx, parent)
+
+    def validate(self, text, pos):
+        if text in self.excluded:
+            return (QValidator.Invalid, text, pos)
+        return super(PresetNameValidator, self).validate(text, pos)
 
 
-class MultiJobNameValidator(QRegExpValidator):
+class SshNameValidator(PresetNameValidator):
+    def __init__(self, rx=None, parent=None, excluded=None):
+        if excluded is None:
+            excluded = []
+        if 'local' not in excluded:
+            excluded.append('local')
+        super(SshNameValidator, self).__init__(rx, parent, excluded)
+
+
+class PbsNameValidator(PresetNameValidator):
+    def __init__(self, rx=None, parent=None, excluded=None):
+        if excluded is None:
+            excluded = []
+        if 'no PBS' not in excluded:
+            excluded.append('no PBS')
+        super(PbsNameValidator, self).__init__(rx, parent, excluded)
+
+
+class MultiJobNameValidator(PresetNameValidator):
     """
     MultiJob validator, only alphanumeric values and (_-).
     """
-    def __init__(self, parent=None):
-        rx = QtCore.QRegExp("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
-        super().__init__(rx, parent)
+    def __init__(self, rx=None, parent=None, excluded=None):
+        if rx is None:
+            rx = QtCore.QRegExp("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
+        super().__init__(rx, parent, excluded)
 
 
 class WalltimeValidator(QRegExpValidator):

@@ -125,7 +125,7 @@ class UiMultiJobDialog(UiFormDialog):
 
         # validators
         self.nameValidator = MultiJobNameValidator(
-            self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row

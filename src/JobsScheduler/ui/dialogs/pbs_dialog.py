@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 from ui.data.preset_data import PbsPreset
 from ui.data.queues import PbsQueues
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import PresetNameValidator, WalltimeValidator, \
+from ui.validators.validation import PbsNameValidator, WalltimeValidator, \
     MemoryValidator, ScratchValidator, ValidationColorizer
 
 
@@ -140,8 +140,8 @@ class UiPbsDialog(UiFormDialog):
         dialog.resize(400, 260)
 
         # validators
-        self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
+        self.nameValidator = PbsNameValidator(
+            parent=self.mainVerticalLayoutWidget)
         self.walltimeValidator = WalltimeValidator(
             self.mainVerticalLayoutWidget)
         self.memoryValidator = MemoryValidator(

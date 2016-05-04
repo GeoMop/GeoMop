@@ -10,7 +10,7 @@ from PyQt5 import QtWidgets
 from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import PresetNameValidator, ValidationColorizer
+from ui.validators.validation import SshNameValidator, ValidationColorizer
 
 
 class SshDialog(AFormDialog):
@@ -110,8 +110,8 @@ class UiSshDialog(UiFormDialog):
         dialog.resize(400, 260)
 
         # validators
-        self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
+        self.nameValidator = SshNameValidator(
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row

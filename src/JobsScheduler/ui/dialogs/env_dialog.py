@@ -133,7 +133,7 @@ class UiEnvDialog(UiFormDialog):
 
         # validators
         self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row
