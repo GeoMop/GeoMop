@@ -82,9 +82,14 @@ class ConfigBuilder:
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        # TODO exec -> pbs: set dialect from mj_ssh_preset
+        j_dialect = j_ssh_preset.pbs_system
+        if (res_preset.mj_execution_type == UiResourceDialog.EXEC_LABEL and
+                res_preset.j_execution_type == UiResourceDialog.PBS_LABEL) or \
+                (res_preset.mj_execution_type == UiResourceDialog.PBS_LABEL and
+                res_preset.j_execution_type == UiResourceDialog.PBS_LABEL):
+            j_dialect = mj_ssh_preset.pbs_system
         j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params,
-                                         dialect=j_ssh_preset.pbs_system)
+                                         dialect=j_dialect)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
         # TODO vyresit instalaci a spousteni knihovny
         r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, False, False)
