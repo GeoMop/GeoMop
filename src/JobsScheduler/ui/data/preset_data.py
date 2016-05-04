@@ -63,8 +63,6 @@ class PbsPreset(APreset):
         name = kw_or_def('name', 'Default PBS options name')
         super().__init__(name)
 
-        self.dialect = kw_or_def('dialect')
-        """Defines PBS system"""
         self.queue = kw_or_def('queue')
         """Defines preferred queue for execution"""
         self.walltime = kw_or_def('walltime')
@@ -110,6 +108,8 @@ class SshPreset(APreset):
         """User ID"""
         self.pwd = kw_or_def('pwd', '')
         """Password"""
+        self.pbs_system = kw_or_def('pbs_system')
+        """Defines PBS system dialect"""
 
     def get_description(self):
         """

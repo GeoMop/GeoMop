@@ -76,12 +76,15 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params)
+        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params,
+                                          dialect=mj_ssh_preset.pbs_system)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params)
+        # TODO exec -> pbs: set dialect from mj_ssh_preset
+        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params,
+                                         dialect=j_ssh_preset.pbs_system)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
         # TODO vyresit instalaci a spousteni knihovny
         r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, False, False)
@@ -290,7 +293,7 @@ class ConfBuilder:
 
 class ConfFactory:
     @staticmethod
-    def get_pbs_conf(preset, with_socket=True, pbs_params=None):
+    def get_pbs_conf(preset, with_socket=True, pbs_params=None, dialect=None):
         """
         Converts preset data to communicator config for PBS.
         :param preset: Preset data object from UI.
@@ -312,6 +315,7 @@ class ConfFactory:
         pbs.with_socket = with_socket
         if pbs_params is not None:
             pbs.pbs_params = pbs_params
+        pbs.dialect = dialect
         return pbs
 
     @staticmethod

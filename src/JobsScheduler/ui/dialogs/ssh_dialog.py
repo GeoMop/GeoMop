@@ -7,6 +7,7 @@ SSH dialog
 
 from PyQt5 import QtWidgets
 
+from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
@@ -65,6 +66,8 @@ class SshDialog(AFormDialog):
         preset.port = self.ui.portSpinBox.value()
         preset.uid = self.ui.userLineEdit.text()
         preset.pwd = self.ui.passwordLineEdit.text()
+        if self.ui.pbsSystemComboBox.currentText():
+            preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
         return {
             "key": key,
             "preset": preset
@@ -83,6 +86,8 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.userLineEdit.setText(preset.uid)
             self.ui.passwordLineEdit.setText(preset.pwd)
+            self.ui.pbsSystemComboBox.setCurrentIndex(
+                self.ui.pbsSystemComboBox.findData(preset.pbs_system))
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -90,6 +95,7 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(22)
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
+            self.ui.pbsSystemComboBox.setCurrentIndex(-1)
 
 
 class UiSshDialog(UiFormDialog):
@@ -193,5 +199,23 @@ class UiSshDialog(UiFormDialog):
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordLineEdit)
+
+        # 6 row
+        self.pbsSystemLabel = QtWidgets.QLabel(
+            self.mainVerticalLayoutWidget)
+        self.pbsSystemLabel.setObjectName("pbsSystemLabel")
+        self.pbsSystemLabel.setText("PBS System:")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+                                  self.pbsSystemLabel)
+        self.pbsSystemComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.pbsSystemComboBox.setObjectName(
+            "pbsSystemComboBox")
+        self.pbsSystemComboBox.addItem("")
+        dialect_items = DialectImporter.get_available_dialects()
+        for key in dialect_items:
+            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
+                                  self.pbsSystemComboBox)
 
         return dialog
