@@ -1,4 +1,4 @@
-from .action_types import ParametrizedActionType, Runner, ActionType, ActionStateType
+from .action_types import ParametrizedActionType, Runner, ActionType, ActionStateType, ActionRunningState
 from .data_types_tree import Struct
 
 class Flow123dAction(ParametrizedActionType):
@@ -46,9 +46,20 @@ class Flow123dAction(ParametrizedActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        
+        if self._state == ActionStateType.processed:
+            return ActionRunningState.wait,  None
+        if self._state == ActionStateType.finished:
+            return ActionRunningState.finished,  None
+        self._state = ActionStateType.processed
         file = self.__parametrise_file()
-        return  self._get_runner(file)
+        return  ActionRunningState.wait,  self._get_runner(file)
+        
+    def _after_run(self):    
+        """
+        Set real output variable and set finished state.
+        """
+        # ToDo read output from files
+        self._state = ActionStateType.finished
 
     def _check_params(self):    
         """check if all require params is set"""

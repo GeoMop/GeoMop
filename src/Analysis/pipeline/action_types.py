@@ -4,10 +4,46 @@ from .data_types_tree import *
 from .code_formater import Formater
 import math
 
+class ActionsStatistics:
+    def __init__(self):
+        self.known_jobs = 0
+        """count of known jobs (minimal amount of jobs)"""
+        self.estimated_jobs = 0
+        """estimated count of jobs"""
+        self.finished_jobs = 0
+        """count of finished jobs"""
+        self.running_jobs = 0
+        """count of running jobs"""
+        
+    def duplicate(self):
+        ret = ActionsStatistics()
+        ret.known_jobs = self.known_jobs
+        ret.estimated_jobs = self.estimated_jobs
+        ret.finished_jobs = self.finished_jobs
+        ret.running_jobs = self.running_jobs
+        return ret
+        
+    def add(self, astat, multiplied=1):
+        self.known_jobs += astat.known_jobs*multiplied
+        self.estimated_jobs += astat.estimated_jobs*multiplied
+        self.finished_jobs += astat.finished_jobs*multiplied
+        self.running_jobs += astat.running_jobs*multiplied
+
 class ActionType(IntEnum):
     """Action type"""
     simple = 0
     complex = 1
+    
+class ActionRunningState(IntEnum):
+    """IAction state after run processing"""
+    finished = 0
+    """Action is finished, runner is None"""
+    repeat = 1
+    """action can return next runner, runner is None or value"""
+    wait = 2
+    """action wait to external job processing"""
+    error = 3
+    """end processing and send error"""
     
 class ActionStateType(IntEnum):
     """Action type"""
@@ -17,7 +53,7 @@ class ActionStateType(IntEnum):
     """action is inicialized"""
     wait = 2
     """action is ready for processing or validation"""
-    process = 3
+    processed = 3
     """action is processed"""
     finished = 4
     """action is finished"""
@@ -26,14 +62,17 @@ class Runner():
     """
     Data crate for action process runner description 
     """
-    def __init__(self, type=ActionType.simple):
+    def __init__(self, action, id):
         self.name = ""
         """Runner name for loging"""
         self.command = ""
         """Command for popen"""
         self.params = {}
         """dictionary names => types of input ports"""
-        self.type =  type   
+        self.action =  action
+        """action"""
+        self.id =  id
+        """action unique id"""
 
 __action_counter__ = 0
 """action counter for unique settings in created script for code generation"""
@@ -66,12 +105,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self._type = ActionType.simple
         """action type"""
         self._load_errs = []
-        """initialiyacion or sets errors"""
-        self._pending_actions = 0
-        """
-        If action can contain some complex actions that are not known in 
-        current time, there is theirs number
-        """
+        """initializacion or sets errors"""
         self.set_config(**kwargs)
 
     def set_config(self, **kwargs):
@@ -90,7 +124,20 @@ class BaseActionType(metaclass=abc.ABCMeta):
             self._load_errs.append("Inputs parameter must be list.")
             return        
         self._inputs = inputs
-
+        
+    def _get_statistics(self):
+        """return all statistics for this and child action"""
+        ret = ActionsStatistics()
+        if action._type == ActionType.complex:
+            if self._state is ActionStateType.finished:
+                ret.finished_jobs += 1
+            elif self._state is ActionStateType.processed:
+                ret.running_jobs += 1
+            else:
+                ret.known_jobs += 1
+                ret.estimated_jobs += 1
+        return
+        
     @abc.abstractmethod
     def _inicialize(self):
         """inicialize action run variables"""
@@ -105,6 +152,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         Gain input from preceding action, check type and
         duplicate it.
         """
+        if len(self._inputs)<=number:
+            return None
         input_val = self._inputs[number]._get_output()
         if isinstance( input_val, GDTT):
             input_val =  input_val.duplicate()
@@ -192,6 +241,10 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self._id))
         
+    def _get_next_instance_name(self):
+        id = __action_counter__ + 1
+        return "{0}_{1}".format(self.name, str(id))
+        
     def _get_variables_script(self):    
         """
         return array of variables as python scripts
@@ -199,13 +252,19 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if value is extend to more lines, value must be closed to bracked
         """
         return []
-       
+    
+    def _get_runner(self, params):    
+        """
+        return Runner class with process description
+        """        
+        return None 
+ 
     @abc.abstractmethod 
     def _run(self):    
         """
         Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
+        return ActionRunningState and Runner class with  process description 
+        or None if action not need externall processing.
         """
         pass
         
@@ -311,7 +370,7 @@ class Bridge(BaseActionType):
         return []
         
     def _run(self):    
-        return  self._get_runner(None) 
+        return  ActionRunningState.finished, self._get_runner(None) 
  
     def _get_instance_name(self):
         return "{0}.input()".format(self.workflow._get_instance_name())
@@ -429,7 +488,21 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             pipeline side effects (result)
         """
         super(WorkflowActionType, self).__init__(**kwargs)
-        
+        self.__processed_actions = None
+        """Action that wait for next procesing"""
+        self.__next_action = 0
+        """Action that will be processed in next calling of run function"""
+
+
+    def _get_statistics(self):
+        """return all statistics for this and child action"""
+        actions = self._get_child_list()
+        ret = ActionsStatistics()
+        for action in actions:
+            stat = action._get_statistics()
+            ret.add(stat)
+        return
+    
     @classmethod
     def _order_child_list(cls, actions):
         """
@@ -447,7 +520,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 if cls._check_action_dependencies(actions[i], ordered_action):
                     ordered_action.append(actions.pop(i))
                     break
-        return ordered_action
+        return ordered_action  
 
     @staticmethod 
     def _get_action_list(action, stop_action=None):
@@ -513,5 +586,63 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 for i in range(0, len(self._variables['ResultActions'], list)):
                     if not isinstance(self._variables['ResultActions'],  BaseActionType):
                         err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
-        return err   
+        return err  
+       
+    @staticmethod
+    def _is_independent(action):
+        """check if all direct dependecies is in set action list"""
+        for dep_action in action._inputs:
+            if dep_action._state is not ActionStateType.finished:
+                return False
+        return True
+        
+    def _will_be_independent(action):
+        """check if all direct dependecies is in set action list"""
+        for dep_action in action._inputs:
+            if dep_action._state is not ActionStateType.processed or \
+                dep_action._state is not ActionStateType.finished:
+                return False
+        return True
  
+    def _run(self):    
+        """
+        Process action on client site or prepare process environment and 
+        return Runner class with  process description or None if action not 
+        need externall processing.
+        """
+        if  self.__processed_actions is None:
+            self.__processed_actions =self._get_child_list()
+            self._state = ActionStateType.processed
+        if len(self.__processed_actions) == 0:
+            self._state = ActionStateType.finished
+            return ActionRunningState.finished, None
+        if self.__next_action>=len(self.__processed_actions):
+            self.__next_action = 0
+        start_action = self.__next_action
+        all_dependent = True
+        while True:
+            if self._is_independent(self.__processed_actions[self.__next_action]):
+                all_dependent = False
+                state, runner = self.__processed_actions[self.__next_action]._run()
+                if state is ActionRunningState.finished:
+                    del self.__processed_actions[self.__next_action]
+                    return ActionRunningState.repeat, runner
+                if state is ActionRunningState.repeat:
+                    return state, runner
+                if state is ActionRunningState.error:
+                    return state, runner 
+                if state is ActionRunningState.wait and runner is not None:
+                    return ActionRunningState.repeat, runner
+                # run return wait, try next
+            if all_dependent and \
+                self. _will_be_independent(self.__processed_actions[self.__next_action]):
+                all_dependent = False        
+            self.__next_action += 1
+            if self.__next_action>=len(self.__processed_actions):
+                self.__next_action = 0
+            if start_action == self.__next_action:
+                break
+        if all_dependent:
+            return ActionRunningState.error,  \
+                ["No independent action in workflow"]
+        return ActionRunningState.wait, None        

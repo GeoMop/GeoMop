@@ -1,5 +1,6 @@
-from .action_types import WrapperActionType, ActionStateType, BaseActionType
+from .action_types import WrapperActionType, ActionStateType, BaseActionType, ActionsStatistics, ActionRunningState
 from .data_types_tree import Ensemble, DTT
+from .generator_actions import VariableGenerator
 
 class ForEach(WrapperActionType):
     
@@ -23,8 +24,8 @@ class ForEach(WrapperActionType):
         Set wrapper class serve only as template, for run is make
         copy of this class. The variable is for the copies.
         """
-        self.wa_inputs=[]
-        """input for the copy of wrapper class"""
+        self._procesed_instances
+        """How many instances is procesed"""
         super(ForEach, self).__init__(**kwargs)
 
     def _set_bridge(self, bridge):
@@ -74,11 +75,58 @@ class ForEach(WrapperActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        return  self._get_runner(None)        
+        if self._state == ActionStateType.finished:
+            return ActionRunningState.finished,  None
+        if len( self.wa_instances)==0:
+            ensemble = []
+            for i in range(0, len(self._inputs)):
+                ensemble.append(self.get_input_val(i))
+            if len(ensemble[0])== 0:
+                return ActionRunningState.error,  \
+                    ["Empty Ensemble in ForEach input"]
+            for i in range(0, len(ensemble[0]._list)):
+                inputs=[]
+                for j in range(0, len(self._inputs)):
+                    if len(ensemble[j]._list)<=i:
+                        return ActionRunningState.error,  \
+                            ["Ensamble in Input({0}) has less items".format(str(i))]
+                    inputs.append(VariableGenerator(Variable=ensemble[j]._list[i]))                            
+                name = self._variables['WrappedAction']._get_next_instance_name()
+                script = self._variables['WrappedAction']._get_settings_script()
+                script.insert(0, "from pipeline import *")
+                exec ('\n'.join(script), globals())
+                self.wa_instances.append(eval(name))
+                self.wa_instances[-1].set_inputs(*inputs)
+                self.wa_instances[-1]._inicialize()
+            self._state = ActionStateType.processed
+        if self._procesed_instances == len(self.wa_instances):
+            for instance in self.wa_instances:
+                if instance._state is not ActionStateType.finished:
+                    return ActionRunningState.wait, None
+            self._state == ActionStateType.finished
+            return ActionRunningState.finished, None
+        next_wa = self._procesed_instances   
+        while next_wa < len(self.wa_instances):    
+            state, runner = self.wa_instances[next_wa]._run()
+            if state is ActionRunningState.finished:
+                if next_wa == self._procesed_instances:
+                    self._procesed_instances += 1
+                return ActionRunningState.repeat, runner
+            if state is ActionRunningState.repeat:
+                return state, runner
+            if state is ActionRunningState.error:
+                return state, runner
+            if state is ActionRunningState.wait and runner is not None:
+                return ActionRunningState.repeat, runner
+            # run return wait, try next
+            next_wa += 1            
+        return  ActionRunningState.wait, None        
 
     def _check_params(self):    
         """check if all require params is set"""
         err = super(ForEach, self)._check_params()
+        if len(self._inputs) == 0:
+            err.append("No input action for ForEach") 
         for i in range(0, len(self._inputs)):
             ensemble = self.get_input_val(i)
             if not isinstance(ensemble,  Ensemble):
@@ -92,3 +140,16 @@ class ForEach(WrapperActionType):
             isinstance(self._variables['WrappedAction'],  BaseActionType):
             err.extend(self._variables['WrappedAction'].validate())
         return err
+        
+    def _get_statistics(self):
+        """return all statistics for this and child action"""
+        stat = self._variables['WrappedAction']._get_statistics
+        number = 0
+        if len(self.wa_instances)>0:
+            number = len(self.wa_instances)
+        else:
+            ensemble = self.get_input_val(0)
+            number = len(ensemble._list)
+        ret = ActionsStatistics()
+        ret.add(stat, number)
+        return

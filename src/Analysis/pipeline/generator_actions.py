@@ -1,4 +1,4 @@
-from .action_types import GeneratorActionType, ActionStateType
+from .action_types import GeneratorActionType, ActionStateType, ActionRunningState
 from .data_types_tree import Ensemble, Struct, Float, DTT
 import copy
 from .code_formater import Formater
@@ -45,7 +45,8 @@ class VariableGenerator(GeneratorActionType):
         need externall processing.
         """
         self._output = self._get_valid_output()
-        return  self._get_runner(None)
+        self._state == ActionStateType.finished
+        return  ActionRunningState.finished, self._get_runner(None)
 
     def _check_params(self):    
         """check if all require params is set"""
@@ -138,12 +139,6 @@ class RangeGenerator(GeneratorActionType):
             var.append(["AllCases=True"])
             
         return var
-
-    def _get_runner(self, params):    
-        """
-        return Runner class with process description
-        """        
-        return None
         
     def _run(self):    
         """
@@ -167,9 +162,8 @@ class RangeGenerator(GeneratorActionType):
                     self._generate_step(template_i, item)
             else:
                 self._generate_step(template, item)
-                
-        # ToDo generate ensemble
-        return  self._get_runner(None)
+        self._state == ActionStateType.finished
+        return  ActionRunningState.finished, self._get_runner(None)
         
     def _generate_step(self, template, item):
         """generate plus and minus variants for one item"""

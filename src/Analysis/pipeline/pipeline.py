@@ -48,14 +48,6 @@ class Pipeline(WorkflowActionType):
         if isinstance(self._variables['ResultActions'][number],  BaseActionType):
             return self._variables['ResultActions'][number]._get_output(self)
         return None
-        
-    def _run(self):    
-        """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
-        """
-        return  self._get_runner(None)        
 
     def _check_params(self):    
         """check if all require params is set"""

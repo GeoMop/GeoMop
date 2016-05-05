@@ -1,4 +1,4 @@
-from .action_types import ConnectorActionType, ActionStateType
+from .action_types import ConnectorActionType, ActionStateType, ActionRunningState
 
 class Connector(ConnectorActionType):
     
@@ -61,7 +61,12 @@ class Connector(ConnectorActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        return  self._get_runner(None)
+        try:
+            self._output = self._variables['Convertor']._get_output(self._inputs) 
+        except Exception as err:
+            self._load_errs.append(str(err))
+        self._state == ActionStateType.finished
+        return  ActionRunningState.finished, self._get_runner(None)
         
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""

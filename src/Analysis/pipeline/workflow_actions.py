@@ -95,14 +95,6 @@ class Workflow(WorkflowActionType):
             isinstance(self._variables['OutputAction'],  BaseActionType):
             return self._variables['OutputAction']._get_output()
         return None
-       
-    def _run(self):    
-        """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
-        """
-        return  self._get_runner(None)        
 
     def _check_params(self):    
         """check if all require params is set"""
@@ -141,5 +133,4 @@ class Workflow(WorkflowActionType):
         for action in actions:
             err.extend(action.validate())
         return err
-        
-
+ 
