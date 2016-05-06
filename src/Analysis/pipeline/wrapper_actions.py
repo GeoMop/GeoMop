@@ -24,7 +24,7 @@ class ForEach(WrapperActionType):
         Set wrapper class serve only as template, for run is make
         copy of this class. The variable is for the copies.
         """
-        self._procesed_instances
+        self._procesed_instances = 0
         """How many instances is procesed"""
         super(ForEach, self).__init__(**kwargs)
 
@@ -143,7 +143,7 @@ class ForEach(WrapperActionType):
         
     def _get_statistics(self):
         """return all statistics for this and child action"""
-        stat = self._variables['WrappedAction']._get_statistics
+        stat = self._variables['WrappedAction']._get_statistics()
         number = 0
         if len(self.wa_instances)>0:
             number = len(self.wa_instances)
@@ -152,4 +152,4 @@ class ForEach(WrapperActionType):
             number = len(ensemble._list)
         ret = ActionsStatistics()
         ret.add(stat, number)
-        return
+        return ret

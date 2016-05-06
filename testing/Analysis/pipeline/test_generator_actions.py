@@ -49,7 +49,7 @@ def test_generator_code_init():
     assert isinstance(gen._output.subtype.b, Float)
     
     #range generation
-    assert gen._run() == None
+    assert gen._run() == (ActionRunningState.finished, None)
     i=0
     for out in gen._output:
         if i== 0:
@@ -92,7 +92,7 @@ def test_generator_code_init():
     assert isinstance(gen._output.subtype.b, Float)
     
     #range generation
-    assert gen._run() == None
+    assert gen._run() == (ActionRunningState.finished, None)
     i=0
     for out in gen._output:
         if i== 0:

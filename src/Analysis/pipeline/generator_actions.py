@@ -44,8 +44,8 @@ class VariableGenerator(GeneratorActionType):
         return Runner class with  process description or None if action not 
         need externall processing.
         """
-        self._output = self._get_valid_output()
-        self._state == ActionStateType.finished
+        
+        self._state = ActionStateType.finished
         return  ActionRunningState.finished, self._get_runner(None)
 
     def _check_params(self):    
@@ -92,6 +92,22 @@ class RangeGenerator(GeneratorActionType):
         if self._state.value > ActionStateType.created.value:
             return
         self._output = self.__get_output_from_items()
+        template =copy.deepcopy(self._output.subtype)
+        # first is middle
+        self._output.add_item(template)
+        for item in self._variables['Items']:
+            if not isinstance(item,  dict):
+                continue                
+            if 'name' in item and item['name'] in template:
+                if 'name' in item:
+                    setattr(template, item['name'], item['value'])
+        for item in self._variables['Items']:
+            if 'AllCases' in self._variables and self._variables['AllCases']:
+                ready = copy.deepcopy(self._output)
+                for template_i in ready:
+                    self._generate_step(template_i, item)
+            else:
+                self._generate_step(template, item)
         self._state = ActionStateType.initialized
         
     def __get_output_from_items(self):
@@ -145,24 +161,8 @@ class RangeGenerator(GeneratorActionType):
         Process action on client site or prepare process environment and 
         return Runner class with  process description or None if action not 
         need externall processing.
-        """
-        template =copy.deepcopy(self._output.subtype)
-        # first is middle
-        self._output.add_item(template)
-        for item in self._variables['Items']:
-            if not isinstance(item,  dict):
-                continue                
-            if 'name' in item and item['name'] in template:
-                if 'name' in item:
-                    setattr(template, item['name'], item['value'])
-        for item in self._variables['Items']:
-            if 'AllCases' in self._variables and self._variables['AllCases']:
-                ready = copy.deepcopy(self._output)
-                for template_i in ready:
-                    self._generate_step(template_i, item)
-            else:
-                self._generate_step(template, item)
-        self._state == ActionStateType.finished
+        """        
+        self._state = ActionStateType.finished
         return  ActionRunningState.finished, self._get_runner(None)
         
     def _generate_step(self, template, item):

@@ -16,11 +16,9 @@ class Workflow(WorkflowActionType):
         :param list of BaseActionType ResultActions: Action that is blined , that created
             pipeline side effects (result)
         is set by set_output_action after class defination
-        :param BaseActionType Input: This variable is input action,
+        :param BaseActionType Inputs: This variable is input action,
             for direct link to previous action, or may be omited for using in
             wrapper action
-        :param object Output: This variable is ignore, during inicialize
-            is set accoding OutputAction's outputs
         """
         super(Workflow, self).__init__(**kwargs)
         self.bridge = Bridge(self)
@@ -63,9 +61,9 @@ class Workflow(WorkflowActionType):
             for action in actions:
                action._inicialize()
         except Exception as err:
-            self._load_errs.append("Inicialize child workflow action error ({0})".format(err))
+            self._load_errs.append("Inicialize child workflow action error ({0})".format(err))   
         if  len(self._inputs)==1:
-            self._set_bridge(self._variables['Inputs'][0])            
+            self._set_bridge(self._variables['Inputs'][0])
                     
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""
@@ -100,27 +98,26 @@ class Workflow(WorkflowActionType):
         """check if all require params is set"""
         err = super(Workflow, self)._check_params()
         if len(self._inputs)  != 1:
-            err.append("Parametrized action require exactly one input parameter")
+            if len(self._inputs)>1 or self.bridge._link is None:
+                err.append("Workflow action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
                     err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
                         self.name))        
-        if  not 'InputAction' in self.variables:
+        if  not 'InputAction' in self._variables:
             err.append("Parameter 'InputAction' is require")
         else:            
-            if not isinstance(self.variables['InputAction'],  BaseActionType):
+            if not isinstance(self._variables['InputAction'],  BaseActionType):
                 err.append("Parameter 'InputAction' must be BaseActionType") 
             else:
                 # during inicialiyation should be processed all chain action
-                if len(self.variables['InputAction'])!=1:
-                    err.append("Workflow require 'InputAction' with exactly one input parameter.") 
-                if self.variables['InputAction'] is ActionStateType.created:
+                if self._variables['InputAction'] is ActionStateType.created:
                     err.append("Inicialization of 'InputAction' is not processed. Is all workflow actions chained?") 
-        if  not 'OutputAction' in self.variables:
+        if  not 'OutputAction' in self._variables:
             err.append("Parameter 'OutputAction' is require")
         else:
-            if not isinstance(self.variables['OutputAction'],  BaseActionType):
+            if not isinstance(self._variables['OutputAction'],  BaseActionType):
                 err.append("Parameter 'OutputAction' must be BaseActionType")
                 
         return err
@@ -128,7 +125,6 @@ class Workflow(WorkflowActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = super(Workflow, self).validate()
-        err.extend(self._check_params())
         actions = self._get_child_list()
         for action in actions:
             err.extend(action.validate())

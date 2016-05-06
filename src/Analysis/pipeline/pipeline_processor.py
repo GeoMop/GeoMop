@@ -84,7 +84,7 @@ class Pipelineprocessor():
             return self._errs
         try:
             self._pipeline._inicialize()
-            self._errs = self._pipeline._validate()
+            self._errs = self._pipeline.validate()
             self._statistics = self._pipeline._get_statistics()
         except Exception as err:
             self._errs.append("Exception during validation: " + str(err))
@@ -178,10 +178,12 @@ class Pipelineprocessor():
                         self._action_lock.release()
                         return
                     if self._pause:
+                        # pause after signall
                         self._action_lock.release()
                         time.sleep(1)                        
                         self._action_lock.acquire()
-                    break
+                    else:
+                        break
             self._action_lock.release()
             state, runner = self._pipeline._run()
             self._action_lock.acquire()

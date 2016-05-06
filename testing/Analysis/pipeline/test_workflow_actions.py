@@ -12,4 +12,6 @@ def test_workflow_code_init():
     # Todo test workflow with more action
     # Todo test workflow with more action where is side effect action in separate branch
     # Todo test workflow duplication
+    # Todo test workflow v ForEach
+    # Todo test workflow with one direct input
     pass

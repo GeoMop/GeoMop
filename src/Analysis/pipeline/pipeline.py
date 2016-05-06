@@ -56,14 +56,8 @@ class Pipeline(WorkflowActionType):
             err.append("Pipeline action not use input parameter")
         if  not 'ResultActions' in self._variables:
             err.append("Parameter 'ResultActions' is require for pipeline")
-        elif isinstance(self._variables['ResultActions'], list):
-            err.append("Parameter 'ResultActions' must be list of output actions")
-        elif len(self._variables['ResultActions'], list)<1:
+        elif len(self._variables['ResultActions'])<1:
             err.append("Parameter 'ResultActions' must contains least one action")
-        else:
-            for i in range(0, len(self._variables['ResultActions'], list)):
-                if not isinstance(self._variables['ResultActions'],  BaseActionType):
-                    err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
         return err
         
     def validate(self):    

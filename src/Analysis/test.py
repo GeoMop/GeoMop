@@ -3,6 +3,13 @@ from pipeline.generator_actions import *
 from pipeline.data_types_tree import *
 from pipeline.generic_tree import *
 from pipeline.convertors import *
+from pipeline.pipeline_processor import *
+from pipeline.pipeline import *
+from pipeline.workflow_actions import *
+from pipeline.wrapper_actions import *
+from pipeline.parametrized_actions import *
+import pipeline.action_types as action
+import time
 
 action.__action_counter__ = 0
 items = [
@@ -16,3 +23,13 @@ workflow.set_config(OutputAction=flow, InputAction=flow)
 foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
 pipeline=Pipeline(ResultActions=[foreach])
 pipeline._inicialize()
+pp = Pipelineprocessor(pipeline)
+errs = pp.validate()
+pp.run()
+while pp.is_run():
+    runner = pp.get_next_job()
+    if runner is None:
+        time.sleep(1)
+    else:
+        pp.set_job_finished(runner.id)
+i=0

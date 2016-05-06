@@ -128,7 +128,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _get_statistics(self):
         """return all statistics for this and child action"""
         ret = ActionsStatistics()
-        if action._type == ActionType.complex:
+        if self._type == ActionType.complex:
             if self._state is ActionStateType.finished:
                 ret.finished_jobs += 1
             elif self._state is ActionStateType.processed:
@@ -136,7 +136,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
             else:
                 ret.known_jobs += 1
                 ret.estimated_jobs += 1
-        return
+        return ret
         
     @abc.abstractmethod
     def _inicialize(self):
@@ -344,24 +344,24 @@ class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
     
     def __init__(self, workflow):
-        self.workflow =workflow
+        self._workflow =workflow
         """Workflow action"""        
-        self.link=None
+        self._link=None
         """Real action for gaining output"""
-        self.get_func =None
+        self._get_func =None
         
     def _set_new_link(self, link, get_func):
-        self.link=link
-        self.get_func = link._get_output
+        self._link=link
+        self._get_func = link._get_output
         if get_func is not None:
-            self.get_func = get_func
+            self._get_func = get_func
 
     def _inicialize(self):
         pass
         
     def _get_output(self):
-        if self.link is not None:
-            return self.get_func()
+        if self._link is not None:
+            return self._get_func()
 
     def _check_params(self):    
         return []
@@ -373,7 +373,7 @@ class Bridge(BaseActionType):
         return  ActionRunningState.finished, self._get_runner(None) 
  
     def _get_instance_name(self):
-        return "{0}.input()".format(self.workflow._get_instance_name())
+        return "{0}.input()".format(self._workflow._get_instance_name())
 
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -501,7 +501,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         for action in actions:
             stat = action._get_statistics()
             ret.add(stat)
-        return
+        return ret
     
     @classmethod
     def _order_child_list(cls, actions):
@@ -578,13 +578,11 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         if self._state is ActionStateType.created:
             err.append("Inicialize method should be processed before checking")
         if  'ResultActions' in self._variables:
-            if isinstance(self._variables['ResultActions'], list):
+            if not isinstance(self._variables['ResultActions'], list):
                 err.append("Parameter 'ResultActions' must be list of output actions")
-            elif len(self._variables['ResultActions'], list)<1:
-                err.append("Parameter 'ResultActions' must contains least one action")
             else:
-                for i in range(0, len(self._variables['ResultActions'], list)):
-                    if not isinstance(self._variables['ResultActions'],  BaseActionType):
+                for i in range(0, len(self._variables['ResultActions'])):
+                    if not isinstance(self._variables['ResultActions'][i],  BaseActionType):
                         err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
         return err  
        
@@ -595,7 +593,8 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             if dep_action._state is not ActionStateType.finished:
                 return False
         return True
-        
+     
+    @staticmethod
     def _will_be_independent(action):
         """check if all direct dependecies is in set action list"""
         for dep_action in action._inputs:

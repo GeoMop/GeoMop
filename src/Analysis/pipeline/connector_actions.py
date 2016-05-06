@@ -65,7 +65,7 @@ class Connector(ConnectorActionType):
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
             self._load_errs.append(str(err))
-        self._state == ActionStateType.finished
+        self._state = ActionStateType.finished
         return  ActionRunningState.finished, self._get_runner(None)
         
     def _get_settings_script(self):    
