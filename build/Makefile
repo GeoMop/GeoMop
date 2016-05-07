@@ -4,6 +4,9 @@ PKGNAME=geomop
 
 PKGDIR=$(PKGNAME)-$(VERSION)
 
+PKGMESAMPLEDIR=$(PKGDIR)/sample/ModelEditor
+GITMESAMPLEDIR=$(GITDIR)/sample/ModelEditor
+
 clean:
 	rm -rf $(PKGDIR)
 	rm -f $(PKGNAME)_$(VERSION)*
@@ -11,7 +14,15 @@ clean:
 copy: clean
 	mkdir $(PKGDIR)
 	cp -t $(PKGDIR)/ $(GITDIR)/CHANGELOG.md $(GITDIR)/VERSION $(GITDIR)/requirements.txt
-	cp -r $(GITDIR)/sample $(PKGDIR)/
+	mkdir $(PKGDIR)/sample
+	mkdir $(PKGMESAMPLEDIR)
+	cp -r $(GITMESAMPLEDIR)/ConFiles $(PKGMESAMPLEDIR)
+	mkdir $(PKGMESAMPLEDIR)/YamlFiles
+	cp $(GITMESAMPLEDIR)/YamlFiles/flow_21d.yaml $(PKGMESAMPLEDIR)/YamlFiles/
+	cp $(GITMESAMPLEDIR)/YamlFiles/flow_time_dep.yaml $(PKGMESAMPLEDIR)/YamlFiles/
+	cp $(GITMESAMPLEDIR)/YamlFiles/flow_trans_explicit.yaml $(PKGMESAMPLEDIR)/YamlFiles/
+	cp $(GITMESAMPLEDIR)/YamlFiles/flow_vtk.yaml $(PKGMESAMPLEDIR)/YamlFiles/
+	cp $(GITMESAMPLEDIR)/YamlFiles/flow_vtk_source.yaml $(PKGMESAMPLEDIR)/YamlFiles/
 	cp -r $(GITDIR)/src $(PKGDIR)/
 	find $(PKGDIR)/src | grep -E "(__pycache__|\.pyc|\.pyo$$)" | xargs rm -rf
 
