@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import config as cfg
 from helpers import (notification_handler, AutocompleteHelper,
-                     StructureAnalyzer, shortcuts)
+                     StructureAnalyzer, shortcuts, Notification)
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
@@ -245,6 +245,10 @@ class MEConfig:
     logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
     """root context logger"""
 
+    DEFAULT_IMPORT_FORMAT_FILE = '1.8.6'
+    """default IST version to be used for imported con files"""
+
+
     @classmethod
     def init(cls, main_window):
         """Init class wit static method"""
@@ -339,6 +343,10 @@ class MEConfig:
        empty file
         """
         cls.document = ""
+        if Project.current is not None:
+            cls.curr_format_file = Project.current.flow123d_version
+            if not cls.curr_format_file:
+                cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
         cls.changed = False
         cls.curr_file = None
@@ -358,6 +366,8 @@ class MEConfig:
             cls.curr_file = file_name
             cls.imported_file_name = None
             cls.config.add_recent_file(file_name, cls.curr_format_file)
+            cls.update()
+            cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
             cls.sync_project_for_curr_file()
@@ -368,6 +378,29 @@ class MEConfig:
             else:
                 raise err
         return False
+
+    @classmethod
+    def _set_format_file_from_data(cls):
+        try:
+            cls.curr_format_file = cls.root.get_node_at_path('/flow123d_version').value
+        except (LookupError, AttributeError):
+            cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+        else:
+            if cls.curr_format_file not in cls.format_files:
+                # specified version not available, select next lower version
+                def get_version(format_file):
+                    vers = format_file.split('.')
+                    major = vers[0]
+                    minor = vers[1] if len(vers) > 1 else 0
+                    rev = vers[2] if len(vers) > 2 else 0
+                    return major, minor, rev
+                req_version = get_version(cls.curr_format_file)
+                for format_file in sorted(cls.format_files, reverse=True):
+                    version = get_version(format_file)
+                    if version > req_version:
+                        continue
+                    cls.curr_format_file = format_file
+                    break
 
     @classmethod
     def import_file(cls, file_name):
@@ -405,6 +438,16 @@ class MEConfig:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
+            cls.curr_format_file = None
+            if Project.current is not None:
+                cls.curr_format_file = Project.current.flow123d_version
+            if cls.curr_format_file is None:
+                cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            if cls.curr_format_file == '2.0.0':
+                try:
+                    cls.transform("f123_1.8.6_to_2.0.0")
+                except Exception:
+                    cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
             cls.update_format()
             cls.changed = True
             return True
@@ -446,6 +489,8 @@ class MEConfig:
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config. add_recent_file(file_name, cls.curr_format_file)
+            cls.update()
+            cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
             cls.sync_project_for_curr_file()
@@ -471,6 +516,18 @@ class MEConfig:
         cls.root = autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
 
+        # flow123d_version notifications
+        try:
+            node = cls.root.get_node_at_path('/flow123d_version')
+        except LookupError:
+            pass
+        else:
+            if node.value != cls.curr_format_file:
+                ntf = Notification.from_name(
+                    'UnavailableFlow123dVersion', node.value, cls.curr_format_file)
+                ntf.span = node.span
+                cls.notification_handler.report(ntf)
+
         # handle parameters
         if (Project.current is not None and
                 Project.current.is_abs_path_in_project_dir(cls.curr_file)):
@@ -484,7 +541,12 @@ class MEConfig:
         """reread json format file and update node tree"""
         if cls.curr_format_file is None:
             return
-        text = cls.get_curr_format_text()
+        try:
+            text = cls.get_curr_format_text()
+        except FileNotFoundError:
+            # if format is not found, open the latest instead
+            cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+            text = cls.get_curr_format_text()
         try:
             cls.root_input_type = get_root_input_type_from_json(text)
         except Exception as e:
@@ -541,6 +603,8 @@ class MEConfig:
             Project.current.merge_params(cls.validator.params)
             params = [param.name for param in cls.validator.params]
             Project.current.add_file(cls.curr_file, params)
+            if not Project.current.flow123d_version:
+                Project.current.flow123d_version = cls.curr_format_file
             Project.current.save()
 
     @classmethod

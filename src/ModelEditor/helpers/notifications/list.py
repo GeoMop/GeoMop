@@ -271,6 +271,18 @@ _NOTIFICATIONS = [
         'example': 'example_validation_type_error.yaml'
     },
 
+    # -----------------------------------------------------
+    #                  Format Warnings
+    # -----------------------------------------------------
+
+    {
+        'code': 750,
+        'name': 'UnavailableFlow123dVersion',
+        'description': 'Occurs when flow123d_version key specifies an unavailable IST version.',
+        'message': 'Flow123d version {0} is unavailable. Using {1} instead.',
+        'example': ''
+    },
+
     # =====================================================
     #                   INFO MESSAGES
     # =====================================================
