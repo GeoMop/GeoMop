@@ -214,4 +214,5 @@ class MainWindow(QtWidgets.QMainWindow):
         """Handle changes of config."""
         project = cfg.config.project or '(No Project)'
         self._project_label.setText(project)
+        self.editor.set_line_endings(cfg.config.line_endings)
 

@@ -45,6 +45,9 @@ class _Config:
 
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'ModelEditor')
 
+    LINE_ENDINGS_LF = 'unix'
+    LINE_ENDINGS_CRLF = 'windows'
+
     def __init__(self, **kwargs):
 
         def kw_or_def(key, default=None):
@@ -53,7 +56,7 @@ class _Config:
 
         from os.path import expanduser
         self.observers = []
-        """objects to be notified of changes (currently only used for project)"""
+        """objects to be notified of changes"""
         self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
@@ -69,6 +72,7 @@ class _Config:
         """user customizable keyboard shortcuts"""
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
+        self._line_endings = kw_or_def('_line_endings', _Config.LINE_ENDINGS_LF)
         self._project = kw_or_def('_project')
         self._workspace = kw_or_def('_workspace')
 
@@ -191,6 +195,17 @@ class _Config:
             else:
                 Project.current = project
         self.notify_all()
+
+    @property
+    def line_endings(self):
+        """line endings used in the edited files"""
+        return self._line_endings
+
+    @line_endings.setter
+    def line_endings(self, value):
+        if value != self._line_endings:
+            self._line_endings = value
+            self.notify_all()
 
     def notify_all(self):
         """Notify all observers about changes."""
