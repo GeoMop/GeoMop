@@ -6,6 +6,7 @@
 
 import os
 import logging
+import codecs
 from copy import deepcopy
 
 import config as cfg
@@ -360,8 +361,12 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         try:
-            with open(file_name, 'r') as file_d:
-                cls.document = file_d.read().expandtabs(tabsize=2)
+            try:
+                with codecs.open(file_name, 'r', 'utf-8') as file_d:
+                    cls.document = file_d.read().expandtabs(tabsize=2)
+            except UnicodeDecodeError:
+                with open(file_name, 'r') as file_d:
+                    cls.document = file_d.read().expandtabs(tabsize=2)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.imported_file_name = None
@@ -561,9 +566,8 @@ class MEConfig:
         """save file"""
         cls.update()
         try:
-            file_d = open(cls.curr_file, 'w')
-            file_d.write(cls.document)
-            file_d.close()
+            with codecs.open(cls.curr_file, 'w', 'utf-8') as file_d:
+                file_d.write(cls.document)
             # format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
@@ -580,9 +584,8 @@ class MEConfig:
         """save file as"""
         cls.update()
         try:
-            file_d = open(file_name, 'w')
-            file_d.write(cls.document)
-            file_d.close()
+            with codecs.open(file_name, 'w', 'utf-8') as file_d:
+                file_d.write(cls.document)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
