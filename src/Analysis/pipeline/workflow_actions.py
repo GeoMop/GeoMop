@@ -63,7 +63,7 @@ class Workflow(WorkflowActionType):
         except Exception as err:
             self._load_errs.append("Inicialize child workflow action error ({0})".format(err))   
         if  len(self._inputs)==1:
-            self._set_bridge(self._variables['Inputs'][0])
+            self.bridge._set_new_link(self._inputs[0])
                     
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""

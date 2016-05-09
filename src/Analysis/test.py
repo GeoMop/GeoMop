@@ -31,5 +31,6 @@ while pp.is_run():
     if runner is None:
         time.sleep(1)
     else:
+        print(runner.name+"\n")
         pp.set_job_finished(runner.id)
 i=0

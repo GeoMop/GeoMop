@@ -170,6 +170,7 @@ class Predicate(IConvertor):
         """return key"""
         v = VariableGenerator(Variable=input)
         v._inicialize()
+        v._run()
         output = self._get_output([v])
         #ToDo check bool
         return output
@@ -200,6 +201,7 @@ class KeyConvertor(IConvertor):
         """return key"""
         v = VariableGenerator(Variable=input)
         v._inicialize()
+        v._run()
         output = self._get_output([v])
         #ToDo check scalar
         return output  
@@ -230,6 +232,7 @@ class Adapter(IConvertor):
         """return key"""
         v = VariableGenerator(Variable=input)
         v._inicialize()
+        v._run()
         output = self._get_output([v])
         #ToDo check item
         return output

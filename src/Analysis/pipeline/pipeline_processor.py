@@ -58,7 +58,7 @@ class Pipelineprocessor():
         self._statistics = None
         """statiscis"""
         self._action_lock = threading.Lock()
-        """lock for runners arrays, _stop, pause and _statistics variables"""
+        """lock for runners arrays, _stop, _pause and _statistics variables"""
         self._stop = False
         """signal to sepparate thread for stopping"""
         self._pause = False

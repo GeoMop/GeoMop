@@ -765,6 +765,9 @@ class Ensemble(SortableDTT):
 
     def __iter__(self):
         return CompositiIter(self)
+        
+    def __len__(self):
+        return len(self._list)
 
     def get_item(self, i):       
         if i < len(self._list):

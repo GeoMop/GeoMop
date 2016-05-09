@@ -3,6 +3,7 @@ from enum import IntEnum
 from .data_types_tree import *
 from .code_formater import Formater
 import math
+import uuid
 
 class ActionsStatistics:
     def __init__(self):
@@ -62,7 +63,7 @@ class Runner():
     """
     Data crate for action process runner description 
     """
-    def __init__(self, action, id):
+    def __init__(self, action):
         self.name = ""
         """Runner name for loging"""
         self.command = ""
@@ -71,7 +72,7 @@ class Runner():
         """dictionary names => types of input ports"""
         self.action =  action
         """action"""
-        self.id =  id
+        self.id = uuid.uuid4()
         """action unique id"""
 
 __action_counter__ = 0
@@ -241,10 +242,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self._id))
         
-    def _get_next_instance_name(self):
-        id = __action_counter__ + 1
-        return "{0}_{1}".format(self.name, str(id))
-        
     def _get_variables_script(self):    
         """
         return array of variables as python scripts
@@ -350,7 +347,7 @@ class Bridge(BaseActionType):
         """Real action for gaining output"""
         self._get_func =None
         
-    def _set_new_link(self, link, get_func):
+    def _set_new_link(self, link, get_func=None):
         self._link=link
         self._get_func = link._get_output
         if get_func is not None:
@@ -374,7 +371,13 @@ class Bridge(BaseActionType):
  
     def _get_instance_name(self):
         return "{0}.input()".format(self._workflow._get_instance_name())
-
+        
+    def __getattr__(self, name): 
+        """save assignation"""
+        if name == "_state":
+            return  self._link._state
+        return self.__dict__[name]
+       
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super(ConnectorActionType, self).__init__(**kwargs)
@@ -631,7 +634,8 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 if state is ActionRunningState.error:
                     return state, runner 
                 if state is ActionRunningState.wait and runner is not None:
-                    return ActionRunningState.repeat, runner
+                    self.__next_action += 1
+                    return state, runner
                 # run return wait, try next
             if all_dependent and \
                 self. _will_be_independent(self.__processed_actions[self.__next_action]):

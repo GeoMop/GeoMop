@@ -87,16 +87,21 @@ class ForEach(WrapperActionType):
             for i in range(0, len(ensemble[0]._list)):
                 inputs=[]
                 for j in range(0, len(self._inputs)):
-                    if len(ensemble[j]._list)<=i:
+                    if len(ensemble[j])<=i:
                         return ActionRunningState.error,  \
                             ["Ensamble in Input({0}) has less items".format(str(i))]
-                    inputs.append(VariableGenerator(Variable=ensemble[j]._list[i]))                            
-                name = self._variables['WrappedAction']._get_next_instance_name()
+                    gen = VariableGenerator(Variable=ensemble[j]._list[i])
+                    gen._inicialize()
+                    gen._run()
+                    inputs.append(gen) 
+                name = self._variables['WrappedAction']._get_instance_name()
                 script = self._variables['WrappedAction']._get_settings_script()
                 script.insert(0, "from pipeline import *")
-                exec ('\n'.join(script), globals())
-                self.wa_instances.append(eval(name))
-                self.wa_instances[-1].set_inputs(*inputs)
+                script = '\n'.join(script)
+                script = script.replace(name, "new_dupl_workflow")
+                exec (script, globals())
+                self.wa_instances.append(new_dupl_workflow)
+                self.wa_instances[-1].set_inputs(inputs)
                 self.wa_instances[-1]._inicialize()
             self._state = ActionStateType.processed
         if self._procesed_instances == len(self.wa_instances):
@@ -149,7 +154,7 @@ class ForEach(WrapperActionType):
             number = len(self.wa_instances)
         else:
             ensemble = self.get_input_val(0)
-            number = len(ensemble._list)
+            number = len(ensemble)
         ret = ActionsStatistics()
         ret.add(stat, number)
         return ret

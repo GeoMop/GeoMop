@@ -101,6 +101,8 @@ class RangeGenerator(GeneratorActionType):
             if 'name' in item and item['name'] in template:
                 if 'name' in item:
                     setattr(template, item['name'], item['value'])
+        # Output computation is made in inicialize time, count of cycles
+        # is known for statistics (easier get_statiscics function)
         for item in self._variables['Items']:
             if 'AllCases' in self._variables and self._variables['AllCases']:
                 ready = copy.deepcopy(self._output)

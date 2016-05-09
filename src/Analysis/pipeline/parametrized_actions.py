@@ -37,7 +37,9 @@ class Flow123dAction(ParametrizedActionType):
         """
         return Runner class with process description
         """
-        runner = Runner("flow123d", [], self.type)
+        runner = Runner(self)
+        runner.name = self._get_instance_name()
+        runner.command = "flow123d"
         return runner
         
     def _run(self):    
