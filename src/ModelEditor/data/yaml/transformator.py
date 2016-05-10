@@ -404,14 +404,16 @@ class Transformator:
                 return False
         if 'key-exists-filter' in action['parameters']:
             try:
+                parent = re.search(r'^(.*)/([^/]*)$', path)
                 node = root.get_node_at_path(
-                    path+"/"+action['parameters']['key-exists-filter'])
+                    parent.group(1)+"/"+action['parameters']['key-exists-filter'])
             except:
                 return False
         if 'key-not-exists-filter' in action['parameters']:
             try:
+                parent = re.search(r'^(.*)/([^/]*)$', path)
                 node = root.get_node_at_path(
-                    path+"/"+action['parameters']['key-not-exists-filter'])
+                    parent.group(1)+"/"+action['parameters']['key-not-exists-filter'])
                 return False
             except:
                 pass
