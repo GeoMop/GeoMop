@@ -21,7 +21,7 @@ class InvalidProject(Exception):
 
 class Parameter:
     """A parameter in a config file."""
-    def __init__(self, name, type=None):
+    def __init__(self, name=None, type=None):
         self.name = name
         self.type = type
 
@@ -58,6 +58,7 @@ class Project:
         self.params = kwargs['params'] if 'params' in kwargs else []
         self.files = kwargs['files'] if 'files' in kwargs else []
         self.project_dir = ''
+        self.flow123d_version = kwargs['flow123d_version'] if 'flow123d_version' in kwargs else ''
 
     @staticmethod
     def open(workspace, project_name):

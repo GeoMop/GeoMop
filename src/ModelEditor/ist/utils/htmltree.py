@@ -36,6 +36,9 @@ class htmltree(object):
         attrib_copy.update(attrib)
         attrib_copy.update(kwargs)
 
+        if not isinstance(value, str):
+            value = str(value).lower()
+
         element = ET.Element(tag_name, attrib_copy)
         element.text = cgi.escape(value) if not no_escape else value
         self.current().append(element)

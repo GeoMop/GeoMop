@@ -128,10 +128,20 @@ Section "Runtime Environment" SecRuntime
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
-  # Copy the sample folder.
+  # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
-  SetOutPath "$INSTDIR\sample"
-  File /r /x *~ "${GIT_DIR}\sample\*"
+  CreateDirectory "$INSTDIR\sample\ModelEditor"
+  CreateDirectory "$INSTDIR\sample\ModelEditor\ConFiles"
+  SetOutPath "$INSTDIR\sample\ModelEditor\ConFiles"
+  File /r /x *~ "${GIT_DIR}\sample\ModelEditor\ConFiles\*"
+  CreateDirectory "$INSTDIR\sample\ModelEditor\YamlFiles"
+  SetOutPath "$INSTDIR\sample\ModelEditor\YamlFiles"
+  # Copy selected YAML samples.
+  File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_21d.yaml"
+  File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_time_dep.yaml"
+  File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_trans_explicit.yaml"
+  File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_vtk.yaml"
+  File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_vtk_source.yaml"
 
   # Copy the DLLs.
   SetOutPath "$WINDIR\System32\"
