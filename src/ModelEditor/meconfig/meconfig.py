@@ -544,7 +544,7 @@ class MEConfig:
         else:
             if node.value != cls.curr_format_file:
                 ntf = Notification.from_name(
-                    'UnavailableFlow123dVersion', node.value, cls.curr_format_file)
+                    'Flow123dVersionMismatch', node.value, cls.curr_format_file)
                 ntf.span = node.span
                 cls.notification_handler.report(ntf)
 

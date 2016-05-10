@@ -277,9 +277,10 @@ _NOTIFICATIONS = [
 
     {
         'code': 750,
-        'name': 'UnavailableFlow123dVersion',
-        'description': 'Occurs when flow123d_version key specifies an unavailable IST version.',
-        'message': 'Flow123d version {0} is unavailable. Using {1} instead.',
+        'name': 'Flow123dVersionMismatch',
+        'description': 'Occurs when flow123d_version key specifies a different IST than the one '
+                       'that is being used.',
+        'message': 'Using Flow123d version {1} instead of {0}.',
         'example': ''
     },
 
