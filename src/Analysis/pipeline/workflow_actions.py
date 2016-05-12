@@ -23,6 +23,8 @@ class Workflow(WorkflowActionType):
         super(Workflow, self).__init__(**kwargs)
         self.bridge = Bridge(self)
         """link to bridge class"""
+        self._actions=[]
+        """sorted action list"""
       
     def input(self):
         """ Return input type"""
@@ -50,16 +52,17 @@ class Workflow(WorkflowActionType):
 
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.initialized.value:
+        if self._get_state().value > ActionStateType.initialized.value:
             return
         # set state before recursion, inicialize ending if return to this action
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
         actions = self._get_child_list()
         try:
             actions  = self._order_child_list(actions)
             actions.reverse()
             for action in actions:
                action._inicialize()
+            self._actions = actions 
         except Exception as err:
             self._load_errs.append("Inicialize child workflow action error ({0})".format(err))   
         if  len(self._inputs)==1:
@@ -68,8 +71,7 @@ class Workflow(WorkflowActionType):
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""
         lines = super(Workflow, self)._get_settings_script()
-        list = self._get_child_list()
-        list.reverse()
+        list = self._actions
         names=['OutputAction', 'InputAction']
         values=[
                 ["{0}".format(self._variables['OutputAction']._get_instance_name())], 
@@ -125,7 +127,7 @@ class Workflow(WorkflowActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = super(Workflow, self).validate()
-        actions = self._get_child_list()
+        actions = self._actions
         for action in actions:
             err.extend(action.validate())
         return err

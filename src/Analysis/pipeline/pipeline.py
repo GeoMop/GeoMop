@@ -30,10 +30,10 @@ class Pipeline(WorkflowActionType):
 
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.initialized.value:
+        if self._get_state().value > ActionStateType.initialized.value:
             return
         # set state before recursion, inicialize ending if return to this action
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
         actions = self._get_child_list()
         try:
             actions  = self._order_child_list(actions)

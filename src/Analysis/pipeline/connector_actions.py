@@ -1,4 +1,4 @@
-from .action_types import ConnectorActionType, ActionStateType, ActionRunningState
+from .action_types import ConnectorActionType, ActionStateType
 
 class Connector(ConnectorActionType):
     
@@ -23,7 +23,7 @@ class Connector(ConnectorActionType):
         #duplicate inputs
         for input in self._inputs:
             new._inputs.append(input)
-        new._state = ActionStateType.created
+        new._set_state(ActionStateType.created)
         return new
  
     def _check_params(self):    
@@ -53,20 +53,19 @@ class Connector(ConnectorActionType):
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
             self._load_errs.append(str(err))
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
 
-    def _run(self):
+    def _update(self):    
         """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
+        Process action on client site and return None or prepare process 
+        environment and return Runner class with  process description if 
+        action is set for externall processing.        
         """
         try:
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
             self._load_errs.append(str(err))
-        self._state = ActionStateType.finished
-        return  ActionRunningState.finished, self._get_runner(None)
+        return self._get_runner(None)
         
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""
