@@ -110,8 +110,8 @@ def test_convertors_recursive():
     #v1 = VariableGenerator(Variable=Sequence(Int(), Int(4), Int(8), Int(2)))
     v1._inicialize()
 
-    kc1 = KeyConvertor(Input(0));
-    kc2 = KeyConvertor(Input(0).sort(kc1).tail());
+    kc1 = KeyConvertor(Input(0))
+    kc2 = KeyConvertor(Input(0).sort(kc1).tail())
     c = Convertor(Input(0).sort(kc2))
     errs = c._check_params([v1])
     assert len(errs) == 0
