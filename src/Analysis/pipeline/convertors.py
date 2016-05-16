@@ -140,7 +140,7 @@ class IConvertor(Convertor):
         if not isinstance(input, ListDTT):
             err.append("Input structure for iterable convertors must be ListDTT")
         else:
-            errors, struc = gdtt.validate(input._get_template())
+            errors, struc = gdtt.validate(input.subtype)
             err.extend(errors)        
         return err
 

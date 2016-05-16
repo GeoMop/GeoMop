@@ -542,7 +542,7 @@ class Tuple(CompositeDTT):
         """
         new_list=[]
         for value in self._list:
-            if value.isinstance(value, DTT):
+            if isinstance(value, DTT):
                 new_list.append(value.duplicate())
             else:
                 new_list.append(copy.deepcopy(value))
@@ -582,7 +582,7 @@ class Tuple(CompositeDTT):
         """
         if len(self._list) != len(type_tree._list):
                 return False
-        for i in range(0, self._list):
+        for i in range(0, len(self._list)):
             if type(self._list[i]) is not type(type_tree._list[i]):
                 return False
             if isinstance(self._list[i], CompositeDTT):
@@ -626,9 +626,17 @@ class Tuple(CompositeDTT):
             self._list[i]._assigne(value)
             return
         raise ValueError('Not supported reassignation type.')
+        
+    def __len__(self):
+        return len(self._list)
 
 class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
+    
+    def __init__(self, subtype, *args):
+        self.subtype = subtype
+        """iterator possition"""
+        self._list = []
     
     @abc.abstractmethod
     def _get_template(self):
@@ -663,9 +671,7 @@ class Ensemble(SortableDTT):
     """Display description of variable type"""
 
     def __init__(self, subtype, *args):
-        self.subtype = subtype
-        """iterator possition"""
-        self._list = []
+        super(Ensemble, self).__init__(subtype, *args)
         """Items is save internaly as list"""
         if len(args) == 1 and isinstance(args[0], list):
             for value in args[0]:
@@ -784,7 +790,7 @@ class Ensemble(SortableDTT):
         return adapted
     
     def sort(self, key_selector):
-        """return sorted Ensamble accoding set predicate"""
+        """return sorted Sequence accoding set predicate"""
         sorted = Sequence(self.subtype, self._list)
         sorted._list.sort(key=lambda item: key_selector._get_key(item))
         return sorted
@@ -796,10 +802,15 @@ class Ensemble(SortableDTT):
             if predicate._get_bool(item):
                 selected.add_item(item)
         return selected
-        
-    def _get_template(self):
-        """return template of nested structure"""
-        return self.subtype
+    
+    def _get_template(self, func_name):
+        """return validation template returned by specified function
+        name. Return None if not return defined"""
+        if func_name == "select" or func_name == "each":
+            return Ensemble(self.subtype)
+        if func_name == "sort":
+            return Sequence(self.subtype)
+        return None        
 
 class Sequence(Ensemble):
     name = "Sequence"
@@ -821,9 +832,28 @@ class Sequence(Ensemble):
         new_list=self._duplicate_list()
         return Sequence(*new_list)
 
-
     def head(self):
         return self._list[0]
         
     def tail(self):
         return self._list[-1]
+
+    def select(self, predicate):
+        """return selected Ensamble accoding set predicate"""
+        selected = Sequence(self.subtype)
+        for item in self._list:
+            if predicate._get_bool(item):
+                selected.add_item(item)
+        return selected
+        
+    def _get_template(self, func_name):
+        """return validation template returned by specified function
+        name. Return None if not return defined"""
+        if func_name == "each":
+            return Ensemble(self.subtype)
+        if func_name == "select" or func_name == "sort":
+            return Sequence(self.subtype)
+        if func_name == "tail" or func_name == "head":
+            return self.subtype
+        return None       
+

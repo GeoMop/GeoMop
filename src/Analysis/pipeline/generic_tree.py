@@ -14,6 +14,11 @@ class TT(metaclass=abc.ABCMeta):
         """return list of generic contained in this structure"""
         return []
 
+    def _get_template(self, func_name):
+        """return validation template returned by specified function
+        name. Return None if not return defined"""
+        return None
+
 class GTT(TT):
     @abc.abstractmethod
     def _get_convertors(self):
@@ -259,7 +264,7 @@ class GDTT(GTT):
             elif self.__predicate.__class__.__name__ == "Predicate":
                 err2 = self.__predicate._check_params_one(struc)
                 err.extend(err2)
-                return err, struc._get_template()    
+                return err, struc._get_template("select")    
             else:
                 err.append("Only Predicate is permited in select")            
         if  self.__key_convertor is not None:
@@ -270,7 +275,7 @@ class GDTT(GTT):
             elif self.__key_convertor.__class__.__name__ == "KeyConvertor":
                 err2 = self.__key_convertor._check_params_one(struc)
                 err.extend(err2)
-                return err, struc._get_template() 
+                return err, struc._get_template("sort")
             else:
                 err.append("Only KeyConverter is permited in sort")  
         if  self.__adapter is not None:
@@ -278,21 +283,18 @@ class GDTT(GTT):
                 err.append("Class has not function each")
             elif not self.__check_func(struc, "_get_template"):
                 err.append("Iterated class has not function _get_template")            
-            elif self.__adapter.__class__.__name__ != "adapter":
+            elif self.__adapter.__class__.__name__ != "Adapter":
                 err.append("Only Adapter is permited in each")
             else:
                 err2 = self.__adapter._check_params_one(struc)
                 err.extend(err2) 
-                return err, struc._get_template()
+                return err, struc._get_template("each")
         if  self.__func_name is not None:
             # only function without parameters is implemented !!!
             if not self.__check_func(struc, self.__func_name):
                 err.append("Class has not function " + self.__func_name)
             else:
-                try:
-                    return getattr(struc, self.__func_name)()
-                except Exception as error:
-                    err.append(str(error))
+                return err, struc._get_template(self.__func_name)
         if  self.__name is not None:
             if struc.__class__.__name__ != "Struct":
                 err.append("Only Struct can have dot operator")

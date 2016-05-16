@@ -20,7 +20,7 @@ def test_struc():
     var2.test1=5
     var2.test2="ooo"
     test = var2.test1
-    test == 5
+    assert test == 5
     assert var2.test1.value == 5
     assert var2.test2.value == "ooo"    
     assert var2._match_type(var1)
