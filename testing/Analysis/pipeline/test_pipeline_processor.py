@@ -22,7 +22,6 @@ def test_run_pipeline():
     flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
-    ForEach._import_string =  "from pipeline import *\n"
     pipeline=Pipeline(ResultActions=[foreach])
     pipeline._inicialize()
     pp = Pipelineprocessor(pipeline)
