@@ -16,7 +16,7 @@ def test_struc():
     assert not var1._match_type(var2)  
     assert not var2._is_set()
     assert var2._match_type(var1)
-    
+
     var2.test1=5
     var2.test2="ooo"
     test = var2.test1
@@ -68,7 +68,53 @@ def test_ensemble():
     assert ens1._match_type(ens2)  
     assert not ens2._is_set()
     assert not ens2._match_type(ens1)
-    
-    #Todo sequence test
-    
-    #Todo tuple test
+
+
+def test_sequence():
+    # head(), tail()
+    seq = Sequence(Int(), Int(1), Int(2), Int(3), Int(4))
+
+    assert seq.head().value == 1
+    assert seq.tail().value == 4
+
+
+def test_tuple():
+    # _match_type(), _is_set()
+    var1 = Tuple(Int(1), String("Test"))
+    var2 = Tuple(Int(), String(), Int())
+    var3 = Tuple(Int(), String())
+
+    assert var1._is_set()
+    assert var1._match_type(var3)
+    assert not var2._is_set()
+    assert not var2._match_type(var1)
+    assert not var1._match_type(var2)
+
+    # _match_type(), _is_set() with inner elements
+    var1 = Tuple(Int(1), String("Test"), Tuple(Int(5)))
+    var2 = Tuple(Int(), String(), Tuple(Int(), Int()))
+    var3 = Tuple(Int(), String(), Tuple(Int()))
+
+    assert var1._is_set()
+    assert var1._match_type(var3)
+    assert not var2._is_set()
+    assert not var2._match_type(var1)
+    assert not var1._match_type(var2)
+
+    # assign, retrieve value
+    var3[0].value = 5
+    var3[1].value = "ooo"
+    test = var3[0]
+    assert test == 5
+    assert var3[0].value == 5
+    assert var3[1].value == "ooo"
+    assert var3._match_type(var1)
+    var3[0].value = var1[0]
+    assert var3[0].value == 1
+
+    # duplicate()
+    var4 = var3.duplicate()
+    var4[0].value = 5
+    assert var3[0].value == 1
+    assert var4[0].value == 5
+    assert var3[1].value == var4[1].value

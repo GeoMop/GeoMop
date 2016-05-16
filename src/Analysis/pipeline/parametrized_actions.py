@@ -1,4 +1,4 @@
-from .action_types import ParametrizedActionType, Runner, ActionType, ActionStateType, ActionRunningState
+from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct
 
 class Flow123dAction(ParametrizedActionType):
@@ -17,15 +17,15 @@ class Flow123dAction(ParametrizedActionType):
         """
 
         super(Flow123dAction, self).__init__(**kwargs)
-        self._type = ActionType.complex
+        self._logical_queue = QueueType.external
         self._file_output = self.__file_output()
             
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.created.value:
+        if self._get_state().value > ActionStateType.created.value:
             return
         self._output = self.__file_output
-        self._state = ActionStateType.initialized    
+        self._set_state(ActionStateType.initialized)
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -39,24 +39,19 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = "flow123d"
+        runner.command = ["flow123d"]
         return runner
         
-    def _run(self):    
+    def _update(self):    
         """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
+        Process action on client site and return None or prepare process 
+        environment and return Runner class with  process description if 
+        action is set for externall processing.        
         """
-        if self._state == ActionStateType.processed:
-            return ActionRunningState.wait,  None
-        if self._state == ActionStateType.finished:
-            return ActionRunningState.finished,  None
-        self._state = ActionStateType.processed
         file = self.__parametrise_file()
-        return  ActionRunningState.wait,  self._get_runner(file)
+        return  self._get_runner(file)
         
-    def _after_run(self):    
+    def _after_update(self):    
         """
         Set real output variable and set finished state.
         """

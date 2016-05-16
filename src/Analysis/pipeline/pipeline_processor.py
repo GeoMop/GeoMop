@@ -1,40 +1,49 @@
 """Pipeline help function for internall using in tak JobScheduler only"""
 import threading
 import time
-from .action_types import ActionRunningState
+import subprocess
+from .action_types import ActionRunningState, QueueType
 
 class Pipelineprocessor():
     """
     Class for pipeline processing.
     
     This class contain pipeline action and
-    process some job above it as is getting
+    process some job that is defined
     pipeline python script, pipeline validation
     and returning pipeline statiscics.
   
     Pipeline processing can be stated by run
     function and stoped by stop function. If pipeline
     is started, get_next_job function return next
-    action runner job, that can be processed. After
-    job processing is nessery call function 
+    action for external processing, that can be 
+    processed. After job processing is nessery call function 
     set_job_finished(). If not any job is available,
     get_next_job return None.
     
-    !!! all operation with pipeline is done if sepparate
-    thread is not run or in run function. Variables
+    All internall action is made in workers threads if
+    action state is processed. Processed state is set
+    in action code during _plan_action function and
+    action is responsible for state locking. After settings 
+    processed state is action assigned to one worker 
+    thread, and in end of action processing is state
+    set to finished. After this (in finished state) can't be 
+    any update of action variables make. (Action output 
+    for next action will be read from diferrent threads)
+    
+    !!! If run function is started, all operation with pipeline 
+    is done in sepparate thread or workers threads. Variables
     runners arrays, _stop, pause and _statistics is
-    protected by action_lock
+    protected by action_lock. Any access to pipeline can't
+    be made directly from communication thread.
     """
+
+    __workers__ = 4
+    """Number of threads for processing internal jobs"""
 
     def __init__(self, pipeline):
         self._pipeline = pipeline
-        """pipeline"""
-        self._complex_runners=[]
-        """Runners of independent actions that wait for external processing"""
-        self._processed_runners=[]
-        """Runners of independent actions that are processing"""
-        self._finished_runners=[]
-        """Runners of independent actions was processed"""
+        """pipeline"""       
         self._is_validate = False
         """
         Validation is processed by calling validate function. After validation
@@ -54,18 +63,94 @@ class Pipelineprocessor():
         """Sepparated thread is finished and all work is done"""
         self._thread = None
         """Sepparated thread"""
-        
-        self._statistics = None
-        """statiscis"""
         self._action_lock = threading.Lock()
-        """lock for runners arrays, _stop, _pause and _statistics variables"""
+        """lock for _stop, _pause"""
         self._stop = False
         """signal to sepparate thread for stopping"""
         self._pause = False
         """signal to sepparate thread for pausing"""
         self._run_errs = []
         """errors during run"""
-
+        
+    class WorkerThread():
+        _complex_runners=[]
+        """Runners of independent actions that wait for external processing"""
+        _processed_runners=[]
+        """Runners of independent actions that are processing"""
+        _finished_runners=[]
+        """Runners of independent actions was processed"""
+        _runners_lock = threading.Lock()
+        """lock for runners"""
+        def __init__(self):
+            self._action = None
+            """processed action"""
+            self._stop = False
+            """stop thread"""            
+            self._action_lock = threading.Lock()
+            """lock for action settings"""
+            self._after_run = False
+            """is processed after run externall action"""
+            t = threading.Thread(target=self.run)
+            t.daemon = True
+            t.start()
+            
+        def add_action(self, action, after_run=False):
+            """Add action if is empty, and return if is action added"""
+            ret=False
+            self._action_lock.acquire()
+            if self._action is None:
+                self._after_run=after_run
+                self._action = action
+                ret = True
+            self._action_lock.release()            
+            return ret            
+        
+        def is_empty(self):
+            """Add action if is empty, and return if is action added"""
+            ret=False
+            self._action_lock.acquire()
+            if self._action is None:
+                ret = True
+            self._action_lock.release()
+            return ret            
+        
+        def run(self):
+            """worker thread"""
+            while True:
+                is_action = False
+                while not is_action:                
+                    self._action_lock.acquire()
+                    if self._stop:
+                        self._action_lock.release()
+                        return
+                    if self._action is not None:
+                        is_action = True
+                    self._action_lock.release()
+                    if not  is_action:
+                        time.sleep(0.1)
+                if self._after_run:
+                    self._action._after_update()
+                else:
+                    runner = self._action._update()
+                    if runner is not None:
+                        if self._action is QueueType.internal:
+                            process = subprocess.Popen(runner.command)
+                            self._action._after_update()
+                        else:
+                            self._runners_lock.acquire()
+                            self._complex_runners.append(runner)
+                            self._runners_lock.release()
+                    else:
+                        self._action._after_update()
+                self._action_lock.acquire()
+                self._action = None
+                self._action_lock.release()
+        
+        def stop(self):
+            self._action_lock.acquire()
+            self._stop = True
+            self._action_lock.release()
+        
     def get_script(self):
         """return pipeline python script"""
         if not self._is_validate:
@@ -131,23 +216,18 @@ class Pipelineprocessor():
     def get_statistics(self):
         """Get pipeline statistics. First statistics are ready after 
         validation"""
-        ret = None
-        self._action_lock.acquire()
-        if self._statistics is not None:
-            ret = self._statistics.duplicate()
-        self._action_lock.release()
-        return ret
+        return self._pipeline._get_statistics()
 
     def get_next_job(self):
         """return next job that require externall processing"""
         if not self.is_run():
             return None
         ret = None
-        self._action_lock.acquire()
-        if len(self._complex_runners)>0:
-            ret = self._complex_runners.pop()
-            self._processed_runners.append(ret)
-        self._action_lock.release()        
+        self.WorkerThread._runners_lock.acquire()
+        if len(self.WorkerThread._complex_runners)>0:
+            ret = self.WorkerThread._complex_runners.pop()
+            self.WorkerThread._processed_runners.append(ret)
+        self.WorkerThread._runners_lock.release()        
         if ret is None:
             return None        
         return ret
@@ -156,24 +236,34 @@ class Pipelineprocessor():
         """set job as finished"""
         if not self.is_run():
             return None
-        self._action_lock.acquire()
+        self.WorkerThread._runners_lock.acquire()
         ret = None
-        for runner in self._processed_runners:
+        for runner in self.WorkerThread._processed_runners:
             if job_id == runner.id:
                 ret = runner                
                 break
-        self._processed_runners.remove(ret)
-        self._finished_runners.append(ret)                
-        self._action_lock.release()        
+        self.WorkerThread._processed_runners.remove(ret)
+        self.WorkerThread._finished_runners.append(ret)                
+        self.WorkerThread._runners_lock.release()
 
     def _pipeline_procesing(self):
         """function started in sepparate thread"""
-        self._action_lock.acquire()
+        workers=[]
+        """ threads for processing internal jobs"""
+        wait_actions = []
+        """action that can be processed"""
+        
+        for i in range(0, self.__workers__):
+            workers.append(self.WorkerThread())
         while True:           
+            self._action_lock.acquire()
             if self._stop or self._pause:
                 while True:
                     if self._stop:
                         # stop  after signall
+                        for worker in workers:
+                            if worker.is_empty():
+                                worker.stop()
                         self._is_run = False
                         self._action_lock.release()
                         return
@@ -184,34 +274,59 @@ class Pipelineprocessor():
                         self._action_lock.acquire()
                     else:
                         break
-            self._action_lock.release()
-            state, runner = self._pipeline._run()
-            self._action_lock.acquire()
-            if state is ActionRunningState.finished:
+            self._action_lock.release()            
+            state = ActionRunningState.repeat
+            # get all available actions
+            while state is ActionRunningState.repeat:
+                state, action = self._pipeline. _plan_action()
+                i +=1
+                if action is not None:
+                    wait_actions.append(action)
+            sorted(wait_actions, key=lambda item: item._get_priority())
+            # finished external tasks
+            for worker in workers:
+                self.WorkerThread._runners_lock.acquire()
+                if len(self.WorkerThread._finished_runners)==0:
+                    self.WorkerThread._runners_lock.release()
+                    break
+                self.WorkerThread._runners_lock.release()
+                if worker.is_empty():  
+                    self.WorkerThread._runners_lock.acquire()
+                    runner = self.WorkerThread._finished_runners.pop()
+                    self.WorkerThread._runners_lock.release()   
+                    worker.add_action(runner.action, True)
+            # try add action to workers
+            if len(wait_actions)==0:
+                time.sleep(0.1)
+            try:
+                action = wait_actions.pop() 
+                for worker in workers:
+                    if worker. add_action(action):
+                        action = wait_actions.pop()
+                wait_actions.append(action)
+            except IndexError:
+                # empty queue
+                pass
+            if state is ActionRunningState.finished and \
+                len(self.WorkerThread._complex_runners) == 0 and \
+                len(self.WorkerThread._processed_runners) == 0 and \
+                len(self.WorkerThread._finished_runners) == 0 and \
+                len(wait_actions) == 0:
+                #wait for  finishing worker threads
+                for worker in workers:
+                    if worker.is_empty():
+                        worker.stop()
+                self._action_lock.acquire()                
                 self._is_finished = True
                 self._is_run = False
                 self._action_lock.release()
-                return
+                return   
             if state is ActionRunningState.error:
+                for worker in workers:
+                    if worker.is_empty():
+                        worker.stop() 
                 self._run_errs = runner
+                self._action_lock.acquire()
                 self._is_run = False
                 self._action_lock.release()
                 return
-            if runner is not None:
-                self._complex_runners.append(runner)
-                self._action_lock.release()
-                statistics = self._pipeline._get_statistics()
-                self._action_lock.acquire()
-                self._statistics = statistics
-            if state is ActionRunningState.wait:
-                self._action_lock.release()
-                time.sleep(1)                
-                self._action_lock.acquire()
-            while len(self._finished_runners)>0:
-                runner = self._finished_runners.pop()
-                self._action_lock.release()
-                runner.action._after_run()
-                statistics = self._pipeline._get_statistics()
-                self._action_lock.acquire()
-                self._statistics = statistics
-        self._action_lock.release()

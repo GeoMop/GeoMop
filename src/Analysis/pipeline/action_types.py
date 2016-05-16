@@ -4,6 +4,7 @@ from .data_types_tree import *
 from .code_formater import Formater
 import math
 import uuid
+import threading
 
 class ActionsStatistics:
     def __init__(self):
@@ -30,10 +31,10 @@ class ActionsStatistics:
         self.finished_jobs += astat.finished_jobs*multiplied
         self.running_jobs += astat.running_jobs*multiplied
 
-class ActionType(IntEnum):
+class QueueType(IntEnum):
     """Action type"""
-    simple = 0
-    complex = 1
+    internal = 0
+    external = 1
     
 class ActionRunningState(IntEnum):
     """IAction state after run processing"""
@@ -52,11 +53,9 @@ class ActionStateType(IntEnum):
     """action is created"""
     initialized = 1
     """action is inicialized"""
-    wait = 2
-    """action is ready for processing or validation"""
-    processed = 3
+    processed = 2
     """action is processed"""
-    finished = 4
+    finished = 3
     """action is finished"""
 
 class Runner():
@@ -66,10 +65,8 @@ class Runner():
     def __init__(self, action):
         self.name = ""
         """Runner name for loging"""
-        self.command = ""
-        """Command for popen"""
-        self.params = {}
-        """dictionary names => types of input ports"""
+        self.command = []
+        """Command for popen"""        
         self.action =  action
         """action"""
         self.id = uuid.uuid4()
@@ -82,6 +79,16 @@ class BaseActionType(metaclass=abc.ABCMeta):
     """
     Abstract class of action type, that define tasks method for
     tasks classes
+    
+    Thread safety and processing rules:
+    Action in state less processed state is use only from
+    one thread. Functions _get_variables_script and
+    validate return right result only in initialized state.
+    Action in processed state can be processed from 
+    one partcular thread.
+    Action dat in finished state can't be changed.
+    State and priority variables are changed in _state_lock 
+    and can be accessed from any thread by defined functions.
     """
 
     _name = ""
@@ -98,16 +105,54 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self._state = ActionStateType.created
         """action state"""
         self._inputs = []
-        """list names => base action types on input ports"""        
+        """list names => base action types on input ports"""
+        self._priority = 5
+        """priority this action"""          
         self._output = None
         """DTT type on output ports (not settable)"""
         self._variables = {}
         """dictionary names => types of variables"""
-        self._type = ActionType.simple
+        self._logical_queue = QueueType.internal
         """action type"""
         self._load_errs = []
         """initializacion or sets errors"""
+        self._state_lock = threading.Lock()
+        """lock for state changing, assignation rules for single 
+        states is described above in class help"""
         self.set_config(**kwargs)
+        
+    def _set_state(self, new_state):
+        """Secure state changing"""
+        self._state_lock.acquire()
+        self._state = new_state
+        self._state_lock.release()
+        
+    def _get_state(self):
+        """Secure state changing"""
+        self._state_lock.acquire()
+        new_state = self._state
+        self._state_lock.release()
+        return new_state
+        
+    def _set_priority(self, new_priority):
+        """Secure priority changing"""
+        self._state_lock.acquire()
+        self._priority = new_priority
+        self._state_lock.release()
+        
+    def _get_priority(self):
+        """Secure priority getting"""
+        self._state_lock.acquire()
+        new_priority = self._priority
+        self._state_lock.release()
+        return new_priority
+        
+    def _is_state(self, state):
+        """Secure state changing"""
+        self._state_lock.acquire()
+        res = self._state is state
+        self._state_lock.release()
+        return res
 
     def set_config(self, **kwargs):
         """set action config variables"""
@@ -129,14 +174,15 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _get_statistics(self):
         """return all statistics for this and child action"""
         ret = ActionsStatistics()
-        if self._type == ActionType.complex:
-            if self._state is ActionStateType.finished:
-                ret.finished_jobs += 1
-            elif self._state is ActionStateType.processed:
-                ret.running_jobs += 1
-            else:
-                ret.known_jobs += 1
-                ret.estimated_jobs += 1
+        self._state_lock.acquire()
+        if self._state is ActionStateType.finished:
+            ret.finished_jobs += 1
+        elif self._state is ActionStateType.processed:
+            ret.running_jobs += 1
+        else:
+            ret.known_jobs += 1
+            ret.estimated_jobs += 1
+        self._state_lock.release()
         return ret
         
     @abc.abstractmethod
@@ -256,20 +302,31 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """        
         return None 
  
-    @abc.abstractmethod 
-    def _run(self):    
+    def _plan_action(self):
         """
-        Process action on client site or prepare process environment and 
-        return ActionRunningState and Runner class with  process description 
-        or None if action not need externall processing.
+        If next action can be panned, return processed state and 
+        this action, else return processed state and null        
         """
-        pass
+        if self._is_state(ActionStateType.processed):
+            return ActionRunningState.wait,  None
+        if self._state == ActionStateType.finished:
+            return ActionRunningState.finished,  None
+        self._set_state(ActionStateType.processed)
+        return  ActionRunningState.repeat,  self
+ 
+    def _update(self):    
+        """
+        Process action on client site and return None or prepare process 
+        environment and return Runner class with  process description if 
+        action is set for externall processing.        
+        """
+        return None
         
-    def _after_run(self):    
+    def _after_update(self):    
         """
         Set real output variable and set finished state.
         """
-        self._state = ActionStateType.finished
+        self._set_state(ActionStateType.finished)
 
     def validate(self):    
         """validate variables, input and output"""
@@ -366,17 +423,19 @@ class Bridge(BaseActionType):
     def validate(self):
         return []
         
-    def _run(self):    
-        return  ActionRunningState.finished, self._get_runner(None) 
- 
     def _get_instance_name(self):
         return "{0}.input()".format(self._workflow._get_instance_name())
+    
+    def _set_state(self, new_state):
+        """Secure state changing"""
+        return  self._link._set_state(new_state)
         
-    def __getattr__(self, name): 
-        """save assignation"""
-        if name == "_state":
-            return  self._link._state
-        return self.__dict__[name]
+    def _get_state(self):
+        """Secure state changing"""
+        return  self._link._get_state()
+        
+    def _is_state(self, state):
+        return  self._link._is_state(state)
        
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -385,7 +444,7 @@ class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _check_params(self):    
         """check if all require params is set"""
         err = []
-        if self._state is ActionStateType.created:
+        if self._is_state(ActionStateType.created):
             err.append("Inicialize method should be processed before checking")
         if len(self._inputs)<1:
             err.append("Convertor action requires at least one input parameter")
@@ -404,7 +463,7 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _check_params(self):    
         """check if all require params is set"""
         err = []
-        if self._state is ActionStateType.created:
+        if self._is_state(ActionStateType.created):
             err.append("Inicialize method should be processed before checking")
         if len(self._inputs)>0:
             err.append("Generator action not use input parameter")
@@ -417,7 +476,7 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _check_params(self):    
         """check if all require params is set"""
         err = []
-        if self._state is ActionStateType.created:
+        if self._is_state(ActionStateType.created):
             err.append("Inicialize method should be processed before checking")
         if len(self._inputs)  != 1:
             err.append("Parametrized action requires exactly one input parameter")
@@ -446,10 +505,10 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.created.value:
+        if self._get_state().value > ActionStateType.created.value:
             return
         # set state before recursion, inicialize ending if return to this action
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
         if  'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  WorkflowActionType):
                 self._variables['WrappedAction']._inicialize()
@@ -459,7 +518,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _check_params(self):    
         """check if all require params is set"""
         err = []
-        if self._state is ActionStateType.created:
+        if self._is_state(ActionStateType.created):
             err.append("Inicialize method should be processed before checking")
         if  not 'WrappedAction' in self._variables:
             err.append("Parameter 'WrappedAction' is required")
@@ -473,7 +532,6 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
                 if not isinstance(input, BaseActionType):
                     err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
                         self.name))
-
         return err
 
     def _get_settings_script(self):    
@@ -578,7 +636,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _check_params(self):           
         """check if all require params is set"""
         err = []
-        if self._state is ActionStateType.created:
+        if self._is_state(ActionStateType.created):
             err.append("Inicialize method should be processed before checking")
         if  'ResultActions' in self._variables:
             if not isinstance(self._variables['ResultActions'], list):
@@ -593,7 +651,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _is_independent(action):
         """check if all direct dependecies is in set action list"""
         for dep_action in action._inputs:
-            if dep_action._state is not ActionStateType.finished:
+            if not dep_action._is_state(ActionStateType.finished):
                 return False
         return True
      
@@ -601,22 +659,20 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _will_be_independent(action):
         """check if all direct dependecies is in set action list"""
         for dep_action in action._inputs:
-            if dep_action._state is not ActionStateType.processed or \
-                dep_action._state is not ActionStateType.finished:
+            if not dep_action._is_state(ActionStateType.processed) and \
+                not dep_action._is_state(ActionStateType.finished):
                 return False
         return True
  
-    def _run(self):    
+    def _plan_action(self):
         """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
+        If next action can be panned, return processed state and 
+        this action, else return processed state and null        
         """
         if  self.__processed_actions is None:
             self.__processed_actions =self._get_child_list()
-            self._state = ActionStateType.processed
         if len(self.__processed_actions) == 0:
-            self._state = ActionStateType.finished
+            self._set_state(ActionStateType.finished)
             return ActionRunningState.finished, None
         if self.__next_action>=len(self.__processed_actions):
             self.__next_action = 0
@@ -625,17 +681,17 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         while True:
             if self._is_independent(self.__processed_actions[self.__next_action]):
                 all_dependent = False
-                state, runner = self.__processed_actions[self.__next_action]._run()
+                state, action = self.__processed_actions[self.__next_action]._plan_action()
                 if state is ActionRunningState.finished:
                     del self.__processed_actions[self.__next_action]
-                    return ActionRunningState.repeat, runner
+                    return ActionRunningState.repeat, action
                 if state is ActionRunningState.repeat:
-                    return state, runner
+                    return state, action
                 if state is ActionRunningState.error:
-                    return state, runner 
-                if state is ActionRunningState.wait and runner is not None:
+                    return state, action 
+                if state is ActionRunningState.wait and action is not None:
                     self.__next_action += 1
-                    return state, runner
+                    return state, action
                 # run return wait, try next
             if all_dependent and \
                 self. _will_be_independent(self.__processed_actions[self.__next_action]):

@@ -1,4 +1,4 @@
-from .action_types import GeneratorActionType, ActionStateType, ActionRunningState
+from .action_types import GeneratorActionType, ActionStateType
 from .data_types_tree import Ensemble, Struct, Float, DTT
 import copy
 from .code_formater import Formater
@@ -18,10 +18,10 @@ class VariableGenerator(GeneratorActionType):
        
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.created.value:
+        if self._get_state().value > ActionStateType.created.value:
             return
         self._output = self._get_valid_output()
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
         
     def _get_valid_output(self):
         """Construct output from set items"""
@@ -37,16 +37,6 @@ class VariableGenerator(GeneratorActionType):
             variable[-1] = variable[-1][:-1]
             var.append(variable)
         return var
-        
-    def _run(self):    
-        """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
-        """
-        
-        self._state = ActionStateType.finished
-        return  ActionRunningState.finished, self._get_runner(None)
 
     def _check_params(self):    
         """check if all require params is set"""
@@ -89,7 +79,7 @@ class RangeGenerator(GeneratorActionType):
             
     def _inicialize(self):
         """inicialize action run variables"""
-        if self._state.value > ActionStateType.created.value:
+        if self._get_state().value > ActionStateType.created.value:
             return
         self._output = self.__get_output_from_items()
         template =copy.deepcopy(self._output.subtype)
@@ -110,7 +100,7 @@ class RangeGenerator(GeneratorActionType):
                     self._generate_step(template_i, item)
             else:
                 self._generate_step(template, item)
-        self._state = ActionStateType.initialized
+        self._set_state(ActionStateType.initialized)
         
     def __get_output_from_items(self):
         """Construct output from set items"""
@@ -157,15 +147,6 @@ class RangeGenerator(GeneratorActionType):
             var.append(["AllCases=True"])
             
         return var
-        
-    def _run(self):    
-        """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
-        """        
-        self._state = ActionStateType.finished
-        return  ActionRunningState.finished, self._get_runner(None)
         
     def _generate_step(self, template, item):
         """generate plus and minus variants for one item"""

@@ -19,7 +19,7 @@ class ForEach(WrapperActionType):
             this parameter is set after declaration this action by function
            set_wrapped_action 
         """
-        self.wa_instances=[]
+        self._wa_instances=[]
         """
         Set wrapper class serve only as template, for run is make
         copy of this class. The variable is for the copies.
@@ -54,8 +54,8 @@ class ForEach(WrapperActionType):
             if not isinstance(output, DTT):    
                 return None
             res=Ensemble(output)
-            if self._state != ActionStateType.finished:
-                for instance in self.wa_instances:
+            if not self._is_state(ActionStateType.finished):
+                for instance in self._wa_instances:
                     """Running instance, get input from generator"""
                     res.add_item(instance._get_output())
             return res
@@ -69,15 +69,14 @@ class ForEach(WrapperActionType):
             var.append([wrapper])
         return var
 
-    def _run(self):    
+    def _plan_action(self):
         """
-        Process action on client site or prepare process environment and 
-        return Runner class with  process description or None if action not 
-        need externall processing.
+        If next action can be panned, return processed state and 
+        this action, else return processed state and null        
         """
-        if self._state == ActionStateType.finished:
+        if self._is_state(ActionStateType.finished):            
             return ActionRunningState.finished,  None
-        if len( self.wa_instances)==0:
+        if len( self._wa_instances)==0:
             ensemble = []
             for i in range(0, len(self._inputs)):
                 ensemble.append(self.get_input_val(i))
@@ -92,7 +91,8 @@ class ForEach(WrapperActionType):
                             ["Ensamble in Input({0}) has less items".format(str(i))]
                     gen = VariableGenerator(Variable=ensemble[j]._list[i])
                     gen._inicialize()
-                    gen._run()
+                    gen._update()
+                    gen._after_update()
                     inputs.append(gen) 
                 name = self._variables['WrappedAction']._get_instance_name()
                 script = self._variables['WrappedAction']._get_settings_script()
@@ -100,29 +100,28 @@ class ForEach(WrapperActionType):
                 script = '\n'.join(script)
                 script = script.replace(name, "new_dupl_workflow")
                 exec (script, globals())
-                self.wa_instances.append(new_dupl_workflow)
-                self.wa_instances[-1].set_inputs(inputs)
-                self.wa_instances[-1]._inicialize()
-            self._state = ActionStateType.processed
-        if self._procesed_instances == len(self.wa_instances):
-            for instance in self.wa_instances:
-                if instance._state is not ActionStateType.finished:
+                self._wa_instances.append(new_dupl_workflow)
+                self._wa_instances[-1].set_inputs(inputs)
+                self._wa_instances[-1]._inicialize()
+        if self._procesed_instances == len(self._wa_instances):
+            for instance in self._wa_instances:
+                if not instance._is_state(ActionStateType.finished):
                     return ActionRunningState.wait, None
-            self._state == ActionStateType.finished
+            self._set_state(ActionStateType.finished)
             return ActionRunningState.finished, None
-        next_wa = self._procesed_instances   
-        while next_wa < len(self.wa_instances):    
-            state, runner = self.wa_instances[next_wa]._run()
+        next_wa = self._procesed_instances
+        while next_wa < len(self._wa_instances):    
+            state, action = self._wa_instances[next_wa]._plan_action()
             if state is ActionRunningState.finished:
                 if next_wa == self._procesed_instances:
                     self._procesed_instances += 1
-                return ActionRunningState.repeat, runner
+                return ActionRunningState.wait, action
             if state is ActionRunningState.repeat:
-                return state, runner
+                return state, action
             if state is ActionRunningState.error:
-                return state, runner
-            if state is ActionRunningState.wait and runner is not None:
-                return ActionRunningState.repeat, runner
+                return state, action
+            if state is ActionRunningState.wait and action is not None:
+                return ActionRunningState.repeat, action
             # run return wait, try next
             next_wa += 1            
         return  ActionRunningState.wait, None        
@@ -150,8 +149,8 @@ class ForEach(WrapperActionType):
         """return all statistics for this and child action"""
         stat = self._variables['WrappedAction']._get_statistics()
         number = 0
-        if len(self.wa_instances)>0:
-            number = len(self.wa_instances)
+        if len(self._wa_instances)>0:
+            number = len(self._wa_instances)
         else:
             ensemble = self.get_input_val(0)
             number = len(ensemble)
