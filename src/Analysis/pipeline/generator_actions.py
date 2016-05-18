@@ -22,6 +22,11 @@ class VariableGenerator(GeneratorActionType):
             return
         self._output = self._get_valid_output()
         self._set_state(ActionStateType.initialized)
+        self._hash.update(bytes(self.__class__.__name__, "utf-8"))
+        if "Variable" in self._variables and \
+            isinstance(self._variables["Variable"], DTT) and \
+            self._variables["Variable"]._is_set():
+            self._hash.update(bytes(self._variables['Variable']._get_unique_text(True), "utf-8"))  
         
     def _get_valid_output(self):
         """Construct output from set items"""
@@ -46,6 +51,8 @@ class VariableGenerator(GeneratorActionType):
         elif not self._is_DTT(self._variables["Variable"]):
             err.append("Parameter 'Variable' is not valid DTT variable")
         else:
+            if not self._variables["Variable"]._is_set():
+                err.append("Variable in variable generator must be set")
             if self._output is None:
                 err.append("Can't determine valid output")
         return err
@@ -101,6 +108,9 @@ class RangeGenerator(GeneratorActionType):
             else:
                 self._generate_step(template, item)
         self._set_state(ActionStateType.initialized)
+        self._hash.update(bytes(self.__class__.__name__, "utf-8"))
+        if "Variable" in self._variables and  isinstance(self._variables["Variable"], DTT):
+            self._hash.update(bytes(self._self._output._get_unique_text(True), "utf-8"))  
         
     def __get_output_from_items(self):
         """Construct output from set items"""

@@ -5,6 +5,7 @@ from .code_formater import Formater
 import math
 import uuid
 import threading
+import hashlib
 
 class ActionsStatistics:
     def __init__(self):
@@ -119,6 +120,22 @@ class BaseActionType(metaclass=abc.ABCMeta):
         self._state_lock = threading.Lock()
         """lock for state changing, assignation rules for single 
         states is described above in class help"""
+        self._hash = hashlib.sha512()
+        """
+        Unique hash that describe this action,
+        this hash depends to inputs, action type and 
+        sometimes to dependent data sources as is
+        settings files. Hash is compute during 
+        inicialization
+        """ 
+        self._was_processed = False
+        """
+        Action is set as processed, if its result is
+        ready, and have same hash as action that was
+        started in last time. This variable is only helper
+        variable that is used during last run result 
+        evaluation by pipeline.
+        """
         self.set_config(**kwargs)
         
     def _set_state(self, new_state):
@@ -284,6 +301,47 @@ class BaseActionType(metaclass=abc.ABCMeta):
             lines[-1] = lines[-1][:-1]
             lines.append(")")
         return lines
+        
+    def _get_hash(self):
+        """return unique hash that describe this action"""
+        return self._hash.hexdigest()
+        
+    def _process_base_hash(self):
+        """return hash compute from name and inputs"""
+        self._hash.update(bytes(self.__class__.__name__, "utf-8"))
+        for input in self._inputs:
+            self._hash.update(bytes(self._get_hash(), "utf-8"))
+        return self._hash
+        
+    def _save_results(self, path):
+        """
+        Save all outputs to file in set directory. Function
+        should be called after finishing
+        """
+        if self._output is None:
+            raise Exception("Output for save is not ready.")
+        res = self._output._get_settings_script()        
+        try:
+            file_d = open(path, 'w')
+            file_d.write(res)
+            file_d.close()
+        except (RuntimeError, IOError) as err:
+            raise Exception("Can't save result to file {0} ({1})".format(path , str(err)))            
+        
+    def _restore_outputs(self, path):
+        """
+        Restore all outputs from file in set directory and
+        set action as finished. Function should be called 
+        before start of pipeline processing.
+        """
+        try:
+            file_d = open(path, 'r')
+            res = file_d.read()
+            file_d.close()
+            self._output = eval(res)
+        except (RuntimeError, IOError):
+            return           
+        self._set_state(ActionStateType.finished)
             
     def _get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self._id))
@@ -436,6 +494,10 @@ class Bridge(BaseActionType):
         
     def _is_state(self, state):
         return  self._link._is_state(state)
+        
+    def _get_hash(self):
+        """return unique hash that describe this action"""
+        return self._link._get_hash()
        
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -509,11 +571,13 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
             return
         # set state before recursion, inicialize ending if return to this action
         self._set_state(ActionStateType.initialized)
+        self._process_base_hash()
         if  'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  WorkflowActionType):
-                self._variables['WrappedAction']._inicialize()
-                #set workflow bridge to special wrapper action bridge
-                self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._variables['WrappedAction']._inicialize()
+            #set workflow bridge to special wrapper action bridge
+            self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._hash.update(bytes(self._variables['WrappedAction']._get_hash(), "utf-8"))
  
     def _check_params(self):    
         """check if all require params is set"""

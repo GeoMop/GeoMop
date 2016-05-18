@@ -18,6 +18,11 @@ class TT(metaclass=abc.ABCMeta):
         """return validation template returned by specified function
         name. Return None if not return defined"""
         return None
+    
+    @abc.abstractmethod
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        pass
 
 class GTT(TT):
     @abc.abstractmethod
@@ -133,6 +138,12 @@ class GDTT(GTT):
     def _get_settings_script(self):
         """return python script, that create instance of this class"""        
         return [self._path]
+        
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        if set:
+            raise Exception("Generic type cannot return set type")
+        return self.__class__.__name__ + self._path
     
     def __setattr__(self, name, value): 
         """ assignation"""
@@ -352,6 +363,19 @@ class GDTTFunc(GTT):
             return self.__get_simple_settings_script()
         else:
             return self.__get_dual_settings_script()
+            
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        if set:
+            raise Exception("Generic type cannot return set type")
+        ret = self.__class__.__name__
+        ret += "#" + self.operator
+        for o in self.o:
+            if isinstance(o, TT):
+                ret += "#" + o._get_unique_text()
+            else:
+                ret += "#" + str(o)
+        return ret
 
     def __get_dual_settings_script(self):
         """script two member operators"""

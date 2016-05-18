@@ -97,7 +97,24 @@ class Convertor():
         lines.extend(Formater.indent(self._output._get_settings_script(), 4))
         lines.append(")")
         return lines
-        
+
+    def _get_unique_text(self):
+        """return unique identifier that describe this variable"""
+        ret = self.__class__.__name__
+        ret += "#" + self._output._get_unique_text()
+        replaced = True
+        i = 0
+        while i<20 and replaced:
+            i += 1
+            replaced = False
+            for convertor in self._convertors:
+                conv_str = convertor._get_instance_name()
+                if conv_str in ret: 
+                    text = convertor._get_unique_text()
+                    ret = ret.replace(conv_str, text) 
+                    replaced = True
+        return ret
+
     def _check_params_one(self, input_var):
         """check params with one input set as variable"""
         err = self._check_output()

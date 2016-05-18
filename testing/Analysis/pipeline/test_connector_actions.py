@@ -58,7 +58,7 @@ def test_connector_code_init():
     compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test2)
     
     # test generated code
-    exec ('\n'.join(test), globals())    
+    exec ('\n'.join(test), globals())   
     
     VariableGenerator_1._inicialize()
     VariableGenerator_2._inicialize()
@@ -67,6 +67,14 @@ def test_connector_code_init():
     # test sorting result from generate code
     test = Conn_6._get_output()._get_settings_script()
     compare_with_file(os.path.join("pipeline", "results", "convertor2.py"), test)
+    
+    assert VariableGenerator_1._get_hash() == v1._get_hash()
+    assert VariableGenerator_2._get_hash() == v2._get_hash()
+    assert VariableGenerator_3._get_hash() == v3._get_hash()
+    assert Key_2._get_unique_text() == c1._get_unique_text()
+    assert Conv_3._get_unique_text() == conv._get_unique_text()
+    assert Conn_6._get_hash() == k2._get_hash()
+    assert Conn_6._get_hash() != k._get_hash()
     
     k4 = k3.duplicate() 
     conv2 = Convertor(Struct(a=a, b=b, c=Input(2).select(p1)))

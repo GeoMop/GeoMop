@@ -8,7 +8,7 @@ class DTT(TT, metaclass=abc.ABCMeta):
     Abstract class for defination data tree
     """
     @abc.abstractmethod 
-    def _to_string(self, value):
+    def _to_string(self):
         """Presentation of type in json yaml"""
         pass
         
@@ -74,6 +74,12 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
     @value.setter
     def value(self, value):
         self._assigne(value)
+        
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        if set:
+            return self.__class__.__name__ + "#" + self._to_string()
+        return self.__class__.__name__
     
     def __lt__(self, other):
         """operators for comaration"""
@@ -140,9 +146,9 @@ class Int(BaseDTT):
         """
         return Int(self.__integer)
     
-    def _to_string(self, value):
+    def _to_string(self):
         """Presentation of type in json yaml"""
-        return str(value)
+        return str(self.__integer)
         
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
@@ -344,7 +350,7 @@ class CompositeDTT(DTT, metaclass=abc.ABCMeta):
 
 
     @abc.abstractmethod
-    def _to_string(self, value):
+    def _to_string(self):
         """Presentation of type in json yaml"""
         pass
     
@@ -424,7 +430,7 @@ class Struct(CompositeDTT):
                     res += ",\n"
                 res += name 
                 res += ":"
-                res += self.subtype._to_string(value)
+                res += value._to_string()
                 res += "}\n"
         except:
             return None
@@ -446,6 +452,15 @@ class Struct(CompositeDTT):
         except Exception as ex:
             raise Exception("Unknown input type " +str(ex))
         return lines
+        
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        ret = self.__class__.__name__
+        for name in sorted(self.__dict__):
+            if name[:2] == '__' and name[-2:] == '__':
+                continue
+            ret += "#" + name + "#" + self.__dict__[name]._get_unique_text(set)
+        return ret
             
     def _match_type(self, type_tree):
         """
@@ -558,7 +573,7 @@ class Tuple(CompositeDTT):
                     first = False
                 else:
                     res += ",\n"
-                res += self.value._to_string()
+                res += value._to_string()
             res += ")\n"
         except:
             return None    
@@ -575,6 +590,13 @@ class Tuple(CompositeDTT):
         except Exception as ex:
             raise Exception("Unknown input type ({0})".format(str(ex)))
         return lines
+        
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        ret = self.__class__.__name__
+        for value in self._list:
+            ret += "#" + value._get_unique_text(set)
+        return ret
             
     def _match_type(self, type_tree):
         """
@@ -648,6 +670,15 @@ class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
         """Adapt list items structure"""
         pass
         
+    def _get_unique_text(self, set=False):
+        """return unique identifier that describe this variable"""
+        ret = self.__class__.__name__ + "#" + self.subtype._get_unique_text()
+        if set:
+            for value in self._list:
+                ret += "#" + value._get_unique_text(set)
+        return ret
+
+        
 class SortableDTT(ListDTT, metaclass=abc.ABCMeta):
     """Sortable composite data tree"""
     
@@ -709,7 +740,7 @@ class Ensemble(SortableDTT):
         else:
             raise ValueError('Not supported ensemble type ({0}).'.format(str(value)))     
 
-    def _to_string(self, value):
+    def _to_string(self):
         """Presentation of type in json yaml"""
         try:
             res = "[\n"
@@ -719,7 +750,7 @@ class Ensemble(SortableDTT):
                     first = False
                 else:
                     res += ",\n"
-                res += self.value._to_string()
+                res += value._to_string()
             res += "]\n"
         except:
             return None    
