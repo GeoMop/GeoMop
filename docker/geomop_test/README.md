@@ -52,4 +52,5 @@ docker login
 docker push geomop/test
 ```
 
-If you don't have the priviledges, please contact @tomaskrizek.
+If you don't have the priviledges, please contact 
+[tomaskrizek](https://github.com/tomaskrizek).

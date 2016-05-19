@@ -4,7 +4,7 @@ This Docker machine builds Windows and debian install packages for GeoMop.
 
 The container containes the necessary dependecies for the Windows runtime
 environment. If you want to modify or update them, you can find them in
-the `build` folder on our [Jenkins](ci3.nti.tul.cz) server. After making a new
+the `build` folder on our [Jenkins](http://ci3.nti.tul.cz) server. After making a new
 image, please push it back to the Docker hub as explained below.
 
 The image uses NSIS 3.0 rc1 to generate the Windows installer.
@@ -45,8 +45,8 @@ this location prior to creating the new ones.
 
 You can only modify the image if you have the `build/` and `lib/` directory 
 dependecies. These are not tracked in github. They can be found on the
-[Jenkins](ci3.nti.tul.cz) server. Please contact @tomaskrizek for more 
-information.
+[Jenkins](http://ci3.nti.tul.cz) server. Please contact 
+[tomaskrizek](https://github.com/tomaskrizek) for more information.
 
 If you want to change or modify the build process, edit the `build.sh` file. 
 Afterwards, you have to build the docker image again by running the
@@ -64,16 +64,14 @@ docker login
 docker push geomop/build
 ```
 
-If you don't have the priviledges, please contact @tomaskrizek.
+If you don't have the priviledges, please contact 
+[tomaskrizek](https://github.com/tomaskrizek).
 
 
+## Maintainer Info
 
+Docker directory on Jenkins: `/home/geomop/docker/geomop_build`
 
-# Usage
-
-
-# Maintainer Info
-build/ directory contains:
-  1) necessary files to build Docker,
-  2) Windows dependencies and libraries that are not tracked in git.
-Therefore, DO NOT REMOVE them in case you need to build the docker image.
+The `build` and `lib` directories contain the necessary files to build Windows
+installer. DO NOT REMOVE them in case you need to build the docker image. 
+These files are not tracked in git.
