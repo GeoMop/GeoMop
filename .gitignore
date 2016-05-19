@@ -103,3 +103,7 @@ src/JobsScheduler/log
 
 #temporary installed files
 src/JobsScheduler/ins-lib
+
+# Docker build dependencies and libraries.
+docker/geomop_build/build
+docker/geomop_build/lib
