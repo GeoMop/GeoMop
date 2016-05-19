@@ -39,6 +39,7 @@ version:
 	echo $$VERSION > $(GITDIR)/VERSION
 	git rev-parse HEAD >> $(GITDIR)/VERSION
 	date -R >> $(GITDIR)/VERSION
+	sed -i "1s/.*/Version: $$VERSION/" debian/control
 	echo "geomop ($$VERSION-1) UNRELEASED; urgency=medium" > debian/changelog
 	echo "\n  * Release." >> debian/changelog
 	echo "\n -- Tomas Krizek <tomas.krizek1@tul.cz>  $$(date -R)" >> debian/changelog
