@@ -6,6 +6,8 @@ import os
 
 from PyQt5 import QtWidgets
 
+from geomop_project import PROJECT_MAIN_FILE
+
 
 class CreateProjectDialog(QtWidgets.QDialog):
     """Dialog for creating projects within a workspace."""
@@ -43,7 +45,7 @@ class CreateProjectDialog(QtWidgets.QDialog):
             )
             return
         os.mkdir(path)
-        open(os.path.join(path, 'main.yaml'), 'w').close()
+        open(os.path.join(path, PROJECT_MAIN_FILE), 'w').close()
         self.config.project = name
         self.config.save()
         return super(CreateProjectDialog, self).accept()

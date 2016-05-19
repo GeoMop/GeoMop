@@ -271,6 +271,19 @@ _NOTIFICATIONS = [
         'example': 'example_validation_type_error.yaml'
     },
 
+    # -----------------------------------------------------
+    #                  Format Warnings
+    # -----------------------------------------------------
+
+    {
+        'code': 750,
+        'name': 'Flow123dVersionMismatch',
+        'description': 'Occurs when flow123d_version key specifies a different IST than the one '
+                       'that is being used.',
+        'message': 'Using Flow123d version {1} instead of {0}.',
+        'example': ''
+    },
+
     # =====================================================
     #                   INFO MESSAGES
     # =====================================================

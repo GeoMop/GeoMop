@@ -3,6 +3,7 @@
 ..codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 import os
+import sys
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
@@ -40,6 +41,8 @@ class WorkspaceSelectorWidget(SelectorWidget):
         sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace", curr_dir)
         if not sel_dir:
             sel_dir = None
+        elif sys.platform == "win32":
+            sel_dir = sel_dir.replace('/', '\\')
         self.value = sel_dir
         self.selected.emit(self._value)
 

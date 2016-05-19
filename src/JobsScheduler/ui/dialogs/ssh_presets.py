@@ -42,4 +42,4 @@ class UiSshPresets(UiPresetsDialog):
         # dialog properties
         dialog.resize(680, 510)
         dialog.setObjectName("SshPresetsDialog")
-        dialog.setWindowTitle("SSH Presets")
+        dialog.setWindowTitle("SSH hosts")

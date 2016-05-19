@@ -89,6 +89,10 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 
+    if args.debug:
+        from ui.data.data_structures import DataContainer
+        DataContainer.DEBUG_MODE = True
+
     # logging
     if not args.debug:
         from geomop_util.logging import log_unhandled_exceptions

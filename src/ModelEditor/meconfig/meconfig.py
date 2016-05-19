@@ -6,11 +6,12 @@
 
 import os
 import logging
+import codecs
 from copy import deepcopy
 
 import config as cfg
 from helpers import (notification_handler, AutocompleteHelper,
-                     StructureAnalyzer, shortcuts)
+                     StructureAnalyzer, shortcuts, Notification)
 from ist import InfoTextGenerator
 
 from data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
@@ -21,12 +22,17 @@ from data.validation import Validator
 from data.format import get_root_input_type_from_json
 from data.autoconversion import autoconvert
 from geomop_util.logging import LOGGER_PREFIX
+from geomop_util import Serializable
 from geomop_project import Project, InvalidProject
 from util import constants
 
 
 class _Config:
     """Class for ModelEditor serialization"""
+
+    __serializable__ = Serializable(
+        excluded=['observers']
+    )
 
     DEBUG_MODE = False
     """debug mode changes the behaviour"""
@@ -39,43 +45,40 @@ class _Config:
 
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'ModelEditor')
 
-    def __init__(self, readfromconfig=True):
+    LINE_ENDINGS_LF = 'unix'
+    LINE_ENDINGS_CRLF = 'windows'
+
+    def __init__(self, **kwargs):
+
+        def kw_or_def(key, default=None):
+            """Get keyword arg or default value."""
+            return kwargs[key] if key in kwargs else default
 
         from os.path import expanduser
-        self.last_data_dir = expanduser("~")
-        """directory of the most recently opened data file"""
-        self.recent_files = []
-        """a list of recently opened files"""
-        self.format_files = []
-        """a list of format files"""
-        self.display_autocompletion = False
-        """whether to display autocompletion automatically"""
-        self.symbol_completion = False
-        """whether to automatically complete brackets and array symbols"""
-        self.shortcuts = deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS)
-        """user customizable keyboard shortcuts"""
-        self.font = constants.DEFAULT_FONT
-        """text editor font"""
-        self._project = None
-        self._workspace = None
         self.observers = []
-        """objects to be notified of changes (currently only used for project)"""
+        """objects to be notified of changes"""
+        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        """directory of the most recently opened data file"""
+        self.recent_files = kw_or_def('recent_files', [])
+        """a list of recently opened files"""
+        self.format_files = kw_or_def('format_files', [])
+        """a list of format files"""
+        self.display_autocompletion = kw_or_def('display_autocompletion', False)
+        """whether to display autocompletion automatically"""
+        self.symbol_completion = kw_or_def('symbol_completion', False)
+        """whether to automatically complete brackets and array symbols"""
+        self.shortcuts = kw_or_def('shortcuts',
+                                           deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+        """user customizable keyboard shortcuts"""
+        self.font = kw_or_def('font', constants.DEFAULT_FONT)
+        """text editor font"""
+        self._line_endings = kw_or_def('_line_endings', _Config.LINE_ENDINGS_LF)
+        self._project = kw_or_def('_project')
+        self._workspace = kw_or_def('_workspace')
 
-        if readfromconfig:
-            data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
-            self.last_data_dir = getattr(data, 'last_data_dir', self.last_data_dir)
-            self.recent_files = getattr(data, 'recent_files', self.recent_files)
-            self.format_files = getattr(data, 'format_files', self.format_files)
-            self.display_autocompletion = getattr(data, 'display_autocompletion',
-                                                  self.display_autocompletion)
-            self.symbol_completion = getattr(data, 'symbol_completion',
-                                             self.symbol_completion)
-            self.font = getattr(data, 'font', self.font)
-            self.workspace = getattr(data, '_workspace', self._workspace)
-            self.project = getattr(data, '_project', self._project)
-            if hasattr(data, 'shortcuts'):
-                self.shortcuts.update(data.shortcuts)
-            self.notify_all()
+        # initialize project and workspace
+        self.workspace = self._workspace
+        self.project = self._project
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
@@ -85,6 +88,15 @@ class _Config:
             project_dir = os.path.join(self.workspace, self.project)
         if project_directory is None or directory != project_dir:
             self.last_data_dir = directory
+
+    @staticmethod
+    def open():
+        """Open config from saved file (if exists)."""
+        config = cfg.get_config_file(_Config.SERIAL_FILE,
+                                     _Config.CONFIG_DIR, cls=_Config)
+        if config is None:
+            config = _Config()
+        return config
 
     def save(self):
         """Save config data"""
@@ -184,6 +196,17 @@ class _Config:
                 Project.current = project
         self.notify_all()
 
+    @property
+    def line_endings(self):
+        """line endings used in the edited files"""
+        return self._line_endings
+
+    @line_endings.setter
+    def line_endings(self, value):
+        if value != self._line_endings:
+            self._line_endings = value
+            self.notify_all()
+
     def notify_all(self):
         """Notify all observers about changes."""
         for observer in self.observers:
@@ -202,7 +225,7 @@ class MEConfig:
     """Array of transformation files"""
     curr_format_file = None
     """selected format file"""
-    config = _Config()
+    config = _Config.open()
     """Serialized variables"""
     curr_file = None
     """Serialized variables"""
@@ -238,6 +261,10 @@ class MEConfig:
     logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
     """root context logger"""
 
+    DEFAULT_IMPORT_FORMAT_FILE = '1.8.6'
+    """default IST version to be used for imported con files"""
+
+
     @classmethod
     def init(cls, main_window):
         """Init class wit static method"""
@@ -260,6 +287,8 @@ class MEConfig:
             if (isfile(join(cls.format_dir, file_name)) and
                     file_name[-5:].lower() == ".json"):
                 cls.format_files.append(file_name[:-5])
+        # reverse sorting 9 - 0
+        cls.format_files = cls.format_files[::-1]
 
     @classmethod
     def _read_transformation_files(cls):
@@ -330,6 +359,10 @@ class MEConfig:
        empty file
         """
         cls.document = ""
+        if Project.current is not None:
+            cls.curr_format_file = Project.current.flow123d_version
+            if not cls.curr_format_file:
+                cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
         cls.changed = False
         cls.curr_file = None
@@ -343,12 +376,18 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         try:
-            with open(file_name, 'r') as file_d:
-                cls.document = file_d.read().expandtabs(tabsize=2)
+            try:
+                with codecs.open(file_name, 'r', 'utf-8') as file_d:
+                    cls.document = file_d.read().expandtabs(tabsize=2)
+            except UnicodeDecodeError:
+                with open(file_name, 'r') as file_d:
+                    cls.document = file_d.read().expandtabs(tabsize=2)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.imported_file_name = None
             cls.config.add_recent_file(file_name, cls.curr_format_file)
+            cls.update()
+            cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
             cls.sync_project_for_curr_file()
@@ -359,6 +398,29 @@ class MEConfig:
             else:
                 raise err
         return False
+
+    @classmethod
+    def _set_format_file_from_data(cls):
+        try:
+            cls.curr_format_file = cls.root.get_node_at_path('/flow123d_version').value
+        except (LookupError, AttributeError):
+            cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+        else:
+            if cls.curr_format_file not in cls.format_files:
+                # specified version not available, select next lower version
+                def get_version(format_file):
+                    vers = format_file.split('.')
+                    major = vers[0]
+                    minor = vers[1] if len(vers) > 1 else 0
+                    rev = vers[2] if len(vers) > 2 else 0
+                    return major, minor, rev
+                req_version = get_version(cls.curr_format_file)
+                for format_file in sorted(cls.format_files, reverse=True):
+                    version = get_version(format_file)
+                    if version > req_version:
+                        continue
+                    cls.curr_format_file = format_file
+                    break
 
     @classmethod
     def import_file(cls, file_name):
@@ -396,6 +458,16 @@ class MEConfig:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
+            cls.curr_format_file = None
+            if Project.current is not None:
+                cls.curr_format_file = Project.current.flow123d_version
+            if cls.curr_format_file is None:
+                cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            if cls.curr_format_file == '2.0.0':
+                try:
+                    cls.transform("f123_1.8.6_to_2.0.0")
+                except Exception:
+                    cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
             cls.update_format()
             cls.changed = True
             return True
@@ -427,15 +499,18 @@ class MEConfig:
 
         return: if file have good format (boolean)
         """
-        format_file = cls.config.get_format_file(file_name)
-        if format_file is not None:
-            cls.curr_format_file = format_file
+        # If we want to use this code, GUI has to be updated as well.
+        # format_file = cls.config.get_format_file(file_name)
+        # if format_file is not None:
+        #     cls.curr_format_file = format_file
         try:
             with open(file_name, 'r') as file_d:
                 cls.document = file_d.read()
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config. add_recent_file(file_name, cls.curr_format_file)
+            cls.update()
+            cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
             cls.sync_project_for_curr_file()
@@ -461,10 +536,22 @@ class MEConfig:
         cls.root = autoconvert(cls.root, cls.root_input_type)
         cls.validator.validate(cls.root, cls.root_input_type)
 
+        # flow123d_version notifications
+        try:
+            node = cls.root.get_node_at_path('/flow123d_version')
+        except LookupError:
+            pass
+        else:
+            if node.value != cls.curr_format_file:
+                ntf = Notification.from_name(
+                    'Flow123dVersionMismatch', node.value, cls.curr_format_file)
+                ntf.span = node.span
+                cls.notification_handler.report(ntf)
+
         # handle parameters
         if (Project.current is not None and
-                Project.current.files.path_is_in_project_dir(cls.curr_file)):
-            Project.current.params.merge(cls.validator.params)
+                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
+            Project.current.merge_params(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -474,7 +561,12 @@ class MEConfig:
         """reread json format file and update node tree"""
         if cls.curr_format_file is None:
             return
-        text = cls.get_curr_format_text()
+        try:
+            text = cls.get_curr_format_text()
+        except FileNotFoundError:
+            # if format is not found, open the latest instead
+            cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+            text = cls.get_curr_format_text()
         try:
             cls.root_input_type = get_root_input_type_from_json(text)
         except Exception as e:
@@ -489,9 +581,8 @@ class MEConfig:
         """save file"""
         cls.update()
         try:
-            file_d = open(cls.curr_file, 'w')
-            file_d.write(cls.document)
-            file_d.close()
+            with codecs.open(cls.curr_file, 'w', 'utf-8') as file_d:
+                file_d.write(cls.document)
             # format is save to recent files up to save file
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
@@ -508,9 +599,8 @@ class MEConfig:
         """save file as"""
         cls.update()
         try:
-            file_d = open(file_name, 'w')
-            file_d.write(cls.document)
-            file_d.close()
+            with codecs.open(file_name, 'w', 'utf-8') as file_d:
+                file_d.write(cls.document)
             cls.config.update_last_data_dir(file_name)
             cls.curr_file = file_name
             cls.config.add_recent_file(file_name, cls.curr_format_file)
@@ -527,9 +617,12 @@ class MEConfig:
     def sync_project_for_curr_file(cls):
         """Write current file and params to a project file."""
         if (Project.current is not None and
-                Project.current.files.path_is_in_project_dir(cls.curr_file)):
-            Project.current.params.merge(cls.validator.params)
-            Project.current.files.add(cls.curr_file, cls.validator.params.keys())
+                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
+            Project.current.merge_params(cls.validator.params)
+            params = [param.name for param in cls.validator.params]
+            Project.current.add_file(cls.curr_file, params)
+            if not Project.current.flow123d_version:
+                Project.current.flow123d_version = cls.curr_format_file
             Project.current.save()
 
     @classmethod

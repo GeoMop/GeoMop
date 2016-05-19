@@ -42,4 +42,4 @@ class UiPbsPresets(UiPresetsDialog):
         # dialog properties
         dialog.resize(680, 510)
         dialog.setObjectName("PbsPresetsDialog")
-        dialog.setWindowTitle("PBS Presets")
+        dialog.setWindowTitle("PBS options")

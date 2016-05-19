@@ -46,4 +46,4 @@ class UiResourcePresets(UiPresetsDialog):
         # dialog properties
         dialog.resize(680, 510)
         dialog.setObjectName("ResourcePresetsDialog")
-        dialog.setWindowTitle("Resource Presets")
+        dialog.setWindowTitle("Resources")

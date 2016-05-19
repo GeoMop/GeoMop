@@ -11,12 +11,136 @@ import time
 from communication import Installation
 from data.states import TaskStatus, JobsState
 from ui.data.preset_data import APreset
+from geomop_util import Serializable
+
+
+class MultiJobState:
+    """
+    Data for current state of MultiJob
+    """
+
+    __serializable__ = Serializable(
+        composite={'status': TaskStatus}
+    )
+
+    def __init__(self, name, **kwargs):
+        """
+        Default initialization.
+        :param name: MultiJob name
+        :return: None
+        """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        self.name = name
+        """Name of multijob"""
+        self.insert_time = kw_or_def('insert_time', time.time())
+        """When MultiJob was started"""
+        self.queued_time = kw_or_def('queued_time')
+        """When MultiJob was queued"""
+        self.start_time = kw_or_def('start_time')
+        """When MultiJob was started"""
+        self.run_interval = kw_or_def('run_interval', 0)
+        """MultiJob run time from start in second"""
+        self.status = kw_or_def('status', TaskStatus.none)
+        """MultiJob current status"""
+        self.known_jobs = kw_or_def('known_jobs', 0)
+        """Count of known jobs (minimal amount of jobs)"""
+        self.estimated_jobs = kw_or_def('estimated_jobs', 0)
+        """Estimated count of jobs"""
+        self.finished_jobs = kw_or_def('finished_jobs', 0)
+        """Count of finished jobs"""
+        self.running_jobs = kw_or_def('running_jobs', 0)
+        """Count of running jobs"""
+        self.update_time = kw_or_def('update_time')
+        """When MultiJobState  was last updated"""
+
+    def update(self, new_state):
+        """
+        Update new_state with received data
+        :param new_state: Communication new_state data
+        :return: None
+        """
+        # self.queued_time = new_state.queued_time
+        # self.start_time = new_state.start_time
+        self.run_interval = new_state.run_interval
+        self.status = new_state.status
+        self.known_jobs = new_state.known_jobs
+        self.estimated_jobs = new_state.estimated_jobs
+        self.finished_jobs = new_state.finished_jobs
+        self.running_jobs = new_state.running_jobs
+
+        self.update_time = time.time()
+
+    def get_status(self):
+        """
+        Return MultiJob status
+        :return: Current TaskStatus
+        """
+        return self.status
+
+    def set_status(self, new_status):
+        """
+        Directly changes status of the MultiJob
+        :param new_status: TaskStatus o replace current.
+        :return: None
+        """
+        self.status = new_status
+
+    def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
+
+
+class MultiJobPreset(APreset):
+    """
+    MultiJob preset data container.
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Default initialization.
+        :return: None
+        """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        name = kw_or_def('name', 'Default MultiJob Preset Name')
+        super().__init__(name)
+
+        self.resource_preset = kw_or_def('resource_preset')
+        """Selected resource preset"""
+        self.pbs_preset = kw_or_def('pbs_preset')
+        """AdHoc PBS preset override"""
+        self.log_level = kw_or_def('log_level', logging.DEBUG)
+        """Logging level"""
+        self.number_of_processes = kw_or_def('number_of_processes', 1)
+        """Number of processes used by MultiJob"""
+
+    def __repr__(self):
+        """
+        Representation of object
+        :return: String representation of object.
+        """
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class MultiJob:
-    def __init__(self, preset):
+
+    __serializable__ = Serializable(
+        composite={'preset': MultiJobPreset,
+                   'state': MultiJobState}
+    )
+
+    def __init__(self, preset, **kwargs):
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
         self.preset = preset
-        self.state = MultiJobState(preset.name)
+        self.state = kw_or_def('state', MultiJobState(preset.name))
 
     def get_preset(self):
         """
@@ -80,81 +204,6 @@ class MultiJob:
                 conf = MultiJobLog(conf_path, file)
                 confs.append(conf)
         return confs
-
-
-class MultiJobState:
-    """
-    Data for current state of MultiJob
-    """
-
-    def __init__(self, name):
-        """
-        Default initialization.
-        :param name: MultiJob name
-        :return: None
-        """
-        self.name = name
-        """Name of multijob"""
-        self.insert_time = time.time()
-        """When MultiJob was started"""
-        self.queued_time = None
-        """When MultiJob was queued"""
-        self.start_time = None
-        """When MultiJob was started"""
-        self.run_interval = 0
-        """MultiJob run time from start in second"""
-        self.status = TaskStatus.none
-        """MultiJob current status"""
-        self.known_jobs = 0
-        """Count of known jobs (minimal amount of jobs)"""
-        self.estimated_jobs = 0
-        """Estimated count of jobs"""
-        self.finished_jobs = 0
-        """Count of finished jobs"""
-        self.running_jobs = 0
-        """Count of running jobs"""
-
-        self.update_time = None
-        """When MultiJobState  was last updated"""
-
-    def update(self, new_state):
-        """
-        Update new_state with received data
-        :param new_state: Communication new_state data
-        :return: None
-        """
-        # self.queued_time = new_state.queued_time
-        # self.start_time = new_state.start_time
-        self.run_interval = new_state.run_interval
-        self.status = new_state.status
-        self.known_jobs = new_state.known_jobs
-        self.estimated_jobs = new_state.estimated_jobs
-        self.finished_jobs = new_state.finished_jobs
-        self.running_jobs = new_state.running_jobs
-
-        self.update_time = time.time()
-
-    def get_status(self):
-        """
-        Return MultiJob status
-        :return: Current TaskStatus
-        """
-        return self.status
-
-    def set_status(self, new_status):
-        """
-        Directly changes status of the MultiJob
-        :param new_status: TaskStatus o replace current.
-        :return: None
-        """
-        self.status = new_status
-
-    def __repr__(self):
-        """
-        Representation of object
-        :return: String representation of object.
-        """
-        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class AMultiJobFile:
@@ -230,36 +279,6 @@ class MultiJobConf(AMultiJobFile):
 
     def __init__(self, path, file):
         super().__init__(path, file)
-
-
-class MultiJobPreset(APreset):
-    """
-    MultiJob preset data container.
-    """
-
-    def __init__(self, name="Default MultiJob Preset Name"):
-        """
-        Default initialization.
-        :return: None
-        """
-        super().__init__(name)
-        self.analysis = ""
-        """Path to analysis folder"""
-        self.resource_preset = None
-        """Selected resource preset"""
-        self.pbs_preset = None
-        """AdHoc PBS preset override"""
-        self.log_level = logging.DEBUG
-        """Logging level"""
-        self.number_of_processes = "1"
-        """Number of processes used by MultiJob"""
-
-    def __repr__(self):
-        """
-        Representation of object
-        :return: String representation of object.
-        """
-        return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
 
 class MultiJobActions:

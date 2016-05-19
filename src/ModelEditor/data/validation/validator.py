@@ -5,7 +5,7 @@
 from helpers import Notification
 from util import TextValue, Span
 
-from geomop_project import ParameterCollection, Parameter
+from geomop_project import Parameter
 
 from . import checks
 from ..data_node import DataNode
@@ -19,7 +19,7 @@ class Validator:
         """Initializes the validator with a NotificationHandler."""
         self.notification_handler = notification_handler
         self.valid = True
-        self.params = None
+        self.params = []
 
     def validate(self, node, input_type):
         """
@@ -32,7 +32,7 @@ class Validator:
         Attribute errors contains a list of occurred errors.
         """
         self.valid = True
-        self.params = ParameterCollection()
+        self.params = []
         self._validate_node(node, input_type)
         return self.valid
 
@@ -51,8 +51,14 @@ class Validator:
             match = is_param(node.value)
             if match:
                 # extract parameters
-                param = Parameter(match.group(1))
-                self.params.add(param)
+                new_param = Parameter(match.group(1))
+                exists = False
+                for param in self.params:
+                    if param.name == new_param.name:
+                        exists = True
+                        break
+                if not exists:
+                    self.params.append(new_param)
                 node.input_type = input_type
                 # assume parameters are correct, do not validate further
                 return

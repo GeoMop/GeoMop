@@ -46,44 +46,35 @@ class APreset:
         """
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
-    @staticmethod
-    def clone(prototype):
-        """Create a new instance from the given prototype.
-
-        This function is used as a workaround for using YAML loaded presets. Because
-        YAML doesn't call __init__, any update and change in config presents a problem.
-        Using the cloning function solve this.
-        """
-        clone = type(prototype)()  # create a new instance of the same type
-        clone.__dict__.update(prototype.__dict__)  # copy the data
-        return clone
-
 
 class PbsPreset(APreset):
     """
     PBS preset data container.
     """
 
-    def __init__(self, name="Default PBS Preset Name"):
+    def __init__(self, **kwargs):
         """
         Default initialization.
         :return: None
         """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        name = kw_or_def('name', 'Default PBS options name')
         super().__init__(name)
-        self.dialect = None
-        """Defines PBS system"""
-        self.queue = None
+
+        self.queue = kw_or_def('queue')
         """Defines preferred queue for execution"""
-        self.walltime = None
+        self.walltime = kw_or_def('walltime')
         """Walltime defines maximum execution time in system"""
-        self.nodes = None
+        self.nodes = kw_or_def('nodes')
         """Number of nodes for parallel computations"""
-        self.ppn = None
+        self.ppn = kw_or_def('ppn')
         """Processors per node"""
-        self.memory = None
+        self.memory = kw_or_def('memory')
         """Required memory size on node"""
-        self.scratch = None
-        """Required disk space size on node"""
+        self.infiniband = kw_or_def('infiniband', False)
+        """infiniband (metacentrum settings)"""
 
     def get_description(self):
         """
@@ -98,20 +89,27 @@ class SshPreset(APreset):
     SSH preset data container.
     """
 
-    def __init__(self, name="Default SSH Preset Name"):
+    def __init__(self, **kwargs):
         """
         Default initialization.
         :return: None
         """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        name = kw_or_def('name', 'Default SSH host name')
         super().__init__(name)
-        self.host = "localhost"
+
+        self.host = kw_or_def('host', 'localhost')
         """Host to connect"""
-        self.port = "22"
+        self.port = kw_or_def('port', '22')
         """Port for connection"""
-        self.uid = ""
+        self.uid = kw_or_def('uid', '')
         """User ID"""
-        self.pwd = ""
+        self.pwd = kw_or_def('pwd', '')
         """Password"""
+        self.pbs_system = kw_or_def('pbs_system')
+        """Defines PBS system dialect"""
 
     def get_description(self):
         """
@@ -126,34 +124,39 @@ class ResPreset(APreset):
     Resource preset data container.
     """
 
-    def __init__(self, name="Default Resource Preset Name"):
+    def __init__(self, **kwargs):
         """
         Default initialization.
         :return: None
         """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        name = kw_or_def('name', 'Default Resource name')
         super().__init__(name)
+
         # MJ
-        self.mj_execution_type = None
+        self.mj_execution_type = kw_or_def('mj_execution_type')
         """Defines how to execute MJ"""
-        self.mj_ssh_preset = None
+        self.mj_ssh_preset = kw_or_def('mj_ssh_preset')
         """SSH preset for option"""
-        self.mj_remote_execution_type = None
+        self.mj_remote_execution_type = kw_or_def('mj_remote_execution_type')
         """Defines how to execute MJ remote component"""
-        self.mj_pbs_preset = None
+        self.mj_pbs_preset = kw_or_def('mj_pbs_preset')
         """PBS preset for option"""
-        self.mj_env = None
+        self.mj_env = kw_or_def('mj_env')
         """Settings for remote environment"""
 
         # Job
-        self.j_execution_type = None
+        self.j_execution_type = kw_or_def('j_execution_type')
         """Defines how to execute Job"""
-        self.j_ssh_preset = None
+        self.j_ssh_preset = kw_or_def('j_ssh_preset')
         """SSH preset for option"""
-        self.j_remote_execution_type = None
+        self.j_remote_execution_type = kw_or_def('j_remote_execution_type')
         """Defines how to execute Job remote component"""
-        self.j_pbs_preset = None
+        self.j_pbs_preset = kw_or_def('j_pbs_preset')
         """PBS preset for option"""
-        self.j_env = None
+        self.j_env = kw_or_def('j_env')
         """Settings for remote environment"""
 
     def get_description(self):
@@ -173,25 +176,30 @@ class EnvPreset(APreset):
     Environment preset data container.
     """
 
-    def __init__(self, name="Default Environment Preset Name"):
+    def __init__(self, **kwargs):
         """
         Default initialization.
         :return: None
         """
+        def kw_or_def(key, default=None):
+            return kwargs[key] if key in kwargs else default
+
+        name = kw_or_def('name', 'Default Environment name')
         super().__init__(name)
+
         # Python environment
-        self.python_exec = "python3"
+        self.python_exec = kw_or_def('python_exec', 'python3')
         """Alias or path to python executable"""
-        self.scl_enable_exec = None
+        self.scl_enable_exec = kw_or_def('scl_enable_exec')
         """Enable python exec set name over scl"""
-        self.module_add = None
+        self.module_add = kw_or_def('module_add')
         """Module name of required python version"""
 
         # Flow123d runtime
-        self.flow_path = None
+        self.flow_path = kw_or_def('flow_path')
         """Execution path to flow123d"""
-        self.pbs_params = []
+        self.pbs_params = kw_or_def('pbs_params', [])
         """PBS parameters for running flow123d"""
-        self.cli_params = []
+        self.cli_params = kw_or_def('cli_params', [])
         """Command line parameters for flow123d"""
 
