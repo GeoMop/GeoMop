@@ -1,0 +1,32 @@
+Struct(
+    a=String('test'),
+    b=Int(8),
+    c=(
+        Ensemble(
+            (
+                Struct(
+                    a=String(),
+                    bc_type=Int(),
+                    time=Int(),
+                    value=Float()
+                )
+            ),
+            (
+                Struct(
+                    a=String('a4'),
+                    bc_type=Int(4),
+                    time=Int(750),
+                    value=Float(12.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a6'),
+                    bc_type=Int(4),
+                    time=Int(900),
+                    value=Float(13.0)
+                )
+            )
+        )
+    )
+)
