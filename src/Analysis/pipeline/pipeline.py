@@ -35,11 +35,13 @@ class Pipeline(WorkflowActionType):
         # set state before recursion, inicialize ending if return to this action
         self._set_state(ActionStateType.initialized)
         actions = self._get_child_list()
+        self._process_base_hash()
         try:
             actions  = self._order_child_list(actions)
             actions.reverse()
             for action in actions:
                action._inicialize()
+               self._hash.update(bytes(action._get_hash(), "utf-8"))
         except:
             pass    
 

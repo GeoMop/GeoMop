@@ -7,6 +7,7 @@ Main window module
 import copy
 import os
 from shutil import copyfile
+import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -14,12 +15,12 @@ from PyQt5.QtGui import QDesktopServices
 
 from communication import Communicator, Installation
 from data.states import TaskStatus
+from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
 from ui.data.preset_data import Id
-from ui.data import PersistentDictConfigAdapter
-from ui.dialogs import AnalysisDialog
+from ui.dialogs import AnalysisDialog, FilesSavedMessageBox
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.options_dialog import OptionsDialog
@@ -33,6 +34,8 @@ from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
 from geomop_project import Project, Analysis
+from geomop_util import Serializable
+import flow_util
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -142,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # project menu
-        self.ui.menuBar.project.config = PersistentDictConfigAdapter(self.data.set_data)
+        self.ui.menuBar.project.config = self.data.config
 
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
@@ -184,35 +187,49 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.currentItemChanged.connect(
             self.update_ui_locks)
 
+        # connect tabWidget
+        self.ui.tabWidget.ui.resultsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
+        self.ui.tabWidget.ui.logsTab.ui.saveButton.clicked.connect(
+            self._handle_save_res_log_button_clicked)
+
         # reload view
         self.ui.overviewWidget.reload_items(self.data.multijobs)
 
         # load settings
         self.load_settings()
         # attach workspace and project observers
-        self.data.set_data.observers.append(self)
-        PersistentDictConfigAdapter(self.data.set_data).observers.append(Project)
+        self.data.config.observers.append(Project)
+        self.data.config.observers.append(self)
 
         # trigger notify
-        self.data.set_data.notify()
+        self.data.config.notify()
 
     def load_settings(self):
         # select last selected mj
         index = 0
-        if "selected_mj" in self.data.set_data:
+        if self.data.config.selected_mj is not None:
             item_count = self.ui.overviewWidget.topLevelItemCount()
-            tmp_index = int(self.data.set_data["selected_mj"])
+            tmp_index = int(self.data.config.selected_mj)
             if item_count > 0 and item_count > tmp_index:
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
         # load current project
-        project = self.data.set_data['project'] or '(No Project)'
+        if self.data.config.project is not None:
+            project = self.data.config.project
+        else:
+            project = '(No Project)'
         self.setWindowTitle('Jobs Scheduler - ' + project)
 
     def notify(self, data):
         """Handle update of data.set_data."""
         self.load_settings()
+        # update analysis menu label - create / edit
+        if Project.current is None or Project.current.get_current_analysis() is None:
+            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Create')
+        else:
+            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Edit')
 
     def update_ui_locks(self, current, previous=None):
         if current is None:
@@ -280,12 +297,11 @@ class MainWindow(QtWidgets.QMainWindow):
             files = []
             for analysis in Project.current.get_all_analyses():
                 files.extend(analysis.files)
-                # copy analysis file into mj_conf folder
-                src = os.path.join(proj_dir, analysis.filename)
-                dst = os.path.join(mj_dir, analysis.filename)
-                copyfile(src, dst)
 
-            # copy all files to mj_conf folder
+            analysis = Project.current.get_current_analysis()
+            assert analysis is not None, "No analysis file exists for the project!"
+
+            # fill in parameters and copy the files
             for file in set(files):
                 src = os.path.join(proj_dir, file)
                 dst = os.path.join(mj_dir, file)
@@ -293,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dst_dir = os.path.dirname(dst)
                 if not os.path.isdir(dst_dir):
                     os.makedirs(dst_dir)
-                copyfile(src, dst)
+                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
 
         self.multijobs_changed.emit(self.data.multijobs)
 
@@ -369,12 +385,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if not Project.current:
             self.report_error("Project is not selected.")
             return
-        if purpose == AnalysisDialog.PURPOSE_ADD:
-            analysis = Analysis.load(data)
+        if purpose in (AnalysisDialog.PURPOSE_ADD, AnalysisDialog.PURPOSE_EDIT):
+            analysis = Analysis(**data)
             Project.current.save_analysis(analysis)
 
     def _handle_options(self):
-        OptionsDialog(self, PersistentDictConfigAdapter(self.data.set_data)).show()
+        OptionsDialog(self, self.data.config).show()
 
     def handle_terminate(self):
         mj = self.data.multijobs
@@ -387,7 +403,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # save currently selected mj
         current = self.ui.overviewWidget.currentItem()
         sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
-        self.data.set_data["selected_mj"] = sel_index
+        self.data.config.selected_mj = sel_index
 
     def _handle_restart_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -469,11 +485,85 @@ class MainWindow(QtWidgets.QMainWindow):
         if current.text(0) == key:
             self.ui.tabWidget.reload_view(mj)
 
+    def _handle_save_results_button_clicked(self):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_name = installation.__result_dir__
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self._handle_save_results(src_dir_path, dst_dir_name, files)
+
+    def _handle_save_res_log_button_clicked(self):
+        # if not project - alert
+        if not Project.current:
+            self.report_error("No project selected!")
+
+        dst_dir_location = os.path.join(Project.current.project_dir,
+                                        "analysis",
+                                        time.strftime("%Y%m%d_%H%M%S"))
+        self._save_results(dst_dir_location)
+        self._save_logs(dst_dir_location)
+        # alert with open dir option
+        FilesSavedMessageBox(self, dst_dir_location).show()
+
+    def _save_logs(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__,
+                                    installation.__logs_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__logs_dir__)
+        files = self.ui.tabWidget.ui.logsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    def _save_results(self, dst_dir_location):
+        src_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name,
+                                    installation.__result_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__result_dir__)
+        files = self.ui.tabWidget.ui.resultsTab.files
+        self.copy_files(src_dir_path, dst_dir_path, files)
+
+    @staticmethod
+    def copy_files(src_dir_path, dst_dir_path, files):
+        # create folder
+        os.makedirs(dst_dir_path, exist_ok=True)
+
+        # copy files
+        for file_name in [f.file_name for f in files]:
+            copyfile(os.path.join(src_dir_path, file_name), os.path.join(dst_dir_path, file_name))
+
     def report_error(self, msg, err=None):
         """Report an error with dialog."""
         from geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(self)
         err_dialog.open_error_dialog(msg, err)
+
+    @property
+    def current_mj(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        mj = self.data.multijobs[key]
+        return mj
+
+    def showEvent(self, event):
+        super(MainWindow, self).showEvent(event)
+        self.raise_()
+
+        # select workspace if none is selected
+        if self.data.config.workspace is None:
+            import sys
+            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace")
+            if not sel_dir:
+                sel_dir = None
+            elif sys.platform == "win32":
+                sel_dir = sel_dir.replace('/', '\\')
+            self.data.config.workspace = sel_dir
+            self.data.config.save()
 
 
 class UiMainWindow(object):

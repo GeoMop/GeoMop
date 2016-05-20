@@ -5,6 +5,7 @@
 from PyQt5 import QtWidgets, QtGui
 
 from geomop_project import Analysis
+
 from .dialogs import AFormDialog, UiFormDialog
 
 
@@ -45,20 +46,21 @@ class AnalysisDialog(AFormDialog):
         self.ui.setup_ui(self)
 
         # preset purpose
-        self.set_purpose(self.PURPOSE_ADD)
+        analysis = project.get_current_analysis()
+        if analysis is not None:
+            self.set_data(analysis)
+            self.set_purpose(self.PURPOSE_EDIT)
+        else:
+            self.set_purpose(self.PURPOSE_ADD)
 
         # connect slots
         super()._connect_slots()
 
     def valid(self):
         valid = True
-        # if not ValidationColorizer.colorize_by_validator(
-        #         self.ui.nameLineEdit):
-        #     valid = False
         return valid
 
     def get_data(self):
-        name = self.ui.nameLineEdit.text()
         files = []
         params = {}
 
@@ -74,40 +76,26 @@ class AnalysisDialog(AFormDialog):
             if widget.include_in_data:
                 params[widget.param.name] = widget.text()
 
-        return Analysis(name, files, params).dump()
+        analysis = Analysis(files=files,
+                            params=params)
+        return analysis.__dict__
 
     def set_data(self, data=None):
-        # reset validation colors
-        # ValidationColorizer.colorize_white(self.ui.nameLineEdit)
-        #
-        # if data:
-        #     key = data["key"]
-        #     preset = EnvPreset.clone(data["preset"])
-        #     self.ui.idLineEdit.setText(key)
-        #     self.ui.nameLineEdit.setText(preset.name)
-        #     self.ui.pythonExecLineEdit.setText(preset.python_exec)
-        #     if preset.scl_enable_exec:
-        #         self.ui.sclEnableCheckBox.setCheckState(Qt.Checked)
-        #         self.ui.sclEnableLineEdit.setText(preset.scl_enable_exec)
-        #     if preset.module_add:
-        #         self.ui.addModuleCheckBox.setCheckState(Qt.Checked)
-        #         self.ui.addModuleLineEdit.setText(preset.module_add)
-        #     self.ui.flowPathEdit.setText(preset.flow_path)
-        #     self.ui.pbsParamsTextEdit.setPlainText(preset.pbs_params)
-        #     self.ui.cliParamsTextEdit.setPlainText(preset.cli_params)
-        #
-        # else:
-        #     self.ui.idLineEdit.clear()
-        #     self.ui.nameLineEdit.clear()
-        #     self.ui.pythonExecLineEdit.clear()
-        #     self.ui.sclEnableCheckBox.setCheckState(Qt.Unchecked)
-        #     self.ui.sclEnableLineEdit.clear()
-        #     self.ui.addModuleCheckBox.setCheckState(Qt.Unchecked)
-        #     self.ui.addModuleLineEdit.clear()
-        #     self.ui.flowPathEdit.clear()
-        #     self.ui.pbsParamsTextEdit.clear()
-        #     self.ui.cliParamsTextEdit.clear()
-        pass
+        if data:
+            # check files
+            for i in range(self.ui.filesLayout.count()):
+                checkbox = self.ui.filesLayout.itemAt(i).widget()
+                if checkbox.file.file_path in data.files:
+                    checkbox.setChecked(True)
+                else:
+                    checkbox.setChecked(False)
+
+            # fill params
+            for __, edit_widget in self.ui.paramWidgets:
+                if edit_widget.param.name in data.params:
+                    edit_widget.setText(data.params[edit_widget.param.name])
+
+            self.ui.update_params()
 
 
 class UiAnalysisDialog(UiFormDialog):
@@ -123,26 +111,9 @@ class UiAnalysisDialog(UiFormDialog):
 
         self.project = dialog.project
 
-        # validators
-        # TODO is analysis name validator needed?
-        # self.nameValidator = AnalysisNameValidator(
-        #     self.mainVerticalLayoutWidget)
-
         # form layout
 
         # row 0
-        self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.nameLabel.setObjectName("nameLabel")
-        self.nameLabel.setText("Name:")
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole,
-                                  self.nameLabel)
-        self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the analysis")
-        self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        # self.nameLineEdit.setValidator(self.nameValidator)
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole,
-                                  self.nameLineEdit)
 
         self.dirLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.dirLabel.setObjectName("dirLabel")
@@ -181,7 +152,7 @@ class UiAnalysisDialog(UiFormDialog):
         self.filesLayout.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.filesLayout)
 
-        for file in self.project.files.all():
+        for file in self.project.files:
             checkbox = QtWidgets.QCheckBox()
             checkbox.setChecked(True)
             checkbox.file = file
@@ -202,7 +173,7 @@ class UiAnalysisDialog(UiFormDialog):
 
         # create GUI components for all project params
         self.paramWidgets = []
-        for i, param in enumerate(self.project.params.all()):
+        for i, param in enumerate(self.project.params):
             label = QtWidgets.QLabel()
             label.setText(param.name)
             label.param = param

@@ -43,4 +43,4 @@ class UiEnvPresets(UiPresetsDialog):
         # dialog properties
         dialog.resize(680, 510)
         dialog.setObjectName("EnvPresetsDialog")
-        dialog.setWindowTitle("Environment Presets")
+        dialog.setWindowTitle("Environments")

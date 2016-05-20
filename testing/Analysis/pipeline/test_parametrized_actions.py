@@ -21,5 +21,5 @@ def test_flow_code_init():
     
     assert Flow123d_2._variables['YAMLFile'] == flow._variables['YAMLFile']
     assert Flow123d_2.get_input_val(0).test1 == flow.get_input_val(0).test1
-    
+    assert Flow123d_2._get_hash() == flow._get_hash()
     

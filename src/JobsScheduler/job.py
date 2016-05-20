@@ -3,7 +3,8 @@ sys.path.insert(1, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(2, './twoparty/enum')
 
-
+import os
+import json
 import logging
 import subprocess
 from communication.installation import Installation
@@ -11,6 +12,8 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 from communication import Communicator
 import data.transport_data as tdata
+
+from communication.installation import __ins_files__
 
 logger = logging.getLogger("Remote")
 finished = False
@@ -80,9 +83,28 @@ try:
 except Exception as error:
     logger.error(error)
     raise error
+
+
+# TODO move config loading elsewhere
+def load_configuration(filepath):
+    """Load job configuration from file."""
+    data = {}
+    try:
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+    except Exception as exc:
+        logger.error(exc)
+    return data[mj_id]
+
+job_configuration = load_configuration(
+    os.path.join(directory, __ins_files__['job_configurations']))
+"""job configurations"""
+
 # Use com_conf instead of ccom
 comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_action_function_after)
 logger.info("Start")
+# test if config was read
+logger.info('Configuration file: %s', job_configuration['configuration_file'])
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
 process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py",
     Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
@@ -100,10 +122,12 @@ term = pexpect.spawn('bash')
 for line in com_conf.cli_params:
     term.sendline(line)
     term.expect('.*' + line + '\r\n')
+    logger.debug('CLI PARAMS> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
 flow_execute = com_conf.flow_path + ' --version'
 term.sendline(flow_execute)
 term.expect('.*' + flow_execute + '\r\n')
-logger.debug(str(term.readline(), 'utf-8').strip())
+term.expect(".*\$ ")
+logger.debug('FLOW OUTPUT> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
 term.sendline('exit')
 
 out = read_err(process.stderr)

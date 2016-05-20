@@ -99,7 +99,7 @@ class ActionRestartMultiJob(QtWidgets.QAction):
 class ActionSshPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText("SSH Connections")
+        self.setText("SSH hosts")
         self.setShortcut("Shift+S")
         self.setObjectName("actionSshPresets")
 
@@ -107,7 +107,7 @@ class ActionSshPresets(QtWidgets.QAction):
 class ActionPbsPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText("PBS Presets")
+        self.setText("PBS options")
         self.setShortcut("Shift+P")
         self.setObjectName("actionPbsPresets")
 

@@ -1,6 +1,5 @@
 #!/bin/bash
 
 rm -rf /usr/share/geomop/env
-rm -rf /usr/share/geomop/src
 
 #DEBHELPER#

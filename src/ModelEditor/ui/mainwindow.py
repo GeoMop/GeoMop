@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_recent_files(0)
         self._edit_menu = MainEditMenu(self, self.editor)
         self._settings_menu = MainSettingsMenu(self, self._model_editor)
-        self._project_menu = ProjectMenu(self, cfg.config)
+        self._project_menu = ProjectMenu(self, cfg.config, flow123d_versions=cfg.format_files)
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
         self._menu.addMenu(self._project_menu)
@@ -214,4 +214,5 @@ class MainWindow(QtWidgets.QMainWindow):
         """Handle changes of config."""
         project = cfg.config.project or '(No Project)'
         self._project_label.setText(project)
+        self.editor.set_line_endings(cfg.config.line_endings)
 

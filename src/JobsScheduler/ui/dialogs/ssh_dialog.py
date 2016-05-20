@@ -7,9 +7,10 @@ SSH dialog
 
 from PyQt5 import QtWidgets
 
+from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import PresetNameValidator, ValidationColorizer
+from ui.validators.validation import SshNameValidator, ValidationColorizer
 
 
 class SshDialog(AFormDialog):
@@ -20,21 +21,21 @@ class SshDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddSshDialog",
-                       windowTitle="Job Scheduler - Add new SSH Preset",
-                       title="Add new SSH Preset",
-                       subtitle="Please select details for new SSH preset.")
+                       windowTitle="Job Scheduler - Add SSH host",
+                       title="Add SSH host",
+                       subtitle="Please select details for new SSH host.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditSshDialog",
-                        windowTitle="Job Scheduler - Edit SSH Preset",
-                        title="Edit SSH Preset",
+                        windowTitle="Job Scheduler - Edit SSH host",
+                        title="Edit SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopySshDialog",
-                        windowTitle="Job Scheduler - Copy SSH Preset",
-                        title="Copy SSH Preset",
+                        windowTitle="Job Scheduler - Copy SSH host",
+                        title="Copy SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -50,13 +51,6 @@ class SshDialog(AFormDialog):
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
-        # specific slots
-        self.ui.showPushButton.pressed.connect(
-            lambda: self.ui.passwordLineEdit.setEchoMode(
-                QtWidgets.QLineEdit.Normal))
-        self.ui.showPushButton.released.connect(
-            lambda: self.ui.passwordLineEdit.setEchoMode(
-                QtWidgets.QLineEdit.Password))
 
     def valid(self):
         valid = True
@@ -67,11 +61,13 @@ class SshDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = SshPreset(self.ui.nameLineEdit.text())
+        preset = SshPreset(name=self.ui.nameLineEdit.text())
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
         preset.uid = self.ui.userLineEdit.text()
         preset.pwd = self.ui.passwordLineEdit.text()
+        if self.ui.pbsSystemComboBox.currentText():
+            preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
         return {
             "key": key,
             "preset": preset
@@ -90,6 +86,8 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.userLineEdit.setText(preset.uid)
             self.ui.passwordLineEdit.setText(preset.pwd)
+            self.ui.pbsSystemComboBox.setCurrentIndex(
+                self.ui.pbsSystemComboBox.findData(preset.pbs_system))
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
@@ -97,6 +95,7 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(22)
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
+            self.ui.pbsSystemComboBox.setCurrentIndex(-1)
 
 
 class UiSshDialog(UiFormDialog):
@@ -111,8 +110,8 @@ class UiSshDialog(UiFormDialog):
         dialog.resize(400, 260)
 
         # validators
-        self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
+        self.nameValidator = SshNameValidator(
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row
@@ -137,7 +136,7 @@ class UiSshDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the host")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
@@ -192,21 +191,31 @@ class UiSshDialog(UiFormDialog):
         self.passwordLabel.setText("Password:")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
-        self.passwordRowSplit = QtWidgets.QHBoxLayout()
-        self.passwordRowSplit.setObjectName("passwordRowSplit")
         self.passwordLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.passwordLineEdit.setObjectName("passwordLineEdit")
         self.passwordLineEdit.setPlaceholderText("User password")
         self.passwordLineEdit.setProperty("clearButtonEnabled", True)
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.passwordRowSplit.addWidget(self.passwordLineEdit)
-        self.showPushButton = QtWidgets.QPushButton(
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+                                  self.passwordLineEdit)
+
+        # 6 row
+        self.pbsSystemLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.showPushButton.setObjectName("showPushButton")
-        self.showPushButton.setText("Show")
-        self.passwordRowSplit.addWidget(self.showPushButton)
-        self.formLayout.setLayout(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.passwordRowSplit)
+        self.pbsSystemLabel.setObjectName("pbsSystemLabel")
+        self.pbsSystemLabel.setText("PBS System:")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+                                  self.pbsSystemLabel)
+        self.pbsSystemComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.pbsSystemComboBox.setObjectName(
+            "pbsSystemComboBox")
+        self.pbsSystemComboBox.addItem("")
+        dialect_items = DialectImporter.get_available_dialects()
+        for key in dialect_items:
+            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
+                                  self.pbsSystemComboBox)
 
         return dialog

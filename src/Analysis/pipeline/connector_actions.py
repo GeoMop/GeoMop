@@ -54,6 +54,9 @@ class Connector(ConnectorActionType):
         except Exception as err:
             self._load_errs.append(str(err))
         self._set_state(ActionStateType.initialized)
+        self._process_base_hash()
+        if 'Convertor' in self._variables:
+            self._hash.update(bytes(self._variables['Convertor']._get_unique_text(), "utf-8"))        
 
     def _update(self):    
         """

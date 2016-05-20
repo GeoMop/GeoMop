@@ -7,13 +7,17 @@ Factory for generating config files.
 import copy
 import os
 import uuid
+import json
 
 from communication import Installation
+from communication.installation import __ins_files__
 from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
 from ui.dialogs.resource_dialog import UiResourceDialog
 from version import Version
+
+JOB_NAME_LABEL = "flow"
 
 
 class ConfigBuilder:
@@ -45,7 +49,6 @@ class ConfigBuilder:
         # multijob preset properties
         mj_preset = self.multijobs[key].preset
         mj_name = mj_preset.name
-        mj_analysis = mj_preset.analysis
         res_preset = self.resource_presets[mj_preset.resource_preset]
         mj_log_level = mj_preset.log_level
         mj_number_of_processes = mj_preset.number_of_processes
@@ -73,12 +76,21 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True)
+        mj_dialect = mj_ssh_preset.pbs_system if hasattr(mj_ssh_preset, "pbs_system") else None
+        mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params,
+                                          dialect=mj_dialect)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset)
+        j_dialect = j_ssh_preset.pbs_system if hasattr(j_ssh_preset, "pbs_system") else None
+        if (res_preset.mj_execution_type == UiResourceDialog.EXEC_LABEL and
+                res_preset.j_execution_type == UiResourceDialog.PBS_LABEL) or \
+                (res_preset.mj_execution_type == UiResourceDialog.PBS_LABEL and
+                res_preset.j_execution_type == UiResourceDialog.PBS_LABEL):
+            j_dialect = mj_dialect
+        j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params,
+                                         dialect=j_dialect)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
         # TODO vyresit instalaci a spousteni knihovny
         r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, False, False)
@@ -188,8 +200,42 @@ class ConfigBuilder:
         with open(job.get_path(), "w") as job_file:
             CommunicatorConfigService.save_file(
                 job_file, job.get_conf())
+
+        # build job configuration
+        self._build_jobs_config(mj_name)
+
         # return app_config, it is always entry point for next operations
         return app.get_conf()
+
+    def _build_jobs_config(self, mj_name):
+        """Create jobs and associate them with individual configuration files."""
+        jobs = {}
+        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
+        job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name),
+                                       __ins_files__['job_configurations'])
+        job_counter = 1
+
+        def create_job(configuration_file):
+            """Generate job name and create its configuration."""
+            nonlocal job_counter
+            name = JOB_NAME_LABEL + str(job_counter)
+            data = {'configuration_file': configuration_file}
+            jobs[name] = data
+            job_counter += 1
+
+        # recursively find all configuration files (ending with .yaml)
+        for root, directories, filenames in os.walk(mj_dir):
+            for filename in filenames:
+                if filename.endswith('.yaml'):
+                    abs_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(abs_path, start=mj_dir)
+                    # windows path workaround
+                    rel_path_unix = '/'.join(rel_path.split(os.path.sep))
+                    create_job(rel_path_unix)
+
+        # save job configurations to json
+        with open(job_configs_path, 'w') as job_configs:
+            json.dump(jobs, job_configs, indent=4, sort_keys=True)
 
 
 class ConfBuilder:
@@ -253,7 +299,7 @@ class ConfBuilder:
 
 class ConfFactory:
     @staticmethod
-    def get_pbs_conf(preset, with_socket=True):
+    def get_pbs_conf(preset, with_socket=True, pbs_params=None, dialect=None):
         """
         Converts preset data to communicator config for PBS.
         :param preset: Preset data object from UI.
@@ -265,14 +311,16 @@ class ConfFactory:
             return None
         pbs = PbsConfig()
         pbs.name = preset.name
-        pbs.dialect = preset.dialect
+        pbs.dialect = dialect
         pbs.queue = preset.queue
         pbs.walltime = preset.walltime
         pbs.nodes = str(preset.nodes)
         pbs.ppn = str(preset.ppn)
         pbs.memory = preset.memory
-        pbs.scratch = preset.scratch
+        pbs.infiniband = preset.infiniband
         pbs.with_socket = with_socket
+        if pbs_params is not None:
+            pbs.pbs_params = pbs_params
         return pbs
 
     @staticmethod

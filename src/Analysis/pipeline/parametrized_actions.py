@@ -26,6 +26,8 @@ class Flow123dAction(ParametrizedActionType):
             return
         self._output = self.__file_output
         self._set_state(ActionStateType.initialized)
+        self._process_base_hash()
+        # TODO add file hash
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""

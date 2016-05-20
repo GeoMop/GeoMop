@@ -4,7 +4,7 @@
 """
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QMessageBox,
                              QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QFontDialog,
-                             QHBoxLayout, QGroupBox)
+                             QHBoxLayout, QGroupBox, QComboBox)
 from PyQt5.QtGui import QFont
 
 from helpers import shortcuts
@@ -52,6 +52,7 @@ class SettingsDialog(QDialog):
         cfg.config.display_autocompletion = self.general_tab.autocompletion_checkbox.isChecked()
         cfg.config.symbol_completion = self.general_tab.symbol_completion_checkbox.isChecked()
         cfg.config.shortcuts = self.keyboard_shortcuts_tab.get_shortcuts()
+        cfg.config.line_endings = self.general_tab.line_ends_combo_box.currentText()
         cfg.config.save()
         super(SettingsDialog, self).accept()
 
@@ -63,6 +64,23 @@ class GeneralTab(QWidget):
 
         self.workspace_selector = WorkspaceSelectorWidget(self, cfg.config.workspace)
         self.font_selector = FontSelectorWidget(self, cfg.config.font)
+
+        self.line_ends_label = QLabel('Line Endings')
+        self.line_ends_combo_box = QComboBox()
+        self.line_ends_combo_box.addItems([
+            cfg.config.LINE_ENDINGS_LF,
+            cfg.config.LINE_ENDINGS_CRLF
+        ])
+        index = self.line_ends_combo_box.findText(cfg.config.line_endings)
+        index = index if index >= 0 else 0
+        self.line_ends_combo_box.setCurrentIndex(index)
+        self.line_ends_combo_box.setMinimumWidth(180)
+        self.line_endings_layout = QHBoxLayout()
+        self.line_endings_layout.addWidget(self.line_ends_label)
+        self.line_endings_layout.addStretch(1)
+        self.line_endings_layout.addWidget(self.line_ends_combo_box)
+        self.line_endings_layout.setContentsMargins(0,0,0,0)
+
         self.autocompletion_checkbox = QCheckBox("Display Automatically")
         if cfg.config.display_autocompletion:
             self.autocompletion_checkbox.setChecked(True)
@@ -80,6 +98,7 @@ class GeneralTab(QWidget):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.workspace_selector)
         main_layout.addWidget(self.font_selector)
+        main_layout.addLayout(self.line_endings_layout)
         main_layout.addWidget(autocompletion_group)
         main_layout.addStretch(1)
         self.setLayout(main_layout)

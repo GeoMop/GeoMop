@@ -7,3 +7,4 @@
 from .find_replace_dialog import FindReplaceDialog
 from .transformation_detail import TranformationDetailDlg
 from .settings_dialog import SettingsDialog
+from .change_ist_dialog import ChangeISTDialog

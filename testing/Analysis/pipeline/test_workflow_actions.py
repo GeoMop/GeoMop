@@ -14,4 +14,5 @@ def test_workflow_code_init():
     # Todo test workflow duplication
     # Todo test workflow v ForEach
     # Todo test workflow with one direct input
+    # Todo test comparation of workflow hash
     pass
