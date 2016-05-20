@@ -88,26 +88,61 @@ def test_convertors_validation():
     errs = conv._check_params([v7, v8, v4])
     assert len(errs)==1
     assert errs[0] == "Class has not function sort"
-    
+
+
 def test_convertors_recursive():
+    # each()
     v1 = VariableGenerator(Variable=Struct(
-            a=Ensemble(Int(), Int(1), Int(2), Int(3)), b=String("b")
+            a=Ensemble(Int(), Int(1), Int(2), Int(3)),
+            b=String("b")
         ))
     v1._inicialize()
 
-    # each()
     adap = Adapter(Struct(x=Input(0)))
     conv = Convertor(Struct(a=Input(0).a.each(adap)))
     errs = conv._check_params([v1])
     assert len(errs) == 0
 
-    # sort
+    a1 = Adapter(Struct(x=Input(0)))
+    a2 = Adapter(Input(0).x)
+    conv = Convertor(Input(0).a.each(a1).each(a2))
+    errs = conv._check_params([v1])
+    assert len(errs) == 0
+
+
+    v1 = VariableGenerator(Variable=Tuple(
+        Ensemble(Int(), Int(1), Int(2), Int(3)),
+        String("b")
+    ))
+    v1._inicialize()
+
+    adap = Adapter(Struct(x=Input(0)))
+    conv = Convertor(Struct(a=Input(0)[0].each(adap)))
+    errs = conv._check_params([v1])
+    assert len(errs) == 0
+
+
+    v1 = VariableGenerator(Variable=Sequence(
+        Struct(a=Int(), b=Sequence(Int())),
+        Struct(a=Int(1), b=Sequence(Int(), Int(1), Int(2), Int(3))),
+        Struct(a=Int(2), b=Sequence(Int(), Int(4), Int(5), Int(6))),
+        Struct(a=Int(3), b=Sequence(Int(), Int(7), Int(8), Int(9)))
+    ))
+    v1._inicialize()
+
+    a1 = Adapter(Struct(x=Input(0)))
+    a2 = Adapter(Input(0).b.each(a1))
+    conv = Convertor(Input(0).each(a2))
+    errs = conv._check_params([v1])
+    assert len(errs) == 0
+
+
+    # sort ()
     v1 = VariableGenerator(Variable=Ensemble(
             Sequence(Int()),
             Sequence(Int(), Int(4), Int(8), Int(2)),
             Sequence(Int(), Int(3), Int(2), Int(1))
         ))
-    #v1 = VariableGenerator(Variable=Sequence(Int(), Int(4), Int(8), Int(2)))
     v1._inicialize()
 
     kc1 = KeyConvertor(Input(0))
@@ -116,4 +151,15 @@ def test_convertors_recursive():
     errs = c._check_params([v1])
     assert len(errs) == 0
 
-    # select
+    # select ()
+    v1 = VariableGenerator(Variable=Ensemble(Int(),
+        Int(1), Int(2), Int(3), Int(4), Int(5), Int(6), Int(7), Int(8),
+        Int(9), Int(10), Int(11), Int(12), Int(13), Int(14), Int(15), Int(16)
+    ))
+    v1._inicialize()
+
+    p1 = Predicate(Input(0) > 5)
+    p2 = Predicate(Input(0) < 10)
+    c = Convertor(Input(0).select(p1).select(p2))
+    errs = c._check_params([v1])
+    assert len(errs) == 0
