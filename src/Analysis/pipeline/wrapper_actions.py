@@ -69,6 +69,12 @@ class ForEach(WrapperActionType):
             wrapper = 'WrapperActions={0}'.format(self._variables['WrappedAction']._get_instance_name())                   
             var.append([wrapper])
         return var
+        
+    def _set_storing(self, identical_list):
+        """set restore id"""
+        super(ForEach, self)._set_storing(identical_list)
+        if 'WrappedAction' in self._variables:
+            self._variables['WrappedAction']._set_storing(identical_list)
 
     def _plan_action(self, path):
         """

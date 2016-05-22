@@ -790,6 +790,14 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 return False
         return True
  
+    def _set_storing(self, identical_list):
+        """set restore id"""
+        super(WorkflowActionType, self)._set_storing(identical_list)
+        actions = self._get_child_list()
+        for action in actions:
+            action._set_storing(identical_list)
+
+ 
     def _plan_action(self, path):
         """
         If next action can be panned, return processed state and 
