@@ -6,6 +6,7 @@ import math
 import uuid
 import threading
 import hashlib
+import os
 
 class ActionsStatistics:
     def __init__(self):
@@ -103,6 +104,10 @@ class BaseActionType(metaclass=abc.ABCMeta):
         __action_counter__ += 1
         self._id = __action_counter__
         """unique action number"""
+        self._store_id = str(self._id)
+        """unique store number"""
+        self._restore_id = None
+        """unique restore number, if is None, restore is not processed"""
         self._state = ActionStateType.created
         """action state"""
         self._inputs = []
@@ -313,36 +318,72 @@ class BaseActionType(metaclass=abc.ABCMeta):
             self._hash.update(bytes(self._get_hash(), "utf-8"))
         return self._hash
         
-    def _save_results(self, path):
+    def _store(self, path):
         """
-        Save all outputs to file in set directory. Function
-        should be called after finishing
+        make all needed serialization processess and
+        return text data for storing
         """
+        res = self._output._get_settings_script()
+        return res
+        
+    def _store_results(self, path):
+        """
+        Call store function for saving resalt data and write
+        data to file in set path. If path is None, storing is not
+        needed
+        """
+        if path is None:
+            return
         if self._output is None:
-            raise Exception("Output for save is not ready.")
-        res = self._output._get_settings_script()        
+            data = ""
+        else:
+            data = self._store(path)
+        file = os.path.join(path, "store", "{0}_{1}".format(self.name, self._store_id))
         try:
-            file_d = open(path, 'w')
-            file_d.write(res)
+            file_d = open(file, 'w')
+            file_d.write('\n'.join(data))
             file_d.close()
         except (RuntimeError, IOError) as err:
-            raise Exception("Can't save result to file {0} ({1})".format(path , str(err)))            
-        
-    def _restore_outputs(self, path):
+            raise Exception("Can't save result to file {0} ({1})".format(path , str(err)))
+    
+    def _set_storing(self, identical_list):
+        """set restore id"""
+        name = self._get_instance_name()
+        if name in identical_list:
+            prefix = self.name + "_"
+            if prefix == identical_list[name][:len(prefix)]:
+                self._restore_id = identical_list[name][len(prefix):]
+    
+    def _restore(self, text, path):
         """
-        Restore all outputs from file in set directory and
-        set action as finished. Function should be called 
-        before start of pipeline processing.
+        make all needed deserialization processess and
+        return text data for storing
         """
+        self._output = eval(text)
+
+    def _restore_results(self, path):
+        """
+        If restore is needed and restore data is available, read data 
+        from file in set path and call restore function for restoring. If
+        data is not available set restore_id to None, and related actin
+        won't be processed
+        """
+        if self._restore_id is None:
+            return
+        for input in self._inputs:
+            if input._restore_id is None:
+                self._restore_id = None
+                return
+        self._restore_id
+        file = os.path.join(path, "restore",  "{0}_{1}".format(self.name, self._restore_id))   
         try:
-            file_d = open(path, 'r')
-            res = file_d.read()
+            file_d = open(file, 'r')
+            data = file_d.read()
             file_d.close()
-            self._output = eval(res)
+            self._restore(data, path)
         except (RuntimeError, IOError):
-            return           
-        self._set_state(ActionStateType.finished)
-            
+            self._restore_id = None
+
     def _get_instance_name(self):
         return "{0}_{1}".format(self.name, str(self._id))
         
@@ -360,7 +401,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """        
         return None 
  
-    def _plan_action(self):
+    def _plan_action(self, path):
         """
         If next action can be panned, return processed state and 
         this action, else return processed state and null        
@@ -368,8 +409,14 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if self._is_state(ActionStateType.processed):
             return ActionRunningState.wait,  None
         if self._state == ActionStateType.finished:
-            return ActionRunningState.finished,  None
+            return ActionRunningState.finished,  self
         self._set_state(ActionStateType.processed)
+        self._restore_results(path)
+        if self._restore_id is not None:
+            # send as short action for storing and settings state
+            self._store_results(path)
+            self._set_state(ActionStateType.finished)
+            return ActionRunningState.finished,  self
         return  ActionRunningState.repeat,  self
  
     def _update(self):    
@@ -380,10 +427,11 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """
         return None
         
-    def _after_update(self):    
+    def _after_update(self, store_dir):    
         """
         Set real output variable and set finished state.
         """
+        self._store_results(store_dir)
         self._set_state(ActionStateType.finished)
 
     def validate(self):    
@@ -530,6 +578,22 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
         if len(self._inputs)>0:
             err.append("Generator action not use input parameter")
         return err
+        
+    def _store_results(self, path):
+        """
+        Not store
+        """
+        pass
+        
+    def _restore_results(self, path):
+        """
+        Not restore
+        """
+        pass
+        
+    def _set_restored(self):
+        """set generator action as processed in last procesing and succesfully restored"""
+        self._restore_id = self._store_id
 
 class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -562,7 +626,9 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         """redirect bridge to wrapper"""
         bridge._set_new_link(self)
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):        
+        """String identificator for construction inner store names"""
+        self._index_iden = ""
         super(WrapperActionType, self).__init__(**kwargs)
         
     def _inicialize(self):
@@ -586,9 +652,6 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
             err.append("Inicialize method should be processed before checking")
         if  not 'WrappedAction' in self._variables:
             err.append("Parameter 'WrappedAction' is required")
-        else:
-            if not isinstance(self._variables['WrappedAction'],  WorkflowActionType):
-                err.append("Parameter 'WrappedAction' must be WorkflowActionType")            
         if len(self._inputs)  != 1:
             err.append("Wrapper action requires exactly one input parameter")
         else:
@@ -617,7 +680,6 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         """Action that wait for next procesing"""
         self.__next_action = 0
         """Action that will be processed in next calling of run function"""
-
 
     def _get_statistics(self):
         """return all statistics for this and child action"""
@@ -728,7 +790,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                 return False
         return True
  
-    def _plan_action(self):
+    def _plan_action(self, path):
         """
         If next action can be panned, return processed state and 
         this action, else return processed state and null        
@@ -737,7 +799,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             self.__processed_actions =self._get_child_list()
         if len(self.__processed_actions) == 0:
             self._set_state(ActionStateType.finished)
-            return ActionRunningState.finished, None
+            return ActionRunningState.finished, self
         if self.__next_action>=len(self.__processed_actions):
             self.__next_action = 0
         start_action = self.__next_action
@@ -745,10 +807,15 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         while True:
             if self._is_independent(self.__processed_actions[self.__next_action]):
                 all_dependent = False
-                state, action = self.__processed_actions[self.__next_action]._plan_action()
+                state, action = self.__processed_actions[self.__next_action]._plan_action(path)
                 if state is ActionRunningState.finished:
-                    del self.__processed_actions[self.__next_action]
-                    return ActionRunningState.repeat, action
+                    if action._restore_id is None and self._restore_id is not None:
+                        # action can't be restored, all next action will be processed
+                        self._restore_id = None
+                        for rest_action in self.__processed_actions:
+                            rest_action._restore_id = None
+                    del self.__processed_actions[self.__next_action]                    
+                    return ActionRunningState.repeat, None
                 if state is ActionRunningState.repeat:
                     return state, action
                 if state is ActionRunningState.error:
@@ -768,4 +835,4 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         if all_dependent:
             return ActionRunningState.error,  \
                 ["No independent action in workflow"]
-        return ActionRunningState.wait, None        
+        return ActionRunningState.wait, None

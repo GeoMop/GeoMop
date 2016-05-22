@@ -1,4 +1,4 @@
-from .action_types import WorkflowActionType, ActionStateType, BaseActionType, Bridge
+from .action_types import WorkflowActionType, ActionStateType, BaseActionType, Bridge, WrapperActionType
 
 class Workflow(WorkflowActionType):
     _name = "Workflow"
@@ -24,7 +24,7 @@ class Workflow(WorkflowActionType):
         self.bridge = Bridge(self)
         """link to bridge class"""
         self._actions=[]
-        """sorted action list"""
+        """action list sorted in order by creation time"""
       
     def input(self):
         """ Return input type"""
@@ -64,7 +64,7 @@ class Workflow(WorkflowActionType):
             for action in actions:
                action._inicialize()
                self._hash.update(bytes(action._get_hash(), "utf-8"))
-            self._actions = actions 
+            self._actions = sorted(actions , key=lambda item: item._id)
         except Exception as err:
             self._load_errs.append("Inicialize child workflow action error ({0})".format(err))   
         if  len(self._inputs)==1:
@@ -129,8 +129,25 @@ class Workflow(WorkflowActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = super(Workflow, self).validate()
-        actions = self._actions
+        actions = self._get_child_list()        
+        actions  = self._order_child_list(actions)
         for action in actions:
             err.extend(action.validate())
         return err
- 
+        
+    def _reset_storing(self, template, iden):
+        """
+        Constract store and restore id from template action ids and index
+        this action in  parent wrapper action. This indexes will be unique and
+        equal for repeating processing
+        """
+        self._store_id = template._store_id + iden
+        if template._restore_id is not None:
+            self._restore_id = template._restore_id + iden
+        for i in range(0, len(self._actions)):
+            if len(template._actions)>i:
+                self._actions[i]._store_id = template._actions[i]._store_id + iden
+                if template._actions[i]._restore_id is not None:
+                    self._actions[i]._restore_id = template._actions[i]._restore_id + iden
+                if isinstance(self._actions[i], WrapperActionType):
+                    self._index_iden = iden

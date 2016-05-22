@@ -188,7 +188,7 @@ class Predicate(IConvertor):
         v = VariableGenerator(Variable=input)
         v._inicialize()
         v._update()
-        v._after_update()
+        v._after_update(None)
 
         output = self._get_output([v])
         #ToDo check bool
@@ -221,7 +221,7 @@ class KeyConvertor(IConvertor):
         v = VariableGenerator(Variable=input)
         v._inicialize()
         v._update()
-        v._after_update()
+        v._after_update(None)
 
         output = self._get_output([v])
         #ToDo check scalar
@@ -254,7 +254,7 @@ class Adapter(IConvertor):
         v = VariableGenerator(Variable=input)
         v._inicialize()
         v._update()
-        v._after_update()
+        v._after_update(None)
         output = self._get_output([v])
         #ToDo check item
         return output

@@ -33,4 +33,5 @@ while pp.is_run():
     else:
         print(runner.name+"\n")
         pp.set_job_finished(runner.id)
+test = foreach._get_output()
 i=0

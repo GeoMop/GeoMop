@@ -20,6 +20,7 @@ def test_pipeline_code_init():
     workflow.set_config(OutputAction=flow, InputAction=flow)
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
     pipeline=Pipeline(ResultActions=[foreach])
+    flow._output=String()
     pipeline._inicialize()    
     test=pipeline._get_settings_script()
     
@@ -34,7 +35,8 @@ def test_pipeline_code_init():
     # check output types directly
     assert isinstance(gen._get_output(), Ensemble)
     assert isinstance(gen._get_output().subtype, Struct)
-    flow._output=String()
+   
+    
     assert isinstance(foreach._get_output(), Ensemble)
     assert isinstance(foreach._get_output().subtype, String)
     assert isinstance(workflow.bridge._get_output(), Struct)

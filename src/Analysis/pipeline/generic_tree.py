@@ -261,7 +261,11 @@ class GDTT(GTT):
         return True
     
     def validate(self, output):
-        """validate structure and return erros array and structure to next validation"""
+        """
+        validate structure and return erros array and structure to next validation
+        (function at the earliest call parent, in reverse passing each structure
+       return all errors and unvalidate child structure)
+        """
         if self.__parent is None:
             return [], output
         err, struc = self.__parent.validate(output)

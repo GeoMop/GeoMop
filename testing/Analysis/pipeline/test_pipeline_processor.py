@@ -10,6 +10,7 @@ from pipeline.wrapper_actions import *
 from pipeline.parametrized_actions import *
 import pipeline.action_types as action
 import time
+import shutil
 
 def test_run_pipeline():
     action.__action_counter__ = 0
@@ -42,13 +43,16 @@ def test_run_pipeline():
             pp.set_job_finished(runner.id)
         i += 1
         assert i<1000, "Timeout"   
-        
+    
     assert len(names) == 5
     assert names[0][:8] == 'Flow123d'
     assert names[1][:8] == 'Flow123d'
     assert names[2][:8] == 'Flow123d'
     assert names[3][:8] == 'Flow123d'
     assert names[4][:8] == 'Flow123d'
+    
+    shutil.rmtree("backup", ignore_errors=True)
+    
     # ToDo add more asserts after Flow123dAction finishing
     
 # ToDo: Test invalid pipeline (cyclic dependencies in pipeline and workflow)

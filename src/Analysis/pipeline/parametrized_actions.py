@@ -1,5 +1,5 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
-from .data_types_tree import Struct
+from .data_types_tree import Struct, String
 
 class Flow123dAction(ParametrizedActionType):
     
@@ -12,10 +12,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         :param string YAMLFile: path to Yaml file
         :param action or DTT Input: action DTT variable
-        :param DTT Output:  output is 
-            set accoding params in YAML file
         """
-
         super(Flow123dAction, self).__init__(**kwargs)
         self._logical_queue = QueueType.external
         self._file_output = self.__file_output()
@@ -24,7 +21,7 @@ class Flow123dAction(ParametrizedActionType):
         """inicialize action run variables"""
         if self._get_state().value > ActionStateType.created.value:
             return
-        self._output = self.__file_output
+        self._output = self.__file_output()
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
         # TODO add file hash
@@ -41,7 +38,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d"]
+        runner.command = ["flow123d", params[0]]
         return runner
         
     def _update(self):    
@@ -51,13 +48,13 @@ class Flow123dAction(ParametrizedActionType):
         action is set for externall processing.        
         """
         file = self.__parametrise_file()
-        return  self._get_runner(file)
+        return  self._get_runner([file])
         
-    def _after_update(self):    
+    def _after_update(self, store_dir):    
         """
         Set real output variable and set finished state.
         """
-        # ToDo read output from files
+        # TODO read output from files
         self._state = ActionStateType.finished
 
     def _check_params(self):    
@@ -91,10 +88,27 @@ class Flow123dAction(ParametrizedActionType):
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
-        # ToDo logic
-        pass
+        # TODO logic
+        return String("Test")
         
     def __parametrise_file(self):
         """Rename and make completation of Yaml file and return new file path"""
-        # ToDo logic
+        # TODO logic
         pass
+
+    def _store(self):
+        """
+        make all needed serialization processess and
+        return text data for storing
+        """
+        res = ""
+        # TODO copy result files to store path and store only files names
+        return res
+
+    def _restore(self, text):
+        """
+        make all needed deserialization processess and
+        return text data for storing
+        """
+        # TODO instead next commented line restore files names and make output from it
+        # self._output = eval(res)

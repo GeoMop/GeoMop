@@ -814,7 +814,7 @@ class Ensemble(SortableDTT):
     def each(self, adapter):
         """Adapt list items structure"""
         new_subtype = adapter._get_adapted_item(self.subtype)
-        adapted = Ensemble(new_subtype)
+        adapted = Ensemble(adapter._get_adapted_item(new_subtype))
         for item in self._list:
             new_item = adapter._get_adapted_item(item)
             adapted.add_item(new_item)
@@ -886,5 +886,4 @@ class Sequence(Ensemble):
             return Sequence(self.subtype)
         if func_name == "tail" or func_name == "head":
             return self.subtype
-        return None       
-
+        return None 

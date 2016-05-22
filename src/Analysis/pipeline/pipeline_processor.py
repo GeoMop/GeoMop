@@ -2,7 +2,13 @@
 import threading
 import time
 import subprocess
+import logging
+import os
+import shutil
 from .action_types import ActionRunningState, QueueType
+from .identical_list import  IdenticalList
+
+logger = logging.getLogger("Analysis")
 
 class Pipelineprocessor():
     """
@@ -36,12 +42,13 @@ class Pipelineprocessor():
     runners arrays, _stop, pause and _statistics is
     protected by action_lock. Any access to pipeline can't
     be made directly from communication thread.
+    For logging is used standart python logging, that is thread-save
     """
 
     __workers__ = 4
     """Number of threads for processing internal jobs"""
 
-    def __init__(self, pipeline):
+    def __init__(self, pipeline, log_path=None, log_level=logging.WARNING, save_path="./backup", identical_list=None):
         self._pipeline = pipeline
         """pipeline"""       
         self._is_validate = False
@@ -51,6 +58,17 @@ class Pipelineprocessor():
         thread can't be started and run function raise exception. If run
         function is call without validate function, validation is make in run
         internaly.
+        
+        :param Pipeline pipeline: Loaded pipeline
+        :param string log_path: Path for loging. Log is needed only for action
+            processing, and for action planning should be None
+        :param string log_level: Loging level
+        :param string save_path: Path for result backup file, where is place
+            file with last run results and is save files ready actions
+        :param string identical_list: path to file with list of equol action for 
+            establishing connection. File identical_list is needed only for action
+            processing, and for action planning should be None. Equal list is
+            created in client site by :class:`client_pipeline.equal_list_creator.ELCreator`.
         """
         self._errs = []
         """validation errors"""
@@ -71,6 +89,13 @@ class Pipelineprocessor():
         """signal to sepparate thread for pausing"""
         self._run_errs = []
         """errors during run"""
+        self._save_path = save_path
+        """path for result saving (read-only)"""
+        if log_path is not None:
+            self.__set_loger(log_path,  log_level)
+        self._save_path = save_path
+        self.WorkerThread._save_path = save_path
+        self._establish_processing(identical_list)
         
     class WorkerThread():
         _complex_runners=[]
@@ -81,6 +106,8 @@ class Pipelineprocessor():
         """Runners of independent actions was processed"""
         _runners_lock = threading.Lock()
         """lock for runners"""
+        _save_path = None
+        """path for result saving (read-only)"""
         def __init__(self):
             self._action = None
             """processed action"""
@@ -90,6 +117,8 @@ class Pipelineprocessor():
             """lock for action settings"""
             self._after_run = False
             """is processed after run externall action"""
+            self._error = None
+            """Processing error"""
             t = threading.Thread(target=self.run)
             t.daemon = True
             t.start()
@@ -112,7 +141,24 @@ class Pipelineprocessor():
             if self._action is None:
                 ret = True
             self._action_lock.release()
-            return ret            
+            return ret
+
+        @staticmethod
+        def __read_err(err):
+            """read error from input"""
+            try:
+                import fdpexpect
+                import pexpect
+                
+                fd = fdpexpect.fdspawn(err)
+                txt = fd.read_nonblocking(size=10000, timeout=5)
+                txt = str(txt, 'utf-8').strip()
+            except pexpect.TIMEOUT:
+                return None
+            except Exception as err:
+                logger.warning("Task output error:" + str(err))
+                return None
+            return txt
         
         def run(self):
             """worker thread"""
@@ -129,19 +175,39 @@ class Pipelineprocessor():
                     if not  is_action:
                         time.sleep(0.1)
                 if self._after_run:
-                    self._action._after_update()
+                    self._action._after_update(self._save_path)
+                    logger.info("External action {0} processing is ended".format(
+                        self._action. _get_instance_name()))
                 else:
                     runner = self._action._update()
                     if runner is not None:
                         if self._action is QueueType.internal:
-                            process = subprocess.Popen(runner.command)
-                            self._action._after_update()
+                            logger.info("Internal action {0} processing is began".format(
+                                self._action. _get_instance_name()))
+                            process = subprocess.Popen(runner.command, stderr=subprocess.PIPE)
+                            return_code = process.poll()
+                            if return_code is not None:
+                                out =  self.__read_err(process.stderr)
+                                err = "Can not start action {0}(return code:{1} ,stderr:{2}".format(
+                                    self._action. _get_instance_name(), str(return_code), out)
+                                logger.error(err)
+                                self._action_lock.acquire()
+                                self._error = err
+                                self._action_lock.release()
+                            else:
+                                self._action._after_update(self._save_path)
+                                logger.info("Internal action {0} processing is ended".format(
+                                    self._action. _get_instance_name()))
                         else:
+                            logger.info("External action {0} processing is began".format(
+                                self._action. _get_instance_name()))
                             self._runners_lock.acquire()
                             self._complex_runners.append(runner)
                             self._runners_lock.release()
                     else:
-                        self._action._after_update()
+                        self._action._after_update(self._save_path)
+                        logger.info("Short action {0} processing is finished".format(
+                            self._action. _get_instance_name()))
                 self._action_lock.acquire()
                 self._action = None
                 self._action_lock.release()
@@ -150,6 +216,12 @@ class Pipelineprocessor():
             self._action_lock.acquire()
             self._stop = True
             self._action_lock.release()
+            
+        def get_error(self):
+            self._action_lock.acquire()
+            err = self._error
+            self._action_lock.release()
+            return err
         
     def get_script(self):
         """return pipeline python script"""
@@ -186,10 +258,13 @@ class Pipelineprocessor():
     def run(self):
         """Start pipeline processing in separate thread"""
         if self.is_run():
+            logger.info("Analysis processing is started")
             return
         if not self._is_validate:
             self.validate()
         if len(self._errs) > 0:
+            logger.error("Analysis validation return errors:\n    {0}".format(
+                '\n    '.join(self._errs)))
             raise Exception("Validation fails, call Validate function for more information.")
         t = threading.Thread(target=self._pipeline_procesing)
         t.daemon = True
@@ -245,6 +320,71 @@ class Pipelineprocessor():
         self.WorkerThread._processed_runners.remove(ret)
         self.WorkerThread._finished_runners.append(ret)                
         self.WorkerThread._runners_lock.release()
+        
+    def _establish_processing(self, identical_list):
+        """
+        this function follow up last processing, mark processed
+        actions that haven't changes and have result, load their
+        result from backup and set their as finished.
+        """
+        # prepare store and restor folders
+        if not os.path.isdir(self._save_path):
+            try:
+                os.makedirs(self._save_path)
+            except Exception as err:
+                error = "Can't make save path {0} ({1})".format(self._save_path, str(err))
+                logger.error(error)
+                raise Exception(error)
+        store_path = os.path.join(self._save_path, "store")
+        restore_path = os.path.join(self._save_path, "restore")
+        if not os.path.isdir(store_path):            
+            try:
+                os.makedirs(store_path)
+            except Exception as err:
+                error = "Can't make store path {0} ({1})".format(store_path, str(err))
+                logger.error(error)
+                raise Exception(error)
+            try:
+                if os.path.isdir(restore_path):
+                    shutil.rmtree(restore_path, ignore_errors=True)
+                os.makedirs(restore_path)
+            except Exception as err:
+                error = "Can't make restore path {0} ({1})".format(restore_path, str(err))
+                logger.error(error)
+                raise Exception(error)
+        else:
+            try:
+                if os.path.isdir(restore_path):
+                    shutil.rmtree(restore_path, ignore_errors=True)
+                os.rename(store_path,restore_path)
+                os.makedirs(store_path)
+            except Exception as err:
+                error = "Can't copy store path {0} to restore path {1} ({2})".format(
+                    store_path, restore_path, str(err))
+                logger.error(error)
+                raise Exception(error)
+        if identical_list is not None:
+            il = IdenticalList()
+            il.load(identical_list)
+        
+    def __set_loger(self,  path,  level):
+        """set logger"""        
+        if not os.path.isdir(path):
+            try:
+                os.makedirs(path)
+            except:
+                return
+        log_file = os.path.join(path, "analysis.log")            
+        logger = logging.getLogger("Analysis")
+        logger.setLevel(level)
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(level)
+
+        formatter = logging.Formatter(
+            '%(asctime)s %(levelname)s %(message)s')
+
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)    
 
     def _pipeline_procesing(self):
         """function started in sepparate thread"""
@@ -278,18 +418,18 @@ class Pipelineprocessor():
             state = ActionRunningState.repeat
             # get all available actions
             while state is ActionRunningState.repeat:
-                state, action = self._pipeline. _plan_action()
+                state, action = self._pipeline. _plan_action(self._save_path)
                 i +=1
-                if action is not None:
+                if action is not None and state is not ActionRunningState.finished:
                     wait_actions.append(action)
-            sorted(wait_actions, key=lambda item: item._get_priority())
+            wait_actions = sorted(wait_actions, key=lambda item: item._get_priority())
             # finished external tasks
             for worker in workers:
                 self.WorkerThread._runners_lock.acquire()
                 if len(self.WorkerThread._finished_runners)==0:
                     self.WorkerThread._runners_lock.release()
                     break
-                self.WorkerThread._runners_lock.release()
+                self.WorkerThread._runners_lock.release()                
                 if worker.is_empty():  
                     self.WorkerThread._runners_lock.acquire()
                     runner = self.WorkerThread._finished_runners.pop()
@@ -320,7 +460,17 @@ class Pipelineprocessor():
                 self._is_finished = True
                 self._is_run = False
                 self._action_lock.release()
-                return   
+                return
+            if state is ActionRunningState.error:
+                logger.error("Analysis processing return errors:\n    {0}".format(
+                    '\n    '.join(runner)))
+            for worker in workers:
+                err = worker.get_error()
+                if err is not None:
+                    # error is logged in worker
+                    runner = [err]
+                    state = ActionRunningState.error
+                    break 
             if state is ActionRunningState.error:
                 for worker in workers:
                     if worker.is_empty():
