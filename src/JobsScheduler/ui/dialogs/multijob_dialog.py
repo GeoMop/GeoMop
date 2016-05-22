@@ -21,8 +21,8 @@ class MultiJobDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddMultiJobDialog",
-                       windowTitle="Job Scheduler - Add new MultiJob",
-                       title="Add new MultiJob",
+                       windowTitle="Job Scheduler - Add MultiJob",
+                       title="Add MultiJob",
                        subtitle="Please select details to schedule set of "
                                 "tasks for computation.")
 
@@ -55,8 +55,6 @@ class MultiJobDialog(AFormDialog):
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
-        # specific slots
-        self.ui.analysisPushButton.clicked.connect(self.handle_dir_picking)
 
     def valid(self):
         valid = True
@@ -70,15 +68,6 @@ class MultiJobDialog(AFormDialog):
                 "QLineEdit { background-color: #ffffff }")
         return valid
 
-    def handle_dir_picking(self):
-        old_dir = self.ui.analysisLineEdit.text()
-        new_dir = self.ui.analysisFolderPicker \
-            .getExistingDirectory(self,
-                                  caption="Please select Analysis directory",
-                                  directory=old_dir)
-        if new_dir:
-            self.ui.analysisLineEdit.setText(new_dir)
-
     def set_resource_presets(self, resources):
         self.ui.resourceComboBox.clear()
         if resources:
@@ -88,8 +77,7 @@ class MultiJobDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = MultiJobPreset(self.ui.nameLineEdit.text())
-        preset.analysis = self.ui.analysisLineEdit.text()
+        preset = MultiJobPreset(name=self.ui.nameLineEdit.text())
         preset.resource_preset = self.ui.resourceComboBox.itemData(
                     self.ui.resourceComboBox.currentIndex())
         preset.log_level = self.ui.logLevelComboBox.currentData()
@@ -108,7 +96,6 @@ class MultiJobDialog(AFormDialog):
             preset = data["preset"]
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
-            self.ui.analysisLineEdit.setText(preset.analysis)
             self.ui.resourceComboBox.setCurrentIndex(
                 self.ui.resourceComboBox.findData(preset.resource_preset))
             self.ui.logLevelComboBox.setCurrentIndex(
@@ -118,8 +105,7 @@ class MultiJobDialog(AFormDialog):
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
-            self.ui.analysisLineEdit.clear()
-            self.ui.descriptionTextEdit.clear()
+            # self.ui.descriptionTextEdit.clear()
             self.ui.resourceComboBox.setCurrentIndex(0)
             self.ui.logLevelComboBox.setCurrentIndex(3)
             self.ui.numberOfProcessesSpinBox.setValue(
@@ -139,7 +125,7 @@ class UiMultiJobDialog(UiFormDialog):
 
         # validators
         self.nameValidator = MultiJobNameValidator(
-            self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row
@@ -171,49 +157,22 @@ class UiMultiJobDialog(UiFormDialog):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
-        # 2 row
-        self.analysisLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.analysisLabel.setObjectName("analysisLabel")
-        self.analysisLabel.setText("Analysis:")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
-                                  self.analysisLabel)
-        self.rowSplit = QtWidgets.QHBoxLayout()
-        self.rowSplit.setObjectName("rowSplit")
-        self.analysisLineEdit = QtWidgets.QLineEdit(
-            self.mainVerticalLayoutWidget)
-        self.analysisLineEdit.setPlaceholderText("Select Analysis folder "
-                                                 "path")
-        self.analysisLineEdit.setObjectName("analysisLineEdit")
-        self.analysisLineEdit.setProperty("clearButtonEnabled", True)
-        self.rowSplit.addWidget(self.analysisLineEdit)
-        self.analysisPushButton = QtWidgets.QPushButton(
-            self.mainVerticalLayoutWidget)
-        self.analysisPushButton.setObjectName("analysisPushButton")
-        self.analysisPushButton.setText("&Browse")
-        self.rowSplit.addWidget(self.analysisPushButton)
-        self.analysisFolderPicker = QtWidgets.QFileDialog(
-            self.mainVerticalLayoutWidget)
-        self.analysisPushButton.setObjectName("analysisFolderPicker")
-        self.analysisFolderPicker.setFileMode(QtWidgets.QFileDialog.Directory)
-        self.analysisFolderPicker.setOption(QtWidgets.QFileDialog.ShowDirsOnly)
-        self.formLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole,
-                                  self.rowSplit)
 
         # 3 row
-        self.descriptionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.descriptionLabel.setObjectName("descriptionLabel")
-        self.descriptionLabel.setText("Description:")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                  self.descriptionLabel)
-        self.descriptionTextEdit = QtWidgets.QTextEdit(
-            self.mainVerticalLayoutWidget)
-        self.descriptionTextEdit.setObjectName("textEdit")
-        self.descriptionTextEdit.setProperty("placeholderText",
-                                             "Read only description text "
-                                             "from analysis folder")
-        self.descriptionTextEdit.setReadOnly(True)
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                  self.descriptionTextEdit)
+        # self.descriptionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        # self.descriptionLabel.setObjectName("descriptionLabel")
+        # self.descriptionLabel.setText("Description:")
+        # self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+        #                           self.descriptionLabel)
+        # self.descriptionTextEdit = QtWidgets.QTextEdit(
+        #     self.mainVerticalLayoutWidget)
+        # self.descriptionTextEdit.setObjectName("textEdit")
+        # self.descriptionTextEdit.setProperty("placeholderText",
+        #                                      "Read only description text "
+        #                                      "from analysis folder")
+        # self.descriptionTextEdit.setReadOnly(True)
+        # self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
+        #                           self.descriptionTextEdit)
 
         # 4 row
         self.resourceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)

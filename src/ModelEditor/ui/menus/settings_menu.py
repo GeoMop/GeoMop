@@ -5,7 +5,7 @@
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
 from meconfig import cfg
-from ui.dialogs import SettingsDialog
+from ui.dialogs import SettingsDialog, ChangeISTDialog
 from ui.template import EditorAppearance
 
 
@@ -19,25 +19,10 @@ class MainSettingsMenu(QMenu):
         self._model_editor = model_editor
         self.parent = parent
 
-        self._format = self.addMenu('&Format')
-        self._format_group = QActionGroup(self, exclusive=True)
-        for frm in cfg.format_files:
-            faction = self._format_group.addAction(QAction(
-                frm, self, checkable=True))
-            faction.setStatusTip('Choose format file for current document')
-            self._format.addAction(faction)
-            faction.setChecked(cfg.curr_format_file == frm)
-        self._format_group.triggered.connect(self._format_checked)
-
-        self._format.addSeparator()
-
-        if cfg.config.DEBUG_MODE:
-            self._edit_format_action = QAction(
-                '&Edit Format File ...', self)
-            self._edit_format_action.setShortcut(cfg.get_shortcut('edit_format').key_sequence)
-            self._edit_format_action.setStatusTip('Edit format file in Json Editor')
-            self._edit_format_action.triggered.connect(self._model_editor.edit_format)
-            self._format.addAction(self._edit_format_action)
+        self.format_action = QAction('&Change File Format ...', self)
+        self.format_action.setStatusTip('Change file Flow123d version')
+        self.format_action.triggered.connect(self.on_change_file_format)
+        self.addAction(self.format_action)
 
         self._transformation = self.addMenu('&Transformation')
         pom_lamda = lambda name: lambda: self._model_editor.transform(name)
@@ -61,14 +46,15 @@ class MainSettingsMenu(QMenu):
                 self._edit_transformation.addAction(faction)
                 faction.triggered.connect(pom_lamda(frm))
 
-    def _format_checked(self):
-        """Format checked action handler."""
-        action = self._format_group.checkedAction()
-        filename = action.text()
-        self._model_editor.select_format(filename)
-
     def on_options_action(self):
         """Handle options action - display settings."""
         dialog = SettingsDialog(self.parent)
         if dialog.exec_():
             EditorAppearance.set_default_appearence(self._model_editor.mainwindow.editor)
+
+    def on_change_file_format(self):
+        """Handle change format action - display dialog."""
+        dialog = ChangeISTDialog(self.parent)
+        if dialog.exec_():
+            cfg.update_format()
+            cfg.main_window.reload()

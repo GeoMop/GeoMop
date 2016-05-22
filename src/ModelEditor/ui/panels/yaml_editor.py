@@ -114,11 +114,9 @@ class YamlEditorWidget(QsciScintilla):
         self.setTabWidth(2)
         self.setUtf8(True)
 
-        # line ending - CR LF vs LF
-        if self.SendScintilla(QsciScintilla.SCI_GETEOLMODE) == QsciScintilla.SC_EOL_CRLF:
-            self._eol_length = 2
-        else:
-            self._eol_length = 1
+        # line endings
+        self._eol_length = 1
+        self.set_line_endings(cfg.config.line_endings)
 
         # text wrapping
         self.setWrapMode(QsciScintilla.WrapWord)
@@ -347,6 +345,8 @@ class YamlEditorWidget(QsciScintilla):
     def setText(self, text, keep_history=False):
         """Set editor text either with or without deleting the editing history.
 
+        Also changes line endings to match the settings.
+
         :param str text: text to be set in editor
         :param bool keep_history=False: if set to True, history is preserved
         """
@@ -354,10 +354,24 @@ class YamlEditorWidget(QsciScintilla):
             # replace all text instead
             self.selectAll()
             self.replaceSelectedText(text)
+            self.SendScintilla(QsciScintilla.SCI_CONVERTEOLS, self.eolMode())
         else:
             self.endUndoAction()
             super(YamlEditorWidget, self).setText(text)
+            self.SendScintilla(QsciScintilla.SCI_CONVERTEOLS, self.eolMode())
             self.beginUndoAction()
+
+    def set_line_endings(self, line_endings=cfg.config.line_endings):
+        """sets the line endings and converts the current text"""
+        # line ending - CR LF vs LF
+        if line_endings == cfg.config.LINE_ENDINGS_LF:
+            self.setEolMode(QsciScintilla.SC_EOL_LF)
+            self._eol_length = 1
+        else:
+            self.setEolMode(QsciScintilla.SC_EOL_CRLF)
+            self._eol_length = 2
+        # convert current text
+        self.SendScintilla(QsciScintilla.SCI_CONVERTEOLS, self.eolMode())
 
     def insert_at_cursor(self, text):
         """Insert text at cursor position and move the cursor to the end of inserted text.

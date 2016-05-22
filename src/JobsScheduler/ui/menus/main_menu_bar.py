@@ -9,6 +9,7 @@ import PyQt5.QtWidgets as QtWidgets
 import ui.actions.main_menu_actions as action
 from data.states import TaskStatus
 from geomop_widgets import ProjectMenu
+from ui.data.data_structures import DataContainer
 
 
 class MainMenuBar(QtWidgets.QMenuBar):
@@ -84,8 +85,11 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionRunMultiJob)
-        self.addAction(self.actionPauseMultiJob)
-        self.addAction(self.actionResumeMultiJob)
+
+        if DataContainer.DEBUG_MODE:
+            self.addAction(self.actionPauseMultiJob)
+            self.addAction(self.actionResumeMultiJob)
+
         self.addAction(self.actionStopMultiJob)
         self.addAction(self.actionRestartMultiJob)
 

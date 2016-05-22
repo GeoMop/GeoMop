@@ -22,23 +22,21 @@ class EnvDialog(AFormDialog):
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddEnvDialog",
-                       windowTitle="Job Scheduler - Add new Environment "
-                                   "Preset",
-                       title="Add new Environment Preset",
-                       subtitle="Please select details for new Environment "
-                                "preset.")
+                       windowTitle="Job Scheduler - Add Environment",
+                       title="Add Environment",
+                       subtitle="Please select details for new Environment.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditEnvDialog",
-                        windowTitle="Job Scheduler - Edit Environment Preset",
-                        title="Edit Environment Preset",
+                        windowTitle="Job Scheduler - Edit Environment",
+                        title="Edit Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyEnvDialog",
-                        windowTitle="Job Scheduler - Copy Environment Preset",
-                        title="Copy Environment Preset",
+                        windowTitle="Job Scheduler - Copy Environment",
+                        title="Copy Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
@@ -71,11 +69,11 @@ class EnvDialog(AFormDialog):
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
-        preset = EnvPreset(self.ui.nameLineEdit.text())
+        preset = EnvPreset(name=self.ui.nameLineEdit.text())
         if self.ui.pythonExecLineEdit.text():
             preset.python_exec = self.ui.pythonExecLineEdit.text()
         if self.ui.sclEnableCheckBox.isChecked():
-            preset.scl_enable_exec = self.ui.addModuleLineEdit.text()
+            preset.scl_enable_exec = self.ui.sclEnableLineEdit.text()
         if self.ui.addModuleCheckBox.isChecked():
             preset.module_add = self.ui.addModuleLineEdit.text()
         if self.ui.flowPathEdit.text():
@@ -95,7 +93,7 @@ class EnvDialog(AFormDialog):
 
         if data:
             key = data["key"]
-            preset = EnvPreset.clone(data["preset"])
+            preset = data["preset"]
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.pythonExecLineEdit.setText(preset.python_exec)
@@ -135,7 +133,7 @@ class UiEnvDialog(UiFormDialog):
 
         # validators
         self.nameValidator = PresetNameValidator(
-            self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget)
 
         # form layout
         # hidden row
@@ -160,7 +158,7 @@ class UiEnvDialog(UiFormDialog):
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
-        self.nameLineEdit.setPlaceholderText("Name of the preset")
+        self.nameLineEdit.setPlaceholderText("Name of the environment")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,

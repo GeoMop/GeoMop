@@ -12,7 +12,7 @@ if sys.platform == "win32":
         """Ancestor of communication classes"""
         
         def __init__(self, host, mj_name, name,  password=''):
-            super( SshOutputComm, self).__init__(host, mj_name)
+            super(SshOutputComm, self).__init__(host, mj_name)
             self.name = name
             """login name for ssh connection"""
             self.password = password
@@ -46,6 +46,7 @@ if sys.platform == "win32":
                     ins_app, ins_data = self.installation.lock_installation_over_ssh(self.ssh, self.ssh, True)
                     if ins_app:
                         self.installation.copy_install_files(self.ssh, self.ssh)
+                        self.exec_("remove_pyc", self.installation.copy_path, None)
                         self.installation.lock_installation_over_ssh(self.ssh, self.ssh, False)
                     if ins_data:
                         self.installation.copy_data_files(self.ssh, self.ssh)
@@ -167,6 +168,7 @@ else:
                     ins_app, ins_data = self.installation.lock_installation_over_ssh(sftp, self.ssh, True)
                     if ins_app:
                         self.installation.copy_install_files(sftp, self.ssh)
+                        self.exec_("remove_pyc", self.installation.copy_path, None)
                         self.installation.lock_installation_over_ssh(sftp, self.ssh, False)
                     if ins_data:
                         self.installation.copy_data_files(sftp, self.ssh)
