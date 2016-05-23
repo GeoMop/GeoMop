@@ -883,6 +883,15 @@ class Sequence(Ensemble):
                 selected.add_item(item)
         return selected
         
+    def each(self, adapter):
+        """Adapt list items structure"""
+        new_subtype = adapter._get_adapted_item(self.subtype)
+        adapted = Sequence(new_subtype)
+        for item in self._list:
+            new_item = adapter._get_adapted_item(item)
+            adapted.add_item(new_item)
+        return adapted
+        
     def _get_template(self, func_name, adapter=None):
         """return error and  validation template returned by specified function
         name. Return None if not return defined"""
@@ -891,7 +900,7 @@ class Sequence(Ensemble):
                 subtype = adapter._get_adapted_item(self.subtype) 
             except Exception as error:
                 return ["Get adapted item error: " + str(error)], None
-            return [], Ensemble(subtype)
+            return [], Sequence(subtype)
         if func_name == "select" or func_name == "sort":
             return [],  Sequence(self.subtype)
         if func_name == "tail" or func_name == "head":
