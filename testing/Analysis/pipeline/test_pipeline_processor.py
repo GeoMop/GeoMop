@@ -12,7 +12,11 @@ import pipeline.action_types as action
 import time
 import shutil
 
-def test_run_pipeline():
+def test_run_pipeline(request):
+    def clear_backup():
+        shutil.rmtree("backup", ignore_errors=True)
+    request.addfinalizer(clear_backup)
+    
     action.__action_counter__ = 0
     items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
@@ -51,7 +55,30 @@ def test_run_pipeline():
     assert names[3][:8] == 'Flow123d'
     assert names[4][:8] == 'Flow123d'
     
-    shutil.rmtree("backup", ignore_errors=True)
+    # test store file names
+    assert os.path.isdir("backup/store")
+    assert os.path.isdir("backup/restore")
+    assert len(os.listdir("backup/store"))==11
+    assert len(os.listdir("backup/restore"))==0
+    assert os.path.isfile("backup/store/ForEach_4")
+    assert os.path.isfile("backup/store/Workflow_2_0")
+    assert os.path.isfile("backup/store/Workflow_2_1")
+    assert os.path.isfile("backup/store/Workflow_2_2")
+    assert os.path.isfile("backup/store/Workflow_2_3")
+    assert os.path.isfile("backup/store/Workflow_2_4")
+    assert os.path.isfile("backup/store/Flow123d_3_0")
+    assert os.path.isfile("backup/store/Flow123d_3_1")
+    assert os.path.isfile("backup/store/Flow123d_3_2")
+    assert os.path.isfile("backup/store/Flow123d_3_3")
+    assert os.path.isfile("backup/store/Flow123d_3_4")
+    
+    pp. _establish_processing(None)
+    
+    assert os.path.isdir("backup/store")
+    assert os.path.isdir("backup/restore")
+    assert len(os.listdir("backup/store"))==0
+    assert len(os.listdir("backup/restore"))==11
+    assert os.path.isfile("backup/restore/ForEach_4")
     
     # ToDo add more asserts after Flow123dAction finishing
     

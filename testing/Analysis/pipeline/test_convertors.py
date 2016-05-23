@@ -37,6 +37,8 @@ def test_convertors_validation():
     v7._inicialize()
     v8 = VariableGenerator(Variable=Struct(a=String("test new"), b=Int(8)))
     v8._inicialize()
+    v9 = VariableGenerator(Variable=Tuple(String("test new"),Int(8), String("test new 2")))
+    v9._inicialize()
     
     time = And(Input(0).time > 600,Input(0).time<1000)
     value = Or(Input(0).value > 3.0, Input(0).value < 1.0)
@@ -88,7 +90,25 @@ def test_convertors_validation():
     errs = conv._check_params([v7, v8, v4])
     assert len(errs)==1
     assert errs[0] == "Class has not function sort"
+    
+    conv = Convertor(Ensemble(String(), Input(0)[0], Input(0)[2]))
+    errs = conv._check_params([v9])   
+    assert len(errs)==0
+    
+    out = conv._get_output([v9])
+    assert len(out)==2
 
+    conv = Convertor(Ensemble(String(), Input(0)[1], Input(0)[2]))
+    errs = conv._check_params([v9])   
+    assert len(errs)==0    
+    
+    try:
+        out = None
+        out = conv._get_output([v9])
+        assert False, "Bad input was processed"
+    except Exception as err:
+        assert str(err) == "Output processing error (Not supported ensemble type (Int(8)).)"
+    assert out is None
 
 def test_convertors_recursive():
     # each()
@@ -135,7 +155,6 @@ def test_convertors_recursive():
     conv = Convertor(Input(0).each(a2))
     errs = conv._check_params([v1])
     assert len(errs) == 0
-
 
     # sort ()
     v1 = VariableGenerator(Variable=Ensemble(

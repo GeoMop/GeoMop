@@ -161,6 +161,12 @@ class GDTT(GTT):
             return ret
         return self.__dict__[name]
         
+    def __getitem__(self, i):
+        ret = GDTT(parent=self)
+        ret._set_path(self._path + "[" + str(i) + "]")
+        ret._set_name("[" + str(i) + "]")
+        return ret
+
     def head(self): 
         """save head function"""
         ret = GDTT(parent=self)
@@ -279,7 +285,9 @@ class GDTT(GTT):
             elif self.__predicate.__class__.__name__ == "Predicate":
                 err2 = self.__predicate._check_params_one(struc)
                 err.extend(err2)
-                return err, struc._get_template("select")    
+                err2, ret =  struc._get_template("select")
+                err.extend(err2)
+                return err, ret   
             else:
                 err.append("Only Predicate is permited in select")            
         if  self.__key_convertor is not None:
@@ -290,7 +298,9 @@ class GDTT(GTT):
             elif self.__key_convertor.__class__.__name__ == "KeyConvertor":
                 err2 = self.__key_convertor._check_params_one(struc)
                 err.extend(err2)
-                return err, struc._get_template("sort")
+                err2, ret =  struc._get_template("sort")
+                err.extend(err2)
+                return err, ret
             else:
                 err.append("Only KeyConverter is permited in sort")  
         if  self.__adapter is not None:
@@ -303,21 +313,35 @@ class GDTT(GTT):
             else:
                 err2 = self.__adapter._check_params_one(struc)
                 err.extend(err2) 
-                return err, struc._get_template("each")
+                err2, ret =  struc._get_template("each", self.__adapter)
+                err.extend(err2)
+                return err, ret
         if  self.__func_name is not None:
             # only function without parameters is implemented !!!
             if not self.__check_func(struc, self.__func_name):
                 err.append("Class has not function " + self.__func_name)
             else:
-                return err, struc._get_template(self.__func_name)
+                err2, ret =  struc._get_template(self.__func_name)
+                err.extend(err2)
+                return err, ret
         if  self.__name is not None:
-            if struc.__class__.__name__ != "Struct":
-                err.append("Only Struct can have dot operator")
-            else:
-                try:
-                    return err, getattr(struc, self.__name)
-                except Exception as error:
-                    err.append(str(error))
+            if self.__name[0] == '[' and self.__name[-1] == ']':
+                if struc.__class__.__name__ != "Tuple":
+                    err.append("Only Tuple can have index operator")
+                else:
+                    try:
+                        index = int(self.__name[1:-1])
+                        return err,  struc[index]
+                    except Exception as error:
+                        err.append(str(error))
+            else: 
+                if struc.__class__.__name__ != "Struct":
+                    err.append("Only Struct can have dot operator")
+                else:
+                    try:
+                        return err, getattr(struc, self.__name)
+                    except Exception as error:
+                        err.append(str(error))
         return err, None
 
 
