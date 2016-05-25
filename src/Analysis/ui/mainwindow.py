@@ -5,6 +5,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from ui import panels
+from ui import data
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""
@@ -20,7 +21,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self._hsplitter)
         # splitters
         self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self.diagramScene = panels.Diagram(self._vsplitter)
+        
+        diagram = data.Diagram()
+        self.diagramScene = panels.Diagram(diagram, self._vsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._vsplitter)
         
         self.diagramView.setSizePolicy(
@@ -30,3 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
  
 
         self._hsplitter.insertWidget(0, self.diagramView)
+        
+    def set_diagram_data(self, diagram):
+        """Propagate new diagram scene to canvas"""
+        self.diagramScene.set_data(diagram)
