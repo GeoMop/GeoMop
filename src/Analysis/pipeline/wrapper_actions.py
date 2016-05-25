@@ -125,7 +125,7 @@ class ForEach(WrapperActionType):
                 self._wa_instances[-1].set_inputs(inputs)
                 self._wa_instances[-1]._inicialize()
                 self._wa_instances[-1]._reset_storing(
-                    self._variables['WrappedAction'], self._index_iden + str(i) +"_") 
+                    self._variables['WrappedAction'], self._index_iden +"_"+ str(i)) 
         if self._procesed_instances == len(self._wa_instances):
             for instance in self._wa_instances:
                 if not instance._is_state(ActionStateType.finished):

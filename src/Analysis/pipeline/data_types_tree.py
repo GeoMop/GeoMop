@@ -47,11 +47,11 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         """
         Returns True, if 'self' is a data tree or a type tree that is subtree of the type tree 'type'.
         """
-        return True
+        return type_tree.__class__.__name__ == self.__class__.__name__
         
     def __str__(self):
         """return string description"""
-        return "\n".join(self.get_settings_script())
+        return "\n".join(self._get_settings_script())
 
     @abc.abstractmethod 
     def _assigne(self, value):
@@ -661,7 +661,7 @@ class ListDTT(CompositeDTT, metaclass=abc.ABCMeta):
         self._list = []
     
     @abc.abstractmethod
-    def _get_template(self):
+    def _get_template(self, func_name, adaptor=None):
         """return template of nested structure"""
         pass
 
@@ -814,7 +814,7 @@ class Ensemble(SortableDTT):
     def each(self, adapter):
         """Adapt list items structure"""
         new_subtype = adapter._get_adapted_item(self.subtype)
-        adapted = Ensemble(adapter._get_adapted_item(new_subtype))
+        adapted = Ensemble(new_subtype)
         for item in self._list:
             new_item = adapter._get_adapted_item(item)
             adapted.add_item(new_item)
@@ -834,14 +834,20 @@ class Ensemble(SortableDTT):
                 selected.add_item(item)
         return selected
     
-    def _get_template(self, func_name):
+    def _get_template(self, func_name, adapter=None):
         """return validation template returned by specified function
         name. Return None if not return defined"""
-        if func_name == "select" or func_name == "each":
-            return Ensemble(self.subtype)
+        if func_name == "each":
+            try:
+                subtype = adapter._get_adapted_item(self.subtype) 
+            except Exception as error:
+                return ["Get adapted item error: " + str(error)], None
+            return [], Ensemble(subtype)
+        if func_name == "select":
+            return [], Ensemble(self.subtype)
         if func_name == "sort":
-            return Sequence(self.subtype)
-        return None        
+            return [], Sequence(self.subtype)
+        return ["Unknown template function {0}".format(func_name)], None        
 
 class Sequence(Ensemble):
     name = "Sequence"
@@ -877,13 +883,26 @@ class Sequence(Ensemble):
                 selected.add_item(item)
         return selected
         
-    def _get_template(self, func_name):
-        """return validation template returned by specified function
+    def each(self, adapter):
+        """Adapt list items structure"""
+        new_subtype = adapter._get_adapted_item(self.subtype)
+        adapted = Sequence(new_subtype)
+        for item in self._list:
+            new_item = adapter._get_adapted_item(item)
+            adapted.add_item(new_item)
+        return adapted
+        
+    def _get_template(self, func_name, adapter=None):
+        """return error and  validation template returned by specified function
         name. Return None if not return defined"""
         if func_name == "each":
-            return Ensemble(self.subtype)
+            try:
+                subtype = adapter._get_adapted_item(self.subtype) 
+            except Exception as error:
+                return ["Get adapted item error: " + str(error)], None
+            return [], Sequence(subtype)
         if func_name == "select" or func_name == "sort":
-            return Sequence(self.subtype)
+            return [],  Sequence(self.subtype)
         if func_name == "tail" or func_name == "head":
-            return self.subtype
-        return None 
+            return [], self.subtype
+        return ["Unknown template function {0}".format(func_name)], None

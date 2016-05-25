@@ -10,6 +10,7 @@ from pipeline.wrapper_actions import *
 from pipeline.parametrized_actions import *
 import pipeline.action_types as action
 import time
+import shutil
 
 action.__action_counter__ = 0
 items = [
@@ -34,4 +35,5 @@ while pp.is_run():
         print(runner.name+"\n")
         pp.set_job_finished(runner.id)
 test = foreach._get_output()
+shutil.rmtree("backup", ignore_errors=True)
 i=0

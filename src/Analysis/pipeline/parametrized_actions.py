@@ -55,6 +55,7 @@ class Flow123dAction(ParametrizedActionType):
         Set real output variable and set finished state.
         """
         # TODO read output from files
+        self._store_results(store_dir)
         self._state = ActionStateType.finished
 
     def _check_params(self):    
@@ -96,7 +97,7 @@ class Flow123dAction(ParametrizedActionType):
         # TODO logic
         pass
 
-    def _store(self):
+    def _store(self, path):
         """
         make all needed serialization processess and
         return text data for storing
@@ -105,7 +106,7 @@ class Flow123dAction(ParametrizedActionType):
         # TODO copy result files to store path and store only files names
         return res
 
-    def _restore(self, text):
+    def _restore(self, text, path):
         """
         make all needed deserialization processess and
         return text data for storing
