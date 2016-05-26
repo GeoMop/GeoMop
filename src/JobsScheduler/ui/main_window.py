@@ -16,6 +16,7 @@ from PyQt5.QtGui import QDesktopServices
 from communication import Communicator, Installation
 from data.states import TaskStatus
 from communication import installation
+from threading import Timer
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions
@@ -47,6 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
         # setup UI
+        self.can_close = False
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
@@ -204,6 +206,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # trigger notify
         self.data.config.notify()
+
+        # resume paused jobs
+        self._resume_paused_multijobs()
 
     def load_settings(self):
         # select last selected mj
@@ -564,6 +569,64 @@ class MainWindow(QtWidgets.QMainWindow):
                 sel_dir = sel_dir.replace('/', '\\')
             self.data.config.workspace = sel_dir
             self.data.config.save()
+
+    def closeEvent(self, event):
+        if self.can_close:
+            event.accept()
+            return
+
+        def check_if_all_mj_paused():
+            all_paused = True
+            for key, mj in self.data.multijobs.items():
+                status = mj.get_state().status
+                if status in (TaskStatus.installation, TaskStatus.resuming):
+                    # wait for to finish and change state to running
+                    all_paused = False
+                    print('waiting for: ' + key)
+                elif status == TaskStatus.running:
+                    # pause mj
+                    MultiJobActions.pausing(mj)
+                    self.ui.overviewWidget.update_item(key, mj.get_state())
+                    self.com_manager.pause(key)
+                    print('pausing: ' + key)
+                    all_paused = False
+                elif status == TaskStatus.pausing:
+                    all_paused = False
+                    print('waiting to finish pausing: ' + key)
+                else:
+                    # TODO any other states to handle?
+                    continue
+
+            if not all_paused:
+                Timer(1, check_if_all_mj_paused).start()
+                return False
+
+            print('all paused, exit now')
+            self.can_close = True
+            self.close()
+            return True
+
+        check_if_all_mj_paused()
+
+        # could be replaced with a waiting dialog instead
+        self.hide()
+
+        event.ignore()
+
+    def _resume_paused_multijobs(self):
+        for key, mj in self.data.multijobs.items():
+            if mj.get_state().status == TaskStatus.paused:
+                # create com worker
+                conf_builder = ConfigBuilder(self.data)
+                app_conf = conf_builder.build(key)
+                com = Communicator(app_conf)
+                self.com_manager.create_worker(key, com)
+
+                # resume
+                mj = self.data.multijobs[key]
+                MultiJobActions.resuming(mj)
+                self.ui.overviewWidget.update_item(key, mj.get_state())
+                self.com_manager.resume(key)
 
 
 class UiMainWindow(object):

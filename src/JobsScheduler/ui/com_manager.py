@@ -22,6 +22,10 @@ class ComManager:
         self.res_queue = Queue()
         self._workers = dict()
 
+    def create_worker(self, key, com):
+        worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
+        self._workers[worker.key] = worker
+
     def install(self, key, com):
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
         req_install = ReqData(key=key, com_type=ComType.install)
