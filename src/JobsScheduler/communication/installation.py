@@ -148,6 +148,16 @@ class Installation:
                     logger.debug("Sftp message(put " + __lock_file__  + "): " + str(conn.before, 'utf-8').strip())
         return True
 
+    def init_copy_path(self, conn):
+        if sys.platform == "win32":
+            self.copy_path = conn.pwd() + '/' + __root_dir__
+        else:
+            import pexpect
+
+            conn.sendline('pwd')
+            conn.expect(".*pwd\r\n")
+            self.copy_path = str(conn.readline(), 'utf-8').strip() + '/' + __root_dir__
+
     @classmethod
     def lock_installation(cls, mj_name, app_version, data_version):
         """Set installation locks, return if should installation continue"""
