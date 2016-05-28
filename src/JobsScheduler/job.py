@@ -123,7 +123,8 @@ for line in com_conf.cli_params:
     term.sendline(line)
     term.expect('.*' + line + '\r\n')
     logger.debug('CLI PARAMS> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
-flow_execute = com_conf.flow_path + ' --version'
+flow_execute = com_conf.flow_path + ' -s ' + job_configuration['configuration_file'] + ' -o ' + mj_id
+logger.debug('Flow command: ' + flow_execute)
 term.sendline(flow_execute)
 term.expect('.*' + flow_execute + '\r\n')
 term.expect(".*\$ ")
