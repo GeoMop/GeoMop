@@ -31,9 +31,9 @@ class Connector(ConnectorActionType):
         err = super(Connector, self)._check_params()
 
         if 'Convertor' not in self._variables or self._variables['Convertor'] is None:
-            err.append("Convertor parameter is not set")
+            self._add_error(err, "Convertor parameter is not set")
         else:
-            err.extend(self._variables['Convertor']._check_params(self._inputs))
+            self._extend_error(err, self._variables['Convertor']._check_params(self._inputs))
         return err
     
     def validate(self):
