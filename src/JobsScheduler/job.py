@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import subprocess
+import time
 from communication.installation import Installation
 import data.communicator_conf as comconf
 import communication.installation as inst
@@ -116,17 +117,24 @@ if return_code is not None:
         ",stderr:" + out + ")")
     sys.exit("Can not start test task")
 
-# run flow123d --version
+directory = os.path.sep + os.path.join(*directory.split('/')[:-1])
+
+# run flow123d
 import pexpect
 term = pexpect.spawn('bash')
 for line in com_conf.cli_params:
     term.sendline(line)
     term.expect('.*' + line + '\r\n')
+    time.sleep(1)
+    term.expect(".*\$ ")
     logger.debug('CLI PARAMS> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
-flow_execute = com_conf.flow_path + ' -s ' + job_configuration['configuration_file'] + ' -o ' + mj_id
+flow_execute = com_conf.flow_path + \
+               ' -s ' + os.path.join(directory, job_configuration['configuration_file']) + \
+               ' -o ' + os.path.join(directory, 'res', mj_id)
 logger.debug('Flow command: ' + flow_execute)
 term.sendline(flow_execute)
 term.expect('.*' + flow_execute + '\r\n')
+time.sleep(1)
 term.expect(".*\$ ")
 logger.debug('FLOW OUTPUT> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
 term.sendline('exit')

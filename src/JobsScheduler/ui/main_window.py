@@ -5,8 +5,10 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 import copy
+import logging
 import os
 from shutil import copyfile
+import shutil
 import time
 
 from PyQt5 import QtCore
@@ -36,6 +38,9 @@ from ui.panels.tabs import Tabs
 
 from geomop_project import Project, Analysis
 import flow_util
+
+
+logger = logging.getLogger("UiTrace")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -336,6 +341,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
             analysis = Project.current.get_current_analysis()
             assert analysis is not None, "No analysis file exists for the project!"
+
+            # copy the entire folder
+            shutil.rmtree(mj_dir, ignore_errors=True)
+            try:
+                shutil.copytree(proj_dir, mj_dir)
+            # Directories are the same
+            except shutil.Error as e:
+                logger.error("Failed to copy project dir: " + str(e))
+            # Any error saying that the directory doesn't exist
+            except OSError as e:
+                logger.error("Failed to copy project dir: " + str(e))
 
             # fill in parameters and copy the files
             for file in set(files):
