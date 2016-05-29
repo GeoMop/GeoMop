@@ -1,4 +1,4 @@
-class ELCreator():
+class ILCreator():
     """
     This client site script can crete equal list of action, that
     is same with last processed files. And compare analisis

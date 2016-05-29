@@ -8,9 +8,9 @@ class PipelineResult(WorkflowActionType):
         """downloading output id"""
 
 class Pipeline(WorkflowActionType):
-    _name = "Pipeline"
+    name = "Pipeline"
     """Display name of action"""
-    _description = "Group of all actions"
+    description = "Group of all actions"
     """Display description of action"""
 
     def __init__(self, **kwargs):

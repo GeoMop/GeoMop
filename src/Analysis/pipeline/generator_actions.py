@@ -5,9 +5,9 @@ from .code_formater import Formater
 
 class VariableGenerator(GeneratorActionType):
     
-    _name = "VariableGenerator"
+    name = "VariableGenerator"
     """Display name of action"""
-    _description = "Generator for creating static DTT variable"
+    description = "Generator for creating static DTT variable"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -64,9 +64,9 @@ class VariableGenerator(GeneratorActionType):
 
 class RangeGenerator(GeneratorActionType):
     
-    _name = "RangeGenerator"
+    name = "RangeGenerator"
     """Display name of action"""
-    _description = "Generator for generation parallel list"
+    description = "Generator for generation parallel list"
     """Display description of action"""  
 
     def __init__(self, **kwargs):

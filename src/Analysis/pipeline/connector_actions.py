@@ -2,9 +2,9 @@ from .action_types import ConnectorActionType, ActionStateType
 
 class Connector(ConnectorActionType):
     
-    _name = "Conn"
+    name = "Conn"
     """Display name of action"""
-    _description = "Convertor for base variable manipulation"
+    description = "Convertor for base variable manipulation"
     """Display description of action"""  
 
     def __init__(self, **kwargs):

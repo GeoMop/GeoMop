@@ -5,9 +5,9 @@ from .workflow_actions import Workflow
 
 class ForEach(WrapperActionType):
     
-    _name = "ForEach"
+    name = "ForEach"
     """Display name of action"""
-    _description = "Cyclic action processor"
+    description = "Cyclic action processor"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -16,9 +16,9 @@ class ForEach(WrapperActionType):
         :param BaseActionType WrappedAction: Wrapped action
         :param Ensemble Output: This variable is compute  from outputs
             WrappedAction and placed in Ensemble
-        :param Ensemble Input: Composite of WrappedAction cyclic  inputs, 
-            this parameter is set after declaration this action by function
-           set_wrapped_action 
+        :param Action Input:  Action that return Ensemble, composite of 
+            WrappedAction cyclic  inputs, this parameter is set after declaration 
+            this action by function set_wrapped_action 
         """
         self._wa_instances=[]
         """

@@ -1,9 +1,9 @@
 from .action_types import WorkflowActionType, ActionStateType, BaseActionType, Bridge, WrapperActionType
 
 class Workflow(WorkflowActionType):
-    _name = "Workflow"
+    name = "Workflow"
     """Display name of action"""
-    _description = "Series of action"
+    description = "Series of action"
     """Display description of action"""
 
     def __init__(self, **kwargs):

@@ -3,9 +3,9 @@ from .data_types_tree import Struct, String
 
 class Flow123dAction(ParametrizedActionType):
     
-    _name = "Flow123d"
+    name = "Flow123d"
     """Display name of action"""
-    _description = "Flow123d"
+    description = "Flow123d"
     """Display description of action"""  
 
     def __init__(self, **kwargs):

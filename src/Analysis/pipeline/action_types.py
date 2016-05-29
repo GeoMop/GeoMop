@@ -93,9 +93,9 @@ class BaseActionType(metaclass=abc.ABCMeta):
     and can be accessed from any thread by defined functions.
     """
 
-    _name = ""
+    name = ""
     """Display name of action"""
-    _description = ""
+    description = ""
     """Display description of action"""
 
     def __init__(self, **kwargs):
@@ -228,14 +228,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
             input_val =  input_val.duplicate()
         return input_val
     
-    @property
-    def name(self):
-        return self._name
-        
-    @property
-    def description(self):
-        return self._description
-     
     @classmethod
     def _format_array(cls, name, array, spaces, err):
         """
