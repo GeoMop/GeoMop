@@ -492,6 +492,15 @@ class BaseActionType(metaclass=abc.ABCMeta):
             return True
         return False
 
+    def _add_error(self, err, message):
+        """Append error message to err list"""
+        err.append("{0}: {1}".format(self._get_instance_name(), message))
+
+    def _extend_error(self, err, new_err):
+        """Extend err list with new err list"""
+        for message in new_err:
+            self._add_error(err, message)
+
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
     
@@ -547,14 +556,13 @@ class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)<1:
-            err.append("Convertor action requires at least one input parameter")
+            self._add_error(err, "Convertor action requires at least one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
 
         return err
 
@@ -566,9 +574,9 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)>0:
-            err.append("Generator action not use input parameter")
+            self._add_error(err, "Generator action not use input parameter")
         return err
         
     def _store_results(self, path):
@@ -595,14 +603,13 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)  != 1:
-            err.append("Parametrized action requires exactly one input parameter")
+            self._add_error(err, "Parametrized action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
         return err
 
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -641,16 +648,15 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if  not 'WrappedAction' in self._variables:
-            err.append("Parameter 'WrappedAction' is required")
+            self._add_error(err, "Parameter 'WrappedAction' is required")
         if len(self._inputs)  != 1:
-            err.append("Wrapper action requires exactly one input parameter")
+            self._add_error(err, "Wrapper action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
         return err
 
     def _get_settings_script(self):    
@@ -755,14 +761,14 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if  'ResultActions' in self._variables:
             if not isinstance(self._variables['ResultActions'], list):
-                err.append("Parameter 'ResultActions' must be list of output actions")
+                self._add_error(err, "Parameter 'ResultActions' must be list of output actions")
             else:
                 for i in range(0, len(self._variables['ResultActions'])):
                     if not isinstance(self._variables['ResultActions'][i],  BaseActionType):
-                        err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
+                        self._add_error(err, "Type of parameter 'ResultActions[{0}]' must be BaseActionType".format(str(i)))
         return err  
        
     @staticmethod

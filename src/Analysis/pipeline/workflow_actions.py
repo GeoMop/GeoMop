@@ -103,26 +103,27 @@ class Workflow(WorkflowActionType):
         err = super(Workflow, self)._check_params()
         if len(self._inputs)  != 1:
             if len(self._inputs)>1 or self.bridge._link is None:
-                err.append("Workflow action requires exactly one input parameter")
+                self._add_error(err, "Workflow action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
+                    self._add_error(err, "Parameter 'Inputs' ({0}) must be BaseActionType".format(
                         self.name))        
         if  not 'InputAction' in self._variables:
-            err.append("Parameter 'InputAction' is require")
+            self._add_error(err, "Parameter 'InputAction' is require")
         else:            
             if not isinstance(self._variables['InputAction'],  BaseActionType):
-                err.append("Parameter 'InputAction' must be BaseActionType") 
+                self._add_error(err, "Parameter 'InputAction' must be BaseActionType")
             else:
                 # during inicialiyation should be processed all chain action
                 if self._variables['InputAction'] is ActionStateType.created:
-                    err.append("Inicialization of 'InputAction' is not processed. Is all workflow actions chained?") 
+                    self._add_error(err,
+                                    "Inicialization of 'InputAction' is not processed. Is all workflow actions chained?")
         if  not 'OutputAction' in self._variables:
-            err.append("Parameter 'OutputAction' is require")
+            self._add_error(err, "Parameter 'OutputAction' is require")
         else:
             if not isinstance(self._variables['OutputAction'],  BaseActionType):
-                err.append("Parameter 'OutputAction' must be BaseActionType")
+                self._add_error(err, "Parameter 'OutputAction' must be BaseActionType")
                 
         return err
         

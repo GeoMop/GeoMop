@@ -131,6 +131,8 @@ else:
             except pexpect.pxssh.ExceptionPxssh  as err:
                 logger.warning("Can't connect to ssh server " +  
                 self.host + " as " + self.name + ": " +   str(err))
+            else:
+                self.installation.init_copy_path(self.ssh)
 
         def disconnect(self):
             """disconnect session"""
