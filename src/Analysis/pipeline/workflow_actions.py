@@ -66,7 +66,7 @@ class Workflow(WorkflowActionType):
                self._hash.update(bytes(action._get_hash(), "utf-8"))
             self._actions = sorted(actions , key=lambda item: item._id)
         except Exception as err:
-            self._load_errs.append("Inicialize child workflow action error ({0})".format(err))   
+            self._add_error(self._load_errs, "Inicialize child workflow action error ({0})".format(err))   
         if  len(self._inputs)==1:
             self.bridge._set_new_link(self._inputs[0])
                     

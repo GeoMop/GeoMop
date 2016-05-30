@@ -52,7 +52,7 @@ class Connector(ConnectorActionType):
         try:
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
-            self._load_errs.append(str(err))
+            self._add_error(self._load_errs, str(err))
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
         if 'Convertor' in self._variables:
@@ -67,7 +67,7 @@ class Connector(ConnectorActionType):
         try:
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
-            self._load_errs.append(str(err))
+            self._add_error(self._load_errs, str(err))
         return self._get_runner(None)
         
     def _get_settings_script(self):    

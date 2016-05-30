@@ -182,14 +182,14 @@ class BaseActionType(metaclass=abc.ABCMeta):
             if name == 'Inputs':
                 self.set_inputs(value)
             elif name == 'Output':
-               self._load_errs.append("Output variable is not settable.")
+               self._add_error(self._load_errs, "Output variable is not settable.")
             else:
                 self._variables[name] = value
 
     def set_inputs(self, inputs):
         """set action input variables"""
         if not isinstance(inputs, list):
-            self._load_errs.append("Inputs parameter must be list.")
+            self._add_error(self._load_errs, "Inputs parameter must be list.")
             return        
         self._inputs = inputs
         
