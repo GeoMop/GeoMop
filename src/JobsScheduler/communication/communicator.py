@@ -53,6 +53,11 @@ class Communicator():
         """log level for communicator"""
         self._instaled = False        
         """if installation process of next communicator is finished"""
+        self.instalation_fails_mess = None        
+        """
+        if installation fail, this variable contain instalation message,
+        that is send.
+        """
         self._install_lock = threading.Lock()
         """_installed lock"""
         self._download_processed = tdata.ProcessType.ready        
@@ -204,6 +209,11 @@ class Communicator():
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
+            if self.is_installed() and self.instalation_fails_mess is not None:
+                action=tdata.Action(tdata.ActionType.error)
+                action.data.data["msg"] = self.instalation_fails_mess
+                action.data.data["severity"] = 5 
+                return False, action.get_message()
             if isinstance(self.output, ExecOutputComm) and \
                 not isinstance(self.output, PbsOutputComm) and \
                 not self.libs_env.install_job_libs:
@@ -369,7 +379,11 @@ class Communicator():
         
     def _exec_(self):
         """run set python file"""
-        self.output.exec_(self.next_communicator, self.mj_name, self.id)
+        try:
+            self.output.exec_(self.next_communicator, self.mj_name, self.id)
+        except Exception as err:
+            logger.error(str(err))
+            self.instalation_fails_mess = str(err)
         self._connect_socket(self.output)
         if self.output is not None:
             self.output.save_state(self.status)
@@ -438,6 +452,7 @@ class Communicator():
                         action.data.data["msg"] = "timeout"
                     else:
                         action.data.data["msg"] = "implementation error"
+                        action.data.data["severity"] = 3 
                     mess = action.get_message()
                     error = True
                 self.input.send(mess)

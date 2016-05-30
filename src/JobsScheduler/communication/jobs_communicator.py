@@ -69,6 +69,8 @@ class JobsCommunicator(Communicator):
             return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
+            if mess is not None and mess.action_type == tdata.ActionType.error:
+                return resent, mess
             if self.is_installed():
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)

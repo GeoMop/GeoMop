@@ -152,9 +152,13 @@ class ComWorker(threading.Thread):
                 if req is None:
                     break
                 else:
-                    res = ComExecutor.communicate(self.com, req,
-                                                  self.res_queue)
-                    self.res_queue.put(res)
+                    try:
+                        res = ComExecutor.communicate(self.com, req,
+                                                      self.res_queue)
+                        self.res_queue.put(res)
+                    except Exception as err:
+                        # TODO switch to error state
+                        self.stop()
             res = ComExecutor.communicate(
                 self.com, ReqData(self.key, ComType.stop), self.res_queue)
             self.res_queue.put(res)
@@ -205,6 +209,8 @@ class ComExecutor(object):
     def _install(com, res, res_queue):
         old_phase = TaskStatus.installation
         com.install()
+        if com.instalation_fails_mess is not None:
+            raise Exception(com.instalation_fails_mess)    
         sec = time.time() + 1300
         message = tdata.Action(tdata.ActionType.installation).get_message()
         mess = None
@@ -213,6 +219,10 @@ class ComExecutor(object):
             mess = com.receive_message(120)
             if mess is None:
                 break
+            if mess.action_type == tdata.ActionType.error:    
+                if com.instalation_fails_mess is not None and \
+                    mess.get_action().data.data["severity"]>4:
+                    raise Exception(mess.get_action().data.data["msg"])    
             if mess.action_type == tdata.ActionType.install_in_process:
                 phase = mess.get_action().data.data['phase']
                 if phase is not old_phase:

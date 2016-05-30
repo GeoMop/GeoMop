@@ -138,7 +138,7 @@ class Message:
         return action
         
 class MessageError(Exception):
-    """Error in nessage format"""
+    """Error in message format"""
     
     def __init__(self, msg):
         super(MessageError, self).__init__(msg)
@@ -224,6 +224,7 @@ class ErrorData(ActionData):
         self.data={}
         if json_data is None:            
             self.data["msg"] = None
+            self.data["severity"] = 0 
         else:
             self.data = json.loads(json_data) 
  
