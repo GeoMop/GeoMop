@@ -12,7 +12,7 @@ import shutil
 import time
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QUrl, Qt
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
 from communication import Communicator, Installation
@@ -507,11 +507,13 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
-    def handle_mj_stopped(self, key):
+    def handle_mj_stopped(self, key, err):
         mj = self.data.multijobs[key]
         if mj.state.status is not TaskStatus.finished:
             MultiJobActions.stopped(mj)
             self.ui.overviewWidget.update_item(key, mj.get_state())
+        if err is not None:
+            mj.get_state().set_status(TaskStatus.error)
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 

@@ -87,10 +87,12 @@ except Exception as error:
 
 jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
 jobs_to_exec = list(jobs.keys())
-
+count = len(jobs)
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
-comunicator.set_start_jobs_count(2, 0)
+logger.debug("Set counter to {0} jobs".format(str(count)))
+comunicator.set_start_jobs_count(count, 0)
+
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()

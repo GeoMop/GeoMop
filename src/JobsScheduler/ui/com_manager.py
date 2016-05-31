@@ -4,7 +4,6 @@ JobScheduler data reloader
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-import os
 import threading
 import time
 from queue import Empty
@@ -12,9 +11,7 @@ from queue import Empty
 import data.transport_data as tdata
 from enum import IntEnum
 from multiprocessing import Queue
-
-from communication import Installation
-from data.states import JobsState, MJState, TaskStatus
+from data.states import TaskStatus
 
 
 class ComManager:
@@ -145,6 +142,7 @@ class ComWorker(threading.Thread):
                     continue
 
         def run(self):
+            error = None
             self.is_ready.set()
             self._is_running.set()
             while self._is_running.is_set():
@@ -152,15 +150,16 @@ class ComWorker(threading.Thread):
                 if req is None:
                     break
                 else:
-                    try:
-                        res = ComExecutor.communicate(self.com, req,
-                                                      self.res_queue)
+                    res = ComExecutor.communicate(self.com, req,
+                                                    self.res_queue)
+                    if res.err is not None:
+                        error = res.err
+                        break
+                    else:
                         self.res_queue.put(res)
-                    except Exception as err:
-                        # TODO switch to error state
-                        self.stop()
             res = ComExecutor.communicate(
                 self.com, ReqData(self.key, ComType.stop), self.res_queue)
+            res.err = error    
             self.res_queue.put(res)
 
         def stop(self):

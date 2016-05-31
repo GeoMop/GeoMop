@@ -16,7 +16,7 @@ class ResHandler(QTimer):
     mj_installation = QtCore.pyqtSignal(str)
     mj_paused = QtCore.pyqtSignal(str)
     mj_resumed = QtCore.pyqtSignal(str)
-    mj_stopped = QtCore.pyqtSignal(str)
+    mj_stopped = QtCore.pyqtSignal(str, object)
     mj_result = QtCore.pyqtSignal(str)
     mj_state = QtCore.pyqtSignal(str, object)
 
@@ -46,6 +46,6 @@ class ResHandler(QTimer):
                 if res.data:
                     self.mj_state.emit(res.key, res.data)
             elif res.com_type is ComType.stop:
-                self.mj_stopped.emit(res.key)
+                self.mj_stopped.emit(res.key, res.err)
             else:
                 raise Exception("Response type not recognized")

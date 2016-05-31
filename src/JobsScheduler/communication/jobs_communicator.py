@@ -218,6 +218,7 @@ class JobsCommunicator(Communicator):
                     self._last_check_id = id
                     if mess is not None and mess.action_type == tdata.ActionType. job_state:
                         if mess.get_action().data.data['ready']:
+                            ret_code = mess.get_action().data.data["return_code"]
                             action=tdata.Action(tdata.ActionType.stop)
                             logger.debug("Stop message to ready job " + id + " is sent")
                             self.job_outputs[id].send(action.get_message())
@@ -225,7 +226,10 @@ class JobsCommunicator(Communicator):
                             logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
                             if mess is not None and mess.action_type == tdata.ActionType.ok:
                                 self.ready_jobs[id] = self.jobs[id]
-                                self.jobs[id].state_ready()
+                                if ret_code==0:
+                                    self.jobs[id].state_ready()
+                                else:
+                                    self.jobs[id].state_error()
                                 self.job_outputs[id].disconnect()
                                 del self.jobs[id]
                                 del self.job_outputs[id]
@@ -360,7 +364,7 @@ class JobsCommunicator(Communicator):
         """change state to ready"""
         self._mj_state.run_interval = int(time.time() - self._mj_state.start_time )
         self._mj_state.status = TaskStatus.ready
-        
+       
     def _state_stopping(self):
         """change state to stopping"""        
         self._mj_state.status = TaskStatus.stopping

@@ -31,7 +31,14 @@ class Job:
         self._state.run_interval = int(time.time() - self._state.start_time)
         self._state.status = TaskStatus.ready
         self._data_lock.release()
-        
+
+    def state_error(self):
+        """change state to error"""
+        self._data_lock.acquire()
+        self._state.run_interval = int(time.time() - self._state.start_time)
+        self._state.status = TaskStatus.error
+        self._data_lock.release()
+
     def state_stopping(self):
         """change state to stopping"""
         self._data_lock.acquire()

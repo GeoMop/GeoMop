@@ -49,7 +49,7 @@ def  job_action_function_before(message):
         return False, action.get_message()
     action=tdata.Action(tdata.ActionType.error)
     action.data.data["msg"] = "Unsupported job communicator message"
-    return False, action.get_message()        
+    return False, action.get_message()
     
 def read_err(err):
     try:
@@ -106,43 +106,55 @@ comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_act
 logger.info("Start")
 # test if config was read
 logger.info('Configuration file: %s', job_configuration['configuration_file'])
-Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
-process = subprocess.Popen([com_conf.python_env.python_exec,"test_task.py",
-    Installation.get_result_dir_static(com_conf.mj_name)], stderr=subprocess.PIPE)
-return_code = process.poll()
-if return_code is not None:
-    logger.info("read_line")
-    out =  read_err(process.stderr)
-    logger.error("Can not start test task (return code: " + str(return_code) +
-        ",stderr:" + out + ")")
-    sys.exit("Can not start test task")
-
 directory = os.path.sep + os.path.join(*directory.split('/')[:-1])
 
 # run flow123d
-import pexpect
-term = pexpect.spawn('bash')
-for line in com_conf.cli_params:
-    term.sendline(line)
-    term.expect('.*' + line + '\r\n')
-    time.sleep(1)
-    term.expect(".*\$ ")
-    logger.debug('CLI PARAMS> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
-flow_execute = com_conf.flow_path + \
-               ' -s ' + os.path.join(directory, job_configuration['configuration_file']) + \
-               ' -o ' + os.path.join(directory, 'res', mj_id)
-logger.debug('Flow command: ' + flow_execute)
-term.sendline(flow_execute)
-term.expect('.*' + flow_execute + '\r\n')
-time.sleep(1)
-term.expect(".*\$ ")
-logger.debug('FLOW OUTPUT> ' + str(term.before, 'utf-8') + '\n' + str(term.after, 'utf-8').strip())
-term.sendline('exit')
+if len(com_conf.cli_params)>0:
+    try:
+        logger.debug('Run commands before Flow123d')        
+        for line in com_conf.cli_params:
+            logger.debug("Run "+line)
+            pre_execute = line.split()
+            process = subprocess.Popen(pre_execute, stderr=subprocess.PIPE)
+            return_code = process.wait()
+            if return_code is not None:
+                logger.info("read_line")
+                out =  read_err(process.stderr)
+                logger.error("Preparation error (return code: " + str(return_code) +
+                    ",stderr:" + out + ")")
+                finished = True
+    except Exception as err:    
+        logger.error('Preparation error ({0})'.format(err))
+        time.sleep(1)
 
-out = read_err(process.stderr)
-if out is not None and len(out)>0 and not out.isspace():
-    logger.warning("Message in stderr:" + out)
-    
+flow_execute = [com_conf.flow_path, 
+                            '-s', 
+                            os.path.join(directory, job_configuration['configuration_file']), 
+                            '-o', 
+                            os.path.join(directory, 'res', mj_id)
+                        ]
+logger.debug("Run "+" ".join(flow_execute))
+Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
+try:
+    process = subprocess.Popen(flow_execute, stderr=subprocess.PIPE)
+    return_code = process.poll()
+    if return_code is not None:
+        logger.info("read_line")
+        out =  read_err(process.stderr)
+        logger.error("Can not start Flow123d (return code: " + str(return_code) +
+            ",stderr:" + out + ")")
+        finished = True
+        rc=-1
+    else:
+        logger.debug('Flow123d is running')
+    out = read_err(process.stderr)
+    if out is not None and len(out)>0 and not out.isspace():
+        logger.warning("Message in stderr:" + out)
+except Exception as err:    
+    logger.error('Can not start Flow123d ({0})'.format(err))
+    finished = True
+    rc=-1
+
 if __name__ != "job":
     # no doc generation
     comunicator.run()
