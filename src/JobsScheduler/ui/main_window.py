@@ -584,12 +584,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def copy_files(src_dir_path, dst_dir_path, files):
-        # create folder
+        """copy results files to workspace folder"""
         os.makedirs(dst_dir_path, exist_ok=True)
-
-        # copy files
-        for file_name in [f.file_name for f in files]:
-            copyfile(os.path.join(src_dir_path, file_name), os.path.join(dst_dir_path, file_name))
+        for f in files:
+            res_dir = os.path.dirname(os.path.abspath(f.file_path))
+            if os.path.samefile(src_dir_path, res_dir):
+                copyfile(f.file_path, os.path.join(dst_dir_path, file_name))
+            else:            
+                ext_path = dst_dir_path
+                res_dir, tail = os.path.split(res_dir)
+                while len(res_dir)>0:
+                    ext_path = os.path.join(ext_path, tail)
+                    if os.path.samefile(src_dir_path, res_dir):
+                        os.makedirs(ext_path, exist_ok=True)
+                        copyfile(f.file_path, 
+                             os.path.join(ext_path, file_name))
+                    res_dir, tail = os.path.split(res_dir)
 
     def report_error(self, msg, err=None):
         """Report an error with dialog."""

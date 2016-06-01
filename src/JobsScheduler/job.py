@@ -118,8 +118,9 @@ if len(com_conf.cli_params)>0:
             process = subprocess.Popen(pre_execute, stderr=subprocess.PIPE)
             return_code = process.wait()
             if return_code is not None:
-                logger.info("read_line")
                 out =  read_err(process.stderr)
+                if out is None:
+                    out = ""
                 logger.error("Preparation error (return code: " + str(return_code) +
                     ",stderr:" + out + ")")
                 finished = True
@@ -139,7 +140,6 @@ try:
     process = subprocess.Popen(flow_execute, stderr=subprocess.PIPE)
     return_code = process.poll()
     if return_code is not None:
-        logger.info("read_line")
         out =  read_err(process.stderr)
         logger.error("Can not start Flow123d (return code: " + str(return_code) +
             ",stderr:" + out + ")")

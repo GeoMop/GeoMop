@@ -261,7 +261,7 @@ class MEConfig:
     logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
     """root context logger"""
 
-    DEFAULT_IMPORT_FORMAT_FILE = '1.8.6'
+    DEFAULT_IMPORT_FORMAT_FILE = '1.8.3'
     """default IST version to be used for imported con files"""
 
 
@@ -463,9 +463,9 @@ class MEConfig:
                 cls.curr_format_file = Project.current.flow123d_version
             if cls.curr_format_file is None:
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if cls.curr_format_file == '2.0.0':
+            if cls.curr_format_file[:5] == '2.0.0':
                 try:
-                    cls.transform("f123_1.8.6_to_2.0.0")
+                    cls.transform("flow123d_1.8.3_to_2.0.0.json")
                 except Exception:
                     cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
             cls.update_format()
@@ -658,9 +658,14 @@ class MEConfig:
                                             transformator.old_version,
                                             cls.curr_format_file,
                                             transformator.new_version,
-                                            transformator.new_version in cls.transformation_files,
+                                            transformator.new_version in cls.format_files,
                                             cls.main_window)
             res = QtWidgets.QDialog.Accepted == dialog.exec_()
+        else:
+            if cls.curr_format_file != transformator.old_version:
+                print("Transformed file format '" + cls.curr_format_file +
+                          "' and format specified in transformation file '" +
+                          transformator.old_version + "' are different")
         if res:
             try:
                 cls.document = transformator.transform(cls.document, cls)
@@ -676,9 +681,12 @@ class MEConfig:
                 else:
                     raise err
                 return
-            if transformator.new_version in cls.transformation_files:
+            if transformator.new_version in cls.format_files:
                 cls.set_current_format_file(transformator.new_version)
             else:
+                if cls.main_window is None:
+                    print("Cannot set new fileformat specified in transformation file '" +
+                          transformator.new_version + "'. Format file is not available.")
                 cls.update()
 
     @classmethod

@@ -5,15 +5,18 @@
 "new_format": "",
 "actions": [
 {
-"action": "delete-key",
-"parameters": {
-"path": "/problem/mesh/mesh_file"
+"action": "move-key",
+"parameters":{
+"source_path":"/problem/primary_equation/input_fields",
+"destination_path":"/problem/mesh/balance",
+"path-type-filter":"SequentialCoupling",
+"path-type-filter-path":"/problem"
 }
 },
 {
 "action": "delete-key",
 "parameters": {
-"path": "/problem/primary_equation"
+"path": "/problem/mesh/mesh_file"
 }
 }
 ]

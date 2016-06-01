@@ -174,6 +174,16 @@ class MultiJobMenu(QtWidgets.QMenu):
                         run=False, pause=True, resume=True, stop=True,
                         restart=True)
         self.lock_as(**my_locks)
+        
+    def lock_as_error(self):
+        """
+        Locks to state finished
+        :return:
+        """
+        my_locks = dict(add=False, edit=False, copy=False, delete=False,
+                        run=False, pause=True, resume=True, stop=True,
+                        restart=True)
+        self.lock_as(**my_locks)
 
     def lock_as_empty(self):
         """
@@ -259,6 +269,8 @@ class MultiJobMenu(QtWidgets.QMenu):
             self.lock_as_resuming()
         elif task_status is TaskStatus.finished:
             self.lock_as_finished()
+        elif task_status is TaskStatus.error:
+            self.lock_as_error()
         else:
             self.lock_as_empty()
 
