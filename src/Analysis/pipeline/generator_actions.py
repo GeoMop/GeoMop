@@ -48,7 +48,7 @@ class VariableGenerator(GeneratorActionType):
         err = super(VariableGenerator, self)._check_params()
         if "Variable" not in self._variables:
             self._add_error(err, "Variable parameter is required")
-        elif not self._is_DTT(self._variables["Variable"]):
+        elif not isinstance(self._variables["Variable"], DTT):
             self._add_error(err, "Parameter 'Variable' is not valid DTT variable")
         else:
             if not self._variables["Variable"]._is_set():
