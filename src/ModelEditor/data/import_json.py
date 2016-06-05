@@ -170,8 +170,17 @@ def _traverse_nodes(node, lines, add_anchor, anchor_idx, del_lines, i=1):
     """
     for child in node.children:
         if child.implementation == DataNode.Implementation.scalar and child.key.value == "TYPE":
-            del_lines.append(child.key.span.start.line-1)
+            del_lines.append(child.key.span.start.line-1)            
             lines[node.key.span.start.line-1] += " !" + child.value
+        elif child.implementation != DataNode.Implementation.scalar and \
+            child.key.value == "TYPE" and \
+            len(child.children)>0 and \
+            child.children[0].key.value == "REF":
+            ref_node = child.get_node_at_path(child.children[0].value)
+            lines[node.key.span.start.line-1] += " !" + ref_node.value
+            for i in range(child.key.span.start.line-1, child.span.end.line-1):
+                print(lines[i] ) 
+                del_lines.append(i)
         elif child.implementation == DataNode.Implementation.scalar and child.key.value == "REF":
             del_lines.append(child.key.span.start.line-1)
             if not lines[node.key.span.start.line-1][-1:].isspace():

@@ -69,6 +69,10 @@ class _Config:
         """whether to automatically complete brackets and array symbols"""
         self.shortcuts = kw_or_def('shortcuts',
                                            deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+        if not 'open_window' in self.shortcuts:
+            # added to version 1.0.0
+            self.shortcuts['open_window'] = shortcuts.DEFAULT_USER_SHORTCUTS['open_window']
+        
         """user customizable keyboard shortcuts"""
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
@@ -458,16 +462,10 @@ class MEConfig:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
-            cls.curr_format_file = None
-            if Project.current is not None:
-                cls.curr_format_file = Project.current.flow123d_version
-            if cls.curr_format_file is None:
+            cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            if Project.current.flow123d_version[:5] == '2.0.0':
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if cls.curr_format_file[:5] == '2.0.0':
-                try:
-                    cls.transform("flow123d_1.8.3_to_2.0.0.json")
-                except Exception:
-                    cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+                cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
             cls.update_format()
             cls.changed = True
             return True
@@ -635,7 +633,7 @@ class MEConfig:
         return False
 
     @classmethod
-    def transform(cls, file):
+    def transform(cls, file, confirmation=True):
         """Run transformation according rules in set file"""
         cls.update()
         text = cls.get_transformation_text(file)
@@ -652,15 +650,15 @@ class MEConfig:
         if cls.main_window is not None:
             import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
-
-            dialog = TranformationDetailDlg(transformator.name,
-                                            transformator.description,
-                                            transformator.old_version,
-                                            cls.curr_format_file,
-                                            transformator.new_version,
-                                            transformator.new_version in cls.format_files,
-                                            cls.main_window)
-            res = QtWidgets.QDialog.Accepted == dialog.exec_()
+            if confirmation:
+                dialog = TranformationDetailDlg(transformator.name,
+                                                transformator.description,
+                                                transformator.old_version,
+                                                cls.curr_format_file,
+                                                transformator.new_version,
+                                                transformator.new_version in cls.format_files,
+                                                cls.main_window)
+                res = QtWidgets.QDialog.Accepted == dialog.exec_()
         else:
             if cls.curr_format_file != transformator.old_version:
                 print("Transformed file format '" + cls.curr_format_file +

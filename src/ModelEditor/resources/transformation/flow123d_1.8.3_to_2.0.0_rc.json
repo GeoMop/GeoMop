@@ -7,15 +7,6 @@
   [
 
     {
-      "NAME": "Add new obligatory key, flow123d_version.",
-      "action": "add-key",
-      "parameters": {
-        "path": "/",
-        "key": "flow123d_version",
-        "value": "1.8.9"  
-      }  
-    },
-    {
         "NAME": "Change sign in bc_flux in transport and heat (constant value)",
         "action": "scale-value",
         "parameters":{
@@ -582,6 +573,15 @@
         "destination_path": "/problem/heat_equation",
         "type-filter": "Heat_AdvectionDiffusion_DG"
       }
+    },
+	{
+      "NAME": "Add new obligatory key, flow123d_version.",
+      "action": "add-key",
+      "parameters": {
+        "path": "/",
+        "key": "flow123d_version",
+        "value": "2.0.0_rc"  
+      }  
     }
       
   ]
