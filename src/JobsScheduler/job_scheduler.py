@@ -9,6 +9,7 @@ import os
 import sys
 import logging
 import argparse
+import icon
 import PyQt5.QtWidgets as QtWidgets
 
 # import common directory to path (should be in __init__)
@@ -50,6 +51,9 @@ class JobsScheduler(object):
         """Initialization of UI with executive code"""
         # setup qt app
         self._app = QtWidgets.QApplication(args)
+        
+        #icon
+        self._app.setWindowIcon(icon.get_app_icon("js-geomap"))
 
         # load data container
         self._data = DataContainer()
