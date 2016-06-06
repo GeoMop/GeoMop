@@ -278,8 +278,13 @@ else:
             
         def _get_sftp(self):
             """return sftp connection"""
-            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
-            res = sftp.expect(['.*assword:', 'sftp> '])
+            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=15)
+            try:
+                res = sftp.expect(['.*assword:', 'sftp> '])
+            except pexpect.TIMEOUT:
+                sftp.kill(0)
+                sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=30)
+                res = sftp.expect(['.*assword:', 'sftp> '])
             if res == 0:
                 # password requaried
                 sftp.sendline(self.password)

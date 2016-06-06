@@ -57,8 +57,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 status = mj.get_state().status
                 if status == TaskStatus.paused:
                     # create com worker
+                    analysis = self._reload_project(mj)
                     conf_builder = ConfigBuilder(self.data)
-                    app_conf = conf_builder.build(key)
+                    app_conf = conf_builder.build(key, analysis)
                     com = Communicator(app_conf)
                     self.com_manager.create_worker(key, com)
 
@@ -327,10 +328,14 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Todo properly edit state, change folder name etc.
             self.data.multijobs[data["key"]] = MultiJob(data["preset"])
+        self.multijobs_changed.emit(self.data.multijobs)
 
+    def _reload_project(self, data):
+        """reload project files and return analysis"""
         # sync mj analyses + files
+        analysis = None
         if Project.current is not None:
-            mj_name = data["preset"].name
+            mj_name = data.preset.name
             mj_dir = Installation.get_config_dir_static(mj_name)
             proj_dir = Project.current.project_dir
             
@@ -362,8 +367,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if not os.path.isdir(dst_dir):
                     os.makedirs(dst_dir)
                 flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
-
-        self.multijobs_changed.emit(self.data.multijobs)
+        return analysis
 
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -374,8 +378,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
         self.update_ui_locks(current)
 
+        analysis = self._reload_project(mj)
         conf_builder = ConfigBuilder(self.data)
-        app_conf = conf_builder.build(key)
+        app_conf = conf_builder.build(key, analysis)
         Communicator.lock_installation(app_conf)
         com = Communicator(app_conf)
         self.com_manager.install(key, com)
@@ -587,6 +592,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """copy results files to workspace folder"""
         os.makedirs(dst_dir_path, exist_ok=True)
         for f in files:
+            file_name = os.path.basename(f.file_path)
             res_dir = os.path.dirname(os.path.abspath(f.file_path))
             if os.path.samefile(src_dir_path, res_dir):
                 copyfile(f.file_path, os.path.join(dst_dir_path, file_name))
@@ -599,6 +605,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         os.makedirs(ext_path, exist_ok=True)
                         copyfile(f.file_path, 
                              os.path.join(ext_path, file_name))
+                        break
                     res_dir, tail = os.path.split(res_dir)
 
     def report_error(self, msg, err=None):

@@ -40,7 +40,7 @@ class ConfigBuilder:
         id new configuration is reloaded.
         """
 
-    def build(self, key):
+    def build(self, key, analysis):
         """
         Build json config files into the ./jobs/mj_name/mj_conf
         :param key: Identification of preset.
@@ -202,12 +202,12 @@ class ConfigBuilder:
                 job_file, job.get_conf())
 
         # build job configuration
-        self._build_jobs_config(mj_name)
+        self._build_jobs_config(mj_name, analysis)
 
         # return app_config, it is always entry point for next operations
         return app.get_conf()
 
-    def _build_jobs_config(self, mj_name):
+    def _build_jobs_config(self, mj_name, analysis):
         """Create jobs and associate them with individual configuration files."""
         jobs = {}
         mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
@@ -227,6 +227,8 @@ class ConfigBuilder:
         for root, directories, filenames in os.walk(mj_dir):
             for filename in filenames:
                 if filename.endswith('.yaml'):
+                    if not filename in analysis.files:
+                        continue
                     abs_path = os.path.join(root, filename)
                     rel_path = os.path.relpath(abs_path, start=mj_dir)
                     # windows path workaround
