@@ -57,6 +57,12 @@ class Pbs():
         f.close()
 
     def get_qsub_args(self):
+        if self.config.dialect:
+            imp = DialectImporter.get_dialect_by_name(self.config.dialect)
+            args = imp.PbsDialect.get_qsub_args()
+            args.insert(0, "qsub")
+            args.append(self.mj_path + "/" + self.config.name + "/com.qsub")
+            return args
         return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         
     def get_outpup(self):

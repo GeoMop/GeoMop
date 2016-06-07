@@ -669,12 +669,12 @@ class Installation:
         if self.python_env.scl_enable_exec is not None:
             res.append("scl enable " + self.python_env.scl_enable_exec + " bash")
         if self.python_env.module_add is not None:
-            res.append("module add" + self.python_env.module_add)
+            res.append("module add " + self.python_env.module_add)
         if self.libs_env.start_job_libs:
             if self.libs_env.mpi_scl_enable_exec is not None:
                 res.append("scl enable" + self.libs_env.mpi_scl_enable_exec +" bash")
             if self.libs_env.mpi_module_add is not None:
-                res.append("module add" + self.libs_env.mpi_module_add)  
+                res.append("module add " + self.libs_env.mpi_module_add)  
         return res        
 
     @classmethod

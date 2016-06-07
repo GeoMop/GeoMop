@@ -205,7 +205,7 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -222,7 +222,7 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor

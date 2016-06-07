@@ -14,10 +14,16 @@ import PyQt5.QtWidgets as QtWidgets
 # import common directory to path (should be in __init__)
 __lib_dir__ = os.path.join(os.path.split(
     os.path.dirname(os.path.realpath(__file__)))[0], "common")
+__pexpect_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/pexpect")
+__enum_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/enum")
+
+
 sys.path.insert(1, __lib_dir__)
-sys.path.insert(2, './twoparty/pexpect')
+sys.path.insert(2, __pexpect_dir__)
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(3, './twoparty/enum')
+    sys.path.insert(3, __enum_dir__)
 
 from ui.com_manager import ComManager
 from ui.main_window import MainWindow

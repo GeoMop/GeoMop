@@ -5,8 +5,6 @@ Dialect for specific Metacentrum PBS environment.
 @contact: jan.gabriel@tul.cz
 """
 
-import re
-
 __dialect_name__ = "Metacentrum"
 __dialect_class__ = "PbsDialect"
 __queue_file__ = "meta_queues.txt"
@@ -53,4 +51,12 @@ class PbsDialect:
         if pbs_config.scratch:
             directives.append("#PBS -l scratch=%s" % pbs_config.scratch)
 
+        # PBS -q queue
+        if pbs_config.queue:
+            directives.append("#PBS -q %s" % pbs_config.queue)
+
         return directives
+    
+    @staticmethod
+    def get_qsub_args():
+        return []

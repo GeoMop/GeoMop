@@ -55,3 +55,7 @@ class PbsDialect:
             directives.append(res_dir)
 
         return directives
+    
+    @staticmethod
+    def get_qsub_args():
+        return ["-pe", "orte", "1"]

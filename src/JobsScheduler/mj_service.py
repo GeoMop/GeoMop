@@ -6,9 +6,14 @@ import logging
 import json
 import os
 
-sys.path.insert(1, './twoparty/pexpect')
+__pexpect_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/pexpect")
+__enum_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/enum")
+
+sys.path.insert(1, __pexpect_dir__)
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(2, './twoparty/enum')
+    sys.path.insert(2, __enum_dir__)
 
 from communication import JobsCommunicator
 import data.communicator_conf as comconf
