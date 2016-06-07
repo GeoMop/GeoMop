@@ -9,7 +9,6 @@ import os
 import sys
 import logging
 import argparse
-import icon
 import PyQt5.QtWidgets as QtWidgets
 
 # import common directory to path (should be in __init__)
@@ -23,6 +22,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 from ui.com_manager import ComManager
 from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
+import icon
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
