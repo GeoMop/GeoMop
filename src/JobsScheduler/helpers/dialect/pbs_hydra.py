@@ -58,4 +58,13 @@ class PbsDialect:
     
     @staticmethod
     def get_qsub_args():
+        """Return qsub arguments in list"""
         return ["-pe", "orte", "1"]
+        
+    @staticmethod
+    def get_outpup_file():
+        """
+        return output file if is specific, None for standart output file from
+        -o parameter
+        """
+        return None
