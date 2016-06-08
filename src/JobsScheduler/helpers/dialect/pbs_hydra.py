@@ -62,7 +62,7 @@ class PbsDialect:
         return ["-pe", "orte", "1"]
         
     @staticmethod
-    def get_outpup_file():
+    def get_outpup_file(path):
         """
         return output file if is specific, None for standart output file from
         -o parameter

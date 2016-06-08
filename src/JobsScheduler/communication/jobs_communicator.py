@@ -201,9 +201,9 @@ class JobsCommunicator(Communicator):
                 # connect
                 if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
                     self.jobs[id].state_start()
-                    self._connect_socket(self.job_outputs[id], 1)
-                    make_custom_action = False
-                    self._job_running()
+                    if  self._connect_socket(self.job_outputs[id], 1):
+                        self._job_running()
+                    make_custom_action = False                    
         if make_custom_action:
             # get status
             if self.conf.output_type != comconf.OutputCommType.ssh or \

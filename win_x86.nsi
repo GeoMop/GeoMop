@@ -161,11 +161,13 @@ Section "JobsScheduler" SecJobsScheduler
 
   CreateDirectory "$INSTDIR\JobsScheduler\jobs"
   CreateDirectory "$INSTDIR\JobsScheduler\log"
+  CreateDirectory "$INSTDIR\JobsScheduler\versions"
 
   # Grant jobs, lock folder permissions to Users
   ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'
 
 SectionEnd
 

@@ -160,17 +160,19 @@ class ResourceDialog(AFormDialog):
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
-                    preset.mj_ssh_preset))
+                    'local' if preset.mj_ssh_preset is None else preset.mj_ssh_preset))
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
-                    preset.mj_pbs_preset))
+                    0 if preset.mj_pbs_preset is None else preset.mj_pbs_preset))
             self.ui.mjEnvPresetComboBox.setCurrentIndex(
                 self.ui.mjEnvPresetComboBox.findData(preset.mj_env))
 
             self.ui.jobSshPresetComboBox.setCurrentIndex(
-                self.ui.jobSshPresetComboBox.findData(preset.j_ssh_preset))
+                self.ui.jobSshPresetComboBox.findData(
+                    'local' if preset.j_ssh_preset is None else preset.j_ssh_preset))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
-                self.ui.jobPbsPresetComboBox.findData(preset.j_pbs_preset))
+                self.ui.jobPbsPresetComboBox.findData(
+                    'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset))
             self.ui.jobEnvPresetComboBox.setCurrentIndex(
                 self.ui.jobEnvPresetComboBox.findData(preset.j_env))
 

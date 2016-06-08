@@ -76,14 +76,23 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_dialect = mj_ssh_preset.pbs_system if hasattr(mj_ssh_preset, "pbs_system") else None
+        if hasattr(mj_ssh_preset, "pbs_system"):
+           mj_dialect = mj_ssh_preset.pbs_system
+        else:
+            mj_dialect = None
         mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params,
                                           dialect=mj_dialect)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_dialect = j_ssh_preset.pbs_system if hasattr(j_ssh_preset, "pbs_system") else None
+        if hasattr(j_ssh_preset, "pbs_system"):
+            j_dialect = j_ssh_preset.pbs_system
+        elif hasattr(mj_ssh_preset, "pbs_system"):
+            # for PBS -> PBS dialect from mj ssh preset
+            j_dialect = mj_ssh_preset.pbs_system
+        else:
+            j_dialect = None        
         if (res_preset.mj_execution_type == UiResourceDialog.EXEC_LABEL and
                 res_preset.j_execution_type == UiResourceDialog.PBS_LABEL) or \
                 (res_preset.mj_execution_type == UiResourceDialog.PBS_LABEL and

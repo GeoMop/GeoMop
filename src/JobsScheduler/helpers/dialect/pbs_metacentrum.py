@@ -4,7 +4,6 @@ Dialect for specific Metacentrum PBS environment.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-
 __dialect_name__ = "Metacentrum"
 __dialect_class__ = "PbsDialect"
 __queue_file__ = "meta_queues.txt"
@@ -65,12 +64,17 @@ class PbsDialect:
         return []
         
     @staticmethod
-    def get_outpup_file():
+    def get_outpup_file(path):
         """
         return output file if is specific, None for standart output file from
         -o parameter
         
         Torque return output file after pbs job clossing - set alternative file
         """
-        return None
+        import os
+        file = path + "/pbs_output_alt"
+        if  not os.path.isfile(file):
+            # try standart file
+            return None
+        return file
 

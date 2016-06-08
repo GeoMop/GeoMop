@@ -70,7 +70,7 @@ class Pbs():
         """Get pbs output file contens"""
         if self.config.dialect:
             imp = DialectImporter.get_dialect_by_name(self.config.dialect)
-            file = imp.PbsDialect.get_outpup_file()
+            file = imp.PbsDialect.get_outpup_file(self.mj_path + "/" + self.config.name)
         if file is None:
             file = self.mj_path + "/" + self.config.name + "/pbs_output"
         if  os.path.isfile(file):
