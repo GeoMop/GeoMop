@@ -111,9 +111,9 @@ job_configuration = load_configuration(
 comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_action_function_after)
 logger.info("Start")
 # test if config was read
-logger.info('Configuration file: %s', job_configuration['configuration_file'])
-directory = os.path.sep + os.path.join(*directory.split('/')[:-1])
-
+directory = os.path.split(directory)[0]
+conf_file= job_configuration['configuration_file'].replace('/', os.path.sep)
+logger.info('Configuration file: %s', conf_file)
 # run flow123d
 if len(com_conf.cli_params)>0:
     try:
@@ -121,7 +121,11 @@ if len(com_conf.cli_params)>0:
         for line in com_conf.cli_params:
             logger.debug("Run "+line)
             pre_execute = line.split()
-            process = subprocess.Popen(pre_execute, stderr=subprocess.PIPE)
+            si = None 
+            if sys.platform == "win32":
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            process = subprocess.Popen(pre_execute, stderr=subprocess.PIPE, startupinfo=si)
             return_code = process.wait()
             if return_code is not None:
                 out =  read_err(process.stderr)
@@ -136,14 +140,18 @@ if len(com_conf.cli_params)>0:
 
 flow_execute = [com_conf.flow_path, 
                             '-s', 
-                            os.path.join(directory, job_configuration['configuration_file']), 
+                            os.path.join(directory, conf_file), 
                             '-o', 
                             os.path.join(directory, 'res', mj_id)
                         ]
 logger.debug("Run "+" ".join(flow_execute))
 Installation.prepare_popen_env_static(com_conf.python_env, com_conf.libs_env)
 try:
-    process = subprocess.Popen(flow_execute, stderr=subprocess.PIPE)
+    si = None 
+    if sys.platform == "win32":
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    process = subprocess.Popen(flow_execute, stderr=subprocess.PIPE, startupinfo=si)
     return_code = process.poll()
     if return_code is not None:
         out =  read_err(process.stderr)
