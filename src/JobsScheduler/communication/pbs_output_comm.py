@@ -4,6 +4,7 @@ import re
 import helpers.pbs as pbs
 import time
 import copy
+import sys
 from communication.exec_output_comm import ExecOutputComm
 
 logger = logging.getLogger("Remote")
@@ -27,9 +28,13 @@ class PbsOutputComm(ExecOutputComm):
                                   self.installation.get_interpreter(), 
                                   self.installation.get_prepare_pbs_env()  
                                  )
-        logger.debug("Qsub params: " + str(hlp.get_qsub_args()))       
+        logger.debug("Qsub params: " + str(hlp.get_qsub_args()))
+        si = None 
+        if sys.platform == "win32":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         process = subprocess.Popen(hlp.get_qsub_args(), 
-                                                       stdout=subprocess.PIPE)
+                        stdout=subprocess.PIPE, startupinfo=si)
         return_code = process.poll()
         if return_code is not None:
             raise Exception("Can not start next communicator " + python_file + 
@@ -75,8 +80,12 @@ class PbsOutputComm(ExecOutputComm):
         while True and i<300:
             self.node = None
             logger.debug( "Command:" + "qstat -n " + str(self.jobid))
+            si = None 
+            if sys.platform == "win32":
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             process = subprocess.Popen(["qstat", "-n", str(self.jobid)], 
-                                                           stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE, startupinfo=si)
             return_code = process.wait()
             if return_code is not None and return_code==0:
                 while True:

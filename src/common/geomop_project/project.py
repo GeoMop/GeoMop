@@ -57,8 +57,22 @@ class Project:
         self.name = None
         self.params = kwargs['params'] if 'params' in kwargs else []
         self.files = kwargs['files'] if 'files' in kwargs else []
-        self.project_dir = ''
+        self._project_dir = ''
         self.flow123d_version = kwargs['flow123d_version'] if 'flow123d_version' in kwargs else ''
+
+    @staticmethod
+    def _get_compare_path(path):
+        """return uppercase normalized real path"""
+        res=os.path.realpath(path)
+        return os.path.normcase(res)
+
+    @property
+    def project_dir(self):
+        return self._project_dir
+
+    @project_dir.setter
+    def project_dir(self, value):
+        self._project_dir = self. _get_compare_path(value)
 
     @staticmethod
     def open(workspace, project_name):
@@ -101,23 +115,24 @@ class Project:
             else:
                 data.project = None
                 Project.current = None
-
+                
     @staticmethod
     def reload_current():
         """Read the current project file and updated the project data."""
         if Project.current is None:
             return None
         project = Project.open(Project.current.workspace, Project.current.name)
+        project._sync_project()
         Project.current = project
         return project
 
     def save(self):
         """Save the current project as a config file."""
-        config.save_config_file('', self, self.project_dir, PROJECT_MAIN_FILE_EXT)
+        config.save_config_file('', self, self._project_dir, PROJECT_MAIN_FILE_EXT)
 
     def load_analysis(self, name=ANALYSIS_DEFAULT_NAME):
         """Loads a project analysis by its name."""
-        file_path = os.path.join(self.project_dir, name + '.' + ANALYSIS_FILE_EXT)
+        file_path = os.path.join(self._project_dir, name + '.' + ANALYSIS_FILE_EXT)
         try:
             return load_analysis_file(file_path)
         except Exception:
@@ -125,13 +140,13 @@ class Project:
 
     def save_analysis(self, analysis):
         """Save the analysis within the current project."""
-        file_path = os.path.join(self.project_dir, analysis.name + '.' + ANALYSIS_FILE_EXT)
+        file_path = os.path.join(self._project_dir, analysis.name + '.' + ANALYSIS_FILE_EXT)
         save_analysis_file(file_path, analysis)
 
     def get_all_analyses(self):
         """Return all project analyses."""
         analyses = []
-        for file_name in os.listdir(self.project_dir):
+        for file_name in os.listdir(self._project_dir):
             if file_name.endswith('.' + ANALYSIS_FILE_EXT):
                 analysis = self.load_analysis(file_name[:-len('.' + ANALYSIS_FILE_EXT)])
                 analyses.append(analysis)
@@ -148,12 +163,13 @@ class Project:
 
     def make_relative_path(self, file_path):
         """Makes the path relative to project_dir."""
-        if not self.project_dir:
+        file_path = self. _get_compare_path(file_path)
+        if not self._project_dir:
             return file_path
-        if not file_path.startswith(self.project_dir):
+        if not file_path.startswith(self._project_dir):
             # assume file_path is already relative to project
             return file_path
-        return file_path[len(self.project_dir)+1:]
+        return file_path[len(self._project_dir)+1:]
 
     def merge_params(self, params):
         """Merge another param collection into this one."""
@@ -169,9 +185,10 @@ class Project:
 
     def is_abs_path_in_project_dir(self, file_path):
         """Whether file exists in the project directory or subdirectories."""
-        if not file_path or not self.project_dir:
+        file_path = self. _get_compare_path(file_path)
+        if not file_path or not self._project_dir:
             return False
-        return file_path.startswith(self.project_dir)
+        return file_path.startswith(self._project_dir)
 
     def add_file(self, file_path, params=None):
         """Add or sync a file. If file exists, update parameters."""
@@ -186,3 +203,13 @@ class Project:
         self.files.append(file)
         return
 
+    def _sync_project(self):
+        """Write current file and params to a project file."""
+        if len(self._project_dir)==0 or not os.path.isdir(self._project_dir):
+            return
+        for root, directories, filenames in os.walk(self._project_dir):
+            for filename in filenames:
+                if filename.endswith('.yaml'):
+                    # TODO get params from file
+                    self.add_file(os.path.join(root, filename))
+        self.save()

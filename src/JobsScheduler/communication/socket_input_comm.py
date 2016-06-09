@@ -58,7 +58,7 @@ class SocketInputComm(InputComm):
                     self._write_output("PORT:--" + str(self.port + i) + "--")
                     self._established = True
             except OSError as err:
-                if err.errno == 98 and not self._established:
+                if (err.errno == 98 or err.errno == 1048) and not self._established:
                     i += 1
                     if __MAX_OPEN_PORTS__< i:
                         raise Exception("Max open ports number is exceed")

@@ -3,6 +3,7 @@ import data.transport_data as tdata
 import socket
 import subprocess
 import re
+import sys
 from communication.communication import OutputComm
 
 logger = logging.getLogger("Remote")
@@ -46,8 +47,12 @@ class ExecOutputComm(OutputComm):
     def exec_(self, python_file, mj_name, mj_id):
         """run set python file in ssh"""
         self.installation.prepare_popen_env()
+        si = None
+        if sys.platform == "win32":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         process = subprocess.Popen(self.installation.get_args(python_file, mj_name, mj_id), 
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, startupinfo=si)        
         # wait for port number
         return_code = process.poll()
         if return_code is not None:
