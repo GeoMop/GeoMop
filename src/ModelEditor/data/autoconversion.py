@@ -45,7 +45,6 @@ class AutoConverter:
         """
         if input_type is None:
             return
-
         if input_type['base_type'] == 'Abstract':
             try:
                 it_concrete = input_type['implementations'][node.type.value]
@@ -238,16 +237,19 @@ class Transposer:
         """Transpose a record or scalar into an array."""
         assert input_type['base_type'] == 'Array', "Only Array can be a result of transposition"
         cls.init()
-
         # if node is scalar, convert it to array
         if node.implementation == DataNode.Implementation.scalar:
             return cls._expand_value_to_array(node)
 
         # verify that subtype is record
         subtype = input_type['subtype']
-        if subtype['base_type'] != 'Record':
+        if subtype['base_type'] != 'Record' and \
+           ( subtype['base_type'] != 'Abstract' or \
+              not hasattr(node, 'type') or \
+              node.type.value not in input_type['subtype']['implementations']
+           ):
             notification = Notification.from_name('UnsupportedTransposition',
-                                                  input_type['base_type'])
+                                                            input_type['base_type'])
             notification.span = node.span
             notification_handler.report(notification)
             return node
@@ -262,7 +264,7 @@ class Transposer:
             return node
         if cls.array_size is None:
             cls.array_size = 1
-
+            
         # create array
         array_node = SequenceDataNode(node.key, node.parent)
         array_node.span = node.span
@@ -291,35 +293,55 @@ class Transposer:
     @classmethod
     def _get_transformation_array_size(cls, node, input_type):
         """Return transformation array size."""
-        # find a children node that has an array instead of record or scalar
-        for child in node.children:
-            # the key is not specified in input type
-            if 'keys' not in input_type or child.key.value not in input_type['keys']:
-                continue
-
-            child_type = input_type['keys'][child.key.value]['type']
-
-            if child.implementation == DataNode.Implementation.sequence:
-                if child_type['base_type'] == 'Record':
-                    notification = Notification.from_name("InvalidTransposition")
+        if  input_type['base_type'] == 'Abstract':
+            if node.implementation == DataNode.Implementation.sequence:
+                notification = Notification.from_name("InvalidAbstractTranspositionParameterType")
+                notification.span = node.span
+                raise notification
+            cls.array_size = 1000000
+            isset = False
+            for child in node.children:
+                if len(child.children)<cls.array_size:
+                    cls.array_size = len(child.children)
+                    isset = True
+            if not  isset:
+                cls.array_size = 0
+            for child in node.children:
+                if len(child.children)!=cls.array_size:
+                    notification = Notification.from_name("InvalidAbstractTranspositionLen")
                     notification.span = child.span
                     raise notification
-                elif child_type['base_type'] != 'Array':
-                    if cls.array_size is None:
-                        cls.array_size = len(child.children)
-                        cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
-                    elif cls.array_size != len(child.children):
-                        notification = Notification.from_name(
-                            "DifferentArrayLengthForTransposition")
+                cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+        else:
+            # find a children node that has an array instead of record or scalar
+            for child in node.children:
+                # the key is not specified in input type
+                if 'keys' not in input_type or child.key.value not in input_type['keys']:
+                    continue
+
+                child_type = input_type['keys'][child.key.value]['type']
+
+                if child.implementation == DataNode.Implementation.sequence:
+                    if child_type['base_type'] == 'Record':
+                        notification = Notification.from_name("InvalidTransposition")
                         notification.span = child.span
                         raise notification
-                    else:
-                        cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                    elif child_type['base_type'] != 'Array':
+                        if cls.array_size is None:
+                            cls.array_size = len(child.children)
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                        elif cls.array_size != len(child.children):
+                            notification = Notification.from_name(
+                                "DifferentArrayLengthForTransposition")
+                            notification.span = child.span
+                            raise notification
+                        else:
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
 
-            # verify array size recursively
-            cls.current_path.append(child.key.value)
-            cls._get_transformation_array_size(child, child_type)
-            cls.current_path.pop()
+                # verify array size recursively
+                cls.current_path.append(child.key.value)
+                cls._get_transformation_array_size(child, child_type)
+                cls.current_path.pop()
 
         return cls.array_size
 
@@ -336,7 +358,6 @@ class Transposer:
         array_node.children.append(node)
         array_node.origin = DataNode.Origin.ac_array
         return array_node
-
 
 # initialize module
 autoconvert = AutoConverter.autoconvert

@@ -181,6 +181,20 @@ _NOTIFICATIONS = [
         'message': 'Arrays to be transposed are of different length.',
         'example': 'example_transposition.yaml',
     },
+    {
+        'code': 454,
+        'name': 'InvalidAbstractTranspositionLen',
+        'description': 'Transposition of Abstract can have only parameters width same len.',
+        'message': 'Transposed abstract incorrect len parameter',
+        'example': '', 
+    },
+    {
+        'code': 455,
+        'name': 'InvalidAbstractTranspositionParameterType',
+        'description': 'Transposition of Abstract can have only parameters of array type.',
+        'message': 'Transposed abstract  parameter type is not array',
+        'example': '', 
+    },
 
     # -----------------------------------------------------
     #                  Syntax Errors
