@@ -106,11 +106,6 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
-  CreateDirectory "${APP_HOME_DIR}"
-  # fill data home to default resources data
-  SetOutPath "${APP_HOME_DIR}"
-  File /r "${DATA_DIR}"
-
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
@@ -241,18 +236,23 @@ Section "Desktop icons" SecDesktopIcons
 SectionEnd
 
 
-# TODO next version - unchecked by default
+# TODO next version - unchecked by default and solve data dir for new install
 # Section /o "Wipe settings" SecWipeSettings
 Section "Wipe settings" SecWipeSettings
 
   # Clear all configuration from APPDATA
   RMDir /r "${APP_HOME_DIR}"
   CreateDirectory "${APP_HOME_DIR}"
+  # fill data home to default resources data
+  SetOutPath "${APP_HOME_DIR}"
+  File /r "${DATA_DIR}"
+
 
 SectionEnd
 
 
 Section -post
+  IfFileExists  "${APP_HOME_DIR}"
   
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
