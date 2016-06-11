@@ -252,8 +252,7 @@ SectionEnd
 
 
 Section -post
-  IfFileExists  "${APP_HOME_DIR}"
-  
+ 
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
   
