@@ -524,6 +524,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.overviewWidget.update_item(key, mj.get_state())
         if err is not None:
             mj.get_state().set_status(TaskStatus.error)
+            self.ui.overviewWidget.update_item(key, mj.get_state())
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 

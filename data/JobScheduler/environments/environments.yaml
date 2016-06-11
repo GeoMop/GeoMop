@@ -1,6 +1,6 @@
 6af4ba82-10b4-4d2e-9171-d702a179c84f:
   cli_params: []
-  flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123.exe
+  flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123d.exe
   module_add: null
   name: localhost
   pbs_params: []
@@ -15,7 +15,7 @@
   python_exec: python
   scl_enable_exec: null
 8c5959d3-8606-47ce-a768-406dc7288afb:
-  cli_params: [ls /share/apps/flow123d-1.8.2/flow123d/bin/]
+  cli_params: []
   flow_path: /share/apps/flow123d-1.8.2/build-version-1.8.2/bin/flow123d
   module_add: null
   name: hydra

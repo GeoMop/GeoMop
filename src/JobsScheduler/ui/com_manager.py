@@ -18,12 +18,14 @@ class ComManager:
     def __init__(self):
         self.res_queue = Queue()
         self._workers = dict()
+        self._is_stopping = False
 
     def create_worker(self, key, com):
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
         self._workers[worker.key] = worker
 
     def install(self, key, com):
+        self._is_stopping = False
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
         req_install = ReqData(key=key, com_type=ComType.install)
         req_results = ReqData(key=key, com_type=ComType.results)
@@ -32,6 +34,7 @@ class ComManager:
         self._workers[worker.key] = worker
 
     def pause(self, key):
+        self._is_stopping = True
         worker = self._workers[key]
         worker.is_ready.clear()
         req = ReqData(key=key, com_type=ComType.pause)
@@ -39,12 +42,14 @@ class ComManager:
         worker.req_queue.put(req)
 
     def resume(self, key):
+        self._is_stopping = False
         worker = self._workers[key]
         worker.is_ready.set()
         req = ReqData(key=key, com_type=ComType.resume)
         worker.req_queue.put(req)
 
     def restart(self, key):
+        self._is_stopping = False
         worker = self._workers[key]
         req_stop = ReqData(key=key, com_type=ComType.pause)
         req_run = ReqData(key=key, com_type=ComType.resume)
@@ -52,16 +57,21 @@ class ComManager:
         worker.req_queue.put(req_run)
 
     def state(self, key):
+        if self._is_stopping:
+            return
         worker = self._workers[key]
         req = ReqData(key=key, com_type=ComType.state)
         worker.req_queue.put(req)
 
     def results(self, key):
+        if self._is_stopping:
+            return
         worker = self._workers[key]
         req = ReqData(key=key, com_type=ComType.results)
         worker.req_queue.put(req)
 
     def finish(self, key):
+        self._is_stopping = True
         worker = self._workers[key]
         req_result = ReqData(key=key, com_type=ComType.results)
         req_stop = ReqData(key=key, com_type=ComType.stop)
@@ -69,6 +79,7 @@ class ComManager:
         worker.req_queue.put(req_stop)
 
     def stop(self, key):
+        self._is_stopping = True
         worker = self._workers[key]
         worker.is_ready.clear()
         req = ReqData(key=key, com_type=ComType.stop)
@@ -157,8 +168,9 @@ class ComWorker(threading.Thread):
                         break
                     else:
                         self.res_queue.put(res)
-            res = ComExecutor.communicate(
-                self.com, ReqData(self.key, ComType.stop), self.res_queue)
+            if self.com.output is not None and self.com.output.isconnected():
+                res = ComExecutor.communicate(
+                    self.com, ReqData(self.key, ComType.stop), self.res_queue)
             res.err = error    
             self.res_queue.put(res)
 
