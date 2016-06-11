@@ -236,7 +236,7 @@ class ConfigBuilder:
         for root, directories, filenames in os.walk(mj_dir):
             for filename in filenames:
                 if filename.endswith('.yaml'):
-                    if not filename in analysis.files:
+                    if analysis is None or not filename in analysis.files:
                         continue
                     abs_path = os.path.join(root, filename)
                     rel_path = os.path.relpath(abs_path, start=mj_dir)

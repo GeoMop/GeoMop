@@ -389,6 +389,8 @@ class JobsCommunicator(Communicator):
         else:
             self._mj_state.known_jobs = known
             self._mj_state.estimated_jobs = estimated
+            if known==0 and estimated==0: 
+                self._state_ready()
 
     def _job_running(self):
         "One process is moved from known to running state"
