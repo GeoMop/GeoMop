@@ -7,6 +7,7 @@
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
 !define APP_HOME_DIR "$APPDATA\GeoMop"
+!define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
 !define PYTHON_MINOR   "4"
@@ -106,6 +107,9 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\common"
 
   CreateDirectory "${APP_HOME_DIR}"
+  # fill data home to default resources data
+  SetOutPath "$APP_HOME_DIR"
+  File /r "$DATA_DIR"
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
@@ -167,7 +171,7 @@ Section "JobsScheduler" SecJobsScheduler
   ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'  
 
 SectionEnd
 

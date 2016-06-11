@@ -21,7 +21,7 @@ from communication import installation
 from threading import Timer
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
-from ui.data.mj_data import MultiJob, MultiJobActions
+from ui.data.mj_data import MultiJob, MultiJobActions, AMultiJobFile
 from ui.data.preset_data import Id
 from ui.dialogs import AnalysisDialog, FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
@@ -351,6 +351,11 @@ class MainWindow(QtWidgets.QMainWindow):
             shutil.rmtree(mj_dir, ignore_errors=True)
             try:
                 shutil.copytree(proj_dir, mj_dir)
+                # remove result dir
+                shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
+                    ignore_errors=True)
+                # remove project file
+                os.remove(os.path.join(mj_dir,".project"))
             # Directories are the same
             except shutil.Error as e:
                 logger.error("Failed to copy project dir: " + str(e))
@@ -559,10 +564,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.report_error("No project selected!")
 
         dst_dir_location = os.path.join(Project.current.project_dir,
-                                        "analysis",
+                                        "analysis_results",
                                         time.strftime("%Y%m%d_%H%M%S"))
         self._save_results(dst_dir_location)
         self._save_logs(dst_dir_location)
+        self._save_debug_files(dst_dir_location)
+
         # alert with open dir option
         FilesSavedMessageBox(self, dst_dir_location).show()
 
@@ -586,6 +593,34 @@ class MainWindow(QtWidgets.QMainWindow):
                                     installation.__result_dir__)
         files = self.ui.tabWidget.ui.resultsTab.files
         self.copy_files(src_dir_path, dst_dir_path, files)
+
+    def _save_debug_files(self, dst_dir_location):
+        """Save file usefull for debug (That will send to developer)"""
+        app = os.path.join(os.path.split(
+            os.path.dirname(os.path.realpath(__file__)))[0])        
+        res_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name)
+        conf_dir_path = os.path.join(res_dir_path, installation.__conf_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__conf_dir__)
+        central_log_file = []
+        central_log_file.append(AMultiJobFile(
+            os.path.join(app, "log"), "app-centrall.log"))
+        self.copy_files(app, os.path.join(
+            dst_dir_location, "log"), central_log_file)
+
+        files = self._get_config_files(conf_dir_path)
+        self.copy_files(conf_dir_path, dst_dir_path, files)
+
+    @staticmethod
+    def _get_config_files(conf_dir_path):
+        """get all files in conf directory"""
+        conf_files = []
+        for root, dirs, files in os.walk(conf_dir_path):
+            for name in files:
+                conf_files.append(AMultiJobFile(root, name))
+        return conf_files
 
     @staticmethod
     def copy_files(src_dir_path, dst_dir_path, files):

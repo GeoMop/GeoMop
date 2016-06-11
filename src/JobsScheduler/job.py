@@ -138,6 +138,9 @@ if len(com_conf.cli_params)>0:
         logger.error('Preparation error ({0})'.format(err))
         time.sleep(1)
 
+if com_conf.flow_path is None:
+    com_conf.flow_path = ""
+
 flow_execute = [com_conf.flow_path, 
                             '-s', 
                             os.path.join(directory, conf_file), 

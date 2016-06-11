@@ -124,7 +124,7 @@ else:
             """connect session"""
             self.ssh = pxssh.pxssh()
             try:
-                self.ssh.login(self.host, self.name, self.password)            
+                self.ssh.login(self.host, self.name, self.password, check_local_ip=False)            
                 self.ssh.setwinsize(128,512)
                 self.last_mess = None
                 self._connected = True
