@@ -108,8 +108,8 @@ Section "Runtime Environment" SecRuntime
 
   CreateDirectory "${APP_HOME_DIR}"
   # fill data home to default resources data
-  SetOutPath "$APP_HOME_DIR"
-  File /r "$DATA_DIR"
+  SetOutPath "${APP_HOME_DIR}"
+  File /r "${DATA_DIR}"
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
