@@ -245,7 +245,7 @@ Section "Wipe settings" SecWipeSettings
   CreateDirectory "${APP_HOME_DIR}"
   # fill data home to default resources data
   SetOutPath "${APP_HOME_DIR}"
-  File /r "${DATA_DIR}"
+  File /r "${DATA_DIR}/*"
 
 
 SectionEnd
