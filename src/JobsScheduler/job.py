@@ -1,6 +1,8 @@
 import sys
 import os
 
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
 __pexpect_dir__ = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), "twoparty/pexpect")
 __enum_dir__ = os.path.join(os.path.dirname(
@@ -9,6 +11,8 @@ __enum_dir__ = os.path.join(os.path.dirname(
 sys.path.insert(1, __pexpect_dir__)
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(2, __enum_dir__)
+if sys.platform == "win32":
+    sys.path.insert(2, __lib_dir__)
 
 import json
 import logging
