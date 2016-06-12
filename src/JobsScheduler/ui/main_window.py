@@ -81,11 +81,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
+        
+        # repair bad status data
+        for key, mj in self.data.multijobs.items():
+            status = mj.get_state().status
+            if status == TaskStatus.pausing:
+                mj.get_state().set_status(TaskStatus.none)
+            if status == TaskStatus.paused:
+                mj.get_state().set_status(TaskStatus.none)        
+        
         self.com_manager = com_manager
         self.req_scheduler = ReqScheduler(parent=self,
                                           com_manager=self.com_manager)
         self.res_handler = ResHandler(parent=self,
                                       com_manager=self.com_manager)
+
+        self.res_handler.mj_check.connect(
+            self.handle_mj_check)
 
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
@@ -475,7 +487,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
 
         self.update_ui_locks(current)
-        self.com_manager.restart(key)
+        self.com_manager.stop(key)
+        while True:
+            if self.com_manager.check_workers() ==key:
+                break
+            timer.sleep(1)
+        
+        Communicator.unlock_application(
+            self.com_manager.get_communicator(key).mj_name)
+        self.update_ui_locks(current)
+        self.handle_mj_installation(key)
+        
+    def handle_mj_check(self):
+        """Check processis, end terminate finished"""
+        while True:
+            if self.com_manager.check_workers() is None:
+                break
 
     def handle_mj_installed(self, key):
         mj = self.data.multijobs[key]

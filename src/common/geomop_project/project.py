@@ -209,7 +209,8 @@ class Project:
             return
         for root, directories, filenames in os.walk(self._project_dir):
             for filename in filenames:
-                if filename.endswith('.yaml'):
+                if filename.endswith('.yaml') and \
+                    not "analysis_results" in root:
                     # TODO get params from file
                     self.add_file(os.path.join(root, filename))
         self.save()

@@ -166,7 +166,7 @@ class Communicator():
                 if logger.level>level:
                     logger.setLevel(level)
                     logger.handlers[0].setLevel(level)
-                    return
+                return
             dir = os.path.join(__install_dir__, "log")
             if not os.path.isdir(dir):
                 try:
@@ -386,7 +386,8 @@ class Communicator():
         except Exception as err:
             logger.error(str(err))
             self.instalation_fails_mess = str(err)
-        self._connect_socket(self.output)
+        else:
+            self._connect_socket(self.output)
         if self.output is not None:
             self.output.save_state(self.status)
         self.status.save()

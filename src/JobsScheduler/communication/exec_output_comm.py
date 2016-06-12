@@ -4,6 +4,7 @@ import socket
 import subprocess
 import re
 import sys
+import time
 from communication.communication import OutputComm
 
 logger = logging.getLogger("Remote")
@@ -51,14 +52,25 @@ class ExecOutputComm(OutputComm):
         if sys.platform == "win32":
             si = subprocess.STARTUPINFO()
             si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        process = subprocess.Popen(self.installation.get_args(python_file, mj_name, mj_id), 
-            stdout=subprocess.PIPE, startupinfo=si)        
+        args = self.installation.get_args(python_file, mj_name, mj_id)
+        if args[0] is None or args[0]=="":
+            raise Exception("Python interpreter can't be empty")
+        logger.debug("Run "+" ".join(args))
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, startupinfo=si)        
         # wait for port number
+        time.sleep(0.5)
         return_code = process.poll()
         if return_code is not None:
-            raise Exception("Can not start next communicator " + python_file + 
-                " (return code: " + str(return_code) + ")")
-        
+            out = process.stdout.read()
+            if out is None or len(out)==0:
+                out = "no output"
+            else:
+                out = str(out, 'utf-8')
+            if return_code == 0:
+                logger.warning("Too short run time of next communicator. Output:" + out) 
+            else:                
+                raise Exception("Can not start next communicator " + python_file + 
+                    " (return code: " + str(return_code) + "): " + out)        
         out = process.stdout.readline()
         port = re.match( 'PORT:--(\d+)--', str(out, 'utf-8'))
         if port is not None:
