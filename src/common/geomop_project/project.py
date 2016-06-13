@@ -63,6 +63,8 @@ class Project:
     @staticmethod
     def _get_compare_path(path):
         """return uppercase normalized real path"""
+        if path is None:
+            return None
         res=os.path.realpath(path)
         return os.path.normcase(res)
 
