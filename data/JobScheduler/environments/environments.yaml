@@ -8,7 +8,7 @@
   scl_enable_exec: null
 7bd82c20-df52-4c26-8841-1199b6620f23:
   cli_params: []
-  flow_path: /home/par/Flow123d-2.0.0_rc-Linux/bin/flow123d
+  flow_path: /storage/praha1/home/jan-hybs/projects/installed/Flow123d-2.0.0_rc-Linux/bin/flow123d
   module_add: python34-modules-gcc
   name: metacentrum
   pbs_params: []
@@ -16,7 +16,7 @@
   scl_enable_exec: null
 8c5959d3-8606-47ce-a768-406dc7288afb:
   cli_params: []
-  flow_path: /share/apps/flow123d-1.8.2/build-version-1.8.2/bin/flow123d
+  flow_path: /share/apps/flow123d/flow123d-2.0.0_rc/bin/flow123d
   module_add: null
   name: hydra
   pbs_params: []
