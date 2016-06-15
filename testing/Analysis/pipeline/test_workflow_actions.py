@@ -22,9 +22,8 @@ def test_workflow_code_init():
     #compare_with_file(os.path.join("pipeline", "results", "workflow3.py"), test)
 
     # test validation
-    #err = workflow.validate()
-    #assert len(err) == 0
-
+    err = workflow.validate()
+    assert len(err) == 2 # fix after flow123 finishing
 
     # test workflow with more action where is side effect action in separate branch
     action.__action_counter__ = 0
