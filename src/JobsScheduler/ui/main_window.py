@@ -62,12 +62,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     app_conf = conf_builder.build(key, analysis)
                     com = Communicator(app_conf)
                     self.com_manager.create_worker(key, com)
-
-                    if status == TaskStatus.paused:
-                        # resume
-                        MultiJobActions.resuming(mj)
-                        self.ui.overviewWidget.update_item(key, mj.get_state())
-                        self.com_manager.resume(key)
+                    # resume
+                    MultiJobActions.resuming(mj)
+                    self.ui.overviewWidget.update_item(key, mj.get_state())
+                    self.com_manager.resume(key)
             except Exception:
                 pass
         self.resume_dialog.can_close = True
@@ -86,9 +84,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for key, mj in self.data.multijobs.items():
             status = mj.get_state().status
             if status == TaskStatus.pausing:
-                mj.get_state().set_status(TaskStatus.none)
-            if status == TaskStatus.paused:
-                mj.get_state().set_status(TaskStatus.none)        
+                mj.get_state().set_status(TaskStatus.paused)
+            if status == TaskStatus.stopping:
+                mj.get_state().set_status(TaskStatus.paused)        
         
         self.com_manager = com_manager
         self.req_scheduler = ReqScheduler(parent=self,

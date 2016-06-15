@@ -172,11 +172,13 @@ class ComWorker(threading.Thread):
                 if req.com_type == ComType.stop:
                     self._is_running.clear() 
                     break
-            if self.com.output is not None and self.com.output.isconnected():
+            if self.com.output is not None and self.com.output.isconnected() and \
+                req.com_type != ComType.stop:
                 error = res.err
                 res = ComExecutor.communicate(
                     self.com, ReqData(self.key, ComType.stop), self.res_queue)
-                res.err = error    
+                res.err = error
+            self.com.close()
             self.res_queue.put(res)
 
         def stop(self):
@@ -272,8 +274,7 @@ class ComExecutor(object):
     @staticmethod
     def _stop(com, res):
         res.mess = com.send_long_action(tdata.Action(
-                    tdata.ActionType.stop))
-        com.close()
+                    tdata.ActionType.stop))        
         return res
 
     @staticmethod

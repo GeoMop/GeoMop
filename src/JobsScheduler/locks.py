@@ -251,6 +251,10 @@ if __name__ == "__main__":
     """
     import sys
     
+    if len(sys.argv) == 2 and sys.argv[1] == "test":
+        print("ok")
+        sys.exit(0)
+    
     if len(sys.argv) != 8:
         raise Exception('Lock application seven parameters require')
     mj_name = sys.argv[1]

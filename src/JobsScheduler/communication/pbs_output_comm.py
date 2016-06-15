@@ -34,7 +34,7 @@ class PbsOutputComm(ExecOutputComm):
             si = subprocess.STARTUPINFO()
             si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         process = subprocess.Popen(hlp.get_qsub_args(), 
-                        stdout=subprocess.PIPE, startupinfo=si)
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
         return_code = process.poll()
         if return_code is not None:
             raise Exception("Can not start next communicator " + python_file + 
@@ -85,7 +85,7 @@ class PbsOutputComm(ExecOutputComm):
                 si = subprocess.STARTUPINFO()
                 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             process = subprocess.Popen(["qstat", "-n", str(self.jobid)], 
-                                stdout=subprocess.PIPE, startupinfo=si)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
             return_code = process.wait()
             if return_code is not None and return_code==0:
                 while True:

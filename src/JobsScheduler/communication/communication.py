@@ -18,6 +18,9 @@ class OutputComm(metaclass=abc.ABCMeta):
     def set_version_params(self, app_version, data_version):
         self.installation.set_version_params(app_version, data_version)
         
+    def get_instalation_fails_mess(self):
+        return self.installation.instalation_fails_mess
+        
     def install_job_libs(self):
         """Install libs for jobs"""
         self.installation.install_job_libs()

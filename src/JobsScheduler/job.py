@@ -129,7 +129,8 @@ if len(com_conf.cli_params)>0:
             if sys.platform == "win32":
                 si = subprocess.STARTUPINFO()
                 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            process = subprocess.Popen(pre_execute, stderr=subprocess.PIPE, startupinfo=si)
+            process = subprocess.Popen(pre_execute, stdout=subprocess.PIPE, 
+                stderr=subprocess.STDOUT, startupinfo=si)
             return_code = process.wait()
             if return_code is not None:
                 out =  read_err(process.stderr)
@@ -158,7 +159,8 @@ try:
     if sys.platform == "win32":
         si = subprocess.STARTUPINFO()
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    process = subprocess.Popen(flow_execute, stderr=subprocess.PIPE, startupinfo=si)
+    process = subprocess.Popen(flow_execute,stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, startupinfo=si)
     return_code = process.poll()
     if return_code is not None:
         out =  read_err(process.stderr)

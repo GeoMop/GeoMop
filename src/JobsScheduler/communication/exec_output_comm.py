@@ -56,7 +56,7 @@ class ExecOutputComm(OutputComm):
         if args[0] is None or args[0]=="":
             raise Exception("Python interpreter can't be empty")
         logger.debug("Run "+" ".join(args))
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, startupinfo=si)        
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)        
         # wait for port number
         time.sleep(0.5)
         return_code = process.poll()

@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import threading
+import re
 
 import data.communicator_conf as comconf
 import data.transport_data as tdata
@@ -204,9 +205,19 @@ class Communicator():
    
     def  standart_action_function_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.destroy:
+            self._destroy()
         if message.action_type == tdata.ActionType.restore_connection:
             if self.status.interupted:
-                self.restore()
+                res = self.restore()
+                if res is not None:
+                    # restore retur error
+                    action=tdata.Action(tdata.ActionType.error)
+                    action.data.data["msg"] = res
+                    action.data.data["severity"] = 5
+                    if self.status.next_started:
+                        action.data.data["severity"] = 3
+                    return False, action.get_message()
                 #restore only one communicator per request
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, action.get_message()
@@ -261,6 +272,12 @@ class Communicator():
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
                 return response
+            if response is None or \
+                response.action_type == tdata.ActionType.ok:
+                self.terminate_connections()
+            self.status.next_started = False
+            self.status.next_installed = False
+            self.status.save()
             logger.info("Stop signal is received")
             self.stop =True
             action = tdata.Action(tdata.ActionType.ok)
@@ -301,6 +318,8 @@ class Communicator():
     def restore(self):
         """Restore connection chain to next communicator"""
         self.status.load()
+        if not self.status.next_started:
+            return "Application was stopped"
         if self.input is not None:
             self.input.load_state(self.status)
         if self.output is not None:
@@ -310,10 +329,12 @@ class Communicator():
                 self.output.connect()
                 self.output.exec_(self.next_communicator, self.mj_name, self.id)
             elif not self.output.isconnected():    
-                self._connect_socket(self.output)
+                if not self._connect_socket(self.output):
+                    return "Can't connect to next communicator"
         self.status.interupted=False
         self.status.save()
         logger.info("Application " + self.communicator_name + " is restored")
+        return None
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
@@ -340,6 +361,8 @@ class Communicator():
         time.sleep(1)
         if self.output is not None:
             self.output.disconnect()
+            if not isinstance(self.output, SshOutputComm):
+                self.delete_connection()
         time.sleep(1)
         if self.input is not None:
             self.input.disconnect()
@@ -352,12 +375,14 @@ class Communicator():
         if self.libs_env.install_job_libs:
             self.output.install_job_libs()
         self.output.install()
-        self.status.next_installed = True
-        self.status.save()
-        logger.debug("Run next file")
-        self._exec_()
-        self.status.next_started = True
-        self.status.save()
+        self.instalation_fails_mess = self.output.get_instalation_fails_mess()
+        if self.instalation_fails_mess is None:
+            self.status.next_installed = True
+            self.status.save()
+            logger.debug("Run next file")
+            self._exec_()
+            self.status.next_started = True
+            self.status.save()
         if unlock:
             self._install_lock.acquire()
             self._instaled = True
@@ -387,7 +412,11 @@ class Communicator():
             logger.error(str(err))
             self.instalation_fails_mess = str(err)
         else:
-            self._connect_socket(self.output)
+            if not self._connect_socket(self.output):
+                self.instalation_fails_mess = "Connection to next communicator fails"
+            else:
+                if not isinstance(self.output, SshOutputComm):
+                    self.save_connection(self.output.host, self.output.port)
         if self.output is not None:
             self.output.save_state(self.status)
         self.status.save()
@@ -399,7 +428,7 @@ class Communicator():
             i=0
             while i<repeat:
                 try:
-                    output.connect()            
+                    output.connect()                    
                     return True
                 except ConnectionRefusedError as err:
                     i += 1
@@ -409,7 +438,8 @@ class Communicator():
                 except err:
                     logger.error("Connect error (" + str(err) + ')')
                     break
-        return False
+            return False
+        return True
 
     def run(self):
         """
@@ -516,3 +546,56 @@ class Communicator():
     def unlock_application(mj_name):
         """Unset application locks"""
         Installation.unlock_application(mj_name)
+    
+    def save_connection(self, host, port, id=None):
+        """Save connection for possible termination"""
+        id = str(id)
+        file = os.path.join( Installation.get_staus_dir_static(self.mj_name), "conn_"+id) 
+        with open(file, 'w') as f:
+            f.write("HOST:--" + str(host) + "--\n")
+            f.write("PORT:--" + str(port) + "--\n")    
+ 
+        
+    def delete_connection(self, id=None):
+        """delete file with connection"""
+        id = str(id)
+        file = os.path.join( Installation.get_staus_dir_static(self.mj_name), "conn_"+id)
+        if os.path.isfile(file):
+            os.remove(file) 
+            
+    def terminate_connections(self):
+        """send terminate message to all recorded connections, and delete connections files"""
+        dir = Installation.get_staus_dir_static(self.mj_name)
+        logger.info("Comunicator start destroying process")
+        for root, dirs, files in os.walk(dir):
+            for name in files:
+                if name[:5]=="conn_":
+                    file = os.path.join(root, name)
+                    lines = []
+                    with open(file, 'w') as f:
+                        lines = f.readlines()
+                    if len(lines)>1:
+                        host = re.match( 'HOST:--(\S+)--',  lines[0])
+                        if host is not None:
+                            host = host.group(1)
+                            port = re.match( 'PORT:--(\d+)--', lines[1])
+                            if port is not None:
+                                self.port = int(port.group(1))
+                                try:
+                                    conn = ExecOutputComm(self.mj_name, port)
+                                    conn.host = host
+                                    conn.connect()
+                                    action=tdata.Action(tdata.ActionType.destroy)
+                                    mess = action.get_message()
+                                    conn.send(mess)
+                                    conn.disconnect()
+                                    logger.info("Task on address {0}:{1} was destroyed".format(host, str(port)))
+                                except:
+                                    pass
+                    os.remove(file) 
+        logger.info("Comunicator start destroying process")
+        
+    def _destroy(self):
+        """Terminate this application - last possibilities"""
+        logger.error("Communicator was destroyed")
+        sys.exit(6)

@@ -27,6 +27,7 @@ class ActionType(Enum):
     job_state = 12
     install_in_process = 13
     set_start_jobs_count = 14
+    destroy = 15
     
 
 class ProcessType(Enum):
@@ -188,6 +189,8 @@ class Action():
             self.data = InstallData(json_data)
         elif type == ActionType.set_start_jobs_count:
             self.data = StartCountsData(json_data)
+        elif type == ActionType.destroy:
+            self.data = ErrorData(json_data)
             
     def get_message(self):
         """return message from action"""

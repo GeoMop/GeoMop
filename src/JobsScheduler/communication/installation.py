@@ -63,6 +63,11 @@ class Installation:
         Long id of configuration. If  in remote installation is different
         id new configuration is reloaded
         """
+        self.instalation_fails_mess = None        
+        """
+        if installation fail, this variable contain instalation message,
+        that is send.
+        """
         
     def set_env_params(self, python_env,  libs_env):
         """Set install specific settings"""
@@ -254,8 +259,21 @@ class Installation:
                     return False, True
                 if res == "2" or res == "3":
                     return True, True
-        else:
+        else:            
             import pexpect   
+            
+            command_test = self.python_env.python_exec + " "
+            command_test += '"' + self.copy_path + '/' + __lock_file__ + '" '
+            command_test += "test"
+                        
+            ssh.sendline(command_test)
+            res = ssh.expect( ["ok", pexpect.TIMEOUT], timeout=5)
+            if res>0:
+                logger.error("Lock error:" + str(ssh.before,'utf-8').strip())
+                ssh.prompt()
+                self.instalation_fails_mess = "Can't run lock file in python environment"
+                return False, False                
+            
             logger.debug("Command:" + command)
             ssh.sendline(command)
             res = ssh.expect( ["--0--", "--1--", "--2--", "--3--", "---1--", pexpect.TIMEOUT], timeout=360)
@@ -264,6 +282,9 @@ class Installation:
                 return False, True
             if res == 2 or res == 3:
                 return True, True
+            if res>3:                
+                logger.warning("Lock error:" + str(ssh.before,'utf-8').strip())
+                ssh.prompt()
         return False, False
 
     def copy_data_files(self, conn, ssh):

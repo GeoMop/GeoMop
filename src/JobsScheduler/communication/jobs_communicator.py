@@ -150,6 +150,7 @@ class JobsCommunicator(Communicator):
                         self.ready_jobs[id] = self.jobs[id]
                         self.jobs[id].state_stopped()
                         self.job_outputs[id].disconnect()
+                        self.delete_connection(id)
                         del self.jobs[id]
                         del self.job_outputs[id]
                 return
@@ -195,6 +196,7 @@ class JobsCommunicator(Communicator):
                         self.job_outputs[id].port = mess.get_action().data.data['port']
                         if self._connect_socket(self.job_outputs[id], 1):
                             self._job_running()
+                            self.save_connection(self.job_outputs[id].host, self.job_outputs[id].port, id)
                         make_custom_action = False                       
         else:
             for id in self.jobs:
@@ -203,6 +205,7 @@ class JobsCommunicator(Communicator):
                     self.jobs[id].state_start()
                     if  self._connect_socket(self.job_outputs[id], 1):
                         self._job_running()
+                        self.save_connection(self.job_outputs[id].host, self.job_outputs[id].port, id)
                     make_custom_action = False                    
         if make_custom_action:
             # get status
@@ -231,6 +234,8 @@ class JobsCommunicator(Communicator):
                                 else:
                                     self.jobs[id].state_error()
                                 self.job_outputs[id].disconnect()
+                                if self.conf.output_type != comconf.OutputCommType.ssh:
+                                    self.delete_connection(id)                                    
                                 del self.jobs[id]
                                 del self.job_outputs[id]
                                 self._job_ready()
