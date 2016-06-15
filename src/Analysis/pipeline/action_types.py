@@ -509,7 +509,9 @@ class Bridge(BaseActionType):
         """Workflow action"""        
         self._link=None
         """Real action for gaining output"""
-        self._get_func =None
+        self.action_checkable = True
+        """Is possible check linke action (output is not parssed  from previous action)"""
+        self._get_func =None        
         
     def _set_new_link(self, link, get_func=None):
         self._link=link
@@ -547,6 +549,13 @@ class Bridge(BaseActionType):
     def _get_hash(self):
         """return unique hash that describe this action"""
         return self._link._get_hash()
+        
+    def check_action(self, actions):
+        """return True if bridge direct to one of set actions"""
+        if not self.action_checkable:
+            # input is OK, is check in parent action
+            return True
+        return self._link in actions
        
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -638,10 +647,11 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
         if  'WrappedAction' in self._variables and \
-            isinstance(self._variables['WrappedAction'],  WorkflowActionType):
-            self._variables['WrappedAction']._inicialize()
+            isinstance(self._variables['WrappedAction'],  WorkflowActionType):            
             #set workflow bridge to special wrapper action bridge
             self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._variables['WrappedAction'].bridge.action_checkable = False
+            self._variables['WrappedAction']._inicialize()
             self._hash.update(bytes(self._variables['WrappedAction']._get_hash(), "utf-8"))
  
     def _check_params(self):    
@@ -689,33 +699,33 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         return ret
     
     @classmethod
-    def _order_child_list(cls, actions):
+    def _order_child_list(cls, actions, inputs=[]):
         """
         return ordered list from actions. If all dependencies is not
         in list, raise exception. First action in list must be one of 
         end actions. If list is partly ordered, function is faster
         """
-        last_count = len(actions)
-        ordered_action=[actions.pop(0)]
+        last_count = 0
+        ordered_action=[]
         while len(actions)>0:
             if last_count==len(actions):
                 raise Exception("All Dependencies aren't in list")
             last_count=len(actions)
             for i in range(0, len(actions)):
-                if cls._check_action_dependencies(actions[i], ordered_action):
+                if cls._check_action_dependencies(actions[i], ordered_action, inputs):
                     ordered_action.append(actions.pop(i))
                     break
         return ordered_action  
 
     @staticmethod 
-    def _get_action_list(action, stop_action=None):
+    def _get_action_list(action, stop_action=None, must_has_stop=True):
         """
         get not-ordered list of dependent action. If stop 
         action is set, list end in this action
         """
-        before_end=stop_action is None
+        before_end = stop_action is None or not must_has_stop
         actions=[action]
-        if action == stop_action:
+        if action == stop_action: 
             return actions
         process=[]
         while True: 
@@ -739,22 +749,25 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     @staticmethod 
     def _merge_actions_lists(list1, list2):
         """
-        get not-ordered list of dependent action. If stop 
-        action is set, list end in this action
+        add unique items from list2 to end of list1 
         """
         for action in list2:
             if action in list1:
                 break
             else:
-                list1.insert(0, action)
+                list1.append(action)
         return list1
 
     @staticmethod
-    def _check_action_dependencies(action, list):
+    def _check_action_dependencies(action, list, inputs):
         """check if all direct dependecies is in set action list"""
         for dep_action in action._inputs:
-            if dep_action not in list:
-                return False
+            if isinstance(dep_action, Bridge):
+                if not dep_action.check_action(inputs):
+                    return False
+            else:
+                if dep_action not in list and dep_action not in inputs:
+                    return False
         return True
         
     def _check_params(self):           

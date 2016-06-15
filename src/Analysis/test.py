@@ -26,14 +26,4 @@ pipeline=Pipeline(ResultActions=[foreach])
 pipeline._inicialize()
 pp = Pipelineprocessor(pipeline)
 errs = pp.validate()
-pp.run()
-while pp.is_run():
-    runner = pp.get_next_job()
-    if runner is None:
-        time.sleep(1)
-    else:
-        print(runner.name+"\n")
-        pp.set_job_finished(runner.id)
-test = foreach._get_output()
-shutil.rmtree("backup", ignore_errors=True)
-i=0
+i=1

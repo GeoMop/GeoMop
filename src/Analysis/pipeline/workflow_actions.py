@@ -29,6 +29,26 @@ class Workflow(WorkflowActionType):
     def input(self):
         """ Return input type"""
         return self.bridge
+        
+    def duplicate(self):
+        """Duplicate workflow. Returned workflow is not inicialized and checked"""
+        new = Workflow()
+        #set Workflow
+        if 'InputAction' in self._variables:
+            new._variables['InputAction'] = self._variables['InputAction']
+        if 'OutputAction' in self._variables:
+            new._variables['OutputAction'] = self._variables['OutputAction']
+        if 'ResultAction' in self._variables and \
+            isinstance(self._variables['ResultActions'], list):
+            new._variables['ResultActions']=[]
+            for action in self._variables['ResultActions']:
+                new._variables['ResultActions'].append(action)            
+        #duplicate inputs
+        for input in self._inputs:
+            new._inputs.append(input)
+        new._set_state(ActionStateType.created)
+        return new
+
        
     def _get_child_list(self):
         """check outputAction variable and get list of child actions"""
@@ -44,9 +64,9 @@ class Workflow(WorkflowActionType):
             isinstance(self._variables['ResultActions'][0],  BaseActionType) and \
            'InputAction' in self._variables and \
             isinstance(self._variables['InputAction'],  BaseActionType):
-            for i in range(1, len(self._variables['ResultActions'])):
+            for i in range(0, len(self._variables['ResultActions'])):
                 if isinstance(self._variables['ResultActions'][i], BaseActionType):
-                    actions2 = self._get_action_list(self._variables['ResultActions'][i], self._variables['InputAction'])
+                    actions2 = self._get_action_list(self._variables['ResultActions'][i], self._variables['InputAction'], False)
                     actions=self._merge_actions_lists(actions, actions2)
         return actions
 
@@ -56,10 +76,14 @@ class Workflow(WorkflowActionType):
             return
         # set state before recursion, inicialize ending if return to this action
         self._set_state(ActionStateType.initialized)
+        
+        if  len(self._inputs)==1:
+            self.bridge._set_new_link(self._inputs[0])
+        
         actions = self._get_child_list()
         self._process_base_hash()
         try:
-            actions  = self._order_child_list(actions)
+            actions  = self._order_child_list(actions, self._inputs)
             actions.reverse()
             for action in actions:
                action._inicialize()
@@ -67,8 +91,6 @@ class Workflow(WorkflowActionType):
             self._actions = sorted(actions , key=lambda item: item._id)
         except Exception as err:
             self._add_error(self._load_errs, "Inicialize child workflow action error ({0})".format(err))   
-        if  len(self._inputs)==1:
-            self.bridge._set_new_link(self._inputs[0])
                     
     def _get_settings_script(self):    
         """return python script, that create instance of this class"""
@@ -130,8 +152,13 @@ class Workflow(WorkflowActionType):
     def validate(self):    
         """validate variables, input and output"""
         err = super(Workflow, self).validate()
-        actions = self._get_child_list()        
-        actions  = self._order_child_list(actions)
+        actions = self._get_child_list()
+        try:        
+            actions  = self._order_child_list(actions, self._inputs)
+        except Exception:
+            # error is add during inicialization
+            pass
+
         for action in actions:
             err.extend(action.validate())
         return err
