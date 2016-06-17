@@ -4,8 +4,7 @@ Tests for validator
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from data import Validator, Loader, ScalarDataNode
-from helpers import NotificationHandler
+from model_data import Validator, Loader, ScalarDataNode, NotificationHandler
 
 
 def test_validator():

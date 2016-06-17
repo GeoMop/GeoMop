@@ -8,8 +8,8 @@ import re
 import copy
 import yaml as pyyaml
 
-from util import TextValue, Position, Span
-from helpers import Notification, NotificationHandler
+from geomop_util import TextValue, Position, Span
+from ..notifications import Notification, NotificationHandler
 
 from .constructor import construct_scalar
 from .resolver import resolve_scalar_tag

@@ -8,7 +8,7 @@ Contains classes for representing the tree structure of config files.
 
 from enum import Enum
 
-from util.util import TextValue
+from geomop_util.util import TextValue
 
 
 class DataNode:

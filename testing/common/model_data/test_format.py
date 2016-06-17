@@ -4,7 +4,7 @@ Tests for format package.
 
 @author: Tomas Krizek
 """
-from data.format import parse_format, _list_to_dict
+from model_data.format import parse_format, _list_to_dict
 
 
 def test_root():

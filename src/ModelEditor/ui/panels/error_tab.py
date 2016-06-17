@@ -7,7 +7,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from meconfig import cfg
-from helpers import Notification
+from model_data import Notification
 
 
 class ErrorWidget(QtWidgets.QListWidget):

@@ -4,7 +4,7 @@ Classes for determining node and cursor location.
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from geomop_util import ComparableMixin
+from .comparable import ComparableMixin
 
 
 class Position(ComparableMixin):

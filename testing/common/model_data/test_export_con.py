@@ -4,10 +4,10 @@
 import pytest
 import os
 
-from data import (export_con, Loader)
+from model_data import (export_con, Loader)
 
 
-DATA_DIR = os.path.join('data', 'export_con')
+DATA_DIR = os.path.join('model_data', 'export_con')
 
 
 @pytest.fixture(scope='module')

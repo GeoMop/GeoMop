@@ -3,7 +3,7 @@ Tests for customized YAML loader.
 
 Author: Tomas Krizek
 """
-from data.yaml import Loader
+from model_data import Loader
 from unittest.mock import Mock
 
 # pylint: disable=protected-access

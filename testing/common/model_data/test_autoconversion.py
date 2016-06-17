@@ -5,40 +5,26 @@ Tests for auto-conversion module
 """
 import os
 import pytest
-import data.autoconversion as ac
-from data import ScalarDataNode, MappingDataNode
-from helpers import notification_handler
-from util import TextValue
+
+import model_data.autoconversion as ac
+from model_data import ScalarDataNode, MappingDataNode, notification_handler
+from geomop_util import TextValue
 
 DATA_DIR = os.path.join('data', 'autoconversion')
-INPUT_TYPE_FILE = os.path.join('resources', 'format', '00_geomop_testing_ist.json')
+INPUT_TYPE_FILE = os.path.join('..', 'common', 'resources', 'ist', '00_geomop_testing_ist.json')
 
 
 @pytest.fixture(scope='module')
 def loader():
-    from data import Loader
+    from model_data import Loader
     return Loader()
 
 
 @pytest.fixture(scope='module')
 def root_input_type():
-    from data import get_root_input_type_from_json
+    from model_data import get_root_input_type_from_json
     json_data = open(INPUT_TYPE_FILE).read()
     return get_root_input_type_from_json(json_data)
-
-
-# def test_get_expected_array_dimension():
-#     input_type = {
-#         'base_type': 'Array',
-#         'subtype': {
-#             'base_type': 'Array',
-#             'subtype': {
-#                 'base_type': 'Array',
-#                 'subtype': {'base_type': 'Integer'}
-#             }
-#         }
-#     }
-#     assert ac.AutoConverter._get_expected_array_dimension(input_type) == 3
 
 
 def test_expand_value_to_array():

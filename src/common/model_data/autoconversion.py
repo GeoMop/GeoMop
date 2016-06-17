@@ -8,8 +8,8 @@ Ensures auto-conversion of data for specified format.
 
 from copy import deepcopy
 
-from helpers import notification_handler, Notification
-from util.util import TextValue
+from .notifications import notification_handler, Notification
+from geomop_util.util import TextValue
 
 from .data_node import DataNode, MappingDataNode, SequenceDataNode
 from .format import SCALAR, is_param

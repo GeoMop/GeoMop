@@ -6,10 +6,9 @@ Tests for basic validation checks.
 
 import pytest
 
-from data import MappingDataNode
-from data.validation import checks
-from helpers import Notification
-from util import TextValue
+from model_data import MappingDataNode, Notification
+from model_data.validation import checks
+from geomop_util import TextValue
 
 
 def test_check_integer():

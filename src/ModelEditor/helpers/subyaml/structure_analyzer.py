@@ -3,12 +3,11 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 
-from util import Position, Span
-from data import DataNode
+from geomop_util import Position, Span
+from model_data import DataNode, Notification
 
 from .node_analyzer import NodeAnalyzer
 from .line_analyzer import LineAnalyzer
-from .. import Notification
 
 
 class StructureAnalyzer:

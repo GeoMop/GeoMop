@@ -10,21 +10,17 @@ import codecs
 from copy import deepcopy
 
 import config as cfg
-from helpers import (notification_handler, AutocompleteHelper,
-                     StructureAnalyzer, shortcuts, Notification)
+from data import Transformator, TransformationFileFormatError
+from helpers import AutocompleteHelper, StructureAnalyzer, shortcuts
 from ist import InfoTextGenerator
+from util import constants
 
-from data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
-from data import export_con
-from data.yaml import Loader
-from data.yaml import Transformator, TransformationFileFormatError
-from data.validation import Validator
-from data.format import get_root_input_type_from_json
-from data.autoconversion import autoconvert
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
 from geomop_project import Project, InvalidProject
-from util import constants
+from model_data import (export_con, Loader, Validator, get_root_input_type_from_json,
+                        autoconvert, notification_handler, Notification)
+from model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
 
 
 class _Config:
@@ -254,7 +250,7 @@ class MEConfig:
     resource_dir = os.path.join(os.path.split(
         os.path.dirname(os.path.realpath(__file__)))[0], 'resources')
     """path to a folder containing resources"""
-    format_dir = os.path.join(resource_dir, 'format')
+    format_dir = os.path.join(resource_dir, '..', '..', 'common', 'resources', 'ist')
     """path to a folder containing IST files"""
     transformation_dir = os.path.join(resource_dir, 'transformation')
     """path to a folder containing transformation files"""

@@ -2,8 +2,8 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-from helpers import Notification
-from util import TextValue, Span
+from ..notifications import Notification
+from geomop_util import TextValue, Span
 
 from geomop_project import Parameter
 

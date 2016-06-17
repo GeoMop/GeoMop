@@ -17,13 +17,14 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
 from meconfig import cfg
-from data import DataNode
-from helpers import (Notification, AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
+from model_data import DataNode, Notification
+from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, shortcuts)
 from ui.dialogs import FindReplaceDialog
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
-from util import Position, PosType, CursorType
+from util import PosType, CursorType
+from geomop_util import Position
 
 
 class YamlEditorWidget(QsciScintilla):

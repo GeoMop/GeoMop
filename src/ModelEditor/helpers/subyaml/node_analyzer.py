@@ -3,8 +3,8 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 
-from util import Position
-from data import DataNode
+from geomop_util import Position
+from model_data import DataNode
 
 from .line_analyzer import LineAnalyzer
 
