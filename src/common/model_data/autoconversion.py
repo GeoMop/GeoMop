@@ -9,9 +9,9 @@ Ensures auto-conversion of data for specified format.
 from copy import deepcopy
 
 from .notifications import notification_handler, Notification
-from geomop_util.util import TextValue
+from geomop_util import TextValue, Span
 
-from .data_node import DataNode, MappingDataNode, SequenceDataNode
+from .data_node import DataNode, MappingDataNode, SequenceDataNode, ScalarDataNode
 from .format import SCALAR, is_param
 
 
@@ -282,9 +282,14 @@ class Transposer:
             # convert array to value
             for path in cls.paths_to_convert:
                 node_to_convert = child_node.get_node_at_path(path)
-                converted_node = node_to_convert.children[i]
-                converted_node.parent = node_to_convert.parent
-                converted_node.key = node_to_convert.key
+                if i >= len(node_to_convert.children):
+                    converted_node = ScalarDataNode(node_to_convert.key, node_to_convert.parent,
+                                                    None)
+                    converted_node.span = Span(node_to_convert.span.start, node_to_convert.span.start)
+                else:
+                    converted_node = node_to_convert.children[i]
+                    converted_node.parent = node_to_convert.parent
+                    converted_node.key = node_to_convert.key
                 node_to_convert.parent.set_child(converted_node)
             array_node.children.append(child_node)
 
