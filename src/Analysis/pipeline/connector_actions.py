@@ -2,9 +2,9 @@ from .action_types import ConnectorActionType, ActionStateType
 
 class Connector(ConnectorActionType):
     
-    _name = "Conn"
+    name = "Conn"
     """Display name of action"""
-    _description = "Convertor for base variable manipulation"
+    description = "Convertor for base variable manipulation"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -31,9 +31,9 @@ class Connector(ConnectorActionType):
         err = super(Connector, self)._check_params()
 
         if 'Convertor' not in self._variables or self._variables['Convertor'] is None:
-            err.append("Convertor parameter is not set")
+            self._add_error(err, "Convertor parameter is not set")
         else:
-            err.extend(self._variables['Convertor']._check_params(self._inputs))
+            self._extend_error(err, self._variables['Convertor']._check_params(self._inputs))
         return err
     
     def validate(self):
@@ -52,7 +52,7 @@ class Connector(ConnectorActionType):
         try:
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
-            self._load_errs.append(str(err))
+            self._add_error(self._load_errs, str(err))
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
         if 'Convertor' in self._variables:
@@ -67,7 +67,7 @@ class Connector(ConnectorActionType):
         try:
             self._output = self._variables['Convertor']._get_output(self._inputs) 
         except Exception as err:
-            self._load_errs.append(str(err))
+            self._add_error(self._load_errs, str(err))
         return self._get_runner(None)
         
     def _get_settings_script(self):    

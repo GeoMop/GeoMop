@@ -5,9 +5,9 @@ from .code_formater import Formater
 
 class VariableGenerator(GeneratorActionType):
     
-    _name = "VariableGenerator"
+    name = "VariableGenerator"
     """Display name of action"""
-    _description = "Generator for creating static DTT variable"
+    description = "Generator for creating static DTT variable"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -45,16 +45,16 @@ class VariableGenerator(GeneratorActionType):
 
     def _check_params(self):    
         """check if all require params is set"""
-        err = super(RangeGenerator, self)._check_params()
+        err = super(VariableGenerator, self)._check_params()
         if "Variable" not in self._variables:
-           err.append("Variable parameter is required")
-        elif not self._is_DTT(self._variables["Variable"]):
-            err.append("Parameter 'Variable' is not valid DTT variable")
+            self._add_error(err, "Variable parameter is required")
+        elif not isinstance(self._variables["Variable"], DTT):
+            self._add_error(err, "Parameter 'Variable' is not valid DTT variable")
         else:
             if not self._variables["Variable"]._is_set():
-                err.append("Variable in variable generator must be set")
+                self._add_error(err, "Variable in variable generator must be set")
             if self._output is None:
-                err.append("Can't determine valid output")
+                self._add_error(err, "Can't determine valid output")
         return err
         
     def validate(self):
@@ -64,9 +64,9 @@ class VariableGenerator(GeneratorActionType):
 
 class RangeGenerator(GeneratorActionType):
     
-    _name = "RangeGenerator"
+    name = "RangeGenerator"
     """Display name of action"""
-    _description = "Generator for generation parallel list"
+    description = "Generator for generation parallel list"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -190,46 +190,46 @@ class RangeGenerator(GeneratorActionType):
         """check if all require params is set"""
         err = super(RangeGenerator, self)._check_params()
         if self._output is None:
-            err.append("Can't determine output from items parameter")
+            self._add_error(err, "Can't determine output from items parameter")
         else:            
             if not isinstance(self._output, Ensemble):
-                err.append("Output type must be Ensemble type")
+                self._add_error(err, "Output type must be Ensemble type")
         if 'Items' not in self._variables:
-            err.append("Parameter 'Items' must have at least one item")
+            self._add_error(err, "Items parameter is required")
         else:    
             if not isinstance(self._variables['Items'], list):
-                err.append("Items parameter must be List")
+                self._add_error(err, "Items parameter must be List")
             else:
                 if len(self._variables['Items'])<1:
-                    err.append("Items parameter must be List")
+                    self._add_error(err, "Parameter 'Items' must have at least one item")
                 else:
                     i=0
                     for item in self._variables['Items']:
                         if not isinstance(item,  dict):
-                            err.append("Item[{0}] in Items list is not Dictionary".format(str(i)))
+                            self._add_error(err, "Item[{0}] in Items list is not Dictionary".format(str(i)))
                         else:
                             if not 'name' in item:
-                                err.append("Parameter 'name' in item[{0}] is required".format(str(i)))
+                                self._add_error(err, "Parameter 'name' in item[{0}] is required".format(str(i)))
                             else:
                                 if not self._check_var_name(item['name']):
-                                    err.append("Parameter 'name' in item[{0}] is not valid attribut name".format(str(i)))
+                                    self._add_error(err, "Parameter 'name' in item[{0}] is not valid attribute name".format(str(i)))
                             if not 'value' in item:
-                                err.append("Parameter 'value' in item[{0}] is required".format(str(i)))
+                                self._add_error(err, "Parameter 'value' in item[{0}] is required".format(str(i)))
                             else:
                                 if not self._check_float(item['value']):
-                                    err.append("Parameter 'value' in item[{0}] is not valid float".format(str(i)))
+                                    self._add_error(err, "Parameter 'value' in item[{0}] is not valid float".format(str(i)))
                             if 'step' in item:
                                 if not self._check_float(item['step']):
-                                    err.append("Parameter 'step' in item[{0}] is not valid float".format(str(i)))
+                                    self._add_error(err, "Parameter 'step' in item[{0}] is not valid float".format(str(i)))
                             if 'n_plus' in item:
                                 if not self._check_int(item['n_plus']):
-                                    err.append("Parameter 'n_plus' in item[{0}] is not valid integer".format(str(i)))
+                                    self._add_error(err, "Parameter 'n_plus' in item[{0}] is not valid integer".format(str(i)))
                             if 'n_minus' in item:
                                 if not self._check_int(item['n_minus']):
-                                    err.append("Parameter 'n_minus' in item[{0}] is not valid integer".format(str(i)))
+                                    self._add_error(err, "Parameter 'n_minus' in item[{0}] is not valid integer".format(str(i)))
                             if 'exponential' in item:
-                                if not self._check_int(item['exponential']):
-                                    err.append("Parameter 'exponential' in item[{0}] is not valid boolean".format(str(i)))
+                                if not self._check_bool(item['exponential']):
+                                    self._add_error(err, "Parameter 'exponential' in item[{0}] is not valid boolean".format(str(i)))
                         i += 1
         return err
         

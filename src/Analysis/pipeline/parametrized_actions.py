@@ -3,9 +3,9 @@ from .data_types_tree import Struct, String
 
 class Flow123dAction(ParametrizedActionType):
     
-    _name = "Flow123d"
+    name = "Flow123d"
     """Display name of action"""
-    _description = "Flow123d"
+    description = "Flow123d"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -62,9 +62,9 @@ class Flow123dAction(ParametrizedActionType):
         """check if all require params is set"""
         err = super(Flow123dAction, self)._check_params()
         if 'YAMLFile' not in self._variables:
-            err.append("Flow123d action require YAMLFile parameter")
+            self._add_error(err, "Flow123d action require YAMLFile parameter")
         if self._output is None:
-                    err.append("Can't determine output from YAML file")
+            self._add_error(err, "Can't determine output from YAML file")
         return err
         
     def validate(self):    
@@ -72,14 +72,14 @@ class Flow123dAction(ParametrizedActionType):
         err = super(Flow123dAction, self).validate()
         input_type = self.get_input_val(0)
         if input_type is None:
-            err.append("Can't validate input (Output slot of input action is empty)")
+            self._add_error(err, "Can't validate input (Output slot of input action is empty)")
         else:
             if not isinstance(input_type, Struct):
-                err.append("Flow123d input parameter must return Struct") 
+                self._add_error(err, "Flow123d input parameter must return Struct")
             params =  self.get_require_params()
             for param in params:
                 if not hasattr(self._inputs[0],  param) :
-                    err.append("Yaml parameter {0} is not set in input")              
+                    self._add_error(err, "Yaml parameter {0} is not set in input".format(param))
         return err
         
     def get_require_params(self):

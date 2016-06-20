@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+from .items_action import RequiredAction
 
 class Connection(QtWidgets.QGraphicsPathItem):
     """ 
@@ -10,15 +11,13 @@ class Connection(QtWidgets.QGraphicsPathItem):
         super(Connection, self).__init__(parent)
         self._conn = connection
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        #self.setFlags(self.ItemIsSelectable)
         self.setZValue(10)        
         self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.set_path()
         
     def set_path(self):
         """Set path as bezzier curve"""
-        path = QtGui.QPainterPath()
-        
+        path = QtGui.QPainterPath()        
         p1 = self._conn.get_in_pos()
         p2 = self._conn.get_out_pos()
         c1 = QtCore.QPointF(p1.x(), (p2.y()+p1.y())/2)
@@ -33,11 +32,18 @@ class Connection(QtWidgets.QGraphicsPathItem):
             self._conn.repaint = False
             return True
         return False
-
-#    def contextMenuEvent(self, event):
-#        menu = QMenu()
-#        menu.addAction('Delete')
-#        pa = menu.addAction('Parameters')
-#        pa.triggered.connect(self.editParameters)
-#        menu.exec_(event.screenPos())
-#
+        
+    def mousePressEvent(self,event):
+        """Standart mouse event"""
+        event.items_action.item = self
+        event.items_action.action = RequiredAction.conn_delete
+        super(Connection, self). mousePressEvent(event)
+        if event.items_action.item==self and event.button()==QtCore.Qt.RightButton:
+            event.items_action.action = RequiredAction.conn_delete
+            
+    def get_point_desc(self, i):
+        """return node description in set end (0 is output)"""
+        if i==0:
+            return self._conn.input.unique_name
+        return self._conn.output.unique_name
+        

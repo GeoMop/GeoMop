@@ -27,11 +27,20 @@ class Node():
         """If is set to True, related connections need repaint"""
         self.repaint = False
         """If is set to True, node need repaint"""
+        self.unique = 0
+        """Parameter for unique name of action"""
 
     @property
     def action_def(self):
         """Return real action definition"""
         return ACTION_TYPES[self._action_def]
+        
+    @property
+    def unique_name(self):
+        """Return unique action name"""
+        if self.unique==0:
+            return self.action_def.name
+        return self.action_def.name + " (" + str(self.unique) + ")"
 
 class Connection():
     """
@@ -54,3 +63,21 @@ class Connection():
     def get_out_pos(self):
         """Get output absolute possition"""
         return self.output.in_ports_pos[self.output_no]
+        
+    def is_conn_point(self, node, pos):
+        """Has connection end point on set possition (tolerance 2 point)"""
+        if node==self.input:
+            rect = QtCore.QRectF( 
+                self.input.out_port_pos.x()-2, 
+                self.input.out_port_pos.y()-2, 
+                5, 5)
+            if rect.contains(pos):
+                return True
+        if node==self.output and len(self.output.in_ports_pos)>self.output_no:
+            rect = QtCore.QRectF( 
+                self.input.in_ports_pos[self.output_no].x()-2, 
+                self.input.in_ports_pos[self.output_no].y()-2, 
+                5, 5)
+            if rect.contains(pos):
+                return True    
+        return False

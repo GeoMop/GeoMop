@@ -5,9 +5,9 @@ from .workflow_actions import Workflow
 
 class ForEach(WrapperActionType):
     
-    _name = "ForEach"
+    name = "ForEach"
     """Display name of action"""
-    _description = "Cyclic action processor"
+    description = "Cyclic action processor"
     """Display description of action"""  
 
     def __init__(self, **kwargs):
@@ -16,9 +16,9 @@ class ForEach(WrapperActionType):
         :param BaseActionType WrappedAction: Wrapped action
         :param Ensemble Output: This variable is compute  from outputs
             WrappedAction and placed in Ensemble
-        :param Ensemble Input: Composite of WrappedAction cyclic  inputs, 
-            this parameter is set after declaration this action by function
-           set_wrapped_action 
+        :param Action Input:  Action that return Ensemble, composite of 
+            WrappedAction cyclic  inputs, this parameter is set after declaration 
+            this action by function set_wrapped_action 
         """
         self._wa_instances=[]
         """
@@ -161,15 +161,15 @@ class ForEach(WrapperActionType):
         """check if all require params is set"""
         err = super(ForEach, self)._check_params()
         if len(self._inputs) == 0:
-            err.append("No input action for ForEach") 
+            self._add_error(err, "No input action for ForEach")
         if  'WrappedAction' in self._variables:            
             if not isinstance(self._variables['WrappedAction'],  Workflow):
-                err.append("Parameter 'WrappedAction' must be Workflow")  
+                self._add_error(err, "Parameter 'WrappedAction' must be Workflow")
             
         for i in range(0, len(self._inputs)):
             ensemble = self.get_input_val(i)
             if not isinstance(ensemble,  Ensemble):
-                err.append("Input action {0} not produce Ensemble type variable".format(str(i))) 
+                self._add_error(err, "Input action {0} not produce Ensemble type variable".format(str(i)))
         return err
         
     def validate(self):    

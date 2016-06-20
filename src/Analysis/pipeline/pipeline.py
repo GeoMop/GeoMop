@@ -8,9 +8,9 @@ class PipelineResult(WorkflowActionType):
         """downloading output id"""
 
 class Pipeline(WorkflowActionType):
-    _name = "Pipeline"
+    name = "Pipeline"
     """Display name of action"""
-    _description = "Group of all actions"
+    description = "Group of all actions"
     """Display description of action"""
 
     def __init__(self, **kwargs):
@@ -55,11 +55,11 @@ class Pipeline(WorkflowActionType):
         """check if all require params is set"""
         err = super(Pipeline, self)._check_params()
         if len(self._inputs)>0:
-            err.append("Pipeline action not use input parameter")
+            self._add_error(err, "Pipeline action not use input parameter")
         if  not 'ResultActions' in self._variables:
-            err.append("Parameter 'ResultActions' is require for pipeline")
+            self._add_error(err, "Parameter 'ResultActions' is require for pipeline")
         elif len(self._variables['ResultActions'])<1:
-            err.append("Parameter 'ResultActions' must contains least one action")
+            self._add_error(err, "Parameter 'ResultActions' must contains least one action")
         return err
         
     def validate(self):    

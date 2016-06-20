@@ -93,9 +93,9 @@ class BaseActionType(metaclass=abc.ABCMeta):
     and can be accessed from any thread by defined functions.
     """
 
-    _name = ""
+    name = ""
     """Display name of action"""
-    _description = ""
+    description = ""
     """Display description of action"""
 
     def __init__(self, **kwargs):
@@ -182,14 +182,14 @@ class BaseActionType(metaclass=abc.ABCMeta):
             if name == 'Inputs':
                 self.set_inputs(value)
             elif name == 'Output':
-               self._load_errs.append("Output variable is not settable.")
+               self._add_error(self._load_errs, "Output variable is not settable.")
             else:
                 self._variables[name] = value
 
     def set_inputs(self, inputs):
         """set action input variables"""
         if not isinstance(inputs, list):
-            self._load_errs.append("Inputs parameter must be list.")
+            self._add_error(self._load_errs, "Inputs parameter must be list.")
             return        
         self._inputs = inputs
         
@@ -228,14 +228,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
             input_val =  input_val.duplicate()
         return input_val
     
-    @property
-    def name(self):
-        return self._name
-        
-    @property
-    def description(self):
-        return self._description
-     
     @classmethod
     def _format_array(cls, name, array, spaces, err):
         """
@@ -500,6 +492,15 @@ class BaseActionType(metaclass=abc.ABCMeta):
             return True
         return False
 
+    def _add_error(self, err, message):
+        """Append error message to err list"""
+        err.append("{0}: {1}".format(self._get_instance_name(), message))
+
+    def _extend_error(self, err, new_err):
+        """Extend err list with new err list"""
+        for message in new_err:
+            self._add_error(err, message)
+
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
     
@@ -508,7 +509,9 @@ class Bridge(BaseActionType):
         """Workflow action"""        
         self._link=None
         """Real action for gaining output"""
-        self._get_func =None
+        self.action_checkable = True
+        """Is possible check linke action (output is not parssed  from previous action)"""
+        self._get_func =None        
         
     def _set_new_link(self, link, get_func=None):
         self._link=link
@@ -546,6 +549,13 @@ class Bridge(BaseActionType):
     def _get_hash(self):
         """return unique hash that describe this action"""
         return self._link._get_hash()
+        
+    def check_action(self, actions):
+        """return True if bridge direct to one of set actions"""
+        if not self.action_checkable:
+            # input is OK, is check in parent action
+            return True
+        return self._link in actions
        
 class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -555,14 +565,13 @@ class ConnectorActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)<1:
-            err.append("Convertor action requires at least one input parameter")
+            self._add_error(err, "Convertor action requires at least one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
 
         return err
 
@@ -574,9 +583,9 @@ class GeneratorActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)>0:
-            err.append("Generator action not use input parameter")
+            self._add_error(err, "Generator action not use input parameter")
         return err
         
     def _store_results(self, path):
@@ -603,14 +612,13 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if len(self._inputs)  != 1:
-            err.append("Parametrized action requires exactly one input parameter")
+            self._add_error(err, "Parametrized action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
         return err
 
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -639,26 +647,26 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
         if  'WrappedAction' in self._variables and \
-            isinstance(self._variables['WrappedAction'],  WorkflowActionType):
-            self._variables['WrappedAction']._inicialize()
+            isinstance(self._variables['WrappedAction'],  WorkflowActionType):            
             #set workflow bridge to special wrapper action bridge
             self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._variables['WrappedAction'].bridge.action_checkable = False
+            self._variables['WrappedAction']._inicialize()
             self._hash.update(bytes(self._variables['WrappedAction']._get_hash(), "utf-8"))
  
     def _check_params(self):    
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if  not 'WrappedAction' in self._variables:
-            err.append("Parameter 'WrappedAction' is required")
+            self._add_error(err, "Parameter 'WrappedAction' is required")
         if len(self._inputs)  != 1:
-            err.append("Wrapper action requires exactly one input parameter")
+            self._add_error(err, "Wrapper action requires exactly one input parameter")
         else:
             for input in self._inputs:
                 if not isinstance(input, BaseActionType):
-                    err.append("Parameter 'Inputs' ({0}) must be BaseActionType".format(
-                        self.name))
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
         return err
 
     def _get_settings_script(self):    
@@ -691,33 +699,33 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         return ret
     
     @classmethod
-    def _order_child_list(cls, actions):
+    def _order_child_list(cls, actions, inputs=[]):
         """
         return ordered list from actions. If all dependencies is not
         in list, raise exception. First action in list must be one of 
         end actions. If list is partly ordered, function is faster
         """
-        last_count = len(actions)
-        ordered_action=[actions.pop(0)]
+        last_count = 0
+        ordered_action=[]
         while len(actions)>0:
             if last_count==len(actions):
                 raise Exception("All Dependencies aren't in list")
             last_count=len(actions)
             for i in range(0, len(actions)):
-                if cls._check_action_dependencies(actions[i], ordered_action):
+                if cls._check_action_dependencies(actions[i], ordered_action, inputs):
                     ordered_action.append(actions.pop(i))
                     break
         return ordered_action  
 
     @staticmethod 
-    def _get_action_list(action, stop_action=None):
+    def _get_action_list(action, stop_action=None, must_has_stop=True):
         """
         get not-ordered list of dependent action. If stop 
         action is set, list end in this action
         """
-        before_end=stop_action is None
+        before_end = stop_action is None or not must_has_stop
         actions=[action]
-        if action == stop_action:
+        if action == stop_action: 
             return actions
         process=[]
         while True: 
@@ -741,36 +749,39 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     @staticmethod 
     def _merge_actions_lists(list1, list2):
         """
-        get not-ordered list of dependent action. If stop 
-        action is set, list end in this action
+        add unique items from list2 to end of list1 
         """
         for action in list2:
             if action in list1:
                 break
             else:
-                list1.insert(0, action)
+                list1.append(action)
         return list1
 
     @staticmethod
-    def _check_action_dependencies(action, list):
+    def _check_action_dependencies(action, list, inputs):
         """check if all direct dependecies is in set action list"""
         for dep_action in action._inputs:
-            if dep_action not in list:
-                return False
+            if isinstance(dep_action, Bridge):
+                if not dep_action.check_action(inputs):
+                    return False
+            else:
+                if dep_action not in list and dep_action not in inputs:
+                    return False
         return True
         
     def _check_params(self):           
         """check if all require params is set"""
         err = []
         if self._is_state(ActionStateType.created):
-            err.append("Inicialize method should be processed before checking")
+            self._add_error(err, "Inicialize method should be processed before checking")
         if  'ResultActions' in self._variables:
             if not isinstance(self._variables['ResultActions'], list):
-                err.append("Parameter 'ResultActions' must be list of output actions")
+                self._add_error(err, "Parameter 'ResultActions' must be list of output actions")
             else:
                 for i in range(0, len(self._variables['ResultActions'])):
                     if not isinstance(self._variables['ResultActions'][i],  BaseActionType):
-                        err.append("Type of parameter 'ResultActions[{0}]'  must be BaseActionType".format(str(i)))                    
+                        self._add_error(err, "Type of parameter 'ResultActions[{0}]' must be BaseActionType".format(str(i)))
         return err  
        
     @staticmethod
