@@ -141,6 +141,7 @@ class MultiJob:
 
         self.preset = preset
         self.state = kw_or_def('state', MultiJobState(preset.name))
+        self.error = kw_or_def('error', "")
 
     def get_preset(self):
         """

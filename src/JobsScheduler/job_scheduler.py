@@ -64,7 +64,7 @@ class JobsScheduler(object):
         self._data = DataContainer()
 
         # setup com manager
-        self._com_manager = ComManager()
+        self._com_manager = ComManager(self._data)
 
         # setup qt UI
         self._main_window = MainWindow(data=self._data,

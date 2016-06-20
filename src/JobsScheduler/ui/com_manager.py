@@ -18,14 +18,16 @@ class ComManager:
     Usage:
     
         - set application data to constructor
-        - add job id (key) to array (start_jobs,stop_jobs,resume_jobs)
+        - add job id (key) to array (start_jobs,stop_jobs,resume_jobs,terminate_jobs)
         - if current job is changed, set it
         - each 1s call check function in main thread, after check returning should be done:    
         
-                -  from arrays state_change_jobs,results_change_jobs,jobs_change_jobs pull
-                    jobs, and fix graphic presentation
+                - from arrays state_change_jobs,results_change_jobs,jobs_change_jobs pull
+                   jobs, and fix graphic presentation
+                - if application is stopping, check run_jobs and start_jobs arrays (in this case,
+                  check function can be call with higher frequency)
 
-        - call stop or resume function and wait till run_jobs and start_jobs array is not empty
+        - call stop_all or resume_all function and wait till run_jobs and start_jobs array is not empty
     """
     def __init__(self, data_app):        
         self.res_queue = Queue()
@@ -41,6 +43,8 @@ class ComManager:
         """array of jobs ids, that will be stopped"""
         self.run_jobs = []
         """array of running jobs ids"""
+        self.terminate_jobs = []
+        """array of jobs ids, that will be destroyed (try restart job and delete all processes and data)"""
         self.state_change_jobs=[]
         """array of jobs ids, that have changed state"""
         self.results_change_jobs=[]
@@ -57,7 +61,7 @@ class ComManager:
     def resume_all(self):
         """resume all running and starting jobs"""
         
-    def stop(self):
+    def stop_all(self):
         """stop all running and starting jobs"""
         
     # next funcion will be delete after refactoring
