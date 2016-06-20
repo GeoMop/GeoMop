@@ -516,7 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             event.ignore()
 
-        elif not self.com_manager.run_jobs:
+        elif not self.com_manager.run_jobs and not self.com_manager.start_jobs:
             # all jobs have been paused, close window
             if self.close_dialog:
                 self.close_dialog.can_close = True
