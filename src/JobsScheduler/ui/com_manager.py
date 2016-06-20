@@ -11,6 +11,7 @@ from ui.data.config_builder import ConfigBuilder
 from ui.com_worker import ComWorker
 from data.states import TaskStatus
 
+
 class ComManager:
     """
     Usage:
@@ -51,10 +52,10 @@ class ComManager:
         self.logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
         
-    def check(self):
+    def poll(self):
         """
-        This function plan and make all needed action in main thread.
-        Call this function in some period
+        This function plans and makes all the needed actions in the main thread.
+        Function should be called periodically from the UI.
         """
         bussy = True
         if not self._terminate() and not self._stop():
@@ -71,6 +72,7 @@ class ComManager:
             bussy = bussy or self._check_terminated()
         if  bussy:
             return
+        delete_key = []
         for  key in self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key]
@@ -84,6 +86,12 @@ class ComManager:
                     self.results_change_jobs.append(key)
                 if logs_downloaded is not None:
                     self.logs_change_jobs.append(key)
+                if state is not None and state.status == TaskStatus.finished:   
+                   delete_key.appen(key)
+        for key in delete_key:
+            self.run_jobs.remove(key)
+            self._workers.remove(key)
+
             
     def _start_first(self):
         """start first job in queue and return True else return False"""
@@ -149,7 +157,6 @@ class ComManager:
                 return
         return res
 
-
     def _check_resumed(self):
         """
         check all job in resume queue, move resumed to run 
@@ -163,12 +170,13 @@ class ComManager:
                     self.run_jobs.append(key)
                     worker.init_update()
                     delete_key.append(key)
-                elif worker.is_iterupted(self) or worker.is_error(self):
+                elif worker.is_interupted(self) or worker.is_error(self):
                     mj = self.data.multijobs[key]
-                    if worker.is_iterupted(self):
+                    if worker.is_interupted(self):
                         mj.get_state().set_status(TaskStatus.interupted)
                     else:
                         mj.get_state().set_status(TaskStatus.error)
+                        mj.error = worker.get_error()
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
             else:
@@ -191,12 +199,13 @@ class ComManager:
                     self.run_jobs.append(key)
                     worker.init_update()
                     delete_key.append(key)
-                elif worker.is_iterupted(self) or worker.is_error(self):
+                elif worker.is_interupted(self) or worker.is_error(self):
                     mj = self.data.multijobs[key]
-                    if worker.is_iterupted(self):
+                    if worker.is_interupted(self):
                         mj.get_state().set_status(TaskStatus.interupted)
                     else:
                         mj.get_state().set_status(TaskStatus.error)
+                        mj.error = worker.get_error()
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
             else:
@@ -206,115 +215,69 @@ class ComManager:
         for key in delete_key:
             self.start_jobs.remove(key)
 
-
     def _check_stopped(self):
         """
         check all job in resume queue, move resumed to run 
         queue and send get_state message. Update job states.
         """
+        delete_key = []
+        for  key in  self.stop_jobs:
+            if key in self._workers:
+                worker = self._workers[key]
+                if worker.is_stopped():
+                    self.run_jobs.append(key)
+                    delete_key.append(key)
+                    mj = self.data.multijobs[key]
+                    if worker.is_error(self):
+                        mj.get_state().set_status(TaskStatus.error)
+                    else:
+                        mj.get_state().set_status(TaskStatus.stopped)
+                    self.state_change_jobs.append(key)
+            else:
+                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
+                delete_key.append(key)
+                break
+        for key in delete_key:
+            self.stop_jobs.remove(key)
+            self.run_jobs.remove(key)
+            self._workers.remove(key)
 
     def _check_terminated(self):
         """
         check all job in resume queue, move resumed to run 
         queue and send get_state message. Update job states.
         """
+        delete_key = []
+        for  key in  self.terminate_jobs:
+            if key in self._workers:
+                worker = self._workers[key]
+                if worker.is_stopped():
+                    self.run_jobs.append(key)
+                    delete_key.append(key)
+                    mj = self.data.multijobs[key]
+                    if worker.is_error(self):
+                        mj.get_state().set_status(TaskStatus.error)
+                    else:
+                        mj.get_state().set_status(TaskStatus.stopped)
+                    self.state_change_jobs.append(key)
+            else:
+                ComWorker.get_loger().error("MultiJob {0} can't be terminated, run record is not found")
+                delete_key.append(key)
+                break
+        for key in delete_key:
+            self.terminate_jobs.remove(key)
+            self.run_jobs.remove(key)
+            self._workers.remove(key)
+        
     def _set_state(self, key, state, error):
         """
         Set state for set job
         """
 
     def pause_all(self):
-        """resume all running and starting jobs"""
+        """Pause all running and starting jobs (use when app is closing)."""
+        pass
         
     def stop_all(self):
         """stop all running and starting jobs"""
-        
-    # next funcion will be delete after refactoring
-
-    def create_worker(self, key, com):        
-        worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
-        self._workers[worker.key] = worker
-
-    def install(self, key, com):
-        worker = ComWorker(key=key, com=com, res_queue=self.res_queue)
-        req_install = ReqData(key=key, com_type=ComType.install)
-        req_results = ReqData(key=key, com_type=ComType.results)
-        worker.req_queue.put(req_install)
-        worker.req_queue.put(req_results)
-        self._workers[worker.key] = worker
-
-    def pause(self, key):
-        if key in self._workers:
-            worker = self._workers[key]        
-            worker.is_ready.clear()
-            req = ReqData(key=key, com_type=ComType.pause)
-            worker.drop_all_req()
-            worker.req_queue.put(req)
-
-    def resume(self, key):
-        if key in self._workers:
-            worker = self._workers[key]
-            worker.is_ready.set()
-            req = ReqData(key=key, com_type=ComType.resume)
-            worker.req_queue.put(req)
-
-    def state(self, key):
-        if key in self._workers:
-            worker = self._workers[key]
-            if worker.is_stopping:
-                return
-            req = ReqData(key=key, com_type=ComType.state)
-            worker.req_queue.put(req)
-
-    def results(self, key):
-        if key in self._workers:
-            worker = self._workers[key]
-            if worker.is_stopping:
-                return
-            req = ReqData(key=key, com_type=ComType.results)
-            worker.req_queue.put(req)
-
-    def finish(self, key):
-        if key in self._workers:
-            worker = self._workers[key]
-            worker.is_stopping = True
-            req_result = ReqData(key=key, com_type=ComType.results)
-            req_stop = ReqData(key=key, com_type=ComType.stop)
-            worker.req_queue.put(req_result)
-            worker.req_queue.put(req_stop)
-
-    def stop(self, key):
-        if key in self._workers:
-            worker = self._workers[key]
-            worker.is_stopping = True
-            worker.is_ready.clear()
-            req = ReqData(key=key, com_type=ComType.stop)
-            worker.drop_all_req()
-            worker.req_queue.put(req)
-
-    def is_installed(self, key):
-        if self._workers.get(key, None):
-            return True
-        else:
-            return False
-
-    def is_busy(self, key):
-        worker = self._workers.get(key, None)
-        if worker.req_queue.empty() and worker.is_ready.is_set():
-            return False
-        return True
-        
-    def get_communicator(self, key):
-        return self._workers[key].com
-        
-    def check_workers(self):
-        """Check processis, end terminate finished"""
-        for key, worker in self._workers.items():
-            if worker.is_stopped():
-                del self._workers[key]
-                return key
-        return None
-
-    def terminate(self):
-        for key in self._workers:
-            self._workers[key].stop()
+        pass

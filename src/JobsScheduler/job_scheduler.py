@@ -70,10 +70,6 @@ class JobsScheduler(object):
         self._main_window = MainWindow(data=self._data,
                                        com_manager=self._com_manager)
 
-        # connect reloader kill on app exit
-        self._app.aboutToQuit.connect(
-            self._main_window.handle_terminate)
-
         # connect save all on exit
         self._app.aboutToQuit.connect(self._data.save_all)
 

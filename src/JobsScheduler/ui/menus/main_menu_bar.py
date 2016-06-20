@@ -73,10 +73,8 @@ class MultiJobMenu(QtWidgets.QMenu):
 
         # control actions
         self.actionRunMultiJob = action.ActionRunMultiJob(self)
-        self.actionPauseMultiJob = action.ActionPauseMultiJob(self)
         self.actionResumeMultiJob = action.ActionResumeMultiJob(self)
         self.actionStopMultiJob = action.ActionStopMultiJob(self)
-        self.actionRestartMultiJob = action.ActionRestartMultiJob(self)
 
         # add actions to menu
         self.addAction(self.actionAddMultiJob)
@@ -85,13 +83,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionRunMultiJob)
-
-        if DataContainer.DEBUG_MODE:
-            self.addAction(self.actionPauseMultiJob)
-            self.addAction(self.actionResumeMultiJob)
-
         self.addAction(self.actionStopMultiJob)
-        self.addAction(self.actionRestartMultiJob)
 
         self.lock_as_empty()
 
@@ -216,10 +208,8 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.actionDeleteMultiJob.setDisabled(delete)
 
         self.actionRunMultiJob.setDisabled(run)
-        self.actionPauseMultiJob.setDisabled(pause)
         self.actionResumeMultiJob.setDisabled(resume)
         self.actionStopMultiJob.setDisabled(stop)
-        self.actionRestartMultiJob.setDisabled(restart)
 
     def lock_all(self, lock=True):
         """
