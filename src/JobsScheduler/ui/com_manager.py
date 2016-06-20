@@ -14,9 +14,53 @@ from multiprocessing import Queue
 from data.states import TaskStatus
 
 class ComManager:
-    def __init__(self):
+    """
+    Usage:
+    
+        - set application data to constructor
+        - add job id (key) to array (start_jobs,stop_jobs,resume_jobs)
+        - if current job is changed, set it
+        - each 1s call check function in main thread, after check returning should be done:    
+        
+                -  from arrays state_change_jobs,results_change_jobs,jobs_change_jobs pull
+                    jobs, and fix graphic presentation
+
+        - call stop or resume function and wait till run_jobs and start_jobs array is not empty
+    """
+    def __init__(self, data_app):        
         self.res_queue = Queue()
         self._workers = dict()
+        self._data_app = data_app
+        self.current_job = None
+        """current job id"""
+        self.start_jobs = []
+        """array of job ids, that will be started"""
+        self.resume_jobs = []
+        """array of jobs ids, that will be resume"""
+        self.stop_jobs = []
+        """array of jobs ids, that will be stopped"""
+        self.run_jobs = []
+        """array of running jobs ids"""
+        self.state_change_jobs=[]
+        """array of jobs ids, that have changed state"""
+        self.results_change_jobs=[]
+        """array of jobs ids, that have changed results"""
+        self.jobs_change_jobs=[]
+        """array of jobs ids, that have changed jobs state"""
+        
+    def check(self):
+        """
+        This function plan and make all needed action in main thread.
+        Call this function in some period
+        """
+        
+    def resume_all(self):
+        """resume all running and starting jobs"""
+        
+    def stop(self):
+        """stop all running and starting jobs"""
+        
+    # next funcion will be delete after refactoring
 
     def create_worker(self, key, com):        
         worker = ComWorker(key=key, com=com, res_queue=self.res_queue)

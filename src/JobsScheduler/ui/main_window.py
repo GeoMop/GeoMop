@@ -503,6 +503,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 break
 
     def handle_mj_installed(self, key):
+        """
+        next communicator and connection to it is installed, 
+        send install message to others communicator  
+        """
         mj = self.data.multijobs[key]
         MultiJobActions.running(mj)
         self.ui.overviewWidget.update_item(key, mj.get_state())
@@ -511,6 +515,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_installation(self, key):
+        """Install next communicator and connection to it"""
         mj = self.data.multijobs[key]
         MultiJobActions.installation(mj)
         self.ui.overviewWidget.update_item(key, mj.get_state())
