@@ -19,6 +19,7 @@ from meconfig import cfg
 from ui.dialogs.json_editor import JsonEditorDlg
 from ui import MainWindow
 from util import constants
+import subprocess
 
 
 class ModelEditor:
@@ -64,6 +65,10 @@ class ModelEditor:
             self.mainwindow.update_recent_files()
             self._update_document_name()
             self.mainwindow.show_status_message("File '" + yaml_file[0] + "' is opened")
+            
+    def open_window(self):
+        """open new instance of model editor"""
+        subprocess.Popen([sys.executable, __file__])
 
     def import_file(self):
         """import con file menu action"""

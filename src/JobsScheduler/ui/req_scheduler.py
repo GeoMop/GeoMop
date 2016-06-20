@@ -8,9 +8,6 @@ Timer scheduler periodic request
 from PyQt5 import QtCore
 from PyQt5.QtCore import QTimer
 
-from ui.com_manager import ComType
-
-
 class ReqScheduler(QTimer):
     mj_stoped = QtCore.pyqtSignal(str)
     mj_installed = QtCore.pyqtSignal(str)

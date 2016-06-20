@@ -10,21 +10,17 @@ import codecs
 from copy import deepcopy
 
 import config as cfg
-from helpers import (notification_handler, AutocompleteHelper,
-                     StructureAnalyzer, shortcuts, Notification)
+from data import Transformator, TransformationFileFormatError
+from helpers import AutocompleteHelper, StructureAnalyzer, shortcuts
 from ist import InfoTextGenerator
+from util import constants
 
-from data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
-from data import export_con
-from data.yaml import Loader
-from data.yaml import Transformator, TransformationFileFormatError
-from data.validation import Validator
-from data.format import get_root_input_type_from_json
-from data.autoconversion import autoconvert
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
 from geomop_project import Project, InvalidProject
-from util import constants
+from model_data import (export_con, Loader, Validator, get_root_input_type_from_json,
+                        autoconvert, notification_handler, Notification)
+from model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
 
 
 class _Config:
@@ -69,6 +65,10 @@ class _Config:
         """whether to automatically complete brackets and array symbols"""
         self.shortcuts = kw_or_def('shortcuts',
                                            deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+        if not 'open_window' in self.shortcuts:
+            # added to version 1.0.0
+            self.shortcuts['open_window'] = shortcuts.DEFAULT_USER_SHORTCUTS['open_window']
+        
         """user customizable keyboard shortcuts"""
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
@@ -250,7 +250,7 @@ class MEConfig:
     resource_dir = os.path.join(os.path.split(
         os.path.dirname(os.path.realpath(__file__)))[0], 'resources')
     """path to a folder containing resources"""
-    format_dir = os.path.join(resource_dir, 'format')
+    format_dir = os.path.join(resource_dir, '..', '..', 'common', 'resources', 'ist')
     """path to a folder containing IST files"""
     transformation_dir = os.path.join(resource_dir, 'transformation')
     """path to a folder containing transformation files"""
@@ -261,7 +261,7 @@ class MEConfig:
     logger = logging.getLogger(LOGGER_PREFIX + constants.CONTEXT_NAME)
     """root context logger"""
 
-    DEFAULT_IMPORT_FORMAT_FILE = '1.8.6'
+    DEFAULT_IMPORT_FORMAT_FILE = '1.8.3'
     """default IST version to be used for imported con files"""
 
 
@@ -458,16 +458,11 @@ class MEConfig:
                 data['actions'].append({'action': 'move-key-forward', 'parameters': {'path': path}})
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
-            cls.curr_format_file = None
-            if Project.current is not None:
-                cls.curr_format_file = Project.current.flow123d_version
-            if cls.curr_format_file is None:
+            cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            if Project.current is not None and \
+                Project.current.flow123d_version[:5] == '2.0.0':
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if cls.curr_format_file == '2.0.0':
-                try:
-                    cls.transform("f123_1.8.6_to_2.0.0")
-                except Exception:
-                    cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+                cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
             cls.update_format()
             cls.changed = True
             return True
@@ -635,7 +630,7 @@ class MEConfig:
         return False
 
     @classmethod
-    def transform(cls, file):
+    def transform(cls, file, confirmation=True):
         """Run transformation according rules in set file"""
         cls.update()
         text = cls.get_transformation_text(file)
@@ -652,15 +647,20 @@ class MEConfig:
         if cls.main_window is not None:
             import PyQt5.QtWidgets as QtWidgets
             from ui.dialogs import TranformationDetailDlg
-
-            dialog = TranformationDetailDlg(transformator.name,
-                                            transformator.description,
-                                            transformator.old_version,
-                                            cls.curr_format_file,
-                                            transformator.new_version,
-                                            transformator.new_version in cls.transformation_files,
-                                            cls.main_window)
-            res = QtWidgets.QDialog.Accepted == dialog.exec_()
+            if confirmation:
+                dialog = TranformationDetailDlg(transformator.name,
+                                                transformator.description,
+                                                transformator.old_version,
+                                                cls.curr_format_file,
+                                                transformator.new_version,
+                                                transformator.new_version in cls.format_files,
+                                                cls.main_window)
+                res = QtWidgets.QDialog.Accepted == dialog.exec_()
+        else:
+            if cls.curr_format_file != transformator.old_version:
+                print("Transformed file format '" + cls.curr_format_file +
+                          "' and format specified in transformation file '" +
+                          transformator.old_version + "' are different")
         if res:
             try:
                 cls.document = transformator.transform(cls.document, cls)
@@ -676,9 +676,12 @@ class MEConfig:
                 else:
                     raise err
                 return
-            if transformator.new_version in cls.transformation_files:
+            if transformator.new_version in cls.format_files:
                 cls.set_current_format_file(transformator.new_version)
             else:
+                if cls.main_window is None:
+                    print("Cannot set new fileformat specified in transformation file '" +
+                          transformator.new_version + "'. Format file is not available.")
                 cls.update()
 
     @classmethod

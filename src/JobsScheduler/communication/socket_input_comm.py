@@ -55,11 +55,10 @@ class SocketInputComm(InputComm):
                 s.bind(("", self.port + i))
                 ok = True
                 if not self._established:
-                    sys.stdout.write("PORT:--" + str(self.port + i) + "--\n")
-                    sys.stdout.flush()
+                    self._write_output("PORT:--" + str(self.port + i) + "--")
                     self._established = True
             except OSError as err:
-                if err.errno == 98 and not self._established:
+                if (err.errno == 98 or err.errno == 1048) and not self._established:
                     i += 1
                     if __MAX_OPEN_PORTS__< i:
                         raise Exception("Max open ports number is exceed")
@@ -74,6 +73,11 @@ class SocketInputComm(InputComm):
         self._connected = True 
         self._connected_lock.release()        
         logger.debug("Server is listened on port " + str(self.port) +" by " + str(addr)) 
+        
+    def _write_output(self, line):
+        """write information about connection to relevant output"""
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
   
     def send(self, msg):
         """send message to output stream"""

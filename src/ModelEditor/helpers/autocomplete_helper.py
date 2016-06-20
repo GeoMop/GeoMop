@@ -5,7 +5,7 @@
 from copy import copy
 from PyQt5.Qsci import QsciScintilla
 
-from data.format import is_scalar
+from model_data.format import is_scalar
 from geomop_project import Project
 
 

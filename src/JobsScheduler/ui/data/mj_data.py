@@ -141,6 +141,7 @@ class MultiJob:
 
         self.preset = preset
         self.state = kw_or_def('state', MultiJobState(preset.name))
+        self.error = kw_or_def('error', "")
 
     def get_preset(self):
         """
@@ -190,7 +191,25 @@ class MultiJob:
             if os.path.isfile(os.path.join(res_path, file)):
                 res = MultiJobLog(res_path, file)
                 ress.append(res)
+        jobs = self.get_jobs()
+        for job in jobs:
+            dir = os.path.join(res_path, job.name)
+            if os.path.isdir(dir):
+                ress.extend(self._get_result_from_dir(dir))
         return ress
+        
+    def _get_result_from_dir(self, dir, recurs=True):
+        """return all files in set directory as result"""
+        ress = []
+        for file in os.listdir(dir):
+            new = os.path.join(dir, file)
+            if os.path.isfile(new):
+                res = MultiJobLog(dir, file)
+                ress.append(res)
+            elif recurs and os.path.isdir(new):
+                ress.extend(self._get_result_from_dir(new))
+        return ress
+                
 
     def get_configs(self):
         """
