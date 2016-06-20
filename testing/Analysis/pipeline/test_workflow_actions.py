@@ -17,31 +17,34 @@ def test_workflow_code_init():
     f2 = Flow123dAction(Inputs=[f1], YAMLFile="test2.yaml")
     workflow.set_config(OutputAction=f2, InputAction=f1)
     workflow._inicialize()
+    vg._inicialize()
+    f1._output = Struct()
     test = workflow._get_settings_script()
 
-    #compare_with_file(os.path.join("pipeline", "results", "workflow3.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow3.py"), test)
 
     # test validation
     err = workflow.validate()
-    assert len(err) == 2 # fix after flow123 finishing
+    assert len(err) == 0
 
     # test workflow with more action where is side effect action in separate branch
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-    vg2 = VariableGenerator(Variable=Ensemble(Int(), Int(1), Int(2), Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
     flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
     side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     flow._output = String()
     workflow._inicialize()
+    vg2._inicialize()
     test = workflow._get_settings_script()
 
-    # compare_with_file(os.path.join("pipeline", "results", "workflow4.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow4.py"), test)
 
     # test validation
     err = workflow.validate()
-    #assert len(err) == 0
+    assert len(err) == 0
 
 
     # test workflow duplication
@@ -50,17 +53,18 @@ def test_workflow_code_init():
     flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-    # w1 = workflow.duplicate()
-    # w1.set_config(InputAction=vg)
-    # w2 = workflow.duplicate()
-    # w2.set_config(InputAction=w1)
-    # w2._inicialize()
-    # test = w2._get_settings_script()
+    w1 = workflow.duplicate()
+    w1.set_inputs([vg])
+    w2 = workflow.duplicate()
+    w2.set_inputs([w1])
+    pipeline = Pipeline(ResultActions=[w2])
+    pipeline._inicialize()
+    test = pipeline._get_settings_script()
 
-    # compare_with_file(os.path.join("pipeline", "results", "workflow5.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow5.py"), test)
 
     # test validation
-    # err = workflow.validate()
+    err = pipeline.validate()
     # assert len(err) == 0
 
 
@@ -102,13 +106,14 @@ def test_workflow_code_init():
     flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test1.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     workflow._inicialize()
+    vg._inicialize()
     test = workflow._get_settings_script()
 
-    # compare_with_file(os.path.join("pipeline", "results", "workflow7.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow7.py"), test)
 
     # test validation
     err = workflow.validate()
-    #assert len(err) == 0
+    assert len(err) == 0
 
 
     # test comparation of workflow hash
