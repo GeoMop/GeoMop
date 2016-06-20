@@ -211,7 +211,8 @@ class ConfigBuilder:
                 job_file, job.get_conf())
 
         # build job configuration
-        self._build_jobs_config(mj_name, analysis)
+        if analysis is not None:
+            self._build_jobs_config(mj_name, analysis)
 
         # return app_config, it is always entry point for next operations
         return app.get_conf()
