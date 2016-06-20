@@ -5,8 +5,9 @@
 import icon
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
+import PyQt5.QtGui as QtGui
 from meconfig import cfg
-from helpers import Notification
+from model_data import Notification
 
 
 class ErrorWidget(QtWidgets.QListWidget):
@@ -29,6 +30,7 @@ class ErrorWidget(QtWidgets.QListWidget):
         super(ErrorWidget, self).__init__(parent)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.currentItemChanged.connect(self._current_item_changed)
+        self.itemDoubleClicked.connect(self._current_item_clicked)
         self._load_items()
 
     def select_error(self, line):
@@ -75,3 +77,18 @@ class ErrorWidget(QtWidgets.QListWidget):
         data = current.data(QtCore.Qt.UserRole)
         self.itemSelected.emit(data.span.start.line, data.span.start.column,
                                data.span.end.line, data.span.end.column)
+                               
+    def _current_item_clicked(self, item):
+        """double click standart action"""
+        menu =  QtWidgets.QMenu()
+        action = menu.addAction("Copy to clipboard")
+        action.triggered.connect( lambda: self._copy(item.text()))
+        menu.exec_(QtGui.QCursor.pos() - QtCore.QPoint(20, 10))
+        
+    def _copy(self, txt):
+        """copy item text to clicbord"""       
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.clear(mode=clipboard.Clipboard )
+        clipboard.setText(txt, mode=clipboard.Clipboard)
+        
+         

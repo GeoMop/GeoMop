@@ -5,12 +5,14 @@ Main window module
 @contact: jan.gabriel@tul.cz
 """
 import copy
+import logging
 import os
 from shutil import copyfile
+import shutil
 import time
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QUrl, Qt
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
 from communication import Communicator, Installation
@@ -19,7 +21,7 @@ from communication import installation
 from threading import Timer
 from ui.actions.main_menu_actions import *
 from ui.data.config_builder import ConfigBuilder
-from ui.data.mj_data import MultiJob, MultiJobActions
+from ui.data.mj_data import MultiJob, MultiJobActions, AMultiJobFile
 from ui.data.preset_data import Id
 from ui.dialogs import AnalysisDialog, FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
@@ -38,6 +40,9 @@ from geomop_project import Project, Analysis
 import flow_util
 
 
+logger = logging.getLogger("UiTrace")
+
+
 class MainWindow(QtWidgets.QMainWindow):
     """
     Jobs Scheduler main window class
@@ -52,16 +57,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 status = mj.get_state().status
                 if status == TaskStatus.paused:
                     # create com worker
+                    analysis = self._reload_project(mj)
                     conf_builder = ConfigBuilder(self.data)
-                    app_conf = conf_builder.build(key)
+                    app_conf = conf_builder.build(key, analysis)
                     com = Communicator(app_conf)
                     self.com_manager.create_worker(key, com)
-
-                    if status == TaskStatus.paused:
-                        # resume
-                        MultiJobActions.resuming(mj)
-                        self.ui.overviewWidget.update_item(key, mj.get_state())
-                        self.com_manager.resume(key)
+                    # resume
+                    MultiJobActions.resuming(mj)
+                    self.ui.overviewWidget.update_item(key, mj.get_state())
+                    self.com_manager.resume(key)
             except Exception:
                 pass
         self.resume_dialog.can_close = True
@@ -75,11 +79,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
+        
+        # repair bad status data
+        for key, mj in self.data.multijobs.items():
+            status = mj.get_state().status
+            if status == TaskStatus.pausing:
+                mj.get_state().set_status(TaskStatus.paused)
+            if status == TaskStatus.stopping:
+                mj.get_state().set_status(TaskStatus.paused)        
+        
         self.com_manager = com_manager
         self.req_scheduler = ReqScheduler(parent=self,
                                           com_manager=self.com_manager)
         self.res_handler = ResHandler(parent=self,
                                       com_manager=self.com_manager)
+
+        self.res_handler.mj_check.connect(
+            self.handle_mj_check)
 
         self.res_handler.mj_installed.connect(
             self.handle_mj_installed)
@@ -322,10 +338,14 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Todo properly edit state, change folder name etc.
             self.data.multijobs[data["key"]] = MultiJob(data["preset"])
+        self.multijobs_changed.emit(self.data.multijobs)
 
+    def _reload_project(self, data):
+        """reload project files and return analysis"""
         # sync mj analyses + files
+        analysis = None
         if Project.current is not None:
-            mj_name = data["preset"].name
+            mj_name = data.preset.name
             mj_dir = Installation.get_config_dir_static(mj_name)
             proj_dir = Project.current.project_dir
             
@@ -337,6 +357,22 @@ class MainWindow(QtWidgets.QMainWindow):
             analysis = Project.current.get_current_analysis()
             assert analysis is not None, "No analysis file exists for the project!"
 
+            # copy the entire folder
+            shutil.rmtree(mj_dir, ignore_errors=True)
+            try:
+                shutil.copytree(proj_dir, mj_dir)
+                # remove result dir
+                shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
+                    ignore_errors=True)
+                # remove project file
+                os.remove(os.path.join(mj_dir,".project"))
+            # Directories are the same
+            except shutil.Error as e:
+                logger.error("Failed to copy project dir: " + str(e))
+            # Any error saying that the directory doesn't exist
+            except OSError as e:
+                logger.error("Failed to copy project dir: " + str(e))
+
             # fill in parameters and copy the files
             for file in set(files):
                 src = os.path.join(proj_dir, file)
@@ -346,8 +382,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if not os.path.isdir(dst_dir):
                     os.makedirs(dst_dir)
                 flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
-
-        self.multijobs_changed.emit(self.data.multijobs)
+        return analysis
 
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
@@ -358,8 +393,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
         self.update_ui_locks(current)
 
+        analysis = self._reload_project(mj)
         conf_builder = ConfigBuilder(self.data)
-        app_conf = conf_builder.build(key)
+        app_conf = conf_builder.build(key, analysis)
         Communicator.lock_installation(app_conf)
         com = Communicator(app_conf)
         self.com_manager.install(key, com)
@@ -449,9 +485,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
 
         self.update_ui_locks(current)
-        self.com_manager.restart(key)
+        self.com_manager.stop(key)
+        while True:
+            if self.com_manager.check_workers() ==key:
+                break
+            timer.sleep(1)
+        
+        Communicator.unlock_application(
+            self.com_manager.get_communicator(key).mj_name)
+        self.update_ui_locks(current)
+        self.handle_mj_installation(key)
+        
+    def handle_mj_check(self):
+        """Check processis, end terminate finished"""
+        while True:
+            if self.com_manager.check_workers() is None:
+                break
 
     def handle_mj_installed(self, key):
+        """
+        next communicator and connection to it is installed, 
+        send install message to others communicator  
+        """
         mj = self.data.multijobs[key]
         MultiJobActions.running(mj)
         self.ui.overviewWidget.update_item(key, mj.get_state())
@@ -460,6 +515,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_ui_locks(current)
 
     def handle_mj_installation(self, key):
+        """Install next communicator and connection to it"""
         mj = self.data.multijobs[key]
         MultiJobActions.installation(mj)
         self.ui.overviewWidget.update_item(key, mj.get_state())
@@ -491,10 +547,13 @@ class MainWindow(QtWidgets.QMainWindow):
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
 
-    def handle_mj_stopped(self, key):
+    def handle_mj_stopped(self, key, err):
         mj = self.data.multijobs[key]
         if mj.state.status is not TaskStatus.finished:
             MultiJobActions.stopped(mj)
+            self.ui.overviewWidget.update_item(key, mj.get_state())
+        if err is not None:
+            mj.get_state().set_status(TaskStatus.error)
             self.ui.overviewWidget.update_item(key, mj.get_state())
         current = self.ui.overviewWidget.currentItem()
         self.update_ui_locks(current)
@@ -536,10 +595,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.report_error("No project selected!")
 
         dst_dir_location = os.path.join(Project.current.project_dir,
-                                        "analysis",
+                                        "analysis_results",
                                         time.strftime("%Y%m%d_%H%M%S"))
         self._save_results(dst_dir_location)
         self._save_logs(dst_dir_location)
+        self._save_debug_files(dst_dir_location)
+
         # alert with open dir option
         FilesSavedMessageBox(self, dst_dir_location).show()
 
@@ -564,14 +625,54 @@ class MainWindow(QtWidgets.QMainWindow):
         files = self.ui.tabWidget.ui.resultsTab.files
         self.copy_files(src_dir_path, dst_dir_path, files)
 
+    def _save_debug_files(self, dst_dir_location):
+        """Save file usefull for debug (That will send to developer)"""
+        app = os.path.join(os.path.split(
+            os.path.dirname(os.path.realpath(__file__)))[0])        
+        res_dir_path = os.path.join(installation.__install_dir__,
+                                    installation.__jobs_dir__,
+                                    self.current_mj.preset.name)
+        conf_dir_path = os.path.join(res_dir_path, installation.__conf_dir__)
+        dst_dir_path = os.path.join(dst_dir_location,
+                                    installation.__conf_dir__)
+        central_log_file = []
+        central_log_file.append(AMultiJobFile(
+            os.path.join(app, "log"), "app-centrall.log"))
+        self.copy_files(app, os.path.join(
+            dst_dir_location, "log"), central_log_file)
+
+        files = self._get_config_files(conf_dir_path)
+        self.copy_files(conf_dir_path, dst_dir_path, files)
+
+    @staticmethod
+    def _get_config_files(conf_dir_path):
+        """get all files in conf directory"""
+        conf_files = []
+        for root, dirs, files in os.walk(conf_dir_path):
+            for name in files:
+                conf_files.append(AMultiJobFile(root, name))
+        return conf_files
+
     @staticmethod
     def copy_files(src_dir_path, dst_dir_path, files):
-        # create folder
+        """copy results files to workspace folder"""
         os.makedirs(dst_dir_path, exist_ok=True)
-
-        # copy files
-        for file_name in [f.file_name for f in files]:
-            copyfile(os.path.join(src_dir_path, file_name), os.path.join(dst_dir_path, file_name))
+        for f in files:
+            file_name = os.path.basename(f.file_path)
+            res_dir = os.path.dirname(os.path.abspath(f.file_path))
+            if os.path.samefile(src_dir_path, res_dir):
+                copyfile(f.file_path, os.path.join(dst_dir_path, file_name))
+            else:            
+                ext_path = dst_dir_path
+                res_dir, tail = os.path.split(res_dir)
+                while len(res_dir)>0:
+                    ext_path = os.path.join(ext_path, tail)
+                    if os.path.samefile(src_dir_path, res_dir):
+                        os.makedirs(ext_path, exist_ok=True)
+                        copyfile(f.file_path, 
+                             os.path.join(ext_path, file_name))
+                        break
+                    res_dir, tail = os.path.split(res_dir)
 
     def report_error(self, msg, err=None):
         """Report an error with dialog."""

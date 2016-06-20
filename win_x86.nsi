@@ -7,6 +7,7 @@
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
 !define APP_HOME_DIR "$APPDATA\GeoMop"
+!define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
 !define PYTHON_MINOR   "4"
@@ -105,8 +106,6 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
-  CreateDirectory "${APP_HOME_DIR}"
-
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
@@ -161,11 +160,13 @@ Section "JobsScheduler" SecJobsScheduler
 
   CreateDirectory "$INSTDIR\JobsScheduler\jobs"
   CreateDirectory "$INSTDIR\JobsScheduler\log"
+  CreateDirectory "$INSTDIR\JobsScheduler\versions"
 
   # Grant jobs, lock folder permissions to Users
   ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
   ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'  
 
 SectionEnd
 
@@ -205,7 +206,7 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -222,7 +223,7 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
     SetOutPath $INSTDIR\JobsScheduler
-    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -235,19 +236,23 @@ Section "Desktop icons" SecDesktopIcons
 SectionEnd
 
 
-# TODO next version - unchecked by default
+# TODO next version - unchecked by default and solve data dir for new install
 # Section /o "Wipe settings" SecWipeSettings
 Section "Wipe settings" SecWipeSettings
 
   # Clear all configuration from APPDATA
   RMDir /r "${APP_HOME_DIR}"
   CreateDirectory "${APP_HOME_DIR}"
+  # fill data home to default resources data
+  SetOutPath "${APP_HOME_DIR}"
+  File /r "${DATA_DIR}/*"
+
 
 SectionEnd
 
 
 Section -post
-  
+ 
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
   

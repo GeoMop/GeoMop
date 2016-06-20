@@ -177,7 +177,7 @@ def test_transf():
         
         cfg.init(None)
         cfg.import_file(input)
-        cfg.transform("flow123d")
+        cfg.transform("flow123d_1.8.3_to_2.0.0_rc")
         
         with open(output) as f:
             templ = f.readlines()

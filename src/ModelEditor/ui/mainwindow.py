@@ -10,7 +10,8 @@ from helpers import LineAnalyzer
 from meconfig import cfg
 from ui import panels
 from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
-from util import Position, CursorType
+from util import CursorType
+from geomop_util import Position
 from geomop_widgets import ProjectMenu
 
 

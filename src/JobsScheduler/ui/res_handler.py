@@ -11,12 +11,13 @@ from ui.com_manager import ComType
 
 
 class ResHandler(QTimer):
+    mj_check = QtCore.pyqtSignal()
     mj_installed = QtCore.pyqtSignal(str)
     mj_queued = QtCore.pyqtSignal(str)
     mj_installation = QtCore.pyqtSignal(str)
     mj_paused = QtCore.pyqtSignal(str)
     mj_resumed = QtCore.pyqtSignal(str)
-    mj_stopped = QtCore.pyqtSignal(str)
+    mj_stopped = QtCore.pyqtSignal(str, object)
     mj_result = QtCore.pyqtSignal(str)
     mj_state = QtCore.pyqtSignal(str, object)
 
@@ -27,7 +28,7 @@ class ResHandler(QTimer):
         self.timeout.connect(self._handle_timeout)
         self.start(500)
 
-    def _handle_timeout(self):
+    def _handle_timeout(self):        
         while not self.com_manager.res_queue.empty():
             res = self.com_manager.res_queue.get()
             if res.com_type is ComType.install:
@@ -46,6 +47,7 @@ class ResHandler(QTimer):
                 if res.data:
                     self.mj_state.emit(res.key, res.data)
             elif res.com_type is ComType.stop:
-                self.mj_stopped.emit(res.key)
+                self.mj_stopped.emit(res.key, res.err)
             else:
                 raise Exception("Response type not recognized")
+        self.mj_check.emit()

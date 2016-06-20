@@ -1,0 +1,4 @@
+bc5770ea-380c-4770-a969-ff435a7cde7a: {host: hydra.kai.tul.cz, name: hydra, pbs_system: pbs_hydra,
+  port: 22, pwd: password, uid: user}
+ca835401-7d5e-4f0d-87d4-3fea98ab3322: {host: skirit.metacentrum.cz, name: metacentrum,
+  pbs_system: pbs_metacentrum, port: 22, pwd: password, uid: user}

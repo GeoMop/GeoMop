@@ -13,7 +13,7 @@ from PyQt5.QtGui import QColor
 
 from geomop_util import load_stylesheet
 from meconfig import cfg
-from data import DataNode
+from model_data import DataNode
 
 
 class TreeWidget(QtWidgets.QTreeView):

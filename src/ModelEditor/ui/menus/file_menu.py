@@ -30,6 +30,12 @@ class MainFileMenu(QMenu):
         self._open_file_action.setStatusTip('Open model yaml file')
         self._open_file_action.triggered.connect(self._model_editor.open_file)
         self.addAction(self._open_file_action)
+        
+        self._open_window_action = QAction('New &Window ...', self)
+        self._open_window_action.setShortcut(cfg.get_shortcut('open_window').key_sequence)
+        self._open_window_action.setStatusTip('Open next yaml editor window')
+        self._open_window_action.triggered.connect(self._model_editor.open_window)
+        self.addAction(self._open_window_action)
 
         self._save_file_action = QAction('&Save File', self)
         self._save_file_action.setShortcut(cfg.get_shortcut('save_file').key_sequence)

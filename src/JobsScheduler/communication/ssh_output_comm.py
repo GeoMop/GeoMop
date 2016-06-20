@@ -124,7 +124,7 @@ else:
             """connect session"""
             self.ssh = pxssh.pxssh()
             try:
-                self.ssh.login(self.host, self.name, self.password)            
+                self.ssh.login(self.host, self.name, self.password, check_local_ip=False)            
                 self.ssh.setwinsize(128,512)
                 self.last_mess = None
                 self._connected = True
@@ -183,23 +183,25 @@ else:
             self.ssh.sendline("cd " + self.installation.copy_path)
             if self.ssh.prompt():
                 mess = str(self.ssh.before, 'utf-8').strip()
-                if mess != ("cd " + self.installation.copy_path):
-                    logger.warning("Exec python file: " + mess) 
+                if mess != ("cd " + self.installation.copy_path) and mess != "":
+                    logger.warning("Cd to exec python file error: " + mess) 
                     
             logger.debug("Exec command over SSH: " + 
                 self.installation.get_command(python_file, mj_name, mj_id))        
             self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
             self.ssh.expect( self.installation.python_env.python_exec + ".*\r\n")
-            
-            lines = str(self.ssh.after, 'utf-8').splitlines(False)            
-            del lines[0]
-            error_lines = []
-            for line in lines:
-                line = self.strip_pexpect_echo( line.strip())
-                if len(line)>0:
-                    error_lines.append(line)
-            if len(error_lines)>0:
-                logger.warning("Run python file: " + "\n".join( error_lines)) 
+
+            txt = ''
+            if len(self.ssh.before)>0:
+                try:
+                    txt = str(self.ssh.read_nonblocking(size=10000, timeout=5), 'utf-8')
+                except pexpect.TIMEOUT:
+                    return None
+                if len(txt)>0:   
+                    logger.error("Run python file: " + "\n" + txt) 
+                    if "No such file or directory" in txt:
+                        raise Exception("Can not start next communicator " + python_file + 
+                            " (No such file or directory)")    
 
         def send(self,  mess):
             """send json message"""
@@ -276,8 +278,13 @@ else:
             
         def _get_sftp(self):
             """return sftp connection"""
-            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host)
-            res = sftp.expect(['.*assword:', 'sftp> '])
+            sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=15)
+            try:
+                res = sftp.expect(['.*assword:', 'sftp> '])
+            except pexpect.TIMEOUT:
+                sftp.kill(0)
+                sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=30)
+                res = sftp.expect(['.*assword:', 'sftp> '])
             if res == 0:
                 # password requaried
                 sftp.sendline(self.password)

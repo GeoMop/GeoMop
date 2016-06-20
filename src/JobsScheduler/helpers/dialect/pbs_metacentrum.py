@@ -4,9 +4,6 @@ Dialect for specific Metacentrum PBS environment.
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
-
-import re
-
 __dialect_name__ = "Metacentrum"
 __dialect_class__ = "PbsDialect"
 __queue_file__ = "meta_queues.txt"
@@ -34,6 +31,8 @@ class PbsDialect:
                           pbs_config.name + "/pbs_output")
         directives.append("#PBS -e " + mj_path + "/" +
                           pbs_config.name + "/pbs_error")
+        directives.append("#PBS -d " + mj_path + "/" +
+                          pbs_config.name)
 
         # PBS -N name
         if pbs_config.name:
@@ -53,4 +52,29 @@ class PbsDialect:
         if pbs_config.scratch:
             directives.append("#PBS -l scratch=%s" % pbs_config.scratch)
 
+        # PBS -q queue
+        if pbs_config.queue:
+            directives.append("#PBS -q %s" % pbs_config.queue)
+
         return directives
+    
+    @staticmethod
+    def get_qsub_args():
+        """Return qsub arguments in list"""
+        return []
+        
+    @staticmethod
+    def get_outpup_file(path):
+        """
+        return output file if is specific, None for standart output file from
+        -o parameter
+        
+        Torque return output file after pbs job clossing - set alternative file
+        """
+        import os
+        file = path + "/pbs_output_alt"
+        if  not os.path.isfile(file):
+            # try standart file
+            return None
+        return file
+

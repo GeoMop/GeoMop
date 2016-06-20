@@ -40,7 +40,7 @@ class ConfigBuilder:
         id new configuration is reloaded.
         """
 
-    def build(self, key):
+    def build(self, key, analysis):
         """
         Build json config files into the ./jobs/mj_name/mj_conf
         :param key: Identification of preset.
@@ -76,14 +76,23 @@ class ConfigBuilder:
 
         # make conf
         mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
-        mj_dialect = mj_ssh_preset.pbs_system if hasattr(mj_ssh_preset, "pbs_system") else None
+        if hasattr(mj_ssh_preset, "pbs_system"):
+           mj_dialect = mj_ssh_preset.pbs_system
+        else:
+            mj_dialect = None
         mj_pbs = ConfFactory.get_pbs_conf(mj_pbs_preset, True, pbs_params=mj_env.pbs_params,
                                           dialect=mj_dialect)
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
         j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
-        j_dialect = j_ssh_preset.pbs_system if hasattr(j_ssh_preset, "pbs_system") else None
+        if hasattr(j_ssh_preset, "pbs_system"):
+            j_dialect = j_ssh_preset.pbs_system
+        elif hasattr(mj_ssh_preset, "pbs_system"):
+            # for PBS -> PBS dialect from mj ssh preset
+            j_dialect = mj_ssh_preset.pbs_system
+        else:
+            j_dialect = None        
         if (res_preset.mj_execution_type == UiResourceDialog.EXEC_LABEL and
                 res_preset.j_execution_type == UiResourceDialog.PBS_LABEL) or \
                 (res_preset.mj_execution_type == UiResourceDialog.PBS_LABEL and
@@ -202,12 +211,12 @@ class ConfigBuilder:
                 job_file, job.get_conf())
 
         # build job configuration
-        self._build_jobs_config(mj_name)
+        self._build_jobs_config(mj_name, analysis)
 
         # return app_config, it is always entry point for next operations
         return app.get_conf()
 
-    def _build_jobs_config(self, mj_name):
+    def _build_jobs_config(self, mj_name, analysis):
         """Create jobs and associate them with individual configuration files."""
         jobs = {}
         mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
@@ -227,6 +236,8 @@ class ConfigBuilder:
         for root, directories, filenames in os.walk(mj_dir):
             for filename in filenames:
                 if filename.endswith('.yaml'):
+                    if analysis is None or not filename in analysis.files:
+                        continue
                     abs_path = os.path.join(root, filename)
                     rel_path = os.path.relpath(abs_path, start=mj_dir)
                     # windows path workaround

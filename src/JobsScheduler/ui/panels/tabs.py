@@ -5,8 +5,6 @@ Table of MultiJobs
 @contact: jan.gabriel@tul.cz
 """
 import datetime
-import time
-import os
 from PyQt5 import QtCore
 
 import PyQt5.QtWidgets as QtWidgets

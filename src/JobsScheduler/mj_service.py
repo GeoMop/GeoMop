@@ -6,9 +6,18 @@ import logging
 import json
 import os
 
-sys.path.insert(1, './twoparty/pexpect')
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+__pexpect_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/pexpect")
+__enum_dir__ = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "twoparty/enum")
+
+sys.path.insert(1, __pexpect_dir__)
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(2, './twoparty/enum')
+    sys.path.insert(2, __enum_dir__)
+if sys.platform == "win32":
+    sys.path.insert(2, __lib_dir__)
 
 from communication import JobsCommunicator
 import data.communicator_conf as comconf
@@ -87,10 +96,12 @@ except Exception as error:
 
 jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
 jobs_to_exec = list(jobs.keys())
-
+count = len(jobs)
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
-comunicator.set_start_jobs_count(2, 0)
+logger.debug("Set counter to {0} jobs".format(str(count)))
+comunicator.set_start_jobs_count(count, 0)
+
 if __name__ != "mj_service":
     # no doc generation
     comunicator.run()

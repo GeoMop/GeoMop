@@ -63,6 +63,11 @@ class Installation:
         Long id of configuration. If  in remote installation is different
         id new configuration is reloaded
         """
+        self.instalation_fails_mess = None        
+        """
+        if installation fail, this variable contain instalation message,
+        that is send.
+        """
         
     def set_env_params(self, python_env,  libs_env):
         """Set install specific settings"""
@@ -152,8 +157,6 @@ class Installation:
         if sys.platform == "win32":
             self.copy_path = conn.pwd() + '/' + __root_dir__
         else:
-            import pexpect
-
             conn.sendline('pwd')
             conn.expect(".*pwd\r\n")
             self.copy_path = str(conn.readline(), 'utf-8').strip() + '/' + __root_dir__
@@ -256,8 +259,21 @@ class Installation:
                     return False, True
                 if res == "2" or res == "3":
                     return True, True
-        else:
+        else:            
             import pexpect   
+            
+            command_test = self.python_env.python_exec + " "
+            command_test += '"' + self.copy_path + '/' + __lock_file__ + '" '
+            command_test += "test"
+                        
+            ssh.sendline(command_test)
+            res = ssh.expect( ["ok", pexpect.TIMEOUT], timeout=5)
+            if res>0:
+                logger.error("Lock error:" + str(ssh.before,'utf-8').strip())
+                ssh.prompt()
+                self.instalation_fails_mess = "Can't run lock file in python environment"
+                return False, False                
+            
             logger.debug("Command:" + command)
             ssh.sendline(command)
             res = ssh.expect( ["--0--", "--1--", "--2--", "--3--", "---1--", pexpect.TIMEOUT], timeout=360)
@@ -266,6 +282,9 @@ class Installation:
                 return False, True
             if res == 2 or res == 3:
                 return True, True
+            if res>3:                
+                logger.warning("Lock error:" + str(ssh.before,'utf-8').strip())
+                ssh.prompt()
         return False, False
 
     def copy_data_files(self, conn, ssh):
@@ -671,12 +690,12 @@ class Installation:
         if self.python_env.scl_enable_exec is not None:
             res.append("scl enable " + self.python_env.scl_enable_exec + " bash")
         if self.python_env.module_add is not None:
-            res.append("module add" + self.python_env.module_add)
+            res.append("module add " + self.python_env.module_add)
         if self.libs_env.start_job_libs:
             if self.libs_env.mpi_scl_enable_exec is not None:
                 res.append("scl enable" + self.libs_env.mpi_scl_enable_exec +" bash")
             if self.libs_env.mpi_module_add is not None:
-                res.append("module add" + self.libs_env.mpi_module_add)  
+                res.append("module add " + self.libs_env.mpi_module_add)  
         return res        
 
     @classmethod
