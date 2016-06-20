@@ -69,6 +69,8 @@ class JobsCommunicator(Communicator):
             return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
+            if mess is not None and mess.action_type == tdata.ActionType.error:
+                return resent, mess
             if self.is_installed():
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
@@ -148,6 +150,7 @@ class JobsCommunicator(Communicator):
                         self.ready_jobs[id] = self.jobs[id]
                         self.jobs[id].state_stopped()
                         self.job_outputs[id].disconnect()
+                        self.delete_connection(id)
                         del self.jobs[id]
                         del self.job_outputs[id]
                 return
@@ -193,15 +196,17 @@ class JobsCommunicator(Communicator):
                         self.job_outputs[id].port = mess.get_action().data.data['port']
                         if self._connect_socket(self.job_outputs[id], 1):
                             self._job_running()
+                            self.save_connection(self.job_outputs[id].host, self.job_outputs[id].port, id)
                         make_custom_action = False                       
         else:
             for id in self.jobs:
                 # connect
                 if not self.job_outputs[id].isconnected() and self.job_outputs[id].initialized:
                     self.jobs[id].state_start()
-                    self._connect_socket(self.job_outputs[id], 1)
-                    make_custom_action = False
-                    self._job_running()
+                    if  self._connect_socket(self.job_outputs[id], 1):
+                        self._job_running()
+                        self.save_connection(self.job_outputs[id].host, self.job_outputs[id].port, id)
+                    make_custom_action = False                    
         if make_custom_action:
             # get status
             if self.conf.output_type != comconf.OutputCommType.ssh or \
@@ -216,6 +221,7 @@ class JobsCommunicator(Communicator):
                     self._last_check_id = id
                     if mess is not None and mess.action_type == tdata.ActionType. job_state:
                         if mess.get_action().data.data['ready']:
+                            ret_code = mess.get_action().data.data["return_code"]
                             action=tdata.Action(tdata.ActionType.stop)
                             logger.debug("Stop message to ready job " + id + " is sent")
                             self.job_outputs[id].send(action.get_message())
@@ -223,8 +229,13 @@ class JobsCommunicator(Communicator):
                             logger.debug("Answer to stop nessage is receive (" + str(mess) + ')')
                             if mess is not None and mess.action_type == tdata.ActionType.ok:
                                 self.ready_jobs[id] = self.jobs[id]
-                                self.jobs[id].state_ready()
+                                if ret_code==0:
+                                    self.jobs[id].state_ready()
+                                else:
+                                    self.jobs[id].state_error()
                                 self.job_outputs[id].disconnect()
+                                if self.conf.output_type != comconf.OutputCommType.ssh:
+                                    self.delete_connection(id)                                    
                                 del self.jobs[id]
                                 del self.job_outputs[id]
                                 self._job_ready()
@@ -358,7 +369,7 @@ class JobsCommunicator(Communicator):
         """change state to ready"""
         self._mj_state.run_interval = int(time.time() - self._mj_state.start_time )
         self._mj_state.status = TaskStatus.ready
-        
+       
     def _state_stopping(self):
         """change state to stopping"""        
         self._mj_state.status = TaskStatus.stopping
@@ -383,6 +394,8 @@ class JobsCommunicator(Communicator):
         else:
             self._mj_state.known_jobs = known
             self._mj_state.estimated_jobs = estimated
+            if known==0 and estimated==0: 
+                self._state_ready()
 
     def _job_running(self):
         "One process is moved from known to running state"

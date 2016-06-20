@@ -1,7 +1,6 @@
 from meconfig import cfg
 from meconfig.meconfig import _Config as Config
-from data.yaml import Loader
-from helpers import NotificationHandler
+from model_data import Loader, NotificationHandler
 
 
 def set_empty_config():

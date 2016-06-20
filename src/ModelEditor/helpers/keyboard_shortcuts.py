@@ -146,6 +146,7 @@ DEFAULT_USER_SHORTCUTS = {
     # menu actions
     'new_file': 'Ctrl+N',
     'open_file': 'Ctrl+O',
+    'open_window': 'Ctrl+W',
     'save_file': 'Ctrl+S',
     'save_file_as': 'Ctrl+Shift+S',
     'import_file': 'Ctrl+I',
@@ -167,6 +168,7 @@ SHORTCUT_LABELS = {
     # menu actions
     'new_file': 'New file',
     'open_file': 'Open file',
+    'open_window': 'Open window',
     'save_file': 'Save file',
     'save_file_as': 'Save file as',
     'import_file': 'Import file',

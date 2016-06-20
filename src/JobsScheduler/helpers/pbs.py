@@ -57,11 +57,24 @@ class Pbs():
         f.close()
 
     def get_qsub_args(self):
+        """Get arguments for qsub function"""
+        if self.config.dialect:
+            imp = DialectImporter.get_dialect_by_name(self.config.dialect)
+            args = imp.PbsDialect.get_qsub_args()
+            args.insert(0, "qsub")
+            args.append(self.mj_path + "/" + self.config.name + "/com.qsub")
+            return args
         return ["qsub", "-pe", "orte", "1", self.mj_path + "/" + self.config.name + "/com.qsub"]
         
     def get_outpup(self):
-        if  os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_output"):
-            f = open(self.mj_path + "/" + self.config.name + "/pbs_output", 'r')
+        """Get pbs output file contens"""
+        if self.config.dialect:
+            imp = DialectImporter.get_dialect_by_name(self.config.dialect)
+            file = imp.PbsDialect.get_outpup_file(self.mj_path + "/" + self.config.name)
+        if file is None:
+            file = self.mj_path + "/" + self.config.name + "/pbs_output"
+        if  os.path.isfile(file):
+            f = open(file, 'r')
             lines = f.read().splitlines(False)
             f.close()
             if len(lines) == 0 or (len(lines) == 1 and \
@@ -71,6 +84,7 @@ class Pbs():
         return None
     
     def get_errors(self):
+        """Get pbs error file contens"""
         if  os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_error"):
             f = open(self.mj_path + "/" + self.config.name + "/pbs_error", 'r')
             error = f.read()
