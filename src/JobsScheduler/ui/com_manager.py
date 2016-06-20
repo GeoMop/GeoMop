@@ -13,6 +13,7 @@ from enum import IntEnum
 from multiprocessing import Queue
 from data.states import TaskStatus
 
+
 class ComManager:
     """
     Usage:
@@ -52,17 +53,20 @@ class ComManager:
         self.jobs_change_jobs=[]
         """array of jobs ids, that have changed jobs state"""
         
-    def check(self):
+    def poll(self):
         """
-        This function plan and make all needed action in main thread.
-        Call this function in some period
+        This function plans and makes all the needed actions in the main thread.
+        Function should be called periodically from the UI.
         """
+        pass
         
-    def resume_all(self):
-        """resume all running and starting jobs"""
+    def pause_all(self):
+        """Pause all running and starting jobs (use when app is closing)."""
+        pass
         
     def stop_all(self):
         """stop all running and starting jobs"""
+        pass
         
     # next funcion will be delete after refactoring
 
@@ -143,7 +147,7 @@ class ComManager:
         return self._workers[key].com
         
     def check_workers(self):
-        """Check processis, end terminate finished"""
+        """Check processes, end terminate finished"""
         for key, worker in self._workers.items():
             if worker.is_stopped():
                 del self._workers[key]
