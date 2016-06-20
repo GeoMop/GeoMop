@@ -25,7 +25,7 @@ def test_pipeline_code_init():
     test=pipeline._get_settings_script()
     
 #    compare_with_file(os.path.join("pipeline", "results", "workflow1.py"), test)
-#   exec ('\n'.join(test), globals())
+#    exec ('\n'.join(test), globals())
 #    assert Flow123d_3._variables['YAMLFile'] == flow._variables['YAMLFile']
     
     # test validation
