@@ -10,6 +10,10 @@ import communication.installation as inst
 from ui.data.config_builder import ConfigBuilder
 from ui.com_worker import ComWorker
 from data.states import TaskStatus
+from geomop_project import Project
+import shutil
+import os
+import flow_util
 
 
 class ComManager:
@@ -97,9 +101,9 @@ class ComManager:
         """start first job in queue and return True else return False"""
         for  key in  self.start_jobs:
             if not key in self._workers:
-                mj = self.data.multijobs[key]
+                mj = self._data_app.multijobs[key]
                 analysis = self._reload_project(mj)
-                conf_builder = ConfigBuilder(self.data)
+                conf_builder = ConfigBuilder(self._data_app)
                 app_conf = conf_builder.build(key, analysis)
                 com = Communicator(app_conf)
                 worker = ComWorker(key, com)
@@ -107,12 +111,57 @@ class ComManager:
                 worker.start()
                 return True
         return False
+        
+    def _reload_project(self, data):
+        """reload project files and return analysis"""
+        # sync mj analyses + files
+        analysis = None
+        if Project.current is not None:
+            mj_name = data.preset.name
+            mj_dir =inst.Installation.get_config_dir_static(mj_name)
+            proj_dir = Project.current.project_dir
+            
+            # get all files used by analyses
+            files = []
+            for analysis in Project.current.get_all_analyses():
+                files.extend(analysis.files)
+
+            analysis = Project.current.get_current_analysis()
+            assert analysis is not None, "No analysis file exists for the project!"
+
+            # copy the entire folder
+            shutil.rmtree(mj_dir, ignore_errors=True)
+            try:
+                shutil.copytree(proj_dir, mj_dir)
+                # remove result dir
+                shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
+                    ignore_errors=True)
+                # remove project file
+                os.remove(os.path.join(mj_dir,".project"))
+            # Directories are the same
+            except shutil.Error as e:
+                ComWorker.get_loger().error("Failed to copy project dir: " + str(e))
+            # Any error saying that the directory doesn't exist
+            except OSError as e:
+                ComWorker.get_loger().error("Failed to copy project dir: " + str(e))
+
+            # fill in parameters and copy the files
+            for file in set(files):
+                src = os.path.join(proj_dir, file)
+                dst = os.path.join(mj_dir, file)
+                # create directory structure if not present
+                dst_dir = os.path.dirname(dst)
+                if not os.path.isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
+        return analysis
+
 
     def _resume_first(self):
         """resume first job in queue and return True else return False"""
         for  key in  self.resume_jobs:
             if not key in self._workers:
-                mj = self.data.multijobs[key]
+                mj = self._data_app.multijobs[key]
                 mj_name = mj.preset.name
                 com_conf = comconf.CommunicatorConfig(mj_name)
                 directory = inst.Installation.get_config_dir_static(mj_name)
@@ -171,7 +220,7 @@ class ComManager:
                     worker.init_update()
                     delete_key.append(key)
                 elif worker.is_interupted(self) or worker.is_error(self):
-                    mj = self.data.multijobs[key]
+                    mj = self._data_app.multijobs[key]
                     if worker.is_interupted(self):
                         mj.get_state().set_status(TaskStatus.interupted)
                     else:
@@ -200,7 +249,7 @@ class ComManager:
                     worker.init_update()
                     delete_key.append(key)
                 elif worker.is_interupted(self) or worker.is_error(self):
-                    mj = self.data.multijobs[key]
+                    mj = self._data_app.multijobs[key]
                     if worker.is_interupted(self):
                         mj.get_state().set_status(TaskStatus.interupted)
                     else:
@@ -227,7 +276,7 @@ class ComManager:
                 if worker.is_stopped():
                     self.run_jobs.append(key)
                     delete_key.append(key)
-                    mj = self.data.multijobs[key]
+                    mj = self._data_app.multijobs[key]
                     if worker.is_error(self):
                         mj.get_state().set_status(TaskStatus.error)
                     else:
@@ -254,7 +303,7 @@ class ComManager:
                 if worker.is_stopped():
                     self.run_jobs.append(key)
                     delete_key.append(key)
-                    mj = self.data.multijobs[key]
+                    mj = self._data_app.multijobs[key]
                     if worker.is_error(self):
                         mj.get_state().set_status(TaskStatus.error)
                     else:

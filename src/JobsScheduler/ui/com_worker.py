@@ -44,7 +44,11 @@ class ComWorker(threading.Thread):
 
     def __init__(self, key, com):            
         super().__init__(name=com.mj_name)
+        self._error = None
+        """if returned state is error, this variable contain error message"""
+        
         self.is_stopping = False
+        
         self.key = key
         self.com = com
         self.is_ready = threading.Event()
@@ -72,7 +76,7 @@ class ComWorker(threading.Thread):
     def is_started(self):
         """return if communication is started"""
         
-    def is_iterupted(self):
+    def is_interupted(self):
         """return if communication is interupted"""
         
     def is_error(self):
@@ -97,6 +101,9 @@ class ComWorker(threading.Thread):
         """return if communicator is terminated"""
         
     def init_update(self):
+        """get state and download all files"""
+        
+    def get_error(self):
         """get state and download all files"""
 
 
