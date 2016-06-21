@@ -59,7 +59,7 @@ def test_pipeline_code_init():
     pipeline._inicialize()
     test = pipeline._get_settings_script()
 
-    #compare_with_file(os.path.join("pipeline", "results", "workflow2.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow2.py"), test)
 
     # test validation
     err = pipeline.validate()

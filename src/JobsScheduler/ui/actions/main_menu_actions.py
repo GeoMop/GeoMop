@@ -64,14 +64,6 @@ class ActionRunMultiJob(QtWidgets.QAction):
         self.setObjectName("actionRunMultiJob")
 
 
-class ActionPauseMultiJob(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("Pause")
-        self.setShortcut("Ctrl+P")
-        self.setObjectName("actionPauseMultiJob")
-
-
 class ActionResumeMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -86,14 +78,6 @@ class ActionStopMultiJob(QtWidgets.QAction):
         self.setText("Stop")
         self.setShortcut("Ctrl+S")
         self.setObjectName("actionStopMultiJob")
-
-
-class ActionRestartMultiJob(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("Restart")
-        self.setShortcut("Ctrl+E")
-        self.setObjectName("actionRestartMultiJob")
 
 
 class ActionSshPresets(QtWidgets.QAction):

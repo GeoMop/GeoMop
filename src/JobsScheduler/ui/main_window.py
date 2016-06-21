@@ -20,7 +20,6 @@ from data.states import TaskStatus
 from communication import installation
 from threading import Timer
 from ui.actions.main_menu_actions import *
-from ui.data.config_builder import ConfigBuilder
 from ui.data.mj_data import MultiJob, MultiJobActions, AMultiJobFile
 from ui.data.preset_data import Id
 from ui.dialogs import AnalysisDialog, FilesSavedMessageBox, MessageDialog
@@ -30,8 +29,6 @@ from ui.dialogs.options_dialog import OptionsDialog
 from ui.dialogs.pbs_presets import PbsPresets
 from ui.dialogs.resource_presets import ResourcePresets
 from ui.dialogs.ssh_presets import SshPresets
-from ui.req_scheduler import ReqScheduler
-from ui.res_handler import ResHandler
 from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
@@ -47,35 +44,25 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     Jobs Scheduler main window class
     """
+
+    DEFAULT_POLL_INTERVAL = 500
+    """default polling interval in ms"""
+
     multijobs_changed = QtCore.pyqtSignal(dict)
 
 
     @QtCore.pyqtSlot()
     def resume_paused_multijobs(self):
         for key, mj in self.data.multijobs.items():
-            try:
-                status = mj.get_state().status
-                if status == TaskStatus.paused:
-                    # create com worker
-                    analysis = self._reload_project(mj)
-                    conf_builder = ConfigBuilder(self.data)
-                    app_conf = conf_builder.build(key, analysis)
-                    com = Communicator(app_conf)
-                    self.com_manager.create_worker(key, com)
-                    # resume
-                    MultiJobActions.resuming(mj)
-                    self.ui.overviewWidget.update_item(key, mj.get_state())
-                    self.com_manager.resume(key)
-            except Exception:
-                pass
-        self.resume_dialog.can_close = True
-        self.resume_dialog.close()
+            status = mj.get_state().status
+            if status == TaskStatus.paused:
+                self.com_manager.resume_jobs.append(key)
 
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
         self.close_dialog = None
         # setup UI
-        self.can_close = False
+        self.closing = False
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
@@ -87,39 +74,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 mj.get_state().set_status(TaskStatus.paused)
             if status == TaskStatus.stopping:
                 mj.get_state().set_status(TaskStatus.paused)        
-        
+
+        # Com Manager related
         self.com_manager = com_manager
-        self.req_scheduler = ReqScheduler(parent=self,
-                                          com_manager=self.com_manager)
-        self.res_handler = ResHandler(parent=self,
-                                      com_manager=self.com_manager)
 
-        self.res_handler.mj_check.connect(
-            self.handle_mj_check)
+        self.cm_poll_interval = MainWindow.DEFAULT_POLL_INTERVAL
+        """current com manager polling interval in ms"""
 
-        self.res_handler.mj_installed.connect(
-            self.handle_mj_installed)
-
-        self.res_handler.mj_installation.connect(
-            self.handle_mj_installation)
-
-        self.res_handler.mj_queued.connect(
-            self.handle_mj_queued)
-
-        self.res_handler.mj_result.connect(
-            self.handle_mj_result)
-
-        self.res_handler.mj_state.connect(
-            self.handle_mj_state)
-
-        self.res_handler.mj_paused.connect(
-            self.handle_mj_paused)
-
-        self.res_handler.mj_resumed.connect(
-            self.handle_mj_resumed)
-
-        self.res_handler.mj_stopped.connect(
-            self.handle_mj_stopped)
+        self.cm_poll_timer = QtCore.QTimer()
+        self.cm_poll_timer.timeout.connect(self.com_manager.poll)
+        self.cm_poll_timer.start(self.cm_poll_interval)
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
@@ -200,10 +164,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.multiJob.actionRunMultiJob.triggered.connect(
             self._handle_run_multijob_action)
 
-        # connect multijob stop action
-        self.ui.menuBar.multiJob.actionPauseMultiJob.triggered.connect(
-            self._handle_pause_multijob_action)
-
         # connect multijob resume action
         self.ui.menuBar.multiJob.actionResumeMultiJob.triggered.connect(
             self._handle_resume_multijob_action)
@@ -211,10 +171,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect multijob stop action
         self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
             self._handle_stop_multijob_action)
-
-        # connect multijob restart action
-        self.ui.menuBar.multiJob.actionRestartMultiJob.triggered.connect(
-            self._handle_restart_multijob_action)
 
         # connect create analysis
         self.ui.menuBar.analysis.actionCreateAnalysis.triggered.connect(
@@ -247,15 +203,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.config.notify()
 
         # resume paused multijobs
-
-        self.resume_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_RESUME)
-        self.resume_dialog.show()
-        self.resume_dialog.activateWindow()
-        # These solutions work, but prevent proper end of a process when mainwindow is closed.
-        # Timer(0.5, lambda: QtCore.QMetaObject.invokeMethod(
-        #     self, "resume_paused_multijobs", Qt.QueuedConnection)).start()
-        QtCore.QTimer.singleShot(500, self.resume_paused_multijobs)
-        # self.resume_paused_multijobs()
+        self.resume_paused_multijobs()
 
     def load_settings(self):
         # select last selected mj
@@ -387,57 +335,17 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        mj = self.data.multijobs[key]
-        MultiJobActions.run(mj)
-
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-        self.update_ui_locks(current)
-
-        analysis = self._reload_project(mj)
-        conf_builder = ConfigBuilder(self.data)
-        app_conf = conf_builder.build(key, analysis)
-        Communicator.lock_installation(app_conf)
-        com = Communicator(app_conf)
-        self.com_manager.install(key, com)
-        Communicator.unlock_installation(com.mj_name)
-
-        # reload tabs
-        self.ui.tabWidget.reload_view(mj)
-
-    def _handle_pause_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
-        key = current.text(0)
-        mj = self.data.multijobs[key]
-        MultiJobActions.pausing(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        self.update_ui_locks(current)
-
-        self.com_manager.pause(key)
+        self.com_manager.start_jobs.append(key)
 
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        mj = self.data.multijobs[key]
-        MultiJobActions.resuming(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        self.update_ui_locks(current)
-
-        self.com_manager.resume(key)
+        self.com_manager.resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        mj = self.data.multijobs[key]
-        MultiJobActions.stopping(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        self.update_ui_locks(current)
-
-        self.com_manager.stop(key)
-        Communicator.unlock_application(
-            self.com_manager.get_communicator(key).mj_name)
+        self.com_manager.stop_jobs.append(key)
 
     def _handle_create_analysis(self):
         # is project selected?
@@ -463,122 +371,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_options(self):
         OptionsDialog(self, self.data.config).show()
-
-    def handle_terminate(self):
-        mj = self.data.multijobs
-        for key in mj:
-            state = mj[key].get_state()
-            if state.get_status() == TaskStatus.running:
-                state.set_status(TaskStatus.none)
-        self.com_manager.terminate()
-
-        # save currently selected mj
-        current = self.ui.overviewWidget.currentItem()
-        sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
-        self.data.config.selected_mj = sel_index
-
-    def _handle_restart_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
-        key = current.text(0)
-        mj = self.data.multijobs[key]
-        MultiJobActions.stopping(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        self.update_ui_locks(current)
-        self.com_manager.stop(key)
-        while True:
-            if self.com_manager.check_workers() ==key:
-                break
-            timer.sleep(1)
-        
-        Communicator.unlock_application(
-            self.com_manager.get_communicator(key).mj_name)
-        self.update_ui_locks(current)
-        self.handle_mj_installation(key)
-        
-    def handle_mj_check(self):
-        """Check processis, end terminate finished"""
-        while True:
-            if self.com_manager.check_workers() is None:
-                break
-
-    def handle_mj_installed(self, key):
-        """
-        next communicator and connection to it is installed, 
-        send install message to others communicator  
-        """
-        mj = self.data.multijobs[key]
-        MultiJobActions.running(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_installation(self, key):
-        """Install next communicator and connection to it"""
-        mj = self.data.multijobs[key]
-        MultiJobActions.installation(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_queued(self, key):
-        mj = self.data.multijobs[key]
-        MultiJobActions.queued(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_paused(self, key):
-        mj = self.data.multijobs[key]
-        MultiJobActions.paused(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_resumed(self, key):
-        mj = self.data.multijobs[key]
-        MultiJobActions.resumed(mj)
-        self.ui.overviewWidget.update_item(key, mj.get_state())
-
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_stopped(self, key, err):
-        mj = self.data.multijobs[key]
-        if mj.state.status is not TaskStatus.finished:
-            MultiJobActions.stopped(mj)
-            self.ui.overviewWidget.update_item(key, mj.get_state())
-        if err is not None:
-            mj.get_state().set_status(TaskStatus.error)
-            self.ui.overviewWidget.update_item(key, mj.get_state())
-        current = self.ui.overviewWidget.currentItem()
-        self.update_ui_locks(current)
-
-    def handle_mj_state(self, key, state):
-        mj = self.data.multijobs[key]
-        if state.status == TaskStatus.running:
-            mj.get_state().update(state)
-            self.ui.overviewWidget.update_item(key, mj.get_state())
-        elif state.status == TaskStatus.ready:
-            mj.get_state().update(state)
-            MultiJobActions.finished(mj)
-            self.ui.overviewWidget.update_item(key, mj.get_state())
-
-            current = self.ui.overviewWidget.currentItem()
-            self.update_ui_locks(current)
-            self.com_manager.finish(key)
-            Communicator.unlock_application(
-                self.com_manager.get_communicator(key).mj_name)
-
-    def handle_mj_result(self, key):
-        mj = self.data.multijobs[key]
-        current = self.ui.overviewWidget.currentItem()
-        if current.text(0) == key:
-            self.ui.tabWidget.reload_view(mj)
 
     def _handle_save_results_button_clicked(self):
         src_dir_path = os.path.join(installation.__install_dir__,
@@ -703,42 +495,36 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.config.save()
 
     def closeEvent(self, event):
-        if self.can_close:
-            event.accept()
-            return
+        if not self.closing:
+            self.closing = True
 
-        def check_if_all_mj_paused():
-            all_paused = True
-            for key, mj in self.data.multijobs.items():
-                status = mj.get_state().status
-                if status in (TaskStatus.installation, TaskStatus.resuming, TaskStatus.pausing):
-                    # wait for finish
-                    all_paused = False
-                elif status == TaskStatus.running:
-                    # pause mj
-                    MultiJobActions.pausing(mj)
-                    self.ui.overviewWidget.update_item(key, mj.get_state())
-                    self.com_manager.pause(key)
-                    all_paused = False
+            # save currently selected mj
+            current = self.ui.overviewWidget.currentItem()
+            sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
+            self.data.config.selected_mj = sel_index
 
-            if not all_paused:
-                Timer(1, check_if_all_mj_paused).start()
-                return False
+            # pause all jobs
+            self.com_manager.pause_all()
+            self.cm_poll_interval = 200
 
-            if self.close_dialog:
-                self.close_dialog.can_close = True
-                self.close_dialog.close()
-            self.can_close = True
-            self.close()
-            return True
+            # TODO in com_manager.poll() call close() when run_jobs is empty
 
-        if not check_if_all_mj_paused():
+            # show closing dialog
             self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)
             self.close_dialog.show()
             self.close_dialog.activateWindow()
+
             event.ignore()
-        else:
+
+        elif not self.com_manager.run_jobs:
+            # all jobs have been paused, close window
+            if self.close_dialog:
+                self.close_dialog.can_close = True
+                self.close_dialog.close()
+
             event.accept()
+        else:
+            event.ignore()
 
 
 class UiMainWindow(object):
