@@ -142,12 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.resource_presets_dlg.show)
         self.resource_presets_dlg.presets_changed.connect(
             self.data.resource_presets.save)
-        self.pbs_presets_dlg.presets_changed.connect(
-            self.resource_presets_dlg.presets_dlg.set_pbs_presets)
-        self.ssh_presets_dlg.presets_changed.connect(
-            self.resource_presets_dlg.presets_dlg.set_ssh_presets)
-        self.env_presets_dlg.presets_changed.connect(
-            self.resource_presets_dlg.presets_dlg.set_env_presets)
 
         # project menu
         self.ui.menuBar.project.config = self.data.config

@@ -9,7 +9,6 @@ import PyQt5.QtWidgets as QtWidgets
 import ui.actions.main_menu_actions as action
 from data.states import TaskStatus
 from geomop_widgets import ProjectMenu
-from ui.data.data_structures import DataContainer
 
 
 class MainMenuBar(QtWidgets.QMenuBar):

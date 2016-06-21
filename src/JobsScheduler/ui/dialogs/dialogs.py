@@ -52,6 +52,11 @@ class AFormDialog(QtWidgets.QDialog):
     # custom accept signal
     accepted = QtCore.pyqtSignal(dict, dict)
 
+    def __init__(self, old_name=None):
+        """initialize"""
+        super(AFormDialog, self).__init__()
+        self.old_name = old_name
+
     def accept(self):
         """
         Accepts the form if all data fields are valid.
@@ -103,7 +108,7 @@ class AFormDialog(QtWidgets.QDialog):
         :return: dialog.exec()
         """
         self.set_purpose(purpose)
-        self.set_data(data)
+        self.set_data(data, is_edit=(purpose == self.PURPOSE_EDIT))
         return self.exec()
 
     def exec_add(self):
@@ -248,6 +253,7 @@ class APresetsDialog(QtWidgets.QDialog):
             self.ui.presets.resizeColumnToContents(2)
 
     def _handle_add_preset_action(self):
+        self.create_dialog()
         self.presets_dlg.exec_add()
 
     def _handle_edit_preset_action(self):
@@ -255,9 +261,9 @@ class APresetsDialog(QtWidgets.QDialog):
             key = self.ui.presets.currentItem().text(0)
             preset = self.presets[key]
             data = {
-                "key": key,
                 "preset": preset
             }
+            self.create_dialog()
             self.presets_dlg.exec_edit(data)
 
     def _handle_copy_preset_action(self):
@@ -270,6 +276,7 @@ class APresetsDialog(QtWidgets.QDialog):
                 "key": key,
                 "preset": preset
             }
+            self.create_dialog()
             self.presets_dlg.exec_copy(data)
 
     def _handle_delete_preset_action(self):
@@ -279,11 +286,10 @@ class APresetsDialog(QtWidgets.QDialog):
             self.presets_changed.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
-        if purpose != self.presets_dlg.PURPOSE_EDIT:
-            key = Id.get_id()
-            self.presets[key] = data["preset"]
-        else:
-            self.presets[data["key"]] = data["preset"]
+        if purpose == self.presets_dlg.PURPOSE_EDIT:
+            self.presets.pop(data['old_name'])
+        preset = data['preset']
+        self.presets[preset.name] = preset
         self.presets_changed.emit(self.presets)
 
     def connect_slots(self):
@@ -298,6 +304,14 @@ class APresetsDialog(QtWidgets.QDialog):
         self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)
         self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
         self.ui.btnClose.clicked.connect(self.reject)
+
+    def create_dialog(self):
+        if self.presets is not None:
+            excluded_names = [preset.name for __, preset in self.presets.items()]
+        else:
+            excluded_names = []
+        # set custom dialog
+        self.presets_dlg = self.DlgClass(parent=self, excluded_names=excluded_names)
         self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
 

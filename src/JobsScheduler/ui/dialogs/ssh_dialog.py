@@ -39,8 +39,10 @@ class SshDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, excluded_names=None):
         super().__init__(parent)
+        self.excluded_names = excluded_names
+
         # setup specific UI
         self.ui = UiSshDialog()
         self.ui.setup_ui(self)
@@ -60,7 +62,6 @@ class SshDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        key = self.ui.idLineEdit.text()
         preset = SshPreset(name=self.ui.nameLineEdit.text())
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
@@ -68,19 +69,21 @@ class SshDialog(AFormDialog):
         preset.pwd = self.ui.passwordLineEdit.text()
         if self.ui.pbsSystemComboBox.currentText():
             preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
-        return {
-            "key": key,
-            "preset": preset
-        }
+        return {'preset': preset,
+                'old_name': self.old_name}
 
-    def set_data(self, data=None):
+    def set_data(self, data=None, is_edit=False):
         # reset validation colors
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
 
         if data:
-            key = data["key"]
-            preset = data["preset"]
-            self.ui.idLineEdit.setText(key)
+            preset = data['preset']
+            self.old_name = preset.name
+            if is_edit:
+                try:
+                    self.excluded_names.remove(preset.name)
+                except ValueError:
+                    pass
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.hostLineEdit.setText(preset.host)
             self.ui.portSpinBox.setValue(preset.port)
@@ -89,7 +92,6 @@ class SshDialog(AFormDialog):
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
         else:
-            self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
             self.ui.hostLineEdit.clear()
             self.ui.portSpinBox.setValue(22)
@@ -111,22 +113,10 @@ class UiSshDialog(UiFormDialog):
 
         # validators
         self.nameValidator = SshNameValidator(
-            parent=self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget,
+            excluded=dialog.excluded_names)
 
         # form layout
-        # hidden row
-        self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.idLabel.setObjectName("idLabel")
-        self.idLabel.setText("Id:")
-        self.idLabel.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole,
-        #                         self.idLabel)
-        self.idLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.idLineEdit.setObjectName("idLineEdit")
-        self.idLineEdit.setPlaceholderText("This should be hidden")
-        self.idLineEdit.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole,
-        #                          self.idLineEdit)
 
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)

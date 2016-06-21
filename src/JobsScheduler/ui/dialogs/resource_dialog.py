@@ -9,6 +9,7 @@ from PyQt5 import QtGui, QtWidgets
 
 from ui.data.preset_data import ResPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
 class ResourceDialog(AFormDialog):
@@ -37,8 +38,10 @@ class ResourceDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, excluded_names=None):
         super().__init__(parent)
+        self.excluded_names = excluded_names
+
         # setup specific UI
         self.ui = UiResourceDialog()
         self.ui.setup_ui(self)
@@ -62,6 +65,9 @@ class ResourceDialog(AFormDialog):
 
     def valid(self):
         valid = True
+        if not ValidationColorizer.colorize_by_validator(
+                self.ui.nameLineEdit):
+            valid = False
         return valid
 
     def accept(self):
@@ -110,7 +116,6 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobEnvPresetComboBox.addItem(env[key].name, key)
 
     def get_data(self):
-        key = self.ui.idLineEdit.text()
         preset = ResPreset(name=self.ui.nameLineEdit.text())
 
         if self.ui.multiJobSshPresetComboBox.currentText() != UiResourceDialog.SSH_LOCAL_EXEC:
@@ -148,15 +153,22 @@ class ResourceDialog(AFormDialog):
 
         preset.j_env = self.ui.jobEnvPresetComboBox.currentData()
         return {
-            "key": key,
-            "preset": preset
+            'preset': preset,
+            'old_name': self.old_name
         }
 
-    def set_data(self, data=None):
+    def set_data(self, data=None, is_edit=False):
+        # reset validation colors
+        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+
         if data:
-            key = data["key"]
             preset = data["preset"]
-            self.ui.idLineEdit.setText(key)
+            self.old_name = preset.name
+            if is_edit:
+                try:
+                    self.excluded_names.remove(preset.name)
+                except ValueError:
+                    pass
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
@@ -177,7 +189,6 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobEnvPresetComboBox.findData(preset.j_env))
 
         else:
-            self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(0)
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
@@ -212,21 +223,13 @@ class UiResourceDialog(UiFormDialog):
         # dialog properties
         dialog.resize(400, 260)
 
+        # validators
+        self.nameValidator = PresetNameValidator(
+            parent=self.mainVerticalLayoutWidget,
+            excluded=dialog.excluded_names)
+
         # form layout
         # hidden row
-        self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.idLabel.setObjectName("idLabel")
-        self.idLabel.setText("Id:")
-        self.idLabel.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole,
-        #                         self.idLabel)
-        self.idLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.idLineEdit.setObjectName("idLineEdit")
-        self.idLineEdit.setPlaceholderText("This should be hidden")
-        self.idLineEdit.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole,
-        #                          self.idLineEdit)
-
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nameLabel.setObjectName("nameLabel")
@@ -237,6 +240,7 @@ class UiResourceDialog(UiFormDialog):
         self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the resource")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
+        self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 

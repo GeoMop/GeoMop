@@ -111,7 +111,7 @@ class PresetNameValidator(QRegExpValidator):
 
     def validate(self, text, pos):
         if text in self.excluded:
-            return (QValidator.Invalid, text, pos)
+            return (QValidator.Intermediate, text, pos)
         return super(PresetNameValidator, self).validate(text, pos)
 
 

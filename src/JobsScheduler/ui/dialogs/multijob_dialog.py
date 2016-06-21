@@ -87,7 +87,7 @@ class MultiJobDialog(AFormDialog):
             "preset": preset
         }
 
-    def set_data(self, data=None):
+    def set_data(self, data=None, is_edit=False):
         # reset validation colors
         self.ui.nameLineEdit.setStyleSheet(
                 "QLineEdit { background-color: #ffffff }")
@@ -105,7 +105,6 @@ class MultiJobDialog(AFormDialog):
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
-            # self.ui.descriptionTextEdit.clear()
             self.ui.resourceComboBox.setCurrentIndex(0)
             self.ui.logLevelComboBox.setCurrentIndex(0)
             self.ui.numberOfProcessesSpinBox.setValue(
@@ -156,23 +155,6 @@ class UiMultiJobDialog(UiFormDialog):
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
-
-
-        # 3 row
-        # self.descriptionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        # self.descriptionLabel.setObjectName("descriptionLabel")
-        # self.descriptionLabel.setText("Description:")
-        # self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-        #                           self.descriptionLabel)
-        # self.descriptionTextEdit = QtWidgets.QTextEdit(
-        #     self.mainVerticalLayoutWidget)
-        # self.descriptionTextEdit.setObjectName("textEdit")
-        # self.descriptionTextEdit.setProperty("placeholderText",
-        #                                      "Read only description text "
-        #                                      "from analysis folder")
-        # self.descriptionTextEdit.setReadOnly(True)
-        # self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-        #                           self.descriptionTextEdit)
 
         # 4 row
         self.resourceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)

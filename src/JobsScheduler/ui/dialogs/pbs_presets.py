@@ -25,8 +25,7 @@ class PbsPresets(APresetsDialog):
         self.presets = presets
         self.reload_view(self.presets)
 
-        # set custom dialog
-        self.presets_dlg = PbsDialog(parent=self)
+        self.DlgClass = PbsDialog
 
         # connect generic presets slots (must be called after UI setup)
         super().connect_slots()

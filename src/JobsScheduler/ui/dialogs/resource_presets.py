@@ -26,14 +26,19 @@ class ResourcePresets(APresetsDialog):
         self. presets = presets
         self.reload_view(self.presets)
 
-        # set custom dialog
-        self.presets_dlg = ResourceDialog(parent=self)
-        self.presets_dlg.set_pbs_presets(pbs)
-        self.presets_dlg.set_ssh_presets(ssh)
-        self.presets_dlg.set_env_presets(env)
+        self.pbs = pbs
+        self.ssh = ssh
+        self.env = env
+        self.DlgClass = ResourceDialog
 
         # connect generic presets slots (must be called after UI setup)
         super().connect_slots()
+
+    def create_dialog(self):
+        super(ResourcePresets, self).create_dialog()
+        self.presets_dlg.set_pbs_presets(self.pbs)
+        self.presets_dlg.set_ssh_presets(self.ssh)
+        self.presets_dlg.set_env_presets(self.env)
 
 
 class UiResourcePresets(UiPresetsDialog):

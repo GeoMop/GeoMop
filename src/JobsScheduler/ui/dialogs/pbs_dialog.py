@@ -40,8 +40,10 @@ class PbsDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, excluded_names=None):
         super().__init__(parent)
+        self.excluded_names = excluded_names
+
         # setup specific UI
         self.ui = UiPbsDialog()
         self.ui.setup_ui(self)
@@ -49,23 +51,7 @@ class PbsDialog(AFormDialog):
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
 
-        # connect slots
-        # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
-        # specific slots
-
-        # TODO PBS system was moved to SSH preset - how does it affect queue?
-        # self.ui.dialectComboBox.currentIndexChanged \
-        #     .connect(self._handle_dialect_change)
-
-    # def _handle_dialect_change(self, index):
-    #     self.ui.queueComboBox.clear()
-    #     dialect = self.ui.dialectComboBox.itemData(index)
-    #     self.ui.queueComboBox.clear()
-    #     if dialect:
-    #         queues = PbsQueues.get_system_queues(dialect)
-    #         self.ui.queueComboBox.addItem("")
-    #         self.ui.queueComboBox.addItems(queues)
 
     def valid(self):
         valid = True
@@ -81,7 +67,6 @@ class PbsDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        key = self.ui.idLineEdit.text()
         preset = PbsPreset(name=self.ui.nameLineEdit.text())
         if self.ui.queueComboBox.currentText():
             preset.queue = self.ui.queueComboBox.currentText()
@@ -96,20 +81,24 @@ class PbsDialog(AFormDialog):
         else:
             preset.infiniband = False
         return {
-            "key": key,
-            "preset": preset
+            'preset': preset,
+            'old_name': self.old_name
         }
 
-    def set_data(self, data=None):
+    def set_data(self, data=None, is_edit=False):
         # reset validation colors
         ValidationColorizer.colorize_white(self.ui.nameLineEdit)
         ValidationColorizer.colorize_white(self.ui.walltimeLineEdit)
         ValidationColorizer.colorize_white(self.ui.memoryLineEdit)
 
         if data:
-            key = data["key"]
             preset = data["preset"]
-            self.ui.idLineEdit.setText(key)
+            self.old_name = preset.name
+            if is_edit:
+                try:
+                    self.excluded_names.remove(preset.name)
+                except ValueError:
+                    pass
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.queueComboBox.setCurrentText(preset.queue)
             self.ui.walltimeLineEdit.setText(preset.walltime)
@@ -118,7 +107,6 @@ class PbsDialog(AFormDialog):
             self.ui.memoryLineEdit.setText(preset.memory)
             self.ui.infinibandCheckbox.setChecked(preset.infiniband)
         else:
-            self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
             self.ui.queueComboBox.setCurrentIndex(-1)
             self.ui.walltimeLineEdit.clear()
@@ -141,7 +129,8 @@ class UiPbsDialog(UiFormDialog):
 
         # validators
         self.nameValidator = PbsNameValidator(
-            parent=self.mainVerticalLayoutWidget)
+            parent=self.mainVerticalLayoutWidget,
+            excluded=dialog.excluded_names)
         self.walltimeValidator = WalltimeValidator(
             self.mainVerticalLayoutWidget)
         self.memoryValidator = MemoryValidator(
@@ -151,20 +140,6 @@ class UiPbsDialog(UiFormDialog):
 
 
         # form layout
-        # hidden row
-        self.idLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.idLabel.setObjectName("idLabel")
-        self.idLabel.setText("Id:")
-        self.idLabel.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole,
-        #                         self.idLabel)
-        self.idLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.idLineEdit.setObjectName("idLineEdit")
-        self.idLineEdit.setPlaceholderText("This should be hidden")
-        self.idLineEdit.setVisible(False)
-        # self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole,
-        #                          self.idLineEdit)
-
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nameLabel.setObjectName("nameLabel")
