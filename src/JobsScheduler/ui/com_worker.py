@@ -1,14 +1,365 @@
 import threading
 import time
-from queue import Empty
 import logging
 import os
 import data.transport_data as tdata
-from multiprocessing import Queue
 from data.states import TaskStatus
+from ui.data.mj_data import MultiJobState
 from  communication.installation import __install_dir__
 
-class ComWorker(threading.Thread):
+class ComWorker(threading.Thread):   
+    """
+    Class created own thread for installation, communication and
+    canceling next communicators.
+    """
+    def __init__(self, key, com):            
+        super().__init__(name=com.mj_name)
+        self._com = com
+        """created Communicator for mj"""
+        self._key = key
+        """mj key"""
+        self.__state_lock = threading.Lock()
+        """lock for all next state variables, that use both threads"""
+        self.__start = False
+        """start job"""
+        self.__start_state = TaskStatus.installation
+        """start job state"""
+        self.__running = False
+        """mj run"""
+        self.__starting = False
+        """starting job"""
+        self.__error_state = False
+        """Error is occured, communication is stopped"""
+        self.__error = None
+        """error message"""
+        self._ok_canceling_state = None
+        """
+        Communicator state, that will has after successful canceling.
+        If this state is error, self.__error_state will be set to True
+        """
+        self._last_state = MultiJobState(com.mj_name) 
+        """last mj state"""
+        self.__state = None
+        """mj state for return"""
+        self.__downloaded = False
+        """mj files is updated"""
+        self.__stop = False
+        """stop job"""
+        self.__terminate = False
+        """terminate job"""
+        self.__pause = False
+        """pause job"""
+        self.__cancelling = False
+        """cancelling job"""
+        self.__cancelled = False
+        """cancelled job"""
+        self.__download = False
+        """download files"""
+        self.__get_state = False
+        """get mj state"""
+        self._counter = 0
+        """planning counter (in main thread, not lock)"""
+        
+    def get_last_results(self, is_current):
+        """
+        return tupple (state, error, jobs_downloaded, results_downloaded , logs_downloaded)
+        if new state is not known return None
+        if new files is not downloaded return None
+        
+        parameters:
+        :param bool is_current: is job selected in gui
+        """
+        self._counter += 1
+        if is_current:
+            if self._counter%2==0:
+                self.__get_state = True
+            if (self._counter%6+1)==0:
+                self.__download = True
+        else:
+            if self._counter%4==0:
+                self.__get_state = True
+            if (self._counter%12+1)==0:
+                self.__download = True
+        state = None
+        if self.__state is not None:
+            state = self.__state
+            self.__state = None 
+        downloaded = self.__downloaded
+        self.__downloaded = False
+        error = None
+        if self.__error is not None:
+            error = self.__error
+            self.__error = None
+        return state,  error, downloaded, downloaded, downloaded
+        
+    def start_mj(self):
+        """start communication"""
+        self.start()
+        self.__state_lock.acquire()
+        self.__start = True
+        self.__starting = True
+        self.__state_lock.release()
+
+    def get_start_state(self):
+        """return instalation state"""
+        self.__state_lock.acquire()
+        state = self.__start_state
+        self.__state_lock.release()
+        return state
+        
+    def resume(self):
+        """resume communication"""
+        
+    def is_started(self):
+        """return if communication is started"""
+        res = False
+        self.__state_lock.acquire()
+        if not self.__starting and not self.__start and \
+            not self.__error_state and self.__running:
+            res = True
+        self.__state_lock.release()
+        return res
+        
+    def is_interupted(self):
+        """return if communication is interupted"""
+        return False
+        
+    def is_error(self):
+        """
+        Return if communication is ended with error.
+        If True is return thrad is stopped
+        """        
+        self.__state_lock.acquire()
+        res = self.__error_state
+        self.__state_lock.release()
+        return res
+        
+    def stop(self):
+        """stop communicator"""
+        self.__state_lock.acquire()
+        self.__stop = True
+        self.__cancelling = True
+        self._ok_canceling_state = TaskStatus.stopped
+        self.__state_lock.release()
+
+    def finish(self):
+        """download data and stop communicator"""
+        self.__state_lock.acquire()
+        self.__cancelling = True
+        self._ok_canceling_state = TaskStatus.finished
+        self.__state_lock.release()
+
+    def is_canceling(self):
+        """return if communicator is canceling (stoping, pusing, terminating)"""
+        self.__state_lock.acquire()
+        res = self.__cancelling
+        self.__state_lock.release()
+        return res
+
+    def is_canceled(self):
+        """return if communicator is canceled (stoping, pusing, terminating)"""
+        self.__state_lock.acquire()
+        res = self.__cancelling
+        self.__state_lock.release()
+        return res
+
+    def terminate(self):
+        """terminate communicator"""
+        self.__state_lock.acquire()
+        self.__terminate = True
+        self.__cancelling = True
+        self._ok_canceling_state = TaskStatus.stopped
+        self.__state_lock.release()
+
+    def pause(self):
+        """pause communicator"""
+        self.__state_lock.acquire()
+        self.__pause = True
+        self.__cancelling = True
+        self.__state_lock.release()
+    
+    def init_update(self):
+        """get state and download all files"""
+        self.__state_lock.acquire()
+        self.__get_state = True
+        self.__download = True
+        self.__state_lock.release()        
+
+    def get_canceling_state(self):
+        """get canceling state and error"""
+        error = None
+        status = TaskStatus.finish
+        return status, error
+        
+    def run(self):
+        while True:
+            self.__state_lock.acquire()
+            if self.__start:
+                self.__start = False
+                self.__state_lock.release()
+                if not self._install():
+                    break
+                continue
+            if self.__stop:
+                self.__stop = False
+                self.__state_lock.release()
+                self._stop()                
+                break
+            if  self.__terminate:
+                self.__terminate = False
+                self.__state_lock.release()
+                self._terminate()
+                break
+            if  self.__pause:
+                self.__pause = False
+                self.__state_lock.release()
+                self._pause()
+                break
+            if self.__get_state:
+                self.__get_state = False
+                self.__state_lock.release()
+                self._state()
+                continue
+            if self.__download:
+                self.__download = False
+                self.__state_lock.release()
+                self._results()
+                continue
+            self.__state_lock.release() 
+            time.sleep(0.1)
+        self._com.close( )
+        
+    def _install(self):
+        """installation, if return False, thrad is stoped"""
+        self._com.install()
+        if self._com.instalation_fails_mess is not None:
+            self.__state_lock.acquire()
+            self.__starting = False
+            self.__error_state = True
+            self.__error = self._com.instalation_fails_mess            
+            self.__state_lock.release()
+            return False            
+        sec = time.time() + 1300
+        message = tdata.Action(tdata.ActionType.installation).get_message()
+        mess = None
+        while sec > time.time():
+            self._com.send_message(message)
+            mess = self._com.receive_message(120)
+            if mess is None:
+                break
+            if mess.action_type == tdata.ActionType.error:    
+                if self._com.instalation_fails_mess is not None and \
+                    mess.get_action().data.data["severity"]>4:
+                    self.__state_lock.acquire()                    
+                    self._ok_canceling_state = TaskStatus.error
+                    self.__start_state = TaskStatus.stopped
+                    self.__error = mess.get_action().data.data["msg"]
+                    self.__state_lock.release() 
+                    self._stop()
+                    self.__state_lock.acquire()
+                    self.__starting = False
+                    self.__state_lock.release()
+                    return False
+            if mess.action_type == tdata.ActionType.install_in_process:
+                phase = mess.get_action().data.data['phase']
+                self.__state_lock.acquire()
+                self.__start_state = TaskStatus.installation
+                if phase == TaskStatus.queued.value:
+                    self.__start_state = TaskStatus.queued
+                self.__state_lock.release()
+            if mess.action_type == tdata.ActionType.ok:
+                self.__state_lock.acquire()
+                self.__starting = False
+                self.__running = True
+                self.__state_lock.release()
+                return True                
+            time.sleep(2)
+        self.__state_lock.acquire()                    
+        self._ok_canceling_state = TaskStatus.error
+        self.__start_state = TaskStatus.stopped
+        self.__error = "Installation timeout exceed"
+        self.__state_lock.release() 
+        self._stop()
+        self.__state_lock.acquire()
+        self.__starting = False
+        self.__state_lock.release()
+        return False
+
+    def _pause(self):
+        """send pause mj action"""
+        self._com.send_long_action(tdata.Action(
+                    tdata.ActionType.interupt_connection))
+        self._com.comunicator.interupt()
+        self.__state_lock.acquire()
+        state = self._last_state()    
+        state.status = TaskStatus.pause        
+        self._state = state
+        self.__cancelled = True
+        self.__cancelling = False
+        self.__state_lock.release() 
+
+    def _resume(self):
+        """installation, if return False, thrad is stoped"""
+        self._com.restore()
+        self._com.send_long_action(tdata.Action(
+            tdata.ActionType.restore_connection))
+        self.__state_lock.acquire()
+        self.__starting = False
+        self.__running = True
+        self.__state_lock.release()
+ 
+    def _stop(self):
+        mess = self._com.send_long_action(tdata.Action(
+                    tdata.ActionType.stop))
+        if mess.action_type != tdata.ActionType.ok:
+            action = tdata.Action( tdata.ActionType.terminate)
+            message = action.get_message()
+            self.send_message(message)
+        self.__state_lock.acquire()
+        state = self._last_state()    
+        if self._ok_canceling_state is not None:
+            if self._ok_canceling_state==TaskStatus.error:
+                self.__error_state = True
+            state.status = self._ok_canceling_state        
+        self._state = state
+        self.__cancelled = True
+        self.__cancelling = False
+        self.__state_lock.release()        
+
+    def _terminate(self):
+        action = tdata.Action( tdata.ActionType.terminate)
+        message = action.get_message()
+        self.send_message(message)
+        self.__state_lock.acquire()
+        state = self._last_state()    
+        if self._ok_canceling_state is not None:
+            if self._ok_canceling_state==TaskStatus.error:
+                self.__error_state = True
+            state.status = self._ok_canceling_state        
+        self._state = state
+        self.__cancelled = True
+        self.__cancelling = False
+        self.__state_lock.release()        
+    
+    def _state(self):
+        mess = self._com.send_long_action(tdata.Action(
+                    tdata.ActionType.get_state))
+        if mess.action_type == tdata.ActionType.state:
+            tmp_data = mess.get_action().data
+            data = tmp_data.get_mjstate(self._com.mj_name)
+            self.__state_lock.acquire()
+            self.__state = data
+            self.__state_lock.release()
+ 
+    def _results(self):
+        mess = self._com.send_long_action(tdata.Action(
+                    tdata.ActionType.download_res))
+        if mess.action_type == tdata.ActionType.ok:
+            self._com.download()
+            self.__state_lock.acquire()
+            self.__downloaded = True
+            self.__state_lock.release()
+
     @staticmethod
     def _set_loger(self,  path, name, level, central_log):
         """set logger"""
@@ -41,214 +392,3 @@ class ComWorker(threading.Thread):
     def get_loger():
         """get logger"""
         return logging.getLogger("Remote")
-
-    def __init__(self, key, com):            
-        super().__init__(name=com.mj_name)
-        self._error = None
-        """if returned state is error, this variable contain error message"""
-        
-        self.is_stopping = False
-        
-        self.key = key
-        self.com = com
-        self.is_ready = threading.Event()
-        self._is_running = threading.Event()
-        self.req_queue = Queue()
-        self.res_queue = res_queue
-        self.start()
-        
-    def get_last_results(self, is_current):
-        """
-        return tupple (state, error, jobs_downloaded, results_downloaded , logs_downloaded)
-        if new state is not known return None
-        if new files is not downloaded return None
-        
-        parameters:
-        :param bool is_current: is job selected in gui
-        """
-    
-    def start(self):
-        """start communication"""
-        
-    def resume(self):
-        """resume communication"""
-        
-    def is_started(self):
-        """return if communication is started"""
-        
-    def is_interupted(self):
-        """return if communication is interupted"""
-        
-    def is_error(self):
-        """return if communication is interupted"""
-        
-    def stop(self):
-        """stop communicator"""
-
-    def is_stopping(self):
-        """return if communicator is stopping"""
-
-    def is_stopped(self):
-        """return if communicator is stopped"""
-
-    def terminate(self):
-        """terminate if communicator"""
-
-    def is_terminating(self):
-        """return if communicator is terminating"""
-
-    def is_terminated(self):
-        """return if communicator is terminated"""
-        
-    def init_update(self):
-        """get state and download all files"""
-        
-    def get_error(self):
-        """get state and download all files"""
-
-
-    def drop_all_req(self):
-        while not self.req_queue.empty():
-            try:
-                self.req_queue.get(False, 0)
-            except Empty:
-                continue
-
-    def run(self):
-        error = None
-        self.is_ready.set()
-        self._is_running.set()
-        while self._is_running.is_set():
-            req = self.req_queue.get()
-            res = ComExecutor.communicate(self.com, req,
-                                            self.res_queue)
-            if res.err is not None:
-                if self.com.output is None or not self.com.output.isconnected():
-                    res.com_type=ComType.stop
-                self._is_running.clear()                     
-                break
-            else:
-                self.res_queue.put(res)
-            if req.com_type == ComType.stop:
-                self._is_running.clear() 
-                break
-        if self.com.output is not None and self.com.output.isconnected() and \
-            req.com_type != ComType.stop:
-            error = res.err
-            res = ComExecutor.communicate(
-                self.com, ReqData(self.key, ComType.stop), self.res_queue)
-            res.err = error
-        self.com.close()
-        self.res_queue.put(res)
-
-    def stop(self):
-        self._is_running.clear()
-
-    def is_stopped(self):
-        return not self._is_running.is_set()
-
-
-class ComExecutor(object):
-    @classmethod
-    def communicate(cls, com, req, res_queue):
-        res = ResData(req.key, req.com_type)
-        try:
-            # install
-            if req.com_type == ComType.install:
-                res = cls._install(com, res, res_queue)
-
-            # download results
-            elif req.com_type == ComType.results:
-                res = cls._results(com, res)
-
-            # pause results
-            elif req.com_type == ComType.pause:
-                res = cls._pause(com, res)
-
-            # resume results
-            elif req.com_type == ComType.resume:
-                res = cls._resume(com, res)
-
-            # stop
-            elif req.com_type == ComType.stop:
-                res = cls._stop(com, res)
-
-            # state
-            elif req.com_type == ComType.state:
-                res = cls._state(com, res)
-
-            else:
-                raise Exception("Unsupported operation.")
-
-        except Exception as e:
-            res.err = e
-
-        return res
-
-    @staticmethod
-    def _install(com, res, res_queue):
-        old_phase = TaskStatus.installation
-        com.install()
-        if com.instalation_fails_mess is not None:
-            raise Exception(com.instalation_fails_mess)    
-        sec = time.time() + 1300
-        message = tdata.Action(tdata.ActionType.installation).get_message()
-        mess = None
-        while sec > time.time():
-            com.send_message(message)
-            mess = com.receive_message(120)
-            if mess is None:
-                break
-            if mess.action_type == tdata.ActionType.error:    
-                if com.instalation_fails_mess is not None and \
-                    mess.get_action().data.data["severity"]>4:
-                    raise Exception(mess.get_action().data.data["msg"])    
-            if mess.action_type == tdata.ActionType.install_in_process:
-                phase = mess.get_action().data.data['phase']
-                if phase is not old_phase:
-                    if phase == TaskStatus.installation.value:
-                        res_queue.put(
-                                ResData(res.key, ComType.installation, mess))
-                    if phase == TaskStatus.queued.value:
-                        res_queue.put(ResData(res.key, ComType.queued, mess))
-            else:
-                break
-            time.sleep(2)
-            res.mess = mess
-        return res
-
-    @staticmethod
-    def _pause(com, res):
-        res.mess = com.send_long_action(tdata.Action(
-            tdata.ActionType.interupt_connection))
-        com.interupt()
-        return res
-
-    @staticmethod
-    def _resume(com, res):
-        com.restore()
-        res.mess = com.send_long_action(tdata.Action(
-            tdata.ActionType.restore_connection))
-        return res
-
-    @staticmethod
-    def _stop(com, res):
-        res.mess = com.send_long_action(tdata.Action(
-                    tdata.ActionType.stop))        
-        return res
-
-    @staticmethod
-    def _state(com, res):
-        res.mess = com.send_long_action(tdata.Action(
-                    tdata.ActionType.get_state))
-        if res.mess.action_type == tdata.ActionType.state:
-            tmp_data = res.mess.get_action().data
-            res.data = tmp_data.get_mjstate(com.mj_name)
-        return res
-
-    @staticmethod
-    def _results(com, res):
-        res.mess = com.send_long_action(tdata.Action(
-                    tdata.ActionType.download_res))
-        com.download()
-        return res

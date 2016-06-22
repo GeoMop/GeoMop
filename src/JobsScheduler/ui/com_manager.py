@@ -55,6 +55,8 @@ class ComManager:
         """array of jobs ids, that have changed jobs state"""
         self.logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
+        self.__cancel_jobs = []
+        """private array of jobs ids, that wait for canceling"""
         
     def poll(self):
         """
@@ -70,32 +72,25 @@ class ComManager:
             bussy = bussy or self._check_resumed()
         if not bussy:
             bussy = bussy or self._check_started()
-        if not bussy:
-            bussy = bussy or self._check_stopped()
-        if not bussy:
-            bussy = bussy or self._check_terminated()
-        if  bussy:
-            return
-        delete_key = []
         for  key in self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key]
-                state, error, jobs_downloaded, results_downloaded , logs_downloaded = worker.get_last_results()
+                is_current = self.current_job is not None and self.current_job == key
+                state, error, jobs_downloaded, results_downloaded , logs_downloaded = worker.get_last_results(is_current)
                 if state is not None or error is not None:
                     self._set_state(key, state, error)
                     self.state_change_jobs.append(key)
-                if jobs_downloaded is not None:
+                if jobs_downloaded:
                     self.jobs_change_jobs.append(key)
-                if results_downloaded is not None:
+                if results_downloaded:
                     self.results_change_jobs.append(key)
-                if logs_downloaded is not None:
+                if logs_downloaded:
                     self.logs_change_jobs.append(key)
                 if state is not None and state.status == TaskStatus.finished:   
-                   delete_key.appen(key)
-        for key in delete_key:
-            self.run_jobs.remove(key)
-            self._workers.remove(key)
-
+                    worker.finish()
+                    self.__cancel_jobs.append(key) 
+        if not bussy:
+            self._check_canceled()
             
     def _start_first(self):
         """start first job in queue and return True else return False"""
@@ -107,8 +102,8 @@ class ComManager:
                 app_conf = conf_builder.build(key, analysis)
                 com = Communicator(app_conf)
                 worker = ComWorker(key, com)
-                self._workers[worker.key] = worker
-                worker.start()
+                self._workers[key] = worker
+                worker.start_mj()
                 return True
         return False
         
@@ -179,31 +174,32 @@ class ComManager:
     def _stop(self):
         """stop all job in queue and return True else return False"""
         res = False
-        for  key in  self.stop_jobs:
+        while len(self.stop_jobs)>0:
+            key = self.stop_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.is_stopping() and not worker.is_stopped():
+                if not worker.canceling():                    
                     worker.stop()
+                    self.__cancel_jobs.append(key) 
                     res = True
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
-                self.stop_jobs.remove(key)
                 return
         return res
 
     def _terminate(self):
         """terminate all jobs in queue and return True else return False"""
         res = False
-        for  key in  self.terminate_jobs:
+        while len(self.terminate_jobs)>0:
+            key = self.terminate_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.is_terminating() and not worker.is_terminated():
+                if not worker.canceling():                    
                     worker.terminate()
+                    self.__cancel_jobs.append(key) 
                     res = True
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be terminate, run record is not found")
-                self.stop_jobs.remove(key)
-                return
         return res
 
     def _check_resumed(self):
@@ -215,19 +211,21 @@ class ComManager:
         for  key in  self.resume_jobs:
             if key in self._workers:
                 worker = self._workers[key]
-                if worker.is_started():
-                    self.run_jobs.append(key)
-                    worker.init_update()
-                    delete_key.append(key)
-                elif worker.is_interupted(self) or worker.is_error(self):
+                if worker.is_interupted() or worker.is_error():
                     mj = self._data_app.multijobs[key]
-                    if worker.is_interupted(self):
+                    mj.error = worker.get_error()
+                    if worker.is_interupted():
                         mj.get_state().set_status(TaskStatus.interupted)
+                        self.run_jobs.append(key)
                     else:
                         mj.get_state().set_status(TaskStatus.error)
-                        mj.error = worker.get_error()
+                        self._workers.remove(key)                    
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
+                elif worker.is_started():
+                    self.run_jobs.append(key)
+                    worker.init_update()
+                    delete_key.append(key)    
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be resume, run record is not found")
                 delete_key.append(key)
@@ -248,15 +246,19 @@ class ComManager:
                     self.run_jobs.append(key)
                     worker.init_update()
                     delete_key.append(key)
-                elif worker.is_interupted(self) or worker.is_error(self):
+                elif worker.is_error():
                     mj = self._data_app.multijobs[key]
-                    if worker.is_interupted(self):
-                        mj.get_state().set_status(TaskStatus.interupted)
-                    else:
-                        mj.get_state().set_status(TaskStatus.error)
-                        mj.error = worker.get_error()
+                    mj.get_state().set_status(TaskStatus.error)
+                    mj.error = worker.get_error()
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
+                    self._workers.remove(key)
+                else:
+                    state = worker.get_start_state()
+                    mj = self._data_app.multijobs[key]
+                    if mj.get_state().get_status() != state:
+                        mj.get_state().set_status(state)
+                        self.state_change_jobs.append(key)
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be started, run record is not found")
                 delete_key.append(key)
@@ -264,57 +266,26 @@ class ComManager:
         for key in delete_key:
             self.start_jobs.remove(key)
 
-    def _check_stopped(self):
+    def _check_canceled(self):
         """
-        check all job in resume queue, move resumed to run 
-        queue and send get_state message. Update job states.
+        if is mj in canceled queue and is canceled, delete worker and remove mj from queue
         """
         delete_key = []
-        for  key in  self.stop_jobs:
+        for  key in self.__cancel_jobs:
             if key in self._workers:
                 worker = self._workers[key]
-                if worker.is_stopped():
-                    self.run_jobs.append(key)
+                if worker.is_cancelled():
+                    status, error = worker.get_canceling_state()
                     delete_key.append(key)
                     mj = self._data_app.multijobs[key]
-                    if worker.is_error(self):
-                        mj.get_state().set_status(TaskStatus.error)
-                    else:
-                        mj.get_state().set_status(TaskStatus.stopped)
-                    self.state_change_jobs.append(key)
+                    mj.get_state().set_status(status)
+                    mj.error = error
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
                 delete_key.append(key)
                 break
         for key in delete_key:
-            self.stop_jobs.remove(key)
-            self.run_jobs.remove(key)
-            self._workers.remove(key)
-
-    def _check_terminated(self):
-        """
-        check all job in resume queue, move resumed to run 
-        queue and send get_state message. Update job states.
-        """
-        delete_key = []
-        for  key in  self.terminate_jobs:
-            if key in self._workers:
-                worker = self._workers[key]
-                if worker.is_stopped():
-                    self.run_jobs.append(key)
-                    delete_key.append(key)
-                    mj = self._data_app.multijobs[key]
-                    if worker.is_error(self):
-                        mj.get_state().set_status(TaskStatus.error)
-                    else:
-                        mj.get_state().set_status(TaskStatus.stopped)
-                    self.state_change_jobs.append(key)
-            else:
-                ComWorker.get_loger().error("MultiJob {0} can't be terminated, run record is not found")
-                delete_key.append(key)
-                break
-        for key in delete_key:
-            self.terminate_jobs.remove(key)
+            self.__cancel_jobs.remove(key)
             self.run_jobs.remove(key)
             self._workers.remove(key)
         
@@ -322,11 +293,32 @@ class ComManager:
         """
         Set state for set job
         """
+        mj = self._data_app.multijobs[key]
+        if state is not None:
+            mj.state.update(state)
+            mj.error = error
+        else:     
+            if error is not None:
+                mj.error = error
 
     def pause_all(self):
         """Pause all running and starting jobs (use when app is closing)."""
-        pass
+        for  key in  self.run_jobs:
+            if key in self._workers:
+                worker = self._workers[key] 
+                if not worker.canceling():                    
+                    worker.pase()
+                    self.__cancel_jobs.append(key) 
+            else:
+                ComWorker.get_loger().error("MultiJob {0} can't be paused, run record is not found")
         
     def stop_all(self):
         """stop all running and starting jobs"""
-        pass
+        for  key in  self.run_jobs:
+            if key in self._workers:
+                worker = self._workers[key] 
+                if not worker.canceling():                    
+                    worker.stop()
+                    self.__cancel_jobs.append(key) 
+            else:
+                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
