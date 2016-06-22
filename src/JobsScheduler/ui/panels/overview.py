@@ -6,7 +6,6 @@ Table of MultiJobs
 """
 import datetime
 import PyQt5.QtWidgets as QtWidgets
-
 from PyQt5 import QtCore
 
 
@@ -44,7 +43,7 @@ class Overview(QtWidgets.QTreeWidget):
         else:
             item.setText(4, "Not Started Yet")
         item.setText(5, str(datetime.timedelta(seconds=state.run_interval)))
-        item.setText(6, str(state.status.name))
+        item.setText(6, str(state.status))
         item.setText(7, str(state.known_jobs))
         item.setText(8, str(state.estimated_jobs))
         item.setText(9, str(state.finished_jobs))
