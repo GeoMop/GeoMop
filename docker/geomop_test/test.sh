@@ -24,7 +24,12 @@ DISPLAY=:1 py.test
 if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 cd $TEST_DIR/JobsScheduler
-export PYTHONPATH=$SRC_DIR/JobsScheduler
+export PYTHONPATH=$SRC_DIR/JobsScheduler:/$SRC_DIR/common
+DISPLAY=:1 py.test
+if [[ $? != 0 ]]; then kill $PID; exit 1; fi
+
+cd $TEST_DIR/Analysis
+export PYTHONPATH=$SRC_DIR/Analysis:/$SRC_DIR/common
 DISPLAY=:1 py.test
 if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
