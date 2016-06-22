@@ -171,7 +171,7 @@ class ComManager:
                     comconf.CommunicatorConfigService.load_file(json_file, com_conf)                    
                 com = Communicator(com_conf)
                 worker = ComWorker(key, com)
-                self._workers[worker.key] = worker
+                self._workers[key] = worker
                 worker.resume()
                 return True
         return False
@@ -183,7 +183,7 @@ class ComManager:
             key = self.stop_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.cancelling():                    
+                if not worker.is_cancelling():                    
                     worker.stop()
                     self.__cancel_jobs.append(key) 
                     res = True
@@ -199,7 +199,7 @@ class ComManager:
             key = self.terminate_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.cancelling():                    
+                if not worker.is_cancelling():                    
                     worker.terminate()
                     self.__cancel_jobs.append(key) 
                     res = True
@@ -309,7 +309,7 @@ class ComManager:
             if key in self._workers:
                 worker = self._workers[key] 
                 if not worker.is_cancelling():                    
-                    worker.pase()
+                    worker.pause()
                     self.__cancel_jobs.append(key) 
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be paused, run record is not found")
@@ -319,7 +319,7 @@ class ComManager:
         for  key in  self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.cancelling():                    
+                if not worker.is_cancelling():                    
                     worker.stop()
                     self.__cancel_jobs.append(key) 
             else:
