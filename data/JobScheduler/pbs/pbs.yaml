@@ -1,4 +1,4 @@
-41ec270f-30d1-43c1-87f8-b1feeedfb590: {infiniband: false, memory: null, name: metacentrum,
+metacentrum: {infiniband: false, memory: null, name: metacentrum,
   nodes: 1, ppn: 1, queue: q_2h, walltime: null}
-d5f858ea-4343-4fc3-b182-2c4ccb5be38d: {infiniband: false, memory: null, name: hydra,
+hydra: {infiniband: false, memory: null, name: hydra,
   nodes: 1, ppn: 1, queue: null, walltime: null}

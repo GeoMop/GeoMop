@@ -1,4 +1,4 @@
-6af4ba82-10b4-4d2e-9171-d702a179c84f:
+localhost:
   cli_params: []
   flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123d.exe
   module_add: null
@@ -6,7 +6,7 @@
   pbs_params: []
   python_exec: C:\Program Files (x86)\GeoMop\env\Scripts\python.exe
   scl_enable_exec: null
-7bd82c20-df52-4c26-8841-1199b6620f23:
+metacentrum:
   cli_params: []
   flow_path: /storage/praha1/home/jan-hybs/projects/installed/Flow123d-2.0.0_rc-Linux/bin/flow123d
   module_add: python34-modules-gcc
@@ -14,7 +14,7 @@
   pbs_params: []
   python_exec: python
   scl_enable_exec: null
-8c5959d3-8606-47ce-a768-406dc7288afb:
+hydra:
   cli_params: []
   flow_path: /share/apps/flow123d/flow123d-2.0.0_rc/bin/flow123d
   module_add: null

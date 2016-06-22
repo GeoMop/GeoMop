@@ -1,15 +1,15 @@
-52288258-3450-4fa4-9409-edd948d805fd: {j_env: 8c5959d3-8606-47ce-a768-406dc7288afb,
-  j_execution_type: REMOTE, j_pbs_preset: d5f858ea-4343-4fc3-b182-2c4ccb5be38d, j_remote_execution_type: PBS,
-  j_ssh_preset: bc5770ea-380c-4770-a969-ff435a7cde7a, mj_env: 8c5959d3-8606-47ce-a768-406dc7288afb,
-  mj_execution_type: DELEGATOR, mj_pbs_preset: d5f858ea-4343-4fc3-b182-2c4ccb5be38d,
-  mj_remote_execution_type: PBS, mj_ssh_preset: bc5770ea-380c-4770-a969-ff435a7cde7a,
+hydra: {j_env: hydra,
+  j_execution_type: REMOTE, j_pbs_preset: hydra, j_remote_execution_type: PBS,
+  j_ssh_preset: hydra, mj_env: hydra,
+  mj_execution_type: DELEGATOR, mj_pbs_preset: hydra,
+  mj_remote_execution_type: PBS, mj_ssh_preset: hydra,
   name: hydra}
-5852490f-67fc-4f39-878a-95ee0f1e23df: {j_env: 7bd82c20-df52-4c26-8841-1199b6620f23,
-  j_execution_type: PBS, j_pbs_preset: 41ec270f-30d1-43c1-87f8-b1feeedfb590, j_remote_execution_type: null,
-  j_ssh_preset: null, mj_env: 7bd82c20-df52-4c26-8841-1199b6620f23, mj_execution_type: DELEGATOR,
-  mj_pbs_preset: 41ec270f-30d1-43c1-87f8-b1feeedfb590, mj_remote_execution_type: PBS,
-  mj_ssh_preset: ca835401-7d5e-4f0d-87d4-3fea98ab3322, name: metacentrum}
-a1d69b61-3690-4702-9075-4513c2a7d23b: {j_env: 6af4ba82-10b4-4d2e-9171-d702a179c84f,
+metacentrum: {j_env: metacentrum,
+  j_execution_type: PBS, j_pbs_preset: metacentrum, j_remote_execution_type: null,
+  j_ssh_preset: null, mj_env: metacentrum, mj_execution_type: DELEGATOR,
+  mj_pbs_preset: metacentrum, mj_remote_execution_type: PBS,
+  mj_ssh_preset: metacentrum, name: metacentrum}
+local_pc: {j_env: localhost,
   j_execution_type: EXEC, j_pbs_preset: null, j_remote_execution_type: null, j_ssh_preset: null,
-  mj_env: 6af4ba82-10b4-4d2e-9171-d702a179c84f, mj_execution_type: EXEC, mj_pbs_preset: null,
+  mj_env: localhost, mj_execution_type: EXEC, mj_pbs_preset: null,
   mj_remote_execution_type: null, mj_ssh_preset: null, name: local_pc}
