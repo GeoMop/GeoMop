@@ -7,7 +7,7 @@ Main window menus
 
 import PyQt5.QtWidgets as QtWidgets
 import ui.actions.main_menu_actions as action
-from data.states import TaskStatus
+from data.states import TaskStatus, MultijobActions, TASK_STATUS_PERMITTED_ACTIONS
 from geomop_widgets import ProjectMenu
 
 
@@ -67,173 +67,30 @@ class MultiJobMenu(QtWidgets.QMenu):
         # creating actions
         self.actionAddMultiJob = action.ActionAddMultiJob(self)
         self.actionEditMultiJob = action.ActionEditMultiJob(self)
-        self.actionCopyMultiJob = action.ActionCopyMultiJob(self)
+        self.actionReuseMultiJob = action.ActionReuseMultiJob(self)
         self.actionDeleteMultiJob = action.ActionDeleteMultiJob(self)
 
         # control actions
         self.actionRunMultiJob = action.ActionRunMultiJob(self)
-        self.actionResumeMultiJob = action.ActionResumeMultiJob(self)
         self.actionStopMultiJob = action.ActionStopMultiJob(self)
 
         # add actions to menu
         self.addAction(self.actionAddMultiJob)
         self.addAction(self.actionEditMultiJob)
-        self.addAction(self.actionCopyMultiJob)
+        self.addAction(self.actionReuseMultiJob)
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionRunMultiJob)
         self.addAction(self.actionStopMultiJob)
 
-        self.lock_as_empty()
+        self.lockable_actions = {
+            MultijobActions.edit: self.actionEditMultiJob,
+            MultijobActions.delete: self.actionDeleteMultiJob,
+            MultijobActions.run: self.actionRunMultiJob,
+            MultijobActions.stop: self.actionStopMultiJob
+        }
 
-    def lock_as_none(self):
-        """
-        Locks to state None
-        :return:
-        """
-        my_locks = dict(add=False, edit=False, copy=False, delete=False,
-                        run=False, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_installation(self):
-        """
-        Locks to state Installation
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_queued(self):
-        """
-        Locks to state queued
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_running(self):
-        """
-        Locks to state Running
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=False, resume=True, stop=False,
-                        restart=False)
-        self.lock_as(**my_locks)
-
-    def lock_as_pausing(self):
-        """
-        Locks to state Pausing
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_paused(self):
-        """
-        Locks to state Paused
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=True, resume=False, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_resuming(self):
-        """
-        Locks to state Resuming
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=True,
-                        run=True, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_finished(self):
-        """
-        Locks to state finished
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=False, delete=False,
-                        run=False, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-        
-    def lock_as_error(self):
-        """
-        Locks to state finished
-        :return:
-        """
-        my_locks = dict(add=False, edit=False, copy=False, delete=False,
-                        run=False, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as_empty(self):
-        """
-        Locks as if no MultiJob is selected
-        :return:
-        """
-        my_locks = dict(add=False, edit=True, copy=True, delete=True,
-                        run=True, pause=True, resume=True, stop=True,
-                        restart=True)
-        self.lock_as(**my_locks)
-
-    def lock_as(self, add, edit, copy, delete, run, pause, resume, stop,
-                restart):
-        """
-        Locks UI by parameters
-        :param add: Boolean to lock given property
-        :param edit: Boolean to lock given property
-        :param copy: Boolean to lock given property
-        :param delete: Boolean to lock given property
-        :param run: Boolean to lock given property
-        :param pause: Boolean to lock given property
-        :param resume: Boolean to lock given property
-        :param stop: Boolean to lock given property
-        :param restart: Boolean to lock given property
-        :return:
-        """
-        self.actionAddMultiJob.setDisabled(add)
-        self.actionEditMultiJob.setDisabled(edit)
-        self.actionCopyMultiJob.setDisabled(copy)
-        self.actionDeleteMultiJob.setDisabled(delete)
-
-        self.actionRunMultiJob.setDisabled(run)
-        self.actionResumeMultiJob.setDisabled(resume)
-        self.actionStopMultiJob.setDisabled(stop)
-
-    def lock_all(self, lock=True):
-        """
-        Locks all by lock
-        :param lock: Boolean that applies to all locks
-        :return:
-        """
-        my_locks = dict(add=lock, edit=lock, copy=lock, delete=lock,
-                        run=lock, pause=lock, resume=lock, stop=lock,
-                        restart=lock)
-        self.lock_as(**my_locks)
-
-    def lock(self):
-        """
-        Locks all
-        :return:
-        """
-        self.lock_all(True)
-
-    def unlock(self):
-        """
-        Unlocks all
-        :return:
-        """
-        self.lock_all(False)
+        self.lock_by_status()
 
     def lock_by_status(self, task_status=None):
         """
@@ -242,26 +99,13 @@ class MultiJobMenu(QtWidgets.QMenu):
         :param task_status: Status that controls the locks.
         :return:
         """
-        if task_status is TaskStatus.none:
-            self.lock_as_none()
-        elif task_status is TaskStatus.installation:
-            self.lock_as_installation()
-        elif task_status is TaskStatus.queued:
-            self.lock_as_queued()
-        elif task_status is TaskStatus.running:
-            self.lock_as_running()
-        elif task_status is TaskStatus.pausing:
-            self.lock_as_pausing()
-        elif task_status is TaskStatus.paused:
-            self.lock_as_paused()
-        elif task_status is TaskStatus.resuming:
-            self.lock_as_resuming()
-        elif task_status is TaskStatus.finished:
-            self.lock_as_finished()
-        elif task_status is TaskStatus.error:
-            self.lock_as_error()
-        else:
-            self.lock_as_empty()
+        if task_status is None:
+            task_status = TaskStatus.none
+        for mj_action, menu_action in self.lockable_actions.items():
+            if (task_status, mj_action) in TASK_STATUS_PERMITTED_ACTIONS:
+                menu_action.setDisabled(False)
+            else:
+                menu_action.setDisabled(True)
 
 
 class SettingsMenu(QtWidgets.QMenu):

@@ -15,7 +15,7 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
 from communication import Installation
-from data.states import TaskStatus
+from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
@@ -47,13 +47,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     multijobs_changed = QtCore.pyqtSignal(dict)
 
-
-    @QtCore.pyqtSlot()
-    def resume_paused_multijobs(self):
-        for key, mj in self.data.multijobs.items():
+    def perform_multijob_startup_action(self):
+        for mj_id, mj in self.data.multijobs.items():
             status = mj.get_state().status
-            if status == TaskStatus.paused:
-                self.com_manager.resume_jobs.append(key)
+            action = TASK_STATUS_STARTUP_ACTIONS[status]
+            if action == MultijobActions.resume:
+                self.com_manager.resume_jobs.append(mj_id)
+            elif action == MultijobActions.terminate:
+                self.com_manager.terminate_jobs.append(mj_id)
+            elif action == MultijobActions.terminate_with_error:
+                self.com_manager.terminate_jobs.append(mj_id)
+                # TODO show error
 
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
@@ -106,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_add_multijob_action)
         self.ui.menuBar.multiJob.actionEditMultiJob.triggered.connect(
             self._handle_edit_multijob_action)
-        self.ui.menuBar.multiJob.actionCopyMultiJob.triggered.connect(
+        self.ui.menuBar.multiJob.actionReuseMultiJob.triggered.connect(
             self._handle_copy_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
@@ -155,10 +159,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.multiJob.actionRunMultiJob.triggered.connect(
             self._handle_run_multijob_action)
 
-        # connect multijob resume action
-        self.ui.menuBar.multiJob.actionResumeMultiJob.triggered.connect(
-            self._handle_resume_multijob_action)
-
         # connect multijob stop action
         self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
             self._handle_stop_multijob_action)
@@ -194,17 +194,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.config.notify()
 
         # resume paused multijobs
-        self.resume_paused_multijobs()
+        self.perform_multijob_startup_action()
 
     def poll_com_manager(self):
         """poll com manager and update gui"""
         self.com_manager.poll()
 
+        current = self.ui.overviewWidget.currentItem()
+        current_mj_id = current.text(0)
+
         for mj_id in self.com_manager.state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
-            current = self.ui.overviewWidget.currentItem()
-            if current.text(0) == mj_id:
+            if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
         overview_change_jobs = set(self.com_manager.results_change_jobs)
@@ -212,8 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
         overview_change_jobs.update(self.com_manager.logs_change_jobs)
 
         for mj_id in overview_change_jobs:
-            current = self.ui.overviewWidget.currentItem()
-            if current.text(0) == mj_id:
+            if current_mj_id == mj_id:
                 mj = self.data.multijobs[mj_id]
                 self.ui.tabWidget.reload_view(mj)
 
@@ -221,6 +222,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.results_change_jobs = []
         self.com_manager.jobs_change_jobs = []
         self.com_manager.logs_change_jobs = []
+
+        # close application
+        if self.closing and not self.com_manager.run_jobs and not self.com_manager.start_jobs:
+            self.close()
 
     def load_settings(self):
         # select last selected mj
@@ -486,8 +491,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # pause all jobs
             self.com_manager.pause_all()
             self.cm_poll_interval = 200
-
-            # TODO in com_manager.poll() call close() when run_jobs is empty
+            self.cm_poll_timer.stop()
+            self.cm_poll_timer.start(self.cm_poll_interval)
 
             # show closing dialog
             self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)

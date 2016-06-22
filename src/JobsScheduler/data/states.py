@@ -92,6 +92,75 @@ class TaskStatus(IntEnum):
     :start app action: no
     """
 
+    def __str__(self):
+        """Return string representation."""
+        return _TASK_STATUS_DISPLAY_NAMES[self]
+
+
+_TASK_STATUS_DISPLAY_NAMES = {
+    TaskStatus.error: 'Error',
+    TaskStatus.finished: 'Finished',
+    TaskStatus.installation: 'Installation',
+    TaskStatus.interrupted: 'No response',
+    TaskStatus.none: 'New',
+    TaskStatus.paused: 'Paused',
+    TaskStatus.pausing: 'Pausing',
+    TaskStatus.queued: 'Queued',
+    TaskStatus.ready: 'Ready',
+    TaskStatus.resuming: 'Resuming',
+    TaskStatus.running: 'Running',
+    TaskStatus.stopped: 'Stopped',
+    TaskStatus.stopping: 'Stopping'
+}
+
+
+class MultijobActions(IntEnum):
+    """Possible actions for selected multijob."""
+    edit = 0
+    delete = 1
+    run = 2
+    stop = 3
+    terminate = 4
+    terminate_with_error = 5
+    resume = 6
+
+
+# installation, resume?
+# queued, resume?
+# running, resume?
+# none, edit?
+
+TASK_STATUS_PERMITTED_ACTIONS = set([
+    (TaskStatus.error, MultijobActions.delete),
+    (TaskStatus.finished, MultijobActions.delete),
+    (TaskStatus.installation, MultijobActions.resume),
+    (TaskStatus.installation, MultijobActions.stop),
+    (TaskStatus.none, MultijobActions.run),
+    (TaskStatus.none, MultijobActions.delete),
+    (TaskStatus.none, MultijobActions.edit),
+    (TaskStatus.queued, MultijobActions.resume),
+    (TaskStatus.queued, MultijobActions.stop),
+    (TaskStatus.running, MultijobActions.resume),
+    (TaskStatus.running, MultijobActions.stop),
+    (TaskStatus.stopped, MultijobActions.delete)
+])
+
+
+TASK_STATUS_STARTUP_ACTIONS = {
+    TaskStatus.error: None,
+    TaskStatus.finished: None,
+    TaskStatus.installation: MultijobActions.terminate_with_error,
+    TaskStatus.interrupted: MultijobActions.resume,
+    TaskStatus.none: None,
+    TaskStatus.paused: MultijobActions.resume,
+    TaskStatus.pausing: MultijobActions.resume,
+    TaskStatus.queued: MultijobActions.terminate_with_error,
+    TaskStatus.ready: None,
+    TaskStatus.resuming: MultijobActions.resume,
+    TaskStatus.running: MultijobActions.resume,
+    TaskStatus.stopped: None,
+    TaskStatus.stopping: MultijobActions.terminate
+}
 
 
 class MJState:
