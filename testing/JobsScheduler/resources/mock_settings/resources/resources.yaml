@@ -1,0 +1,15 @@
+hydra: {j_env: hydra,
+  j_execution_type: REMOTE, j_pbs_preset: hydra, j_remote_execution_type: PBS,
+  j_ssh_preset: hydra, mj_env: hydra,
+  mj_execution_type: DELEGATOR, mj_pbs_preset: hydra,
+  mj_remote_execution_type: PBS, mj_ssh_preset: hydra,
+  name: hydra}
+metacentrum: {j_env: metacentrum,
+  j_execution_type: PBS, j_pbs_preset: metacentrum, j_remote_execution_type: null,
+  j_ssh_preset: null, mj_env: metacentrum, mj_execution_type: DELEGATOR,
+  mj_pbs_preset: metacentrum, mj_remote_execution_type: PBS,
+  mj_ssh_preset: metacentrum, name: metacentrum}
+local_pc: {j_env: localhost,
+  j_execution_type: EXEC, j_pbs_preset: null, j_remote_execution_type: null, j_ssh_preset: null,
+  mj_env: localhost, mj_execution_type: EXEC, mj_pbs_preset: null,
+  mj_remote_execution_type: null, mj_ssh_preset: null, name: local_pc}

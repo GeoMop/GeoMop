@@ -1,0 +1,24 @@
+localhost:
+  cli_params: []
+  flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123d.exe
+  module_add: null
+  name: localhost
+  pbs_params: []
+  python_exec: C:\Program Files (x86)\GeoMop\env\Scripts\python.exe
+  scl_enable_exec: null
+metacentrum:
+  cli_params: []
+  flow_path: /storage/praha1/home/jan-hybs/projects/installed/Flow123d-2.0.0_rc-Linux/bin/flow123d
+  module_add: python34-modules-gcc
+  name: metacentrum
+  pbs_params: []
+  python_exec: python
+  scl_enable_exec: null
+hydra:
+  cli_params: []
+  flow_path: /share/apps/flow123d/flow123d-2.0.0_rc/bin/flow123d
+  module_add: null
+  name: hydra
+  pbs_params: []
+  python_exec: /opt/python/bin/python3.3
+  scl_enable_exec: null
