@@ -56,7 +56,7 @@ class ComManager:
         self.logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
         self.__cancel_jobs = []
-        """private array of jobs ids, that wait for canceling"""
+        """private array of jobs ids, that wait for cancelling"""
         
     def poll(self):
         """
@@ -72,6 +72,12 @@ class ComManager:
             bussy = bussy or self._check_resumed()
         if not bussy:
             bussy = bussy or self._check_started()
+        self._refresh_queues()
+        if not bussy:
+            self._check_cancelled()
+
+    def _refresh_queues(self):
+        """start first job in queue and return True else return False"""       
         for  key in self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key]
@@ -86,11 +92,10 @@ class ComManager:
                     self.results_change_jobs.append(key)
                 if logs_downloaded:
                     self.logs_change_jobs.append(key)
-                if state is not None and state.status == TaskStatus.finished:   
+                if state is not None and state.status == TaskStatus.ready and \
+                    not  worker.is_cancelling():   
                     worker.finish()
                     self.__cancel_jobs.append(key) 
-        if not bussy:
-            self._check_canceled()
             
     def _start_first(self):
         """start first job in queue and return True else return False"""
@@ -178,7 +183,7 @@ class ComManager:
             key = self.stop_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.canceling():                    
+                if not worker.cancelling():                    
                     worker.stop()
                     self.__cancel_jobs.append(key) 
                     res = True
@@ -194,7 +199,7 @@ class ComManager:
             key = self.terminate_jobs.pop()
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.canceling():                    
+                if not worker.cancelling():                    
                     worker.terminate()
                     self.__cancel_jobs.append(key) 
                     res = True
@@ -266,28 +271,25 @@ class ComManager:
         for key in delete_key:
             self.start_jobs.remove(key)
 
-    def _check_canceled(self):
+    def _check_cancelled(self):
         """
-        if is mj in canceled queue and is canceled, delete worker and remove mj from queue
+        if is mj in cancelled queue and is cancelled, delete worker and remove mj from queue
         """
         delete_key = []
         for  key in self.__cancel_jobs:
             if key in self._workers:
                 worker = self._workers[key]
                 if worker.is_cancelled():
-                    status, error = worker.get_canceling_state()
                     delete_key.append(key)
-                    mj = self._data_app.multijobs[key]
-                    mj.get_state().set_status(status)
-                    mj.error = error
+                    self._refresh_queues()
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
                 delete_key.append(key)
                 break
         for key in delete_key:
             self.__cancel_jobs.remove(key)
-            self.run_jobs.remove(key)
-            self._workers.remove(key)
+            self.run_jobs.remove(key)            
+            del self._workers[key]
         
     def _set_state(self, key, state, error):
         """
@@ -306,7 +308,7 @@ class ComManager:
         for  key in  self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.canceling():                    
+                if not worker.is_cancelling():                    
                     worker.pase()
                     self.__cancel_jobs.append(key) 
             else:
@@ -317,7 +319,7 @@ class ComManager:
         for  key in  self.run_jobs:
             if key in self._workers:
                 worker = self._workers[key] 
-                if not worker.canceling():                    
+                if not worker.cancelling():                    
                     worker.stop()
                     self.__cancel_jobs.append(key) 
             else:

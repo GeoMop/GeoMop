@@ -21,6 +21,14 @@ class OutputComm(metaclass=abc.ABCMeta):
     def get_instalation_fails_mess(self):
         return self.installation.instalation_fails_mess
         
+    def lock_installation(self):
+        """Set installation locks, return if should installation continue"""
+        self.installation.lock_installation()
+        
+    def unlock_installation(self):
+        """Unset installation locks"""
+        self.installation.unlock_installation()
+        
     def install_job_libs(self):
         """Install libs for jobs"""
         self.installation.install_job_libs()

@@ -31,6 +31,13 @@ class Job:
         self._state.run_interval = int(time.time() - self._state.start_time)
         self._state.status = TaskStatus.ready
         self._data_lock.release()
+        
+    def state_ready_to_finish(self):
+        """change state from ready to finish"""
+        self._data_lock.acquire()
+        if self._state.status == TaskStatus.ready:
+            self._state.status = TaskStatus.finished
+        self._data_lock.release()
 
     def state_error(self):
         """change state to error"""

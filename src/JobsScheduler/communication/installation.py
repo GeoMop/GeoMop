@@ -161,23 +161,21 @@ class Installation:
             conn.expect(".*pwd\r\n")
             self.copy_path = str(conn.readline(), 'utf-8').strip() + '/' + __root_dir__
 
-    @classmethod
-    def lock_installation(cls, mj_name, app_version, data_version):
+    def lock_installation(self):
         """Set installation locks, return if should installation continue"""
-        lock = Lock(mj_name, __install_dir__)
+        lock = Lock(self.mj_name, __install_dir__)
         try:
-            if lock.lock_app(app_version, data_version, 
-                cls.get_result_dir_static(mj_name), __conf_dir__)<1:
+            if lock.lock_app(self.app_version, self.data_version, 
+                self.get_result_dir(), __conf_dir__)<1:
                 return False
         except LockFileError as err:
             logger.warning("Lock instalation error: " + str(err))
             return False
         return True
     
-    @staticmethod  
-    def unlock_installation(mj_name):
+    def unlock_installation(self):
         """Unset installation locks"""
-        lock = Lock(mj_name, __install_dir__)
+        lock = Lock(self.mj_name, __install_dir__)
         try:
             if not lock.unlock_install():
                 return False

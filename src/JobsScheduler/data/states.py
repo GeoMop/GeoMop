@@ -41,7 +41,7 @@ class TaskStatus(IntEnum):
     """
     Job is finished
     :permited actions: no
-    :start app action: OK
+    :start app action: resume
     """
     none = 5
     """

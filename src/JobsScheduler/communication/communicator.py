@@ -532,15 +532,13 @@ class Communicator():
         logger.debug("Answer to message is receive (" + str(mess) + ')')
         return mess    
 
-    @staticmethod
-    def lock_installation( init_conf):
+    def lock_installation(self):
         """Set installation locks, return if should installation continue"""
-        Installation.lock_installation( init_conf.mj_name, init_conf.app_version,  init_conf.conf_long_id)
+        self.output.lock_installation()
         
-    @staticmethod    
-    def unlock_installation(mj_name):
+    def unlock_installation(self):
         """Unset installation locks"""
-        Installation.unlock_installation(mj_name)
+        self.output.unlock_installation()
     
     @staticmethod    
     def unlock_application(mj_name):

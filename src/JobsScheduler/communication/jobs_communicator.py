@@ -108,10 +108,11 @@ class JobsCommunicator(Communicator):
             logger.info("Stop signal is received")
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
-        if message.action_type == tdata.ActionType.download_res:
+        if message.action_type == tdata.ActionType.download_res:           
             if self.conf.output_type != comconf.OutputCommType.ssh or \
                self.conf.direct_communication:
                 action = tdata.Action(tdata.ActionType.ok)
+                self._try_finish_jobs()                
                 return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
 
@@ -316,6 +317,10 @@ class JobsCommunicator(Communicator):
         lock is not needed.
         """        
         action(self.next_communicator,self.mj_name, id)
+    
+    def download(self):    
+        self._try_finish_jobs()
+        super(JobsCommunicator, self).download()        
         
     def install(self, unlock=True):
         """make installation"""
@@ -409,3 +414,8 @@ class JobsCommunicator(Communicator):
         if self._mj_state.known_jobs <= 0 and self._mj_state.estimated_jobs <= 0 and \
             self._mj_state.running_jobs <= 0:
             self._state_ready()
+            
+    def _try_finish_jobs(self):
+        "If job is ready and data is downloaded, set job to finish state"
+        for id in self.ready_jobs:
+            self.ready_jobs[id].state_ready_to_finish()

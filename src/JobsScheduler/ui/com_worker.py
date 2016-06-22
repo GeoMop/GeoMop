@@ -10,7 +10,7 @@ from  communication.installation import __install_dir__
 class ComWorker(threading.Thread):   
     """
     Class created own thread for installation, communication and
-    canceling next communicators.
+    cancelling next communicators.
     """
     def __init__(self, key, com):            
         super().__init__(name=com.mj_name)
@@ -32,9 +32,9 @@ class ComWorker(threading.Thread):
         """Error is occured, communication is stopped"""
         self.__error = None
         """error message"""
-        self._ok_canceling_state = None
+        self._ok_cancelling_state = None
         """
-        Communicator state, that will has after successful canceling.
+        Communicator state, that will has after successful cancelling.
         If this state is error, self.__error_state will be set to True
         """
         self._last_state = MultiJobState(com.mj_name) 
@@ -46,6 +46,8 @@ class ComWorker(threading.Thread):
         self.__stop = False
         """stop job"""
         self.__terminate = False
+        """terminate job"""
+        self.__finish = False
         """terminate job"""
         self.__pause = False
         """pause job"""
@@ -83,6 +85,7 @@ class ComWorker(threading.Thread):
         state = None
         if self.__state is not None:
             state = self.__state
+            self._last_state = self.__state
             self.__state = None 
         downloaded = self.__downloaded
         self.__downloaded = False
@@ -139,27 +142,28 @@ class ComWorker(threading.Thread):
         self.__state_lock.acquire()
         self.__stop = True
         self.__cancelling = True
-        self._ok_canceling_state = TaskStatus.stopped
+        self._ok_cancelling_state = TaskStatus.stopped
         self.__state_lock.release()
 
     def finish(self):
         """download data and stop communicator"""
         self.__state_lock.acquire()
         self.__cancelling = True
-        self._ok_canceling_state = TaskStatus.finished
+        self._ok_cancelling_state = TaskStatus.finished
+        self.__finish = True
         self.__state_lock.release()
 
-    def is_canceling(self):
-        """return if communicator is canceling (stoping, pusing, terminating)"""
+    def is_cancelling(self):
+        """return if communicator is cancelling (stoping, pusing, terminating)"""
         self.__state_lock.acquire()
         res = self.__cancelling
         self.__state_lock.release()
         return res
 
-    def is_canceled(self):
-        """return if communicator is canceled (stoping, pusing, terminating)"""
+    def is_cancelled(self):
+        """return if communicator is cancelled (stoping, pusing, terminating)"""
         self.__state_lock.acquire()
-        res = self.__cancelling
+        res = self.__cancelled
         self.__state_lock.release()
         return res
 
@@ -168,7 +172,7 @@ class ComWorker(threading.Thread):
         self.__state_lock.acquire()
         self.__terminate = True
         self.__cancelling = True
-        self._ok_canceling_state = TaskStatus.stopped
+        self._ok_cancelling_state = TaskStatus.stopped
         self.__state_lock.release()
 
     def pause(self):
@@ -184,12 +188,6 @@ class ComWorker(threading.Thread):
         self.__get_state = True
         self.__download = True
         self.__state_lock.release()        
-
-    def get_canceling_state(self):
-        """get canceling state and error"""
-        error = None
-        status = TaskStatus.finish
-        return status, error
         
     def run(self):
         while True:
@@ -215,6 +213,13 @@ class ComWorker(threading.Thread):
                 self.__state_lock.release()
                 self._pause()
                 break
+            if self.__finish:
+                self.__finish = False
+                self.__state_lock.release()                
+                self._results()
+                self._state()
+                self._stop()                
+                break
             if self.__get_state:
                 self.__get_state = False
                 self.__state_lock.release()
@@ -228,10 +233,16 @@ class ComWorker(threading.Thread):
             self.__state_lock.release() 
             time.sleep(0.1)
         self._com.close( )
+        self.__state_lock.acquire()
+        self.__cancelled = True
+        self.__cancelling = False
+        self.__state_lock.release()     
         
     def _install(self):
         """installation, if return False, thrad is stoped"""
+        self._com.lock_installation()
         self._com.install()
+        self._com. unlock_installation()
         if self._com.instalation_fails_mess is not None:
             self.__state_lock.acquire()
             self.__starting = False
@@ -251,7 +262,7 @@ class ComWorker(threading.Thread):
                 if self._com.instalation_fails_mess is not None and \
                     mess.get_action().data.data["severity"]>4:
                     self.__state_lock.acquire()                    
-                    self._ok_canceling_state = TaskStatus.error
+                    self._ok_cancelling_state = TaskStatus.error
                     self.__start_state = TaskStatus.stopped
                     self.__error = mess.get_action().data.data["msg"]
                     self.__state_lock.release() 
@@ -275,7 +286,7 @@ class ComWorker(threading.Thread):
                 return True                
             time.sleep(2)
         self.__state_lock.acquire()                    
-        self._ok_canceling_state = TaskStatus.error
+        self._ok_cancelling_state = TaskStatus.error
         self.__start_state = TaskStatus.stopped
         self.__error = "Installation timeout exceed"
         self.__state_lock.release() 
@@ -291,11 +302,9 @@ class ComWorker(threading.Thread):
                     tdata.ActionType.interupt_connection))
         self._com.comunicator.interupt()
         self.__state_lock.acquire()
-        state = self._last_state()    
+        state = self._last_state   
         state.status = TaskStatus.pause        
-        self._state = state
-        self.__cancelled = True
-        self.__cancelling = False
+        self.__state = state
         self.__state_lock.release() 
 
     def _resume(self):
@@ -316,14 +325,12 @@ class ComWorker(threading.Thread):
             message = action.get_message()
             self.send_message(message)
         self.__state_lock.acquire()
-        state = self._last_state()    
-        if self._ok_canceling_state is not None:
-            if self._ok_canceling_state==TaskStatus.error:
+        state = self._last_state    
+        if self._ok_cancelling_state is not None:
+            if self._ok_cancelling_state==TaskStatus.error:
                 self.__error_state = True
-            state.status = self._ok_canceling_state        
-        self._state = state
-        self.__cancelled = True
-        self.__cancelling = False
+            state.status = self._ok_cancelling_state        
+        self.__state = state
         self.__state_lock.release()        
 
     def _terminate(self):
@@ -331,14 +338,12 @@ class ComWorker(threading.Thread):
         message = action.get_message()
         self.send_message(message)
         self.__state_lock.acquire()
-        state = self._last_state()    
-        if self._ok_canceling_state is not None:
-            if self._ok_canceling_state==TaskStatus.error:
+        state = self._last_state    
+        if self._ok_cancelling_state is not None:
+            if self._ok_cancelling_state==TaskStatus.error:
                 self.__error_state = True
-            state.status = self._ok_canceling_state        
-        self._state = state
-        self.__cancelled = True
-        self.__cancelling = False
+            state.status = self._ok_cancelling_state        
+        self.__state = state
         self.__state_lock.release()        
     
     def _state(self):
