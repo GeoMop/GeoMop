@@ -8,19 +8,17 @@ import copy
 import logging
 import os
 from shutil import copyfile
-import shutil
 import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from communication import Communicator, Installation
+from communication import Installation
 from data.states import TaskStatus
 from communication import installation
-from threading import Timer
 from ui.actions.main_menu_actions import *
-from ui.data.mj_data import MultiJob, MultiJobActions, AMultiJobFile
+from ui.data.mj_data import MultiJob, AMultiJobFile
 from ui.data.preset_data import Id
 from ui.dialogs import AnalysisDialog, FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
@@ -34,7 +32,6 @@ from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
 from geomop_project import Project, Analysis
-import flow_util
 
 
 logger = logging.getLogger("UiTrace")
@@ -281,50 +278,6 @@ class MainWindow(QtWidgets.QMainWindow):
             # Todo properly edit state, change folder name etc.
             self.data.multijobs[data["key"]] = MultiJob(data["preset"])
         self.multijobs_changed.emit(self.data.multijobs)
-
-    def _reload_project(self, data):
-        """reload project files and return analysis"""
-        # sync mj analyses + files
-        analysis = None
-        if Project.current is not None:
-            mj_name = data.preset.name
-            mj_dir = Installation.get_config_dir_static(mj_name)
-            proj_dir = Project.current.project_dir
-            
-            # get all files used by analyses
-            files = []
-            for analysis in Project.current.get_all_analyses():
-                files.extend(analysis.files)
-
-            analysis = Project.current.get_current_analysis()
-            assert analysis is not None, "No analysis file exists for the project!"
-
-            # copy the entire folder
-            shutil.rmtree(mj_dir, ignore_errors=True)
-            try:
-                shutil.copytree(proj_dir, mj_dir)
-                # remove result dir
-                shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
-                    ignore_errors=True)
-                # remove project file
-                os.remove(os.path.join(mj_dir,".project"))
-            # Directories are the same
-            except shutil.Error as e:
-                logger.error("Failed to copy project dir: " + str(e))
-            # Any error saying that the directory doesn't exist
-            except OSError as e:
-                logger.error("Failed to copy project dir: " + str(e))
-
-            # fill in parameters and copy the files
-            for file in set(files):
-                src = os.path.join(proj_dir, file)
-                dst = os.path.join(mj_dir, file)
-                # create directory structure if not present
-                dst_dir = os.path.dirname(dst)
-                if not os.path.isdir(dst_dir):
-                    os.makedirs(dst_dir)
-                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
-        return analysis
 
     def _handle_run_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
