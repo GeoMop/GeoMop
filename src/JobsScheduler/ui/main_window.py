@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """current com manager polling interval in ms"""
 
         self.cm_poll_timer = QtCore.QTimer()
-        self.cm_poll_timer.timeout.connect(self.com_manager.poll)
+        self.cm_poll_timer.timeout.connect(self.poll_com_manager)
         self.cm_poll_timer.start(self.cm_poll_interval)
 
         # init dialogs
@@ -173,7 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # connect current multijob changed
         self.ui.overviewWidget.currentItemChanged.connect(
-            self.update_ui_locks)
+            self._handle_current_mj_changed)
 
         # connect tabWidget
         self.ui.tabWidget.ui.resultsTab.ui.saveButton.clicked.connect(
@@ -195,6 +195,32 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # resume paused multijobs
         self.resume_paused_multijobs()
+
+    def poll_com_manager(self):
+        """poll com manager and update gui"""
+        self.com_manager.poll()
+
+        for mj_id in self.com_manager.state_change_jobs:
+            mj = self.data.multijobs[mj_id]
+            self.ui.overviewWidget.update_item(mj_id, mj.get_state())
+            current = self.ui.overviewWidget.currentItem()
+            if current.text(0) == mj_id:
+                self.update_ui_locks(mj_id)
+
+        overview_change_jobs = set(self.com_manager.results_change_jobs)
+        overview_change_jobs.update(self.com_manager.jobs_change_jobs)
+        overview_change_jobs.update(self.com_manager.logs_change_jobs)
+
+        for mj_id in overview_change_jobs:
+            current = self.ui.overviewWidget.currentItem()
+            if current.text(0) == mj_id:
+                mj = self.data.multijobs[mj_id]
+                self.ui.tabWidget.reload_view(mj)
+
+        self.com_manager.state_change_jobs = []
+        self.com_manager.results_change_jobs = []
+        self.com_manager.jobs_change_jobs = []
+        self.com_manager.logs_change_jobs = []
 
     def load_settings(self):
         # select last selected mj
@@ -222,14 +248,21 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.ui.menuBar.analysis.actionCreateAnalysis.setText('Edit')
 
-    def update_ui_locks(self, current, previous=None):
-        if current is None:
+    def update_ui_locks(self, mj_id):
+        if mj_id is None:
             self.ui.menuBar.multiJob.lock_by_status(None)
         else:
-            status = self.data.multijobs[current.text(0)].state.status
+            status = self.data.multijobs[mj_id].state.status
             self.ui.menuBar.multiJob.lock_by_status(status)
-            mj = self.data.multijobs[current.text(0)]
+            mj = self.data.multijobs[mj_id]
             self.ui.tabWidget.reload_view(mj)
+
+    def _handle_current_mj_changed(self, current, previous=None):
+        if current is not None:
+            mj_id = current.text(0)
+        else:
+            mj_id = None
+        self.update_ui_locks(mj_id)
 
     @staticmethod
     def _handle_log_action():
