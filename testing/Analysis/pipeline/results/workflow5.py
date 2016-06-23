@@ -11,19 +11,31 @@ Workflow_4 = Workflow(
         VariableGenerator_3
     ]
 )
-Workflow_4.set_config(
-    OutputAction=Flow123d_2,
-    InputAction=Flow123d_2
+Flow123d_5 = Flow123dAction(
+    Inputs=[
+        Workflow_4.input()
+    ],
+    YAMLFile='test.yaml'
 )
-Workflow_5 = Workflow(
+Workflow_4.set_config(
+    OutputAction=Flow123d_5,
+    InputAction=Flow123d_5
+)
+Workflow_6 = Workflow(
     Inputs=[
         Workflow_4
     ]
 )
-Workflow_5.set_config(
-    OutputAction=Flow123d_2,
-    InputAction=Flow123d_2
+Flow123d_7 = Flow123dAction(
+    Inputs=[
+        Workflow_6.input()
+    ],
+    YAMLFile='test.yaml'
 )
-Pipeline_6 = Pipeline(
-    ResultActions=[Workflow_5]
+Workflow_6.set_config(
+    OutputAction=Flow123d_7,
+    InputAction=Flow123d_7
+)
+Pipeline_8 = Pipeline(
+    ResultActions=[Workflow_6]
 )
