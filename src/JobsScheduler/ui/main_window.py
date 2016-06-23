@@ -254,6 +254,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_current_mj_changed(self, current, previous=None):
         if current is not None:
             mj_id = current.text(0)
+            mj = self.data.multijobs[mj_id]
+
+            # show error message in status bar
+            self.ui.status_bar.showMessage(mj.error)
         else:
             mj_id = None
         self.update_ui_locks(mj_id)
@@ -537,3 +541,6 @@ class UiMainWindow(object):
 
         # set central widget
         main_window.setCentralWidget(self.centralwidget)
+
+        # status bar
+        self.status_bar = main_window.statusBar()
