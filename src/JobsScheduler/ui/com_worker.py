@@ -320,10 +320,10 @@ class ComWorker(threading.Thread):
     def _stop(self):
         mess = self._com.send_long_action(tdata.Action(
                     tdata.ActionType.stop))
-        if mess.action_type != tdata.ActionType.ok:
-            action = tdata.Action( tdata.ActionType.terminate)
+        if mess is None or mess.action_type != tdata.ActionType.ok:
+            action = tdata.Action( tdata.ActionType.destroy)
             message = action.get_message()
-            self.send_message(message)
+            self._com.send_message(message)
         self.__state_lock.acquire()
         state = self._last_state    
         if self._ok_cancelling_state is not None:
@@ -334,9 +334,9 @@ class ComWorker(threading.Thread):
         self.__state_lock.release()        
 
     def _terminate(self):
-        action = tdata.Action( tdata.ActionType.terminate)
+        action = tdata.Action( tdata.ActionType.destroy)
         message = action.get_message()
-        self.send_message(message)
+        self._com.send_message(message)
         self.__state_lock.acquire()
         state = self._last_state    
         if self._ok_cancelling_state is not None:

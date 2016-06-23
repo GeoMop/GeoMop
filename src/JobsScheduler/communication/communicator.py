@@ -273,7 +273,7 @@ class Communicator():
                 response.action_type == tdata.ActionType.action_in_process:
                 return response
             if response is None or \
-                response.action_type == tdata.ActionType.ok:
+                response.action_type != tdata.ActionType.ok:
                 self.terminate_connections()
             self.status.next_started = False
             self.status.next_installed = False
