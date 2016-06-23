@@ -32,23 +32,21 @@ class Workflow(WorkflowActionType):
         
     def duplicate(self):
         """Duplicate workflow. Returned workflow is not inicialized and checked"""
-        new = Workflow()
-        #set Workflow
-        if 'InputAction' in self._variables:
-            new._variables['InputAction'] = self._variables['InputAction']
-        if 'OutputAction' in self._variables:
-            new._variables['OutputAction'] = self._variables['OutputAction']
-        if 'ResultAction' in self._variables and \
-            isinstance(self._variables['ResultActions'], list):
-            new._variables['ResultActions']=[]
-            for action in self._variables['ResultActions']:
-                new._variables['ResultActions'].append(action)            
-        #duplicate inputs
-        for input in self._inputs:
-            new._inputs.append(input)
+        
+        old_actions = self._actions
+        actions = self._get_child_list()
+        self._actions = sorted(actions , key=lambda item: item._id)
+        name = self._get_instance_name()
+        script = self._get_settings_script()
+        self._actions = old_actions
+        
+        script.insert(0, "from pipeline import *")
+        script = '\n'.join(script)
+        script = script.replace(name, "new")
+        exec (script, globals())
+            
         new._set_state(ActionStateType.created)
         return new
-
        
     def _get_child_list(self):
         """check outputAction variable and get list of child actions"""

@@ -507,11 +507,11 @@ class Bridge(BaseActionType):
     def __init__(self, workflow):
         self._workflow =workflow
         """Workflow action"""        
-        self._link=None
+        self._link = None
         """Real action for gaining output"""
         self.action_checkable = True
         """Is possible check linke action (output is not parssed  from previous action)"""
-        self._get_func =None        
+        self._get_func = None 
         
     def _set_new_link(self, link, get_func=None):
         self._link=link
@@ -721,12 +721,15 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def _get_action_list(action, stop_action=None, must_has_stop=True):
         """
         get not-ordered list of dependent action. If stop 
-        action is set, list end in this action
+        action is set, list end in this action, and not continue
+        to action in stop action inputs. If stop action is not 
+        found, emty list is returned.
         """
         before_end = stop_action is None or not must_has_stop
         actions=[action]
-        if action == stop_action: 
-            return actions
+        if stop_action and action == stop_action: 
+            stop_action = None
+            before_end = True
         process=[]
         while True: 
             for action_next in action._inputs:
@@ -734,13 +737,16 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
                     before_end=True
                     continue
                 if action_next in actions:
-                    continue                
+                    continue
+                if isinstance(action_next, Bridge):
+                    continue
                 process.append(action_next)
                 actions.append(action_next)
             if len(process)==0:
                 if not before_end:
+                    # error, action end action not defined
                     return []
-                if stop_action is not None:
+                if stop_action is not None and action != stop_action:
                     actions.append(stop_action)
                 break
             action=process.pop(0)
