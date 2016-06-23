@@ -55,9 +55,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.com_manager.resume_jobs.append(mj_id)
             elif action == MultijobActions.terminate:
                 self.com_manager.terminate_jobs.append(mj_id)
-            elif action == MultijobActions.terminate_with_error:
-                self.com_manager.terminate_jobs.append(mj_id)
-                # TODO show error
 
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
@@ -67,14 +64,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
-        
-        # repair bad status data
-        for key, mj in self.data.multijobs.items():
-            status = mj.get_state().status
-            if status == TaskStatus.pausing:
-                mj.get_state().set_status(TaskStatus.paused)
-            if status == TaskStatus.stopping:
-                mj.get_state().set_status(TaskStatus.paused)        
 
         # Com Manager related
         self.com_manager = com_manager
@@ -506,6 +495,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.close_dialog:
                 self.close_dialog.can_close = True
                 self.close_dialog.close()
+
+            # save data
+            self.data.save_all()
 
             event.accept()
         else:
