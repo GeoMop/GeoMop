@@ -6,12 +6,12 @@ Table of MultiJobs
 """
 import datetime
 from PyQt5 import QtCore
-
 import PyQt5.QtWidgets as QtWidgets
-
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
+
 from data.states import TaskStatus
+from .overview import ERROR_BRUSH
 
 
 class Tabs(QtWidgets.QTabWidget):
@@ -108,12 +108,18 @@ class JobsTab(AbstractTab):
         else:
             item.setText(3, "Not Started Yet")
         item.setText(4, str(datetime.timedelta(seconds=job.run_interval)))
-        item.setText(5, TaskStatus(job.status).name)
+        item.setText(5, str(TaskStatus(job.status)))
 
         item.setTextAlignment(1, QtCore.Qt.AlignRight)
         item.setTextAlignment(2, QtCore.Qt.AlignRight)
         item.setTextAlignment(3, QtCore.Qt.AlignRight)
         item.setTextAlignment(4, QtCore.Qt.AlignRight)
+
+        # background color
+        if job.status == TaskStatus.error:
+            for i in range(item.columnCount()):
+                item.setBackground(i, ERROR_BRUSH)
+
         return item
 
     def reload_view(self, jobs):

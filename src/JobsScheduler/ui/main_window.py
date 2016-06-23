@@ -198,6 +198,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
+            # check if all jobs finished successfully for a finished multijob
+            if mj.state.status == TaskStatus.finished:
+                for job in mj.get_jobs():
+                    if job.status == TaskStatus.error:
+                        mj.state.status = TaskStatus.error
+                        mj.error = "Not all jobs finished successfully."
+                        break
+
         overview_change_jobs = set(self.com_manager.results_change_jobs)
         overview_change_jobs.update(self.com_manager.jobs_change_jobs)
         overview_change_jobs.update(self.com_manager.logs_change_jobs)

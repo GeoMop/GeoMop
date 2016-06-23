@@ -56,7 +56,7 @@ class Overview(QtWidgets.QTreeWidget):
 
         # background color
         if state.status == TaskStatus.error:
-            for i in range(11):
+            for i in range(item.columnCount()):
                 item.setBackground(i, ERROR_BRUSH)
 
         return item
