@@ -68,7 +68,7 @@ class Pipelineprocessor():
         :param string identical_list: path to file with list of equol action for 
             establishing connection. File identical_list is needed only for action
             processing, and for action planning should be None. Equal list is
-            created in client site by :class:`client_pipeline.equal_list_creator.ELCreator`.
+            created in client site by :class:`client_pipeline.identical_list_creator.ELCreator`.
         """
         self._errs = []
         """validation errors"""

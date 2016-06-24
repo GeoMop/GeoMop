@@ -59,6 +59,36 @@ class PbsConfig(object):
         """
         self.pbs_params = []
 
+class PathsConfig(object):
+    """
+    Class for configuration data, config, logs and locks paths
+    
+    self.app_dir variable is for renaming app directory created in remote.
+    Other path is for communicators running on client pc. For communicators
+    on remote pc (after first SSH connection) should be empty. First  
+    communicator before SSH should have self.copy_ex_libs set.    
+    """
+
+    def __init__(self):
+        """init"""
+        self.app_dir = "js_services"
+        """Name of application directory for remote"""
+        self.home_dir = None
+        """Absolut path to directory for central-log, locks and versions subdirectories.
+        If variable is None, app directory is use"""
+        self.home = None
+        """Absolut path to directory for result subdirectory.
+        If variable is None, app directory/jobs/'JOB_NAME' path is use"""
+        self.ex_lib_path = None
+        """if absolute paths is set, is added to communicatin sys.path, if
+        is None, path to lib directory is added"""
+        self.copy_ex_libs = []
+        """
+        This variable contain relative directories with client system sepparators 
+        from self.ex_lib_path. (if self.ex_lib_path is None, variable is ignored) This
+        directories is copy to lib directory on remote.
+        """
+
 
 class SshConfig(object):
     """
@@ -72,7 +102,11 @@ class SshConfig(object):
         self.port = "22"
         self.uid = ""
         self.pwd = ""
-
+        self.to_pc = True
+        """password is store in computer"""
+        self.to_remote = False
+        """password is store in remote"""
+        self.key = False
 
 class PythonEnvConfig(object):
     """
