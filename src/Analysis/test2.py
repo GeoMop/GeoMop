@@ -8,25 +8,34 @@ from pipeline.pipeline import *
 import pipeline.action_types as action
 import os
 
-# test workflow duplication
+# test workflow v 2xForEach in each other
 action.__action_counter__ = 0
+items = [
+    {'name': 'a', 'value': 1, 'step': 0.1, 'n_plus': 1, 'n_minus': 1, 'exponential': False},
+    {'name': 'b', 'value': 10, 'step': 1, 'n_plus': 2, 'n_minus': 0, 'exponential': True}
+]
+items2 = [
+    {'name': 'x', 'value': 1, 'step': 0.1, 'n_plus': 1, 'n_minus': 1, 'exponential': False},
+    {'name': 'y', 'value': 10, 'step': 1, 'n_plus': 2, 'n_minus': 0, 'exponential': True}
+]
+gen = RangeGenerator(Items=items)
+gen2 = RangeGenerator(Items=items2)
 workflow = Workflow()
-flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
-workflow.set_config(OutputAction=flow, InputAction=flow)
-vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-w1 = workflow.duplicate()
-w1.set_inputs([vg])
-w2 = workflow.duplicate()
-w2.set_inputs([w1])
-pipeline = Pipeline(ResultActions=[w2])
+workflow2 = Workflow()
+flow = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="test.yaml")
+workflow2.set_config(OutputAction=flow, InputAction=flow)
+foreach2 = ForEach(Inputs=[gen2], WrappedAction=workflow2)
+workflow.set_config(OutputAction=foreach2, InputAction=foreach2)
+foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
+pipeline = Pipeline(ResultActions=[foreach])
+flow._output = String()
 pipeline._inicialize()
 test = pipeline._get_settings_script()
 
-# compare_with_file(os.path.join("pipeline", "results", "workflow5.py"), test)
+# compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
 
 # test validation
-err = pipeline.validate()
-# assert len(err) == 0
+err = workflow.validate()
 
 ts=""
 for line in test:

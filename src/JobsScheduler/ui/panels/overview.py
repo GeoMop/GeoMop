@@ -6,7 +6,12 @@ Table of MultiJobs
 """
 import datetime
 import PyQt5.QtWidgets as QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
+
+from data import TaskStatus
+
+
+ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
 
 
 class Overview(QtWidgets.QTreeWidget):
@@ -48,6 +53,12 @@ class Overview(QtWidgets.QTreeWidget):
         item.setText(8, str(state.estimated_jobs))
         item.setText(9, str(state.finished_jobs))
         item.setText(10, str(state.running_jobs))
+
+        # background color
+        if state.status == TaskStatus.error:
+            for i in range(item.columnCount()):
+                item.setBackground(i, ERROR_BRUSH)
+
         return item
 
     def _get_item_by_key(self, key):

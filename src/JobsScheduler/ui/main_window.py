@@ -55,9 +55,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.com_manager.resume_jobs.append(mj_id)
             elif action == MultijobActions.terminate:
                 self.com_manager.terminate_jobs.append(mj_id)
-            elif action == MultijobActions.terminate_with_error:
-                self.com_manager.terminate_jobs.append(mj_id)
-                # TODO show error
 
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
@@ -67,14 +64,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
-        
-        # repair bad status data
-        for key, mj in self.data.multijobs.items():
-            status = mj.get_state().status
-            if status == TaskStatus.pausing:
-                mj.get_state().set_status(TaskStatus.paused)
-            if status == TaskStatus.stopping:
-                mj.get_state().set_status(TaskStatus.paused)        
 
         # Com Manager related
         self.com_manager = com_manager
@@ -209,6 +198,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
+            # check if all jobs finished successfully for a finished multijob
+            if mj.state.status == TaskStatus.finished:
+                for job in mj.get_jobs():
+                    if job.status == TaskStatus.error:
+                        mj.state.status = TaskStatus.error
+                        mj.error = "Not all jobs finished successfully."
+                        break
+
         overview_change_jobs = set(self.com_manager.results_change_jobs)
         overview_change_jobs.update(self.com_manager.jobs_change_jobs)
         overview_change_jobs.update(self.com_manager.logs_change_jobs)
@@ -265,6 +262,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_current_mj_changed(self, current, previous=None):
         if current is not None:
             mj_id = current.text(0)
+            mj = self.data.multijobs[mj_id]
+
+            # show error message in status bar
+            self.ui.status_bar.showMessage(mj.error)
         else:
             mj_id = None
         self.update_ui_locks(mj_id)
@@ -507,6 +508,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.close_dialog.can_close = True
                 self.close_dialog.close()
 
+            # save data
+            self.data.save_all()
+
             event.accept()
         else:
             event.ignore()
@@ -545,3 +549,6 @@ class UiMainWindow(object):
 
         # set central widget
         main_window.setCentralWidget(self.centralwidget)
+
+        # status bar
+        self.status_bar = main_window.statusBar()

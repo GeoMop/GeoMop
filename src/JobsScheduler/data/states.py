@@ -121,14 +121,8 @@ class MultijobActions(IntEnum):
     run = 2
     stop = 3
     terminate = 4
-    terminate_with_error = 5
     resume = 6
 
-
-# installation, resume?
-# queued, resume?
-# running, resume?
-# none, edit?
 
 TASK_STATUS_PERMITTED_ACTIONS = set([
     (TaskStatus.error, MultijobActions.delete),
@@ -149,12 +143,12 @@ TASK_STATUS_PERMITTED_ACTIONS = set([
 TASK_STATUS_STARTUP_ACTIONS = {
     TaskStatus.error: None,
     TaskStatus.finished: None,
-    TaskStatus.installation: MultijobActions.terminate_with_error,
+    TaskStatus.installation: MultijobActions.terminate,
     TaskStatus.interrupted: MultijobActions.resume,
     TaskStatus.none: None,
     TaskStatus.paused: MultijobActions.resume,
     TaskStatus.pausing: MultijobActions.resume,
-    TaskStatus.queued: MultijobActions.terminate_with_error,
+    TaskStatus.queued: MultijobActions.terminate,
     TaskStatus.ready: None,
     TaskStatus.resuming: MultijobActions.resume,
     TaskStatus.running: MultijobActions.resume,

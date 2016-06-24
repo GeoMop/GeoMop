@@ -46,7 +46,6 @@ def test_workflow_code_init():
     err = workflow.validate()
     assert len(err) == 0
 
-    return
 
     # test workflow duplication
     action.__action_counter__ = 0
@@ -66,7 +65,7 @@ def test_workflow_code_init():
 
     # test validation
     err = pipeline.validate()
-    # assert len(err) == 0
+    assert len(err) == 1
 
 
     # test workflow v 2xForEach in each other
@@ -93,11 +92,11 @@ def test_workflow_code_init():
     pipeline._inicialize()
     test = pipeline._get_settings_script()
 
-    # compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
+    compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
 
     # test validation
     err = workflow.validate()
-    #assert len(err) == 0
+    assert len(err) == 0
 
 
     # test workflow with one direct input

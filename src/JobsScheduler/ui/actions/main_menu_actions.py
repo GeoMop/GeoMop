@@ -43,7 +43,7 @@ class ActionEditMultiJob(QtWidgets.QAction):
 class ActionReuseMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText("Copy")
+        self.setText("Reuse")
         self.setShortcut("Alt+C")
         self.setObjectName("actionReuseMultiJob")
 
