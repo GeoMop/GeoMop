@@ -5,7 +5,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox)
 
 from geomop_widgets import WorkspaceSelectorWidget
-from geomop_project import Project
+from geomop_analysis import Analysis
 
 
 class OptionsDialog(QDialog):
@@ -40,7 +40,7 @@ class OptionsDialog(QDialog):
     def accept(self):
         """Handles a confirmation."""
         self.config.workspace = self.workspace_selector.value
-        if not Project.exists(self.config.workspace, self.config.project):
-            self.config.project = None
+        if not Analysis.exists(self.config.workspace, self.config.analysis):
+            self.config.analysis = None
         self.config.save()
         super(OptionsDialog, self).accept()

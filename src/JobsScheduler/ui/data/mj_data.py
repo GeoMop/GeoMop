@@ -119,6 +119,8 @@ class MultiJobPreset(APreset):
         """Logging level"""
         self.number_of_processes = kw_or_def('number_of_processes', 1)
         """Number of processes used by MultiJob"""
+        self.analysis = kw_or_def('analysis')
+        """Name of the analysis used in this multijob"""
 
     def __repr__(self):
         """

@@ -5,4 +5,3 @@
 
 from .workspace_selector_widget import WorkspaceSelectorWidget
 from .font_selector_widget import FontSelectorWidget
-from .project_menu import ProjectMenu

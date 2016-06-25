@@ -20,7 +20,7 @@ from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
 from ui.data.preset_data import Id
-from ui.dialogs import AnalysisDialog, FilesSavedMessageBox, MessageDialog
+from ui.dialogs import FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.options_dialog import OptionsDialog
@@ -31,7 +31,7 @@ from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
-from geomop_project import Project, Analysis
+from geomop_analysis import Analysis
 
 
 logger = logging.getLogger("UiTrace")
@@ -77,7 +77,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
-                                     resources=self.data.resource_presets)
+                                     resources=self.data.resource_presets,
+                                     config=self.data.config)
         self.ssh_presets_dlg = SshPresets(parent=self,
                                           presets=self.data.ssh_presets)
         self.pbs_presets_dlg = PbsPresets(parent=self,
@@ -133,8 +134,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resource_presets_dlg.presets_changed.connect(
             self.data.resource_presets.save)
 
-        # project menu
-        self.ui.menuBar.project.config = self.data.config
+        # analysis menu
+        self.ui.menuBar.analysis.config = self.data.config
 
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
@@ -151,10 +152,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect multijob stop action
         self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
             self._handle_stop_multijob_action)
-
-        # connect create analysis
-        self.ui.menuBar.analysis.actionCreateAnalysis.triggered.connect(
-            self._handle_create_analysis)
 
         # connect options
         self.ui.menuBar.settings.actionOptions.triggered.connect(
@@ -176,7 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # load settings
         self.load_settings()
         # attach workspace and project observers
-        self.data.config.observers.append(Project)
+        self.data.config.observers.append(Analysis)
         self.data.config.observers.append(self)
 
         # trigger notify
@@ -235,20 +232,16 @@ class MainWindow(QtWidgets.QMainWindow):
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
         # load current project
-        if self.data.config.project is not None:
-            project = self.data.config.project
+        if self.data.config.analysis is not None:
+            analysis = self.data.config.analysis
         else:
-            project = '(No Project)'
-        self.setWindowTitle('Jobs Scheduler - ' + project)
+            analysis = '(No Analysis)'
+        self.setWindowTitle('Jobs Scheduler - ' + analysis)
+        self.mj_dlg.set_analyses(self.data.config)
 
     def notify(self, data):
         """Handle update of data.set_data."""
         self.load_settings()
-        # update analysis menu label - create / edit
-        if Project.current is None or Project.current.get_current_analysis() is None:
-            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Create')
-        else:
-            self.ui.menuBar.analysis.actionCreateAnalysis.setText('Edit')
 
     def update_ui_locks(self, mj_id):
         if mj_id is None:
@@ -263,6 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if current is not None:
             mj_id = current.text(0)
             mj = self.data.multijobs[mj_id]
+            self.ui.menuBar.analysis.analysis_name = mj.preset.analysis
 
             # show error message in status bar
             self.ui.status_bar.showMessage(mj.error)
@@ -333,28 +327,6 @@ class MainWindow(QtWidgets.QMainWindow):
         key = current.text(0)
         self.com_manager.stop_jobs.append(key)
 
-    def _handle_create_analysis(self):
-        # is project selected?
-        if not Project.current:
-            self.report_error("Project is not selected.")
-            return
-
-        # reload params
-        Project.reload_current()
-
-        # show new analysis dialog
-        self.analysis_dialog = AnalysisDialog(self, Project.current)
-        self.analysis_dialog.accepted.connect(self._handle_analysis_accepted)
-        self.analysis_dialog.show()
-
-    def _handle_analysis_accepted(self, purpose, data):
-        if not Project.current:
-            self.report_error("Project is not selected.")
-            return
-        if purpose in (AnalysisDialog.PURPOSE_ADD, AnalysisDialog.PURPOSE_EDIT):
-            analysis = Analysis(**data)
-            Project.current.save_analysis(analysis)
-
     def _handle_options(self):
         OptionsDialog(self, self.data.config).show()
 
@@ -369,10 +341,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_save_res_log_button_clicked(self):
         # if not project - alert
-        if not Project.current:
-            self.report_error("No project selected!")
+        if not Analysis.current:
+            self.report_error("No analysis selected!")
 
-        dst_dir_location = os.path.join(Project.current.project_dir,
+        dst_dir_location = os.path.join(Analysis.current.analysis_dir,
                                         "analysis_results",
                                         time.strftime("%Y%m%d_%H%M%S"))
         self._save_results(dst_dir_location)

@@ -234,10 +234,13 @@ class ConfigBuilder:
             job_counter += 1
 
         # recursively find all configuration files (ending with .yaml)
+        files = []
+        if analysis is not None:
+            files = analysis.selected_file_paths
         for root, directories, filenames in os.walk(mj_dir):
             for filename in filenames:
                 if filename.endswith('.yaml'):
-                    if analysis is None or not filename in analysis.files:
+                    if analysis is None or not filename in files:
                         continue
                     abs_path = os.path.join(root, filename)
                     rel_path = os.path.relpath(abs_path, start=mj_dir)

@@ -129,8 +129,8 @@ class ConfigData:
 
         self.observers = []
         """List of observer objects to be notified on change."""
-        self.project = kw_or_def('project', None)
-        """Name of active project"""
+        self.analysis = kw_or_def('analysis', None)
+        """Name of active analysis"""
         self.workspace = kw_or_def('workspace', None)
         """Path to selected workspace"""
         self.selected_mj = kw_or_def('selected_mj', None)

@@ -9,10 +9,9 @@ import icon
 from helpers import LineAnalyzer
 from meconfig import cfg
 from ui import panels
-from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu
+from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
 from util import CursorType
 from geomop_util import Position
-from geomop_widgets import ProjectMenu
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -62,10 +61,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_recent_files(0)
         self._edit_menu = MainEditMenu(self, self.editor)
         self._settings_menu = MainSettingsMenu(self, self._model_editor)
-        self._project_menu = ProjectMenu(self, cfg.config, flow123d_versions=cfg.format_files)
+        self._analysis_menu = AnalysisMenu(self, cfg.config, flow123d_versions=cfg.format_files)
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
-        self._menu.addMenu(self._project_menu)
+        self._menu.addMenu(self._analysis_menu)
         self._menu.addMenu(self._settings_menu)
 
         # status bar
@@ -78,12 +77,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload_icon_timer = QtCore.QTimer(self)
         self._reload_icon_timer.timeout.connect(lambda: self._reload_icon.setVisible(False))
 
-        self._project_label = QtWidgets.QLabel(self)
+        self._analysis_label = QtWidgets.QLabel(self)
         cfg.config.observers.append(self)
 
         self._status = self.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
-        self._status.addPermanentWidget(self._project_label)
+        self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
@@ -213,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def config_changed(self):
         """Handle changes of config."""
-        project = cfg.config.project or '(No Project)'
-        self._project_label.setText(project)
+        analysis = cfg.config.analysis or '(No Analysis)'
+        self._analysis_label.setText(analysis)
         self.editor.set_line_endings(cfg.config.line_endings)
 

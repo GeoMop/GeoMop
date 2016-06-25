@@ -10,7 +10,7 @@ import communication.installation as inst
 from ui.data.config_builder import ConfigBuilder
 from ui.com_worker import ComWorker
 from data.states import TaskStatus
-from geomop_project import Project
+from geomop_analysis import Analysis, InvalidAnalysis
 import shutil
 import os
 import flow_util
@@ -102,7 +102,7 @@ class ComManager:
         for  key in  self.start_jobs:
             if not key in self._workers:
                 mj = self._data_app.multijobs[key]
-                analysis = self._reload_project(mj)
+                analysis = self._reload_analysis(mj)
                 conf_builder = ConfigBuilder(self._data_app)
                 app_conf = conf_builder.build(key, analysis)
                 com = Communicator(app_conf)
@@ -112,48 +112,48 @@ class ComManager:
                 return True
         return False
         
-    def _reload_project(self, data):
-        """reload project files and return analysis"""
+    def _reload_analysis(self, data):
+        """reload analysis"""
         # sync mj analyses + files
         analysis = None
-        if Project.current is not None:
+        try:
+            analysis = Analysis.open(self._data_app.config.workspace, data.analysis)
+        except InvalidAnalysis as e:
+            ComWorker.get_loger().error("Analysis not found: " + str(e))
+        if analysis is not None:
             mj_name = data.preset.name
             mj_dir =inst.Installation.get_config_dir_static(mj_name)
-            proj_dir = Project.current.project_dir
+            analysis_dir = Analysis.current.analysis_dir
             
             # get all files used by analyses
-            files = []
-            for analysis in Project.current.get_all_analyses():
-                files.extend(analysis.files)
+            files = analysis.selected_file_paths
 
-            analysis = Project.current.get_current_analysis()
-            assert analysis is not None, "No analysis file exists for the project!"
+            # get parameters
+            params = {param.name: param.value for param in analysis.params}
 
             # copy the entire folder
             shutil.rmtree(mj_dir, ignore_errors=True)
             try:
-                shutil.copytree(proj_dir, mj_dir)
+                shutil.copytree(analysis_dir, mj_dir)
                 # remove result dir
                 shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
                     ignore_errors=True)
-                # remove project file
-                os.remove(os.path.join(mj_dir,".project"))
             # Directories are the same
             except shutil.Error as e:
-                ComWorker.get_loger().error("Failed to copy project dir: " + str(e))
+                ComWorker.get_loger().error("Failed to copy analysis dir: " + str(e))
             # Any error saying that the directory doesn't exist
             except OSError as e:
-                ComWorker.get_loger().error("Failed to copy project dir: " + str(e))
+                ComWorker.get_loger().error("Failed to copy analysis dir: " + str(e))
 
             # fill in parameters and copy the files
             for file in set(files):
-                src = os.path.join(proj_dir, file)
+                src = os.path.join(analysis_dir, file)
                 dst = os.path.join(mj_dir, file)
                 # create directory structure if not present
                 dst_dir = os.path.dirname(dst)
                 if not os.path.isdir(dst_dir):
                     os.makedirs(dst_dir)
-                flow_util.analysis.replace_params_in_file(src, dst, analysis.params)
+                flow_util.analysis.replace_params_in_file(src, dst, params)
         return analysis
 
 

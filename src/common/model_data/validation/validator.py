@@ -5,7 +5,7 @@
 from ..notifications import Notification
 from geomop_util import TextValue, Span
 
-from geomop_project import Parameter
+from geomop_analysis import Parameter
 
 from . import checks
 from ..data_node import DataNode

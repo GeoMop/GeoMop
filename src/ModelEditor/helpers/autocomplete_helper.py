@@ -6,7 +6,7 @@ from copy import copy
 from PyQt5.Qsci import QsciScintilla
 
 from model_data.format import is_scalar
-from geomop_project import Project
+from geomop_analysis import Analysis
 
 
 class AutocompleteHelper:
@@ -79,10 +79,10 @@ class AutocompleteHelper:
         self._options.clear()
 
         # parameter options
-        if Project.current is not None and is_scalar(input_type):
+        if Analysis.current is not None and is_scalar(input_type):
             self._options.update({
                 '<' + param.name + '>': 'param'
-                for param in Project.current.params
+                for param in Analysis.current.params
             })
 
         if input_type['base_type'] == 'Record':  # input type Record

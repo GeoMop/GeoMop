@@ -23,13 +23,13 @@ class _Config:
 
     def __init__(self, readfromconfig=True):
 
-        self._project = None
+        self._analysis = None
         self._workspace = None
 
         if readfromconfig:
             data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
             self.workspace = getattr(data, '_workspace', self._workspace)
-            self.project = getattr(data, '_project', self._project)
+            self.analysis = getattr(data, '_analysis', self._analysis)
  
     def save(self):
         """Save config data"""

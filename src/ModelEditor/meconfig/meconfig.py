@@ -17,7 +17,7 @@ from util import constants
 
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
-from geomop_project import Project, InvalidProject
+from geomop_analysis import Analysis, InvalidAnalysis
 from model_data import (export_con, Loader, Validator, get_root_input_type_from_json,
                         autoconvert, notification_handler, Notification)
 from model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
@@ -73,20 +73,20 @@ class _Config:
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
         self._line_endings = kw_or_def('_line_endings', _Config.LINE_ENDINGS_LF)
-        self._project = kw_or_def('_project')
+        self._analysis = kw_or_def('_analysis')
         self._workspace = kw_or_def('_workspace')
 
         # initialize project and workspace
         self.workspace = self._workspace
-        self.project = self._project
+        self.analysis = self._analysis
 
     def update_last_data_dir(self, file_name):
         """Save dir from last used file"""
-        project_directory = None
+        analysis_directory = None
         directory = os.path.dirname(os.path.realpath(file_name))
-        if self.workspace is not None and self.project is not None:
-            project_dir = os.path.join(self.workspace, self.project)
-        if project_directory is None or directory != project_dir:
+        if self.workspace is not None and self.analysis is not None:
+            analysis_dir = os.path.join(self.workspace, self.analysis)
+        if analysis_directory is None or directory != analysis_dir:
             self.last_data_dir = directory
 
     @staticmethod
@@ -156,9 +156,9 @@ class _Config:
 
     @property
     def data_dir(self):
-        """Data directory - either a project dir or the last udes dir."""
-        if self.workspace and self.project:
-            return os.path.join(self.workspace, self.project)
+        """Data directory - either an analysis dir or the last used dir."""
+        if self.workspace and self.analysis:
+            return os.path.join(self.workspace, self.analysis)
         else:
             return self.last_data_dir
 
@@ -172,28 +172,28 @@ class _Config:
         if value == '' or value is None:
             self._workspace = None
         if value != self._workspace:
-            # close project is workspace is changed
-            self.project = None
+            # close analysis if workspace is changed
+            self.analysis = None
         self._workspace = value
 
     @property
-    def project(self):
-        """name of the project in the workspace"""
-        return self._project
+    def analysis(self):
+        """name of the analysis in the workspace"""
+        return self._analysis
 
-    @project.setter
-    def project(self, value):
+    @analysis.setter
+    def analysis(self, value):
         if value == '' or value is None:
-            self._project = None
-            Project.current = None
+            self._analysis = None
+            Analysis.current = None
         else:
-            self._project = value
+            self._analysis = value
             try:
-                project = Project.open(self._workspace, self._project)
-            except InvalidProject:
-                self._project = None
+                analysis = Analysis.open(self._workspace, self._analysis)
+            except InvalidAnalysis:
+                self._analysis = None
             else:
-                Project.current = project
+                Analysis.current = analysis
         self.notify_all()
 
     @property
@@ -359,8 +359,8 @@ class MEConfig:
        empty file
         """
         cls.document = ""
-        if Project.current is not None:
-            cls.curr_format_file = Project.current.flow123d_version
+        if Analysis.current is not None:
+            cls.curr_format_file = Analysis.current.flow123d_version
             if not cls.curr_format_file:
                 cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
@@ -390,7 +390,7 @@ class MEConfig:
             cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
-            cls.sync_project_for_curr_file()
+            cls.sync_analysis_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -459,8 +459,8 @@ class MEConfig:
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
             cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if Project.current is not None and \
-                Project.current.flow123d_version[:5] == '2.0.0':
+            if Analysis.current is not None and \
+                Analysis.current.flow123d_version[:5] == '2.0.0':
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
                 cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
             cls.update_format()
@@ -508,7 +508,7 @@ class MEConfig:
             cls._set_format_file_from_data()
             cls.update_format()
             cls.changed = False
-            cls.sync_project_for_curr_file()
+            cls.sync_analysis_for_curr_file()
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
@@ -544,9 +544,9 @@ class MEConfig:
                 cls.notification_handler.report(ntf)
 
         # handle parameters
-        if (Project.current is not None and
-                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
-            Project.current.merge_params(cls.validator.params)
+        if (Analysis.current is not None and
+                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+            Analysis.current.merge_params(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -587,7 +587,7 @@ class MEConfig:
             else:
                 raise err
         else:
-            cls.sync_project_for_curr_file()
+            cls.sync_analysis_for_curr_file()
 
     @classmethod
     def save_as(cls, file_name):
@@ -606,19 +606,19 @@ class MEConfig:
             else:
                 raise err
         else:
-            cls.sync_project_for_curr_file()
+            cls.sync_analysis_for_curr_file()
 
     @classmethod
-    def sync_project_for_curr_file(cls):
-        """Write current file and params to a project file."""
-        if (Project.current is not None and
-                Project.current.is_abs_path_in_project_dir(cls.curr_file)):
-            Project.current.merge_params(cls.validator.params)
+    def sync_analysis_for_curr_file(cls):
+        """Write current file and params to analysis file."""
+        if (Analysis.current is not None and
+                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+            Analysis.current.merge_params(cls.validator.params)
             params = [param.name for param in cls.validator.params]
-            Project.current.add_file(cls.curr_file, params)
-            if not Project.current.flow123d_version:
-                Project.current.flow123d_version = cls.curr_format_file
-            Project.current.save()
+            Analysis.current.add_file(cls.curr_file, params)
+            if not Analysis.current.flow123d_version:
+                Analysis.current.flow123d_version = cls.curr_format_file
+            Analysis.current.save()
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
