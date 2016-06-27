@@ -68,6 +68,11 @@ class AnalysisMenu(QMenu):
 
     def _show_analysis_settings(self):
         """Show analysis settings dialog."""
-        AnalysisDialog(self, AnalysisDialog.PURPOSE_EDIT,
-                       config=self.config,
-                       analysis=Analysis.current).exec_()
+        if Analysis.current is None:
+            QtWidgets.QMessageBox.information(
+                self, 'No Analysis',
+                'Please select analysis to edit.')
+        else:
+            AnalysisDialog(self, AnalysisDialog.PURPOSE_EDIT,
+                           config=self.config,
+                           analysis=Analysis.current).exec_()

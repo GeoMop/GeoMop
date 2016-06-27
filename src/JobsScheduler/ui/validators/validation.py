@@ -124,6 +124,16 @@ class SshNameValidator(PresetNameValidator):
         super(SshNameValidator, self).__init__(rx, parent, excluded)
 
 
+class RemoteDirectoryValidator(QRegExpValidator):
+    """
+    Remote directory validator, only alphanumeric values and (_-).
+    """
+    def __init__(self, rx=None, parent=None):
+        if rx is None:
+            rx = QtCore.QRegExp("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
+        super().__init__(rx, parent)
+
+
 class PbsNameValidator(PresetNameValidator):
     def __init__(self, rx=None, parent=None, excluded=None):
         if excluded is None:

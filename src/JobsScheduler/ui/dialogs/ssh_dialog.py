@@ -10,7 +10,8 @@ from PyQt5 import QtWidgets
 from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import SshNameValidator, ValidationColorizer
+from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
+from data import Users
 
 
 class SshDialog(AFormDialog):
@@ -50,6 +51,8 @@ class SshDialog(AFormDialog):
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
 
+        self.preset = None
+
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
@@ -65,10 +68,27 @@ class SshDialog(AFormDialog):
         preset = SshPreset(name=self.ui.nameLineEdit.text())
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
+        preset.remote_dir = self.ui.remoteDirLineEdit.text()
         preset.uid = self.ui.userLineEdit.text()
-        preset.pwd = self.ui.passwordLineEdit.text()
+        preset.to_pc = self.ui.rememberPasswordCheckbox.isChecked()
+        preset.to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
+                            self.ui.copyPasswordCheckbox.isChecked())
         if self.ui.pbsSystemComboBox.currentText():
             preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
+
+        # password
+        if self.ui.passwordLineEdit.isEnabled():
+            password = self.ui.passwordLineEdit.text()
+            if self.preset is None or password != self.preset.pwd:
+                # if password changed
+                users = Users(preset.uid, preset.to_pc, preset.to_remote)
+                pwd, key = users.save_login(password)
+                preset.pwd = pwd
+                preset.key = key
+            else:
+                preset.pwd = self.preset.pwd
+                preset.key = self.preset.key
+
         return {'preset': preset,
                 'old_name': self.old_name}
 
@@ -78,6 +98,7 @@ class SshDialog(AFormDialog):
 
         if data:
             preset = data['preset']
+            self.preset = preset
             self.old_name = preset.name
             if is_edit:
                 try:
@@ -87,17 +108,23 @@ class SshDialog(AFormDialog):
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.hostLineEdit.setText(preset.host)
             self.ui.portSpinBox.setValue(preset.port)
+            self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
             self.ui.passwordLineEdit.setText(preset.pwd)
+            self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
+            self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
         else:
             self.ui.nameLineEdit.clear()
             self.ui.hostLineEdit.clear()
             self.ui.portSpinBox.setValue(22)
+            self.ui.remoteDirLineEdit.setText('js_services')
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
-            self.ui.pbsSystemComboBox.setCurrentIndex(-1)
+            self.ui.rememberPasswordCheckbox.setChecked(True)
+            self.ui.copyPasswordCheckbox.setChecked(True)
+            self.ui.pbsSystemComboBox.setCurrentIndex(0)
 
 
 class UiSshDialog(UiFormDialog):
@@ -115,6 +142,9 @@ class UiSshDialog(UiFormDialog):
         self.nameValidator = SshNameValidator(
             parent=self.mainVerticalLayoutWidget,
             excluded=dialog.excluded_names)
+        self.remoteDirValidator = RemoteDirectoryValidator(
+            parent=self.mainVerticalLayoutWidget
+        )
 
         # form layout
 
@@ -163,49 +193,83 @@ class UiSshDialog(UiFormDialog):
                                   self.portSpinBox)
 
         # 4 row
+        self.remoteDirLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.remoteDirLabel.setObjectName("remoteDirLabel")
+        self.remoteDirLabel.setText("Remote directory:")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+                                  self.remoteDirLabel)
+        self.remoteDirLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
+        self.remoteDirLineEdit.setObjectName("remoteDirLineEdit")
+        self.remoteDirLineEdit.setText("js_services")
+        self.remoteDirLineEdit.setValidator(self.remoteDirValidator)
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
+                                  self.remoteDirLineEdit)
+
+        # 5 row
         self.userLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.userLabel.setObjectName("userLabel")
         self.userLabel.setText("User:")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.userLabel)
         self.userLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.userLineEdit.setObjectName("userLineEdit")
         self.userLineEdit.setPlaceholderText("User name")
         self.userLineEdit.setProperty("clearButtonEnabled", True)
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.userLineEdit)
 
-        # 5 row
+        # 6 row
         self.passwordLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.passwordLabel.setObjectName("passwordLabel")
         self.passwordLabel.setText("Password:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
-        self.passwordLineEdit = QtWidgets.QLineEdit(
-            self.mainVerticalLayoutWidget)
+
+        self.passwordLayout = QtWidgets.QVBoxLayout()
+        self.passwordLineEdit = QtWidgets.QLineEdit()
         self.passwordLineEdit.setObjectName("passwordLineEdit")
         self.passwordLineEdit.setPlaceholderText("User password")
         self.passwordLineEdit.setProperty("clearButtonEnabled", True)
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.passwordLineEdit)
+        self.rememberPasswordCheckbox = QtWidgets.QCheckBox()
+        self.rememberPasswordCheckbox.setText('Remember password')
+        self.copyPasswordCheckbox = QtWidgets.QCheckBox()
+        self.copyPasswordCheckbox.setText('Copy password to remote')
+        self.passwordLayout.addWidget(self.passwordLineEdit)
+        self.passwordLayout.addWidget(self.rememberPasswordCheckbox)
+        self.passwordLayout.addWidget(self.copyPasswordCheckbox)
+        self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,
+                                  self.passwordLayout)
 
-        # 6 row
+        self.rememberPasswordCheckbox.stateChanged.connect(
+            self._handle_remember_password_checkbox_changed)
+        self._handle_remember_password_checkbox_changed()
+
+        # 7 row
         self.pbsSystemLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.pbsSystemLabel.setObjectName("pbsSystemLabel")
         self.pbsSystemLabel.setText("PBS System:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
                                   self.pbsSystemLabel)
         self.pbsSystemComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.pbsSystemComboBox.setObjectName(
             "pbsSystemComboBox")
-        self.pbsSystemComboBox.addItem("")
+        self.pbsSystemComboBox.addItem('No Pbs', '')
         dialect_items = DialectImporter.get_available_dialects()
         for key in dialect_items:
             self.pbsSystemComboBox.addItem(dialect_items[key], key)
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.pbsSystemComboBox)
 
         return dialog
+
+    def _handle_remember_password_checkbox_changed(self, state=None):
+        if not self.rememberPasswordCheckbox.isChecked():
+            self.copyPasswordCheckbox.setChecked(False)
+            self.copyPasswordCheckbox.setEnabled(False)
+            self.passwordLineEdit.setEnabled(False)
+        else:
+            self.copyPasswordCheckbox.setEnabled(True)
+            self.passwordLineEdit.setEnabled(True)

@@ -104,10 +104,18 @@ class SshPreset(APreset):
         """Host to connect"""
         self.port = kw_or_def('port', '22')
         """Port for connection"""
+        self.remote_dir = kw_or_def('remote_dir', 'js_services')
+        """Remote directory name"""
         self.uid = kw_or_def('uid', '')
         """User ID"""
         self.pwd = kw_or_def('pwd', '')
         """Password"""
+        self.to_pc = kw_or_def('to_pc', True)
+        """Remember password on pc"""
+        self.to_remote = kw_or_def('to_remote', True)
+        """Copy password to remote"""
+        self.key = kw_or_def('key', '')
+        """Key for password"""
         self.pbs_system = kw_or_def('pbs_system')
         """Defines PBS system dialect"""
 
