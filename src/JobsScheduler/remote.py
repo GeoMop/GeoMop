@@ -1,5 +1,6 @@
 """delegator test file"""
 import sys
+import os
 import logging
 import threading
 
@@ -35,10 +36,8 @@ class JobStarter():
             conf.pbs.name = id
             self.output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
-            self.output.set_env_params(conf.python_env,  conf.libs_env)
         elif conf.output_type == comconf.OutputCommType.exec_:
             self.output = ExecOutputComm(conf.mj_name, conf.port)
-            self.output.set_env_params(conf.python_env,  conf.libs_env)
         self.output.installation.local_copy_path()
         """Start job"""
         t = threading.Thread(target= self.output.exec_,
@@ -126,10 +125,13 @@ if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
 # Load from json file
-com_conf = comconf.CommunicatorConfig(mj_name)
-directory = inst.Installation.get_config_dir_static(mj_name)
-path = comconf.CommunicatorConfigService.get_file_path(
-    directory, comconf.CommType.remote.value)
+com_conf = comconf.CommunicatorConfig()
+if os.path.isfile(mj_name):
+    path = mj_name
+else:
+    directory = inst.Installation.get_config_dir_static(mj_name)
+    path = comconf.CommunicatorConfigService.get_file_path(
+        directory, comconf.CommType.remote.value)
 try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)

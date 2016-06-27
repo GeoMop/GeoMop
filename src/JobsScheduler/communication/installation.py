@@ -38,6 +38,13 @@ __status_dir__ = "status"
 __lib_dir__ = "ins-lib"
 
 class Installation:
+    python_env = None
+    """python running envirounment"""
+    libs_env = None
+    """libraries running envirounment"""
+    paths_config = None
+    """paths for running envirounment"""
+    
     """Files with installation (python files and configuration files) is selected 
         and send to set folder"""
     def __init__(self, mj_name):
@@ -49,10 +56,6 @@ class Installation:
         """files to install"""
         self.ins_dirs = copy.deepcopy(__ins_dirs__)
         """directories to install"""
-        self.python_env = None
-        """python running envirounment"""
-        self.libs_env = None
-        """libraries running envirounment"""
         self.app_version = None
         """
         Applicationj version. If version in remote installation is different
@@ -68,11 +71,14 @@ class Installation:
         if installation fail, this variable contain instalation message,
         that is send.
         """
-        
-    def set_env_params(self, python_env,  libs_env):
-        """Set install specific settings"""
-        self.python_env = python_env
-        self.libs_env = libs_env
+
+    @classmethod
+    def set_env_params(cls, python_env,  libs_env, paths_config):
+        """Set install specific settings, call it firs, before other installation function"""
+        cls.python_env = python_env
+        cls.libs_env = libs_env
+        cls.paths_config = paths_config
+        cls.__root_dir__ = cls.paths_config.app_dir
         
     def set_version_params(self, app_version, data_version):
         """Set install specific settings"""
@@ -163,7 +169,10 @@ class Installation:
 
     def lock_installation(self):
         """Set installation locks, return if should installation continue"""
-        lock = Lock(self.mj_name, __install_dir__)
+        home = None
+        if self.paths_config is not None:
+            home = self.paths_config.home_dir
+        lock = Lock(self.mj_name, __install_dir__, home)
         try:
             if lock.lock_app(self.app_version, self.data_version, 
                 self.get_result_dir(), __conf_dir__)<1:
@@ -175,7 +184,11 @@ class Installation:
     
     def unlock_installation(self):
         """Unset installation locks"""
-        lock = Lock(self.mj_name, __install_dir__)
+        home = None
+        if self.paths_config is not None:
+            home = self.paths_config.home_dir
+
+        lock = Lock(self.mj_name, __install_dir__, home)
         try:
             if not lock.unlock_install():
                 return False
@@ -184,10 +197,14 @@ class Installation:
             return False
         return True
     
-    @staticmethod  
-    def unlock_application(mj_name):
+    @classmethod  
+    def unlock_application(cls, mj_name):
         """Unset application locks"""
-        lock = Lock(mj_name, __install_dir__)
+        home = None
+        if cls.paths_config is not None:
+            home = cls.paths_config.home_dir
+
+        lock = Lock(mj_name, __install_dir__, home)
         try:
             if not lock.unlock_app():
                 return False
@@ -200,7 +217,11 @@ class Installation:
     def lock_lib(cls):
         """Set ilibrary lock"""
         path = os.path.join( __install_dir__, __lib_dir__)
-        lock = Lock("", __install_dir__)
+        home = None
+        if cls.paths_config is not None:
+            home = cls.paths_config.home_dir
+
+        lock = Lock("", __install_dir__, home)
         try:
             if not lock.lock_lib(path):
                 return False
@@ -210,10 +231,14 @@ class Installation:
             return False
         return True
      
-    @staticmethod   
-    def unlock_lib():
+    @classmethod   
+    def unlock_lib(cls):
         """Set installation locks, return if should installation continue"""
-        lock = Lock("", __install_dir__)
+        home = None
+        if cls.paths_config is not None:
+            home = cls.paths_config.home_dir
+
+        lock = Lock("", __install_dir__, home)
         try:
             if not lock.unlock_lib():
                 return False
@@ -471,6 +496,9 @@ class Installation:
     def get_args(self, name, mj_name, mj_id):
         # use / instead join because destination os is linux and is not 
         # same with current os
+        if self.paths_config is not None and \
+            self.paths_config.work_dir is not None:
+            mj_name = self.paths_config.work_dir
         dest_path = self.copy_path + '/' + __ins_files__[name]
         if sys.platform == "win32": 
             if mj_id is None:
@@ -503,16 +531,22 @@ class Installation:
             return "."
         return path
 
-    @staticmethod
-    def get_result_dir_static(mj_name):
+    @classmethod
+    def get_result_dir_static(cls, mj_name):
         """Return dir for savings results"""
         try:
-            path = os.path.join(__install_dir__, __jobs_dir__)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join( path,  mj_name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
+                path = cls.paths_config.work_dir
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join( path,  mj_name)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
             path = os.path.join(path, __result_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -525,16 +559,21 @@ class Installation:
         """Return dir for savings results"""
         return self.get_result_dir_static(self.mj_name) 
         
-    @staticmethod
-    def get_config_dir_static(mj_name):
+    @classmethod
+    def get_config_dir_static(cls, mj_name):
         """Return dir for configuration"""
         try:
-            path = os.path.join(__install_dir__, __jobs_dir__)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join( path,  mj_name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            if cls.paths_config is not None:
+                path = cls.paths_config.work_dir
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join( path,  mj_name)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
             path = os.path.join(path,__conf_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -547,16 +586,21 @@ class Installation:
         """Return dir for configuration """
         return self.get_config_dir_static(self.mj_name)         
 
-    @staticmethod
-    def get_mj_data_dir_static(mj_name):
+    @classmethod
+    def get_mj_data_dir_static(cls, mj_name):
         """Return dir for savings results"""
         try:
-            path = os.path.join(__install_dir__, __jobs_dir__)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join( path, mj_name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            if cls.paths_config is not None:
+                path = cls.paths_config.work_dir
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join( path, mj_name)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
         except Exception as err:
             logger.warning("Get mj data dir error: " + str(err))
             return "."
@@ -569,16 +613,21 @@ class Installation:
         """
         return self.get_mj_data_dir_static(self.mj_name)
 
-    @staticmethod
-    def get_mj_log_dir_static(mj_name):
+    @classmethod
+    def get_mj_log_dir_static(cls, mj_name):
         """Return dir for logging"""
         try:
-            path = os.path.join(__install_dir__, __jobs_dir__)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join( path,  mj_name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            if cls.paths_config is not None:
+                path = cls.paths_config.work_dir
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join( path,  mj_name)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
             path = os.path.join(path, __result_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -599,18 +648,23 @@ class Installation:
 
     def get_status_dir(self):
         """Return dir for savings status"""
-        return  self.get_staus_dir_static(self.mj_name)
+        return  self.get_status_dir_static(self.mj_name)
     
-    @staticmethod
-    def get_staus_dir_static(mj_name):
+    @classmethod
+    def get_status_dir_static(cls, mj_name):
         """Return dir for savings status"""
         try:
-            path = os.path.join(__install_dir__, __jobs_dir__)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            path = os.path.join( path,  mj_name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            if cls.paths_config is not None:
+                path = cls.paths_config.work_dir
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join( path,  mj_name)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
             path = os.path.join(path,__status_dir__ )
             if not os.path.isdir(path):
                 os.makedirs(path)

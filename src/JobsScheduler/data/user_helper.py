@@ -4,8 +4,8 @@ class Users():
         self.to_pc = to_pc
         self.to_remote = to_remote
         
-    def get_login(self, password, key, is_remote):
-        if is_remote and not self.to_remote:
+    def get_login(self, password, key, from_preset):
+        if not from_preset and not self.to_remote:
             return ""
         if not self.to_pc:
             return None

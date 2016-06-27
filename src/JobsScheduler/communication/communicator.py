@@ -13,7 +13,7 @@ from communication.std_input_comm import StdInputComm
 from  communication.socket_input_comm import SocketInputComm
 from  communication.ssh_output_comm import SshOutputComm
 from  communication.exec_output_comm import  ExecOutputComm
-from  communication.installation import Installation, __install_dir__
+from  communication.installation import Installation
 from  communication.pbs_output_comm import PbsOutputComm
 from  communication.pbs_input_comm import PbsInputComm
 from data.states import TaskStatus
@@ -77,12 +77,13 @@ class Communicator():
         """libraries running envirounment"""
         self._interupt = False
         """interupt connections after message sending"""
+        Installation.set_env_params(init_conf.python_env,  init_conf.libs_env, init_conf.paths_config)  
         
         self.status = None
         self._load_status(init_conf.mj_name) 
         """Persistent communicator data"""
         self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
-            self.communicator_name, self.log_level, init_conf.central_log)
+            self.communicator_name, self.log_level, init_conf.central_log, init_conf.paths_config)
         if action_func_before is None:
             self.action_func_before = self.standart_action_function_before
         else:
@@ -145,8 +146,7 @@ class Communicator():
             output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
-            output = ExecOutputComm(conf.mj_name, conf.port)
-        output.set_env_params(conf.python_env,  conf.libs_env)  
+            output = ExecOutputComm(conf.mj_name, conf.port)        
         output.set_version_params(conf.app_version,  conf.conf_long_id) 
         return output
         
@@ -159,7 +159,7 @@ class Communicator():
             Installation.get_staus_dir_static(mj_name), name) 
         self.status.load()
 
-    def _set_loger(self,  path, name, level, central_log):
+    def _set_loger(self,  path, name, level, central_log, paths_config):
         """set logger"""
         if central_log:
             logger = logging.getLogger("Remote")
@@ -168,12 +168,12 @@ class Communicator():
                     logger.setLevel(level)
                     logger.handlers[0].setLevel(level)
                 return
-            dir = os.path.join(__install_dir__, "log")
+            dir = os.path.join(paths_config.home_dir, "log")
             if not os.path.isdir(dir):
                 try:
                     os.makedirs(dir)
                 except:
-                    dir = __install_dir__
+                    dir = paths_config.home_dir
             log_file = os.path.join(dir, "app-centrall.log")
         else:
             log_path = os.path.join(path, "log")

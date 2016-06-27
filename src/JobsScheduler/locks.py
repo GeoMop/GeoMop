@@ -27,19 +27,23 @@ class Lock():
     __app__ = 2
     __nothing__ = 0
     
-    def __init__(self, mj_name, path):
+    def __init__(self, mj_name, path, home_dir=None):
         """init"""
         self._mj_name = mj_name
         """Multijob name for unique jobs identification"""
         self._js_path = path
         if not os.path.isdir(path):
             os.makedirs(path)
-        """Path to js directory"""
+        """Path to js directory"""        
         self._lock_dir = os.path.join(path, __lock_dir__)
+        if home_dir is not None:
+            self._lock_dir = os.path.join(home_dir, __lock_dir__)
         """Path to lock application directory"""
         if not os.path.isdir(self._lock_dir):
             os.makedirs(self._lock_dir)
-        self._version_dir = os.path.join(path, __version_dir__)        
+        self._version_dir = os.path.join(path, __version_dir__) 
+        if home_dir is not None:
+            self._version_dir = os.path.join(home_dir, __version_dir__)
         """Path to version files"""
         
     def lock_app(self,  install_ver, data_ver, res_dir, conf_subdir):

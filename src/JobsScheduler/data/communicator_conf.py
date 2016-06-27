@@ -76,7 +76,7 @@ class PathsConfig(object):
         self.home_dir = None
         """Absolut path to directory for central-log, locks and versions subdirectories.
         If variable is None, app directory is use"""
-        self.home = None
+        self.work_dir = None
         """Absolut path to directory for result subdirectory.
         If variable is None, app directory/jobs/'JOB_NAME' path is use"""
         self.ex_lib_path = None
@@ -193,6 +193,9 @@ class CommunicatorConfig(object):
         self.number_of_processes = 1
         """ Number of processes in multijob or job, everywhere else is 1"""
 
+        self.paths_config = PathsConfig()
+        """paths to directory structure datas"""
+
         self.ssh = None
         """Ssh settings class :class:`data.communicator_conf.SshConfig`"""
 
@@ -236,6 +239,7 @@ class CommunicatorConfigService(object):
     @staticmethod
     def save_file(json_file, com):
         data = dict(com.__dict__)
+        data["paths_config"] = com.paths_config.__dict__
         if data["ssh"]:
             data["ssh"] = com.ssh.__dict__
         if data["pbs"]:
@@ -249,6 +253,10 @@ class CommunicatorConfigService(object):
     @staticmethod
     def load_file(json_file, com=CommunicatorConfig()):
         data = json.load(json_file)
+        paths_config = PathsConfig()
+        if data["paths_config"]:
+            com.paths_config.__dict__ = data["paths_config"]
+        data["paths_config"] = paths_config   
         if data["ssh"]:
             ssh = SshConfig()
             ssh.__dict__ = data["ssh"]

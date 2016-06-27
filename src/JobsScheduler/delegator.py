@@ -1,6 +1,7 @@
 """delegator test file"""
 import sys
 import logging
+import os
 
 sys.path.insert(1, './twoparty/pexpect')
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
@@ -26,10 +27,13 @@ if len(sys.argv) > 2 and sys.argv[2] != "&":
     mj_id = sys.argv[2]
 
 # Load from json file
-com_conf = comconf.CommunicatorConfig(mj_name)
-directory = inst.Installation.get_config_dir_static(mj_name)
-path = comconf.CommunicatorConfigService.get_file_path(
-    directory, comconf.CommType.delegator.value)
+com_conf = comconf.CommunicatorConfig()
+if os.path.isfile(mj_name):
+    path = mj_name
+else:
+    directory = inst.Installation.get_config_dir_static(mj_name)
+    path = comconf.CommunicatorConfigService.get_file_path(
+        directory, comconf.CommType.delegator.value)
 try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)

@@ -11,10 +11,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         """ip or dns of host for communication"""
         self.installation = dinstall.Installation(mj_name)
         """installation where is copied files"""
-    
-    def set_env_params(self, python_env,  libs_env):
-        self.installation.set_env_params(python_env,  libs_env)
-        
+       
     def set_version_params(self, app_version, data_version):
         self.installation.set_version_params(app_version, data_version)
         

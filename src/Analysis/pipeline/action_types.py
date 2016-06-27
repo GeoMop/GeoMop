@@ -307,7 +307,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """return hash compute from name and inputs"""
         self._hash.update(bytes(self.__class__.__name__, "utf-8"))
         for input in self._inputs:
-            self._hash.update(bytes(self._get_hash(), "utf-8"))
+            self._hash.update(bytes(input._get_hash(), "utf-8"))
         return self._hash
         
     def _store(self, path):

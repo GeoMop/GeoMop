@@ -76,19 +76,24 @@ class Flow123dAction(ParametrizedActionType):
         else:
             if not isinstance(input_type, Struct):
                 self._add_error(err, "Flow123d input parameter must return Struct")
-            params =  self.get_require_params()
+            params =  self.__get_require_params()
             for param in params:
                 if not hasattr(self._inputs[0],  param) :
                     self._add_error(err, "Yaml parameter {0} is not set in input".format(param))
         return err
         
-    def get_require_params(self):
+    def __get_require_params(self):
         """Return list of params needed for completation of Yaml file"""
         # ToDo logic
         return []
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
+        # TODO logic
+        return String("Test")
+
+    def __file_result(self,  file):
+        """Add to DTT output real values from returned file"""
         # TODO logic
         return String("Test")
         
