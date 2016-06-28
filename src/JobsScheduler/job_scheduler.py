@@ -29,6 +29,9 @@ from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
 import icon
 
+import config as cfg
+CONFIG_DIR = os.path.join(cfg.__config_dir__, 'JobScheduler')
+
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
 
@@ -116,11 +119,12 @@ def main():
         log_unhandled_exceptions('JobsScheduler', on_unhandled_exception)
 
     # delete old lock files
-    for root, dirs, files in os.walk("./lock", topdown=False):
+    lock_dir = os.path.join(CONFIG_DIR , 'lock')
+    
+    for root, dirs, files in os.walk(lock_dir, topdown=False):
         for name in files:
-            if name != "source.lock":
-                os.remove(os.path.join(root, name))
-                logger.info("Old lock file was deleted: " + name)
+            os.remove(os.path.join(root, name))
+            logger.info("Old lock file was deleted: " + name)
 
     # init and run APP
     jobs_scheduler = JobsScheduler(sys.argv)

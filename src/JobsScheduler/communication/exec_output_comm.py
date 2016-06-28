@@ -33,7 +33,8 @@ class ExecOutputComm(OutputComm):
          
     def disconnect(self):
         """disconnect session"""
-        self.conn.close()
+        if self.conn is not None:
+            self.conn.close()
         self._connected = False        
         
     def isconnected(self):
