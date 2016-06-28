@@ -30,7 +30,7 @@ class ComManager:
                 - if application is stopping, check run_jobs and start_jobs arrays (in this case,
                   check function can be call with higher frequency)
 
-        - call stop_all or pause_all function and wait till run_jobs and start_jobs array is not empty
+        - call stop_all or pause_all function and wait till run_jobs, delete_jobs and start_jobs array is not empty
     """
     def __init__(self, data_app):        
         self._workers = dict()
@@ -73,10 +73,13 @@ class ComManager:
         bussy = True
         if not self._terminate() and not self._stop():
             if not self._resume_first():
-                if not self._start_first():
-                    bussy = False
+                if not self._delete_first():
+                    if not self._start_first():
+                        bussy = False
         if not bussy:
             bussy = bussy or self._check_resumed()
+        if not bussy:
+            bussy = bussy or self._check_deleted()
         if not bussy:
             bussy = bussy or self._check_started()
         self._refresh_queues()
@@ -163,23 +166,35 @@ class ComManager:
                 flow_util.analysis.replace_params_in_file(src, dst, params)
         return analysis
 
-
     def _resume_first(self):
         """resume first job in queue and return True else return False"""
         for  key in  self.resume_jobs:
             if not key in self._workers:
-                mj = self._data_app.multijobs[key]
-                mj_name = mj.preset.name
-                com_conf = comconf.CommunicatorConfig(mj_name)
-                directory = inst.Installation.get_config_dir_static(mj_name)
-                path = comconf.CommunicatorConfigService.get_file_path(
-                    directory, comconf.CommType.delegator.value)
-                with open(path, "r") as json_file:
-                    comconf.CommunicatorConfigService.load_file(json_file, com_conf)                    
-                com = Communicator(com_conf)
-                worker = ComWorker(key, com)
-                self._workers[key] = worker
-                worker.resume()
+                self.__resume_mj(key)
+                self._workers[key].resume()
+                return True
+        return False
+        
+    def __resume_mj(self, key):
+        mj = self._data_app.multijobs[key]
+        mj_name = mj.preset.name
+        com_conf = comconf.CommunicatorConfig(mj_name)
+        directory = inst.Installation.get_config_dir_static(mj_name)
+        path = comconf.CommunicatorConfigService.get_file_path(
+            directory, comconf.CommType.delegator.value)
+        with open(path, "r") as json_file:
+            comconf.CommunicatorConfigService.load_file(json_file, com_conf)                    
+        com = Communicator(com_conf)
+        worker = ComWorker(key, com)
+        self._workers[key] = worker
+
+                
+    def _delete_first(self):
+        """delete first job in queue and return True else return False"""
+        for  key in self.delete_jobs:
+            if not key in self._workers:
+                self.__resume_mj(key)
+                self._workers[key].delete()
                 return True
         return False
 
@@ -231,7 +246,7 @@ class ComManager:
                         self.run_jobs.append(key)
                     else:
                         mj.get_state().set_status(TaskStatus.error)
-                        self._workers.remove(key)                    
+                        del self._workers[key]                    
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
                 elif worker.is_started():
@@ -243,7 +258,39 @@ class ComManager:
                 delete_key.append(key)
                 break
         for key in delete_key:
-            self.start_jobs.remove(key)
+            self.resume_jobs.remove(key)
+
+    def _check_deleted(self):
+        """
+        check all job in deleted queue, move deleted to run 
+        queue and send get_state message. Update job states.
+        """
+        delete_key = []
+        for  key in  self.delete_jobs:
+            if key in self._workers:
+                worker = self._workers[key]
+                if (worker.is_interupted() or worker.is_error()) and \
+                    not worker.is_deleting():
+                    error = worker.get_error()
+                    if worker.is_interupted():
+                        error = "Can't delete remote data from MultiJob (no response)" 
+                    del self._workers[key]
+                    self.jobs_deleted[key] = error
+                    delete_key.append(key)
+                elif worker.is_deleted():
+                    error = None
+                    if worker.is_error():
+                        error = worker.get_error()
+                    del self._workers[key]
+                    self.jobs_deleted[key] = error
+                    delete_key.append(key)
+            else:
+                ComWorker.get_loger().error("MultiJob {0} can't be deleted, run record is not found")
+                delete_key.append(key)
+                break
+        for key in delete_key:
+            self.delete_jobs.remove(key)
+
 
     def _check_started(self):
         """

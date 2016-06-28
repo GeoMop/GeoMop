@@ -1,9 +1,11 @@
 import logging
 import copy
+import os
+import shutil
 import data.transport_data as tdata
 import data.communicator_conf as comconf
 from .communicator import Communicator
-from  communication.installation import  Installation
+from  communication.installation import  Installation, __install_dir__
 from communication.std_input_comm import StdInputComm
 import threading
 from  communication.exec_output_comm import  ExecOutputComm
@@ -80,7 +82,14 @@ class JobsCommunicator(Communicator):
                 mess = tdata.Action(tdata.ActionType.install_in_process).get_message()
             return resent, mess
         if message.action_type == tdata.ActionType.download_res:
-            # processing in after function
+            if self.conf.output_type == comconf.OutputCommType.ssh and \
+               not self.conf.direct_communication:
+                # resend to ssh and after delete in after function
+                return True, None
+            else:
+                # delete in after function
+                return False, None
+        if message.action_type == tdata.ActionType.delete:
             if self.conf.output_type != comconf.OutputCommType.ssh or \
                self.conf.direct_communication:
                 return False, None
@@ -113,6 +122,18 @@ class JobsCommunicator(Communicator):
                self.conf.direct_communication:
                 action = tdata.Action(tdata.ActionType.ok)
                 self._try_finish_jobs()                
+                return action.get_message()
+        if message.action_type == tdata.ActionType.delete: 
+            if self.conf.output_type == comconf.OutputCommType.ssh and \
+               not self.conf.direct_communication:
+                if response is None or \
+                    response.action_type != tdata.ActionType.ok:
+                    return response   
+                action = tdata.Action(tdata.ActionType.ok)
+                if not os.path.isdir(os.path.join(__install_dir__, "ui")):
+                    # isn't local folder
+                    path =  Installation.get_mj_data_dir_static(self.mj_name)
+                    shutil.rmtree(path, ignore_errors=True)
                 return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
 

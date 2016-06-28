@@ -28,6 +28,7 @@ class ActionType(Enum):
     install_in_process = 13
     set_start_jobs_count = 14
     destroy = 15
+    delete = 16
     
 
 class ProcessType(Enum):
@@ -170,6 +171,8 @@ class Action():
         elif type == ActionType.installation:
             self.data = EmptyData()
         elif type == ActionType.download_res:
+            self.data = EmptyData()
+        elif type == ActionType.delete:
             self.data = EmptyData()
         elif type == ActionType.action_in_process:
             self.data = EmptyData()
