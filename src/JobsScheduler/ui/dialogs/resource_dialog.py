@@ -49,19 +49,30 @@ class ResourceDialog(AFormDialog):
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
 
+        self.ssh = {}
+
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
         # specific slots
         self.ui.multiJobSshPresetComboBox.currentIndexChanged.connect(
             self._handle_mj_ssh_changed)
+        self.ui.jobSshPresetComboBox.currentIndexChanged.connect(
+            self._handle_j_ssh_changed)
 
     def _handle_mj_ssh_changed(self, index):
-        if self.ui.multiJobSshPresetComboBox.currentText() == UiResourceDialog.SSH_LOCAL_EXEC:
-            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
+        key = self.ui.multiJobSshPresetComboBox.currentText()
+        if key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
             self.ui.multiJobPbsPresetComboBox.setEnabled(False)
         else:
             self.ui.multiJobPbsPresetComboBox.setEnabled(True)
+
+    def _handle_j_ssh_changed(self, index):
+        key = self.ui.jobSshPresetComboBox.currentText()
+        if key in self.ssh and self.ssh[key].pbs_system == '':
+            self.ui.jobPbsPresetComboBox.setEnabled(False)
+        else:
+            self.ui.jobPbsPresetComboBox.setEnabled(True)
 
     def valid(self):
         valid = True
@@ -99,6 +110,8 @@ class ResourceDialog(AFormDialog):
         # add default SSH option for local execution
         self.ui.multiJobSshPresetComboBox.addItem(self.ui.SSH_LOCAL_EXEC, self.ui.SSH_LOCAL_EXEC)
         self.ui.jobSshPresetComboBox.addItem(self.ui.SSH_LOCAL_EXEC, self.ui.SSH_LOCAL_EXEC)
+
+        self.ssh = ssh
 
         if ssh:
             # sort dict by list, not sure how it works

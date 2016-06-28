@@ -16,8 +16,14 @@ from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     CommunicatorConfigService
 from ui.dialogs.resource_dialog import UiResourceDialog
 from version import Version
+from data import Users
+from ui.dialogs import SshPasswordDialog
+from config import __config_dir__
 
 JOB_NAME_LABEL = "flow"
+COPY_EX_LIBS = ['pyssh']
+EX_LIB_PATH = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "..", "..", "common")
 
 
 class ConfigBuilder:
@@ -27,6 +33,7 @@ class ConfigBuilder:
         self.pbs_presets = data.pbs_presets
         self.resource_presets = data.resource_presets
         self.env_presets = data.env_presets
+        self.config = data.config
 
         self.app_version = Version().version
         """
@@ -101,8 +108,7 @@ class ConfigBuilder:
         j_pbs = ConfFactory.get_pbs_conf(j_pbs_preset, pbs_params=j_env.pbs_params,
                                          dialect=j_dialect)
         jmj_python_env, jmj_libs_env = ConfFactory.get_env_conf(j_env)
-        # TODO vyresit instalaci a spousteni knihovny
-        r_python_env, r_libs_env = ConfFactory.get_env_conf(j_env, False, False)
+        r_python_env, r_libs_env = ConfFactory.get_env_conf(mj_env, False, False)
         j_python_env, j_libs_env = ConfFactory.get_env_conf(j_env, False, False)
 
         # declare builders
@@ -118,7 +124,6 @@ class ConfigBuilder:
         mj.set_comm_name(CommType.multijob)\
             .set_python_env(r_python_env)\
             .set_libs_env(r_libs_env)
-        # TODO r_python_env, r_libs_env are derived from j_env instead of mj_env - why?
         mj.set_env_extras(mj_env)
 
         remote = None
@@ -184,6 +189,27 @@ class ConfigBuilder:
                 .set_out_comm(OutputCommType.pbs)\
                 .set_pbs(j_pbs)
             job.set_in_comm(InputCommType.pbs)
+
+        # configure paths
+        exec_mj_exec_j = (mj_execution_type == UiResourceDialog.EXEC_LABEL and
+                          j_execution_type == UiResourceDialog.EXEC_LABEL)
+        remote_mj_exec_j = (mj_execution_type == UiResourceDialog.DELEGATOR_LABEL and
+                            j_execution_type == UiResourceDialog.EXEC_LABEL)
+        remote_mj_remote_j = (mj_execution_type == UiResourceDialog.DELEGATOR_LABEL and
+                              j_execution_type == UiResourceDialog.REMOTE_LABEL)
+
+        app.set_paths_before_ssh(self.config.workspace, mj_preset)
+        if exec_mj_exec_j:
+            mj.set_paths_before_ssh(self.config.workspace, mj_preset)
+            job.set_paths_before_ssh(self.config.workspace, mj_preset)
+        elif remote_mj_exec_j:
+            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
+            mj.set_paths_on_ssh(mj_ssh_preset)
+            job.set_paths_before_ssh(mj_ssh_preset)
+        elif remote_mj_remote_j:
+            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
+            mj.set_paths_on_ssh(mj_ssh_preset)
+            job.set_paths_before_ssh(j_ssh_preset)
 
         if mj_remote_execution_type == UiResourceDialog.PBS_LABEL and \
            j_execution_type == UiResourceDialog.REMOTE_LABEL and \
@@ -311,6 +337,21 @@ class ConfBuilder:
         file = self.conf.communicator_name + ".json"
         return os.path.join(path, file)
 
+    def set_paths_before_ssh(self, workspace, mj, copy_ex_libs=False):
+        self.conf.paths_config.home_dir = __config_dir__
+        self.conf.paths_config.work_dir = os.path.join(workspace, mj.analysis,
+                                                       'mj', mj.name)
+        self.conf.paths_config.app_dir = None
+        self.conf.paths_config.ex_lib_path = EX_LIB_PATH
+        self.conf.paths_config.copy_ex_libs = COPY_EX_LIBS if copy_ex_libs else None
+
+    def set_paths_on_ssh(self, ssh):
+        self.conf.paths_config.home_dir = None
+        self.conf.paths_config.work_dir = None
+        self.conf.paths_config.app_dir = ssh.remote_dir
+        self.conf.paths_config.ex_lib_path = None
+        self.conf.paths_config.copy_ex_libs = None
+
 
 class ConfFactory:
     @staticmethod
@@ -339,7 +380,7 @@ class ConfFactory:
         return pbs
 
     @staticmethod
-    def get_ssh_conf(preset):
+    def get_ssh_conf(preset, is_remote=False):
         """
         Converts preset data to communicator config for SSH.
         :param preset: Preset data object from UI.
@@ -352,7 +393,20 @@ class ConfFactory:
         ssh.host = preset.host
         ssh.port = preset.port
         ssh.uid = preset.uid
-        ssh.pwd = preset.pwd
+        ssh.to_pc = preset.to_pc
+        ssh.to_remote = preset.to_remote
+
+        # password
+        users = Users(ssh.name, ssh.to_pc, ssh.to_remote)
+        ssh.pwd = users.get_login(preset.pwd, preset.key, from_preset=True)
+        ssh.key = preset.key
+        if ssh.pwd is None:
+            dialog = SshPasswordDialog(None, preset)
+            if dialog.exec_():
+                pwd, key = users.save_communicator_login(dialog.password, is_remote)
+                ssh.pwd = pwd
+                ssh.key = key
+
         return ssh
 
     @staticmethod

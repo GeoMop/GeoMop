@@ -122,6 +122,11 @@ class MultiJobPreset(APreset):
         self.analysis = kw_or_def('analysis')
         """Name of the analysis used in this multijob"""
 
+    @property
+    def id(self):
+        """Get multijob id = analysis_name"""
+        return self.analysis + "_" + self.name
+
     def __repr__(self):
         """
         Representation of object
