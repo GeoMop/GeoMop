@@ -205,11 +205,11 @@ class ConfigBuilder:
         elif remote_mj_exec_j:
             delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
             mj.set_paths_on_ssh(mj_ssh_preset)
-            job.set_paths_before_ssh(mj_ssh_preset)
+            job.set_paths_on_ssh(mj_ssh_preset)
         elif remote_mj_remote_j:
             delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
             mj.set_paths_on_ssh(mj_ssh_preset)
-            job.set_paths_before_ssh(j_ssh_preset)
+            job.set_paths_on_ssh(j_ssh_preset)
 
         if mj_remote_execution_type == UiResourceDialog.PBS_LABEL and \
            j_execution_type == UiResourceDialog.REMOTE_LABEL and \
