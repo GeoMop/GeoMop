@@ -43,16 +43,23 @@ class ComManager:
         """array of jobs ids, that will be resume"""
         self.stop_jobs = []
         """array of jobs ids, that will be stopped"""
+        self.delete_jobs = []
+        """array of jobs ids, that will be stopped"""
         self.run_jobs = []
         """array of running jobs ids"""
         self.terminate_jobs = []
         """array of jobs ids, that will be destroyed (try restart job and delete all processes and data)"""
-        self.state_change_jobs=[]
+        self.state_change_jobs = []
         """array of jobs ids, that have changed state"""
-        self.results_change_jobs=[]
+        self.results_change_jobs = []
         """array of jobs ids, that have changed results"""
-        self.jobs_change_jobs=[]
+        self.jobs_change_jobs = []
         """array of jobs ids, that have changed jobs state"""
+        self.jobs_deleted = {}
+        """
+        Dictionary of jobs ids=>None (ids=>error), that was deleted data.
+        If job was not deleted, in dictionary value is error text 
+        """
         self.logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
         self.__cancel_jobs = []
