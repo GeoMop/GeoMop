@@ -559,13 +559,13 @@ class Communicator():
     def delete_connection(self, id=None):
         """delete file with connection"""
         id = str(id)
-        file = os.path.join( Installation.get_staus_dir_static(self.mj_name), "conn_"+id)
+        file = os.path.join( Installation.get_status_dir_static(self.mj_name), "conn_"+id)
         if os.path.isfile(file):
             os.remove(file) 
             
     def terminate_connections(self):
         """send terminate message to all recorded connections, and delete connections files"""
-        dir = Installation.get_staus_dir_static(self.mj_name)
+        dir = Installation.get_status_dir_static(self.mj_name)
         logger.info("Comunicator start destroying process")
         for root, dirs, files in os.walk(dir):
             for name in files:

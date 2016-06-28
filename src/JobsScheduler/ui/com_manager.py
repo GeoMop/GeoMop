@@ -257,7 +257,7 @@ class ComManager:
                     mj.error = worker.get_error()
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
-                    self._workers.remove(key)
+                    del self._workers[key]
                 else:
                     state = worker.get_start_state()
                     mj = self._data_app.multijobs[key]

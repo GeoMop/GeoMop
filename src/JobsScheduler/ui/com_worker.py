@@ -62,6 +62,12 @@ class ComWorker(threading.Thread):
         self._counter = 0
         """planning counter (in main thread, not lock)"""
         
+    def get_error(self):
+        self.__state_lock.acquire()
+        error = self.__error
+        self.__state_lock.release()
+        return error
+        
     def get_last_results(self, is_current):
         """
         return tupple (state, error, jobs_downloaded, results_downloaded , logs_downloaded)
