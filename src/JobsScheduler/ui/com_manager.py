@@ -117,7 +117,7 @@ class ComManager:
         # sync mj analyses + files
         analysis = None
         try:
-            analysis = Analysis.open(self._data_app.config.workspace, data.analysis)
+            analysis = Analysis.open(self._data_app.config.workspace, self._data_app.config.analysis)
         except InvalidAnalysis as e:
             ComWorker.get_loger().error("Analysis not found: " + str(e))
         if analysis is not None:
