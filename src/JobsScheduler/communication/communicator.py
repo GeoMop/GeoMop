@@ -156,7 +156,7 @@ class Communicator():
         if self.id is not None:
             name += "_" + self.id
         self.status = CommunicatorStatus(
-            Installation.get_staus_dir_static(mj_name), name) 
+            Installation.get_status_dir_static(mj_name), name) 
         self.status.load()
 
     def _set_loger(self,  path, name, level, central_log, paths_config):
@@ -167,6 +167,8 @@ class Communicator():
                 if logger.level>level:
                     logger.setLevel(level)
                     logger.handlers[0].setLevel(level)
+                return
+            if paths_config is None or paths_config.home_dir is None:
                 return
             dir = os.path.join(paths_config.home_dir, "log")
             if not os.path.isdir(dir):
@@ -548,7 +550,7 @@ class Communicator():
     def save_connection(self, host, port, id=None):
         """Save connection for possible termination"""
         id = str(id)
-        file = os.path.join( Installation.get_staus_dir_static(self.mj_name), "conn_"+id) 
+        file = os.path.join( Installation.get_status_dir_static(self.mj_name), "conn_"+id) 
         with open(file, 'w') as f:
             f.write("HOST:--" + str(host) + "--\n")
             f.write("PORT:--" + str(port) + "--\n")    
@@ -557,13 +559,13 @@ class Communicator():
     def delete_connection(self, id=None):
         """delete file with connection"""
         id = str(id)
-        file = os.path.join( Installation.get_staus_dir_static(self.mj_name), "conn_"+id)
+        file = os.path.join( Installation.get_status_dir_static(self.mj_name), "conn_"+id)
         if os.path.isfile(file):
             os.remove(file) 
             
     def terminate_connections(self):
         """send terminate message to all recorded connections, and delete connections files"""
-        dir = Installation.get_staus_dir_static(self.mj_name)
+        dir = Installation.get_status_dir_static(self.mj_name)
         logger.info("Comunicator start destroying process")
         for root, dirs, files in os.walk(dir):
             for name in files:

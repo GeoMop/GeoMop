@@ -43,16 +43,23 @@ class ComManager:
         """array of jobs ids, that will be resume"""
         self.stop_jobs = []
         """array of jobs ids, that will be stopped"""
+        self.delete_jobs = []
+        """array of jobs ids, that will be stopped"""
         self.run_jobs = []
         """array of running jobs ids"""
         self.terminate_jobs = []
         """array of jobs ids, that will be destroyed (try restart job and delete all processes and data)"""
-        self.state_change_jobs=[]
+        self.state_change_jobs = []
         """array of jobs ids, that have changed state"""
-        self.results_change_jobs=[]
+        self.results_change_jobs = []
         """array of jobs ids, that have changed results"""
-        self.jobs_change_jobs=[]
+        self.jobs_change_jobs = []
         """array of jobs ids, that have changed jobs state"""
+        self.jobs_deleted = {}
+        """
+        Dictionary of jobs ids=>None (ids=>error), that was deleted data.
+        If job was not deleted, in dictionary value is error text 
+        """
         self.logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
         self.__cancel_jobs = []
@@ -117,7 +124,7 @@ class ComManager:
         # sync mj analyses + files
         analysis = None
         try:
-            analysis = Analysis.open(self._data_app.config.workspace, data.analysis)
+            analysis = Analysis.open(self._data_app.config.workspace, self._data_app.config.analysis)
         except InvalidAnalysis as e:
             ComWorker.get_loger().error("Analysis not found: " + str(e))
         if analysis is not None:
@@ -257,7 +264,7 @@ class ComManager:
                     mj.error = worker.get_error()
                     self.state_change_jobs.append(key)
                     delete_key.append(key)
-                    self._workers.remove(key)
+                    del self._workers[key]
                 else:
                     state = worker.get_start_state()
                     mj = self._data_app.multijobs[key]

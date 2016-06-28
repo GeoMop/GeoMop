@@ -201,7 +201,8 @@ class Installation:
     def unlock_application(cls, mj_name):
         """Unset application locks"""
         home = None
-        if cls.paths_config is not None:
+        if cls.paths_config is not None and \
+            cls.paths_config.home_dir is not None:
             home = cls.paths_config.home_dir
 
         lock = Lock(mj_name, __install_dir__, home)
@@ -218,7 +219,8 @@ class Installation:
         """Set ilibrary lock"""
         path = os.path.join( __install_dir__, __lib_dir__)
         home = None
-        if cls.paths_config is not None:
+        if cls.paths_config is not None and \
+                cls.paths_config.home_dir is not None:
             home = cls.paths_config.home_dir
 
         lock = Lock("", __install_dir__, home)
@@ -235,7 +237,8 @@ class Installation:
     def unlock_lib(cls):
         """Set installation locks, return if should installation continue"""
         home = None
-        if cls.paths_config is not None:
+        if cls.paths_config is not None and \
+                cls.paths_config.home_dir is not None:
             home = cls.paths_config.home_dir
 
         lock = Lock("", __install_dir__, home)
@@ -563,7 +566,8 @@ class Installation:
     def get_config_dir_static(cls, mj_name):
         """Return dir for configuration"""
         try:
-            if cls.paths_config is not None:
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
                 if not os.path.isdir(path):
                     os.makedirs(path)
@@ -590,7 +594,8 @@ class Installation:
     def get_mj_data_dir_static(cls, mj_name):
         """Return dir for savings results"""
         try:
-            if cls.paths_config is not None:
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
                 if not os.path.isdir(path):
                     os.makedirs(path)
@@ -617,7 +622,8 @@ class Installation:
     def get_mj_log_dir_static(cls, mj_name):
         """Return dir for logging"""
         try:
-            if cls.paths_config is not None:
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
                 if not os.path.isdir(path):
                     os.makedirs(path)
@@ -654,7 +660,8 @@ class Installation:
     def get_status_dir_static(cls, mj_name):
         """Return dir for savings status"""
         try:
-            if cls.paths_config is not None:
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
                 if not os.path.isdir(path):
                     os.makedirs(path)

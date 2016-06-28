@@ -83,9 +83,8 @@ class Lock():
             installed_ver = self._read_version("install.version") 
 
             source = True
-            if self._lock_file("source.lock", 0):
+            if not os.path.isdir(os.path.join(self._js_path)):
                 source = False
-                self._unlock_file("source.lock") 
         
             if (installed_ver is None or installed_ver !=  install_ver) and \
                 not source :

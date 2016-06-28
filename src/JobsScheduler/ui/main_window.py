@@ -187,7 +187,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.poll()
 
         current = self.ui.overviewWidget.currentItem()
-        current_mj_id = current.text(0)
+        if current is not None:
+            current_mj_id = current.text(0)
 
         for mj_id in self.com_manager.state_change_jobs:
             mj = self.data.multijobs[mj_id]
