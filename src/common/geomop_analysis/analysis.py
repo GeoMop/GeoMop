@@ -6,11 +6,13 @@ import os
 
 from geomop_util import Serializable
 import config
+import flow_util
 
 
 ANALYSIS_MAIN_FILE_EXT = 'data'
 ANALYSIS_MAIN_FILE_NAME = 'analysis'
 ANALYSIS_MAIN_FILE = ANALYSIS_MAIN_FILE_NAME + '.' + ANALYSIS_MAIN_FILE_EXT
+MULTIJOBS_DIR = 'mj'
 
 
 class InvalidAnalysis(Exception):
@@ -60,6 +62,7 @@ class Analysis:
         self.files = kwargs['files'] if 'files' in kwargs else []
         self._analysis_dir = ''
         self.flow123d_version = kwargs['flow123d_version'] if 'flow123d_version' in kwargs else ''
+        self.mj_counter = kwargs['mj_counter'] if 'mj_counter' in kwargs else 1
 
     @staticmethod
     def _get_compare_path(path):
@@ -193,6 +196,26 @@ class Analysis:
                         not "analysis_results" in root:
                     self.add_file(os.path.join(root, filename))
         self.save()
+
+    def copy_into_mj_folder(self, mj):
+        """Copy this analysis into multijob folder."""
+        mj_dir = os.path.join(self.analysis_dir, MULTIJOBS_DIR, mj.preset.name)
+
+        # get all files used by analyses
+        files = self.selected_file_paths
+
+        # get parameters
+        params = {param.name: param.value for param in self.params if param.value}
+
+        # copy the selected files (with filled in parameters)
+        for file in set(files):
+            src = os.path.join(self.analysis_dir, file)
+            dst = os.path.join(mj_dir, file)
+            # create directory structure if not present
+            dst_dir = os.path.dirname(dst)
+            if not os.path.isdir(dst_dir):
+                os.makedirs(dst_dir)
+            flow_util.analysis.replace_params_in_file(src, dst, params)
 
     @staticmethod
     def is_analysis(path):
