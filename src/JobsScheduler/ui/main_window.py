@@ -98,8 +98,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # multijob dialog
         self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
-        self.ui.menuBar.multiJob.actionEditMultiJob.triggered.connect(
-            self._handle_edit_multijob_action)
         self.ui.menuBar.multiJob.actionReuseMultiJob.triggered.connect(
             self._handle_copy_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
@@ -276,16 +274,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_add_multijob_action(self):
         self.mj_dlg.exec_add()
 
-    def _handle_edit_multijob_action(self):
-        if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            preset = self.data.multijobs[key].get_preset()
-            data = {
-                "key": key,
-                "preset": preset
-            }
-            self.mj_dlg.exec_edit(data)
-
     def _handle_copy_multijob_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
@@ -305,12 +293,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.multijobs_changed.emit(self.data.multijobs)
 
     def handle_multijob_dialog(self, purpose, data):
-        if purpose != self.mj_dlg.PURPOSE_EDIT:
-            key = Id.get_id()
-            self.data.multijobs[key] = MultiJob(data["preset"])
-        else:
-            # Todo properly edit state, change folder name etc.
-            self.data.multijobs[data["key"]] = MultiJob(data["preset"])
+        mj = MultiJob(data['preset'])
+        self.data.multijobs[mj.id] = mj
+        if purpose == self.mj_dlg.PURPOSE_ADD:
+            analysis = Analysis.open(self.data.config.workspace, mj.preset.analysis)
+            analysis.mj_counter += 1
+            analysis.save()
+            # Create multijob folder and copy analysis into it
+            try:
+                analysis.copy_into_mj_folder(mj)
+            except Exception as e:
+                logger.error("Failed to copy analysis into mj folder: " + str(e))
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):

@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtWidgets
 from ui.data.mj_data import MultiJobPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import MultiJobNameValidator
-from geomop_analysis import Analysis
+from geomop_analysis import Analysis, InvalidAnalysis
 
 
 class MultiJobDialog(AFormDialog):
@@ -60,6 +60,17 @@ class MultiJobDialog(AFormDialog):
         # connect slots
         # connect generic presets slots (must be called after UI setup)
         super()._connect_slots()
+        self.ui.analysisComboBox.currentIndexChanged.connect(self.update_mj_name)
+        self.ui.resourceComboBox.currentIndexChanged.connect(self.update_mj_name)
+
+    def update_mj_name(self):
+        analysis_name = self.ui.analysisComboBox.currentText()
+        try:
+            counter = Analysis.open(self.config.workspace, analysis_name).mj_counter
+        except InvalidAnalysis:
+            counter = 1
+        name = self.ui.resourceComboBox.currentText() + '_' + str(counter)
+        self.ui.nameLineEdit.setText(name)
 
     def valid(self):
         valid = True
@@ -158,10 +169,34 @@ class UiMultiJobDialog(UiFormDialog):
         #                          self.idLineEdit)
 
         # 1 row
+        self.analysisLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.analysisLabel.setObjectName("analysisLabel")
+        self.analysisLabel.setText("Analysis:")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
+                                  self.analysisLabel)
+        self.analysisComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.analysisComboBox.setObjectName("analysisComboBox")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
+                                  self.analysisComboBox)
+
+        # 2 row
+        self.resourceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.resourceLabel.setObjectName("resourceLabel")
+        self.resourceLabel.setText("Resource:")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                  self.resourceLabel)
+        self.resourceComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.resourceComboBox.setObjectName("resourceComboBox")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                  self.resourceComboBox)
+
+        # 3 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nameLabel.setObjectName("nameLabel")
         self.nameLabel.setText("Name:")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setObjectName("nameLineEdit")
@@ -169,32 +204,8 @@ class UiMultiJobDialog(UiFormDialog):
                                              "and - or _")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
-
-        # 4 row
-        self.resourceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.resourceLabel.setObjectName("resourceLabel")
-        self.resourceLabel.setText("Resource:")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
-                                  self.resourceLabel)
-        self.resourceComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.resourceComboBox.setObjectName("resourceComboBox")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
-                                  self.resourceComboBox)
-
-        # 4 row
-        self.analysisLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.analysisLabel.setObjectName("analysisLabel")
-        self.analysisLabel.setText("Analysis:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
-                                  self.analysisLabel)
-        self.analysisComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.analysisComboBox.setObjectName("analysisComboBox")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
-                                  self.analysisComboBox)
 
         # 5 row
         self.logLevelLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)

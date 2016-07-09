@@ -76,15 +76,16 @@ class AnalysisDialog(AFormDialog):
             # check files
             for i in range(self.ui.filesLayout.count()):
                 checkbox = self.ui.filesLayout.itemAt(i).widget()
-                if checkbox.file.file_path in data.files:
+                if checkbox.file.file_path in data.selected_file_paths:
                     checkbox.setChecked(True)
                 else:
                     checkbox.setChecked(False)
 
             # fill params
+            params = {param.name: param.value for param in data.params}
             for __, edit_widget in self.ui.paramWidgets:
-                if edit_widget.param.name in data.params:
-                    edit_widget.setText(data.params[edit_widget.param.name])
+                if edit_widget.param.name in params:
+                    edit_widget.setText(params[edit_widget.param.name])
 
             self.ui.update_params()
 
