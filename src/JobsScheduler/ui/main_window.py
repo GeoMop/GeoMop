@@ -180,6 +180,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # resume paused multijobs
         self.perform_multijob_startup_action()
 
+        self.setWindowTitle('Jobs Scheduler')
+
     def poll_com_manager(self):
         """poll com manager and update gui"""
         self.com_manager.poll()
@@ -230,12 +232,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
-        # load current project
-        if self.data.config.analysis is not None:
-            analysis = self.data.config.analysis
-        else:
-            analysis = '(No Analysis)'
-        self.setWindowTitle('Jobs Scheduler - ' + analysis)
         self.mj_dlg.set_analyses(self.data.config)
 
     def notify(self, data):
@@ -255,7 +251,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if current is not None:
             mj_id = current.text(0)
             mj = self.data.multijobs[mj_id]
-            self.ui.menuBar.analysis.analysis_name = mj.preset.analysis
 
             # show error message in status bar
             self.ui.status_bar.showMessage(mj.error)
@@ -296,6 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mj = MultiJob(data['preset'])
         self.data.multijobs[mj.id] = mj
         if purpose == self.mj_dlg.PURPOSE_ADD:
+            mj.state.analysis = mj.preset.analysis
             analysis = Analysis.open(self.data.config.workspace, mj.preset.analysis)
             analysis.mj_counter += 1
             analysis.save()
