@@ -4,3 +4,4 @@
 """
 
 from .analysis import Analysis, ANALYSIS_MAIN_FILE, InvalidAnalysis, Parameter, File
+from .yaml_support import YamlSupport

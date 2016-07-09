@@ -1,6 +1,9 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
+#from geomop_analysis import YamlSupport
+import os
+
 class Flow123dAction(ParametrizedActionType):
     
     name = "Flow123d"
@@ -84,11 +87,15 @@ class Flow123dAction(ParametrizedActionType):
         
     def __get_require_params(self):
         """Return list of params needed for completation of Yaml file"""
-        # ToDo logic
-        return []
+        #ys = YamlSupport()
+        #ys.parse(self._variables['YAMLFile'])
+        return []#ys.get_params()
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
+        #ys = YamlSupport()
+        #ys.parse(self._variables['YAMLFile'])
+
         # TODO logic
         return String("Test")
 
@@ -99,8 +106,20 @@ class Flow123dAction(ParametrizedActionType):
         
     def __parametrise_file(self):
         """Rename and make completation of Yaml file and return new file path"""
-        # TODO logic
-        pass
+
+        # new name
+        file = self._variables['YAMLFile']
+        dir, name = os.path.split(file)
+        s = name.rsplit(sep=".", maxsplit=1)
+        new_name = s[0] + "_param"
+        if len(s) == 2:
+            new_name += "." + s[1]
+        new_file = os.path.join(dir, new_name)
+
+        # completion
+        #replace_params_in_file(file, new_file, params)
+
+        return new_file
 
     def _store(self, path):
         """

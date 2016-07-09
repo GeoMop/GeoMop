@@ -7,38 +7,19 @@ from pipeline.pipeline import *
 #from .pomfce import *
 import pipeline.action_types as action
 import os
+import sys
 
-# test workflow v 2xForEach in each other
-action.__action_counter__ = 0
-items = [
-    {'name': 'a', 'value': 1, 'step': 0.1, 'n_plus': 1, 'n_minus': 1, 'exponential': False},
-    {'name': 'b', 'value': 10, 'step': 1, 'n_plus': 2, 'n_minus': 0, 'exponential': True}
-]
-items2 = [
-    {'name': 'x', 'value': 1, 'step': 0.1, 'n_plus': 1, 'n_minus': 1, 'exponential': False},
-    {'name': 'y', 'value': 10, 'step': 1, 'n_plus': 2, 'n_minus': 0, 'exponential': True}
-]
-gen = RangeGenerator(Items=items)
-gen2 = RangeGenerator(Items=items2)
-workflow = Workflow()
-workflow2 = Workflow()
-flow = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="test.yaml")
-workflow2.set_config(OutputAction=flow, InputAction=flow)
-foreach2 = ForEach(Inputs=[gen2], WrappedAction=workflow2)
-workflow.set_config(OutputAction=foreach2, InputAction=foreach2)
-foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
-pipeline = Pipeline(ResultActions=[foreach])
-flow._output = String()
-pipeline._inicialize()
-test = pipeline._get_settings_script()
+__lib_dir__ = os.path.join(os.path.split(
+    os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.insert(1, __lib_dir__)
 
-# compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
+from geomop_analysis import YamlSupport
 
-# test validation
-err = workflow.validate()
 
-ts=""
-for line in test:
-    ts += line + "\n"
+ys = YamlSupport()
+err = ys.parse("d:\\test\\flow_gmsh_par.yaml")
+r = ys.get_regions()
+
+
 
 print(9)
