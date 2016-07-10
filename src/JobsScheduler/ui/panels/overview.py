@@ -17,7 +17,7 @@ ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
 class Overview(QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.headers = ["Id", "Name", "Insert Time", "Queued Time",
+        self.headers = ["Id", "Analysis", "Name", "Insert Time", "Queued Time",
                         "Start Time", "Run Interval", "Status",
                         "Known Jobs", "Estimated Jobs", "Finished Jobs",
                         "Running Jobs"]
@@ -28,31 +28,33 @@ class Overview(QtWidgets.QTreeWidget):
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
         self.setRootIsDecorated(False)
-        self.header().resizeSection(2, 120)
         self.header().resizeSection(3, 120)
         self.header().resizeSection(4, 120)
+        self.header().resizeSection(5, 120)
+        self.header().resizeSection(6, 80)
 
     @staticmethod
     def _update_item(item, state, time_format):
-        item.setText(1, str(state.name))
-        item.setText(2, datetime.datetime.fromtimestamp(
+        item.setText(1, str(state.analysis))
+        item.setText(2, str(state.name))
+        item.setText(3, datetime.datetime.fromtimestamp(
                 state.insert_time).strftime(time_format))
         if state.queued_time:
-            item.setText(3, datetime.datetime.fromtimestamp(
+            item.setText(4, datetime.datetime.fromtimestamp(
                 state.queued_time).strftime(time_format))
         else:
-            item.setText(3, "Not Queued Yet")
+            item.setText(4, "Not Queued Yet")
         if state.start_time:
-            item.setText(4, datetime.datetime.fromtimestamp(
+            item.setText(5, datetime.datetime.fromtimestamp(
                 state.start_time).strftime(time_format))
         else:
-            item.setText(4, "Not Started Yet")
-        item.setText(5, str(datetime.timedelta(seconds=state.run_interval)))
-        item.setText(6, str(state.status))
-        item.setText(7, str(state.known_jobs))
-        item.setText(8, str(state.estimated_jobs))
-        item.setText(9, str(state.finished_jobs))
-        item.setText(10, str(state.running_jobs))
+            item.setText(5, "Not Started Yet")
+        item.setText(6, str(datetime.timedelta(seconds=state.run_interval)))
+        item.setText(7, str(state.status))
+        item.setText(8, str(state.known_jobs))
+        item.setText(9, str(state.estimated_jobs))
+        item.setText(10, str(state.finished_jobs))
+        item.setText(11, str(state.running_jobs))
 
         # background color
         if state.status == TaskStatus.error:
@@ -70,15 +72,15 @@ class Overview(QtWidgets.QTreeWidget):
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
-        item.setTextAlignment(2, QtCore.Qt.AlignRight)
         item.setTextAlignment(3, QtCore.Qt.AlignRight)
         item.setTextAlignment(4, QtCore.Qt.AlignRight)
         item.setTextAlignment(5, QtCore.Qt.AlignRight)
-        item.setTextAlignment(6, QtCore.Qt.AlignCenter)
-        item.setTextAlignment(7, QtCore.Qt.AlignRight)
+        item.setTextAlignment(6, QtCore.Qt.AlignRight)
+        item.setTextAlignment(7, QtCore.Qt.AlignCenter)
         item.setTextAlignment(8, QtCore.Qt.AlignRight)
         item.setTextAlignment(9, QtCore.Qt.AlignRight)
         item.setTextAlignment(10, QtCore.Qt.AlignRight)
+        item.setTextAlignment(11, QtCore.Qt.AlignRight)
         item.setText(0, key)
         return self._update_item(item, data, self.time_format)
 

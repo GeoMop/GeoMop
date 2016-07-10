@@ -5,10 +5,9 @@
 import os
 from PyQt5 import QtWidgets, QtGui
 
-from geomop_analysis import Analysis
+from geomop_analysis import Analysis, InvalidAnalysis
 
 from .dialogs import AFormDialog, UiFormDialog
-from geomop_analysis import ANALYSIS_MAIN_FILE
 
 
 class AnalysisDialog(AFormDialog):
@@ -81,6 +80,14 @@ class AnalysisDialog(AFormDialog):
                 else:
                     checkbox.setChecked(False)
 
+            # check additional files
+            for i in range(self.ui.additionalFilesLayout.count()):
+                checkbox = self.ui.additionalFilesLayout.itemAt(i).widget()
+                if checkbox.file.file_path in data.selected_file_paths:
+                    checkbox.setChecked(True)
+                else:
+                    checkbox.setChecked(False)
+
             # fill params
             params = {param.name: param.value for param in data.params}
             for __, edit_widget in self.ui.paramWidgets:
@@ -113,12 +120,25 @@ class AnalysisDialog(AFormDialog):
             self.config.analysis = name
             self.config.save()
         if self.purpose == AnalysisDialog.PURPOSE_EDIT:
-            # get all files
+            # get all config files
             for i in range(self.ui.filesLayout.count()):
                 checkbox = self.ui.filesLayout.itemAt(i).widget()
 
                 # find the file in analysis and update selected status
                 gen = (f for f in self.analysis.files if f.file_path == checkbox.file.file_path)
+                try:
+                    file = next(gen)
+                except StopIteration:
+                    # file not found
+                    continue
+                file.selected = checkbox.isChecked()
+
+            # get all additional files
+            for i in range(self.ui.additionalFilesLayout.count()):
+                checkbox = self.ui.additionalFilesLayout.itemAt(i).widget()
+
+                # find the file in analysis and update selected status
+                gen = (f for f in self.analysis.additional_files if f.file_path == checkbox.file.file_path)
                 try:
                     file = next(gen)
                 except StopIteration:
@@ -214,13 +234,14 @@ class UiAnalysisDialog(UiFormDialog):
             self.filesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
             self.filesLabel.setObjectName("filesLabel")
             self.filesLabel.setFont(labelFont)
-            self.filesLabel.setText("Files")
+            self.filesLabel.setText("Configuration Files")
             self.mainVerticalLayout.addWidget(self.filesLabel)
 
             self.filesLayout = QtWidgets.QVBoxLayout()
             self.filesLayout.setContentsMargins(0, 5, 0, 5)
             self.mainVerticalLayout.addLayout(self.filesLayout)
 
+            # update config files
             for file in self.analysis.files:
                 checkbox = QtWidgets.QCheckBox()
                 checkbox.setChecked(True)
@@ -253,6 +274,25 @@ class UiAnalysisDialog(UiFormDialog):
                 self.paramsLayout.setWidget(i, 1, edit)
 
             self.update_params()
+
+            # additional files label
+            self.additionalFilesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+            self.additionalFilesLabel.setObjectName("additionalFilesLabel")
+            self.additionalFilesLabel.setFont(labelFont)
+            self.additionalFilesLabel.setText("Additional Files")
+            self.mainVerticalLayout.addWidget(self.additionalFilesLabel)
+
+            self.additionalFilesLayout = QtWidgets.QVBoxLayout()
+            self.additionalFilesLayout.setContentsMargins(0, 5, 0, 5)
+            self.mainVerticalLayout.addLayout(self.additionalFilesLayout)
+
+            # update additional files
+            for file in self.analysis.additional_files:
+                checkbox = QtWidgets.QCheckBox()
+                checkbox.setChecked(True)
+                checkbox.file = file
+                checkbox.setText(file.file_path)
+                self.additionalFilesLayout.addWidget(checkbox)
 
         self.mainVerticalLayout.addStretch(1)
 

@@ -34,6 +34,8 @@ class MultiJobState:
 
         self.name = name
         """Name of multijob"""
+        self.analysis = kw_or_def('analysis')
+        """Name of the analysis"""
         self.insert_time = kw_or_def('insert_time', time.time())
         """When MultiJob was started"""
         self.queued_time = kw_or_def('queued_time')

@@ -48,7 +48,8 @@ class Analysis:
                   'analysis_dir',
                   '_analysis_dir'],
         composite={'params': Parameter,
-                   'files': File}
+                   'files': File,
+                   'additional_files': File}
     )
 
     current = None
@@ -60,6 +61,7 @@ class Analysis:
         self.name = None
         self.params = kwargs['params'] if 'params' in kwargs else []
         self.files = kwargs['files'] if 'files' in kwargs else []
+        self.additional_files = kwargs['additional_files'] if 'additional_files' in kwargs else []
         self._analysis_dir = ''
         self.flow123d_version = kwargs['flow123d_version'] if 'flow123d_version' in kwargs else ''
         self.mj_counter = kwargs['mj_counter'] if 'mj_counter' in kwargs else 1
@@ -82,10 +84,10 @@ class Analysis:
 
     @property
     def selected_file_paths(self):
-        return [f.file_path for f in self.files if f.selected]
+        return [f.file_path for f in (self.files + self.additional_files) if f.selected]
 
     @staticmethod
-    def open(workspace, analysis_name):
+    def open(workspace, analysis_name, sync_files=False):
         """Retrieve analysis from settings by its name and workspace."""
         if analysis_name is None:
             raise InvalidAnalysis("No analysis specified.")
@@ -103,6 +105,33 @@ class Analysis:
         analysis.filename = os.path.join(directory, ANALYSIS_MAIN_FILE)
         analysis.workspace = workspace
         analysis.name = analysis_name
+
+        # scan and update files
+        if sync_files:
+            current_configs = {file.file_path: file for file in analysis.files}
+            current_additional_files = {file.file_path: file for file in analysis.additional_files}
+            analysis.files = []
+            analysis.additional_files = []
+            for root, dirs, files in os.walk(analysis.analysis_dir):
+                # ignore multijobs folder
+                if root.startswith(os.path.join(analysis.analysis_dir, MULTIJOBS_DIR)):
+                    continue
+
+                for filename in files:
+                    file_path = analysis.make_relative_path(os.path.join(root, filename))
+                    if file_path.endswith('.yaml'):
+                        if file_path in current_configs:
+                            analysis.files.append(current_configs[file_path])
+                        else:
+                            analysis.files.append(File(file_path))
+                    else:
+                        if filename == ANALYSIS_MAIN_FILE:
+                            continue
+                        elif file_path in current_additional_files:
+                            analysis.additional_files.append(current_additional_files[file_path])
+                        else:
+                            analysis.additional_files.append(File(file_path))
+
         return analysis
 
     @staticmethod
