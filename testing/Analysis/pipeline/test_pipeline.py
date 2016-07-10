@@ -76,3 +76,39 @@ def test_pipeline_code_init():
     assert 'b' in workflow.bridge._get_output()
     assert 'c' not in workflow.bridge._get_output()
     assert isinstance(flow._get_output(), String)
+
+
+def test_hashes():
+    # first pipeline
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+    pipeline._inicialize()
+    test = pipeline._get_settings_script()
+    hlist1 = pipeline._get_hashes_list()
+
+    # second pipeline
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test3"), b=Int(8)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+    pipeline._inicialize()
+    test = pipeline._get_settings_script()
+    hlist2 = pipeline._get_hashes_list()
+
+    # hashes comparison
+    # assert hlist1["1"] == hlist2["1"]
+    # assert hlist1["2"] != hlist2["2"]
+    # assert hlist1["3"] != hlist2["3"]
+    # assert hlist1["4"] != hlist2["4"]
+    # assert hlist1["5"] == hlist2["5"]
+    # assert hlist1["6"] != hlist2["6"]

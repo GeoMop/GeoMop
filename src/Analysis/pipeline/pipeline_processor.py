@@ -366,6 +366,7 @@ class Pipelineprocessor():
         if identical_list is not None:
             il = IdenticalList()
             il.load(identical_list)
+            self._pipeline._set_restore_id(il)
         
     def __set_loger(self,  path,  level):
         """set logger"""        

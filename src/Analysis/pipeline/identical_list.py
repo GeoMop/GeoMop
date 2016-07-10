@@ -6,8 +6,8 @@ logger = logging.getLogger("Analysis")
 
 class IdenticalList():
     """Class for save status information between sessions"""
-    def __init__(self):
-        self._instance_dict = []
+    def __init__(self, instance_dict={}):
+        self._instance_dict = instance_dict
         """
         Instance names dictionary 
         next processing =>  previous processing
@@ -21,7 +21,7 @@ class IdenticalList():
     
     def load(self, file):
         """Try load IdenticalList from file"""
-        self._instance_dict = []
+        self._instance_dict = {}
         if not os.path.isfile(file):
             return False
         try:

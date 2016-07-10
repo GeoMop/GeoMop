@@ -27,6 +27,11 @@ def test_workflow_code_init():
     err = workflow.validate()
     assert len(err) == 0
 
+    # test _get_hashes_list()
+    hlist = workflow._get_hashes_list()
+    assert sorted(hlist.keys()) == ["2", "3", "4"]
+
+
     # test workflow with more action where is side effect action in separate branch
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
@@ -45,6 +50,10 @@ def test_workflow_code_init():
     # test validation
     err = workflow.validate()
     assert len(err) == 0
+
+    # test _get_hashes_list()
+    hlist = workflow._get_hashes_list()
+    assert sorted(hlist.keys()) == ["1", "3", "4", "5"]
 
 
     # test workflow duplication
@@ -66,6 +75,10 @@ def test_workflow_code_init():
     # test validation
     err = pipeline.validate()
     assert len(err) == 1
+
+    # test _get_hashes_list()
+    hlist = pipeline._get_hashes_list()
+    assert sorted(hlist.keys()) == ["3", "4", "5", "6", "7", "8"]
 
 
     # test workflow v 2xForEach in each other
@@ -95,8 +108,12 @@ def test_workflow_code_init():
     compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
 
     # test validation
-    err = workflow.validate()
+    err = pipeline.validate()
     assert len(err) == 0
+
+    # test _get_hashes_list()
+    hlist = pipeline._get_hashes_list()
+    assert sorted(hlist.keys()) == ["1", "2", "3", "4", "5", "6", "7", "8"]
 
 
     # test workflow with one direct input
@@ -114,6 +131,10 @@ def test_workflow_code_init():
     # test validation
     err = workflow.validate()
     assert len(err) == 0
+
+    # test _get_hashes_list()
+    hlist = workflow._get_hashes_list()
+    assert sorted(hlist.keys()) == ["2", "3"]
 
 
     # test comparation of workflow hash

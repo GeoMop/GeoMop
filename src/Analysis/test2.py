@@ -4,6 +4,7 @@ from pipeline.wrapper_actions import *
 from pipeline.data_types_tree import *
 from pipeline.workflow_actions import *
 from pipeline.pipeline import *
+from pipeline.identical_list import *
 #from .pomfce import *
 import pipeline.action_types as action
 import os
@@ -15,11 +16,6 @@ sys.path.insert(1, __lib_dir__)
 
 from geomop_analysis import YamlSupport
 
-
-ys = YamlSupport()
-err = ys.parse("d:\\test\\flow_gmsh_par.yaml")
-r = ys.get_regions()
-
-
+d={"1":"x", "1":"y"}
 
 print(9)

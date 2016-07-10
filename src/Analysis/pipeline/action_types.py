@@ -302,14 +302,23 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def _get_hash(self):
         """return unique hash that describe this action"""
         return self._hash.hexdigest()
+
+    def _get_hashes_list(self):
+        """return list of store_id->hash this and nested actions"""
+        return {self._store_id: self._hash.hexdigest()}
         
     def _process_base_hash(self):
         """return hash compute from name and inputs"""
+        #self._hash = hashlib.sha512()
         self._hash.update(bytes(self.__class__.__name__, "utf-8"))
         for input in self._inputs:
             self._hash.update(bytes(input._get_hash(), "utf-8"))
         return self._hash
-        
+
+    def _set_restore_id(self, identical_list):
+        """set restore_id from identical_list"""
+        self._restore_id = identical_list.get_old_iname(self._store_id)
+
     def _store(self, path):
         """
         make all needed serialization processess and
@@ -550,6 +559,10 @@ class Bridge(BaseActionType):
         """return unique hash that describe this action"""
         return self._link._get_hash()
         
+    def _get_hashes_list(self):
+        """return list of store_id->hash this and nested actions"""
+        return self._link._get_hashes_list()
+
     def check_action(self, actions):
         """return True if bridge direct to one of set actions"""
         if not self.action_checkable:
@@ -675,6 +688,18 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         lines.extend(self._variables['WrappedAction']._get_settings_script())
         lines.extend(super(WrapperActionType, self)._get_settings_script())
         return lines
+
+    def _get_hashes_list(self):
+        """return list of store_id->hash this and nested actions"""
+        ret = super()._get_hashes_list()
+        ret.update(self._variables['WrappedAction']._get_hashes_list())
+        return ret
+
+    def _set_restore_id(self, identical_list):
+        """set restore_id from identical_list"""
+        super()._set_restore_id(identical_list)
+        self._variables['WrappedAction']._set_restore_id(identical_list)
+
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -861,3 +886,16 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             return ActionRunningState.error,  \
                 ["No independent action in workflow"]
         return ActionRunningState.wait, None
+
+    def _get_hashes_list(self):
+        """return list of store_id->hash this and nested actions"""
+        ret = super()._get_hashes_list()
+        for action in self._get_child_list():
+            ret.update(action._get_hashes_list())
+        return ret
+
+    def _set_restore_id(self, identical_list):
+        """set restore_id from identical_list"""
+        super()._set_restore_id(identical_list)
+        for action in self._get_child_list():
+            action._set_restore_id(identical_list)
