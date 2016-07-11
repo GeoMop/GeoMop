@@ -4,7 +4,7 @@
 
 import os
 
-from geomop_util import Serializable
+from geomop_util import Serializable, Parameter, File
 import config
 import flow_util
 
@@ -17,25 +17,6 @@ MULTIJOBS_DIR = 'mj'
 
 class InvalidAnalysis(Exception):
     pass
-
-
-class Parameter:
-    """A parameter in a config file."""
-    def __init__(self, name=None, type=None, value=None):
-        self.name = name
-        self.type = type
-        self.value = value
-
-
-class File:
-    """Represents a file entry in a config file."""
-    def __init__(self, file_path, params=None, selected=False):
-        self.file_path = file_path
-        self.selected = selected
-        if params is None:
-            self.params = []
-        else:
-            self.params = params
 
 
 class Analysis:
@@ -131,6 +112,23 @@ class Analysis:
                             analysis.additional_files.append(current_additional_files[file_path])
                         else:
                             analysis.additional_files.append(File(file_path))
+
+        return analysis
+
+    @staticmethod
+    def open_from_mj(mj_dir, analysis_name='N/A'):
+        """Retrieve analysis from multijob directory."""
+        analysis = config.get_config_file(ANALYSIS_MAIN_FILE_NAME,
+                                          directory=mj_dir,
+                                          extension=ANALYSIS_MAIN_FILE_EXT,
+                                          cls=Analysis)
+        if analysis is None:
+            raise InvalidAnalysis("Current analysis is invalid.")
+
+        analysis.analysis_dir = mj_dir
+        analysis.filename = os.path.join(mj_dir, ANALYSIS_MAIN_FILE)
+        analysis.workspace = None
+        analysis.name = analysis_name
 
         return analysis
 
@@ -232,6 +230,8 @@ class Analysis:
 
         # get all files used by analyses
         files = self.selected_file_paths
+        # add analysis configuration file
+        files.append(ANALYSIS_MAIN_FILE)
 
         # get parameters
         params = {param.name: param.value for param in self.params if param.value}

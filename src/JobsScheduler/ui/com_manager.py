@@ -112,59 +112,14 @@ class ComManager:
         for  key in  self.start_jobs:
             if not key in self._workers:
                 mj = self._data_app.multijobs[key]
-                analysis = self._reload_analysis(mj)
                 conf_builder = ConfigBuilder(self._data_app)
-                app_conf = conf_builder.build(key, analysis)
+                app_conf = conf_builder.build(key)
                 com = Communicator(app_conf)
                 worker = ComWorker(key, com)
                 self._workers[key] = worker
                 worker.start_mj()
                 return True
         return False
-        
-    def _reload_analysis(self, data):
-        """reload analysis"""
-        # sync mj analyses + files
-        analysis = None
-        try:
-            analysis = Analysis.open(self._data_app.config.workspace, self._data_app.config.analysis)
-        except InvalidAnalysis as e:
-            ComWorker.get_loger().error("Analysis not found: " + str(e))
-        if analysis is not None:
-            mj_name = data.preset.name
-            mj_dir =inst.Installation.get_config_dir_static(mj_name)
-            analysis_dir = Analysis.current.analysis_dir
-            
-            # get all files used by analyses
-            files = analysis.selected_file_paths
-
-            # get parameters
-            params = {param.name: param.value for param in analysis.params}
-
-            # copy the entire folder
-            shutil.rmtree(mj_dir, ignore_errors=True)
-            try:
-                shutil.copytree(analysis_dir, mj_dir)
-                # remove result dir
-                shutil.rmtree(os.path.join(mj_dir, "analysis_results"),
-                    ignore_errors=True)
-            # Directories are the same
-            except shutil.Error as e:
-                ComWorker.get_loger().error("Failed to copy analysis dir: " + str(e))
-            # Any error saying that the directory doesn't exist
-            except OSError as e:
-                ComWorker.get_loger().error("Failed to copy analysis dir: " + str(e))
-
-            # fill in parameters and copy the files
-            for file in set(files):
-                src = os.path.join(analysis_dir, file)
-                dst = os.path.join(mj_dir, file)
-                # create directory structure if not present
-                dst_dir = os.path.dirname(dst)
-                if not os.path.isdir(dst_dir):
-                    os.makedirs(dst_dir)
-                flow_util.analysis.replace_params_in_file(src, dst, params)
-        return analysis
 
     def _resume_first(self):
         """resume first job in queue and return True else return False"""
