@@ -42,6 +42,7 @@ except Exception as error:
     raise error
 
 comunicator = Communicator(com_conf, mj_id)
+logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 
 if __name__ != "delegator":
     # no doc generation

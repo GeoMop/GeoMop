@@ -140,7 +140,7 @@ except Exception as error:
     raise error
 
 comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before, remote_action_function_after)
-
+logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 if __name__ != "remote":
     # no doc generation
     try:

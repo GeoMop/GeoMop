@@ -98,7 +98,6 @@ except Exception as error:
     logger.error(error)
     raise error
 
-
 # TODO move config loading elsewhere
 def load_configuration(filepath):
     """Load job configuration from file."""
@@ -116,6 +115,7 @@ job_configuration = load_configuration(
 
 # Use com_conf instead of ccom
 comunicator = Communicator(com_conf, mj_id,  job_action_function_before, job_action_function_after)
+logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 logger.info("Start")
 # test if config was read
 directory = os.path.split(directory)[0]

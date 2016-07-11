@@ -102,6 +102,7 @@ jobs_to_exec = list(jobs.keys())
 count = len(jobs)
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
+logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 logger.debug("Set counter to {0} jobs".format(str(count)))
 comunicator.set_start_jobs_count(count, 0)
 
