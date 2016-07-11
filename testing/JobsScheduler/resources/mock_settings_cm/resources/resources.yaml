@@ -1,0 +1,9 @@
+hydra: {j_env: hydra, j_execution_type: REMOTE, j_pbs_preset: hydra, j_remote_execution_type: PBS,
+  j_ssh_preset: hydra, mj_env: hydra, mj_execution_type: DELEGATOR, mj_pbs_preset: hydra,
+  mj_remote_execution_type: PBS, mj_ssh_preset: hydra, name: hydra}
+local: {j_env: local, j_execution_type: EXEC, j_pbs_preset: null, j_remote_execution_type: null,
+  j_ssh_preset: null, mj_env: local, mj_execution_type: EXEC, mj_pbs_preset: null,
+  mj_remote_execution_type: null, mj_ssh_preset: null, name: local}
+local_ssh: {j_env: local, j_execution_type: EXEC, j_pbs_preset: null, j_remote_execution_type: null,
+  j_ssh_preset: null, mj_env: local, mj_execution_type: DELEGATOR, mj_pbs_preset: null,
+  mj_remote_execution_type: EXEC, mj_ssh_preset: local_ssh, name: local_ssh}

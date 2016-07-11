@@ -1,0 +1,7 @@
+test2_local_2:
+  error: ''
+  preset: {analysis: test2, log_level: 10, name: local_2, number_of_processes: 1,
+    pbs_preset: null, resource_preset: local}
+  state: {analysis: test2, estimated_jobs: 0, finished_jobs: 0, insert_time: 1468224225.5144875,
+    known_jobs: 0, name: local_2, queued_time: null, run_interval: 0, running_jobs: 0,
+    start_time: null, status: 5, update_time: null}

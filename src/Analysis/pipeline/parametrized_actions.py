@@ -134,6 +134,8 @@ class Flow123dAction(ParametrizedActionType):
         """
         make all needed deserialization processess and
         return text data for storing
+        
+        if result file  in not pressented, throw exception
         """
         # TODO instead next commented line restore files names and make output from it
         # self._output = eval(res)
