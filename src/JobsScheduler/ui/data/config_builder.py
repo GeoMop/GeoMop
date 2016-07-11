@@ -19,6 +19,7 @@ from version import Version
 from data import Users
 from ui.dialogs import SshPasswordDialog
 from config import __config_dir__
+from geomop_analysis import Analysis, InvalidAnalysis
 
 JOB_NAME_LABEL = "flow"
 COPY_EX_LIBS = ['pyssh']
@@ -47,7 +48,7 @@ class ConfigBuilder:
         id new configuration is reloaded.
         """
 
-    def build(self, key, analysis):
+    def build(self, key):
         """
         Build json config files into the ./jobs/mj_name/mj_conf
         :param key: Identification of preset.
@@ -218,6 +219,9 @@ class ConfigBuilder:
             mj.conf.direct_communication = True
             remote.conf.direct_communication = True
 
+        # set installation paths
+        Installation.paths_config = app.conf.paths_config
+
         # save to files
         with open(app.get_path(), "w") as app_file:
             CommunicatorConfigService.save_file(
@@ -238,19 +242,23 @@ class ConfigBuilder:
                 job_file, job.get_conf())
 
         # build job configuration
-        if analysis is not None:
-            self._build_jobs_config(mj_name, analysis)
+        self._build_jobs_config(mj_name)
 
         # return app_config, it is always entry point for next operations
         return app.get_conf()
 
-    def _build_jobs_config(self, mj_name, analysis):
+    def _build_jobs_config(self, mj_name):
         """Create jobs and associate them with individual configuration files."""
         jobs = {}
         mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
         job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name),
-                                       __ins_files__['job_configurations'])
+                                        __ins_files__['job_configurations'])
         job_counter = 1
+
+        try:
+            analysis = Analysis.open_from_mj(mj_dir)
+        except InvalidAnalysis:
+            analysis = None
 
         def create_job(configuration_file):
             """Generate job name and create its configuration."""
@@ -260,19 +268,11 @@ class ConfigBuilder:
             jobs[name] = data
             job_counter += 1
 
-        # recursively find all configuration files (ending with .yaml)
-        files = []
         if analysis is not None:
-            files = analysis.selected_file_paths
-        for root, directories, filenames in os.walk(mj_dir):
-            for filename in filenames:
-                if filename.endswith('.yaml'):
-                    if analysis is None or not filename in files:
-                        continue
-                    abs_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(abs_path, start=mj_dir)
+            for file_path in analysis.selected_file_paths:
+                if file_path.endswith('.yaml'):
                     # windows path workaround
-                    rel_path_unix = '/'.join(rel_path.split(os.path.sep))
+                    rel_path_unix = '/'.join(file_path.split(os.path.sep))
                     create_job(rel_path_unix)
 
         # save job configurations to json

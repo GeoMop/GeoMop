@@ -116,6 +116,23 @@ class Analysis:
         return analysis
 
     @staticmethod
+    def open_from_mj(mj_dir, analysis_name='N/A'):
+        """Retrieve analysis from multijob directory."""
+        analysis = config.get_config_file(ANALYSIS_MAIN_FILE_NAME,
+                                          directory=mj_dir,
+                                          extension=ANALYSIS_MAIN_FILE_EXT,
+                                          cls=Analysis)
+        if analysis is None:
+            raise InvalidAnalysis("Current analysis is invalid.")
+
+        analysis.analysis_dir = mj_dir
+        analysis.filename = os.path.join(mj_dir, ANALYSIS_MAIN_FILE)
+        analysis.workspace = None
+        analysis.name = analysis_name
+
+        return analysis
+
+    @staticmethod
     def exists(workspace, analysis_name):
         """Determine whether project exists in a workspace."""
         if not workspace or not analysis_name:
@@ -213,6 +230,8 @@ class Analysis:
 
         # get all files used by analyses
         files = self.selected_file_paths
+        # add analysis configuration file
+        files.append(ANALYSIS_MAIN_FILE)
 
         # get parameters
         params = {param.name: param.value for param in self.params if param.value}
