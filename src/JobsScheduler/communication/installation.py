@@ -7,6 +7,7 @@ import copy
 import subprocess
 import uuid
 import time
+from data.communicator_conf import  PathsConfig
 
 from locks import Lock, LockFileError
 
@@ -79,6 +80,15 @@ class Installation:
         cls.libs_env = libs_env
         cls.paths_config = paths_config
         cls.__root_dir__ = cls.paths_config.app_dir
+        
+    @classmethod
+    def set_init_paths(cls, home, workspace):
+        """Set install specific settings, call it firs, before other installation function"""
+        if cls.paths_config is None:
+            cls.paths_config = PathsConfig()
+        cls.paths_config.home_dir = home
+        cls.paths_config.work_dir = workspace
+
         
     def set_version_params(self, app_version, data_version):
         """Set install specific settings"""

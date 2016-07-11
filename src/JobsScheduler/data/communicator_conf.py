@@ -255,7 +255,7 @@ class CommunicatorConfigService(object):
         data = json.load(json_file)
         paths_config = PathsConfig()
         if data["paths_config"]:
-            com.paths_config.__dict__ = data["paths_config"]
+            paths_config.__dict__ = data["paths_config"]
         data["paths_config"] = paths_config   
         if data["ssh"]:
             ssh = SshConfig()

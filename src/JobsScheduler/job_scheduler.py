@@ -28,6 +28,7 @@ from ui.com_manager import ComManager
 from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
 import icon
+from  communication.installation import Installation
 
 import config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, 'JobScheduler')
@@ -65,6 +66,7 @@ class JobsScheduler(object):
 
         # load data container
         self._data = DataContainer()
+        Installation.set_init_paths(CONFIG_DIR, self._data.config.workspace)
 
         # setup com manager
         self._com_manager = ComManager(self._data)
