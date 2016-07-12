@@ -51,6 +51,7 @@ class MultiJobDialog(AFormDialog):
         self.ui.setup_ui(self)
 
         self.config = config
+        self._from_mj = None
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
@@ -106,6 +107,7 @@ class MultiJobDialog(AFormDialog):
         preset.log_level = self.ui.logLevelComboBox.currentData()
         preset.number_of_processes = self.ui.numberOfProcessesSpinBox.value()
         preset.analysis = self.ui.analysisComboBox.currentText()
+        preset.from_mj = self._from_mj
         return {
             "key": key,
             "preset": preset
@@ -118,6 +120,7 @@ class MultiJobDialog(AFormDialog):
         if data:
             key = data["key"]
             preset = data["preset"]
+            self._from_mj = preset.from_mj
             self.ui.idLineEdit.setText(key)
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.resourceComboBox.setCurrentIndex(
@@ -128,6 +131,8 @@ class MultiJobDialog(AFormDialog):
                 preset.number_of_processes)
             self.ui.analysisComboBox.setCurrentIndex(
                 self.ui.analysisComboBox.findData(preset.analysis))
+            if self._from_mj is not None:
+                self.ui.analysisComboBox.setDisabled(True)
         else:
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()

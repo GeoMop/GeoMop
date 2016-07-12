@@ -123,6 +123,8 @@ class MultiJobPreset(APreset):
         """Number of processes used by MultiJob"""
         self.analysis = kw_or_def('analysis')
         """Name of the analysis used in this multijob"""
+        self.from_mj = kw_or_def('from_mj', None)
+        """Name of the source multijob (if reused)."""
 
     def __repr__(self):
         """
