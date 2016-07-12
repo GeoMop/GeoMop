@@ -10,10 +10,6 @@ import communication.installation as inst
 from ui.data.config_builder import ConfigBuilder
 from ui.com_worker import ComWorker
 from data.states import TaskStatus
-from geomop_analysis import Analysis, InvalidAnalysis
-import shutil
-import os
-import flow_util
 
 
 class ComManager:

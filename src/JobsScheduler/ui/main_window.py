@@ -105,7 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
         self.ui.menuBar.multiJob.actionReuseMultiJob.triggered.connect(
-            self._handle_copy_multijob_action)
+            self._handle_reuse_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
@@ -215,6 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     if job.status == TaskStatus.error:
                         mj.state.status = TaskStatus.error
                         mj.error = "Not all jobs finished successfully."
+                        self.multijobs_changed.emit(self.data.multijobs)
                         break
 
         overview_change_jobs = set(self.com_manager.results_change_jobs)
@@ -233,7 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                       MULTIJOBS_DIR, mj.preset.name)
                 shutil.rmtree(mj_dir)
                 self.data.multijobs.pop(mj_id)  # delete from gui
-                self.multijobs_changed.emit(self.data.multijobs)
             if error is not None:
                 mj.state.status = TaskStatus.error
                 mj.error = error
@@ -296,12 +296,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_add_multijob_action(self):
         self.mj_dlg.exec_add()
 
-    def _handle_copy_multijob_action(self):
+    def _handle_reuse_multijob_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             preset = copy.deepcopy(self.data.multijobs[key].get_preset())
-            preset.name = self.mj_dlg.\
-                PURPOSE_COPY_PREFIX + "_" + preset.name
+            preset.from_mj = key
             data = {
                 "key": key,
                 "preset": preset
@@ -309,27 +308,38 @@ class MainWindow(QtWidgets.QMainWindow):
             self.mj_dlg.exec_copy(data)
 
     def _handle_delete_multijob_action(self):
-        key = self.ui.overviewWidget.currentItem().text(0)
-        self.com_manager.delete_jobs.append(key)
-        self._delete_mj_local.append(key)
+        if self.data.multijobs:
+            key = self.ui.overviewWidget.currentItem().text(0)
+            self.com_manager.delete_jobs.append(key)
+            self._delete_mj_local.append(key)
 
     def _handle_delete_remote_action(self):
-        key = self.ui.overviewWidget.currentItem().text(0)
-        self.com_manager.delete_jobs.append(key)
+        if self.data.multijobs:
+            key = self.ui.overviewWidget.currentItem().text(0)
+            self.com_manager.delete_jobs.append(key)
 
     def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
         self.data.multijobs[mj.id] = mj
-        if purpose == self.mj_dlg.PURPOSE_ADD:
+        if purpose in (self.mj_dlg.PURPOSE_ADD, self.mj_dlg.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
             analysis = Analysis.open(self.data.config.workspace, mj.preset.analysis)
             analysis.mj_counter += 1
             analysis.save()
-            # Create multijob folder and copy analysis into it
-            try:
-                analysis.copy_into_mj_folder(mj)
-            except Exception as e:
-                logger.error("Failed to copy analysis into mj folder: " + str(e))
+            if purpose == self.mj_dlg.PURPOSE_ADD:
+                # Create multijob folder and copy analysis into it
+                try:
+                    analysis.copy_into_mj_folder(mj)
+                except Exception as e:
+                    logger.error("Failed to copy analysis into mj folder: " + str(e))
+            elif purpose == self.mj_dlg.PURPOSE_COPY:
+                src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
+                src_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                                       MULTIJOBS_DIR, src_mj_name)
+                dst_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                                       MULTIJOBS_DIR, mj.preset.name)
+                shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
+                    'res', 'log', 'status', 'mj_conf', '*.log'))
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_run_multijob_action(self):
