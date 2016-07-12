@@ -65,6 +65,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         # creating actions
         self.actionAddMultiJob = action.ActionAddMultiJob(self)
         self.actionReuseMultiJob = action.ActionReuseMultiJob(self)
+        self.actionDeleteRemote = action.ActionDeleteRemote(self)
         self.actionDeleteMultiJob = action.ActionDeleteMultiJob(self)
 
         # control actions
@@ -74,6 +75,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         # add actions to menu
         self.addAction(self.actionAddMultiJob)
         self.addAction(self.actionReuseMultiJob)
+        self.addAction(self.actionDeleteRemote)
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionRunMultiJob)

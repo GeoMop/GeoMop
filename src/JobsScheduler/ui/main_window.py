@@ -9,6 +9,7 @@ import logging
 import os
 from shutil import copyfile
 import time
+import shutil
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -19,7 +20,6 @@ from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from communication import installation
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
-from ui.data.preset_data import Id
 from ui.dialogs import FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -31,10 +31,14 @@ from ui.menus.main_menu_bar import MainMenuBar
 from ui.panels.overview import Overview
 from ui.panels.tabs import Tabs
 
-from geomop_analysis import Analysis
+from geomop_analysis import Analysis, MULTIJOBS_DIR
+from config import __config_dir__
 
 
 logger = logging.getLogger("UiTrace")
+
+
+LOG_PATH = os.path.join(__config_dir__, 'log', 'app-centrall.log')
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -75,6 +79,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cm_poll_timer.timeout.connect(self.poll_com_manager)
         self.cm_poll_timer.start(self.cm_poll_interval)
 
+        self._delete_mj_local = []
+
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
                                      resources=self.data.resource_presets,
@@ -102,6 +108,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_copy_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
+        self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
+            self._handle_delete_remote_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.multijobs.save)
@@ -196,8 +204,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
-            # check if all jobs finished successfully for a finished multijob
             if mj.state.status == TaskStatus.finished:
+                # copy app central log into mj
+                mj_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                                      MULTIJOBS_DIR, mj.preset.name)
+                shutil.copy(LOG_PATH, mj_dir)
+
+                # check if all jobs finished successfully for a finished multijob
                 for job in mj.get_jobs():
                     if job.status == TaskStatus.error:
                         mj.state.status = TaskStatus.error
@@ -213,13 +226,27 @@ class MainWindow(QtWidgets.QMainWindow):
                 mj = self.data.multijobs[mj_id]
                 self.ui.tabWidget.reload_view(mj)
 
+        for mj_id, error in self.com_manager.jobs_deleted.items():
+            mj = self.data.multijobs[mj_id]
+            if error is None and mj_id in self._delete_mj_local:
+                mj_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                                      MULTIJOBS_DIR, mj.preset.name)
+                shutil.rmtree(mj_dir)
+                self.data.multijobs.pop(mj_id)  # delete from gui
+                self.multijobs_changed.emit(self.data.multijobs)
+            if error is not None:
+                mj.state.status = TaskStatus.error
+                mj.error = error
+
         self.com_manager.state_change_jobs = []
         self.com_manager.results_change_jobs = []
         self.com_manager.jobs_change_jobs = []
         self.com_manager.logs_change_jobs = []
+        self.com_manager.jobs_deleted = {}
 
         # close application
-        if self.closing and not self.com_manager.run_jobs and not self.com_manager.start_jobs:
+        if self.closing and not self.com_manager.run_jobs and not self.com_manager.start_jobs \
+                and not self.com_manager.delete_jobs:
             self.close()
 
     def load_settings(self):
@@ -282,10 +309,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.mj_dlg.exec_copy(data)
 
     def _handle_delete_multijob_action(self):
-        if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            self.data.multijobs.pop(key)  # delete by key
-            self.multijobs_changed.emit(self.data.multijobs)
+        key = self.ui.overviewWidget.currentItem().text(0)
+        self.com_manager.delete_jobs.append(key)
+        self._delete_mj_local.append(key)
+
+    def _handle_delete_remote_action(self):
+        key = self.ui.overviewWidget.currentItem().text(0)
+        self.com_manager.delete_jobs.append(key)
 
     def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
