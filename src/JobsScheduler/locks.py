@@ -83,7 +83,7 @@ class Lock():
             installed_ver = self._read_version("install.version") 
 
             source = True
-            if not os.path.isdir(os.path.join(self._js_path)):
+            if not os.path.isdir(os.path.join(self._js_path, "ui")):
                 source = False
         
             if (installed_ver is None or installed_ver !=  install_ver) and \

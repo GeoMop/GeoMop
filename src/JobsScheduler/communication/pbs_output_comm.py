@@ -123,7 +123,7 @@ class PbsOutputComm(ExecOutputComm):
         if error is not None:
             logger.warning("Error output contains error:" + error)
         if not self.config.with_socket:
-            self.installation.unlock_application()
+            self.installation.unlock_application(self.installation.mj_name, self.installation.an_name)
         
     def send(self,  mess):
         """send json message"""        

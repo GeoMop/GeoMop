@@ -371,7 +371,7 @@ class Communicator():
         if self.input is not None:
             self.input.disconnect()
             if isinstance(self.input, StdInputComm):
-                Installation.unlock_application(self.mj_name)
+                Installation.unlock_application(self.mj_name, self.an_name)
         logger.info("Connection to application " + self.communicator_name + " is stopped")
     
     def install(self, unlock=True):
@@ -545,9 +545,9 @@ class Communicator():
         self.output.unlock_installation()
     
     @staticmethod    
-    def unlock_application(mj_name):
+    def unlock_application(mj_name, an_name):
         """Unset application locks"""
-        Installation.unlock_application(mj_name)
+        Installation.unlock_application(mj_name, an_name)
     
     def save_connection(self, host, port, id=None):
         """Save connection for possible termination"""

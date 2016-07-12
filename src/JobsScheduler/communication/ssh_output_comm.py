@@ -46,7 +46,8 @@ if sys.platform == "win32":
                     ins_app, ins_data = self.installation.lock_installation_over_ssh(self.ssh, self.ssh, True)
                     if ins_app:
                         self.installation.copy_install_files(self.ssh, self.ssh)
-                        self.exec_("remove_pyc", self.installation.copy_path, None)
+                        # self.exec_("remove_pyc", self.installation.copy_path, None)
+                        # TODO: opravit
                         self.installation.lock_installation_over_ssh(self.ssh, self.ssh, False)
                     if ins_data:
                         self.installation.copy_data_files(self.ssh, self.ssh)
@@ -170,7 +171,8 @@ else:
                     ins_app, ins_data = self.installation.lock_installation_over_ssh(sftp, self.ssh, True)
                     if ins_app:
                         self.installation.copy_install_files(sftp, self.ssh)
-                        self.exec_("remove_pyc", self.installation.copy_path, None)
+                        # self.exec_("remove_pyc", self.installation.copy_path, None)
+                        # TODO: opravit
                         self.installation.lock_installation_over_ssh(sftp, self.ssh, False)
                     if ins_data:
                         self.installation.copy_data_files(sftp, self.ssh)

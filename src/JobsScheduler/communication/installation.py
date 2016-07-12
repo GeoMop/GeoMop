@@ -211,14 +211,14 @@ class Installation:
         return True
     
     @classmethod  
-    def unlock_application(cls, mj_name):
+    def unlock_application(cls, mj_name, an_name):
         """Unset application locks"""
         home = None
         if cls.paths_config is not None and \
             cls.paths_config.home_dir is not None:
             home = cls.paths_config.home_dir
 
-        lock = Lock(self.an_name + "_" + mj_name, __install_dir__, home)
+        lock = Lock(an_name + "_" + mj_name, __install_dir__, home)
         try:
             if not lock.unlock_app():
                 return False
@@ -333,7 +333,11 @@ class Installation:
             res = conn.cd(self.copy_path)
             if len(res)>0:
                 logger.warning("Sftp message (cd root): " + res)
-            mjs_dir = __jobs_dir__  + '/' + self.mj_name
+            mjs_dir = __jobs_dir__  + '/' + self.an_name
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + __an_subdir__
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + self.mj_name
             self._create_dir(conn, mjs_dir, False)
             self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
             conf_path = os.path.join(__install_dir__, mjs_dir)
@@ -354,10 +358,14 @@ class Installation:
                 logger.warning("Sftp message (cd root): " + str(conn.before,
                                                                  'utf-8').strip()) 
                                                                 
-            mjs_dir = __jobs_dir__  + '/' + self.mj_name
+            mjs_dir = __jobs_dir__  + '/' + self.an_name
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + __an_subdir__
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + self.mj_name                                                                
             self._create_dir(conn, mjs_dir, False)
             self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
-            conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
+            conf_path = self.get_config_dir()
             if os.path.isdir(conf_path):
                 mj_path = os.path.join(__install_dir__, mjs_dir)
                 conn.sendline('cd ' + mjs_dir)
@@ -368,8 +376,8 @@ class Installation:
                                     str(conn.before, 'utf-8').strip())
                 conn.sendline('lcd ' + mj_path)
                 conn.expect('.*lcd ' + mj_path)
-                conn.sendline('put -r ' + __conf_dir__)
-                conn.expect('.*put -r ' + __conf_dir__ + "\r\n")
+                conn.sendline('put -r ' + conf_path)
+                conn.expect('.*put -r ' + conf_path + "\r\n")
                 end=0
                 while end==0:
                     #wait 3s after last message
@@ -383,7 +391,11 @@ class Installation:
         """Copy installation files"""
         if sys.platform == "win32":
             self._create_dir(conn, __jobs_dir__)
-            mjs_dir = __jobs_dir__  + '/' + self.mj_name
+            mjs_dir = __jobs_dir__  + '/' + self.an_name
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + __an_subdir__
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + self.mj_name
             self._create_dir(conn, mjs_dir)
             self._create_dir(conn, mjs_dir + '/' + __result_dir__)
             conn.set_sftp_paths( __install_dir__, self.copy_path)
@@ -398,7 +410,11 @@ class Installation:
         else:
             import pexpect            
             self._create_dir(conn, __jobs_dir__)
-            mjs_dir = __jobs_dir__  + '/' + self.mj_name
+            mjs_dir = __jobs_dir__  + '/' + self.an_name
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + __an_subdir__
+            self._create_dir(conn, mjs_dir)
+            mjs_dir += '/' + self.mj_name
             self._create_dir(conn, mjs_dir)            
             self._create_dir(conn, mjs_dir + '/' + __result_dir__)
             conn.sendline('cd ' + self.copy_path)
