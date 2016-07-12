@@ -185,7 +185,7 @@ class Installation:
         home = None
         if self.paths_config is not None:
             home = self.paths_config.home_dir
-        lock = Lock(self.mj_name, __install_dir__, home)
+        lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
         try:
             if lock.lock_app(self.app_version, self.data_version, 
                 self.get_result_dir(), __conf_dir__)<1:
@@ -201,7 +201,7 @@ class Installation:
         if self.paths_config is not None:
             home = self.paths_config.home_dir
 
-        lock = Lock(self.mj_name, __install_dir__, home)
+        lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
         try:
             if not lock.unlock_install():
                 return False
@@ -218,7 +218,7 @@ class Installation:
             cls.paths_config.home_dir is not None:
             home = cls.paths_config.home_dir
 
-        lock = Lock(mj_name, __install_dir__, home)
+        lock = Lock(self.an_name + "_" + mj_name, __install_dir__, home)
         try:
             if not lock.unlock_app():
                 return False
@@ -273,12 +273,12 @@ class Installation:
         
         :return: is app need install, is data need install
         """
-        mj_dir = self.copy_path + "/" + __jobs_dir__ + "/" + self.mj_name
-        res_dir = mj_dir + "/" + __result_dir__
+        res_dir = self.copy_path  + '/' + __jobs_dir__ +  '/' + self.an_name \
+            +  '/' + __an_subdir__ + '/' + self.mj_name + '/' + __result_dir__
         
         command = self.python_env.python_exec + " "
         command += '"' + self.copy_path + '/' + __lock_file__ + '" '
-        command += self.mj_name + " "
+        command += self.an_name + "_" + self.mj_name + " "
         command += '"' + self.copy_path + '" '
         command += self.app_version + " "
         command += self.data_version + " "
@@ -663,7 +663,7 @@ class Installation:
             path = os.path.join( path, __an_subdir__)            
             if not os.path.isdir(path):
                 os.makedirs(path)
-            path = os.path.join( path, an_name)
+            path = os.path.join( path, mj_name)
             if not os.path.isdir(path):
                 os.makedirs(path)
             path = os.path.join(path, __result_dir__)
@@ -705,7 +705,7 @@ class Installation:
             path = os.path.join( path, __an_subdir__)            
             if not os.path.isdir(path):
                 os.makedirs(path)
-            path = os.path.join( path, an_name)
+            path = os.path.join( path, mj_name)
             if not os.path.isdir(path):
                 os.makedirs(path)
             path = os.path.join(path,__status_dir__ )

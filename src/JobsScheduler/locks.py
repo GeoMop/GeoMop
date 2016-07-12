@@ -14,12 +14,12 @@ class Lock():
           possibility for save lock change during next actions processing.
           file: app.lock
         - Multi job application lock for running multiJob instance
-          file: %mj_name%_app.lock
+          file: %lock_name%_app.lock
         - Installation lock for save installing set version of installation
           files: install.lock, __version_dir__/install.version
         - Data version for save copiing and deleting data accoding set
           version (jobs session). For opperation is used app.lock
-          file: __version_dir__/%mj_name%_data.version
+          file: __version_dir__/%lock_name%_data.version
         - Library lock for save installing set library version
           files: lib.lock
     """
@@ -27,9 +27,9 @@ class Lock():
     __app__ = 2
     __nothing__ = 0
     
-    def __init__(self, mj_name, path, home_dir=None):
+    def __init__(self, lock_name, path, home_dir=None):
         """init"""
-        self._mj_name = mj_name
+        self._lock_name = lock_name
         """Multijob name for unique jobs identification"""
         self._js_path = path
         if not os.path.isdir(path):
@@ -48,7 +48,7 @@ class Lock():
         
     def lock_app(self,  install_ver, data_ver, res_dir, conf_subdir):
         """
-        Check if application with mj_name is not runnig
+        Check if application with lock_name is not runnig
         and is installed right version of installation.
         
           - If other app with same name is running throw exception
@@ -67,17 +67,17 @@ class Lock():
         """
         res = Lock.__nothing__
         if self._lock_file("app.lock"):
-            if not self._lock_file(self._mj_name + "_app.lock", 0):
+            if not self._lock_file(self._lock_name + "_app.lock", 0):
                 self._unlock_file("app.lock")
-                raise LockFileError("MuliJob application (" + self._mj_name + ") is running.")
+                raise LockFileError("MuliJob application (" + self._lock_name + ") is running.")
             # first instance locked
             if not self._lock_file("install.lock", 0):
                 self._unlock_file("app.lock")
                 if not self._lock_file("install.lock", 300):
-                    self._unlock_file(self._mj_name + "_app.lock")
-                    raise LockFileError(" application (" + self._mj_name + ") is running.")                
+                    self._unlock_file(self._lock_name + "_app.lock")
+                    raise LockFileError(" application (" + self._lock_name + ") is running.")                
                 if not self._lock_file("app.lock"):
-                    self._unlock_file(self._mj_name + "_app.lock")
+                    self._unlock_file(self._lock_name + "_app.lock")
                     self._unlock_file("install.lock")
                     raise LockFileError("Global lock can't be set.")
             installed_ver = self._read_version("install.version") 
@@ -88,8 +88,8 @@ class Lock():
         
             if (installed_ver is None or installed_ver !=  install_ver) and \
                 not source :
-                if self._is_mj_lock_set(self._mj_name + "_app.lock"):                    
-                    self._unlock_file(self._mj_name + "_app.lock")
+                if self._is_mj_lock_set(self._lock_name + "_app.lock"):                    
+                    self._unlock_file(self._lock_name + "_app.lock")
                     self._unlock_file("install.lock")
                     self._unlock_file("app.lock")                    
                     raise LockFileError("New version can't be installed, old application is running.")
@@ -108,10 +108,10 @@ class Lock():
                 self._unlock_file("install.lock")
                
             # installation ready
-            dataed_ver = self._read_version(self._mj_name + "_data.version")
+            dataed_ver = self._read_version(self._lock_name + "_data.version")
             if dataed_ver is None or dataed_ver != data_ver:
                 job_dir = os.path.split(res_dir)[0]
-                if os.path.isdir(job_dir):
+                if not source and os.path.isdir(job_dir):
                     names = os.listdir(job_dir)
                     for name in names:
                         path = os.path.join(job_dir,name)
@@ -120,7 +120,7 @@ class Lock():
                                 shutil.rmtree(path, ignore_errors=True) 
                         if os.path.isfile(path) and name != "locks.py":
                             os.remove(path)
-                self._write_version(self._mj_name + "_data.version", data_ver)   
+                self._write_version(self._lock_name + "_data.version", data_ver)   
                 res |= Lock.__data__
             # data_ready            
         else:
@@ -129,9 +129,9 @@ class Lock():
         return res
             
     def unlock_app(self):
-        """Application with mj_name is stopping"""
+        """Application with lock_name is stopping"""
         self._lock_file("app.lock")
-        self._unlock_file(self._mj_name + "_app.lock")
+        self._unlock_file(self._lock_name + "_app.lock")
         self._unlock_file("app.lock")                           
         
     def unlock_install(self):
@@ -201,12 +201,12 @@ class Lock():
         except:
             pass
 
-    def _is_mj_lock_set(self, mj_name):
+    def _is_mj_lock_set(self, lock_name):
         """return True if any multijob lock difrent from actual is set"""
         names = os.listdir(self._lock_dir)
         for name in names:
             if len(name)>9 and name[-9:] == "_app.lock" and \
-                name != mj_name:
+                name != lock_name:
                 return True
         return False
         
@@ -245,12 +245,14 @@ class LockFileError(Exception):
 if __name__ == "__main__":
     """
     calling:
-        locks.py mj_name path install_ver data_ver res_path
-            - mj_name - multijob name
+        locks.py lock_name path install_ver data_ver res_path conf_path locking
+            - lock_name - multijob name
             - path - path to installation directory
             - install_ver - installation version 
             - data_ver - data version (id of started session) 
             - res_path - path to result directory
+            - conf_path - path to confih directory
+            - locking - Y/N do locking
     """
     import sys
     
@@ -260,7 +262,7 @@ if __name__ == "__main__":
     
     if len(sys.argv) != 8:
         raise Exception('Lock application seven parameters require')
-    mj_name = sys.argv[1]
+    lock_name = sys.argv[1]
     path = sys.argv[2]
     install_ver = sys.argv[3]
     data_ver = sys.argv[4]
@@ -268,7 +270,7 @@ if __name__ == "__main__":
     conf_path = sys.argv[6]
     locking = sys.argv[7]
         
-    lock = Lock(mj_name, path)
+    lock = Lock(lock_name, path)
     if locking == "N":
         lock.unlock_install()
         print("--0--")
