@@ -12,8 +12,8 @@ logger = logging.getLogger("Remote")
 class PbsOutputComm(ExecOutputComm):
     """Communication over PBS"""
     
-    def __init__(self, mj_name, port, pbs_config):
-        super(PbsOutputComm, self).__init__(mj_name, port)
+    def __init__(self, mj_name, an_name, port, pbs_config):
+        super(PbsOutputComm, self).__init__(mj_name, an_name, port)
         self.config = copy.deepcopy(pbs_config)
         """pbs configuration (:class:`data.communicator_conf.PbsConfig`) """
         self.jobid = None
@@ -21,10 +21,10 @@ class PbsOutputComm(ExecOutputComm):
         self.node = None
         """Name of node"""
 
-    def exec_(self, python_file, mj_name, mj_id):
+    def exec_(self, python_file, mj_id):
         """run set python file in ssh"""
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config)        
-        hlp.prepare_file(self.installation.get_command_only(python_file, mj_name, mj_id),
+        hlp.prepare_file(self.installation.get_command_only(python_file, mj_id),
                                   self.installation.get_interpreter(), 
                                   self.installation.get_prepare_pbs_env()  
                                  )

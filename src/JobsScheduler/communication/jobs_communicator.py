@@ -132,7 +132,7 @@ class JobsCommunicator(Communicator):
                 action = tdata.Action(tdata.ActionType.ok)
                 if not os.path.isdir(os.path.join(__install_dir__, "ui")):
                     # isn't local folder
-                    path =  Installation.get_mj_data_dir_static(self.mj_name)
+                    path =  Installation.get_mj_data_dir_static(self.mj_name, self.an_name)
                     shutil.rmtree(path, ignore_errors=True)
                 return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
@@ -337,7 +337,7 @@ class JobsCommunicator(Communicator):
         This is signal for app, that may safetly continue, and
         lock is not needed.
         """        
-        action(self.next_communicator,self.mj_name, id)
+        action(self.next_communicator, id)
     
     def download(self):    
         self._try_finish_jobs()
@@ -361,7 +361,7 @@ class JobsCommunicator(Communicator):
         else:
             # socket based connection only install libs
             if self.libs_env.install_job_libs:
-                Installation.install_job_libs_static(self.conf.mj_name, self.conf.python_env, self.conf.libs_env)
+                Installation.install_job_libs_static(self.conf.mj_name, self.an_name, self.conf.python_env, self.conf.libs_env)
         if unlock:
             self._install_lock.acquire()
             self._instaled = True

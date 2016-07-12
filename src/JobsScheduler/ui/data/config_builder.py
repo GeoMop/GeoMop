@@ -57,6 +57,7 @@ class ConfigBuilder:
         # multijob preset properties
         mj_preset = self.multijobs[key].preset
         mj_name = mj_preset.name
+        an_name = mj_preset.analysis
         res_preset = self.resource_presets[mj_preset.resource_preset]
         mj_log_level = mj_preset.log_level
         mj_number_of_processes = mj_preset.number_of_processes
@@ -77,6 +78,7 @@ class ConfigBuilder:
         # init conf
         basic_conf = CommunicatorConfig()
         basic_conf.mj_name = mj_name
+        basic_conf.an_name = an_name
         basic_conf.log_level = mj_log_level
         basic_conf.number_of_processes = mj_number_of_processes
         basic_conf.app_version = self.app_version
@@ -194,6 +196,8 @@ class ConfigBuilder:
         # configure paths
         exec_mj_exec_j = (mj_execution_type == UiResourceDialog.EXEC_LABEL and
                           j_execution_type == UiResourceDialog.EXEC_LABEL)
+        exec_mj_remote_j = (mj_execution_type == UiResourceDialog.EXEC_LABEL and
+                          j_execution_type == UiResourceDialog.REMOTE_LABEL)
         remote_mj_exec_j = (mj_execution_type == UiResourceDialog.DELEGATOR_LABEL and
                             j_execution_type == UiResourceDialog.EXEC_LABEL)
         remote_mj_remote_j = (mj_execution_type == UiResourceDialog.DELEGATOR_LABEL and
@@ -204,8 +208,13 @@ class ConfigBuilder:
             mj.set_paths_before_ssh(self.config.workspace, mj_preset)
             job.set_paths_before_ssh(self.config.workspace, mj_preset)
         elif remote_mj_exec_j:
-            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
+            delegator.set_paths_on_ssh(mj_ssh_preset)
             mj.set_paths_on_ssh(mj_ssh_preset)
+            job.set_paths_on_ssh(mj_ssh_preset)
+        elif exec_mj_remote_j:
+            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
+            mj.set_paths_before_ssh(self.config.workspace, mj_preset)
+            remote.set_paths_on_ssh(mj_ssh_preset)
             job.set_paths_on_ssh(mj_ssh_preset)
         elif remote_mj_remote_j:
             delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
@@ -242,16 +251,16 @@ class ConfigBuilder:
                 job_file, job.get_conf())
 
         # build job configuration
-        self._build_jobs_config(mj_name)
+        self._build_jobs_config(mj_name, an_name)
 
         # return app_config, it is always entry point for next operations
         return app.get_conf()
 
-    def _build_jobs_config(self, mj_name):
+    def _build_jobs_config(self, mj_name, an_name):
         """Create jobs and associate them with individual configuration files."""
         jobs = {}
-        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name))
-        job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name),
+        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name, an_name))
+        job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name, an_name),
                                         __ins_files__['job_configurations'])
         job_counter = 1
 
@@ -334,14 +343,13 @@ class ConfBuilder:
         Get path to conf file.
         :return: Conf file path string.
         """
-        path = Installation.get_config_dir_static(self.conf.mj_name)
+        path = Installation.get_config_dir_static(self.conf.mj_name, self.conf.an_name)
         file = self.conf.communicator_name + ".json"
         return os.path.join(path, file)
 
     def set_paths_before_ssh(self, workspace, mj, copy_ex_libs=False):
         self.conf.paths_config.home_dir = __config_dir__
-        self.conf.paths_config.work_dir = os.path.join(workspace, mj.analysis,
-                                                       'mj', mj.name)
+        self.conf.paths_config.work_dir = workspace
         self.conf.paths_config.app_dir = None
         self.conf.paths_config.ex_lib_path = EX_LIB_PATH
         self.conf.paths_config.copy_ex_libs = COPY_EX_LIBS if copy_ex_libs else None

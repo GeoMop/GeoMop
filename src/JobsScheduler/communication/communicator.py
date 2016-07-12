@@ -71,6 +71,8 @@ class Communicator():
         """Stop processing of run function"""
         self.mj_name = init_conf.mj_name
         """folder name for multijob data"""
+        self.an_name = init_conf.an_name
+        """folder name for analyzis data"""
         self.python_env = init_conf.python_env
         """python running envirounment"""
         self.libs_env = init_conf.libs_env
@@ -80,9 +82,9 @@ class Communicator():
         Installation.set_env_params(init_conf.python_env,  init_conf.libs_env, init_conf.paths_config)  
         
         self.status = None
-        self._load_status(init_conf.mj_name) 
+        self._load_status() 
         """Persistent communicator data"""
-        self._set_loger(Installation.get_result_dir_static(init_conf.mj_name), 
+        self._set_loger(Installation.get_result_dir_static(init_conf.mj_name, init_conf.an_name), 
             self.communicator_name, self.log_level, init_conf.central_log, init_conf.paths_config)
         if action_func_before is None:
             self.action_func_before = self.standart_action_function_before
@@ -137,26 +139,26 @@ class Communicator():
         """Inicialize output using defined type"""
         output = None
         if conf.output_type == comconf.OutputCommType.ssh:
-            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.ssh.uid, conf.ssh.pwd)
+            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid, conf.ssh.pwd)
             output.connect()
         elif conf.output_type == comconf.OutputCommType.pbs:
             old_name = conf.pbs.name
             if new_name is not None:
                 conf.pbs.name = new_name
-            output = PbsOutputComm(conf.mj_name, conf.port, conf.pbs)
+            output = PbsOutputComm(conf.mj_name, conf.an_name, conf.port, conf.pbs)
             conf.pbs.name = old_name
         elif conf.output_type == comconf.OutputCommType.exec_:
-            output = ExecOutputComm(conf.mj_name, conf.port)        
+            output = ExecOutputComm(conf.mj_name, conf.an_name, conf.port)        
         output.set_version_params(conf.app_version,  conf.conf_long_id) 
         return output
         
-    def _load_status(self,  mj_name):
+    def _load_status(self):
         """load status"""
         name = self.communicator_name
         if self.id is not None:
             name += "_" + self.id
         self.status = CommunicatorStatus(
-            Installation.get_status_dir_static(mj_name), name) 
+            Installation.get_status_dir_static(self.mj_name, self.an_name), name) 
         self.status.load()
 
     def _set_loger(self,  path, name, level, central_log, paths_config):
@@ -329,7 +331,7 @@ class Communicator():
         if self.output is not None:
             if isinstance(self.output, SshOutputComm):
                 self.output.connect()
-                self.output.exec_(self.next_communicator, self.mj_name, self.id)
+                self.output.exec_(self.next_communicator, self.id)
             elif not self.output.isconnected():    
                 if not self._connect_socket(self.output):
                     return "Can't connect to next communicator"
@@ -409,7 +411,7 @@ class Communicator():
     def _exec_(self):
         """run set python file"""
         try:
-            self.output.exec_(self.next_communicator, self.mj_name, self.id)
+            self.output.exec_(self.next_communicator, self.id)
         except Exception as err:
             logger.error(str(err))
             self.instalation_fails_mess = str(err)
@@ -550,7 +552,7 @@ class Communicator():
     def save_connection(self, host, port, id=None):
         """Save connection for possible termination"""
         id = str(id)
-        file = os.path.join( Installation.get_status_dir_static(self.mj_name), "conn_"+id) 
+        file = os.path.join( Installation.get_status_dir_static(self.mj_name, self.an_name), "conn_"+id) 
         with open(file, 'w') as f:
             f.write("HOST:--" + str(host) + "--\n")
             f.write("PORT:--" + str(port) + "--\n")    
@@ -559,13 +561,13 @@ class Communicator():
     def delete_connection(self, id=None):
         """delete file with connection"""
         id = str(id)
-        file = os.path.join( Installation.get_status_dir_static(self.mj_name), "conn_"+id)
+        file = os.path.join( Installation.get_status_dir_static(self.mj_name, self.an_name), "conn_"+id)
         if os.path.isfile(file):
             os.remove(file) 
             
     def terminate_connections(self):
         """send terminate message to all recorded connections, and delete connections files"""
-        dir = Installation.get_status_dir_static(self.mj_name)
+        dir = Installation.get_status_dir_static(self.mj_name, self.an_name)
         logger.info("Comunicator start destroying process")
         for root, dirs, files in os.walk(dir):
             for name in files:

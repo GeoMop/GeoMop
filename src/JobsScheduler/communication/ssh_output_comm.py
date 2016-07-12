@@ -11,8 +11,8 @@ if sys.platform == "win32":
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
         
-        def __init__(self, host, mj_name, name,  password=''):
-            super(SshOutputComm, self).__init__(host, mj_name)
+        def __init__(self, host, mj_name, an_name, name,  password=''):
+            super(SshOutputComm, self).__init__(host, mj_name, an_name)
             self.name = name
             """login name for ssh connection"""
             self.password = password
@@ -53,13 +53,13 @@ if sys.platform == "win32":
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
               
-        def exec_(self, python_file, mj_name, mj_id):
+        def exec_(self, python_file, mj_id):
             """run set python file in ssh"""
             
             mess = self.ssh.cd(self.installation.copy_path)
             if mess != "":
                 logger.warning("Exec python file: " + mess) 
-            mess = self.ssh.exec_(self.installation.get_command(python_file, mj_name, mj_id))
+            mess = self.ssh.exec_(self.installation.get_command(python_file, mj_id))
             if mess != "":
                 logger.warning("Run python file: " + mess)  
 
@@ -105,8 +105,8 @@ else:
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
         
-        def __init__(self, host, mj_name,  name,  password=''):
-            super( SshOutputComm, self).__init__(host, mj_name)
+        def __init__(self, host, mj_name, an_name,  name,  password=''):
+            super( SshOutputComm, self).__init__(host, mj_name, an_name)
             self.name = name
             """login name for ssh connection"""
             self.password = password
@@ -178,7 +178,7 @@ else:
             except Exception as err:
                 logger.warning("Installation error: " + str(err))
                 
-        def exec_(self, python_file, mj_name, mj_id):
+        def exec_(self, python_file, mj_id):
             """run set python file in ssh"""
             self.ssh.sendline("cd " + self.installation.copy_path)
             if self.ssh.prompt():
@@ -187,8 +187,8 @@ else:
                     logger.warning("Cd to exec python file error: " + mess) 
                     
             logger.debug("Exec command over SSH: " + 
-                self.installation.get_command(python_file, mj_name, mj_id))        
-            self.ssh.sendline(self.installation.get_command(python_file, mj_name, mj_id))
+                self.installation.get_command(python_file, mj_id))        
+            self.ssh.sendline(self.installation.get_command(python_file, mj_id))
             self.ssh.expect( self.installation.python_env.python_exec + ".*\r\n")
 
             txt = ''

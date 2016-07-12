@@ -180,6 +180,10 @@ class CommunicatorConfig(object):
         self.mj_name = mj_name
         """folder name for multijob data"""
 
+        self.an_name = None
+        """folder name for analyzis data"""
+
+
         self.port = 5723
         """
         First port for the socket communication with this communicator.

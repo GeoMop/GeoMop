@@ -6,10 +6,10 @@ import communication.installation as dinstall
 class OutputComm(metaclass=abc.ABCMeta):
     """Ancestor of output communication classes"""
     
-    def __init__(self, host, mj_name):
+    def __init__(self, host, mj_name, an_name):
         self.host=host
         """ip or dns of host for communication"""
-        self.installation = dinstall.Installation(mj_name)
+        self.installation = dinstall.Installation(mj_name, an_name)
         """installation where is copied files"""
        
     def set_version_params(self, app_version, data_version):
@@ -51,7 +51,7 @@ class OutputComm(metaclass=abc.ABCMeta):
         pass
         
     @abc.abstractmethod
-    def exec_(self,  command, mj_name, mj_id):
+    def exec_(self,  command, mj_id):
         """run command"""
         pass
 

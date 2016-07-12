@@ -171,7 +171,7 @@ class MultiJob:
         Return list of Jobs that belong to MultiJob.
         :return: List of Jobs
         """
-        res_path = Installation.get_result_dir_static(self.preset.name)
+        res_path = Installation.get_result_dir_static(self.preset.name, self.preset.analysis)
         states = JobsState()
         states.load_file(res_path)
         return states.jobs
@@ -181,7 +181,7 @@ class MultiJob:
         Scans log directory and returns log files.
         :return: List of MultiJobLog objects
         """
-        log_path = Installation.get_mj_log_dir_static(self.preset.name)
+        log_path = Installation.get_mj_log_dir_static(self.preset.name, self.preset.analysis)
         logs = []
         for file in os.listdir(log_path):
             if os.path.isfile(os.path.join(log_path, file)):
@@ -194,7 +194,7 @@ class MultiJob:
         Scans res directory and returns results files.
         :return: List of MultiJobRes objects
         """
-        res_path = Installation.get_result_dir_static(self.preset.name)
+        res_path = Installation.get_result_dir_static(self.preset.name, self.preset.analysis)
         ress = []
         for file in os.listdir(res_path):
             if os.path.isfile(os.path.join(res_path, file)):
@@ -225,7 +225,7 @@ class MultiJob:
         Scans res directory and returns config files.
         :return: List of MultiJobConf objects
         """
-        conf_path = Installation.get_config_dir_static(self.preset.name)
+        conf_path = Installation.get_config_dir_static(self.preset.name, self.preset.analysis)
         confs = []
         for file in os.listdir(conf_path):
             if os.path.isfile(os.path.join(conf_path, file)):

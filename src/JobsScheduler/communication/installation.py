@@ -34,6 +34,7 @@ __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
 __logs_dir__ = "log"
 __conf_dir__ = "mj_conf"
+__an_subdir__ = "mj"
 __result_dir__ = "res"
 __status_dir__ = "status"
 __lib_dir__ = "ins-lib"
@@ -48,9 +49,11 @@ class Installation:
     
     """Files with installation (python files and configuration files) is selected 
         and send to set folder"""
-    def __init__(self, mj_name):
+    def __init__(self, mj_name, an_name):
         self.mj_name = mj_name
         """folder name for multijob data"""
+        self.an_name = an_name
+        """folder name for analyzis data"""
         self.copy_path = None
         """installation file path"""
         self.ins_files = copy.deepcopy(__ins_files__)
@@ -428,8 +431,9 @@ class Installation:
  
     def get_results(self, conn):
         """Copy installation files"""
-        res_local = self.get_result_dir_static(self.mj_name)
-        res_dir = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__
+        res_local = self.get_result_dir_static(self.mj_name, self.an_name)
+        res_dir = self.copy_path  + '/' + __jobs_dir__ +  '/' + self.an_name \
+            +  '/' + __an_subdir__ + '/' + self.mj_name + '/' + __result_dir__
         if sys.platform == "win32": 
             conn.set_sftp_paths(res_local, res_dir)
             res = conn.get_r("*") 
@@ -455,8 +459,9 @@ class Installation:
     def is_local_and_remote_same(self, conn):
         """Test if local and remote directory is same (open file with uuid in local and try find it in remote)"""
         result = False
-        local = os.path.join(self.get_result_dir_static(self.mj_name), 'test666iden')
-        remote = self.copy_path  + '/' + __jobs_dir__  + '/' + self.mj_name + '/' + __result_dir__ +'/' + 'test666iden'
+        local = os.path.join(self.get_result_dir_static(self.mj_name, self.an_name), 'test666iden')
+        remote = self.copy_path  + '/' + __jobs_dir__ +  '/' + self.an_name \
+            +  '/' + __an_subdir__ + '/' + self.mj_name + '/' + __result_dir__ +'/' + 'test666iden'
         uid = str(uuid.uuid4())
         f=open(local, 'w')
         f.write(uid)
@@ -497,37 +502,38 @@ class Installation:
                 return True
         return False
         
-    def get_command(self, name, mj_name, mj_id):
+    def get_command(self, name, mj_id):
         """Find install file according to name and return command for running"""
         # use / instead join because destination os is linux and is not 
         # same with current os
-        command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
+        command = self.copy_path + '/' + __ins_files__[name] + " " + self.mj_name + " " + self.an_name
         if mj_id is not None:
             command += " " + mj_id
         return self.python_env.python_exec + " " + command
     
-    def get_args(self, name, mj_name, mj_id):
-        # use / instead join because destination os is linux and is not 
-        # same with current os
+    def get_args(self, name, mj_id):
+        """get arguments for exec (local pc end run pc is same can use join)"""
+        mj_name = self.mj_name
         if self.paths_config is not None and \
             self.paths_config.work_dir is not None:
-            mj_name = self.paths_config.work_dir
-        dest_path = self.copy_path + '/' + __ins_files__[name]
+            mj_name =  os.path.join(self.paths_config.work_dir, self.an_name, __an_subdir__, self.mj_name)
+            # for local get full path to config file
+        dest_path = os.path.join(self.copy_path,  __ins_files__[name])
         if sys.platform == "win32": 
             if mj_id is None:
-                return [self.python_env.python_exec,dest_path, mj_name]
-            return [self.python_env.python_exec,dest_path, mj_name, mj_id]
+                return [self.python_env.python_exec,dest_path, mj_name, self.an_name]
+            return [self.python_env.python_exec,dest_path, mj_name, self.an_name, mj_id]
         if mj_id is None:
-            return [self.python_env.python_exec,dest_path, mj_name, "&", "disown"]
-        return [self.python_env.python_exec,dest_path, mj_name, mj_id, "&", "disown"]
+            return [self.python_env.python_exec,dest_path, mj_name, self.an_name, "&", "disown"]
+        return [self.python_env.python_exec,dest_path, mj_name, self.an_name, mj_id, "&", "disown"]
         
     def get_interpreter(self):
         """return python interpreter with path"""
         return self.python_env.python_exec
 
-    def get_command_only(self, name, mj_name, mj_id):
+    def get_command_only(self, name, mj_id):
         """return command with path"""
-        command = self.copy_path + '/' + __ins_files__[name] + " " + mj_name
+        command = self.copy_path + '/' + __ins_files__[name] + " " + self.mj_name+ " " + self.an_name
         if mj_id is not None:
             command += " " + mj_id
         return command
@@ -545,21 +551,25 @@ class Installation:
         return path
 
     @classmethod
-    def get_result_dir_static(cls, mj_name):
+    def get_result_dir_static(cls, mj_name, an_name):
         """Return dir for savings results"""
         try:
             if cls.paths_config is not None and \
                 cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
-                if not os.path.isdir(path):
-                    os.makedirs(path)
             else:
-                path = os.path.join(__install_dir__, __jobs_dir__)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                path = os.path.join( path,  mj_name)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)                
+            path = os.path.join( path, mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
             path = os.path.join(path, __result_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -570,24 +580,28 @@ class Installation:
         
     def get_result_dir(self):
         """Return dir for savings results"""
-        return self.get_result_dir_static(self.mj_name) 
+        return self.get_result_dir_static(self.mj_name, self.an_name) 
         
     @classmethod
-    def get_config_dir_static(cls, mj_name):
+    def get_config_dir_static(cls, mj_name, an_name):
         """Return dir for configuration"""
         try:
             if cls.paths_config is not None and \
                 cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
-                if not os.path.isdir(path):
-                    os.makedirs(path)
             else:
-                path = os.path.join(__install_dir__, __jobs_dir__)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                path = os.path.join( path,  mj_name)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)                
+            path = os.path.join( path, mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
             path = os.path.join(path,__conf_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -598,24 +612,28 @@ class Installation:
 
     def get_config_dir(self):
         """Return dir for configuration """
-        return self.get_config_dir_static(self.mj_name)         
+        return self.get_config_dir_static(self.mj_name, self.an_name)         
 
     @classmethod
-    def get_mj_data_dir_static(cls, mj_name):
+    def get_mj_data_dir_static(cls, mj_name, an_name):
         """Return dir for savings results"""
         try:
             if cls.paths_config is not None and \
                 cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
-                if not os.path.isdir(path):
-                    os.makedirs(path)
             else:
-                path = os.path.join(__install_dir__, __jobs_dir__)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                path = os.path.join( path, mj_name)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)                
+            path = os.path.join( path, mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
         except Exception as err:
             logger.warning("Get mj data dir error: " + str(err))
             return "."
@@ -626,24 +644,28 @@ class Installation:
         Return dir for multijob data
         :return:
         """
-        return self.get_mj_data_dir_static(self.mj_name)
+        return self.get_mj_data_dir_static(self.mj_name, self.an_name)
 
     @classmethod
-    def get_mj_log_dir_static(cls, mj_name):
+    def get_mj_log_dir_static(cls, mj_name, an_name):
         """Return dir for logging"""
         try:
             if cls.paths_config is not None and \
                 cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
-                if not os.path.isdir(path):
-                    os.makedirs(path)
             else:
-                path = os.path.join(__install_dir__, __jobs_dir__)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                path = os.path.join( path,  mj_name)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
             path = os.path.join(path, __result_dir__)
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -660,28 +682,32 @@ class Installation:
         Return dir for multijob logs
         :return:
         """
-        return self.get_mj_log_dir_static(self.mj_name)
+        return self.get_mj_log_dir_static(self.mj_name, self.an_name)
 
     def get_status_dir(self):
         """Return dir for savings status"""
-        return  self.get_status_dir_static(self.mj_name)
+        return  self.get_status_dir_static(self.mj_name, self.an_name)
     
     @classmethod
-    def get_status_dir_static(cls, mj_name):
+    def get_status_dir_static(cls, mj_name, an_name):
         """Return dir for savings status"""
         try:
             if cls.paths_config is not None and \
                 cls.paths_config.work_dir is not None:
                 path = cls.paths_config.work_dir
-                if not os.path.isdir(path):
-                    os.makedirs(path)
             else:
-                path = os.path.join(__install_dir__, __jobs_dir__)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                path = os.path.join( path,  mj_name)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
             path = os.path.join(path,__status_dir__ )
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -692,7 +718,7 @@ class Installation:
 
     def install_job_libs(self):
         """Return dir for savings status"""
-        self.install_job_libs_static(self.mj_name, self.python_env, self.libs_env)
+        self.install_job_libs_static(self.mj_name, self.an_name, self.python_env, self.libs_env)
 
     def prepare_ssh_env(self, term):
         self.prepare_python_env_static(term, self.python_env)
@@ -768,7 +794,7 @@ class Installation:
         return res        
 
     @classmethod
-    def install_job_libs_static(cls, mj_name, python_env, libs_env):
+    def install_job_libs_static(cls, mj_name, an_name, python_env, libs_env):
         """Return dir for savings status"""
         if not cls.lock_lib():
             logger.debug("Libraries is allready installed")
@@ -786,7 +812,7 @@ class Installation:
             term.sendline('cd twoparty/install')
             time.sleep(1)            
             term.expect('.*cd twoparty/install.*')
-            log_file= os.path.join(cls.get_result_dir_static(mj_name), "log")
+            log_file= os.path.join(cls.get_result_dir_static(mj_name, an_name), "log")
             log_file= os.path.join(log_file, __ins_libs_log__)
             if libs_env.libs_mpicc is None:
                 command = "./install_mpi4.sh " + python_env.python_exec + " &>> " + log_file

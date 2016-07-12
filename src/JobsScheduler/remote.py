@@ -106,30 +106,31 @@ def  remote_action_function_before(message):
     
 def  remote_action_function_after( message,  response):
     """after action function"""
-    global mj_name
+    global mj_name, an_name
     if message.action_type == tdata.ActionType.download_res:
         if not comunicator.conf.direct_communication:
             states =  comunicator.get_jobs_states()
-            states.save_file(inst.Installation.get_result_dir_static(mj_name))
+            states.save_file(inst.Installation.get_result_dir_static(mj_name, an_name))
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
     return super(JobsCommunicator, comunicator).standart_action_function_after( message,  response)
     
 logger = logging.getLogger("Remote")
 
-if len(sys.argv)<2:
+if len(sys.argv)<3:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
 mj_name = sys.argv[1]
-if len(sys.argv) > 2 and sys.argv[2] != "&":
-    mj_id = sys.argv[2]
+an_name = sys.argv[2]
+if len(sys.argv) > 3 and sys.argv[3] != "&":
+    mj_id = sys.argv[3]
 
 # Load from json file
 com_conf = comconf.CommunicatorConfig()
 if os.path.isdir(mj_name) and  os.path.isabs(mj_name):
     directory = os.path.join(mj_name, inst.__conf_dir__)
 else:
-    directory = inst.Installation.get_config_dir_static(mj_name)
+    directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.remote.value)
 try:

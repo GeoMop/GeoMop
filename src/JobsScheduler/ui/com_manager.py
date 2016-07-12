@@ -133,8 +133,9 @@ class ComManager:
     def __resume_mj(self, key):
         mj = self._data_app.multijobs[key]
         mj_name = mj.preset.name
+        an_name = mj.preset.analysis
         com_conf = comconf.CommunicatorConfig(mj_name)
-        directory = inst.Installation.get_config_dir_static(mj_name)
+        directory = inst.Installation.get_config_dir_static(mj_name, an_name)
         path = comconf.CommunicatorConfigService.get_file_path(
             directory, comconf.CommType.delegator.value)
         with open(path, "r") as json_file:

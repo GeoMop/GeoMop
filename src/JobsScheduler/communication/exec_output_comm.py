@@ -12,8 +12,8 @@ logger = logging.getLogger("Remote")
 class ExecOutputComm(OutputComm):
     """Ancestor of communication classes"""
     
-    def __init__(self, mj_name, port):
-        super(ExecOutputComm, self).__init__("localhost", mj_name)
+    def __init__(self, mj_name, an_name, port):
+        super(ExecOutputComm, self).__init__("localhost", mj_name, an_name)
         self.port = port
         """port for server communacion"""
         self.conn = None
@@ -46,14 +46,14 @@ class ExecOutputComm(OutputComm):
         #ToDo: scl, module add support
         self.installation.local_copy_path()
         
-    def exec_(self, python_file, mj_name, mj_id):
+    def exec_(self, python_file, mj_id):
         """run set python file in ssh"""
         self.installation.prepare_popen_env()
         si = None
         if sys.platform == "win32":
             si = subprocess.STARTUPINFO()
             si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        args = self.installation.get_args(python_file, mj_name, mj_id)
+        args = self.installation.get_args(python_file, mj_id)
         if args[0] is None or args[0]=="":
             raise Exception("Python interpreter can't be empty")
         logger.debug("Run "+" ".join(args))

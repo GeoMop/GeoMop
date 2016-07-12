@@ -42,12 +42,12 @@ def  mj_action_function_before(message):
     
 def  mj_action_function_after(message,  response):
     """before action function"""
-    global mj_name
+    global mj_name, an_name
     if message.action_type == tdata.ActionType.download_res:
         if com_conf.output_type != comconf.OutputCommType.ssh or \
            com_conf.direct_communication:
             states =  comunicator.get_jobs_states()
-            states.save_file(inst.Installation.get_result_dir_static(mj_name))
+            states.save_file(inst.Installation.get_result_dir_static(mj_name, an_name))
     return comunicator.standart_action_function_after(message,  response)
 
 
@@ -74,12 +74,13 @@ def  mj_idle_function():
         comunicator.add_job(job_name)
 
 
-if len(sys.argv) < 2:
+if len(sys.argv)<3:
     raise Exception('Multijob name as application parameter is require')
 mj_id = None
 mj_name = sys.argv[1]
-if len(sys.argv) > 2 and sys.argv[2] != "&":
-    mj_id = sys.argv[2]
+an_name = sys.argv[2]
+if len(sys.argv) > 3 and sys.argv[3] != "&":
+    mj_id = sys.argv[3]
 
 start_time = time.time()
 # Load from json file
@@ -87,7 +88,7 @@ com_conf = comconf.CommunicatorConfig()
 if os.path.isdir(mj_name) and  os.path.isabs(mj_name):
     directory = os.path.join(mj_name, inst.__conf_dir__)
 else:
-    directory = inst.Installation.get_config_dir_static(mj_name)
+    directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.multijob.value)
 try:
@@ -104,6 +105,9 @@ comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
 logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 logger.debug("Set counter to {0} jobs".format(str(count)))
+job_name = jobs_to_exec.pop()
+comunicator.add_job(job_name)
+        
 comunicator.set_start_jobs_count(count, 0)
 
 if __name__ != "mj_service":
