@@ -1,0 +1,36 @@
+flow123d_version: 1.8.3
+problem: !SequentialCoupling
+  description: Test
+  mesh:
+    mesh_file: mesh.msh
+  primary_equation: !Steady_MH
+  
+    # Test data
+    input_fields:
+      # Transposed input_fields to array with two items
+      # TODO: is this the expected behavior?
+      - anisotropy: !FieldFormula
+          value: 
+            - [x+y]
+            - [x-y]
+            - [z]
+              
+      - anisotropy: !FieldFormula
+          value: 
+            - [x*x]
+            - [y*y]
+            - [z*z]
+
+
+    # Placeholder data
+    solver: !Petsc
+        r_tol: 1
+        a_tol: 1
+    balance: 
+      balance_on: true
+    output:
+      output_stream: 
+        file: ./test1.pvd
+        format: !gmsh
+      output_fields:
+        - pressure_diff

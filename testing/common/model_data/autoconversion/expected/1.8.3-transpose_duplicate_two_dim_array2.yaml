@@ -1,0 +1,36 @@
+flow123d_version: 1.8.3
+problem: !SequentialCoupling
+  description: Test
+  mesh:
+    mesh_file: mesh.msh
+  primary_equation: !Steady_MH
+  
+    # Test data
+    input_fields:
+      # Transposed input_fields to array with two items
+      - rid: 1
+        # and converted anisotropy into a single item two dimensional array
+        # and dupliacated anisotropy values
+        # TODO: is this the expected behavior?
+        anisotropy: !FieldConstant
+          value: 
+            - [2.0, 3.0, 4.0]
+            
+      - rid: 2
+        anisotropy: !FieldConstant
+          value: 
+            - [2.0, 3.0, 4.0]
+
+
+    # Placeholder data
+    solver: !Petsc
+        r_tol: 1
+        a_tol: 1
+    balance: 
+      balance_on: true
+    output:
+      output_stream: 
+        file: ./test1.pvd
+        format: !gmsh
+      output_fields:
+        - pressure_diff
