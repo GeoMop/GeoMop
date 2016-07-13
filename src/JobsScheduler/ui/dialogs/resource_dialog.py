@@ -188,7 +188,7 @@ class ResourceDialog(AFormDialog):
                     'local' if preset.mj_ssh_preset is None else preset.mj_ssh_preset))
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
-                    0 if preset.mj_pbs_preset is None else preset.mj_pbs_preset))
+                    'no PBS' if preset.mj_pbs_preset is None else preset.mj_pbs_preset))
             self.ui.mjEnvPresetComboBox.setCurrentIndex(
                 self.ui.mjEnvPresetComboBox.findData(preset.mj_env))
 

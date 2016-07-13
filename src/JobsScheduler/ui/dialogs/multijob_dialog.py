@@ -134,6 +134,7 @@ class MultiJobDialog(AFormDialog):
             if self._from_mj is not None:
                 self.ui.analysisComboBox.setDisabled(True)
         else:
+            self.ui.analysisComboBox.setEnabled(True)
             self.ui.idLineEdit.clear()
             self.ui.nameLineEdit.clear()
             self.ui.resourceComboBox.setCurrentIndex(0)
