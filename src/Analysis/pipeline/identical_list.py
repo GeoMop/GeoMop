@@ -33,6 +33,7 @@ class IdenticalList():
             logger.warning(error)
             fd.close()
             raise Exception(error)
+        return True
         
     def save(self, file):
         """save Identical list"""

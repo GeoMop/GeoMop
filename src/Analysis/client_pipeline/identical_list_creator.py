@@ -1,5 +1,5 @@
 import json
-from ..pipeline.identical_list import IdenticalList
+from pipeline.identical_list import IdenticalList
 
 class ILCreator():
     """
@@ -35,7 +35,7 @@ class ILCreator():
         pass
 
     @staticmethod
-    def create_identical_list(compare_list_old, compare_list_new):
+    def create_identical_list(compare_list_new, compare_list_old):
         """Create identical list from two compare lists(hashes lists)."""
         old_swap = {v: k for k, v in compare_list_old.items()}
         il = {}

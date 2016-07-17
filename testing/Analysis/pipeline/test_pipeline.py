@@ -4,6 +4,7 @@ from pipeline.wrapper_actions import *
 from pipeline.data_types_tree import *
 from pipeline.workflow_actions import *
 from pipeline.pipeline import *
+from pipeline.identical_list import *
 from .pomfce import *
 import pipeline.action_types as action
 import os
@@ -106,9 +107,30 @@ def test_hashes():
     hlist2 = pipeline._get_hashes_list()
 
     # hashes comparison
-    # assert hlist1["1"] == hlist2["1"]
-    # assert hlist1["2"] != hlist2["2"]
-    # assert hlist1["3"] != hlist2["3"]
-    # assert hlist1["4"] != hlist2["4"]
-    # assert hlist1["5"] == hlist2["5"]
-    # assert hlist1["6"] != hlist2["6"]
+    assert hlist1["1"] == hlist2["1"]
+    assert hlist1["2"] != hlist2["2"]
+    assert hlist1["3"] != hlist2["3"]
+    assert hlist1["4"] != hlist2["4"]
+    assert hlist1["5"] == hlist2["5"]
+    assert hlist1["6"] != hlist2["6"]
+
+
+def test_set_restore_id():
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+
+    il = IdenticalList({"1": "11", "2": "12", "3": "13", "4": "14"})
+    pipeline._set_restore_id(il)
+
+    assert vg._restore_id == "11"
+    assert vg2._restore_id == "12"
+    assert workflow._restore_id == "13"
+    assert flow._restore_id == "14"
+    assert side._restore_id is None
+    assert pipeline._restore_id is None

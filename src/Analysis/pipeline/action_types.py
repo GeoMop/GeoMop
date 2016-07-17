@@ -309,7 +309,6 @@ class BaseActionType(metaclass=abc.ABCMeta):
         
     def _process_base_hash(self):
         """return hash compute from name and inputs"""
-        #self._hash = hashlib.sha512()
         self._hash.update(bytes(self.__class__.__name__, "utf-8"))
         for input in self._inputs:
             self._hash.update(bytes(input._get_hash(), "utf-8"))
@@ -736,9 +735,9 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
             if last_count==len(actions):
                 raise Exception("All Dependencies aren't in list")
             last_count=len(actions)
-            for i in range(0, len(actions)):
+            for i in reversed(range(len(actions))):
                 if cls._check_action_dependencies(actions[i], ordered_action, inputs):
-                    ordered_action.append(actions.pop(i))
+                    ordered_action.insert(0, actions.pop(i))
                     break
         return ordered_action  
 
@@ -784,7 +783,7 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         """
         for action in list2:
             if action in list1:
-                break
+                continue
             else:
                 list1.append(action)
         return list1

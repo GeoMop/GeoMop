@@ -109,8 +109,7 @@ class RangeGenerator(GeneratorActionType):
                 self._generate_step(template, item)
         self._set_state(ActionStateType.initialized)
         self._hash.update(bytes(self.__class__.__name__, "utf-8"))
-        if "Variable" in self._variables and  isinstance(self._variables["Variable"], DTT):
-            self._hash.update(bytes(self._self._output._get_unique_text(True), "utf-8"))  
+        self._hash.update(bytes(self._output._get_unique_text(True), "utf-8"))
         
     def __get_output_from_items(self):
         """Construct output from set items"""

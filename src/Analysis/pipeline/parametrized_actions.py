@@ -1,8 +1,9 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-#from geomop_analysis import YamlSupport
+from geomop_analysis import YamlSupport
 import os
+import codecs
 
 class Flow123dAction(ParametrizedActionType):
     
@@ -27,7 +28,40 @@ class Flow123dAction(ParametrizedActionType):
         self._output = self.__file_output()
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
-        # TODO add file hash
+
+        # TODO: update testing and remove next two lines
+        self._hash.update(bytes(self._variables['YAMLFile'], "utf-8"))
+        return
+
+        # add .yaml file to hash
+        err = []
+        yaml_file = self._variables['YAMLFile']
+        document = ""
+        try:
+            try:
+                with codecs.open(yaml_file, 'r', 'utf-8') as file_d:
+                    document = file_d.read().expandtabs(tabsize=2)
+            except UnicodeDecodeError:
+                with open(yaml_file, 'r') as file_d:
+                    document = file_d.read().expandtabs(tabsize=2)
+        except (RuntimeError, IOError) as e:
+            err.append("Can't open .yaml file: {0}".format(e))
+            return
+        self._hash.update(bytes(document, "utf-8"))
+
+        # add mesh file to hash
+        ys = YamlSupport()
+        err.extend(ys.parse(yaml_file))
+        mesh_file = os.path.join(os.path.dirname(yaml_file),
+                                 os.path.normpath(ys.get_mesh_file()))
+        try:
+            with open(self.mesh_file, 'r') as file_d:
+                for line in file_d:
+                    self._hash.update(bytes(line, "utf-8"))
+        except (RuntimeError, IOError) as e:
+            err.append("Can't open mesh file: {0}".format(e))
+            return
+        # TODO: handle errors
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
