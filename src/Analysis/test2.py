@@ -11,6 +11,7 @@ from pipeline.wrapper_actions import *
 from pipeline.data_types_tree import *
 from pipeline.workflow_actions import *
 from pipeline.pipeline import *
+from pipeline.pipeline_processor import *
 from pipeline.identical_list import *
 #from .pomfce import *
 import pipeline.action_types as action
@@ -29,20 +30,24 @@ flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
 side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
 workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
 pipeline = Pipeline(ResultActions=[workflow])
-pipeline._inicialize()
-test = pipeline._get_settings_script()
-hlist1 = pipeline._get_hashes_list()
-
-il = IdenticalList({"1": "11", "2": "12", "3": "13", "4": "14"})
-pipeline._set_restore_id(il)
-
-assert vg._restore_id == "11"
-assert vg2._restore_id == "12"
-assert workflow._restore_id == "13"
-assert flow._restore_id == "14"
-assert side._restore_id == "None"
-assert pipeline._restore_id == "None"
+#pipeline._inicialize()
 
 
+pp = Pipelineprocessor(pipeline)
+errs = pp.validate()
+
+names = []
+pp.run()
+i = 0
+
+while pp.is_run():
+    runner = pp.get_next_job()
+    if runner is None:
+        time.sleep(0.1)
+    else:
+        names.append(runner.name)
+        pp.set_job_finished(runner.id)
+    i += 1
+    assert i < 1000, "Timeout"
 
 print(9)

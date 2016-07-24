@@ -84,3 +84,24 @@ def test_run_pipeline(request):
     
 # ToDo: Test invalid pipeline (cyclic dependencies in pipeline and workflow)
 # ToDo: Test pipeline with all types of convertors
+
+
+def test_set_restore_id():
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+
+    pp = Pipelineprocessor(pipeline, identical_list=os.path.join(
+        "pipeline", "resources", "identical_list.json"))
+
+    assert vg._restore_id == "11"
+    assert vg2._restore_id == "12"
+    assert workflow._restore_id == "13"
+    assert flow._restore_id == "14"
+    assert side._restore_id is None
+    assert pipeline._restore_id is None
