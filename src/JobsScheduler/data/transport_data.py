@@ -29,6 +29,7 @@ class ActionType(Enum):
     set_start_jobs_count = 14
     destroy = 15
     delete = 16
+    restore = 17
     
 
 class ProcessType(Enum):
@@ -163,6 +164,8 @@ class Action():
         if type == ActionType.stop:
             self.data = EmptyData()
         elif type == ActionType.ok:
+            self.data = EmptyData()
+        elif type == ActionType.restore:
             self.data = EmptyData()
         elif type == ActionType.restore_connection:
             self.data = EmptyData()

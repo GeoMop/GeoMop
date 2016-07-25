@@ -237,6 +237,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if error is not None:
                 mj.state.status = TaskStatus.error
                 mj.error = error
+        
+        if len(self.com_manager.jobs_deleted)>0:
+            self.multijobs_changed.emit(self.data.multijobs)
 
         self.com_manager.state_change_jobs = []
         self.com_manager.results_change_jobs = []

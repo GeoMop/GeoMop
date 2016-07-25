@@ -6,6 +6,7 @@ import data.transport_data as tdata
 from data.states import TaskStatus
 from ui.data.mj_data import MultiJobState
 from  communication.installation import __install_dir__
+from communication.communicator import __NOT_INSTALLED__
 
 class ComWorker(threading.Thread):   
     """
@@ -162,7 +163,6 @@ class ComWorker(threading.Thread):
         """delete mj data""" 
         self.start()
         self.__state_lock.acquire()
-        self.__self.__resume = True
         self.__starting = True
         self.__error = None
         self.__delete = True
@@ -249,15 +249,26 @@ class ComWorker(threading.Thread):
                 self.__resume = False
                 self.__state_lock.release()
                 if not self._resume():
+                    self._clean()
                     break
                 continue
             if  self.__delete:
                 self.__delete = False
                 self.__state_lock.release()
-                if not self._resume(True):
-                    break
-                self._delete()
-                self._stop()
+                if not self._resume(True):                    
+                    self.__state_lock.acquire()
+                    if  self.__error is not None and  \
+                        self.__error == __NOT_INSTALLED__:
+                        self.__error_state = False
+                        self.__error = None            
+                    else:
+                        self.__state_lock.release()
+                        self._clean()
+                        break 
+                    self.__state_lock.release()
+                if  self._com.is_next_installed():
+                    self._delete()
+                    time.sleep(1)                
                 self.__state_lock.acquire()
                 self.__deleted = True
                 self.__state_lock.release()
@@ -297,7 +308,9 @@ class ComWorker(threading.Thread):
                 continue
             self.__state_lock.release() 
             time.sleep(0.1)
+        time.sleep(0.1)
         self._com.close( )
+        time.sleep(0.1)
         self.__state_lock.acquire()
         self.__cancelled = True
         self.__cancelling = False
@@ -374,14 +387,23 @@ class ComWorker(threading.Thread):
 
     def _resume(self, for_deleting=False):
         """installation, if return False, thrad is stoped"""
-        self._com.restore()
-        # TODO error, no response
+        res = self._com.restore(True)
+        if res is not None:            
+            self.__state_lock.acquire()
+            self.__starting = False
+            self.__error_state = True
+            self.__error = res
+            self.__state_lock.release()
+            return False
+        if for_deleting:
+            msg_id = tdata.ActionType.restore
+        else:
+            msg_id = tdata.ActionType.restore_connection
         mess = self._com.send_long_action(tdata.Action(
-            tdata.ActionType.restore_connection))
+            msg_id))
         self.__state_lock.acquire()
         self.__starting = False
         if mess.action_type != tdata.ActionType.ok:
-            # TODO no response
             self.__state_lock.acquire() 
             self.__error_state = True
             self.__error = mess.get_action().data.data["msg"]
@@ -407,7 +429,16 @@ class ComWorker(threading.Thread):
                 self.__error_state = True
             state.status = self._ok_cancelling_state        
         self.__state = state
-        self.__state_lock.release()        
+        self.__state_lock.release() 
+ 
+    def _clean(self):
+        if self._com.is_next_installed():
+            mess = self._com.send_long_action(tdata.Action(
+                        tdata.ActionType.stop))
+            if mess is None or mess.action_type != tdata.ActionType.ok:
+                action = tdata.Action( tdata.ActionType.destroy)
+                message = action.get_message()
+                self._com.send_message(message)                
 
     def _terminate(self):
         action = tdata.Action( tdata.ActionType.destroy)
@@ -423,14 +454,17 @@ class ComWorker(threading.Thread):
         self.__state_lock.release()        
 
     def _delete(self):
-        action = tdata.Action( tdata.ActionType.delete)
-        message = action.get_message()
-        mess = self._com.send_message(message)
+        mess = self._com.send_long_action(tdata.Action(
+                    tdata.ActionType.delete))
         if mess.action_type != tdata.ActionType.ok:
-            self.__state_lock.acquire() 
-            self.__error_state = True
+            self.__state_lock.acquire()                    
+            self._ok_cancelling_state = TaskStatus.error
+            self.__start_state = TaskStatus.stopped
             self.__error = mess.get_action().data.data["msg"]
-            self.__state_lock.release()
+            self.__state_lock.release() 
+            self._stop()
+            return False
+        return True
 
     def _state(self):
         mess = self._com.send_long_action(tdata.Action(

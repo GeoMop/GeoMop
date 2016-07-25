@@ -65,14 +65,13 @@ def load_jobs(filepath):
 jobs_to_exec = []
 """names of the jobs to execute"""
 
-
 def  mj_idle_function():
     """This function will be call, if meesage is not receive in run function."""
     global jobs_to_exec
-    if jobs_to_exec:
-        job_name = jobs_to_exec.pop()
-        comunicator.add_job(job_name)
-
+    if comunicator.ready:
+        if jobs_to_exec:
+            job_name = jobs_to_exec.pop()
+            comunicator.add_job(job_name)
 
 if len(sys.argv)<3:
     raise Exception('Multijob name as application parameter is require')
@@ -105,9 +104,6 @@ comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
                                mj_action_function_after, mj_idle_function)
 logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 logger.debug("Set counter to {0} jobs".format(str(count)))
-job_name = jobs_to_exec.pop()
-comunicator.add_job(job_name)
-        
 comunicator.set_start_jobs_count(count, 0)
 
 if __name__ != "mj_service":

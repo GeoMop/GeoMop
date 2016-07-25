@@ -25,11 +25,12 @@ class ExecOutputComm(OutputComm):
 
     def connect(self):
         """connect session"""
+        self.installation.local_copy_path()
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         logger.debug("Client try connect to " + self.host + ":" + str(self.port)) 
         self.conn.connect((self.host, self.port))
         logger.debug("Client is connected to " + self.host + ":" + str(self.port)) 
-        self._connected = True
+        self._connected = True       
          
     def disconnect(self):
         """disconnect session"""
@@ -106,10 +107,14 @@ class ExecOutputComm(OutputComm):
         
     def save_state(self, state):
         """save state to variable"""
+        state.inicialized = self.initialized
         state.output_port = self.port
         state.output_host = self.host  
         
     def load_state(self, state):
         """load state from variable"""
-        self.port = state.output_port
-        self.host = state.output_host 
+        self.initialized = False
+        if hasattr(state, 'output_port'):
+            self.inicialized = state.inicialized
+            self.port = state.output_port
+            self.host = state.output_host 

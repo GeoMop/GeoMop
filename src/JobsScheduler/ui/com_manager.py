@@ -4,6 +4,7 @@ JobScheduler data reloader
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
+import os
 from communication import Communicator
 import data.communicator_conf as comconf
 import communication.installation as inst
@@ -107,7 +108,6 @@ class ComManager:
         """start first job in queue and return True else return False"""
         for  key in  self.start_jobs:
             if not key in self._workers:
-                mj = self._data_app.multijobs[key]
                 conf_builder = ConfigBuilder(self._data_app)
                 app_conf = conf_builder.build(key)
                 com = Communicator(app_conf)
@@ -125,7 +125,17 @@ class ComManager:
                 self._workers[key].resume()
                 return True
         return False
-        
+    
+    def __is_mj_initialized(self, key):
+        """return if was mj started (dconfig directory was initialized)"""
+        mj = self._data_app.multijobs[key]
+        mj_name = mj.preset.name
+        an_name = mj.preset.analysis
+        directory = inst.Installation.get_config_dir_static(mj_name, an_name)
+        path = comconf.CommunicatorConfigService.get_file_path(
+            directory, comconf.CommType.app.value)
+        return  os.path.isfile(path)
+
     def __resume_mj(self, key):
         mj = self._data_app.multijobs[key]
         mj_name = mj.preset.name
@@ -133,7 +143,7 @@ class ComManager:
         com_conf = comconf.CommunicatorConfig(mj_name)
         directory = inst.Installation.get_config_dir_static(mj_name, an_name)
         path = comconf.CommunicatorConfigService.get_file_path(
-            directory, comconf.CommType.delegator.value)
+            directory, comconf.CommType.app.value)        
         with open(path, "r") as json_file:
             comconf.CommunicatorConfigService.load_file(json_file, com_conf)                    
         com = Communicator(com_conf)
@@ -145,8 +155,12 @@ class ComManager:
         """delete first job in queue and return True else return False"""
         for  key in self.delete_jobs:
             if not key in self._workers:
-                self.__resume_mj(key)
-                self._workers[key].delete()
+                if not self.__is_mj_initialized(key):
+                    self.jobs_deleted[key] = None
+                    self.delete_jobs.remove(key)
+                else:
+                    self.__resume_mj(key)
+                    self._workers[key].delete()
                 return True
         return False
 

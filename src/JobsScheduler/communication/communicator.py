@@ -19,6 +19,8 @@ from  communication.pbs_input_comm import PbsInputComm
 from data.states import TaskStatus
 
 LONG_MESSAGE_TIMEOUT=600
+__NOT_INSTALLED__ = "Next communicator was not installed"
+__TIMEOUT__ = "Communication timeout is exceed"
 logger = logging.getLogger("Remote")
 
 class Communicator():
@@ -211,20 +213,20 @@ class Communicator():
         """This function will be set by communicator. This is empty default implementation."""
         if message.action_type == tdata.ActionType.destroy:
             self._destroy()
-        if message.action_type == tdata.ActionType.restore_connection:
-            if self.status.interupted:
-                res = self.restore()
-                if res is not None:
-                    # restore retur error
-                    action=tdata.Action(tdata.ActionType.error)
-                    action.data.data["msg"] = res
-                    action.data.data["severity"] = 5
-                    if self.status.next_started:
-                        action.data.data["severity"] = 3
-                    return False, action.get_message()
-                #restore only one communicator per request
-                action = tdata.Action(tdata.ActionType.action_in_process)
+        if message.action_type == tdata.ActionType.restore_connection or \
+            message.action_type == tdata.ActionType.restore:
+            res = self.restore(message.action_type == tdata.ActionType.restore)
+            if res is not None:
+                # restore retur error
+                action=tdata.Action(tdata.ActionType.error)
+                action.data.data["msg"] = res
+                action.data.data["severity"] = 5
+                if self.status.next_started:
+                    action.data.data["severity"] = 3
                 return False, action.get_message()
+            #restore only one communicator per request
+            action = tdata.Action(tdata.ActionType.action_in_process)
+            return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
             if self.is_installed() and self.instalation_fails_mess is not None:
                 action=tdata.Action(tdata.ActionType.error)
@@ -272,17 +274,22 @@ class Communicator():
             self._interupt = True
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
-        if message.action_type == tdata.ActionType.stop:
+        if message.action_type == tdata.ActionType.stop or message.action_type == tdata.ActionType.delete:
             if response is not None and \
                 response.action_type == tdata.ActionType.action_in_process:
                 return response
-            if response is None or \
-                response.action_type != tdata.ActionType.ok:
-                self.terminate_connections()
             self.status.next_started = False
-            self.status.next_installed = False
             self.status.save()
-            logger.info("Stop signal is received")
+            if message.action_type != tdata.ActionType.delete:
+                self.status.save()
+                logger.info("Stop signal is received")
+            else:
+                self.delete()
+                logger.info("Delete signal is received")
+            if (response is None or \
+                response.action_type != tdata.ActionType.ok) and \
+                self.status.next_installed:
+                self.terminate_connections()
             self.stop =True
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
@@ -319,22 +326,36 @@ class Communicator():
                     return action.get_message()
         return None    
     
-    def restore(self):
+    def restore(self, recreate=False):
         """Restore connection chain to next communicator"""
         self.status.load()
-        if not self.status.next_started:
-            return "Application was stopped"
+        if not self.status.next_installed:
+            logger.info(__NOT_INSTALLED__)
+            return __NOT_INSTALLED__
+        if not self.status.next_started and not recreate:
+            return "Next communicator was stopped"        
         if self.input is not None:
             self.input.load_state(self.status)
         if self.output is not None:
             self.output.load_state(self.status)
         if self.output is not None:
             if isinstance(self.output, SshOutputComm):
-                self.output.connect()
-                self.output.exec_(self.next_communicator, self.id)
+                try:
+                    self.output.connect()
+                    self.output.exec_(self.next_communicator, self.id)
+                except Exception as err:
+                    return "Can't create ssh connection ({0})".format(str(err))
             elif not self.output.isconnected():    
                 if not self._connect_socket(self.output):
-                    return "Can't connect to next communicator"
+                    if recreate:
+                        try:
+                            self.output.exec_(self.next_communicator, self.id)
+                        except Exception as err:
+                            return "Can't create communicator ({0})".format(str(err))
+                        if not self._connect_socket(self.output):
+                            return "Can't recreate to next communicator"
+                    else:
+                        return "Can't connect to next communicator"
         self.status.interupted=False
         self.status.save()
         logger.info("Application " + self.communicator_name + " is restored")
@@ -400,6 +421,21 @@ class Communicator():
         self._download_processed_lock.acquire()
         self._download_processed = tdata.ProcessType.finished
         self._download_processed_lock.release()
+    
+    def is_next_installed(self):
+        """return if next communicator is inicialized"""
+        return self.status.next_installed
+
+    def delete(self):
+        """
+        delete data dir 
+        
+        - status data is deleted, communicator should be stopped afterwards
+        - data is deleted only for ssh connection
+        """
+        if self.input is not None and \
+            isinstance(self.input, StdInputComm):
+            self.output.delete()
         
     def is_installed(self):
         """if installation process of next communicator is finished"""
@@ -528,7 +564,10 @@ class Communicator():
                 break
             if mess.action_type != tdata.ActionType.action_in_process:
                 return mess
-        return None
+        action=tdata.Action(tdata.ActionType.error)
+        action.data.data["msg"] = __TIMEOUT__
+        mess = action.get_message()
+        return mess
         
     def receive_message(self, timeout=60):
         """receive message from output"""

@@ -1,11 +1,9 @@
 import logging
 import copy
-import os
-import shutil
 import data.transport_data as tdata
 import data.communicator_conf as comconf
 from .communicator import Communicator
-from  communication.installation import  Installation, __install_dir__
+from  communication.installation import  Installation
 from communication.std_input_comm import StdInputComm
 import threading
 from  communication.exec_output_comm import  ExecOutputComm
@@ -47,6 +45,9 @@ class JobsCommunicator(Communicator):
         """If this variable is set, initialization of mj state in next communicator
         is needed. This variable is :class:`data.transport_data.StartCountsData` 
         structure"""
+        self.ready = False
+        logger.debug("ready set to False")
+        """Communicator is ready for job running"""
         if idle_func is None:
             self.anc_idle_func = self.standart_idle_function
             """
@@ -65,9 +66,22 @@ class JobsCommunicator(Communicator):
             self._interupt = True
             action = tdata.Action(tdata.ActionType.ok)
             return False, action.get_message()
-        if message.action_type == tdata.ActionType.restore_connection:
-            self.restore()
-            action = tdata.Action(tdata.ActionType.ok)
+        if message.action_type == tdata.ActionType.restore_connection or \
+            message.action_type == tdata.ActionType.restore:
+            self.restored = message.action_type == tdata.ActionType.restore
+            res = self.restore(message.action_type == tdata.ActionType.restore)
+            logger.debug("ready set to {0}".format(message.action_type != tdata.ActionType.restore))
+            self.ready = message.action_type != tdata.ActionType.restore
+            if res is not None:
+                # restore retur error
+                logger.warning("Restore error: {0}".format(res))
+                action=tdata.Action(tdata.ActionType.error)
+                action.data.data["msg"] = res
+                action.data.data["severity"] = 5
+                if self.status.next_started:
+                    action.data.data["severity"] = 3
+            else:
+                action = tdata.Action(tdata.ActionType.ok)
             return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
@@ -76,6 +90,8 @@ class JobsCommunicator(Communicator):
             if self.is_installed():
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
+                self.ready = True
+                logger.debug("ready set to True")
                 return False, action.get_message()                        
             if mess is not None and mess.action_type == tdata.ActionType.install_in_process:
                 # renew install state to installation
@@ -103,10 +119,12 @@ class JobsCommunicator(Communicator):
         """before action function"""
         if message.action_type == tdata.ActionType.interupt_connection:
             return None
-        if message.action_type == tdata.ActionType.stop:
+        if message.action_type == tdata.ActionType.stop or \
+            message.action_type == tdata.ActionType.delete:
             self._state_stopping()
             if len(self.jobs) > 0:
                 self._stopping = True
+                logger.debug("{0} jobs is running during stoping".format(str(len(self.jobs))))
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return action.get_message()    
             if response is not None and \
@@ -114,7 +132,15 @@ class JobsCommunicator(Communicator):
                 return response
             self._state_stoped()
             self.stop = True
-            logger.info("Stop signal is received")
+            if message.action_type != tdata.ActionType.delete:
+                logger.info("Stop signal is received")                
+            else:
+                self.delete()
+                logger.info("Delete signal is received")            
+            if (response is None or \
+                response.action_type != tdata.ActionType.ok) and \
+                self.status.next_installed:
+                self.terminate_connections()
             action = tdata.Action(tdata.ActionType.ok)
             return action.get_message()
         if message.action_type == tdata.ActionType.download_res:           
@@ -122,18 +148,6 @@ class JobsCommunicator(Communicator):
                self.conf.direct_communication:
                 action = tdata.Action(tdata.ActionType.ok)
                 self._try_finish_jobs()                
-                return action.get_message()
-        if message.action_type == tdata.ActionType.delete: 
-            if self.conf.output_type == comconf.OutputCommType.ssh and \
-               not self.conf.direct_communication:
-                if response is None or \
-                    response.action_type != tdata.ActionType.ok:
-                    return response   
-                action = tdata.Action(tdata.ActionType.ok)
-                if not os.path.isdir(os.path.join(__install_dir__, "ui")):
-                    # isn't local folder
-                    path =  Installation.get_mj_data_dir_static(self.mj_name, self.an_name)
-                    shutil.rmtree(path, ignore_errors=True)
                 return action.get_message()
         return super(JobsCommunicator, self).standart_action_function_after(message,  response)
 
@@ -367,9 +381,18 @@ class JobsCommunicator(Communicator):
             self._instaled = True
             self._install_lock.release()
         
-    def restore(self):
+    def restore(self, recreate):
         """Restore connection chain to next communicator"""
         self.status.load()
+        if recreate and \
+            self.conf.output_type == comconf.OutputCommType.ssh and \
+            not self.conf.direct_communication:
+            if not self.output.isconnected():
+                try:
+                    self.output.connect()
+                    self.output.exec_(self.next_communicator, self.id)
+                except Exception as err:
+                    return "Can't create ssh connection ({0})".format(str(err))          
         self.status.interupted=False
         self.status.save()
         logger.info("Multi Job Application " + self.communicator_name + " is restored")    

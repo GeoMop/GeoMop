@@ -2,6 +2,7 @@
 import sys
 import os
 import re
+import shutil
 import logging
 import copy
 import subprocess
@@ -325,6 +326,29 @@ class Installation:
                 logger.warning("Lock error:" + str(ssh.before,'utf-8').strip())
                 ssh.prompt()
         return False, False
+
+    def remove_pyc_on_ssh(self, conn, ssh):
+        """
+        remove all *.pyc files on remote over ssh
+        """
+        command = self.python_env.python_exec + " '" +self.copy_path +"'"
+        if sys.platform == "win32":
+            res, mess = conn.exec_ret(command)
+            if not res:
+                logger.warning("Run remove_pyc file: " + mess)  
+        else:
+            import pexpect
+            logger.debug("Command:" + command)
+            ssh.sendline(command)
+            ssh.expect( self.python_env.python_exec + ".*\r\n")
+            txt = ''
+            if len(ssh.before)>0:
+                try:
+                    txt = str(ssh.read_nonblocking(size=10000, timeout=5), 'utf-8')
+                except pexpect.TIMEOUT:
+                    return None
+                if len(txt)>0:   
+                    logger.error("Run remove_pyc file: " + "\n" + txt)             
 
     def copy_data_files(self, conn, ssh):
         """Copy installation files"""
@@ -853,5 +877,11 @@ class Installation:
             logger.debug("Installation libraries ended")
             term = term.sendline('exit')
         cls.unlock_lib()
+        
+    def delete(self):
+        """delete all app data for current multijob"""
+        mj_dir = self.get_mj_data_dir()
+        shutil.rmtree(mj_dir, ignore_errors=True)
+        
  
  

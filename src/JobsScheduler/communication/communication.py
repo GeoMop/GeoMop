@@ -29,6 +29,10 @@ class OutputComm(metaclass=abc.ABCMeta):
     def install_job_libs(self):
         """Install libs for jobs"""
         self.installation.install_job_libs()
+        
+    def delete(self):
+        """delete all app data for current multijob"""
+        self.installation.delete()
     
     @abc.abstractmethod    
     def isconnected(self):
