@@ -50,9 +50,11 @@ class StdInputComm(InputComm):
             try:
                 mess = tdata.Message(str(txt, 'utf-8').strip())
             except(tdata.MessageError) as err:
-                txt = str(txt, 'utf-8').strip()
-                logger.warning("Error(" + str(err) + ") during parsing input message: " + txt)
-            
+                text = str(txt, 'utf-8').strip()
+                logger.warning("Error({0}) in the parsing of the input message: {1}".format(str(err), text))
+                return None
+            if mess is None:
+                logger.warning("Unknown message ({0})".format(str(txt, 'utf-8')))
         return mess
     
     def disconnect(self):

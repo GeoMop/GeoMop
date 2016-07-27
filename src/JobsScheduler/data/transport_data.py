@@ -110,6 +110,18 @@ class Message:
             return False
         return True
     
+    @classmethod
+    def is_end_in(cls, txt):
+        """in text is message end"""
+        text = txt.strip()
+        if len(text)<len(cls.end5):
+            return False
+        if text[-len(cls.end5):] != cls.end5:
+            return True
+        if cls.end5 in text:
+            return True
+        return False
+    
     def unpack(self, asci):
         """upack transported data from base 64 format"""
         if len(asci) < len(Message.end5) :

@@ -46,7 +46,6 @@ class JobsCommunicator(Communicator):
         is needed. This variable is :class:`data.transport_data.StartCountsData` 
         structure"""
         self.ready = False
-        logger.debug("ready set to False")
         """Communicator is ready for job running"""
         if idle_func is None:
             self.anc_idle_func = self.standart_idle_function
@@ -68,21 +67,26 @@ class JobsCommunicator(Communicator):
             return False, action.get_message()
         if message.action_type == tdata.ActionType.restore_connection or \
             message.action_type == tdata.ActionType.restore:
-            self.restored = message.action_type == tdata.ActionType.restore
-            res = self.restore(message.action_type == tdata.ActionType.restore)
-            logger.debug("ready set to {0}".format(message.action_type != tdata.ActionType.restore))
-            self.ready = message.action_type != tdata.ActionType.restore
-            if res is not None:
-                # restore retur error
-                logger.warning("Restore error: {0}".format(res))
-                action=tdata.Action(tdata.ActionType.error)
-                action.data.data["msg"] = res
-                action.data.data["severity"] = 5
-                if self.status.next_started:
-                    action.data.data["severity"] = 3
-            else:
-                action = tdata.Action(tdata.ActionType.ok)
-            return False, action.get_message()
+            if not self._restored:
+                res = self.restore(message.action_type == tdata.ActionType.restore)
+                self.ready = message.action_type != tdata.ActionType.restore
+                if res is not None:
+                    # restore retur error
+                    logger.warning("Restore error: {0}".format(res))
+                    action=tdata.Action(tdata.ActionType.error)
+                    action.data.data["msg"] = res
+                    action.data.data["severity"] = 5
+                    if self.status.next_started:
+                        action.data.data["severity"] = 3
+                else:
+                    if  message.action_type == tdata.ActionType.restore and \
+                        self.conf.output_type == comconf.OutputCommType.ssh and \
+                        not self.conf.direct_communication:
+                        # repeate in next request for remote
+                        action = tdata.Action(tdata.ActionType.action_in_process)
+                    else:
+                        action = tdata.Action(tdata.ActionType.ok)                    
+                return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:            
             resent, mess = super(JobsCommunicator, self).standart_action_function_before(message)
             if mess is not None and mess.action_type == tdata.ActionType.error:
@@ -91,7 +95,6 @@ class JobsCommunicator(Communicator):
                 logger.debug("MultiJob application was started")
                 action = tdata.Action(tdata.ActionType.ok)
                 self.ready = True
-                logger.debug("ready set to True")
                 return False, action.get_message()                        
             if mess is not None and mess.action_type == tdata.ActionType.install_in_process:
                 # renew install state to installation
@@ -395,6 +398,7 @@ class JobsCommunicator(Communicator):
                     return "Can't create ssh connection ({0})".format(str(err))          
         self.status.interupted=False
         self.status.save()
+        self._restored = True
         logger.info("Multi Job Application " + self.communicator_name + " is restored")    
         
     def interupt(self):

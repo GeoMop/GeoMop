@@ -23,6 +23,7 @@ class PbsOutputComm(ExecOutputComm):
 
     def exec_(self, python_file, mj_id):
         """run set python file in ssh"""
+        self.installation.local_copy_path()
         hlp = pbs.Pbs(self.installation.get_mj_data_dir(), self.config)        
         hlp.prepare_file(self.installation.get_command_only(python_file, mj_id),
                                   self.installation.get_interpreter(), 

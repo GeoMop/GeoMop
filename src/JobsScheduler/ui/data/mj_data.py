@@ -146,8 +146,13 @@ class MultiJob:
             return kwargs[key] if key in kwargs else default
 
         self.preset = preset
+        """mj preset"""
         self.state = kw_or_def('state', MultiJobState(preset.name))
+        """mj state"""
         self.error = kw_or_def('error', "")
+        """mj error for error state"""
+        self.last_status = kw_or_def('last_status', None)
+        """State before deleting"""
 
     @property
     def id(self):

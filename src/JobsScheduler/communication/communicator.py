@@ -56,6 +56,8 @@ class Communicator():
         """log level for communicator"""
         self._instaled = False        
         """if installation process of next communicator is finished"""
+        self._restored = False        
+        """if restored process is finished"""
         self.instalation_fails_mess = None        
         """
         if installation fail, this variable contain instalation message,
@@ -215,18 +217,19 @@ class Communicator():
             self._destroy()
         if message.action_type == tdata.ActionType.restore_connection or \
             message.action_type == tdata.ActionType.restore:
-            res = self.restore(message.action_type == tdata.ActionType.restore)
-            if res is not None:
-                # restore retur error
-                action=tdata.Action(tdata.ActionType.error)
-                action.data.data["msg"] = res
-                action.data.data["severity"] = 5
-                if self.status.next_started:
-                    action.data.data["severity"] = 3
+            if not self._restored:
+                res = self.restore(message.action_type == tdata.ActionType.restore)
+                if res is not None:
+                    # restore retur error
+                    action=tdata.Action(tdata.ActionType.error)
+                    action.data.data["msg"] = res
+                    action.data.data["severity"] = 5
+                    if self.status.next_started:
+                        action.data.data["severity"] = 3
+                    return False, action.get_message()
+                #restore only one communicator per request
+                action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, action.get_message()
-            #restore only one communicator per request
-            action = tdata.Action(tdata.ActionType.action_in_process)
-            return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
             if self.is_installed() and self.instalation_fails_mess is not None:
                 action=tdata.Action(tdata.ActionType.error)
@@ -345,19 +348,20 @@ class Communicator():
                     self.output.exec_(self.next_communicator, self.id)
                 except Exception as err:
                     return "Can't create ssh connection ({0})".format(str(err))
-            elif not self.output.isconnected():    
-                if not self._connect_socket(self.output):
-                    if recreate:
-                        try:
-                            self.output.exec_(self.next_communicator, self.id)
-                        except Exception as err:
-                            return "Can't create communicator ({0})".format(str(err))
-                        if not self._connect_socket(self.output):
-                            return "Can't recreate to next communicator"
-                    else:
+            elif not self.output.isconnected():
+                if recreate:
+                    try:
+                        self.output.exec_(self.next_communicator, self.id)
+                    except Exception as err:
+                        return "Can't create communicator ({0})".format(str(err))
+                    if not self._connect_socket(self.output):
+                        return "Can't recreate to next communicator"
+                else:
+                    if not self._connect_socket(self.output):
                         return "Can't connect to next communicator"
         self.status.interupted=False
         self.status.save()
+        self._restored = True
         logger.info("Application " + self.communicator_name + " is restored")
         return None
         

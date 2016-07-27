@@ -214,17 +214,22 @@ else:
             try:
                 txt = str(self.ssh.read_nonblocking(size=10000, timeout=timeout), 'utf-8')
             except pexpect.TIMEOUT:
+                logger.warning("Timeout in output receive function")
                 return None
                 
-            timeout = False
-            while not timeout:    
+            tmout = False
+            while not tmout:    
                 try:
                     txt += str(self.ssh.read_nonblocking(size=10000, timeout=2), 'utf-8')
                 except pexpect.TIMEOUT:
-                    timeout = True
+                    tmout = True
                     
-            txt = txt.strip()
-            lines = txt.splitlines(False)
+            if not tdata.Message.is_end_in(txt):
+                logger.warning("In received text is not message end: {0}".format(txt))
+                return None
+                    
+            text = txt.strip()
+            lines = text.splitlines(False)
             txt = None
             last_mess_processed = False
             
@@ -248,18 +253,21 @@ else:
                         error_lines.append(line)
    
             if len( error_lines) > 0:
-                logger.warning("Ballast in message:" + "\n".join( error_lines))
+                logger.warning("Ballast in message:\n   ~{0}".format("   ~\n".join( error_lines)))
             
             #only echo, tray again
             if last_mess_processed and txt is None:
                 return self.receive(timeout)
              
             if txt is None:
+                logger.warning("Received text is processed as emty: {0}".format(text))
                 return None
                 
             self.last_mess = None
             try:
                 mess =tdata.Message(txt)
+                if mess is None:
+                    logger.warning("Unknown message ({0})".format(text))
                 return mess
             except(tdata.MessageError) as err:
                 logger.warning("Receive message (" + txt + ") error: " + str(err))

@@ -54,6 +54,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def perform_multijob_startup_action(self):
         for mj_id, mj in self.data.multijobs.items():
             status = mj.get_state().status
+            if status == TaskStatus.deleting:
+                if mj.last_status is not None:
+                    mj.get_state().status = mj.last_status
+                    mj.last_status = None
+                else:
+                    mj.get_state().status = TaskStatus.error
+                    self.error = "Multijob data is corrupted"
             action = TASK_STATUS_STARTUP_ACTIONS[status]
             if action == MultijobActions.resume:
                 self.com_manager.resume_jobs.append(mj_id)
@@ -235,8 +242,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 shutil.rmtree(mj_dir)
                 self.data.multijobs.pop(mj_id)  # delete from gui
             if error is not None:
-                mj.state.status = TaskStatus.error
-                mj.error = error
+                self.report_error("Deleting error: {0}".format(error))
+            mj.get_state().status = mj.last_status
+            mj.last_status = None
         
         if len(self.com_manager.jobs_deleted)>0:
             self.multijobs_changed.emit(self.data.multijobs)
@@ -315,11 +323,22 @@ class MainWindow(QtWidgets.QMainWindow):
             key = self.ui.overviewWidget.currentItem().text(0)
             self.com_manager.delete_jobs.append(key)
             self._delete_mj_local.append(key)
+            self._set_deleting(key)
+            
+    def _set_deleting(self, key):
+        """save state before deleting and mark mj as deleted"""
+        mj = self.data.multijobs[key]        
+        if mj.get_state().status == TaskStatus.deleting:
+            return
+        mj.last_status = mj.get_state().status
+        mj.get_state().status = TaskStatus.deleting
+        self.ui.overviewWidget.update_item(key, mj.get_state())
 
     def _handle_delete_remote_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             self.com_manager.delete_jobs.append(key)
+            self._set_deleting(key)
 
     def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])

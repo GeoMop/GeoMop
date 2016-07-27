@@ -91,6 +91,14 @@ class TaskStatus(IntEnum):
     :permited actions: delete
     :start app action: no
     """
+    deleting = 13
+    """
+    MultiJob delete attempt is processed
+    :permited actions: no
+    :start app action: no (rename to error or OK)
+    
+    This state is only for gui
+    """
 
     def __str__(self):
         """Return string representation."""
@@ -110,7 +118,8 @@ _TASK_STATUS_DISPLAY_NAMES = {
     TaskStatus.resuming: 'Resuming',
     TaskStatus.running: 'Running',
     TaskStatus.stopped: 'Stopped',
-    TaskStatus.stopping: 'Stopping'
+    TaskStatus.stopping: 'Stopping', 
+    TaskStatus.deleting: 'Deleting'
 }
 
 
@@ -153,7 +162,8 @@ TASK_STATUS_STARTUP_ACTIONS = {
     TaskStatus.resuming: MultijobActions.resume,
     TaskStatus.running: MultijobActions.resume,
     TaskStatus.stopped: None,
-    TaskStatus.stopping: MultijobActions.terminate
+    TaskStatus.stopping: MultijobActions.terminate, 
+    TaskStatus.deleting: None
 }
 
 

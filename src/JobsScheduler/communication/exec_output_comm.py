@@ -24,8 +24,7 @@ class ExecOutputComm(OutputComm):
         """socket is connected"""
 
     def connect(self):
-        """connect session"""
-        self.installation.local_copy_path()
+        """connect session"""        
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         logger.debug("Client try connect to " + self.host + ":" + str(self.port)) 
         self.conn.connect((self.host, self.port))
@@ -49,6 +48,7 @@ class ExecOutputComm(OutputComm):
         
     def exec_(self, python_file, mj_id):
         """run set python file in ssh"""
+        self.installation.local_copy_path()
         self.installation.prepare_popen_env()
         si = None
         if sys.platform == "win32":
