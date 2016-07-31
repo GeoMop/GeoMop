@@ -457,7 +457,8 @@ class Pipelineprocessor():
                 for worker in workers:
                     if worker.is_empty():
                         worker.stop()
-                self._action_lock.acquire()                
+                time.sleep(0.1)
+                self._action_lock.acquire()
                 self._is_finished = True
                 self._is_run = False
                 self._action_lock.release()

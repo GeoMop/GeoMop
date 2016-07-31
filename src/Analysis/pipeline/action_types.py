@@ -371,6 +371,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         if self._restore_id is None:
             return
         for input in self._inputs:
+            if isinstance(input, Bridge):
+                input = input._link
             if input._restore_id is None:
                 self._restore_id = None
                 return

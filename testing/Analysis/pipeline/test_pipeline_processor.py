@@ -9,6 +9,7 @@ from pipeline.workflow_actions import *
 from pipeline.wrapper_actions import *
 from pipeline.parametrized_actions import *
 import pipeline.action_types as action
+from client_pipeline.identical_list_creator import *
 import time
 import shutil
 
@@ -105,3 +106,76 @@ def test_set_restore_id():
     assert flow._restore_id == "14"
     assert side._restore_id is None
     assert pipeline._restore_id is None
+
+
+def test_hashes_and_store_restore(request):
+    def clear_backup():
+        shutil.rmtree("backup", ignore_errors=True)
+        if os.path.isfile("identical_list.json"):
+            os.remove("identical_list.json")
+    request.addfinalizer(clear_backup)
+
+    # create pipeline first time
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+
+    pp = Pipelineprocessor(pipeline)
+    errs = pp.validate()
+    assert len(errs) == 0
+
+    hlist1 = pp._pipeline._get_hashes_list()
+
+    pp.run()
+    i = 0
+    while pp.is_run():
+        runner = pp.get_next_job()
+        if runner is None:
+            time.sleep(0.1)
+        else:
+            pp.set_job_finished(runner.id)
+        i += 1
+        assert i < 1000, "Timeout"
+
+    assert os.path.isdir("backup/store")
+    assert os.path.isdir("backup/restore")
+    assert len(os.listdir("backup/store")) == 2
+    assert len(os.listdir("backup/restore")) == 0
+
+    # create pipeline second time
+    vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+    vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
+    workflow = Workflow(Inputs=[vg2])
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
+    workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
+    pipeline = Pipeline(ResultActions=[workflow])
+    pipeline._inicialize()
+
+    hlist2 = pipeline._get_hashes_list()
+
+    il = ILCreator.create_identical_list(hlist2, hlist1)
+    il.save("identical_list.json")
+
+    pp = Pipelineprocessor(pipeline, identical_list="identical_list.json")
+    errs = pp.validate()
+    assert len(errs) == 0
+
+    pp.run()
+    i = 0
+    while pp.is_run():
+        runner = pp.get_next_job()
+        if runner is None:
+            time.sleep(0.1)
+        else:
+            pp.set_job_finished(runner.id)
+        i += 1
+        assert i < 1000, "Timeout"
+
+    assert flow._restore_id is not None
+    assert side._restore_id is not None
