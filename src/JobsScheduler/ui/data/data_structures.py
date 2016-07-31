@@ -162,7 +162,6 @@ class DataContainer:
     Wrapper class for all data containers.
     """
 
-    BASE_DIR = "JobScheduler"
     DEBUG_MODE = False
 
     def __init__(self):

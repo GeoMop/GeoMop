@@ -15,7 +15,7 @@ export PYTHONPATH=../../src/ModelEditor:../../src/common:./mock
 py.test-3
 
 cd ../JobsScheduler
-export PYTHONPATH=../../src/JobsScheduler:../../src/common:../../src/JobsScheduler/twoparty/pexpect
+export PYTHONPATH=../../src/JobsScheduler:../../src/common:../../src/JobsScheduler/twoparty/pexpect:./mock
 py.test-3
 
 cd ../Analysis

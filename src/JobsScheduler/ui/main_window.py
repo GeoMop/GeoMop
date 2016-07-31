@@ -15,9 +15,8 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from communication import Installation
-from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from communication import installation
+from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
 from ui.dialogs import FilesSavedMessageBox, MessageDialog
@@ -298,7 +297,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def _handle_log_action():
-        path = Installation.get_central_log_dir_static()
+        path = installation.Installation.get_central_log_dir_static()
         for file in os.listdir(path):
             file_path = os.path.join(path, file)
             if os.path.isfile(file_path):

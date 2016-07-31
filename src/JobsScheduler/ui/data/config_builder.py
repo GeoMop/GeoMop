@@ -8,9 +8,10 @@ import copy
 import os
 import uuid
 import json
+import config
 
+import communication.installation as ins
 from communication import Installation
-from communication.installation import __ins_files__
 from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
@@ -18,7 +19,6 @@ from ui.dialogs.resource_dialog import UiResourceDialog
 from version import Version
 from data import Users
 from ui.dialogs import SshPasswordDialog
-from config import __config_dir__
 from geomop_analysis import Analysis, InvalidAnalysis
 
 JOB_NAME_LABEL = "flow"
@@ -61,7 +61,7 @@ class ConfigBuilder:
         res_preset = self.resource_presets[mj_preset.resource_preset]
         mj_log_level = mj_preset.log_level
         mj_number_of_processes = mj_preset.number_of_processes
-
+ 
         # resource preset
         mj_execution_type = res_preset.mj_execution_type
         mj_ssh_preset = self.ssh_presets.get(res_preset.mj_ssh_preset, None)
@@ -226,11 +226,7 @@ class ConfigBuilder:
            j_execution_type == UiResourceDialog.REMOTE_LABEL and \
            j_remote_execution_type == UiResourceDialog.PBS_LABEL:
             mj.conf.direct_communication = True
-            remote.conf.direct_communication = True
-
-        # set installation paths
-        Installation.paths_config = app.conf.paths_config
-
+            remote.conf.direct_communication = True        
         # save to files
         with open(app.get_path(), "w") as app_file:
             CommunicatorConfigService.save_file(
@@ -261,7 +257,7 @@ class ConfigBuilder:
         jobs = {}
         mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name, an_name))
         job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name, an_name),
-                                        __ins_files__['job_configurations'])
+                                      ins.__ins_files__['job_configurations'])
         job_counter = 1
 
         try:
@@ -348,7 +344,7 @@ class ConfBuilder:
         return os.path.join(path, file)
 
     def set_paths_before_ssh(self, workspace, mj, copy_ex_libs=False):
-        self.conf.paths_config.home_dir = __config_dir__
+        self.conf.paths_config.home_dir = config.__config_dir__
         self.conf.paths_config.work_dir = workspace
         self.conf.paths_config.app_dir = None
         self.conf.paths_config.ex_lib_path = EX_LIB_PATH
