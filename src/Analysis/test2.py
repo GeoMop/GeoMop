@@ -22,32 +22,7 @@ import pipeline.action_types as action
 
 from client_pipeline.identical_list_creator import *
 
-action.__action_counter__ = 0
-vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
-workflow = Workflow(Inputs=[vg2])
-flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test.yaml")
-side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
-workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
-pipeline = Pipeline(ResultActions=[workflow])
-#pipeline._inicialize()
 
 
-pp = Pipelineprocessor(pipeline)
-errs = pp.validate()
-
-names = []
-pp.run()
-i = 0
-
-while pp.is_run():
-    runner = pp.get_next_job()
-    if runner is None:
-        time.sleep(0.1)
-    else:
-        names.append(runner.name)
-        pp.set_job_finished(runner.id)
-    i += 1
-    assert i < 1000, "Timeout"
 
 print(9)
