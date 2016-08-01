@@ -22,7 +22,7 @@ problem: !Coupling_Sequential
         # and converted anisotropy values into two dimensional arrays
         anisotropy: !FieldFormula
           value:
-            - [y]
+            - [y, z]
               
       - rid: 2
         time: 4
@@ -33,7 +33,7 @@ problem: !Coupling_Sequential
         region: [a, b, c]
         anisotropy: !FieldFormula
           value:
-            - [z]
+            - [y, z]
 
 
     # Placeholder data
