@@ -457,6 +457,7 @@ class Pipelineprocessor():
                 for worker in workers:
                     if worker.is_empty():
                         worker.stop()
+                # TODO: asi se zapisuji věci do souborů, zjistit proč
                 time.sleep(0.1)
                 self._action_lock.acquire()
                 self._is_finished = True

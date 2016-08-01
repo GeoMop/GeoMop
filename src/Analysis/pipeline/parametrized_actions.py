@@ -45,6 +45,7 @@ class Flow123dAction(ParametrizedActionType):
                 with open(yaml_file, 'r') as file_d:
                     document = file_d.read().expandtabs(tabsize=2)
         except (RuntimeError, IOError) as e:
+            #self._add_error(self._load_errs, "Output variable is not settable.")
             err.append("Can't open .yaml file: {0}".format(e))
             return
         self._hash.update(bytes(document, "utf-8"))
