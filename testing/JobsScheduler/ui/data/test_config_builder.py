@@ -61,7 +61,8 @@ def test_builder_create(request, data):
     assert app.number_of_processes == 1
     assert app.output_type == 2
     assert app.paths_config.app_dir is None
-    assert app.paths_config.home_dir == SETTINGS_DIR
+    assert app.paths_config.home_dir[:len(TEST_DIR)] == TEST_DIR
+    assert app.paths_config.work_dir[:len(TEST_DIR)] == TEST_DIR
     assert app.pbs is None
     assert app.port == 5723
     assert app.python_env.python_exec == "python3"
@@ -70,7 +71,7 @@ def test_builder_create(request, data):
 def test_dir_create(request, data):
     def fin_test_dir_create():
         communicator_files_builder.clear_files(TEST_DIR)
-    #request.addfinalizer(fin_test_dir_create)
+    request.addfinalizer(fin_test_dir_create)
     
     assert len(data.multijobs) == 1
     assert "test2_local_2" in data.multijobs
@@ -94,7 +95,8 @@ def test_dir_create(request, data):
     assert mj_conf.number_of_processes == 1
     assert mj_conf.output_type == 2
     assert mj_conf.paths_config.app_dir is None
-    assert mj_conf.paths_config.home_dir == SETTINGS_DIR
+    assert mj_conf.paths_config.home_dir[:len(TEST_DIR)] == TEST_DIR
+    assert mj_conf.paths_config.work_dir[:len(TEST_DIR)] == TEST_DIR
     assert mj_conf.pbs is None
     assert mj_conf.port == 5723
     assert mj_conf.python_env.python_exec == "python3"
@@ -115,7 +117,8 @@ def test_dir_create(request, data):
     assert job_conf.number_of_processes == 1
     assert job_conf.output_type == 0
     assert job_conf.paths_config.app_dir is None
-    assert job_conf.paths_config.home_dir == SETTINGS_DIR
+    assert job_conf.paths_config.home_dir[:len(TEST_DIR)] == TEST_DIR
+    assert job_conf.paths_config.work_dir[:len(TEST_DIR)] == TEST_DIR
     assert job_conf.pbs is None
     assert job_conf.port == 5723
     assert job_conf.python_env.python_exec == "python3"
