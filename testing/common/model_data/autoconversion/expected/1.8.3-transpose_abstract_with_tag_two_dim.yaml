@@ -8,19 +8,10 @@ problem: !SequentialCoupling
     # Test data
     input_fields:
       # Transposed input_fields to array with two items
-      # TODO: is this the expected behavior?
+      # CORRECT result is:
       - anisotropy: !FieldFormula
-          value: 
-            - [x+y]
-            - [x-y]
-            - [z]
-              
-      - anisotropy: !FieldFormula
-          value: 
-            - [x*x]
-            - [y*y]
-            - [z*z]
-
+          - [x+y, x-y, z]
+          - [x*x, y*y, z*z]
 
     # Placeholder data
     solver: !Petsc

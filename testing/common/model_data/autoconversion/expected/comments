@@ -1,0 +1,32 @@
+OK          1.8.3-nested_arrays.yaml    
+OK          1.8.3-one_dim_array.yaml
+
+Disable transpose for versions before 2.0.0 (i.e. 1.8.3)
+
+FIX RESULT  1.8.3-transpose_abstract_default_descendant_two_dim.yaml
+OK          1.8.3-transpose_abstract_default_descendant.yaml
+WRONG INPUT 1.8.3-transpose_abstract_with_different_tags.yaml (uvnitr transpozice mohou byt uzavreny do pole pouze skalary a pole, nikoiv recordy a abstracty)
+CHANGE RES  1.8.3-transpose_abstract_with_tag_two_dim.yaml
+OK          1.8.3-transpose_abstract_with_tag.yaml
+CHANGE RES  1.8.3-transpose_complex.yaml
+CHANGE RES  1.8.3-transpose_duplicate_two_dim_array2.yaml
+OK          1.8.3-transpose_duplicate_two_dim_array.yaml
+OK          1.8.3-transpose_simple_duplicate.yaml
+OK          1.8.3-transpose_simple_scalar.yaml
+
+OK          1.8.3-two_dim_array.yaml
+OK          2.0.0_rc-nested_arrays.yaml
+OK          2.0.0_rc-one_dim_array.yaml
+FIX RESULT  2.0.0_rc-transpose_abstract_default_descendant_two_dim.yaml
+OK          2.0.0_rc-transpose_abstract_default_descendant.yaml
+WRONG INPUT 2.0.0_rc-transpose_abstract_with_different_tags.yaml
+CHANGE RES  2.0.0_rc-transpose_abstract_with_tag_two_dim.yaml
+FIX RESULT  2.0.0_rc-transpose_abstract_with_tag.yaml
+CHANGE RES  2.0.0_rc-transpose_complex.yaml
+OK          2.0.0_rc-transpose_duplicate_array_same_length.yaml
+OK          2.0.0_rc-transpose_duplicate_array.yaml
+CHANGE RES  2.0.0_rc-transpose_duplicate_two_dim_array2.yaml
+OK          2.0.0_rc-transpose_duplicate_two_dim_array.yaml
+OK          2.0.0_rc-transpose_simple_duplicate.yaml
+OK          2.0.0_rc-transpose_simple_scalar.yaml
+OK          2.0.0_rc-two_dim_array.yaml
