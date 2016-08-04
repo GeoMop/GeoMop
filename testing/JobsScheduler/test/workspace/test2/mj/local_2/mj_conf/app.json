@@ -1,0 +1,38 @@
+{
+    "an_name": "test2",
+    "app_version": "1.0.0-beta",
+    "central_log": true,
+    "cli_params": [],
+    "communicator_name": "app",
+    "conf_long_id": "50cc70cd-3a8d-4f75-95d5-828493dcb2d7",
+    "direct_communication": false,
+    "flow_path": null,
+    "input_type": 0,
+    "libs_env": {
+        "install_job_libs": false,
+        "libs_mpicc": null,
+        "mpi_module_add": null,
+        "mpi_scl_enable_exec": null,
+        "start_job_libs": false
+    },
+    "log_level": 10,
+    "mj_name": "local_2",
+    "next_communicator": "mj_service",
+    "number_of_processes": 1,
+    "output_type": 2,
+    "paths_config": {
+        "app_dir": null,
+        "copy_ex_libs": null,
+        "ex_lib_path": "/home/pavel/work/GeoMop/src/JobsScheduler/ui/../../common",
+        "home_dir": "/home/pavel/work/GeoMop/testing/JobsScheduler/test/home",
+        "work_dir": "/home/pavel/work/GeoMop/testing/JobsScheduler/test/workspace"
+    },
+    "pbs": null,
+    "port": 5723,
+    "python_env": {
+        "module_add": null,
+        "python_exec": "python3",
+        "scl_enable_exec": null
+    },
+    "ssh": null
+}

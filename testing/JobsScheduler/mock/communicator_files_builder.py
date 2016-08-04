@@ -5,6 +5,7 @@ import config
 from ui.data.config_builder import ConfigBuilder
 from communication import Installation
 import data.communicator_conf as comconf
+from log_reader import Log
 
 __HOME__ = "home"
 __WORKSPACE__ = "workspace"
@@ -20,13 +21,25 @@ def make_builder(dir, data):
     conf_builder = ConfigBuilder(data)
     return conf_builder
 
-def get_config(dir, an_name, mj_name, com_type):
+def get_config(an_name, mj_name, com_type):
     path = Installation.get_config_dir_static(mj_name, an_name)
     path = os.path.join(path, com_type.value + ".json")
     com_conf = comconf.CommunicatorConfig()
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
     return com_conf
+    
+def get_log(an_name, mj_name, com_type):
+    path = Installation. get_mj_log_dir_static(mj_name, an_name)
+    path = os.path.join(path, com_type.value + ".log")    
+    log = Log(path)
+    return log
+
+def get_central_log(): 
+    path = Installation. get_central_log_dir_static()
+    path = os.path.join(path, "app-centrall.log")
+    log = Log(path)
+    return log
 
 def make_installation(dir, data):
     home = os.path.join( dir, __HOME__)

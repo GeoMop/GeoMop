@@ -174,14 +174,9 @@ class Communicator():
                     logger.setLevel(level)
                     logger.handlers[0].setLevel(level)
                 return
-            if paths_config is None or paths_config.home_dir is None:
-                return
-            dir = os.path.join(paths_config.home_dir, "log")
+            dir = Installation.get_central_log_dir_static()
             if not os.path.isdir(dir):
-                try:
-                    os.makedirs(dir)
-                except:
-                    dir = paths_config.home_dir
+                return
             log_file = os.path.join(dir, "app-centrall.log")
         else:
             log_path = os.path.join(path, "log")
@@ -609,7 +604,13 @@ class Communicator():
             os.remove(file) 
             
     def terminate_connections(self):
-        """send terminate message to all recorded connections, and delete connections files"""
+        """
+        send terminate message to all recorded connections, and delete connections files
+        
+        After all function try kill next communicator (if next communicator is exec and was restored
+        killing fails, but previous action should be functional - restore is possible only for active 
+        connections)
+        """
         dir = Installation.get_status_dir_static(self.mj_name, self.an_name)
         logger.info("Comunicator start destroying process")
         for root, dirs, files in os.walk(dir):
@@ -638,6 +639,10 @@ class Communicator():
                                 except:
                                     pass
                     os.remove(file) 
+        time.sleep(1)
+        if self.output is not None:
+            # try kill next communicator
+            self.output.kill_next()
         logger.info("Comunicator start destroying process")
         
     def _destroy(self):

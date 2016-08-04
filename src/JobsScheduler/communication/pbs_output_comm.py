@@ -108,7 +108,22 @@ class PbsOutputComm(ExecOutputComm):
             # if self.node is "--", node information is not ready 
             if self.node is None or self.node != "--":
                 break
-            time.sleep(1)            
+            time.sleep(1)
+
+    def is_running_next(self):
+        """
+        Return if next communicator run
+        """
+        # TODO QSTAT task
+        return False
+        
+    def kill_next(self):
+        """
+        kill next communicator
+        """
+        if self.is_running_next():
+            # TODO QDEL task
+            pass
 
     def connect(self):
         """connect session"""

@@ -410,7 +410,19 @@ class JobsCommunicator(Communicator):
                 self.input.disconnect()
                 time.sleep(10)
                 self.input.connect()
-        logger.info("Multi Job Application " + self.communicator_name + " is interupted")   
+        logger.info("Multi Job Application " + self.communicator_name + " is interupted")  
+       
+    def terminate_connections(self):
+        """
+        send terminate message to all recorded connections, and delete connections files
+        
+        After all function try kill next communicator (if next communicator is exec and was restored
+        killing fails, but previous action should be functional - restore is possible only for active 
+        connections)
+        """
+        super(JobsCommunicator, self).terminate_connections()
+        for id in self.jobs:
+            self.job_outputs[id].kill_next()
         
     def _state_running(self):
         """change state to running"""

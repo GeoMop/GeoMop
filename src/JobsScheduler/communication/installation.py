@@ -184,7 +184,8 @@ class Installation:
     def lock_installation(self):
         """Set installation locks, return if should installation continue"""
         home = None
-        if self.paths_config is not None:
+        if self.paths_config is not None and \
+            self.paths_config.home_dir is not None:
             home = self.paths_config.home_dir
         lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
         try:
@@ -199,7 +200,8 @@ class Installation:
     def unlock_installation(self):
         """Unset installation locks"""
         home = None
-        if self.paths_config is not None:
+        if self.paths_config is not None and \
+            self.paths_config.home_dir is not None:
             home = self.paths_config.home_dir
 
         lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
@@ -578,11 +580,15 @@ class Installation:
             command += " " + mj_id
         return command
 
-    @staticmethod
-    def get_central_log_dir_static():
+    @classmethod
+    def get_central_log_dir_static(cls):
         """Return dir for central log"""
         try:
-            path = os.path.join(__install_dir__, "log")
+            home = __install_dir__
+            if cls.paths_config is not None and \
+                cls.paths_config.home_dir is not None:
+                home = cls.paths_config.home_dir
+            path = os.path.join(home, "log")
             if not os.path.isdir(path):
                 os.makedirs(path)
         except Exception as err:

@@ -83,6 +83,16 @@ class OutputComm(metaclass=abc.ABCMeta):
     def load_state(self, state):
         """load state from variable"""
         pass
+        
+    @abc.abstractmethod
+    def is_running_next(self):
+        """Return if next communicator run"""
+        pass
+        
+    @abc.abstractmethod
+    def kill_next(self):
+        """kill next communicator"""
+        pass
 
 class InputComm(metaclass=abc.ABCMeta):
     """Input communication abstract class"""

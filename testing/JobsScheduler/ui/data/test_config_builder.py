@@ -77,10 +77,9 @@ def test_dir_create(request, data):
     assert "test2_local_2" in data.multijobs
     communicator_files_builder.make_work_dir(TEST_DIR, data, 'test2_local_2')
     
-    workspace = os.path.join( TEST_DIR, communicator_files_builder.__WORKSPACE__) 
     mj_name = data.multijobs["test2_local_2"].preset.name
     an_name = data.multijobs["test2_local_2"].preset.analysis
-    mj_conf = communicator_files_builder.get_config(workspace, an_name, mj_name, CommType.multijob)
+    mj_conf = communicator_files_builder.get_config(an_name, mj_name, CommType.multijob)
     
     assert mj_conf.an_name == "test2"
     assert not mj_conf.central_log
@@ -102,7 +101,7 @@ def test_dir_create(request, data):
     assert mj_conf.python_env.python_exec == "python3"
     assert mj_conf.ssh is None
     
-    job_conf = communicator_files_builder.get_config(workspace, an_name, mj_name, CommType.job)
+    job_conf = communicator_files_builder.get_config(an_name, mj_name, CommType.job)
 
     assert job_conf.an_name == "test2"
     assert not job_conf.central_log

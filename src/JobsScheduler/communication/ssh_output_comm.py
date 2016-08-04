@@ -21,7 +21,20 @@ if sys.platform == "win32":
             """Ssh subprocessed instance"""
             self._connected = False
             """SSH is connected"""
+    
+        def is_running_next(self):
+            """
+            Return if next communicator run
+            """
+            return self._proc.isconnected()
             
+        def kill_next(self):
+            """
+            kill next communicator
+            """
+            if self.is_running_next():
+                self.disconnect()
+    
         def connect(self):
             """connect session"""
             self.ssh.connect()
@@ -115,7 +128,20 @@ else:
             """Ssh subprocessed instance"""
             self._connected = False
             """SSH is connected"""
+        
+        def is_running_next(self):
+            """
+            Return if next communicator run
+            """
+            return self._proc.isconnected()
             
+        def kill_next(self):
+            """
+            kill next communicator
+            """
+            if self.is_running_next():
+                self.disconnect()
+                
         def isconnected(self):
             """Connection is opened"""
             return self._connected

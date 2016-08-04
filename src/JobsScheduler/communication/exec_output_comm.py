@@ -22,8 +22,28 @@ class ExecOutputComm(OutputComm):
         """Is ready to connect"""
         self._connected = False
         """socket is connected"""
-        self._pid = None
-        """pid for killing"""
+        self._proc = None
+        """process for cheching and killing"""
+
+    def is_running_next(self):
+        """
+        Return if next communicator run
+        
+        this method is not work for restore communicator
+        """
+        if self._proc is None:
+            return False
+        return_code = self._proc.poll()
+        return return_code is None        
+        
+    def kill_next(self):
+        """
+        kill next communicator
+        
+        this method is not work for restored communicator 
+        """
+        if self.is_running_next():
+            self._proc.kill()
 
     def connect(self):
         """connect session"""        
@@ -60,23 +80,24 @@ class ExecOutputComm(OutputComm):
         if args[0] is None or args[0]=="":
             raise Exception("Python interpreter can't be empty")
         logger.debug("Run "+" ".join(args))
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
-        self._pid = process.pid
+        self._proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
+        logger.debug("PID: " + str(self._proc.pid)) 
         # wait for port number
         time.sleep(0.5)
-        return_code = process.poll()
+        return_code = self._proc.poll()
         if return_code is not None:
-            out = process.stdout.read()
+            out = self._proc.stdout.read()
             if out is None or len(out)==0:
                 out = "no output"
             else:
                 out = str(out, 'utf-8')
             if return_code == 0:
                 logger.warning("Too short run time of next communicator. Output:" + out) 
-            else:                
+            else:   
+                self._proc = None
                 raise Exception("Can not start next communicator " + python_file + 
                     " (return code: " + str(return_code) + "): " + out)        
-        out = process.stdout.readline()
+        out = self._proc.stdout.readline()
         port = re.match( 'PORT:--(\d+)--', str(out, 'utf-8'))
         if port is not None:
             logger.debug("Next communicator return socket port:" + port.group(1)) 
