@@ -63,7 +63,7 @@ class SocketInputComm(InputComm):
                     if __MAX_OPEN_PORTS__< i:
                         raise Exception("Max open ports number is exceed")
                 else:
-                    logger.error("Cant listen on port " + str(self.port) + ": " + str(err))
+                    logger.error("Can't listen on port " + str(self.port) + ": " + str(err))
                     return
         self.port += i
         logger.debug("Server try listen on port " + str(self.port)) 

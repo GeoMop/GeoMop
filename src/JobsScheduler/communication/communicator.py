@@ -204,7 +204,7 @@ class Communicator():
    
     def  standart_idle_function(self):
         """This function will be call, if meesage is not receive in run function."""
-        pass
+        time.sleep(0.5)
    
     def  standart_action_function_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
@@ -503,7 +503,7 @@ class Communicator():
                 logger.fatal("Infinite loop")
                 raise Exception("Infinite loop")
                 break
-            message = self.input.receive(1)
+            message = self.input.receive(0.1)
             mess = None
             if message is not None:
                 error = False

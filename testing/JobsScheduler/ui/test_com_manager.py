@@ -1,7 +1,6 @@
 import pytest
 import os
 import time
-import logging
 
 import communicator_files_builder
 from ui.com_manager import ComManager
@@ -12,6 +11,7 @@ HOME_DIR = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
 TEST_DIR = os.path.join(HOME_DIR, "test")
 LOCAL_FLOW_DIR = "/opt/flow/Flow123d-2.0.0_rc-Linux/bin/flow123d"
 SETTINGS_DIR =  os.path.join(HOME_DIR, "resources", "mock_settings_cm")
+ANAL_DIR =  os.path.join(HOME_DIR, "resources", "mock_an_cm")
 
 @pytest.fixture
 def data():    
@@ -66,6 +66,7 @@ def stop(cm, id, timeout=5):
     while i<(timeout*10):
         cm.poll()
         if  len(cm.start_jobs)==0 and len(cm.run_jobs)==0 and len(cm.delete_jobs)==0 :
+            time.sleep(1)
             return True
         i += 1
         time.sleep(0.1)
@@ -78,6 +79,7 @@ def terminate(cm, id, timeout=5):
     while i<(timeout*10):
         cm.poll()
         if  len(cm.start_jobs)==0 and len(cm.run_jobs)==0 and len(cm.delete_jobs)==0 :
+            time.sleep(1)
             return True
         i += 1
         time.sleep(0.1)
@@ -94,25 +96,44 @@ def delete(cm, id, timeout=5):
         i += 1
         time.sleep(0.1)
     return False
-
+    
+def wait_to_finish(cm, id, timeout=25):
+    # return False for timeout
+    i = 0
+    mj = cm._data_app.multijobs[id]                   
+    while i<(timeout*10):
+        cm.poll()
+        if len(cm.state_change_jobs)>0:
+            cm.state_change_jobs = []
+            if mj.get_state().get_status() == TaskStatus.finished or \
+                mj.get_state().get_status() == TaskStatus.error:
+                return True
+        time.sleep(0.1)
+        i += 1
+    return False
+    return False
 def get_communicator(cm, key):
     if key in cm._workers:
         worker = cm._workers[key]
         return worker._com
     return None
-
-def reset_app_handler():
-    logger = logging.getLogger("Remote")
-    for hdlr in logger.handlers:
-        logger.removeHandler(hdlr)
-   
+    
+def kill_next_communicator(cm, key):
+    if key in cm._workers:
+        worker = cm._workers[key]
+        worker._com.kill_next()
+  
 def test_local(request, data):
     run_mj = []
+    pause_mj = []
     cm = ComManager(data) 
     def fin_test_local():        
         for mj in run_mj:
-            stop(cm, mj)   
-        # communicator_files_builder.clear_files(TEST_DIR)
+            stop(cm, mj)
+        for mj in pause_mj:
+            restore(cm, mj) 
+            stop(cm, mj)
+        communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_local)
     mj = data.multijobs["test2_local_2"]
     # test start - stop, start - terminate
@@ -132,11 +153,13 @@ def test_local(request, data):
 
         assert len(cm.run_jobs)==0
         assert len(cm.delete_jobs)==0
+        assert len(cm.start_jobs)==0
 
         com = get_communicator(cm,"test2_local_2")
         if com is not None and com.is_running_next():
             com.kill_next()
             assert False, "Next communicator still run !!!"
+        assert com is None, "Next communicator still set !!!"
 
         mj_name = data.multijobs["test2_local_2"].preset.name    
         an_name = data.multijobs["test2_local_2"].preset.analysis
@@ -156,33 +179,27 @@ def test_local(request, data):
             assert  mj_log.errors[0] == "Communicator was destroyed"
 
         communicator_files_builder.clear_files(TEST_DIR)
-        reset_app_handler()
     
-    """
-    # start / pause / resume /  stop / delete 
-    assert start(cm, 'test2_local_2')   
+    # start / pause / resume /  stop / delete
+    communicator_files_builder.make_installation(TEST_DIR, data)  
+    assert start(cm, 'test2_local_2') 
     if mj.state.status == TaskStatus.error:
         assert False, "Can't start multijob({0})".format(mj.error) 
     run_mj = ['test2_local_2']
     assert mj.state.status != TaskStatus.finished
     assert len(cm.run_jobs)==1
+    assert pause_all(cm)
     
-    assert pause_all(cm, 'test2_local_2')
-    
-    assert restore(cm, 'test2_local_2')   
-    
-    assert stop(cm, 'test2_local_2')
- 
+    pause_mj = ['test2_local_2']
+    run_mj = []    
+        
+    if com is not None and com.is_running_next():            
+        assert False, "Next communicator still run !!!"
+    assert com is None, "Next communicator still set !!!"
 
-    run_mj = []
-   
     assert len(cm.run_jobs)==0
     assert len(cm.delete_jobs)==0
- 
-    com = get_communicator(cm,"test2_local_2")
-    if com is not None and com.is_running_next():
-        com.kill_next()
-        assert False, "Next communicator still run !!!"
+    assert len(cm.start_jobs)==0
     
     mj_name = data.multijobs["test2_local_2"].preset.name    
     an_name = data.multijobs["test2_local_2"].preset.analysis
@@ -194,9 +211,103 @@ def test_local(request, data):
     assert app_log.infos[-1] == "Connection to application app is stopped"
     assert len(app_log.errors) == 0
     assert  mj_log.infos[0] == "Application mj_service is started"
+    assert  mj_log.infos[-1] == "Application mj_service is interupted"
+    assert len( mj_log.errors) == 0 
+    
+    time.sleep(12)
+    assert restore(cm, 'test2_local_2') 
+    pause_mj = []
+    run_mj = ['test2_local_2']
+    assert mj.state.status != TaskStatus.finished
+    assert len(cm.run_jobs)==1  
+    assert stop(cm, 'test2_local_2')
+
+    run_mj = []   
+    assert len(cm.run_jobs)==0    
+    assert len(cm.delete_jobs)==0
+ 
+    com = get_communicator(cm,"test2_local_2")
+    if com is not None and com.is_running_next():
+        com.kill_next()
+        assert False, "Next communicator still run !!!"
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    mj_log = communicator_files_builder.get_log(an_name, mj_name, CommType.multijob)
+    assert mj_log.records > 0    
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    assert app_log.infos[-2] == "Application app is restored"
+    assert len(app_log.errors) == 0
+    assert  mj_log.infos[-4] == "Application mj_service is restored"
+    assert  mj_log.infos[-3] == "Stop signal is received"
     assert  mj_log.infos[-2] == "Connection to application mj_service is stopped"
     assert  mj_log.infos[-1] == "Application mj_service is stopped"
-    assert len( mj_log.errors) == 0          
-    """
+    assert len( mj_log.errors) == 0
 
+    assert delete(cm, 'test2_local_2')
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    mj_log = communicator_files_builder.get_log(an_name, mj_name, CommType.multijob)
+    assert mj_log.records > 0    
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    assert app_log.infos[-2] == "Application app is restored"
+    assert len(app_log.errors) == 0
+    assert  mj_log.infos[-4] == "Application mj_service is restored"
+    assert  mj_log.infos[-3] == "Delete signal is received"
+    assert  mj_log.infos[-2] == "Connection to application mj_service is stopped"
+    assert  mj_log.infos[-1] == "Application mj_service is stopped"
+    assert len( mj_log.errors) == 0
+    
+    communicator_files_builder.clear_files(TEST_DIR)
 
+def test_local_with_data(request, data):
+    run_mj = []
+    cm = ComManager(data) 
+    def fin_test_local():        
+        for mj in run_mj:
+            stop(cm, mj)
+          # communicator_files_builder.clear_files(TEST_DIR)
+    request.addfinalizer(fin_test_local)
+    mj = data.multijobs["test2_local_2"]
+    # test start - stop, start - terminate
+    
+    mj_name = data.multijobs["test2_local_2"].preset.name    
+    an_name = data.multijobs["test2_local_2"].preset.analysis
+    
+    communicator_files_builder.make_installation(TEST_DIR, data)
+    communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)
+
+    assert start(cm, 'test2_local_2')  
+    assert wait_to_finish(cm, 'test2_local_2') 
+    if mj.state.status == TaskStatus.error:
+        assert False, "Can't start multijob({0})".format(mj.error) 
+    run_mj = ['test2_local_2']
+    assert mj.state.status == TaskStatus.finished
+    assert len(cm.run_jobs)==1
+    assert stop(cm, 'test2_local_2')
+    run_mj = []
+
+    assert len(cm.run_jobs)==0
+    assert len(cm.delete_jobs)==0
+    assert len(cm.start_jobs)==0
+
+    com = get_communicator(cm,"test2_local_2")
+    if com is not None and com.is_running_next():
+        com.kill_next()
+        assert False, "Next communicator still run !!!"
+    assert com is None, "Next communicator still set !!!"
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    mj_log = communicator_files_builder.get_log(an_name, mj_name, CommType.multijob)
+    assert mj_log.records > 0
+    assert app_log.infos[0] == "Application app is started"
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    assert len(app_log.errors) == 0
+    assert  mj_log.infos[0] == "Application mj_service is started"
+    assert  mj_log.infos[-2] == "Connection to application mj_service is stopped"
+    assert  mj_log.infos[-1] == "Application mj_service is stopped"
+    assert len( mj_log.errors) == 0  
+
+    communicator_files_builder.clear_files(TEST_DIR)

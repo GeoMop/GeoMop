@@ -235,21 +235,22 @@ class ComManager:
         for  key in  self.delete_jobs:
             if key in self._workers:
                 worker = self._workers[key]
-                if (worker.is_interupted() or worker.is_error()) and \
-                    not worker.is_deleting():
-                    error = worker.get_error()
-                    if worker.is_interupted():
-                        error = "Can't delete remote data from MultiJob (no response)" 
-                    del self._workers[key]
-                    self.jobs_deleted[key] = error
-                    delete_key.append(key)
-                elif worker.is_deleted():
-                    error = None
-                    if worker.is_error():
+                if worker.is_cancelled():
+                    if (worker.is_interupted() or worker.is_error()) and \
+                        not worker.is_deleting():
                         error = worker.get_error()
-                    del self._workers[key]
-                    self.jobs_deleted[key] = error
-                    delete_key.append(key)
+                        if worker.is_interupted():
+                            error = "Can't delete remote data from MultiJob (no response)" 
+                        del self._workers[key]
+                        self.jobs_deleted[key] = error
+                        delete_key.append(key)
+                    elif worker.is_deleted():
+                        error = None
+                        if worker.is_error():
+                            error = worker.get_error()
+                        del self._workers[key]
+                        self.jobs_deleted[key] = error
+                        delete_key.append(key)
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be deleted, run record is not found")
                 delete_key.append(key)

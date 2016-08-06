@@ -399,18 +399,18 @@ class JobsCommunicator(Communicator):
         self.status.interupted=False
         self.status.save()
         self._restored = True
-        logger.info("Multi Job Application " + self.communicator_name + " is restored")    
+        logger.info("Application " + self.communicator_name + " is restored")    
         
     def interupt(self):
         """Interupt connection chain to next communicator"""
         self.status.interupted=True        
         self.status.save()
+        logger.info("Application " + self.communicator_name + " is interupted")
         if self.input is not None:
             if not isinstance(self.input, StdInputComm):
                 self.input.disconnect()
                 time.sleep(10)
-                self.input.connect()
-        logger.info("Multi Job Application " + self.communicator_name + " is interupted")  
+                self.input.connect()          
        
     def terminate_connections(self):
         """

@@ -70,6 +70,8 @@ class ComWorker(threading.Thread):
         """get mj state"""
         self._counter = 0
         """planning counter (in main thread, not lock)"""
+        self._busycounter = 1
+        """counter that prevent overloading of requarements"""
         
     def get_error(self):
         self.__state_lock.acquire()
@@ -87,16 +89,43 @@ class ComWorker(threading.Thread):
         :param bool is_current: is job selected in gui
         """
         self._counter += 1
+        self.__state_lock.acquire()
         if is_current:
             if self._counter%2==0:
-                self.__get_state = True
-            if (self._counter%6+1)==0:
-                self.__download = True
+                if self.__get_state or self.__download:
+                    if self.__get_state:
+                        self._busycounter += 1
+                else:
+                    if self._busycounter>3:
+                        if self._busycounter>30:
+                            # maybe drop-out
+                            self._busycounter = 10
+                        else:    
+                            # queue is overloaded wait  for 1.5x busy interval
+                            self._busycounter -= 2
+                    else:
+                        if self._counter%6==0:
+                            self.__download = True
+                        self.__get_state = True
         else:
             if self._counter%4==0:
-                self.__get_state = True
-            if (self._counter%12+1)==0:
-                self.__download = True
+                if self.__get_state or self.__download:
+                    if self.__get_state:
+                        self._busycounter += 1
+                else:
+                    if self._busycounter>5:
+                        # queue is overloaded wait for 1.2x busy interval
+                        if self._busycounter>50:
+                            # maybe drop-out
+                            self._busycounter = 20
+                        else:    
+                            # queue is overloaded wait  for 1.5x busy interval
+                            self._busycounter -= 4
+                    else:
+                        if self._counter%12==0:
+                            self.__download = True
+                        self.__get_state = True
+        self.__state_lock.release()
         state = None
         if self.__state is not None:
             state = self.__state
@@ -109,7 +138,7 @@ class ComWorker(threading.Thread):
             error = self.__error
             self.__error = None
         return state,  error, downloaded, downloaded, downloaded
-        
+       
     def start_mj(self):
         """start communication"""
         self.start()
@@ -130,7 +159,7 @@ class ComWorker(threading.Thread):
         """resume communication"""
         self.start()
         self.__state_lock.acquire()
-        self.__self.__resume = True
+        self.__resume = True
         self.__starting = True
         self.__error = None
         self.__state_lock.release()
@@ -300,7 +329,9 @@ class ComWorker(threading.Thread):
                 self.__state_lock.release()
                 # TODO no response
                 self._state()
-                continue
+                if not self.__download:
+                    continue
+                self.__state_lock.acquire()    
             if self.__download:
                 self.__download = False
                 self.__state_lock.release()
@@ -378,16 +409,16 @@ class ComWorker(threading.Thread):
         """send pause mj action"""
         self._com.send_long_action(tdata.Action(
                     tdata.ActionType.interupt_connection))
-        self._com.comunicator.interupt()
+        self._com.interupt()
         self.__state_lock.acquire()
         state = self._last_state   
-        state.status = TaskStatus.pause        
+        state.status = TaskStatus.paused        
         self.__state = state
         self.__state_lock.release() 
 
     def _resume(self, for_deleting=False):
         """installation, if return False, thrad is stoped"""
-        res = self._com.restore(True)
+        res = self._com.restore(for_deleting)
         if res is not None:            
             self.__state_lock.acquire()
             self.__starting = False

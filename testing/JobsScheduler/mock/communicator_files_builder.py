@@ -1,6 +1,7 @@
 import shutil
 import os
 import config
+import logging
 
 from ui.data.config_builder import ConfigBuilder
 from communication import Installation
@@ -58,3 +59,20 @@ def make_installation(dir, data):
     
 def clear_files(dir):
     shutil.rmtree(dir, ignore_errors=True)
+    # remove centrall app logger handler
+    logger = logging.getLogger("Remote")
+    for hdlr in logger.handlers:
+        logger.removeHandler(hdlr)
+    
+def copy_an_to_config(an_name, mj_name, an_dir):
+    path = Installation.get_mj_data_dir_static(mj_name, an_name)
+    names = os.listdir(an_dir)    
+    for name in names:
+        src = os.path.join(an_dir, name)
+        if os.path.isdir(src):            
+            dst = os.path.join(path, name)
+            if os.path.isdir(dst):
+                shutil.rmtree(dst, ignore_errors=True)
+            shutil.copytree(src, dst)
+        else:
+            shutil.copy(src, path)
