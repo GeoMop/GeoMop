@@ -110,6 +110,7 @@ class ComManager:
             if not key in self._workers:
                 conf_builder = ConfigBuilder(self._data_app)
                 app_conf = conf_builder.build(key)
+                ConfigBuilder.gain_login(app_conf)                
                 com = Communicator(app_conf)
                 worker = ComWorker(key, com)
                 self._workers[key] = worker
@@ -143,7 +144,8 @@ class ComManager:
         com_conf = comconf.CommunicatorConfig(mj_name)
         directory = inst.Installation.get_config_dir_static(mj_name, an_name)
         path = comconf.CommunicatorConfigService.get_file_path(
-            directory, comconf.CommType.app.value)        
+            directory, comconf.CommType.app.value)
+        ConfigBuilder.gain_login(com_conf)
         with open(path, "r") as json_file:
             comconf.CommunicatorConfigService.load_file(json_file, com_conf)                    
         com = Communicator(com_conf)

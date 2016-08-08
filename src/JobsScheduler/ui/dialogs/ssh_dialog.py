@@ -12,6 +12,7 @@ from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
 from data import Users
+import config
 
 
 class SshDialog(AFormDialog):
@@ -65,7 +66,8 @@ class SshDialog(AFormDialog):
         return valid
 
     def get_data(self):
-        preset = SshPreset(name=self.ui.nameLineEdit.text())
+        name=self.ui.nameLineEdit.text()
+        preset = SshPreset(name=name)
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
         preset.remote_dir = self.ui.remoteDirLineEdit.text()
@@ -81,9 +83,8 @@ class SshDialog(AFormDialog):
             password = self.ui.passwordLineEdit.text()
             if self.preset is None or password != self.preset.pwd:
                 # if password changed
-                users = Users(preset.uid, preset.to_pc, preset.to_remote)
-                pwd, key = users.save_login(password)
-                preset.pwd = pwd
+                key = Users.save_reg(name, self.preset.pwd, config.__config_dir__)
+                preset.pwd = "a124b.#"
                 preset.key = key
             else:
                 preset.pwd = self.preset.pwd
@@ -110,7 +111,8 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
-            self.ui.passwordLineEdit.setText(preset.pwd)
+            pwd = Users.get_reg(preset.name, preset.key, config.__config_dir__)
+            self.ui.passwordLineEdit.setText(pwd)
             self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.pbsSystemComboBox.setCurrentIndex(

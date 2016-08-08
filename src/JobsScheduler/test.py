@@ -1,14 +1,11 @@
-#!/usr/bin/env python
-import subprocess
-import time
+#!/usr/bin/env python3
+from data.user_helper import Users
 
 
 def main():
-    print("Start - test")
-    p = subprocess.Popen(["python3","job.py", "&", "disown"])
-    print("Popen: " + str(p))
-    time.sleep(60)
-    print("End - test" )
+    key = Users.save_reg("test1", "test3","/home/pavel/tmp")
+    res = Users.get_reg("test1", key, "/home/pavel/tmp")
+    print(res)
 
 
 if __name__ == '__main__':

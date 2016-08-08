@@ -8,6 +8,7 @@ import re
 
 import data.communicator_conf as comconf
 import data.transport_data as tdata
+from data.user_helper import Users
 from data.communicator_status import CommunicatorStatus
 from communication.std_input_comm import StdInputComm
 from  communication.socket_input_comm import SocketInputComm
@@ -136,14 +137,20 @@ class Communicator():
             if init_conf.output_type == comconf.OutputCommType.exec_:
                 time.sleep(2)
         if init_conf.output_type != comconf.OutputCommType.none:
-            self.output = self.get_output(init_conf)
+            self.output = self.get_output(init_conf, self.mj_name, self.an_name)
             
     @staticmethod
-    def get_output(conf, new_name=None):
+    def get_output(conf, mj_name, an_name, new_name=None):
         """Inicialize output using defined type"""
         output = None
-        if conf.output_type == comconf.OutputCommType.ssh:
-            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid, conf.ssh.pwd)
+        if conf.output_type == comconf.OutputCommType.ssh:            
+            home_dir = None
+            if conf.paths_config is not None:
+                home_dir = conf.paths_config.home_dir
+            dir = Installation.get_mj_data_dir_static(mj_name, an_name)
+            u = Users(conf.ssh.name, dir, home_dir, conf.ssh.to_pc,  conf.ssh.to_remote)
+            pwd = u.get_login(conf.ssh.uid.pwd, conf.ssh.key,conf.conf_long_id, home_dir is None)
+            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid,pwd)
             output.connect()
         elif conf.output_type == comconf.OutputCommType.pbs:
             old_name = conf.pbs.name

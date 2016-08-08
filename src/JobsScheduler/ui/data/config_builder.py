@@ -85,7 +85,7 @@ class ConfigBuilder:
         basic_conf.conf_long_id = self.conf_long_id
 
         # make conf
-        mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset)
+        mj_ssh = ConfFactory.get_ssh_conf(mj_ssh_preset, mj_name, an_name, self.conf_long_id)
         if hasattr(mj_ssh_preset, "pbs_system"):
            mj_dialect = mj_ssh_preset.pbs_system
         else:
@@ -95,7 +95,7 @@ class ConfigBuilder:
         mj_python_env, mj_libs_env = ConfFactory.get_env_conf(mj_env)
 
         # env conf
-        j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset)
+        j_ssh = ConfFactory.get_ssh_conf(j_ssh_preset, mj_name, an_name, self.conf_long_id, True)
         if hasattr(j_ssh_preset, "pbs_system"):
             j_dialect = j_ssh_preset.pbs_system
         elif hasattr(mj_ssh_preset, "pbs_system"):
@@ -284,6 +284,13 @@ class ConfigBuilder:
         with open(job_configs_path, 'w') as job_configs:
             json.dump(jobs, job_configs, indent=4, sort_keys=True)
 
+    @staticmethod
+    def gain_login(cc):
+        if cc.ssh is not None and not cc.ssh.to_pc:
+            dialog = SshPasswordDialog(None, cc)
+            if dialog.exec_():
+                return Users.get_preset_pwd2(config.__config_dir__, dialog.password, cc.ssh.key, cc.conf_long_id)
+
 
 class ConfBuilder:
     def __init__(self, basic_conf):
@@ -357,7 +364,6 @@ class ConfBuilder:
         self.conf.paths_config.ex_lib_path = None
         self.conf.paths_config.copy_ex_libs = None
 
-
 class ConfFactory:
     @staticmethod
     def get_pbs_conf(preset, with_socket=True, pbs_params=None, dialect=None):
@@ -384,8 +390,8 @@ class ConfFactory:
             pbs.pbs_params = pbs_params
         return pbs
 
-    @staticmethod
-    def get_ssh_conf(preset, is_remote=False):
+    @classmethod
+    def get_ssh_conf(cls, preset, mj_name, an_name, long_id, is_remote=False):
         """
         Converts preset data to communicator config for SSH.
         :param preset: Preset data object from UI.
@@ -402,17 +408,13 @@ class ConfFactory:
         ssh.to_remote = preset.to_remote
 
         # password
-        users = Users(ssh.name, ssh.to_pc, ssh.to_remote)
-        ssh.pwd = users.get_login(preset.pwd, preset.key, from_preset=True)
-        ssh.key = preset.key
-        if ssh.pwd is None:
-            dialog = SshPasswordDialog(None, preset)
-            if dialog.exec_():
-                pwd, key = users.save_communicator_login(dialog.password, is_remote)
-                ssh.pwd = pwd
-                ssh.key = key
-
-        return ssh
+        if ssh.to_pc:
+            dir = Installation.get_mj_data_dir_static(mj_name, an_name)
+            users = Users(ssh.name, dir, config.__config_dir__, ssh.to_pc, ssh.to_remote)
+            ssh.pwd, ssh.key = users.get_preset_pwd1(dir, preset.key, is_remote, long_id)
+        else:
+            ssh.pwd = str(uuid.uuid4()) 
+            ssh.key = str(uuid.uuid4()) 
 
     @staticmethod
     def get_env_conf(preset, install_job_libs=False, start_job_libs=False):

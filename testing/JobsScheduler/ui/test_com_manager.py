@@ -3,6 +3,11 @@ import os
 import time
 
 import communicator_files_builder
+import sys
+if sys.platform == "win32":
+    import ssh_helper_win as ssh_helper
+else:
+    import ssh_helper_linux as ssh_helper
 from ui.com_manager import ComManager
 from data.states import TaskStatus
 from data.communicator_conf import CommType
@@ -111,7 +116,7 @@ def wait_to_finish(cm, id, timeout=25):
         time.sleep(0.1)
         i += 1
     return False
-    return False
+    
 def get_communicator(cm, key):
     if key in cm._workers:
         worker = cm._workers[key]
@@ -267,7 +272,7 @@ def test_local_with_data(request, data):
     def fin_test_local():        
         for mj in run_mj:
             stop(cm, mj)
-          # communicator_files_builder.clear_files(TEST_DIR)
+        communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_local)
     mj = data.multijobs["test2_local_2"]
     # test start - stop, start - terminate
@@ -311,3 +316,22 @@ def test_local_with_data(request, data):
     assert len( mj_log.errors) == 0  
 
     communicator_files_builder.clear_files(TEST_DIR)
+
+def test_ssh(request, data):
+    run_mj = []
+    cm = ComManager(data) 
+    def fin_test_local():        
+        for mj in run_mj:
+            stop(cm, mj)
+          # communicator_files_builder.clear_files(TEST_DIR)
+    request.addfinalizer(fin_test_local)
+    mj = data.multijobs["test2_local_ssh"]
+    # test start - stop, start - terminate
+    
+    mj_name = data.multijobs["test2_local_ssh"].preset.name    
+    an_name = data.multijobs["test2_local_ssh"].preset.analysis
+    
+    ssh_helper.check_pexpect(mj)
+    ssh_helper.clear_ssh_installation(dir, mj)
+    communicator_files_builder.make_installation(TEST_DIR, data)
+    communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)

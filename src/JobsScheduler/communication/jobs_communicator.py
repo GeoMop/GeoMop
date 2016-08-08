@@ -339,7 +339,7 @@ class JobsCommunicator(Communicator):
                 self.job_outputs[id] = None                
         else:
             self.jobs[id] = Job(id)
-            self.job_outputs[id] = self.get_output(self.conf, id)
+            self.job_outputs[id] = self.get_output(self.conf,self.mj_name, self.an_name, id)
             self.job_outputs[id].installation.local_copy_path() # only copy path
             logger.debug("Starting job: " + id + " (" + type(self.job_outputs[id]).__name__ + ")")
             t = threading.Thread(target= self._run_action, 

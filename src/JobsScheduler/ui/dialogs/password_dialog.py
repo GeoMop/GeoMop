@@ -2,22 +2,23 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 
 
 class SshPasswordDialog(QtWidgets.QDialog):
     """Dialog to enter shh password."""
 
-    def __init__(self, parent, preset):
+    def __init__(self, parent, cc):
         """Initializes the class."""
         super(SshPasswordDialog, self).__init__(parent)
 
-        self.preset = preset
+        self.cc = cc
 
-        message = "Please enter password for\n{user}@{host}:{port}"  .format(
-            user=preset.uid,
-            host=preset.host,
-            port=preset.port
+        message = "Please enter password for {name} ssh connection\n({user}@{host}:{port})"  .format(
+            name=cc.ssh.name,
+            user=cc.ssh.uid,
+            host=cc.ssh.host,
+            port=cc.ssh.port
         )
         self._connection_label = QtWidgets.QLabel(message, self)
         self._connection_label.setMinimumSize(85, 40)

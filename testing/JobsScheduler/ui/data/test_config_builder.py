@@ -25,7 +25,7 @@ def test_conf_builder(request, data):
         communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_dir_create)
     
-    assert len(data.multijobs) == 1
+    assert len(data.multijobs) == 2
     assert "test2_local_2" in data.multijobs
     
     builder = communicator_files_builder.make_builder(TEST_DIR, data)  
@@ -41,7 +41,7 @@ def test_builder_create(request, data):
         communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_dir_create)
     
-    assert len(data.multijobs) == 1
+    assert len(data.multijobs) == 2
     assert "test2_local_2" in data.multijobs
     builder = communicator_files_builder.make_builder(TEST_DIR, data)
     assert len(data.multijobs) == len(builder.multijobs)
@@ -73,7 +73,7 @@ def test_dir_create(request, data):
         communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_dir_create)
     
-    assert len(data.multijobs) == 1
+    assert len(data.multijobs) == 2
     assert "test2_local_2" in data.multijobs
     communicator_files_builder.make_work_dir(TEST_DIR, data, 'test2_local_2')
     
