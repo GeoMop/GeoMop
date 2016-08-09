@@ -411,10 +411,12 @@ class ConfFactory:
         if ssh.to_pc:
             dir = Installation.get_mj_data_dir_static(mj_name, an_name)
             users = Users(ssh.name, dir, config.__config_dir__, ssh.to_pc, ssh.to_remote)
-            ssh.pwd, ssh.key = users.get_preset_pwd1(dir, preset.key, is_remote, long_id)
+            ssh.pwd, ssh.key = users.get_preset_pwd1(preset.key, is_remote, long_id)
         else:
             ssh.pwd = str(uuid.uuid4()) 
             ssh.key = str(uuid.uuid4()) 
+            
+        return ssh
 
     @staticmethod
     def get_env_conf(preset, install_job_libs=False, start_job_libs=False):
