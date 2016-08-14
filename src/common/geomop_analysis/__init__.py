@@ -4,4 +4,4 @@
 """
 
 from .analysis import Analysis, ANALYSIS_MAIN_FILE, InvalidAnalysis, MULTIJOBS_DIR
-from .yaml_support import YamlSupport
+from .yaml_support import YamlSupportLocal

@@ -1,7 +1,7 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-from geomop_analysis import YamlSupport
+from flow_util import YamlSupportRemote
 import os
 import codecs
 
