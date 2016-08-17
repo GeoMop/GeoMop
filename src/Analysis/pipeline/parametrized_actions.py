@@ -1,7 +1,7 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-from flow_util import YamlSupportRemote
+from flow_util import YamlSupportRemote, analysis
 import os
 import codecs
 
@@ -29,10 +29,6 @@ class Flow123dAction(ParametrizedActionType):
         self._output = self.__file_output()
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
-
-        # TODO: update testing and remove next two lines
-        #self._hash.update(bytes(self._variables['YAMLFile'], "utf-8"))
-        #return
 
         # check if YAML file exist
         yaml_file = self._variables['YAMLFile']
@@ -93,7 +89,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d", params[0]]
+        runner.command = ["flow123d", "-s", params[0]]
         return runner
         
     def _update(self):    
@@ -133,15 +129,13 @@ class Flow123dAction(ParametrizedActionType):
                 self._add_error(err, "Flow123d input parameter must return Struct")
             params =  self.__get_require_params()
             for param in params:
-                if not hasattr(self._inputs[0],  param) :
+                if not hasattr(input_type, param):
                     self._add_error(err, "Yaml parameter {0} is not set in input".format(param))
         return err
         
     def __get_require_params(self):
         """Return list of params needed for completation of Yaml file"""
-        #ys = YamlSupport()
-        #ys.parse(self._variables['YAMLFile'])
-        return []#ys.get_params()
+        return self._yaml_support.get_params()
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
@@ -169,7 +163,11 @@ class Flow123dAction(ParametrizedActionType):
         new_file = os.path.join(dir, new_name)
 
         # completion
-        #replace_params_in_file(file, new_file, params)
+        input = self.get_input_val(0)
+        params_dict = {}
+        for param in self.__get_require_params():
+            params_dict[param] = getattr(input, param).value
+        analysis.replace_params_in_file(file, new_file, params_dict)
 
         return new_file
 

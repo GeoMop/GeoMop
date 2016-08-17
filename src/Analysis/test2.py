@@ -25,15 +25,16 @@ from geomop_analysis import YamlSupportLocal
 #from client_pipeline.identical_list_creator import *
 
 # ys = YamlSupportLocal()
-# err = ys.parse("d:/test/test2.yaml")
-# ys.save("d:/test/test2.sprt")
+# err = ys.parse("d:/test/flow_gmsh.yaml")
+# ys.save("d:/test/flow_gmsh.sprt")
 
-# vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-# flow = Flow123dAction(Inputs=[vg], YAMLFile="d:/test/flow_gmsh_par.yaml")
-#
-# vg._inicialize()
-# flow._inicialize()
-# err = flow.validate()
+#vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
+vg = VariableGenerator(Variable=Struct())
+flow = Flow123dAction(Inputs=[vg], YAMLFile="d:/test/flow_gmsh.yaml")
 
+vg._inicialize()
+flow._inicialize()
+err = flow.validate()
+runner = flow._update()
 
 print(9)
