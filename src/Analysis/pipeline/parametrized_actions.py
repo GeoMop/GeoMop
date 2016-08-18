@@ -1,7 +1,7 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-from geomop_analysis import YamlSupport
+from flow_util import YamlSupportRemote, analysis
 import os
 import codecs
 
@@ -20,6 +20,7 @@ class Flow123dAction(ParametrizedActionType):
         super(Flow123dAction, self).__init__(**kwargs)
         self._logical_queue = QueueType.external
         self._file_output = self.__file_output()
+        self._yaml_support = YamlSupportRemote()
             
     def _inicialize(self):
         """inicialize action run variables"""
@@ -29,40 +30,52 @@ class Flow123dAction(ParametrizedActionType):
         self._set_state(ActionStateType.initialized)
         self._process_base_hash()
 
-        # TODO: update testing and remove next two lines
-        self._hash.update(bytes(self._variables['YAMLFile'], "utf-8"))
-        return
-
-        # add .yaml file to hash
-        err = []
+        # check if YAML file exist
         yaml_file = self._variables['YAMLFile']
-        document = ""
-        try:
-            try:
-                with codecs.open(yaml_file, 'r', 'utf-8') as file_d:
-                    document = file_d.read().expandtabs(tabsize=2)
-            except UnicodeDecodeError:
-                with open(yaml_file, 'r') as file_d:
-                    document = file_d.read().expandtabs(tabsize=2)
-        except (RuntimeError, IOError) as e:
-            #self._add_error(self._load_errs, "Output variable is not settable.")
-            err.append("Can't open .yaml file: {0}".format(e))
+        if not os.path.isfile(yaml_file):
+            self._add_error(self._load_errs, "YAML file don't exist.")
             return
-        self._hash.update(bytes(document, "utf-8"))
 
-        # add mesh file to hash
-        ys = YamlSupport()
-        err.extend(ys.parse(yaml_file))
-        mesh_file = os.path.join(os.path.dirname(yaml_file),
-                                 os.path.normpath(ys.get_mesh_file()))
-        try:
-            with open(self.mesh_file, 'r') as file_d:
-                for line in file_d:
-                    self._hash.update(bytes(line, "utf-8"))
-        except (RuntimeError, IOError) as e:
-            err.append("Can't open mesh file: {0}".format(e))
+        # check if support file exist
+        dir, name = os.path.split(yaml_file)
+        s = name.rsplit(sep=".", maxsplit=1)
+        new_name = s[0] + ".sprt"
+        sprt_file = os.path.join(dir, new_name)
+        if not os.path.isfile(sprt_file):
+            self._add_error(self._load_errs, "Support file don't exist.")
             return
-        # TODO: handle errors
+
+        # load support file
+        err = self._yaml_support.load(sprt_file)
+        if len(err) > 0:
+            self._extend_error(self._load_errs, err)
+            return
+
+        # check if mesh file exist
+        mesh_file = self._yaml_support.get_mesh_file()
+        mesh_file_path = os.path.join(dir, os.path.normpath(mesh_file))
+        if not os.path.isfile(mesh_file_path):
+            self._add_error(self._load_errs, "Mesh file don't exist.")
+            return
+
+        # check hash consistency
+        err, yaml_file_hash_real = YamlSupportRemote.file_hash(yaml_file)
+        if len(err) > 0:
+            self._extend_error(self._load_errs, err)
+            return
+        if self._yaml_support.get_yaml_file_hash() != yaml_file_hash_real:
+            self._add_error(self._load_errs, "YAML file hash is inconsistent.")
+
+        err, mesh_file_hash_real = YamlSupportRemote.file_hash(mesh_file_path)
+        if len(err) > 0:
+            self._extend_error(self._load_errs, err)
+            return
+        if self._yaml_support.get_mesh_file_hash() != mesh_file_hash_real:
+            self._add_error(self._load_errs, "Mesh file hash is inconsistent.")
+
+        # process file hashes
+        self._hash.update(bytes(self._yaml_support.get_yaml_file_hash(), "utf-8"))
+        self._hash.update(bytes(self._yaml_support.get_mesh_file_hash(), "utf-8"))
 
     def _get_variables_script(self):    
         """return array of variables python scripts"""
@@ -76,7 +89,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d", params[0]]
+        runner.command = ["flow123d", "-s", params[0]]
         return runner
         
     def _update(self):    
@@ -116,15 +129,13 @@ class Flow123dAction(ParametrizedActionType):
                 self._add_error(err, "Flow123d input parameter must return Struct")
             params =  self.__get_require_params()
             for param in params:
-                if not hasattr(self._inputs[0],  param) :
+                if not hasattr(input_type, param):
                     self._add_error(err, "Yaml parameter {0} is not set in input".format(param))
         return err
         
     def __get_require_params(self):
         """Return list of params needed for completation of Yaml file"""
-        #ys = YamlSupport()
-        #ys.parse(self._variables['YAMLFile'])
-        return []#ys.get_params()
+        return self._yaml_support.get_params()
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
@@ -152,7 +163,11 @@ class Flow123dAction(ParametrizedActionType):
         new_file = os.path.join(dir, new_name)
 
         # completion
-        #replace_params_in_file(file, new_file, params)
+        input = self.get_input_val(0)
+        params_dict = {}
+        for param in self.__get_require_params():
+            params_dict[param] = getattr(input, param).value
+        analysis.replace_params_in_file(file, new_file, params_dict)
 
         return new_file
 

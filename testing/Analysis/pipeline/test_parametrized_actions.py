@@ -22,4 +22,16 @@ def test_flow_code_init():
     assert Flow123d_2._variables['YAMLFile'] == flow._variables['YAMLFile']
     assert Flow123d_2.get_input_val(0).test1 == flow.get_input_val(0).test1
     assert Flow123d_2._get_hash() == flow._get_hash()
-    
+
+def test_flow_runner_command():
+    action.__action_counter__ = 0
+    vg = VariableGenerator(Variable=Struct())
+    flow = Flow123dAction(Inputs=[vg], YAMLFile="pipeline/resources/test1.yaml")
+
+    vg._inicialize()
+    flow._inicialize()
+    err = flow.validate()
+    assert len(err) == 0
+
+    runner = flow._update()
+    assert runner.command == ["flow123d", "-s", os.path.join("pipeline/resources", "test1_param.yaml")]
