@@ -265,6 +265,8 @@ class APresetsDialog(QtWidgets.QDialog):
 
     def _handle_copy_preset_action(self):
         if self.presets and self.ui.presets.currentItem():
+            if not hasattr(self, 'presets_dlg') or self.presets_dlg is None:
+                self.create_dialog()
             key = self.ui.presets.currentItem().text(0)
             preset = copy.deepcopy(self.presets[key])
             preset.name = self.presets_dlg.\

@@ -67,6 +67,9 @@ def restore(cm, id, timeout=5):
 def stop(cm, id, timeout=5):
     # return False for timeout
     cm.stop_jobs.append(id)
+    return wait_to_end(cm, id, timeout)
+    
+def wait_to_end(cm, id, timeout=5):
     i = 0
     while i<(timeout*10):
         cm.poll()
@@ -80,27 +83,12 @@ def stop(cm, id, timeout=5):
 def terminate(cm, id, timeout=5):
     # return False for timeout
     cm.terminate_jobs.append(id)
-    i = 0
-    while i<(timeout*10):
-        cm.poll()
-        if  len(cm.start_jobs)==0 and len(cm.run_jobs)==0 and len(cm.delete_jobs)==0 :
-            time.sleep(1)
-            return True
-        i += 1
-        time.sleep(0.1)
-    return False
+    return wait_to_end(cm, id, timeout)
 
 def delete(cm, id, timeout=5):
     # return False for timeout
     cm.delete_jobs.append(id)
-    i = 0
-    while i<(timeout*10):
-        cm.poll()
-        if  len(cm.start_jobs)==0 and len(cm.run_jobs)==0 and len(cm.delete_jobs)==0 :
-            return True
-        i += 1
-        time.sleep(0.1)
-    return False
+    return wait_to_end(cm, id, timeout)
     
 def wait_to_finish(cm, id, timeout=25):
     # return False for timeout
@@ -112,9 +100,11 @@ def wait_to_finish(cm, id, timeout=25):
             cm.state_change_jobs = []
             if mj.get_state().get_status() == TaskStatus.finished or \
                 mj.get_state().get_status() == TaskStatus.error:
-                return True
+                return wait_to_end(cm, id)
         time.sleep(0.1)
         i += 1
+    assert mj.get_state().get_status() == TaskStatus.finished or \
+        mj.get_state().get_status() == TaskStatus.error   
     return False
     
 def get_communicator(cm, key):
@@ -275,7 +265,6 @@ def test_local_with_data(request, data):
         communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_local)
     mj = data.multijobs["test2_local_2"]
-    # test start - stop, start - terminate
     
     mj_name = data.multijobs["test2_local_2"].preset.name    
     an_name = data.multijobs["test2_local_2"].preset.analysis
@@ -284,14 +273,12 @@ def test_local_with_data(request, data):
     communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)
 
     assert start(cm, 'test2_local_2')  
+    run_mj = ['test2_local_2']
     assert wait_to_finish(cm, 'test2_local_2') 
+    run_mj = []
     if mj.state.status == TaskStatus.error:
         assert False, "Can't start multijob({0})".format(mj.error) 
-    run_mj = ['test2_local_2']
-    assert mj.state.status == TaskStatus.finished
-    assert len(cm.run_jobs)==1
-    assert stop(cm, 'test2_local_2')
-    run_mj = []
+    assert mj.state.status == TaskStatus.finished    
 
     assert len(cm.run_jobs)==0
     assert len(cm.delete_jobs)==0
@@ -319,19 +306,141 @@ def test_local_with_data(request, data):
 
 def test_ssh(request, data):
     run_mj = []
+    pause_mj = []
     cm = ComManager(data) 
-    def fin_test_local():        
+    instalation = None
+    def fin_test_local():
         for mj in run_mj:
             stop(cm, mj)
-          # communicator_files_builder.clear_files(TEST_DIR)
-    request.addfinalizer(fin_test_local)
-    mj = data.multijobs["test2_local_ssh"]
-    # test start - stop, start - terminate
+        for mj in pause_mj:
+            restore(cm, mj) 
+            stop(cm, mj)       
+        if instalation is not None:
+            ssh_helper.clear_ssh_installation(data, instalation)
+        communicator_files_builder.clear_files(TEST_DIR)
+    request.addfinalizer(fin_test_local)   
     
     mj_name = data.multijobs["test2_local_ssh"].preset.name    
-    an_name = data.multijobs["test2_local_ssh"].preset.analysis
-    
-    ssh_helper.check_pexpect(mj)
-    ssh_helper.clear_ssh_installation(dir, mj)
+    an_name = data.multijobs["test2_local_ssh"].preset.analysis    
+   
     communicator_files_builder.make_installation(TEST_DIR, data)
     communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)
+
+    ssh_helper.check_pexpect(data, "test2_local_ssh")
+    ssh_helper.clear_ssh_installation(data, "test2_local_ssh")
+    mj = data.multijobs["test2_local_ssh"]
+    
+    assert start(cm, 'test2_local_ssh', 100)
+    instalation =  'test2_local_ssh'
+    assert wait_to_finish(cm, 'test2_local_ssh') 
+    if mj.state.status == TaskStatus.error:
+        assert False, "Can't start multijob({0})".format(mj.error) 
+    run_mj = ['test2_local_ssh']
+    run_mj = []
+
+    assert len(cm.run_jobs)==0
+    assert len(cm.delete_jobs)==0
+    assert len(cm.start_jobs)==0
+
+    com = get_communicator(cm,"test2_local_ssh")
+    if com is not None and com.is_running_next():
+        com.kill_next()
+        assert False, "Next communicator still run !!!"
+    assert com is None, "Next communicator still set !!!"
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    mj_log = communicator_files_builder.get_log(an_name, mj_name, CommType.multijob)
+    assert mj_log.records > 0
+    job1_log = communicator_files_builder.get_log(an_name, mj_name, CommType.job, "flow1")
+    assert job1_log.records > 0
+    delegator_log = communicator_files_builder.get_log(an_name, mj_name, CommType.delegator)
+    assert delegator_log.records > 0
+
+    assert app_log.infos[0] == "Application app is started"
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    assert len(app_log.errors) == 0
+    assert  mj_log.infos[0] == "Application mj_service is started"
+    assert len( mj_log.errors) == 0
+    assert  job1_log.infos[0] == "Application job is started"
+    assert job1_log.infos[-1] == "End"
+    assert job1_log.infos[-2] == "Connection to application job is stopped"
+    assert  delegator_log.infos[0] == "Application delegator is started"
+    assert len( mj_log.errors) == 0
+    
+    ssh_helper.check_ssh_installation(data, "test2_local_ssh")
+    
+    communicator_files_builder.clear_files(TEST_DIR)
+    communicator_files_builder.make_installation(TEST_DIR, data)
+    communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)  
+
+    assert start(cm, 'test2_local_ssh', 100)  
+    if mj.state.status == TaskStatus.error:
+        assert False, "Can't start multijob({0})".format(mj.error) 
+    run_mj = ['test2_local_ssh']
+    assert mj.state.status != TaskStatus.finished
+    assert len(cm.run_jobs)==1
+    assert pause_all(cm, 60)
+    
+    pause_mj = ['test2_local_ssh']
+    run_mj = []    
+        
+    if com is not None and com.is_running_next():            
+        assert False, "Next communicator still run !!!"
+    assert com is None, "Next communicator still set !!!"
+
+    assert len(cm.run_jobs)==0
+    assert len(cm.delete_jobs)==0
+    assert len(cm.start_jobs)==0
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    assert app_log.infos[0] == "Application app is started"
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    
+    time.sleep(12)
+    assert restore(cm, 'test2_local_ssh', 60) 
+    pause_mj = []
+    run_mj = ['test2_local_ssh']
+    assert mj.state.status != TaskStatus.finished
+    assert len(cm.run_jobs)==1  
+    
+    assert wait_to_finish(cm, 'test2_local_ssh') 
+    if mj.state.status == TaskStatus.error:
+        assert False, "Can't start multijob({0})".format(mj.error) 
+    run_mj = ['test2_local_ssh']
+    run_mj = []
+
+    assert len(cm.run_jobs)==0
+    assert len(cm.delete_jobs)==0
+    assert len(cm.start_jobs)==0
+
+    com = get_communicator(cm,"test2_local_ssh")
+    if com is not None and com.is_running_next():
+        com.kill_next()
+        assert False, "Next communicator still run !!!"
+    assert com is None, "Next communicator still set !!!"
+    
+    app_log = communicator_files_builder.get_central_log() 
+    assert app_log.records > 0
+    mj_log = communicator_files_builder.get_log(an_name, mj_name, CommType.multijob)
+    assert mj_log.records > 0
+    job1_log = communicator_files_builder.get_log(an_name, mj_name, CommType.job, "flow1")
+    assert job1_log.records > 0
+    delegator_log = communicator_files_builder.get_log(an_name, mj_name, CommType.delegator)
+    assert delegator_log.records > 0
+
+    assert app_log.infos[0] == "Application app is started"
+    assert app_log.infos[-1] == "Connection to application app is stopped"
+    assert len(app_log.errors) == 0
+    assert  mj_log.infos[0] == "Application mj_service is started"
+    assert len( mj_log.errors) == 0
+    assert  job1_log.infos[0] == "Application job is started"
+    assert job1_log.infos[-1] == "End"
+    assert job1_log.infos[-2] == "Connection to application job is stopped"
+    assert  delegator_log.infos[0] == "Application delegator is started"
+    assert len( mj_log.errors) == 0
+    
+    ssh_helper.clear_ssh_installation(data, "test2_local_ssh")
+    communicator_files_builder.clear_files(TEST_DIR)
+    instalation = None

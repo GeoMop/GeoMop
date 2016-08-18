@@ -333,7 +333,7 @@ class Installation:
         """
         remove all *.pyc files on remote over ssh
         """
-        command = self.python_env.python_exec + " '" +self.copy_path +"'"
+        command = self.python_env.python_exec + " " + self.copy_path + "/remove_pyc.py '" + self.copy_path +"'"
         if sys.platform == "win32":
             res, mess = conn.exec_ret(command)
             if not res:
@@ -343,6 +343,7 @@ class Installation:
             logger.debug("Command:" + command)
             ssh.sendline(command)
             ssh.expect( self.python_env.python_exec + ".*\r\n")
+            ssh.prompt()
             txt = ''
             if len(ssh.before)>0:
                 try:

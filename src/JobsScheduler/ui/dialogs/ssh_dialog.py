@@ -83,7 +83,7 @@ class SshDialog(AFormDialog):
             password = self.ui.passwordLineEdit.text()
             if self.preset is None or password != self.preset.pwd:
                 # if password changed
-                key = Users.save_reg(name, self.preset.pwd, config.__config_dir__)
+                key = Users.save_reg(name, password, config.__config_dir__)
                 preset.pwd = "a124b.#"
                 preset.key = key
             else:

@@ -112,7 +112,7 @@ class SshPreset(APreset):
         """Password"""
         self.to_pc = kw_or_def('to_pc', True)
         """Remember password on pc"""
-        self.to_remote = kw_or_def('to_remote', True)
+        self.to_remote = kw_or_def('to_remote', False)
         """Copy password to remote"""
         self.key = kw_or_def('key', '')
         """Key for password"""

@@ -149,7 +149,7 @@ class Communicator():
                 home_dir = conf.paths_config.home_dir
             dir = Installation.get_mj_data_dir_static(mj_name, an_name)
             u = Users(conf.ssh.name, dir, home_dir, conf.ssh.to_pc,  conf.ssh.to_remote)
-            pwd = u.get_login(conf.ssh.pwd, conf.ssh.key,conf.conf_long_id, home_dir is None)
+            pwd = u.get_login(conf.ssh.pwd, conf.ssh.key,conf.conf_long_id)
             output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid,pwd)
             output.connect()
         elif conf.output_type == comconf.OutputCommType.pbs:

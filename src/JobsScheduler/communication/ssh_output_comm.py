@@ -150,13 +150,18 @@ else:
             """connect session"""
             self.ssh = pxssh.pxssh()
             try:
+                if self.password is None:
+                    self.password = ""
                 self.ssh.login(self.host, self.name, self.password, check_local_ip=False)            
                 self.ssh.setwinsize(128,512)
                 self.last_mess = None
                 self._connected = True
             except pexpect.pxssh.ExceptionPxssh  as err:
                 logger.warning("Can't connect to ssh server " +  
-                self.host + " as " + self.name + ": " +   str(err))
+                    self.host + " as " + self.name + ": " +   str(err))
+            except Exception as err:
+                logger.error("Can't connect to ssh server " +  
+                    self.host + " as " + self.name + ": " +   str(err))
             else:
                 self.installation.init_copy_path(self.ssh)
 

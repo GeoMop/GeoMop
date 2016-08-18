@@ -7,6 +7,7 @@ from ui.data.config_builder import ConfigBuilder
 from communication import Installation
 import data.communicator_conf as comconf
 from log_reader import Log
+from data import Users
 
 __HOME__ = "home"
 __WORKSPACE__ = "workspace"
@@ -30,9 +31,12 @@ def get_config(an_name, mj_name, com_type):
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
     return com_conf
     
-def get_log(an_name, mj_name, com_type):
+def get_log(an_name, mj_name, com_type, id=None):
     path = Installation. get_mj_log_dir_static(mj_name, an_name)
-    path = os.path.join(path, com_type.value + ".log")    
+    if id is None:
+        path = os.path.join(path, com_type.value + ".log")    
+    else:
+        path = os.path.join(path, com_type.value + "_" + id + ".log")    
     log = Log(path)
     return log
 
@@ -56,6 +60,9 @@ def make_installation(dir, data):
     Installation.set_init_paths(home, workspace)
     data.config.workspace = workspace
     config.__config_dir__ = home
+    for ssh in data.ssh_presets:        
+        if data.ssh_presets[ssh].to_pc:
+            data.ssh_presets[ssh].key = Users.save_reg(data.ssh_presets[ssh].name,data.ssh_presets[ssh].pwd, home)
     
 def clear_files(dir):
     shutil.rmtree(dir, ignore_errors=True)

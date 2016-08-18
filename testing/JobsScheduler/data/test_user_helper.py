@@ -3,13 +3,17 @@ import shutil
 import os
 
 HOME_DIR = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
+DIR = os.path.join(HOME_DIR, "test_helper")
 TEST_DIR = os.path.join(HOME_DIR, "test_helper", "test")
 HELP_DIR = os.path.join(HOME_DIR, "test_helper", "help")
 
 def test_helper(request):
     def fin_test_local():        
-        shutil.rmtree(TEST_DIR , ignore_errors=True)
+        shutil.rmtree(DIR , ignore_errors=True)
     request.addfinalizer(fin_test_local)
+    
+    if not os.path.isdir(DIR):
+        os.makedirs(DIR)
     
     if not os.path.isdir(TEST_DIR):
         os.makedirs(TEST_DIR)
@@ -35,15 +39,24 @@ def test_helper(request):
     plocal, pkey = usr1.get_preset_pwd1(key, False, "LONG")
     rlocal, rkey = usr1.get_preset_pwd1(key, True, "LONG")
     
-#    assert os.path.isfile(os.path.join(HELP_DIR, ".reg"))
-#    p1 = usr1.get_login(plocal,pkey, "LONG", False)
-#    assert p1 == "test3"
-#    p2 = usr1.get_login(rlocal, rkey, "LONG", True)
-#    assert p2 == "test3"
-#    assert plocal != rlocal
+    assert os.path.isfile(os.path.join(HELP_DIR, ".reg"))    
     
+    p1 = usr1.get_login(plocal,pkey, "LONG")
+    assert p1 == "test3"
+    p2 = usr1.get_login(rlocal, rkey, "LONG")
+    assert p2 == "test3"
+    assert plocal != rlocal
     
+    # file should be removed after set_login
+    assert not os.path.isfile(os.path.join(HELP_DIR, ".reg"))
     
+    usr2 =  Users("test1", HELP_DIR, TEST_DIR, True, False)
+    plocal, pkey = usr2.get_preset_pwd1(key, False, "LONG")
+    rlocal, rkey = usr2.get_preset_pwd1(key, True, "LONG")
     
-    
-    
+    assert not os.path.isfile(os.path.join(HELP_DIR, ".reg"))
+    p1 = usr1.get_login(plocal,pkey, "LONG")
+    assert p1 == "test3"
+    p2 = usr1.get_login(rlocal, rkey, "LONG")
+    assert p2 is None
+    assert plocal != rlocal
