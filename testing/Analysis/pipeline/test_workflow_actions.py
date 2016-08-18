@@ -8,7 +8,14 @@ from .pomfce import *
 import pipeline.action_types as action
 import os
 
-def test_workflow_code_init():
+def test_workflow_code_init(request):
+    def clear_backup():
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
+    request.addfinalizer(clear_backup)
+
     # test workflow with more action
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))

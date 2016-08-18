@@ -16,6 +16,8 @@ import shutil
 def test_run_pipeline(request):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
     request.addfinalizer(clear_backup)
     
     action.__action_counter__ = 0
@@ -87,7 +89,17 @@ def test_run_pipeline(request):
 # ToDo: Test pipeline with all types of convertors
 
 
-def test_set_restore_id():
+def test_set_restore_id(request):
+    def clear_backup():
+        shutil.rmtree("backup", ignore_errors=True)
+        if os.path.isfile("identical_list.json"):
+            os.remove("identical_list.json")
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
+    request.addfinalizer(clear_backup)
+
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
@@ -113,6 +125,10 @@ def test_hashes_and_store_restore(request):
         shutil.rmtree("backup", ignore_errors=True)
         if os.path.isfile("identical_list.json"):
             os.remove("identical_list.json")
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
     request.addfinalizer(clear_backup)
 
     # create pipeline first time

@@ -9,7 +9,14 @@ from .pomfce import *
 import pipeline.action_types as action
 import os
 
-def test_pipeline_code_init():
+def test_pipeline_code_init(request):
+    def clear_backup():
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
+    request.addfinalizer(clear_backup)
+
     action.__action_counter__ = 0
     items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
@@ -79,7 +86,14 @@ def test_pipeline_code_init():
     assert isinstance(flow._get_output(), String)
 
 
-def test_hashes():
+def test_hashes(request):
+    def clear_backup():
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
+    request.addfinalizer(clear_backup)
+
     # first pipeline
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
@@ -115,7 +129,14 @@ def test_hashes():
     assert hlist1["6"] != hlist2["6"]
 
 
-def test_set_restore_id():
+def test_set_restore_id(request):
+    def clear_backup():
+        if os.path.isfile("pipeline/resources/test1_param.yaml"):
+            os.remove("pipeline/resources/test1_param.yaml")
+        if os.path.isfile("pipeline/resources/test2_param.yaml"):
+            os.remove("pipeline/resources/test2_param.yaml")
+    request.addfinalizer(clear_backup)
+
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))

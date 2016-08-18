@@ -166,7 +166,7 @@ class Flow123dAction(ParametrizedActionType):
         input = self.get_input_val(0)
         params_dict = {}
         for param in self.__get_require_params():
-            params_dict[param] = getattr(input, param).value
+            params_dict[param] = getattr(input, param)._to_string()
         analysis.replace_params_in_file(file, new_file, params_dict)
 
         return new_file
