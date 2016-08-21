@@ -91,9 +91,6 @@ def test_run_pipeline(request):
 
 def test_set_restore_id(request):
     def clear_backup():
-        shutil.rmtree("backup", ignore_errors=True)
-        if os.path.isfile("identical_list.json"):
-            os.remove("identical_list.json")
         if os.path.isfile("pipeline/resources/test1_param.yaml"):
             os.remove("pipeline/resources/test1_param.yaml")
         if os.path.isfile("pipeline/resources/test2_param.yaml"):

@@ -434,6 +434,7 @@ class Struct(CompositeDTT):
                 res += "}\n"
         except:
             return None
+        return res
             
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
@@ -576,7 +577,8 @@ class Tuple(CompositeDTT):
                 res += value._to_string()
             res += ")\n"
         except:
-            return None    
+            return None
+        return res
     
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
@@ -753,7 +755,8 @@ class Ensemble(SortableDTT):
                 res += value._to_string()
             res += "]\n"
         except:
-            return None    
+            return None
+        return res
     
     def _get_settings_script(self):
         """return python script, that create instance of this class"""

@@ -20,6 +20,7 @@ import pipeline.action_types as action
 
 
 from geomop_analysis import YamlSupportLocal
+from pipeline.flow_data_types import *
 #from flow_util import YamlSupport
 
 #from client_pipeline.identical_list_creator import *
@@ -29,12 +30,25 @@ from geomop_analysis import YamlSupportLocal
 # ys.save("d:/test/flow_gmsh.sprt")
 
 #vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
-vg = VariableGenerator(Variable=Struct())
-flow = Flow123dAction(Inputs=[vg], YAMLFile="d:/test/flow_gmsh.yaml")
+# vg = VariableGenerator(Variable=Struct(par1=String("test"), par2=Int(8)))
+# flow = Flow123dAction(Inputs=[vg], YAMLFile="d:/test/flow_gmsh_par.yaml")
+#
+# vg._inicialize()
+# flow._inicialize()
+# err = flow.validate()
+# runner = flow._update()
 
-vg._inicialize()
-flow._inicialize()
-err = flow.validate()
-runner = flow._update()
+s=Struct(a=String("test1"), b=String("test2"))
+ss=s._to_string()
+sss=s._get_settings_script()
+
+m=MeshType(mesh="test")
+mm=m._to_string()
+mmm=m._get_settings_script()
+
+
+f=FlowOutputType.create_data()
+
+
 
 print(9)
