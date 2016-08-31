@@ -1,4 +1,5 @@
 from .data_types_tree import *
+import xml.etree.ElementTree as ET
 
 
 class MeshType(BaseDTT):
@@ -120,27 +121,45 @@ class Enum(String):
 
 
 class PVD_Type():
-    @staticmethod
-    def create_data():
-        return Struct(time=Float(1.0),
-                      group=String("test"),
-                      part=Int(1),
-                      vtk_data=String("data"))
+    # @staticmethod
+    # def create_test_data():
+    #     return Struct(time=Float(1.0),
+    #                   group=String("test"),
+    #                   part=Int(1),
+    #                   vtk_data=String("data"))
 
     @staticmethod
     def create_type():
-        return Struct(time=Float(),
-                      group=String(),
-                      part=Int(),
-                      vtk_data=String())
+        return Sequence(Struct(time=Float(),
+                               group=String(),
+                               part=Int(),
+                               vtk_data=String()))
+
+
+    @staticmethod
+    def parse_data_from_file(file):
+        err = []
+        ret = PVD_Type.create_type()
+        try:
+            tree = ET.parse(file)
+            root = tree.getroot()
+            for data_set in root.findall("./Collection/DataSet"):
+                ret.add_item(Struct(time=Float(float(data_set.attrib["timestep"])),
+                                    group=String(data_set.attrib["group"]),
+                                    part=Int(int(data_set.attrib["part"])),
+                                    vtk_data=String(data_set.attrib["file"])))
+        except (ET.ParseError) as e:
+            err.append("Parse Error: {0}".format(e))
+            #return err
+        return ret
 
 
 class BalanceType():
     @staticmethod
-    def create_iner_data():
+    def create_iner_test_data(region_options, quantity_options):
         return Struct(time=SimulationTime(1.0),
-                      region=Enum(["r1", "r2"], "r1"),
-                      quantity=Enum(["qe1", "qe2"], "qe1"),
+                      region=Enum(region_options, region_options[0]),
+                      quantity=Enum(quantity_options, quantity_options[0]),
                       flux=Float(1.0),
                       flux_in=Float(1.0),
                       flux_out=Float(1.0),
@@ -155,10 +174,10 @@ class BalanceType():
                       error=Float(1.0))
 
     @staticmethod
-    def create_iner_type():
+    def create_iner_type(region_options, quantity_options):
         return Struct(time=SimulationTime(),
-                      region=Enum(["r1", "r2"]),
-                      quantity=Enum(["qe1", "qe2"]),
+                      region=Enum(region_options),
+                      quantity=Enum(quantity_options),
                       flux=Float(),
                       flux_in=Float(),
                       flux_out=Float(),
@@ -173,15 +192,53 @@ class BalanceType():
                       error=Float())
 
     @staticmethod
-    def create_data():
-        return Sequence(Tuple(Float(), BalanceType.create_iner_type()),
-                        Tuple(Float(1.0), BalanceType.create_iner_data()),
-                        Tuple(Float(2.0), BalanceType.create_iner_data()))
+    def create_test_data(region_options, quantity_options):
+        return Sequence(Tuple(Float(), BalanceType.create_iner_type(region_options, quantity_options)),
+                        Tuple(Float(1.0), BalanceType.create_iner_test_data(region_options, quantity_options)),
+                        Tuple(Float(2.0), BalanceType.create_iner_test_data(region_options, quantity_options)))
+
+    @staticmethod
+    def create_type(region_options, quantity_options):
+        return Sequence(Tuple(Float(), BalanceType.create_iner_type(region_options, quantity_options)))
 
 
     @staticmethod
-    def create_type():
-        return Sequence(Tuple(Float(), BalanceType.create_iner_type()))
+    def parse_data_from_file(file, region_options, quantity_options):
+        err = []
+        ret = BalanceType.create_type(region_options, quantity_options)
+        try:
+            with open(file, 'r') as fd:
+                fd.readline()
+                for line in fd:
+                    if line[-1] == "\n":
+                        line = line[:-1]
+                    s = line.split("\t")
+                    if len(s) < 15:
+                        continue
+                    for i in range(len(s)):
+                        if s[i][0] == '"' and s[i][-1] == '"':
+                            s[i] = s[i][1:-1]
+                    time = float(s[0])
+                    iner_data = Struct(time=SimulationTime(time),
+                                       region=Enum(region_options, s[1]),
+                                       quantity=Enum(quantity_options, s[2]),
+                                       flux=Float(float(s[3])),
+                                       flux_in=Float(float(s[4])),
+                                       flux_out=Float(float(s[5])),
+                                       mass=Float(float(s[6])),
+                                       source=Float(float(s[7])),
+                                       source_in=Float(float(s[8])),
+                                       source_out=Float(float(s[9])),
+                                       flux_increment=Float(float(s[10])),
+                                       source_increment=Float(float(s[11])),
+                                       flux_cumulative=Float(float(s[12])),
+                                       source_cumulative=Float(float(s[13])),
+                                       error=Float(float(s[14])))
+                    ret.add_item(Tuple(Float(time), iner_data))
+        except (RuntimeError, IOError) as e:
+            err.append("Can't open balance file: {0}".format(e))
+            #return err
+        return ret
 
 
 class PositionVector():
