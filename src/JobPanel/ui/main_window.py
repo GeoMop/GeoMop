@@ -19,6 +19,7 @@ from communication import installation
 from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
+from ui.data.data_structures import BASE_DIR
 from ui.dialogs import FilesSavedMessageBox, MessageDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -37,12 +38,12 @@ from config import __config_dir__
 logger = logging.getLogger("UiTrace")
 
 
-LOG_PATH = os.path.join(__config_dir__, 'log', 'app-centrall.log')
+LOG_PATH = os.path.join(__config_dir__, BASE_DIR,'log', 'app-centrall.log')
 
 
 class MainWindow(QtWidgets.QMainWindow):
     """
-    Jobs Scheduler main window class
+    Job Panel main window class
     """
 
     DEFAULT_POLL_INTERVAL = 500
@@ -194,7 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # resume paused multijobs
         self.perform_multijob_startup_action()
 
-        self.setWindowTitle('Jobs Scheduler')
+        self.setWindowTitle('Jobs Panel')
 
     def poll_com_manager(self):
         """poll com manager and update gui"""
@@ -541,7 +542,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 class UiMainWindow(object):
     """
-    Jobs Scheduler UI
+    Jobs Panel UI
     """
     def setup_ui(self, main_window):
         """
@@ -550,7 +551,7 @@ class UiMainWindow(object):
         # main window
         main_window.resize(1154, 702)
         main_window.setObjectName("MainWindow")
-        main_window.setWindowTitle('Jobs Scheduler')
+        main_window.setWindowTitle('Job Panel')
 
         # central widget and layout
         self.centralwidget = QtWidgets.QWidget(main_window)

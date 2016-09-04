@@ -22,20 +22,20 @@ class EnvDialog(AFormDialog):
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddEnvDialog",
-                       windowTitle="Job Scheduler - Add Environment",
+                       windowTitle="Job Panel - Add Environment",
                        title="Add Environment",
                        subtitle="Please select details for new Environment.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditEnvDialog",
-                        windowTitle="Job Scheduler - Edit Environment",
+                        windowTitle="Job Panel - Edit Environment",
                         title="Edit Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyEnvDialog",
-                        windowTitle="Job Scheduler - Copy Environment",
+                        windowTitle="Job Panel - Copy Environment",
                         title="Copy Environment",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")

@@ -16,7 +16,7 @@
    :caption: Developer Documentation
 
    ModelEditor <http://geomop.github.io/GeoMop/indexME.html>
-   JobsScheduler <http://geomop.github.io/GeoMop/indexJS.html>
+   JobPanel <http://geomop.github.io/GeoMop/indexJP.html>
    LayerEditor <http://geomop.github.io/GeoMop/indexLE.html>
    Common <http://geomop.github.io/GeoMop/indexCommon.html/>
    organization/procedures

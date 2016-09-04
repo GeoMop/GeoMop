@@ -1,4 +1,4 @@
-"""Pipeline help function for internall using in tak JobScheduler only"""
+"""Pipeline help function for internall using in tak JobPanel only"""
 import threading
 import time
 import subprocess

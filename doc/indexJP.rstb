@@ -1,0 +1,30 @@
+Job Panel Source Documentation
+===================================
+
+.. toctree::
+   :caption: Jobs Scheduler Source
+   :maxdepth: 4
+
+   aut/JobPanel/communication
+   aut/JobPanel/data
+   aut/JobPanel/delegator
+   aut/JobPanel/helpers
+   aut/JobPanel/job
+   aut/JobPanel/job_scheduler
+   aut/JobPanel/mj_service
+   aut/JobPanel/test
+   aut/JobPanel/test_app
+   aut/JobPanel/test_task
+   aut/JobPanel/ui
+
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <http://geomop.github.io/GeoMop/>
+
+Indices and tables
+==================
+
+* `Index <genindexJP.html>`_
+* `Module Index <py-modindexJP.html>`_
+

@@ -22,20 +22,20 @@ class PbsDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddPbsDialog",
-                       windowTitle="Job Scheduler - Add PBS options",
+                       windowTitle="Job Panel - Add PBS options",
                        title="Add PBS options",
                        subtitle="Please select details for PBS options.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditPbsDialog",
-                        windowTitle="Job Scheduler - Edit PBS options",
+                        windowTitle="Job Panel - Edit PBS options",
                         title="Edit PBS options",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyPbsDialog",
-                        windowTitle="Job Scheduler - Copy PBS options",
+                        windowTitle="Job Panel - Copy PBS options",
                         title="Copy PBS options",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")

@@ -23,20 +23,20 @@ class SshDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddSshDialog",
-                       windowTitle="Job Scheduler - Add SSH host",
+                       windowTitle="Job Panel - Add SSH host",
                        title="Add SSH host",
                        subtitle="Please select details for new SSH host.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditSshDialog",
-                        windowTitle="Job Scheduler - Edit SSH host",
+                        windowTitle="Job Panel - Edit SSH host",
                         title="Edit SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopySshDialog",
-                        windowTitle="Job Scheduler - Copy SSH host",
+                        windowTitle="Job Panel - Copy SSH host",
                         title="Copy SSH host",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")

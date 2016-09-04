@@ -22,21 +22,21 @@ class MultiJobDialog(AFormDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddMultiJobDialog",
-                       windowTitle="Job Scheduler - Add MultiJob",
+                       windowTitle="Job Panel - Add MultiJob",
                        title="Add MultiJob",
                        subtitle="Please select details to schedule set of "
                                 "tasks for computation.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditMultiJobDialog",
-                        windowTitle="Job Scheduler - Edit MultiJob",
+                        windowTitle="Job Panel - Edit MultiJob",
                         title="Edit MultiJob",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyMultiJobDialog",
-                        windowTitle="Job Scheduler - Copy MultiJob",
+                        windowTitle="Job Panel - Copy MultiJob",
                         title="Copy MultiJob",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")

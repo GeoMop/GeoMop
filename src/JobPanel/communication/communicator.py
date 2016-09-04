@@ -90,7 +90,7 @@ class Communicator():
         self._load_status() 
         """Persistent communicator data"""
         self._set_loger(Installation.get_result_dir_static(init_conf.mj_name, init_conf.an_name), 
-            self.communicator_name, self.log_level, init_conf.central_log, init_conf.paths_config)
+            self.communicator_name, self.log_level, init_conf.central_log)
         if action_func_before is None:
             self.action_func_before = self.standart_action_function_before
         else:
@@ -172,7 +172,7 @@ class Communicator():
             Installation.get_status_dir_static(self.mj_name, self.an_name), name) 
         self.status.load()
 
-    def _set_loger(self,  path, name, level, central_log, paths_config):
+    def _set_loger(self,  path, name, level, central_log):
         """set logger"""
         if central_log:
             logger = logging.getLogger("Remote")

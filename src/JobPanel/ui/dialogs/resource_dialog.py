@@ -20,20 +20,20 @@ class ResourceDialog(AFormDialog):
     # Purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddResourcehDialog",
-                       windowTitle="Job Scheduler - Add Resource",
+                       windowTitle="Job Panel - Add Resource",
                        title="Add Resource",
                        subtitle="Please select details for new Resource.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="EditResourceDialog",
-                        windowTitle="Job Scheduler - Edit Resource",
+                        windowTitle="Job Panel - Edit Resource",
                         title="Edit Resource",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyResourceDialog",
-                        windowTitle="Job Scheduler - Copy Resource",
+                        windowTitle="Job Panel - Copy Resource",
                         title="Copy Resource",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")

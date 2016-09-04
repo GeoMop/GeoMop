@@ -14,10 +14,10 @@ class PbsQueues:
     def get_system_queues(dialect_key):
         if 'APPDATA' in os.environ:
             __queues_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop',
-                                          'JobScheduler', 'queues')
+                                          'JobPanel', 'queues')
         else:
             __queues_dir__ = os.path.join(os.environ['HOME'], '.geomop',
-                                          'JobScheduler', 'queues')
+                                          'JobPanel', 'queues')
         dl = DialectImporter.get_dialect_by_name(dialect_key)
         file_name = os.path.join(__queues_dir__, dl.__queue_file__)
         try:

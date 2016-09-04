@@ -31,7 +31,7 @@ import icon
 from  communication.installation import Installation
 
 import config as cfg
-CONFIG_DIR = os.path.join(cfg.__config_dir__, 'JobScheduler')
+CONFIG_DIR = os.path.join(cfg.__config_dir__, 'JobPanel')
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
@@ -53,8 +53,8 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-class JobsScheduler(object):
-    """Jobs Scheduler main class"""
+class JobPanel(object):
+    """Jobs Panel main class"""
 
     def __init__(self, args):
         """Initialization of UI with executive code"""
@@ -94,8 +94,8 @@ class JobsScheduler(object):
 
 
 def main():
-    """JobsScheduler application entry point."""
-    parser = argparse.ArgumentParser(description='JobsScheduler')
+    """JobPanel application entry point."""
+    parser = argparse.ArgumentParser(description='JobPanel')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 
@@ -112,13 +112,13 @@ def main():
             # pylint: disable=unused-argument
             from geomop_dialogs import GMErrorDialog
             # display message box with the exception
-            if jobs_scheduler is not None and jobs_scheduler.mainwindow is not None:
-                err_dialog = GMErrorDialog(jobs_scheduler.mainwindow)
+            if job_panel is not None and job_panel.mainwindow is not None:
+                err_dialog = GMErrorDialog(job_panel.mainwindow)
                 err_dialog.open_error_dialog("Application performed invalid operation!",
                                              error=exception)
             sys.exit(1)
 
-        log_unhandled_exceptions('JobsScheduler', on_unhandled_exception)
+        log_unhandled_exceptions('JobPanel', on_unhandled_exception)
 
     # delete old lock files
     lock_dir = os.path.join(CONFIG_DIR , 'lock')
@@ -129,8 +129,8 @@ def main():
             logger.info("Old lock file was deleted: " + name)
 
     # init and run APP
-    jobs_scheduler = JobsScheduler(sys.argv)
-    jobs_scheduler.run()
+    job_panel = JobPanel(sys.argv)
+    job_panel.run()
 
 
 if __name__ == "__main__":

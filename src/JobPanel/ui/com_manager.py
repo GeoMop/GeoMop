@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-JobScheduler data reloader
+JobPanel data reloader
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """

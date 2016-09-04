@@ -62,15 +62,10 @@ def  job_action_function_before(message):
     return False, action.get_message()
     
 def read_err(err):
-    try:
-        import fdpexpect
-        import pexpect
-        
-        fd = fdpexpect.fdspawn(err)
-        txt = fd.read_nonblocking(size=10000, timeout=5)
-        txt = str(txt, 'utf-8').strip()
-    except pexpect.TIMEOUT:
+    if err is None:
         return None
+    try:
+        txt = err.read().strip()
     except Exception as err:
         logger.warning("Task output error:" + str(err))
         return None
@@ -165,6 +160,7 @@ try:
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     process = subprocess.Popen(flow_execute,stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, startupinfo=si)
+    time.sleep(0.1)
     return_code = process.poll()
     if return_code is not None:
         out =  read_err(process.stderr)

@@ -17,27 +17,27 @@ class AFormDialog(QtWidgets.QDialog):
     # purposes of dialog by action
     PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
                        objectName="AddDialog",
-                       windowTitle="Job Scheduler - Add",
+                       windowTitle="Job Panel - Add",
                        title="Add",
                        subtitle="Please select details.")
 
     PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
                         objectName="Edit Dialog",
-                        windowTitle="Job Scheduler - Edit",
+                        windowTitle="Job Panel - Edit",
                         title="Edit",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyDialog",
-                        windowTitle="Job Scheduler - Copy",
+                        windowTitle="Job Panel - Copy",
                         title="Copy",
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
     PURPOSE_DELETE = dict(purposeType="PURPOSE_DELETE",
                           objectName="DeleteDialog",
-                          windowTitle="Job Scheduler - Delete",
+                          windowTitle="Job Panel - Delete",
                           title="Delete",
                           subtitle="This should not happen.")
 

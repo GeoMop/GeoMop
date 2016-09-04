@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-JobScheduler data structures
+JobPanel data structures
 @author: Jan Gabriel
 @contact: jan.gabriel@tul.cz
 """
@@ -13,7 +13,7 @@ from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
 
 
-BASE_DIR = 'JobScheduler'
+BASE_DIR = 'JobPanel'
 
 
 class PersistentDict(dict):
