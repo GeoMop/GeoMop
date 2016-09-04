@@ -20,14 +20,15 @@ import pipeline.action_types as action
 
 
 from geomop_analysis import YamlSupportLocal
-from pipeline.flow_data_types import *
+#from pipeline.flow_data_types import *
 #from flow_util import YamlSupport
 
 #from client_pipeline.identical_list_creator import *
 
-# ys = YamlSupportLocal()
-# err = ys.parse("d:/test/flow_gmsh.yaml")
-# ys.save("d:/test/flow_gmsh.sprt")
+ys = YamlSupportLocal()
+err = ys.parse("d:/test/short_pulse_explicit.yaml")
+
+
 
 #vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
 # vg = VariableGenerator(Variable=Struct(par1=String("test"), par2=Int(8)))
@@ -38,16 +39,14 @@ from pipeline.flow_data_types import *
 # err = flow.validate()
 # runner = flow._update()
 
-s=Struct(a=String("test1"), b=String("test2"))
-ss=s._to_string()
-sss=s._get_settings_script()
-
-m=MeshType(mesh="test")
-mm=m._to_string()
-mmm=m._get_settings_script()
 
 
-f=FlowOutputType.create_data()
+
+
+from pipeline.flow_data_types import *
+
+
+f=FlowOutputType.create_data(ys, "d:/test/output")
 
 
 

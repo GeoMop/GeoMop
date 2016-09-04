@@ -2,7 +2,7 @@ import codecs
 import os
 import re
 
-from flow_util import YamlSupportRemote
+from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
 from model_data import Loader, Validator, notification_handler
 
 RE_PARAM = re.compile('<([a-zA-Z][a-zA-Z0-9_]*)>')
@@ -49,9 +49,59 @@ class YamlSupportLocal(YamlSupportRemote):
         self.mesh_file = node.value
 
         # active processes
-        node = root.get_node_at_path('/problem')
-        ap = {"flow_equation", "solute_equation", "heat_equation"}
-        self.active_processes = sorted(list(set(node.children_keys).intersection(ap)))
+        self.active_processes = {}
+        problem_node = root.get_node_at_path('/problem')
+        if "flow_equation" in problem_node.children_keys:
+            data = {}
+            try:
+                node = problem_node.get_node_at_path('flow_equation/output_stream/file')
+                data["output_stream_file"] = node.value
+            except LookupError:
+                pass
+            try:
+                oq = {}
+                node = problem_node.get_node_at_path('flow_equation/output/fields')
+                vectors = ["velocity_p0"]
+                tensors = []
+                for child in node.children:
+                    if child.value in vectors:
+                        oq[child.value] = ObservedQuantitiesValueType.vector
+                    elif child.value in tensors:
+                        oq[child.value] = ObservedQuantitiesValueType.tensor
+                    else:
+                        oq[child.value] = ObservedQuantitiesValueType.scalar
+                data["observed_quantities"] = oq
+            except LookupError:
+                pass
+            self.active_processes["flow_equation"] = data
+        if "solute_equation" in problem_node.children_keys:
+            try:
+                node = problem_node.get_node_at_path('solute_equation/output_stream/file')
+                data["output_stream_file"] = node.value
+            except LookupError:
+                pass
+            try:
+                oq = {}
+                node = problem_node.get_node_at_path('solute_equation/substances')
+                for child in node.children:
+                    oq[child.value + "_conc"] = ObservedQuantitiesValueType.scalar
+                data["observed_quantities"] = oq
+            except LookupError:
+                pass
+            self.active_processes["solute_equation"] = data
+        if "heat_equation" in problem_node.children_keys:
+            try:
+                node = problem_node.get_node_at_path('heat_equation/output_stream/file')
+                data["output_stream_file"] = node.value
+            except LookupError:
+                pass
+            try:
+                oq = {}
+                oq["temperature"] = ObservedQuantitiesValueType.scalar
+                data["observed_quantities"] = oq
+            except LookupError:
+                pass
+            self.active_processes["heat_equation"] = data
 
         # params
         self.params = sorted(list(set(RE_PARAM.findall(document))))

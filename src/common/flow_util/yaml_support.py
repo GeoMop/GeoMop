@@ -1,5 +1,13 @@
 import json
 import hashlib
+from enum import IntEnum
+
+
+class ObservedQuantitiesValueType(IntEnum):
+    """Observed Quantities Value Type"""
+    scalar = 0
+    vector = 1
+    tensor = 2
 
 
 class YamlSupportRemote:
@@ -11,22 +19,22 @@ class YamlSupportRemote:
     def __init__(self):
         self.regions = []
         self.params = []
-        self.active_processes = []
+        self.active_processes = {}
         self.mesh_file = ""
         self.yaml_file_hash = ""
         self.mesh_file_hash = ""
 
     def get_regions(self):
         """Return regions."""
-        return self.regions.copy()
+        return self.regions
 
     def get_params(self):
         """Return params."""
-        return self.params.copy()
+        return self.params
 
     def get_active_processes(self):
         """Return active processes."""
-        return self.active_processes.copy()
+        return self.active_processes
 
     def get_mesh_file(self):
         """Return mesh file."""
@@ -65,7 +73,7 @@ class YamlSupportRemote:
 
                 self.regions = d["regions"] if "regions" in d else []
                 self.params = d["params"] if "params" in d else []
-                self.active_processes = d["active_processes"] if "active_processes" in d else []
+                self.active_processes = d["active_processes"] if "active_processes" in d else {}
                 self.mesh_file = d["mesh_file"] if "mesh_file" in d else ""
                 self.yaml_file_hash = d["yaml_file_hash"] if "yaml_file_hash" in d else ""
                 self.mesh_file_hash = d["mesh_file_hash"] if "mesh_file_hash" in d else ""

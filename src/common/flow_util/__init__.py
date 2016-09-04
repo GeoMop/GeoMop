@@ -3,4 +3,4 @@
 """
 
 from . import analysis
-from .yaml_support import YamlSupportRemote
+from .yaml_support import YamlSupportRemote, ObservedQuantitiesValueType

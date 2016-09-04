@@ -1,5 +1,7 @@
 from .data_types_tree import *
+from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
 import xml.etree.ElementTree as ET
+import os
 
 
 class MeshType(BaseDTT):
@@ -253,12 +255,20 @@ class PositionVector():
 
 class ObservedQuantitiesType():
     @staticmethod
-    def create_data():
+    def create_test_data():
         return Struct(a=Float(1.0), b=Float(1.0))
 
     @staticmethod
-    def create_type():
-        return Struct(a=Float(), b=Float())
+    def create_type(observed_quantities):
+        ret = Struct()
+        for oq, vt in observed_quantities.items():
+            if vt == ObservedQuantitiesValueType.vector:
+                setattr(ret, oq, Tuple(Float(), Float(), Float()))
+            elif vt == ObservedQuantitiesValueType.tensor:
+                setattr(ret, oq, Tuple(Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float()))
+            else:
+                setattr(ret, oq, Float())
+        return ret
 
 
 class ObservationType():
@@ -269,10 +279,10 @@ class ObservationType():
                       observation=ObservedQuantitiesType.create_data())
 
     @staticmethod
-    def create_iner_type():
+    def create_iner_type(observed_quantities):
         return Struct(time=SimulationTime(),
                       point=PositionVector.create_type(),
-                      observation=ObservedQuantitiesType.create_type())
+                      observation=ObservedQuantitiesType.create_type(observed_quantities))
 
     @staticmethod
     def create_data():
@@ -282,35 +292,67 @@ class ObservationType():
 
 
     @staticmethod
-    def create_type():
-        return Sequence(Tuple(Float(), ObservationType.create_iner_type()))
+    def create_type(observed_quantities):
+        return Sequence(Tuple(Float(), ObservationType.create_iner_type(observed_quantities)))
 
 
 class XYZEquationResultType():
     @staticmethod
-    def create_data():
-        return Struct(fields=PVD_Type().create_data,
-                      balance=BalanceType.create_data(),
-                      observation=ObservationType.create_data())
+    def create_data(yaml_support, equation, output_dir):
+        ret = Struct()
+        balance_file = ""
+        quantity_options = []
+        if equation == "flow_equation":
+            balance_file = "water_balance.txt"
+            quantity_options = ["water_volume"]
+        if equation == "solute_equation":
+            balance_file = "mass_balance.txt"
+            quantity_options = ["A"]
+        if equation == "heat_equation":
+            balance_file = "energy_balance.txt"
+            quantity_options = ["energy"]
+
+        osf = yaml_support.get_active_processes()[equation]["output_stream_file"]
+        if len(osf) >= 4 and osf[-4:] == ".pvd":
+            ret.fields = PVD_Type().parse_data_from_file(os.path.join(output_dir, osf))
+
+        ret.balance = BalanceType.parse_data_from_file(os.path.join(output_dir, balance_file), yaml_support.get_regions(), quantity_options)
+        ret.observation = ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"])
+        return ret
 
     @staticmethod
-    def create_type():
-        return Struct(fields=PVD_Type().create_type,
-                      balance=BalanceType.create_type(),
-                      observation=ObservationType.create_type())
+    def create_type(yaml_support, equation):
+        quantity_options = []
+        if equation == "flow_equation":
+            quantity_options = ["water_volume"]
+        if equation == "solute_equation":
+            quantity_options = ["A"]
+        if equation == "heat_equation":
+            quantity_options = ["energy"]
+        return Struct(fields=PVD_Type().create_type(),
+                      balance=BalanceType.create_type(yaml_support.get_regions(), quantity_options),
+                      observation=ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"]))
 
 
 class FlowOutputType():
     @staticmethod
-    def create_data():
-        return Struct(mesh=MeshType(mesh="test"),
-                      flow_result=XYZEquationResultType.create_data(),
-                      solute_result=XYZEquationResultType.create_data(),
-                      heat_result=XYZEquationResultType.create_data())
+    def create_data(yaml_support, output_dir):
+        ret = Struct(mesh=String(""))
+        if "flow_equation" in yaml_support.get_active_processes().keys():
+            ret.flow_result = XYZEquationResultType.create_data(yaml_support, "flow_equation", output_dir)
+        if "solute_equation" in yaml_support.get_active_processes().keys():
+            ret.solute_result = XYZEquationResultType.create_data(yaml_support, "solute_equation", output_dir)
+        if "heat_equation" in yaml_support.get_active_processes().keys():
+            ret.heat_result = XYZEquationResultType.create_data(yaml_support, "heat_equation", output_dir)
+        return ret
 
     @staticmethod
-    def create_type():
-        return Struct(mesh=MeshType(mesh="test"),
-                      flow_result=XYZEquationResultType.create_type(),
-                      solute_result=XYZEquationResultType.create_type(),
-                      heat_result=XYZEquationResultType.create_type())
+    def create_type(yaml_support):
+        ret = Struct(mesh=String())
+        if "flow_equation" in yaml_support.get_active_processes().keys():
+            ret.flow_result = XYZEquationResultType.create_type(yaml_support, "flow_equation")
+        if "solute_equation" in yaml_support.get_active_processes().keys():
+            ret.solute_result = XYZEquationResultType.create_type(yaml_support, "solute_equation")
+        if "heat_equation" in yaml_support.get_active_processes().keys():
+            ret.heat_result = XYZEquationResultType.create_type(yaml_support, "heat_equation")
+        return ret
