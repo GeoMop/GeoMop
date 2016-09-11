@@ -26,7 +26,8 @@ from geomop_analysis import YamlSupportLocal
 #from client_pipeline.identical_list_creator import *
 
 ys = YamlSupportLocal()
-err = ys.parse("d:/test/short_pulse_explicit.yaml")
+err = ys.parse(r"d:\geomop\analysis\GeoMop\testing\Analysis\pipeline/flow_data_types_res/02_2/flow_lin_sorption_dg.yaml")
+#ys.save(r"d:\geomop\analysis\GeoMop\testing\Analysis\pipeline\flow_data_types_res\01\flow_gmsh.sprt")
 
 
 
@@ -42,12 +43,13 @@ err = ys.parse("d:/test/short_pulse_explicit.yaml")
 
 
 
-
 from pipeline.flow_data_types import *
 
 
-f=FlowOutputType.create_data(ys, "d:/test/output")
-
+f=FlowOutputType.create_type(ys)
+#f=FlowOutputType.create_data(ys, r"d:\geomop\analysis\GeoMop\testing\Analysis\pipeline/flow_data_types_res/21\output")
+ss=f._get_settings_script()
+tt="\n".join(ss)
 
 
 print(9)

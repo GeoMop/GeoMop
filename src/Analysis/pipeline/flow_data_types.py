@@ -2,6 +2,7 @@ from .data_types_tree import *
 from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
 import xml.etree.ElementTree as ET
 import os
+import yaml as pyyaml
 
 
 class MeshType(BaseDTT):
@@ -75,9 +76,9 @@ class SimulationTime(Float):
 
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.__float is None:
+        if self.value is None:
             return ["SimulationTime()"]
-        return ["SimulationTime({0})".format(str(self.__float))]
+        return ["SimulationTime({0})".format(str(self.value))]
 
 
 class Enum(String):
@@ -97,10 +98,15 @@ class Enum(String):
 
     def _get_settings_script(self):
         """return python script, that create instance of this class"""
-        if self.__string is None:
-            return ["Enum()"]
-        return ["String('{0}')".format(self.__string)]
-        # ToDo: correct functionality
+        ol = "["
+        for o in self.option_list[:-1]:
+            ol += "'{0}', ".format(o)
+        if len(self.option_list) >= 1:
+            ol += "'{0}'".format(self.option_list[-1])
+        ol += "]"
+        if self.value is None:
+            return ["Enum({0})".format(ol)]
+        return ["Enum({0}, '{1}')".format(ol, self.value)]
 
     def _assigne(self, value):
         """
@@ -285,10 +291,40 @@ class ObservationType():
                       observation=ObservedQuantitiesType.create_type(observed_quantities))
 
     @staticmethod
-    def create_data():
-        return Sequence(Tuple(Float(), ObservationType.create_iner_type()),
-                        Tuple(Float(1.0), BalanceType.create_iner_data()),
-                        Tuple(Float(2.0), BalanceType.create_iner_data()))
+    def parse_data_from_file(file, observed_quantities):
+        err = []
+        ret = ObservationType.create_type(observed_quantities)
+        try:
+            with open(file, 'r') as file_d:
+                data = pyyaml.load(file_d)
+            op = []
+            for point in data["points"]:
+                p = point["observe_point"]
+                op.append(Tuple(Float(p[0]), Float(p[1]), Float(p[2])))
+            j = 0
+            for item in data["data"]:
+                for i in range(len(op)):
+                    oqt = Struct()
+                    for oq, vt in observed_quantities.items():
+                        if vt == ObservedQuantitiesValueType.integer:
+                            setattr(oqt, oq, Int(item[oq][i]))
+                        elif vt == ObservedQuantitiesValueType.scalar:
+                            setattr(oqt, oq, Float(item[oq][i]))
+                        elif vt == ObservedQuantitiesValueType.vector:
+                            setattr(oqt, oq, Tuple(Float(item[oq][i][0]), Float(item[oq][i][1]), Float(item[oq][i][2])))
+                        elif vt == ObservedQuantitiesValueType.tensor:
+                            setattr(oqt, oq, Tuple(Float(item[oq][i][0][0]), Float(item[oq][i][0][1]), Float(item[oq][i][0][2]),
+                                                   Float(item[oq][i][1][0]), Float(item[oq][i][1][1]), Float(item[oq][i][1][2]),
+                                                   Float(item[oq][i][2][0]), Float(item[oq][i][2][1]), Float(item[oq][i][2][2])))
+                        iner_data = Struct(time=SimulationTime(Float(item["time"])),
+                                           point=op[i],
+                                           observation=oqt)
+                    ret.add_item(Tuple(Float(j), iner_data))
+                    j += 1
+        except (RuntimeError, IOError) as e:
+            err.append("Can't open observe .yaml file: {0}".format(e))
+            #return err
+        return ret
 
 
     @staticmethod
@@ -300,44 +336,65 @@ class XYZEquationResultType():
     @staticmethod
     def create_data(yaml_support, equation, output_dir):
         ret = Struct()
-        balance_file = ""
+        observe_file = ""
         quantity_options = []
         if equation == "flow_equation":
-            balance_file = "water_balance.txt"
+            observe_file = "flow_observe.yaml"
             quantity_options = ["water_volume"]
-        if equation == "solute_equation":
-            balance_file = "mass_balance.txt"
-            quantity_options = ["A"]
-        if equation == "heat_equation":
-            balance_file = "energy_balance.txt"
+        elif equation == "solute_equation":
+            observe_file = "solute_observe.yaml"
+            quantity_options = yaml_support.get_active_processes()[equation]["substances"]
+        elif equation == "heat_equation":
+            observe_file = "heat_observe.yaml"
             quantity_options = ["energy"]
+        else:
+            return ret
 
         osf = yaml_support.get_active_processes()[equation]["output_stream_file"]
-        if len(osf) >= 4 and osf[-4:] == ".pvd":
+        if osf[-4:] == ".pvd":
             ret.fields = PVD_Type().parse_data_from_file(os.path.join(output_dir, osf))
 
-        ret.balance = BalanceType.parse_data_from_file(os.path.join(output_dir, balance_file), yaml_support.get_regions(), quantity_options)
-        ret.observation = ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"])
+        ret.balance = BalanceType.parse_data_from_file(
+            os.path.join(output_dir, yaml_support.get_active_processes()[equation]["balance_file"]),
+            yaml_support.get_regions(), quantity_options)
+
+        if "observed_quantities" in yaml_support.get_active_processes()[equation]:
+            ret.observation = ObservationType.parse_data_from_file(
+                os.path.join(output_dir, observe_file),
+                yaml_support.get_active_processes()[equation]["observed_quantities"])
+
+
         return ret
 
     @staticmethod
     def create_type(yaml_support, equation):
+        ret = Struct()
         quantity_options = []
         if equation == "flow_equation":
             quantity_options = ["water_volume"]
-        if equation == "solute_equation":
-            quantity_options = ["A"]
-        if equation == "heat_equation":
+        elif equation == "solute_equation":
+            quantity_options = yaml_support.get_active_processes()[equation]["substances"]
+        elif equation == "heat_equation":
             quantity_options = ["energy"]
-        return Struct(fields=PVD_Type().create_type(),
-                      balance=BalanceType.create_type(yaml_support.get_regions(), quantity_options),
-                      observation=ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"]))
+        else:
+            return ret
+
+        osf = yaml_support.get_active_processes()[equation]["output_stream_file"]
+        if osf[-4:] == ".pvd":
+            ret.fields = PVD_Type().create_type()
+
+        ret.balance = BalanceType.create_type(yaml_support.get_regions(), quantity_options)
+
+        if "observed_quantities" in yaml_support.get_active_processes()[equation]:
+            ret.observation = ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"])
+
+        return ret
 
 
 class FlowOutputType():
     @staticmethod
     def create_data(yaml_support, output_dir):
-        ret = Struct(mesh=String(""))
+        ret = Struct(mesh=String(yaml_support.get_mesh_file()))
         if "flow_equation" in yaml_support.get_active_processes().keys():
             ret.flow_result = XYZEquationResultType.create_data(yaml_support, "flow_equation", output_dir)
         if "solute_equation" in yaml_support.get_active_processes().keys():

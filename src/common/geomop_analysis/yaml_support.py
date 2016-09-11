@@ -45,70 +45,147 @@ class YamlSupportLocal(YamlSupportRemote):
         # assert validator.validate(root, cls.root_input_type)
 
         # mesh file
-        node = root.get_node_at_path('/problem/mesh/mesh_file')
-        self.mesh_file = node.value
+        try:
+            node = root.get_node_at_path('/problem/mesh/mesh_file')
+            self._mesh_file = node.value
+        except LookupError:
+            err.append("Can't find node '/problem/mesh/mesh_file'")
+            return err
 
         # active processes
-        self.active_processes = {}
-        problem_node = root.get_node_at_path('/problem')
+        self._active_processes = {}
+        try:
+            problem_node = root.get_node_at_path('/problem')
+        except LookupError:
+            err.append("Can't find node '/problem'")
+            return err
+
+        # flow equation
         if "flow_equation" in problem_node.children_keys:
             data = {}
+
+            # output stream file
             try:
                 node = problem_node.get_node_at_path('flow_equation/output_stream/file')
                 data["output_stream_file"] = node.value
             except LookupError:
                 pass
+
+            # observed quantities
             try:
                 oq = {}
-                node = problem_node.get_node_at_path('flow_equation/output/fields')
-                vectors = ["velocity_p0"]
-                tensors = []
+                node = problem_node.get_node_at_path('flow_equation/output/observe_fields')
                 for child in node.children:
-                    if child.value in vectors:
-                        oq[child.value] = ObservedQuantitiesValueType.vector
-                    elif child.value in tensors:
-                        oq[child.value] = ObservedQuantitiesValueType.tensor
-                    else:
-                        oq[child.value] = ObservedQuantitiesValueType.scalar
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
                 data["observed_quantities"] = oq
             except LookupError:
                 pass
-            self.active_processes["flow_equation"] = data
+
+            # balance file
+            try:
+                node = problem_node.get_node_at_path('flow_equation/balance/file')
+                data["balance_file"] = node.value
+            except LookupError:
+                data["balance_file"] = "water_balance.txt"
+            self._active_processes["flow_equation"] = data
+
+        # solute equation
         if "solute_equation" in problem_node.children_keys:
+            data = {}
+
+            # output stream file
             try:
                 node = problem_node.get_node_at_path('solute_equation/output_stream/file')
                 data["output_stream_file"] = node.value
             except LookupError:
                 pass
+
+            # observed quantities
+            oq = {}
             try:
-                oq = {}
-                node = problem_node.get_node_at_path('solute_equation/substances')
+                node = problem_node.get_node_at_path('solute_equation/transport/output/observe_fields')
                 for child in node.children:
-                    oq[child.value + "_conc"] = ObservedQuantitiesValueType.scalar
-                data["observed_quantities"] = oq
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
             except LookupError:
                 pass
-            self.active_processes["solute_equation"] = data
+            try:
+                node = problem_node.get_node_at_path('solute_equation/reaction/output/observe_fields')
+                for child in node.children:
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
+            except LookupError:
+                pass
+            try:
+                node = problem_node.get_node_at_path('solute_equation/reaction/reaction_mobile/output/observe_fields')
+                for child in node.children:
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
+            except LookupError:
+                pass
+            try:
+                node = problem_node.get_node_at_path('solute_equation/reaction/reaction_immobile/output/observe_fields')
+                for child in node.children:
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
+            except LookupError:
+                pass
+            if len(oq) > 0:
+                data["observed_quantities"] = oq
+
+            # balance file
+            try:
+                node = problem_node.get_node_at_path('solute_equation/balance/file')
+                data["balance_file"] = node.value
+            except LookupError:
+                data["balance_file"] = "mass_balance.txt"
+
+            # substances
+            sub = []
+            try:
+                node = problem_node.get_node_at_path('solute_equation/substances')
+                for child in node.children:
+                    name = child.get_child("name")
+                    if name is not None:
+                        sub.append(name.value)
+            except LookupError:
+                pass
+            data["substances"] = sub
+
+            self._active_processes["solute_equation"] = data
+
+        # heat equation
         if "heat_equation" in problem_node.children_keys:
+            data = {}
+
+            # output stream file
             try:
                 node = problem_node.get_node_at_path('heat_equation/output_stream/file')
                 data["output_stream_file"] = node.value
             except LookupError:
                 pass
+
+            # observed quantities
             try:
                 oq = {}
-                oq["temperature"] = ObservedQuantitiesValueType.scalar
+                node = problem_node.get_node_at_path('heat_equation/output/observe_fields')
+                for child in node.children:
+                    oq[child.value] = ObservedQuantitiesValueType.scalar
                 data["observed_quantities"] = oq
             except LookupError:
                 pass
-            self.active_processes["heat_equation"] = data
+
+            # balance file
+            try:
+                node = problem_node.get_node_at_path('heat_equation/balance/file')
+                data["balance_file"] = node.value
+            except LookupError:
+                data["balance_file"] = "energy_balance.txt"
+
+            self._active_processes["heat_equation"] = data
 
         # params
-        self.params = sorted(list(set(RE_PARAM.findall(document))))
+        self._params = sorted(list(set(RE_PARAM.findall(document))))
 
         # regions
         mesh_dict = {}
-        mesh_file_path = os.path.join(dir_name, os.path.normpath(self.mesh_file))
+        mesh_file_path = os.path.join(dir_name, os.path.normpath(self._mesh_file))
         try:
             with open(mesh_file_path, 'r') as file_d:
                 line = file_d.readline()
@@ -122,14 +199,18 @@ class YamlSupportLocal(YamlSupportRemote):
         except (RuntimeError, IOError) as e:
             err.append("Can't open mesh file: {0}".format(e))
             return err
-        self.regions = sorted(list(mesh_dict.keys()))
+
+        self._regions = list(mesh_dict.keys())
+        self._regions.append(".IMPLICIT_BOUNDARY")
+        self._regions.append("ALL")
+        self._regions.sort()
 
         # .yaml file hash
-        e, self.yaml_file_hash = self.file_hash(file)
+        e, self._yaml_file_hash = self.file_hash(file)
         err.extend(e)
 
         # mesh file hash
-        e, self.mesh_file_hash = self.file_hash(mesh_file_path)
+        e, self._mesh_file_hash = self.file_hash(mesh_file_path)
         err.extend(e)
 
         return err
