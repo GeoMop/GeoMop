@@ -10,8 +10,13 @@ import model_data.autoconversion as ac
 from model_data import ScalarDataNode, MappingDataNode, notification_handler
 from geomop_util import TextValue
 
+__model_data_dir__ =  os.path.dirname(os.path.realpath(__file__))
+__common_dir__ =  os.path.split(__model_data_dir__)[0]
+
 DATA_DIR = os.path.join('data', 'autoconversion')
-INPUT_TYPE_FILE = os.path.join('..', 'common', 'resources', 'ist', '00_geomop_testing_ist.json')
+INPUT_TYPE_FILE = os.path.join(__common_dir__, 'resources', 'ist', '00_geomop_testing_ist.json')
+INPUT_TYPE_FILE183 = os.path.join(__common_dir__, 'resources', 'ist', '1.8.3.json')
+INPUT_TYPE_FILE200 = os.path.join(__common_dir__, 'resources', 'ist', '2.0.0_rc.json')
 
 
 @pytest.fixture(scope='module')
@@ -312,6 +317,35 @@ def test_transposition(loader):
     assert len(notification_handler.notifications) == 1
     assert notification_handler.notifications[0].name == 'InvalidTransposition'
 
+def test_all_files(loader):
+    from model_data import get_root_input_type_from_json    
+    
+    DATA_DIR = os.path.join(__model_data_dir__, "autoconversion", "expected")
+    RES_DIR = os.path.join(__model_data_dir__, "autoconversion", "input")
+    
+    files = os.listdir(path=DATA_DIR)
+    for name in files:
+        file_expected = os.path.join(DATA_DIR, name)
+        file_input = os.path.join(RES_DIR, name)
+        yaml_expected = open(file_expected).read()
+        yaml_input = open(file_input).read() 
+        root_expected = loader.load(yaml_expected)
+        root_input = loader.load(yaml_input)        
+        if name.startswith("1.8.3"):
+            json_data = open(INPUT_TYPE_FILE183).read()       
+        elif name.startswith("2.0.0"):
+            json_data = open(INPUT_TYPE_FILE200).read()
+        else:
+            continue        
+        root_input_type = get_root_input_type_from_json(json_data)
+        
+        notification_handler.clear()
+        expected = ac.autoconvert(root_expected, root_input_type)
+        assert len(notification_handler.notifications) == 0
+        notification_handler.clear()
+        input = ac.autoconvert(root_input, root_input_type)
+        # assert len(notification_handler.notifications) == 0
+        
 
 if __name__ == '__main__':
     test_autoconvert()

@@ -6,8 +6,8 @@ import os
 
 from model_data import (export_con, Loader)
 
-
-DATA_DIR = os.path.join('model_data', 'export_con')
+__model_data_dir__ =  os.path.dirname(os.path.realpath(__file__))
+DATA_DIR = os.path.join(__model_data_dir__, 'export_con')
 
 
 @pytest.fixture(scope='module')

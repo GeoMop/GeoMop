@@ -172,7 +172,7 @@ def test_transf():
         if input_files[i]=="":
             continue
         input = os.path.join(path, input_files[i])
-        output = output_files[i]
+        output = os.path.join(path, output_files[i])
         print(input)
         
         cfg.init(None)
