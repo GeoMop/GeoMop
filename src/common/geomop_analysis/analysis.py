@@ -13,6 +13,7 @@ ANALYSIS_MAIN_FILE_EXT = 'data'
 ANALYSIS_MAIN_FILE_NAME = 'analysis'
 ANALYSIS_MAIN_FILE = ANALYSIS_MAIN_FILE_NAME + '.' + ANALYSIS_MAIN_FILE_EXT
 MULTIJOBS_DIR = 'mj'
+CONFIG_DIR = '.settings'
 
 
 class InvalidAnalysis(Exception):
@@ -250,7 +251,9 @@ class Analysis:
     def is_analysis(path):
         """Determine if a path is an analysis directory."""
         if os.path.isdir(path):
-            for file_ in os.listdir(path):
+            if path.endswith(CONFIG_DIR):
+                return False
+            for file_ in os.listdir(path):                
                 if file_.lower() == ANALYSIS_MAIN_FILE:
                     return True
         return False
@@ -265,3 +268,16 @@ class Analysis:
                 if Analysis.is_analysis(path):
                     analyses.append(name)
         return analyses
+        
+    @staticmethod
+    def get_workspace_config_dir(workspace, module):
+        """Get a list of all analyses in workspace."""
+        if os.path.exists(workspace):
+            settings = os.path.join(workspace,CONFIG_DIR)
+            if not os.path.exists(settings):
+                os.makedirs(settings)
+            settings = os.path.join(settings, module)
+            if not os.path.exists(settings):
+                os.makedirs(settings)
+            return settings
+        return None

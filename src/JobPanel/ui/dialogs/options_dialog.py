@@ -22,7 +22,7 @@ class OptionsDialog(QDialog):
         super(OptionsDialog, self).__init__(parent)
 
         self.config = config
-        self.workspace_selector = WorkspaceSelectorWidget(self, config.workspace)
+        self.workspace_selector = WorkspaceSelectorWidget(self, config.get_path())
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
@@ -39,8 +39,8 @@ class OptionsDialog(QDialog):
 
     def accept(self):
         """Handles a confirmation."""
-        self.config.workspace = self.workspace_selector.value
-        if not Analysis.exists(self.config.workspace, self.config.analysis):
+        self.data.reload_workspace(self.workspace_selector.value)
+        if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
             self.config.analysis = None
         self.config.save()
         super(OptionsDialog, self).accept()

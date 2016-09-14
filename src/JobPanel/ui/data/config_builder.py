@@ -34,7 +34,7 @@ class ConfigBuilder:
         self.pbs_presets = data.pbs_presets
         self.resource_presets = data.resource_presets
         self.env_presets = data.env_presets
-        self.config = data.config
+        self.workspaces = data.workspaces
 
         self.app_version = Version().version
         """
@@ -203,21 +203,21 @@ class ConfigBuilder:
         remote_mj_remote_j = (mj_execution_type == UiResourceDialog.DELEGATOR_LABEL and
                               j_execution_type == UiResourceDialog.REMOTE_LABEL)
 
-        app.set_paths_before_ssh(self.config.workspace, mj_preset)
+        app.set_paths_before_ssh(self.workspaces.get_path(), mj_preset)
         if exec_mj_exec_j:
-            mj.set_paths_before_ssh(self.config.workspace, mj_preset)
-            job.set_paths_before_ssh(self.config.workspace, mj_preset)
+            mj.set_paths_before_ssh(self.workspaces.get_path(), mj_preset)
+            job.set_paths_before_ssh(self.workspaces.get_path(), mj_preset)
         elif remote_mj_exec_j:
             delegator.set_paths_on_ssh(mj_ssh_preset)
             mj.set_paths_on_ssh(mj_ssh_preset)
             job.set_paths_on_ssh(mj_ssh_preset)
         elif exec_mj_remote_j:
-            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
-            mj.set_paths_before_ssh(self.config.workspace, mj_preset)
+            delegator.set_paths_before_ssh(self.workspaces.get_path(), mj_preset, copy_ex_libs=True)
+            mj.set_paths_before_ssh(self.workspaces.get_path(), mj_preset)
             remote.set_paths_on_ssh(mj_ssh_preset)
             job.set_paths_on_ssh(mj_ssh_preset)
         elif remote_mj_remote_j:
-            delegator.set_paths_before_ssh(self.config.workspace, mj_preset, copy_ex_libs=True)
+            delegator.set_paths_before_ssh(self.workspaces.get_path(), mj_preset, copy_ex_libs=True)
             mj.set_paths_on_ssh(mj_ssh_preset)
             remote.set_paths_on_ssh(mj_ssh_preset)
             job.set_paths_on_ssh(j_ssh_preset)

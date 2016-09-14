@@ -43,20 +43,20 @@ class MultiJobDialog(AFormDialog):
 
     PURPOSE_COPY_PREFIX = "Copy_of"
 
-    def __init__(self, parent=None, resources=None, config=None):
+    def __init__(self, parent=None, resources=None, data=None):
         super().__init__(parent)
 
         # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
+        self.data = data
 
-        self.config = config
         self._from_mj = None
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
         self.set_resource_presets(resources)
-        self.set_analyses(self.config)
+        self.set_analyses(data.workspaces)
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
@@ -67,7 +67,7 @@ class MultiJobDialog(AFormDialog):
     def update_mj_name(self):
         analysis_name = self.ui.analysisComboBox.currentText()
         try:
-            counter = Analysis.open(self.config.workspace, analysis_name).mj_counter
+            counter = Analysis.open(self.data.workspaces.get_path(), analysis_name).mj_counter
         except InvalidAnalysis:
             counter = 1
         name = self.ui.resourceComboBox.currentText() + '_' + str(counter)
@@ -95,9 +95,11 @@ class MultiJobDialog(AFormDialog):
     def set_analyses(self, config):
         self.ui.analysisComboBox.clear()
         self.ui.analysisComboBox.addItem('')
-        if config and config.workspace:
-            for analysis_name in Analysis.list_analyses_in_workspace(config.workspace):
-                self.ui.analysisComboBox.addItem(analysis_name, analysis_name)
+        if config is not None:
+            path = config.get_path()
+            if path is not None:
+                for analysis_name in Analysis.list_analyses_in_workspace(path):
+                    self.ui.analysisComboBox.addItem(analysis_name, analysis_name)
 
     def get_data(self):
         key = self.ui.idLineEdit.text()

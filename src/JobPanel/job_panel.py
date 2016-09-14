@@ -66,7 +66,7 @@ class JobPanel(object):
 
         # load data container
         self._data = DataContainer()
-        Installation.set_init_paths(CONFIG_DIR, self._data.config.workspace)
+        Installation.set_init_paths(CONFIG_DIR, self._data.workspaces.get_path())
 
         # setup com manager
         self._com_manager = ComManager(self._data)

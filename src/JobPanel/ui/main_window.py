@@ -90,8 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # init dialogs
         self.mj_dlg = MultiJobDialog(parent=self,
-                                     resources=self.data.resource_presets,
-                                     config=self.data.config)
+                                     resources=self.data.resource_presets, data=data)
         self.ssh_presets_dlg = SshPresets(parent=self,
                                           presets=self.data.ssh_presets)
         self.pbs_presets_dlg = PbsPresets(parent=self,
@@ -148,8 +147,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.resource_presets.save)
 
         # analysis menu
-        self.ui.menuBar.analysis.config = self.data.config
-
+        self.ui.menuBar.analysis.config = self.data.workspaces
+        
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
             QtWidgets.QApplication.quit)
@@ -186,11 +185,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # load settings
         self.load_settings()
         # attach workspace and project observers
-        self.data.config.observers.append(Analysis)
         self.data.config.observers.append(self)
 
         # trigger notify
         self.data.config.notify()
+        
+        #reload func
+        self.data.set_reload_funcs(self.pause_all, self.perform_multijob_startup_action)
 
         # resume paused multijobs
         self.perform_multijob_startup_action()
@@ -213,7 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if mj.state.status == TaskStatus.finished:
                 # copy app central log into mj
-                mj_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                       MULTIJOBS_DIR, mj.preset.name)
                 shutil.copy(LOG_PATH, mj_dir)
 
@@ -237,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for mj_id, error in self.com_manager.jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
             if error is None and mj_id in self._delete_mj_local:
-                mj_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                       MULTIJOBS_DIR, mj.preset.name)
                 shutil.rmtree(mj_dir)
                 self.data.multijobs.pop(mj_id)  # delete from gui
@@ -270,11 +271,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
         self.ui.overviewWidget.setCurrentItem(item)
-        self.mj_dlg.set_analyses(self.data.config)
+        self.mj_dlg.set_analyses(self.data.workspaces)
 
-    def notify(self, data):
+    def notify(self):
         """Handle update of data.set_data."""
         self.load_settings()
+        class ConfigI:
+            def __init__(self, workspace, analysis):
+                self.workspace = workspace
+                self.analysis = analysis  
+        Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
     def update_ui_locks(self, mj_id):
         if mj_id is None:
@@ -345,7 +351,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.multijobs[mj.id] = mj
         if purpose in (self.mj_dlg.PURPOSE_ADD, self.mj_dlg.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
-            analysis = Analysis.open(self.data.config.workspace, mj.preset.analysis)
+            analysis = Analysis.open(self.data.workspaces.get_path(), mj.preset.analysis)
             analysis.mj_counter += 1
             analysis.save()
             if purpose == self.mj_dlg.PURPOSE_ADD:
@@ -356,9 +362,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     logger.error("Failed to copy analysis into mj folder: " + str(e))
             elif purpose == self.mj_dlg.PURPOSE_COPY:
                 src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
-                src_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                src_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                        MULTIJOBS_DIR, src_mj_name)
-                dst_dir = os.path.join(self.data.config.workspace, mj.preset.analysis,
+                dst_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                        MULTIJOBS_DIR, mj.preset.name)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
                     'res', 'log', 'status', 'mj_conf', '*.log'))
@@ -380,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.stop_jobs.append(key)
 
     def _handle_options(self):
-        OptionsDialog(self, self.data.config).show()
+        OptionsDialog(self, self.data.workspaces).show()
 
     def _handle_save_results_button_clicked(self):
         src_dir_path = os.path.join(installation.__install_dir__,
@@ -494,15 +500,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.raise_()
 
         # select workspace if none is selected
-        if self.data.config.workspace is None:
+        if self.data.workspaces.get_path() is None:
             import sys
             sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace")
             if not sel_dir:
                 sel_dir = None
             elif sys.platform == "win32":
                 sel_dir = sel_dir.replace('/', '\\')
-            self.data.config.workspace = sel_dir
-            self.data.config.save()
+            self.data.reload_workspace(sel_dir)
+
+    def pause_all(self):        
+        # save currently selected mj
+        current = self.ui.overviewWidget.currentItem()
+        sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
+        self.data.config.selected_mj = sel_index
+
+        # pause all jobs
+        self.com_manager.pause_all()
+        self.cm_poll_timer.stop()
+        self.cm_poll_timer.start(self.cm_poll_interval)
+        
+        while self.com_manager.run_jobs or self.com_manager.start_jobs or \
+            self.com_manager.delete_jobs:
+            self.poll_com_manager()
+            time.sleep(200)
 
     def closeEvent(self, event):
         if not self.closing:
@@ -518,11 +539,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.cm_poll_interval = 200
             self.cm_poll_timer.stop()
             self.cm_poll_timer.start(self.cm_poll_interval)
+            
+            i=0
+            while (self.com_manager.run_jobs or self.com_manager.start_jobs or \
+                self.com_manager.delete_jobs) and i<3:
+                self.poll_com_manager()
+                time.sleep(200)
+                i += 1
 
-            # show closing dialog
-            self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)
-            self.close_dialog.show()
-            self.close_dialog.activateWindow()
+            if self.com_manager.run_jobs or self.com_manager.start_jobs or \
+                self.com_manager.delete_jobs:
+                # show closing dialog
+                self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)
+                self.close_dialog.show()
+                self.close_dialog.activateWindow()
 
             event.ignore()
 

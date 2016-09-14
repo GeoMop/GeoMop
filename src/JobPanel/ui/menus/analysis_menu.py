@@ -29,7 +29,7 @@ class AnalysisMenu(QMenu):
 
     def _create_analysis(self):
         """Handle creation of a new analysis."""
-        if not self.config.workspace:
+        if self.config.get_path() is None:
             QtWidgets.QMessageBox.information(
                 self, 'No Workspace',
                 'Please select workspace in Settings before creating an analysis.')
@@ -43,7 +43,7 @@ class AnalysisMenu(QMenu):
         dialog = AnalysisSelectDialog(self, self.config)
         if dialog.exec_():
             try:
-                analysis = Analysis.open(self.config.workspace, dialog.analysis_name, sync_files=True)
+                analysis = Analysis.open(self.config.get_path(), dialog.analysis_name, sync_files=True)
             except InvalidAnalysis:
                 QtWidgets.QMessageBox.critical(
                         self, 'Analysis not found',
@@ -68,7 +68,7 @@ class AnalysisSelectDialog(QtWidgets.QDialog):
         form_layout = QtWidgets.QFormLayout()
         analysis_label = QtWidgets.QLabel("Analysis: ")
         self.analysis_combo_box = QtWidgets.QComboBox()
-        self.analysis_combo_box.addItems(Analysis.list_analyses_in_workspace(config.workspace))
+        self.analysis_combo_box.addItems(Analysis.list_analyses_in_workspace(config.get_path()))
         self.analysis_combo_box.setCurrentIndex(0)
         form_layout.addRow(analysis_label, self.analysis_combo_box)
 

@@ -11,25 +11,28 @@ from geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
-
-
-BASE_DIR = 'JobPanel'
-
+from ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
 
 class PersistentDict(dict):
     """Persistent dictionary containing configuration."""
 
     @staticmethod
-    def open(cls):
+    def open(cls, id=None):
         directory = os.path.join(BASE_DIR, cls.DIR)
-        config = cfg.get_config_file(cls.FILE_NAME, directory, cls=cls)
+        fn = cls.FILE_NAME
+        if id is not None:
+            fn += "_" + str(id)
+        config = cfg.get_config_file(fn, directory, cls=cls)
         if config is None:
             config = cls()
         return config
 
-    def save(self):
+    def save(self, id=None):
         directory = os.path.join(BASE_DIR, self.DIR)
-        cfg.save_config_file(self.FILE_NAME, self, directory)
+        fn = self.FILE_NAME
+        if id is not None:
+            fn += "_" + str(id)
+        cfg.save_config_file(fn, self, directory)
 
 
 class MultiJobData(PersistentDict):
@@ -44,8 +47,11 @@ class MultiJobData(PersistentDict):
     )
 
     @staticmethod
-    def open():
-        return PersistentDict.open(MultiJobData)
+    def open(id):
+        return PersistentDict.open(MultiJobData, id)
+     
+    def save(self, id):
+        super(MultiJobData, self).save(id)
 
 
 class SshData(PersistentDict):
@@ -131,8 +137,6 @@ class ConfigData:
         """List of observer objects to be notified on change."""
         self.analysis = kw_or_def('analysis', None)
         """Name of active analysis"""
-        self.workspace = kw_or_def('workspace', None)
-        """Path to selected workspace"""
         self.selected_mj = kw_or_def('selected_mj', None)
         """Selected multijob in UI"""
 
@@ -142,7 +146,7 @@ class ConfigData:
 
     def notify(self):
         for observer in self.observers:
-            observer.notify(self)
+            observer.notify()
 
     @staticmethod
     def open():
@@ -165,6 +169,7 @@ class DataContainer:
     DEBUG_MODE = False
 
     def __init__(self):
+        self.workspaces = None
         self.multijobs = None
         self.ssh_presets = None
         self.pbs_presets = None
@@ -172,13 +177,24 @@ class DataContainer:
         self.env_presets = None
         self.config = None
         self.open_all()
+        self.pause_func = None
+        self.reload_func = None
+        
+    def set_reload_funcs(self, pause_func, reload_func):
+        """
+        Set functions for pausing and resuming all processes. 
+        This functions is use for resetting 
+        """
+        self.pause_func = pause_func
+        self.reload_func = reload_func
 
     def save_all(self):
         """
         Saves all data containers for app.
         :return:
         """
-        self.multijobs.save()
+        self.workspaces.save(self.config.selected_mj)
+        self.multijobs.save(self.workspaces.get_id())
         self.ssh_presets.save()
         self.pbs_presets.save()
         self.resource_presets.save()
@@ -190,9 +206,29 @@ class DataContainer:
         Loads all data containers for app.
         :return:
         """
-        self.multijobs = MultiJobData.open()
+        self.workspaces = WorkspacesConf.open()
+        self.multijobs = MultiJobData.open( self.workspaces.get_id())
         self.ssh_presets = SshData.open()
         self.pbs_presets = PbsData.open()
         self.resource_presets = ResourcesData.open()
         self.env_presets = EnvPresets.open()
         self.config = ConfigData.open()
+        
+    def reload_workspace(self, path):
+        """
+        Reload selected worspace
+        
+        Call this function after succesful selection of workspace
+        and pausing workspace jobs
+        """
+        if self.workspaces.select_workspace(path):
+            self.pause_func()
+            self.multijobs = MultiJobData.open(self.workspaces.get_id())
+            self.reload_func()            
+            self.config.selected_mj = self.workspaces.get_selected_mj()
+            self.workspaces.save(self.config.selected_mj)
+            self.multijobs.save(self.workspaces.get_id())
+            self.config.save()
+          
+            return True
+        return False
