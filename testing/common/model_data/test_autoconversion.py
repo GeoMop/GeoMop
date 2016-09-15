@@ -317,6 +317,13 @@ def test_transposition(loader):
     assert len(notification_handler.notifications) == 1
     assert notification_handler.notifications[0].name == 'InvalidTransposition'
 
+def _report_notifications(file, notifications):
+    report = "Notifications during '{0}' yaml file processing:\n".format(file)
+    i = 0
+    for notification in notifications:
+        report += "    Not.{0}: {1}\n".format(str(i+1), str(notification))
+    assert False, report
+
 def test_all_files(loader):
     from model_data import get_root_input_type_from_json    
     
@@ -325,26 +332,28 @@ def test_all_files(loader):
     
     files = os.listdir(path=DATA_DIR)
     for name in files:
-        file_expected = os.path.join(DATA_DIR, name)
-        file_input = os.path.join(RES_DIR, name)
-        yaml_expected = open(file_expected).read()
-        yaml_input = open(file_input).read() 
-        root_expected = loader.load(yaml_expected)
-        root_input = loader.load(yaml_input)        
         if name.startswith("1.8.3"):
             json_data = open(INPUT_TYPE_FILE183).read()       
         elif name.startswith("2.0.0"):
             json_data = open(INPUT_TYPE_FILE200).read()
         else:
-            continue        
+            continue  
+            
+        file_expected = os.path.join(DATA_DIR, name)
+        file_input = os.path.join(RES_DIR, name)
+        yaml_expected = open(file_expected).read()
+        yaml_input = open(file_input).read() 
+        root_expected = loader.load(yaml_expected)
+        root_input = loader.load(yaml_input)              
         root_input_type = get_root_input_type_from_json(json_data)
         
         notification_handler.clear()
         expected = ac.autoconvert(root_expected, root_input_type)
-        assert len(notification_handler.notifications) == 0
-        notification_handler.clear()
+        if len(notification_handler.notifications) != 0:
+            _report_notifications(file_expected, notification_handler.notifications)
         input = ac.autoconvert(root_input, root_input_type)
-        # assert len(notification_handler.notifications) == 0
+        if len(notification_handler.notifications) != 0:
+            _report_notifications(file_input, notification_handler.notifications)
         
 
 if __name__ == '__main__':
