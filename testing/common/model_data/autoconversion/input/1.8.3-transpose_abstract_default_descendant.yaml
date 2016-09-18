@@ -6,11 +6,12 @@ problem: !SequentialCoupling
   primary_equation: !Steady_MH
   
     # Test data
-    input_fields:
+    input_fields :
       # Transpose input_fields to array with two items
       rid: [1, 2]
       # and convert bc_flux values into records
-      bc_flux: [2.0, 4.0]
+      bc_flux:
+        [2.0, 4.0]
 
 
     # Placeholder data

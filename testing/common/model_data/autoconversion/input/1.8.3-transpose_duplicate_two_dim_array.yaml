@@ -10,7 +10,7 @@ problem: !SequentialCoupling
       # Transpose input_fields to array with two items
       rid: [1, 2]
       # and dupliacate anisotropy values (a single item unrelated two dimensional array)
-      anisotropy: 
+      anisotropy:
         - [2.0, 3.0, 4.0]
 
 
@@ -18,7 +18,7 @@ problem: !SequentialCoupling
     solver: !Petsc
         r_tol: 1
         a_tol: 1
-    balance: 
+    balance:     
       balance_on: true
     output:
       output_stream: 

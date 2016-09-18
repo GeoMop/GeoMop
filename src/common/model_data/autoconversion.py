@@ -220,6 +220,8 @@ class Transposer:
 
     paths_to_convert = None
     """a list of path to keys which are to be converted"""
+    paths_to_convert_as_1dim = None
+    """a list of path to keys which should be converted as 1dim"""
     array_size = None
     """the size of the array tobe created by transposition"""
     current_path = None
@@ -229,6 +231,7 @@ class Transposer:
     def init(cls):
         """Initialize class for operation."""
         cls.paths_to_convert = []
+        cls.paths_to_convert_as_1dim = []
         cls.array_size = None
         cls.current_path = ['.']
 
@@ -282,14 +285,19 @@ class Transposer:
             # convert array to value
             for path in cls.paths_to_convert:
                 node_to_convert = child_node.get_node_at_path(path)
-                if i >= len(node_to_convert.children):
+                if i >= len(node_to_convert.children) and len(node_to_convert.children) != 1:
                     converted_node = ScalarDataNode(node_to_convert.key, node_to_convert.parent,
                                                     None)
                     converted_node.span = Span(node_to_convert.span.start, node_to_convert.span.start)
                 else:
-                    converted_node = node_to_convert.children[i]
+                    if  len(node_to_convert.children) == 1:
+                        # duplicate first value
+                        converted_node = node_to_convert.children[0]
+                    else:
+                        converted_node = node_to_convert.children[i]
                     converted_node.parent = node_to_convert.parent
                     converted_node.key = node_to_convert.key
+                    converted_node.type = node_to_convert.type
                 node_to_convert.parent.set_child(converted_node)
             array_node.children.append(child_node)
 
@@ -298,11 +306,8 @@ class Transposer:
     @classmethod
     def _get_transformation_array_size(cls, node, input_type):
         """Return transformation array size."""
-        if  input_type['base_type'] == 'Abstract':
-            if node.implementation == DataNode.Implementation.sequence:
-                notification = Notification.from_name("InvalidAbstractTranspositionParameterType")
-                notification.span = node.span
-                raise notification
+        if  input_type['base_type'] == 'Abstract' and \
+            node.implementation != DataNode.Implementation.sequence:
             cls.array_size = 1000000
             isset = False
             for child in node.children:
@@ -333,15 +338,27 @@ class Transposer:
                         raise notification
                     elif child_type['base_type'] != 'Array':
                         if cls.array_size is None:
+                            if cls.is_1dim_sequence(child, child_type):
+                                cls.array_size = 1
+                                cls.paths_to_convert_as_1dim.append('/'.join(cls.current_path + [child.key.value]))
+                            else:    
+                                cls.array_size = len(child.children)
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                        elif cls.is_1dim_sequence(child, child_type):
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                            cls.paths_to_convert_as_1dim.append('/'.join(cls.current_path + [child.key.value]))
+                        elif cls.array_size == len(child.children):
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                        elif len(child.children) == 1:
+                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                        elif cls.array_size == 1:
                             cls.array_size = len(child.children)
                             cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
-                        elif cls.array_size != len(child.children):
+                        else:    
                             notification = Notification.from_name(
                                 "DifferentArrayLengthForTransposition")
                             notification.span = child.span
                             raise notification
-                        else:
-                            cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
 
                 # verify array size recursively
                 cls.current_path.append(child.key.value)
@@ -349,6 +366,26 @@ class Transposer:
                 cls.current_path.pop()
 
         return cls.array_size
+        
+    @staticmethod
+    def is_1dim_sequence(node, input_type):
+        """
+        recognise if node is sequence or only one value
+        of sequences
+        """
+        try:
+            it_concrete = input_type['implementations'][node.type.value]
+        except (KeyError, AttributeError):
+            try:
+                it_concrete = input_type['default_descendant']
+            except KeyError:
+                return False
+#        if node.implementation == DataNode.Implementation.sequence and \
+#            it_concrete['base_type']=="Record" and \
+#            len(node.children)>0 and \
+#            node.children[0].implementation == DataNode.Implementation.scalar:
+#            return True
+        return False
 
     @staticmethod
     def _expand_value_to_array(node):
