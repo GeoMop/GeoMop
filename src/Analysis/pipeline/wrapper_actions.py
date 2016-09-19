@@ -3,6 +3,7 @@ from .data_types_tree import Ensemble, DTT
 from .generator_actions import VariableGenerator
 from .workflow_actions import Workflow
 
+
 class ForEach(WrapperActionType):
     
     name = "ForEach"
