@@ -18,7 +18,8 @@ problem: !SequentialCoupling
         bc_pressure: !FieldFormula
           value: x
         # and converted anisotropy values into two dimensional arrays
-        anisotropy: !FieldFormula [y, z]              
+        anisotropy: !FieldFormula 
+          value: [y, z]              
               
       - rid: 2
         time: 4
@@ -26,7 +27,8 @@ problem: !SequentialCoupling
           value: 4.0
         bc_pressure: !FieldFormula
           value: y
-        anisotropy: !FieldFormula [y, z]
+        anisotropy: !FieldFormula 
+          value: [y, z]
 
     # Placeholder data
     solver: !Petsc

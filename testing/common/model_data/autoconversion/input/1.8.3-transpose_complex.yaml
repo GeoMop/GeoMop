@@ -16,7 +16,8 @@ problem: !SequentialCoupling
       # and convert bc_pressure values into records with given tag
       bc_pressure: !FieldFormula [x, y]
       # and convert anisotropy values into two dimensional arrays
-      anisotropy: !FieldFormula [y, z]
+      anisotropy: !FieldFormula
+        value: [y, z]
 
 
     # Placeholder data

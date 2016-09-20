@@ -57,12 +57,13 @@ class AutoConverter:
         elif input_type['base_type'] == 'Array':
             if node.implementation != DataNode.Implementation.sequence:
                 return
-            children = list(node.children)
-            node.children.clear()
-            for child in children:
-                ac_child = AutoConverter._get_autoconverted(child, input_type['subtype'])
-                node.set_child(ac_child)
-                AutoConverter._autoconvert_crawl(ac_child, input_type['subtype'])
+            if not AutoConverter._shift_array(node, input_type):
+                children = list(node.children)
+                node.children.clear()
+                for child in children:
+                    ac_child = AutoConverter._get_autoconverted(child, input_type['subtype'])
+                    node.set_child(ac_child)
+                    AutoConverter._autoconvert_crawl(ac_child, input_type['subtype'])
         elif input_type['base_type'] == 'Record':
             if node.implementation != DataNode.Implementation.mapping:
                 return
@@ -101,7 +102,26 @@ class AutoConverter:
             return AutoConverter._expand_reducible_to_key(node, input_type)
         else:
             return node
-
+            
+    @staticmethod
+    def  _shift_array(node, input_type):
+        """If all children is scalar, bur is expected array, duplicate and shift it"""
+        if  input_type['subtype']['base_type'] == 'Array' and \
+            len(node.children)>1 :
+            for child in node.children:                
+                if child.implementation != DataNode.Implementation.scalar:
+                    return False
+            
+            children = list(node.children)
+            node.children.clear()
+            for i in range(0, len(children)):
+                array_node = SequenceDataNode(str(i), node)
+                array_node.children = children
+                node.set_child(array_node)
+            AutoConverter._autoconvert_crawl(node, input_type)
+            return True
+        return False
+            
     @staticmethod
     def _expand_reducible_to_key(node, input_type):
         """Initializes a record from the reducible_to_key value."""
@@ -290,7 +310,9 @@ class Transposer:
                                                     None)
                     converted_node.span = Span(node_to_convert.span.start, node_to_convert.span.start)
                 else:
-                    if  len(node_to_convert.children) == 1:
+                    if  path in cls.paths_to_convert_as_1dim:
+                        converted_node = node_to_convert
+                    elif  len(node_to_convert.children) == 1:
                         # duplicate first value
                         converted_node = node_to_convert.children[0]
                     else:
@@ -380,11 +402,11 @@ class Transposer:
                 it_concrete = input_type['default_descendant']
             except KeyError:
                 return False
-#        if node.implementation == DataNode.Implementation.sequence and \
-#            it_concrete['base_type']=="Record" and \
-#            len(node.children)>0 and \
-#            node.children[0].implementation == DataNode.Implementation.scalar:
-#            return True
+        if node.implementation == DataNode.Implementation.sequence and \
+            it_concrete['keys']['value']['type']['base_type']=="Array" and \
+            len(node.children)>0 and \
+            node.children[0].implementation == DataNode.Implementation.scalar:
+            return True
         return False
 
     @staticmethod
