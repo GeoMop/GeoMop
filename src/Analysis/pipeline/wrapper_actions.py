@@ -193,3 +193,101 @@ class ForEach(WrapperActionType):
         ret = ActionsStatistics()
         ret.add(stat, number)
         return ret
+
+
+class Calibration(WrapperActionType):
+
+    name = "Calibration"
+    """Display name of action"""
+    description = "Calibration of model parameters"
+    """Display description of action"""
+
+    def __init__(self, **kwargs):
+        """
+        Class for calibration of model parameters.
+        :param Workflow Model: Wrapped action
+        :param list of CalibrationParameter Parameters: list of parameters to calibrate
+        :param list of CalibrationObservation Observations: list of observations
+        :param CalibrationOutputType Output: output from calibration
+        :param Action Input: action that return input to calibration
+        """
+
+        super.__init__(**kwargs)
+
+    def _inicialize(self):
+        """inicialize action run variables"""
+        super._inicialize()
+        self.__make_output()
+
+    def __make_output(self):  # ToDo:
+        """return output relevant for set action"""
+        if 'Model' in self._variables and \
+            isinstance(self._variables['Model'],  BaseActionType):
+            output=self._variables['Model']._get_output()
+            if not isinstance(output, DTT):
+                return None
+            res=Ensemble(output)
+            if not self._is_state(ActionStateType.finished):
+                for instance in self._wa_instances:
+                    """Running instance, get input from generator"""
+                    res.add_item(instance._get_output())
+            self._output = res
+
+    def _get_variables_script(self):
+        """return array of variables python scripts"""
+        var = super._get_variables_script()
+        if 'Model' in self._variables:
+            model = 'Model={0}'.format(self._variables['Model']._get_instance_name())
+            var.append([model])
+        return var
+
+    def _set_storing(self, identical_list):
+        """set restore id"""
+        super._set_storing(identical_list)
+        if 'Model' in self._variables:
+            self._variables['Model']._set_storing(identical_list)
+
+    def _after_update(self, store_dir):
+        """
+        Set real output variable and set finished state.
+        """
+        self.__make_output()
+        self._store_results(store_dir)
+        self._set_state(ActionStateType.finished)
+
+    def _check_params(self):
+        """check if all require params is set"""
+        err = super._check_params()
+        if len(self._inputs) == 0:
+            self._add_error(err, "No input action for Calibration")
+        if 'Model' in self._variables:
+            if not isinstance(self._variables['Model'], Workflow):
+                self._add_error(err, "Parameter 'Model' must be Workflow")
+
+        # ToDo: check inputs
+        # for i in range(len(self._inputs)):
+        #     ensemble = self.get_input_val(i)
+        #     if not isinstance(ensemble, Ensemble):
+        #         self._add_error(err, "Input action {0} not produce Ensemble type variable".format(str(i)))
+        return err
+
+    def validate(self):
+        """validate variables, input and output"""
+        err = super.validate()
+        if 'Model' in self._variables and \
+                isinstance(self._variables['Model'], BaseActionType):
+            err.extend(self._variables['Model'].validate())
+        return err
+
+    def _get_statistics(self):  # ToDo:
+        """return all statistics for this and child action"""
+        stat = self._variables['WrappedAction']._get_statistics()
+        number = 0
+        if len(self._wa_instances)>0:
+            number = len(self._wa_instances)
+        else:
+            ensemble = self.get_input_val(0)
+            number = len(ensemble)
+        ret = ActionsStatistics()
+        ret.add(stat, number)
+        return ret
