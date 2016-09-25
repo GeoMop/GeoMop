@@ -7,7 +7,7 @@ import os
 import pytest
 
 import model_data.autoconversion as ac
-from model_data import ScalarDataNode, MappingDataNode, notification_handler
+from model_data import ScalarDataNode, MappingDataNode, Validator, notification_handler
 from geomop_util import TextValue
 
 __model_data_dir__ =  os.path.dirname(os.path.realpath(__file__))
@@ -324,6 +324,39 @@ def _report_notifications(file, notifications):
         report += "    Not.{0}: {1}\n".format(str(i+1), str(notification))
     assert False, report
 
+def _check_nodes(input, expected, desc):
+    path = input.absolute_path
+    desc_path = desc + ", path:"+ path
+    
+    if input.key is not None or expected.key is not None :
+        if input.key is None and expected.key is not None:
+            assert False,  "Input node ({0}) key  is None ({1})".format(desc_path, expected.key.value)
+        elif input.key is not None and expected.key is None:
+            assert False,  "Expected node ({0}) key  is None ({1})".format(desc_path, input.key.value)
+        elif input.key.value != expected.key.value:
+            assert False,  "Nodes ({0}) keys  is not same ({1},{2})".format(desc_path, input.key.value, expected.key.value)
+    if input.type is not None or expected.type is not None :
+        if input.type is None and expected.type is not None:
+            assert False,  "Input node ({0}) type  is None ({1})".format(desc_path, expected.type.value)
+        elif input.type is not None and expected.type is None:
+            assert False,  "Expected node ({0}) type  is None ({1})".format(desc_path, input.type.value)
+        elif  input.type.value != expected.type.value:
+            assert False,  "Nodes types({0}) is not same ({1},{2})".format(desc_path, input.type.value, expected.type.value)
+    if input.implementation != expected.implementation:
+        assert False,  "Nodes types({0}) is not same ({1},{2})".format(desc_path, input.implementation, expected.implementation)
+    if len(input.children) != len(expected.children):
+        assert False,  "Number of nodes children ({0}) is not same ({1},{2})".format(desc_path, len(input.children), len(expected.children))
+    for input_child in input.children:
+        expected_child = None
+        for  expected_child_test in expected.children:
+            if input_child.key.value ==  expected_child_test.key.value:
+                expected_child = expected_child_test
+                break
+        if  expected_child is None:
+            assert False,  "Node child ({0}, key:{1}) is not in expected".format(desc_path, input_child.key.value)
+        else:
+            _check_nodes(input_child, expected_child, desc)
+
 def test_all_files(loader):
     from model_data import get_root_input_type_from_json    
     
@@ -349,12 +382,27 @@ def test_all_files(loader):
         
         notification_handler.clear()
         expected = ac.autoconvert(root_expected, root_input_type)
-        if len(notification_handler.notifications) != 0:
+        validator = Validator(notification_handler)
+        validator.validate(expected, root_input_type)
+        not_count = len(notification_handler.notifications)
+        if name.startswith("1.8.3"):
+            if notification_handler.notifications[0].code == 602:
+                not_count -= 1
+        if  not_count != 0:
             _report_notifications(file_expected, notification_handler.notifications)
+            
+        notification_handler.clear()
         input = ac.autoconvert(root_input, root_input_type)
-        if len(notification_handler.notifications) != 0:
+        validator = Validator(notification_handler)
+        validator.validate(input, root_input_type)
+        not_count = len(notification_handler.notifications)
+        if name.startswith("1.8.3"):
+            if notification_handler.notifications[0].code == 602:
+                not_count -= 1
+        if  not_count != 0:
             _report_notifications(file_input, notification_handler.notifications)
-        
+            
+        _check_nodes(input, expected, "input:{0}, exp:{1}".format(file_input, file_expected)) 
 
 if __name__ == '__main__':
     test_autoconvert()

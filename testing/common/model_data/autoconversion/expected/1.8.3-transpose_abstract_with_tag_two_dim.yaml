@@ -9,9 +9,17 @@ problem: !SequentialCoupling
     input_fields:
       # Transposed input_fields to array with two items
       # CORRECT result is:
+    # ????????? co kdyz tady bude rid: [1, 2] ???????
+      # - anisotropy: !FieldFormula
+      #     - [x+y, x-y, z]
+      #     - [x*x, y*y, z*z]  
+    # ?????????
+
       - anisotropy: !FieldFormula
           - [x+y, x-y, z]
-          - [x*x, y*y, z*z]
+      - anisotropy: !FieldFormula
+          - [x*x, y*y, z*z]      
+
 
     # Placeholder data
     solver: !Petsc

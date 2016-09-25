@@ -14,18 +14,24 @@ problem: !Coupling_Sequential
         # TODO: is this the expected behavior?
         anisotropy: !FieldConstant
           value: 
-            - [2.0]
-            - [3.0]
-            - [4.0]
+            # ????????? - porovnat s 2.0.0_rc-transpose_duplicate_two_dim_array.yaml 
+            # - [2.0]
+            # - [3.0]
+            # - [4.0]
+            # ?????????
+            - [2.0,3.0, 4.0]
             
       - rid: 2
         anisotropy: !FieldConstant
           value: 
         anisotropy: !FieldConstant
           value: 
-            - [2.0]
-            - [3.0]
-            - [4.0]
+            # ????????? - porovnat s 2.0.0_rc-transpose_duplicate_two_dim_array.yaml 
+            # - [2.0]
+            # - [3.0]
+            # - [4.0]
+            # ?????????
+            - [2.0,3.0, 4.0]
 
     # Placeholder data
     nonlinear_solver:

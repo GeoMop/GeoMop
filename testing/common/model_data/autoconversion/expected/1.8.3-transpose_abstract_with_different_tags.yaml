@@ -15,10 +15,12 @@ problem: !SequentialCoupling
       
       - anisotropy: !FieldFormula
           value:
-            - [x*x]
-            - [y*y]
-            - [x*z]
-
+          # ????????? - porovnat s 2.0.0_rc-transpose_duplicate_two_dim_array.yaml
+            # - [x*x]
+            # - [y*y]
+            # - [x*z]
+      # ?????????
+            - [x*x, y*y, z*z]
 
     # Placeholder data
     solver: !Petsc

@@ -11,14 +11,17 @@ problem: !Coupling_Sequential
       # with different tags for each item
       # TODO: is this behavior needed?
       - anisotropy: !FieldPython
+		# co by to mělo udělat ??? - viz. comment file
           function: f1
       
       - anisotropy: !FieldFormula
           value:
-            - [x*x]
-            - [y*y]
-            - [x*z]
-
+            # ????????? - porovnat s 2.0.0_rc-transpose_duplicate_two_dim_array.yaml
+            # - [x*x]
+            # - [y*y]
+            # - [x*z]
+            # ?????????
+            - [x*x, y*y, z*z]
 
     # Placeholder data
     nonlinear_solver:

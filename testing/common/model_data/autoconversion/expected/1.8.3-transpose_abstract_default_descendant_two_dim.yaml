@@ -12,17 +12,22 @@ problem: !SequentialCoupling
         # and converted anisotropy values into two dimensional arrays
         anisotropy: !FieldConstant
           value:
-            - [1]
-            - [2]
-            - [3]
+      # ????????? - porovnat s 2.0.0_rc-transpose_duplicate_two_dim_array.yaml
+      # - [1]
+      # - [2]
+      # - [3]  
+      # ?????????
+            - [1, 2, 3]
               
       - rid: 2
         anisotropy: !FieldConstant
           value:
-            - [4]
-            - [5]
-            - [6]
-
+      # ?????????
+          #  - [4]
+          #  - [5]
+          #  - [6]
+      # ?????????
+            - [4, 5, 6]
 
     # Placeholder data
     solver: !Petsc
