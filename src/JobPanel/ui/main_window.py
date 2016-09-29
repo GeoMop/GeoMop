@@ -157,10 +157,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.app.actionLog.triggered.connect(
             self._handle_log_action)
 
-        # connect multijob run action
-        self.ui.menuBar.multiJob.actionRunMultiJob.triggered.connect(
-            self._handle_run_multijob_action)
-
         # connect multijob stop action
         self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
             self._handle_stop_multijob_action)
@@ -311,7 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
     def _handle_add_multijob_action(self):
-        self.mj_dlg.exec_add()
+        self.mj_dlg.exec_add()        
 
     def _handle_reuse_multijob_action(self):
         if self.data.multijobs:
@@ -360,6 +356,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     analysis.copy_into_mj_folder(mj)
                 except Exception as e:
                     logger.error("Failed to copy analysis into mj folder: " + str(e))
+                self.com_manager.start_jobs.append(mj.id) 
             elif purpose == self.mj_dlg.PURPOSE_COPY:
                 src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
                 src_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
@@ -368,12 +365,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                        MULTIJOBS_DIR, mj.preset.name)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
                     'res', 'log', 'status', 'mj_conf', '*.log'))
+                self.com_manager.start_jobs.append(mj.id)        
         self.multijobs_changed.emit(self.data.multijobs)
-
-    def _handle_run_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
-        key = current.text(0)
-        self.com_manager.start_jobs.append(key)
 
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()

@@ -61,15 +61,6 @@ class ActionDeleteRemote(QtWidgets.QAction):
         self.setText("Delete Remote")
         self.setObjectName("actionDeleteRemote")
 
-
-class ActionRunMultiJob(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("Run")
-        self.setShortcut("Ctrl+R")
-        self.setObjectName("actionRunMultiJob")
-
-
 class ActionResumeMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -25,21 +25,15 @@ class MultiJobDialog(AFormDialog):
                        windowTitle="Job Panel - Add MultiJob",
                        title="Add MultiJob",
                        subtitle="Please select details to schedule set of "
-                                "tasks for computation.")
-
-    PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
-                        objectName="EditMultiJobDialog",
-                        windowTitle="Job Panel - Edit MultiJob",
-                        title="Edit MultiJob",
-                        subtitle="Change desired parameters and press SAVE to "
-                                 "apply changes.")
+                                "tasks for computation and press Run to "
+                                 "start multijob.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
                         objectName="CopyMultiJobDialog",
                         windowTitle="Job Panel - Copy MultiJob",
                         title="Copy MultiJob",
-                        subtitle="Change desired parameters and press SAVE to "
-                                 "apply changes.")
+                        subtitle="Change desired parameters and press Run to "
+                                 "start multijob.")
 
     PURPOSE_COPY_PREFIX = "Copy_of"
 
@@ -57,6 +51,8 @@ class MultiJobDialog(AFormDialog):
         self.set_purpose(self.PURPOSE_ADD)
         self.set_resource_presets(resources)
         self.set_analyses(data.workspaces)
+        
+        self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Save).setText("Run")
 
         # connect slots
         # connect generic presets slots (must be called after UI setup)
