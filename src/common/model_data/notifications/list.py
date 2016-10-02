@@ -195,6 +195,14 @@ _NOTIFICATIONS = [
         'message': 'Transposed abstract  parameter type is not array',
         'example': '', 
     },
+    {
+        'code': 456,
+        'name': 'UnsupportedTranspositionInTransposition',
+        'description': 'If transposition is processed only automatic conversion to array'
+            ' with one element is permited',
+        'message': 'Deep transposition is not allowed',
+        'example': '',  # no example - it's not be possible with the current IST
+    },
 
     # -----------------------------------------------------
     #                  Syntax Errors

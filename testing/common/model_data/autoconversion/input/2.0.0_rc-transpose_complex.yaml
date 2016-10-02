@@ -18,7 +18,8 @@ problem: !Coupling_Sequential
       # and duplicate unrelated array (region)
       region: [a, b, c]
       # and convert anisotropy values into two dimensional arrays
-      anisotropy: !FieldFormula [y, z]
+      anisotropy: !FieldFormula
+        value: [y, z]
 
 
     # Placeholder data

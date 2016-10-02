@@ -11,7 +11,8 @@ problem: !SequentialCoupling
       rid: [1, 2]
       # and dupliacate anisotropy values (a single item unrelated two dimensional array)
       anisotropy:
-        - [2.0, 3.0, 4.0]
+        value:
+          - [2.0, 3.0, 4.0]
 
 
     # Placeholder data
