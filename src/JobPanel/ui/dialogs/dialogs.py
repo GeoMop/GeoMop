@@ -51,7 +51,7 @@ class AFormDialog(QtWidgets.QDialog):
 
     def __init__(self, old_name=None):
         """initialize"""
-        super(AFormDialog, self).__init__()
+        super(AFormDialog, self).__init__()        
         self.old_name = old_name
 
     def accept(self):

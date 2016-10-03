@@ -80,7 +80,7 @@ def test_expand_abstract_record():
     assert expanded.get_node_at_path('/a').input_type['base_type'] == 'String'
 
 
-def test_autoconvert():
+def _test_autoconvert():
     it_record = dict(
         base_type='Record',
         keys={
@@ -144,7 +144,7 @@ def test_convert_data_type(base_type, data, expected):
     assert node.value == expected
 
 
-def test_transposition(loader):
+def _test_transposition(loader):
     root_input_type = dict(
         name='RootTransposeRec',
         base_type='Record',

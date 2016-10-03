@@ -69,7 +69,6 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.actionDeleteMultiJob = action.ActionDeleteMultiJob(self)
 
         # control actions
-        self.actionRunMultiJob = action.ActionRunMultiJob(self)
         self.actionStopMultiJob = action.ActionStopMultiJob(self)
 
         # add actions to menu
@@ -78,12 +77,10 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDeleteRemote)
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
-        self.addAction(self.actionRunMultiJob)
         self.addAction(self.actionStopMultiJob)
 
         self.lockable_actions = {
             MultijobActions.delete: self.actionDeleteMultiJob,
-            MultijobActions.run: self.actionRunMultiJob,
             MultijobActions.stop: self.actionStopMultiJob
         }
 

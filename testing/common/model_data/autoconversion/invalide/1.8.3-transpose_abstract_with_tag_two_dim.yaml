@@ -8,12 +8,9 @@ problem: !SequentialCoupling
     # Test data
     input_fields:
       # Transpose input_fields to array with two items
-      # with different tags for each item
-      anisotropy:
-        - !FieldPython
-            function: f1
-        - !FieldFormula [x*x, y*y, z*z]
-
+      anisotropy: !FieldFormula
+        - [x+y, x-y, z]
+        - [x*x, y*y, z*z]
 
     # Placeholder data
     solver: !Petsc
