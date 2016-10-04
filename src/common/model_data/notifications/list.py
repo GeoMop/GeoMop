@@ -203,6 +203,13 @@ _NOTIFICATIONS = [
         'message': 'Deep transposition is not allowed',
         'example': '',  # no example - it's not be possible with the current IST
     },
+    {
+        'code': 457,
+        'name': 'UnsupportedExpansion',
+        'description': "Can't' expand abstract parameter to reducible key",
+        'message': 'Expansion abstract parameter to reducible key error',
+        'example': '',  # no example - it's not be possible with the current IST
+    },
 
     # -----------------------------------------------------
     #                  Syntax Errors

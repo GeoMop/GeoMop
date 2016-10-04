@@ -14,12 +14,14 @@ problem: !Coupling_Sequential
       # and convert bc_flux values into records with default_descendant FieldConstant
       bc_flux: [3.0, 4.0]
       # and convert bc_pressure values into records with given tag
-      bc_pressure: !FieldFormula [x, y]
+      bc_pressure: !FieldFormula 
+        value: [x, y]
       # and duplicate unrelated array (region)
       region: [a, b, c]
       # and convert anisotropy values into two dimensional arrays
       anisotropy: !FieldFormula
-        value: [y, z]
+        value: 
+          - [y, z]
 
 
     # Placeholder data

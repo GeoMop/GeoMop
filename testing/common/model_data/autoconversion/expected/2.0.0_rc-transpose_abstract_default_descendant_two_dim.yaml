@@ -14,14 +14,14 @@ problem: !Coupling_Sequential
           value:
             - [1]
             - [2]
-            - [3]  
+            - [3] 
               
       - rid: 2
         anisotropy: !FieldConstant
           value:
             - [4]
             - [5]
-            - [6]
+            - [6] 
 
 
     # Placeholder data
