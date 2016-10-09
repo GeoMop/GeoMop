@@ -259,52 +259,76 @@ class PositionVector():
         return Tuple(Float(), Float(), Float())
 
 
-class ObservedQuantitiesType():
-    @staticmethod
-    def create_test_data():
-        return Struct(a=Float(1.0), b=Float(1.0))
-
-    @staticmethod
-    def create_type(observed_quantities):
-        ret = Struct()
-        for oq, vt in observed_quantities.items():
-            if vt == ObservedQuantitiesValueType.vector:
-                setattr(ret, oq, Tuple(Float(), Float(), Float()))
-            elif vt == ObservedQuantitiesValueType.tensor:
-                setattr(ret, oq, Tuple(Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float()))
-            else:
-                setattr(ret, oq, Float())
-        return ret
+# class ObservedQuantitiesType():
+#     @staticmethod
+#     def create_test_data():
+#         return Struct(a=Float(1.0), b=Float(1.0))
+#
+#     @staticmethod
+#     def create_type(observed_quantities):
+#         ret = Struct()
+#         for oq, vt in observed_quantities.items():
+#             if vt == ObservedQuantitiesValueType.vector:
+#                 setattr(ret, oq, Tuple(Float(), Float(), Float()))
+#             elif vt == ObservedQuantitiesValueType.tensor:
+#                 setattr(ret, oq, Tuple(Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float()))
+#             else:
+#                 setattr(ret, oq, Float())
+#         return ret
 
 
 class ObservationType():
-    @staticmethod
-    def create_iner_data():
-        return Struct(time=SimulationTime(1.0),
-                      point=PositionVector.create_data(),
-                      observation=ObservedQuantitiesType.create_data())
+    # @staticmethod
+    # def create_iner_data():
+    #     return Struct(time=SimulationTime(1.0),
+    #                   point=PositionVector.create_data(),
+    #                   observation=ObservedQuantitiesType.create_data())
+    #
+    # @staticmethod
+    # def create_iner_type(observed_quantities):
+    #     return Struct(time=SimulationTime(),
+    #                   point=PositionVector.create_type(),
+    #                   observation=ObservedQuantitiesType.create_type(observed_quantities))
 
     @staticmethod
-    def create_iner_type(observed_quantities):
-        return Struct(time=SimulationTime(),
-                      point=PositionVector.create_type(),
-                      observation=ObservedQuantitiesType.create_type(observed_quantities))
+    def create_single_time_data_type(observed_quantities):
+        iner = Struct(name=String())
+        for oq, vt in observed_quantities.items():
+            if vt == ObservedQuantitiesValueType.integer:
+                setattr(iner, oq, Int())
+            elif vt == ObservedQuantitiesValueType.scalar:
+                setattr(iner, oq, Float())
+            elif vt == ObservedQuantitiesValueType.vector:
+                setattr(iner, oq, Tuple(Float(), Float(), Float()))
+            elif vt == ObservedQuantitiesValueType.tensor:
+                setattr(iner, oq, Tuple(Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float(), Float()))
+            else:
+                pass # error
+        return Sequence(iner)
 
     @staticmethod
     def parse_data_from_file(file, observed_quantities):
         err = []
-        ret = ObservationType.create_type(observed_quantities)
+        observe_points, observe_data = ObservationType.create_type(observed_quantities)
         try:
             with open(file, 'r') as file_d:
                 data = pyyaml.load(file_d)
-            op = []
+
+            # observe points
+            #op = []
+            point_names = []
             for point in data["points"]:
+                n = point["name"]
                 p = point["observe_point"]
-                op.append(Tuple(Float(p[0]), Float(p[1]), Float(p[2])))
-            j = 0
+                #op.append(Tuple(Float(p[0]), Float(p[1]), Float(p[2])))
+                point_names.append(n)
+                observe_points.add_item(Struct(name=String(n), point=Tuple(Float(p[0]), Float(p[1]), Float(p[2]))))
+
+            #j = 0
             for item in data["data"]:
-                for i in range(len(op)):
-                    oqt = Struct()
+                std = ObservationType.create_single_time_data_type(observed_quantities)
+                for i in range(len(observe_points)):
+                    oqt = Struct(name=String(point_names[i]))
                     for oq, vt in observed_quantities.items():
                         if vt == ObservedQuantitiesValueType.integer:
                             setattr(oqt, oq, Int(item[oq][i]))
@@ -316,20 +340,23 @@ class ObservationType():
                             setattr(oqt, oq, Tuple(Float(item[oq][i][0][0]), Float(item[oq][i][0][1]), Float(item[oq][i][0][2]),
                                                    Float(item[oq][i][1][0]), Float(item[oq][i][1][1]), Float(item[oq][i][1][2]),
                                                    Float(item[oq][i][2][0]), Float(item[oq][i][2][1]), Float(item[oq][i][2][2])))
-                        iner_data = Struct(time=SimulationTime(Float(item["time"])),
-                                           point=op[i],
-                                           observation=oqt)
-                    ret.add_item(Tuple(Float(j), iner_data))
-                    j += 1
+                        #iner_data = Struct(time=SimulationTime(Float(item["time"])),
+                        #                   point=op[i],
+                        #                   observation=oqt)
+                    std.add_item(oqt)
+                observe_data.add_item(Tuple(Float(item["time"]), std))
+                    #j += 1
         except (RuntimeError, IOError) as e:
             err.append("Can't open observe .yaml file: {0}".format(e))
             #return err
-        return ret
+        return observe_points, observe_data
 
 
     @staticmethod
     def create_type(observed_quantities):
-        return Sequence(Tuple(Float(), ObservationType.create_iner_type(observed_quantities)))
+        observe_points = Sequence(Struct(name=String(), point=Tuple(Float(), Float(), Float())))
+        observe_data = Sequence(Tuple(Float(), ObservationType.create_single_time_data_type(observed_quantities)))
+        return observe_points, observe_data
 
 
 class XYZEquationResultType():
@@ -359,10 +386,11 @@ class XYZEquationResultType():
             yaml_support.get_regions(), quantity_options)
 
         if "observed_quantities" in yaml_support.get_active_processes()[equation]:
-            ret.observation = ObservationType.parse_data_from_file(
+            observe_points, observe_data = ObservationType.parse_data_from_file(
                 os.path.join(output_dir, observe_file),
                 yaml_support.get_active_processes()[equation]["observed_quantities"])
-
+            ret.observe_points = observe_points
+            ret.observe_data = observe_data
 
         return ret
 
