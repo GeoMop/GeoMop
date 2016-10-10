@@ -9,8 +9,9 @@ problem: !Coupling_Sequential
     input_fields:
       # Transpose input_fields to array with two items
       anisotropy: !FieldFormula
-        - [x+y, x-y, z]
-        - [x*x, y*y, z*z]
+        value:
+          - [x+y, x-y, z]
+          - [x*x, y*y, z*z]
 
 
     # Placeholder data

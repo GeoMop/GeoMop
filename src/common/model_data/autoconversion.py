@@ -51,13 +51,12 @@ class AutoConverter:
             try:
                 it_concrete = Transposer._get_it_concrete(node, input_type)
             except (KeyError, AttributeError):
-                return False
-
+                return
             AutoConverter._autoconvert_crawl(node, it_concrete)
         elif input_type['base_type'] == 'Array':
             if node.implementation != DataNode.Implementation.sequence:
                 return
-            if Transposer._shift_array(node, input_type):
+            if not  AutoConverter.in_transposition and Transposer._shift_array(node, input_type):
                 AutoConverter._autoconvert_crawl(node, input_type)
                 return
             children = list(node.children)
@@ -90,8 +89,13 @@ class AutoConverter:
         Arrays are expanded to the expected dimension.
         Records are initialized from the reducible_to_key value.
         """
+        deep = True
         parent_in_transposition = AutoConverter.in_transposition
-        new_node = None
+        new_node = Transposer.try_expand_reducible(child, input_type)
+        if new_node is not None:
+            child =  new_node
+            new_node = None
+       
         if input_type is not None:
             is_array = child.implementation == DataNode.Implementation.sequence
             is_record = child.implementation == DataNode.Implementation.mapping
@@ -99,44 +103,16 @@ class AutoConverter:
                 AutoConverter.in_transposition = True
                 new_node = transposer.make_transposition(child, input_type, parent_in_transposition)
             elif (input_type['base_type'] in ['Record', 'Abstract']) and not is_record:
-                new_node = AutoConverter._expand_reducible_to_key(child, input_type)
+                notification = Notification.from_name("UnsupportedExpansion")
+                notification.span = child.span
+                notification_handler.report(notification)
+                deep = False
         if new_node is not None:            
             child = new_node
         node.set_child(child)
-        AutoConverter._autoconvert_crawl(child, input_type)
+        if deep:
+            AutoConverter._autoconvert_crawl(child, input_type)
         AutoConverter.in_transposition = parent_in_transposition
-            
-    @staticmethod
-    def _expand_reducible_to_key(node, input_type):
-        """Initializes a record from the reducible_to_key value."""
-        if input_type is None:
-            return
-        try:
-            key = input_type['default_descendant']['reducible_to_key']
-            child_input_type = input_type['default_descendant']
-        except (KeyError, TypeError):
-            try:
-                key = input_type['reducible_to_key']
-                child_input_type = input_type
-            except KeyError:
-                return node
-
-        if key is None:
-            return node
-
-        record_node = MappingDataNode(node.key, node.parent)
-        record_node.span = node.span
-        if hasattr(node, 'type'):
-            record_node.type = node.type
-            node.type = None
-        node.parent = record_node
-        node.origin = DataNode.Origin.ac_reducible_to_key
-        node.key = TextValue(key)
-        if node.input_type is not None:
-            record_node.input_type = node.input_type
-            node.input_type = child_input_type['keys'][key]['type']
-        record_node.children.append(node)
-        return record_node
 
 
 class ScalarConverter:
@@ -226,8 +202,12 @@ class Transposer:
     """a list of path to keys which are to be converted"""
     paths_to_dup = None
     """a list of path to keys which are to be duplicated"""
+    paths_to_tagged = None
+    """a list of path to keys which are to be tagged"""
     array_size = None
     """the size of the array tobe created by transposition"""
+    abs_size = None
+    """the size of the abstract tobe created by transposition"""
     current_path = None
     """list of keys that lead to the current node"""
 
@@ -236,12 +216,21 @@ class Transposer:
         """Initialize class for operation."""
         cls.paths_to_convert = []
         cls.paths_to_dup = []
+        cls.paths_to_tagged = []
         cls.array_size = None
+        cls.abs_size = None
         cls.current_path = ['.']
 
     @classmethod
     def make_transposition(cls,  node, input_type, in_transposition):
         """Transpose a record or scalar into an array."""
+        # if node is scalar, convert it to array
+        if node.implementation == DataNode.Implementation.scalar:
+            return cls._expand_value_to_array(node)
+        if len(node.children)==1 and len(node.children[0].children)==1 and \
+            cls._is_dup(node, input_type):
+            # automatic conversion to array with one element is fitted
+            return cls._expand_value_to_array(node)
         if in_transposition:
             if not cls._shift_array(node, input_type):
                 # only automatic conversion to array with one element is permited
@@ -249,15 +238,8 @@ class Transposer:
                                                             input_type['base_type'])
                 notification.span = node.span
                 notification_handler.report(notification)
-            return
-        if len(node.children)==1 and cls._shift_array(node, input_type):
-            # automatic conversion to array with one element is fitted
-            return
-        cls.init()
-        # if node is scalar, convert it to array
-        if node.implementation == DataNode.Implementation.scalar:
-            return cls._expand_value_to_array(node)
-
+            return node        
+        cls.init() 
         # verify that subtype is record
         subtype = input_type['subtype']
         
@@ -304,10 +286,11 @@ class Transposer:
                 if i >= len(node_to_convert.children) and len(node_to_convert.children) != 1:
                     converted_node = ScalarDataNode(node_to_convert.key, node_to_convert.parent,
                                                     node_to_convert.value)
-                    converted_node.span = Span(node_to_convert.span.start, node_to_convert.span.start)
+                    converted_node.span = Span(node_to_convert.span.start, node_to_convert.span.end)
                 else:
-                    if  len(node_to_convert.children) == 1:
-                        # duplicate first value
+                    if path in cls.paths_to_dup:
+                        converted_node = node_to_convert
+                    elif  len(node_to_convert.children) == 1:
                         converted_node = node_to_convert.children[0]
                     elif path in cls.paths_to_dup:
                         converted_node = node_to_convert
@@ -352,14 +335,13 @@ class Transposer:
                     input_type['subtype']['subtype']['base_type'] not in SCALAR:
                     return False          
         return True
-        
+    
     @staticmethod
     def  _is_dup(node, input_type):
         """array with duplicate length"""
         for child in node.children:
             if input_type['subtype']['base_type'] == 'Array':
-                if not Transposer._is_dup(child, input_type['subtype']):
-                    return False
+                return True
             else:
                 if child.implementation != DataNode.Implementation.scalar and \
                     input_type['subtype']['base_type'] in SCALAR:
@@ -373,34 +355,53 @@ class Transposer:
     def _get_transformation_array_size(cls, node, input_type, deep=False):
         """Return transformation array size."""
         if  input_type['base_type'] == 'Abstract' and \
-            node.implementation != DataNode.Implementation.sequence:
-            if len(node.children) == 1:
-                if cls.array_size is None:                        
-                    cls.array_size = 1
-            elif cls.array_size is None or cls.array_size == 1:
-                cls.array_size = len(node.children)
-            elif cls.array_size != len(node.children):                    
-                notification = Notification.from_name(
-                    "DifferentArrayLengthForTransposition")
-                notification.span = node.span
-                raise notification
-            if cls.array_size is None:
-                cls.array_size = 0
+            node.implementation != DataNode.Implementation.sequence: 
+            for child in node.children:
+#                try:
+#                    it_concrete = cls._get_it_concrete(node, input_type)
+#                    item_type = it_concrete['keys'][child.key.value]['type']
+#                except (KeyError, AttributeError):
+#                    pass
+                if len(child.children)==0 and \
+                    child.implementation == DataNode.Implementation.scalar:
+                    if cls.abs_size is None:                        
+                        cls.abs_size = 1                    
+                elif len(child.children) == 1:
+                    if cls.abs_size is None:                        
+                        cls.abs_size = 1
+                elif cls.abs_size is None or cls.abs_size == 1:
+                    cls.abs_size = len(child.children)
+                elif cls.abs_size != len(child.children):                    
+                    notification = Notification.from_name(
+                        "DifferentArrayLengthForTransposition")
+                    notification.span = node.span
+                    raise notification
+            if cls.abs_size is None:
+                cls.abs_size = 0                
         else:
+                        
             # find a children node that has an array instead of record or scalar
-            for child in node.children:                
+            for i in range(0, len(node.children)):                
+                child = node.children[i]              
                 # the key is not specified in input type
                 if 'keys' not in input_type or child.key.value not in input_type['keys']:
                     continue
                 else:
                     child_type = input_type['keys'][child.key.value]['type']
+                    
+                if child.implementation == DataNode.Implementation.sequence and \
+                    child_type['base_type'] == 'Abstract':
+                    new_node = Transposer.try_expand_reducible(child, child_type)
+                    if new_node is not None:
+                        node.children[i] = new_node
+                        child = new_node
 
-                if child.implementation == DataNode.Implementation.sequence:
+                if child.implementation == DataNode.Implementation.sequence:                    
                     if child_type['base_type'] == 'Record':
                         notification = Notification.from_name("InvalidTransposition")
                         notification.span = child.span
                         raise notification
-                    elif child_type['base_type'] != 'Array': 
+                    elif child_type['base_type'] != 'Array':                         
                         if cls.array_size is None:
                             cls.array_size = len(child.children)
                         elif cls.array_size == len(child.children) or len(child.children) == 1:
@@ -432,9 +433,36 @@ class Transposer:
     @classmethod
     def _prepare_transformation(cls, node, input_type):
         """Return transformation array size."""
+        if cls.abs_size is not None and \
+            (cls.array_size is None or cls.array_size==1):
+            cls.array_size = cls.abs_size
         if  input_type['base_type'] == 'Abstract' and \
             node.implementation != DataNode.Implementation.sequence:
-            cls.paths_to_convert.append('/'.join(cls.current_path))
+            for child in node.children: 
+                try:
+                    item_type = None
+                    it_concrete = cls._get_it_concrete(node, input_type)
+                    item_type = it_concrete['keys'][child.key.value]['type']                  
+                except (KeyError, AttributeError):
+                    pass
+                if len(child.children)==0 and \
+                    child.implementation == DataNode.Implementation.scalar:                    
+                    cls.paths_to_dup.append('/'.join(cls.current_path + [child.key.value]))
+                    cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                elif len(child.children)==1:
+                    cls.paths_to_dup.append('/'.join(cls.current_path + [child.key.value]))
+                    cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                elif len(child.children)==cls.array_size:
+                    cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                else:
+                    if item_type is not None and \
+                        item_type['base_type'] == 'Array' and cls._is_dup(child, item_type):
+                        cls.paths_to_dup.append('/'.join(cls.current_path + [child.key.value]))
+                        cls.paths_to_convert.append('/'.join(cls.current_path + [child.key.value]))
+                    else:
+                        notification = Notification.from_name("InvalidAbstractTranspositionLen")
+                        notification.span = child.span
+                        notification_handler.report(notification)
         else:
             # find a children node that has an array instead of record or scalar
             for child in node.children:                
@@ -481,6 +509,44 @@ class Transposer:
             array_node.children.append(value)
         array_node.origin = DataNode.Origin.ac_array
         return array_node
+        
+    @staticmethod
+    def try_expand_reducible(node, input_type):
+        """Initializes a record from the reducible_to_key value."""
+        if input_type is None or \
+            not (input_type['base_type'] in ['Record', 'Abstract']) or \
+            node.implementation == DataNode.Implementation.mapping:
+            return None
+        
+        if input_type['base_type'] == 'Record':
+            child_type = input_type
+        else:
+            try:
+                child_type = Transposer._get_it_concrete(node, input_type)            
+            except (KeyError, AttributeError):
+                return None
+        
+        if 'reducible_to_key' not in child_type:
+            return None
+        
+        key = child_type['reducible_to_key']
+
+        if key is None:
+            return None
+
+        record_node = MappingDataNode(node.key, node.parent)
+        record_node.span = node.span
+        if hasattr(node, 'type'):
+            record_node.type = node.type
+            node.type = None
+        node.parent = record_node
+        node.origin = DataNode.Origin.ac_reducible_to_key
+        node.key = TextValue(key)
+        if node.input_type is not None:
+            record_node.input_type = node.input_type
+            node.input_type = child_type['keys'][key]['type']
+        record_node.children.append(node)        
+        return record_node
 
 # initialize module
 autoconvert = AutoConverter.autoconvert

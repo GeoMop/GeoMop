@@ -10,10 +10,12 @@ problem: !SequentialCoupling
       # Transposed input_fields to array with two items
       - rid: 1
         # and converted bc_flux value into record with given type
-        bc_flux: !FieldFormula x+y
+        bc_flux: !FieldFormula
+          value: x+y
         
       - rid: 2
-        bc_flux: !FieldFormula x-y
+        bc_flux: !FieldFormula 
+          value: x-y
 
 
     # Placeholder data

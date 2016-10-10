@@ -55,7 +55,7 @@ def test_expand_record():
         name='MyRecord',
         reducible_to_key='a')
     root = ScalarDataNode(None, None, 'str')
-    expanded = ac.AutoConverter._expand_reducible_to_key(root, input_type)
+    expanded = ac. Transposer.try_expand_reducible(root, input_type)
     assert expanded.get_node_at_path('/a').value == 'str'
 
 
@@ -74,13 +74,13 @@ def test_expand_abstract_record():
     )
     root = ScalarDataNode(None, None, 'str')
     root.input_type = input_type
-    expanded = ac.AutoConverter._expand_reducible_to_key(root, input_type)
+    expanded = ac.Transposer.try_expand_reducible(root, input_type)
     assert expanded.get_node_at_path('/a').value == 'str'
     assert expanded.input_type == input_type
     assert expanded.get_node_at_path('/a').input_type['base_type'] == 'String'
 
 
-def _test_autoconvert():
+def test_autoconvert():
     it_record = dict(
         base_type='Record',
         keys={
@@ -145,7 +145,7 @@ def test_convert_data_type(base_type, data, expected):
     assert node.value == expected
 
 
-def _test_transposition(loader):
+def test_transposition(loader):
     root_input_type = dict(
         name='RootTransposeRec',
         base_type='Record',
