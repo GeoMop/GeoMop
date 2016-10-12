@@ -45,8 +45,10 @@ print(os.path.realpath(__file__))
 
 
 ys = YamlSupportLocal()
-err = ys.parse("d:/test/1/test_output.yaml")
-#err = ys.parse("d:/test/cal/moje/V7_jb_par.yaml")
+#err = ys.parse("d:/test/1/test_output.yaml")
+
+
+err = ys.parse("d:/test/cal/moje/V7_jb_par.yaml")
 #ys.save("d:/test/cal/moje/V7_jb_par.sprt")
 
 # vg = VariableGenerator(Variable=Struct(cond=String("0.07270788")))
@@ -76,7 +78,31 @@ err = ys.parse("d:/test/1/test_output.yaml")
 #
 # print(res.x)
 
+from client_pipeline.mj_preparation import *
 
+action.__action_counter__ = 0
+items = [
+    {'name': 'a', 'value': 1, 'step': 0.1, 'n_plus': 1, 'n_minus': 1, 'exponential': False},
+    {'name': 'b', 'value': 10, 'step': 1, 'n_plus': 2, 'n_minus': 0, 'exponential': True}
+]
+#gen = RangeGenerator(Items=items)
+gen = VariableGenerator(Variable=Ensemble(Struct(cond=Float()), Struct(cond=Float(0.06)), Struct(cond=Float(0.07)), Struct(cond=Float(0.08))))
+workflow = Workflow()
+flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="d:/test/cal/moje/V7_jb_par.yaml")
+workflow.set_config(OutputAction=flow, InputAction=flow)
+foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
+pipeline = Pipeline(ResultActions=[foreach])
+#flow._output = String()
+pipeline._inicialize()
+test = pipeline._get_settings_script()
+tt="\n".join(test)
+
+
+
+
+
+
+err = MjPreparation.prepare(workspace="d:/test/ws", analysis="an1", mj="mj1", python_script="s.py", pipeline_name="Pipeline_5")
 
 
 

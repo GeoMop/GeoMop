@@ -67,7 +67,7 @@ class ForEach(WrapperActionType):
         """return array of variables python scripts"""
         var = super(ForEach, self)._get_variables_script()        
         if 'WrappedAction' in self._variables:
-            wrapper = 'WrapperActions={0}'.format(self._variables['WrappedAction']._get_instance_name())                   
+            wrapper = 'WrappedAction={0}'.format(self._variables['WrappedAction']._get_instance_name())
             var.append([wrapper])
         return var
         

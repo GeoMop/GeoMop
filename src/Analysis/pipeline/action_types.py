@@ -515,6 +515,10 @@ class BaseActionType(metaclass=abc.ABCMeta):
         for message in new_err:
             self._add_error(err, message)
 
+    def get_resources(self):
+        """Return list of resource files"""
+        return []
+
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
     
@@ -725,6 +729,10 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         super()._set_restore_id(identical_list)
         self._variables['WrappedAction']._set_restore_id(identical_list)
 
+    def get_resources(self):
+        """Return list of resource files"""
+        return self._variables['WrappedAction'].get_resources()
+
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -924,3 +932,10 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         super()._set_restore_id(identical_list)
         for action in self._get_child_list():
             action._set_restore_id(identical_list)
+
+    def get_resources(self):
+        """Return list of resource files"""
+        ret = []
+        for action in self._get_child_list():
+            ret.extend(action.get_resources())
+        return ret

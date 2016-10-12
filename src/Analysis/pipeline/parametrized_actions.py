@@ -189,3 +189,9 @@ class Flow123dAction(ParametrizedActionType):
         """
         # TODO instead next commented line restore files names and make output from it
         # self._output = eval(res)
+
+    def get_resources(self):
+        """Return list of resource files"""
+        d = {"name": self.name,
+             "YAMLFile": os.path.realpath(self._variables['YAMLFile'])}
+        return [d]
