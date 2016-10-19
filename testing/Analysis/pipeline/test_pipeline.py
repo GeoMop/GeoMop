@@ -9,12 +9,10 @@ from .pomfce import *
 import pipeline.action_types as action
 import os
 
+
 def test_pipeline_code_init(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        pass
     request.addfinalizer(clear_backup)
 
     action.__action_counter__ = 0
@@ -46,12 +44,12 @@ def test_pipeline_code_init(request):
    
     
     assert isinstance(foreach._get_output(), Ensemble)
-    assert isinstance(foreach._get_output().subtype, String)
+    assert isinstance(foreach._get_output().subtype, Struct)
     assert isinstance(workflow.bridge._get_output(), Struct)
     assert 'a' in workflow.bridge._get_output()
     assert 'b' in workflow.bridge._get_output()
     assert 'c' not in workflow.bridge._get_output()    
-    assert isinstance(flow._get_output(), String)
+    assert isinstance(flow._get_output(), Struct)
     
     # test pipeline with more action where is side effect action in separate branch
     action.__action_counter__ = 0
@@ -78,20 +76,17 @@ def test_pipeline_code_init(request):
     assert isinstance(gen._get_output().subtype, Struct)
 
     assert isinstance(foreach._get_output(), Ensemble)
-    assert isinstance(foreach._get_output().subtype, String)
+    assert isinstance(foreach._get_output().subtype, Struct)
     assert isinstance(workflow.bridge._get_output(), Struct)
     assert 'a' in workflow.bridge._get_output()
     assert 'b' in workflow.bridge._get_output()
     assert 'c' not in workflow.bridge._get_output()
-    assert isinstance(flow._get_output(), String)
+    assert isinstance(flow._get_output(), Struct)
 
 
 def test_hashes(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        pass
     request.addfinalizer(clear_backup)
 
     # first pipeline
@@ -131,10 +126,7 @@ def test_hashes(request):
 
 def test_set_restore_id(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        pass
     request.addfinalizer(clear_backup)
 
     action.__action_counter__ = 0

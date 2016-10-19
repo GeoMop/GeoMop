@@ -118,6 +118,8 @@ class SshPreset(APreset):
         """Key for password"""
         self.pbs_system = kw_or_def('pbs_system')
         """Defines PBS system dialect"""
+        self.env = kw_or_def('env')
+        """Settings for remote environment"""
 
     def get_description(self):
         """
@@ -152,8 +154,6 @@ class ResPreset(APreset):
         """Defines how to execute MJ remote component"""
         self.mj_pbs_preset = kw_or_def('mj_pbs_preset')
         """PBS preset for option"""
-        self.mj_env = kw_or_def('mj_env')
-        """Settings for remote environment"""
 
         # Job
         self.j_execution_type = kw_or_def('j_execution_type')
@@ -164,8 +164,6 @@ class ResPreset(APreset):
         """Defines how to execute Job remote component"""
         self.j_pbs_preset = kw_or_def('j_pbs_preset')
         """PBS preset for option"""
-        self.j_env = kw_or_def('j_env')
-        """Settings for remote environment"""
 
     def get_description(self):
         """

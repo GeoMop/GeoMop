@@ -236,7 +236,12 @@ class APresetsDialog(QtWidgets.QDialog):
     Abstract preset dialog.
     """
     presets = dict()
-    presets_changed = QtCore.pyqtSignal(dict)
+    presets_changed = QtCore.pyqtSignal()
+    presets_changed_par = QtCore.pyqtSignal(dict)
+    
+    def set_presets(self, presets):
+        self.presets = presets
+        self.reload_view(self.presets)
 
     def reload_view(self, data):
         self.ui.presets.clear()
@@ -282,14 +287,16 @@ class APresetsDialog(QtWidgets.QDialog):
         if self.presets and self.ui.presets.currentItem():
             key = self.ui.presets.currentItem().text(0)
             self.presets.pop(key)  # delete by key
-            self.presets_changed.emit(self.presets)
+            self.presets_changed.emit()
+            self.presets_changed_par.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
         if purpose == self.presets_dlg.PURPOSE_EDIT:
             self.presets.pop(data['old_name'])
         preset = data['preset']
         self.presets[preset.name] = preset
-        self.presets_changed.emit(self.presets)
+        self.presets_changed.emit()
+        self.presets_changed_par.emit(self.presets)
 
     def connect_slots(self):
         """
@@ -297,7 +304,7 @@ class APresetsDialog(QtWidgets.QDialog):
         (must be called after UI setup in child)
         :return: None
         """
-        self.presets_changed.connect(self.reload_view)
+        self.presets_changed_par.connect(self.reload_view)
         self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
         self.ui.btnEdit.clicked.connect(self._handle_edit_preset_action)
         self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)

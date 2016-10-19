@@ -367,6 +367,7 @@ class Pipelineprocessor():
             il = IdenticalList()
             il.load(identical_list)
             self._pipeline._set_restore_id(il)
+        # Todo: rename output files
         
     def __set_loger(self,  path,  level):
         """set logger"""        

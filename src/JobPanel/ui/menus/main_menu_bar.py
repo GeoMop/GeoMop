@@ -81,12 +81,17 @@ class MultiJobMenu(QtWidgets.QMenu):
 
         self.lockable_actions = {
             MultijobActions.delete: self.actionDeleteMultiJob,
-            MultijobActions.stop: self.actionStopMultiJob
+            MultijobActions.delete_remote:  self.actionDeleteRemote, 
+            MultijobActions.stop: self.actionStopMultiJob,             
+        }
+        
+        self.rdeleted_actions = {
+            MultijobActions.delete_remote:  self.actionDeleteRemote
         }
 
-        self.lock_by_status()
+        self.lock_by_status(True)
 
-    def lock_by_status(self, task_status=None):
+    def lock_by_status(self, rdeleted, task_status=None):
         """
         Locks UI actions based on selected MultiJob. If status is None then
         it works like unlock.
@@ -96,11 +101,15 @@ class MultiJobMenu(QtWidgets.QMenu):
         if task_status is None:
             task_status = TaskStatus.none
         for mj_action, menu_action in self.lockable_actions.items():
-            if (task_status, mj_action) in TASK_STATUS_PERMITTED_ACTIONS:
-                menu_action.setDisabled(False)
-            else:
+            if not (task_status, mj_action) in TASK_STATUS_PERMITTED_ACTIONS or \
+                (mj_action in self.rdeleted_actions and rdeleted):
                 menu_action.setDisabled(True)
+            else:
+                menu_action.setDisabled(False)
 
+    def lock_remote_delete(self):
+        """desable delete remote action"""
+        menu_action.setDisabled(True)
 
 class SettingsMenu(QtWidgets.QMenu):
     """

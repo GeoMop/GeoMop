@@ -60,9 +60,12 @@ class InfoPanelWidget(QWebView):
         if node.parent is not None and node.parent.implementation == node.Implementation.sequence:
             is_parent = True
         elif cursor_type == CursorType.value.value:
-            node = node.get_node_at_position(node.span.start)
+            new_node = node.get_node_at_position(node.span.start)
+            if new_node is not  None:
+                node = new_node
         elif cursor_type == CursorType.parent.value:
             is_parent = True
+        
         data = node.get_info_text_data(is_parent)
         self.update_from_data(data)
 

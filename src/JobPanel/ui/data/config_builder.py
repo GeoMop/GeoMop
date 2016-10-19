@@ -35,6 +35,7 @@ class ConfigBuilder:
         self.resource_presets = data.resource_presets
         self.env_presets = data.env_presets
         self.workspaces = data.workspaces
+        self.config = data.config
 
         self.app_version = Version().version
         """
@@ -67,13 +68,21 @@ class ConfigBuilder:
         mj_ssh_preset = self.ssh_presets.get(res_preset.mj_ssh_preset, None)
         mj_remote_execution_type = res_preset.mj_remote_execution_type
         mj_pbs_preset = self.pbs_presets.get(res_preset.mj_pbs_preset, None)
-        mj_env = self.env_presets[res_preset.mj_env]
+        if mj_ssh_preset is None:
+            mj_env = self.config.local_env
+        else:
+            mj_env = mj_ssh_preset.env
+        mj_env = self.env_presets[mj_env]
 
         j_execution_type = res_preset.j_execution_type
         j_ssh_preset = self.ssh_presets.get(res_preset.j_ssh_preset, None)
         j_remote_execution_type = res_preset.j_remote_execution_type
         j_pbs_preset = self.pbs_presets.get(res_preset.j_pbs_preset, None)
-        j_env = self.env_presets[res_preset.j_env]
+        if j_ssh_preset is None:
+            j_env = mj_env            
+        else:
+            j_env = j_ssh_preset.env
+            j_env = self.env_presets[j_env]
 
         # init conf
         basic_conf = CommunicatorConfig()

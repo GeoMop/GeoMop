@@ -34,7 +34,7 @@ ForEach_6 = ForEach(
     Inputs=[
         RangeGenerator_1
     ],
-    WrapperActions=Workflow_3
+    WrappedAction=Workflow_3
 )
 Pipeline_7 = Pipeline(
     ResultActions=[ForEach_6]

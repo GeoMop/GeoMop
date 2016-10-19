@@ -125,27 +125,28 @@ _TASK_STATUS_DISPLAY_NAMES = {
 
 class MultijobActions(IntEnum):
     """Possible actions for selected multijob."""
-    edit = 0
+    delete_remote = 0
     delete = 1
-    run = 2
+    reuse = 2
     stop = 3
     terminate = 4
     resume = 6
 
 
 TASK_STATUS_PERMITTED_ACTIONS = set([
+    (TaskStatus.error, MultijobActions.delete_remote),
     (TaskStatus.error, MultijobActions.delete),
+    (TaskStatus.finished, MultijobActions.delete_remote),
     (TaskStatus.finished, MultijobActions.delete),
     (TaskStatus.installation, MultijobActions.resume),
     (TaskStatus.installation, MultijobActions.stop),
-    (TaskStatus.none, MultijobActions.run),
-    (TaskStatus.none, MultijobActions.delete),
-    (TaskStatus.none, MultijobActions.edit),
+    (TaskStatus.none, MultijobActions.delete), 
     (TaskStatus.queued, MultijobActions.resume),
     (TaskStatus.queued, MultijobActions.stop),
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
-    (TaskStatus.stopped, MultijobActions.delete)
+    (TaskStatus.stopped, MultijobActions.delete), 
+    (TaskStatus.stopped, MultijobActions.delete_remote)
 ])
 
 

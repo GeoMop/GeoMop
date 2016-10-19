@@ -526,7 +526,7 @@ class Transposer:
             except (KeyError, AttributeError):
                 return None
         
-        if 'reducible_to_key' not in child_type:
+        if  child_type is None or 'reducible_to_key' not in child_type:
             return None
         
         key = child_type['reducible_to_key']

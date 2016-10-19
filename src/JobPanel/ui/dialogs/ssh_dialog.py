@@ -39,7 +39,7 @@ class SshDialog(AFormDialog):
                         windowTitle="Job Panel - Copy SSH host",
                         title="Copy SSH host",
                         subtitle="Change desired parameters and press SAVE to "
-                                 "apply changes.")
+                                 "apply changes.")    
 
     def __init__(self, parent=None, excluded_names=None):
         super().__init__(parent)
@@ -75,6 +75,7 @@ class SshDialog(AFormDialog):
         preset.to_pc = self.ui.rememberPasswordCheckbox.isChecked()
         preset.to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
                             self.ui.copyPasswordCheckbox.isChecked())
+        preset.env = self.ui.envPresetComboBox.currentData()
         if self.ui.pbsSystemComboBox.currentText():
             preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
 
@@ -117,6 +118,8 @@ class SshDialog(AFormDialog):
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
+            self.ui.envPresetComboBox.setCurrentIndex(
+                self.ui.envPresetComboBox.findData(preset.env))
         else:
             self.ui.nameLineEdit.clear()
             self.ui.hostLineEdit.clear()
@@ -127,12 +130,22 @@ class SshDialog(AFormDialog):
             self.ui.rememberPasswordCheckbox.setChecked(True)
             self.ui.copyPasswordCheckbox.setChecked(True)
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
+            self.ui.envPresetComboBox.setCurrentIndex(-1)
+            
+    def set_env_preset(self, env):
+        self.ui.envPresetComboBox.clear()
+        if env:
+            # sort dict by list, not sure how it works
+            for key in env:
+                self.ui.envPresetComboBox.addItem(env[key].name, key)
+
 
 
 class UiSshDialog(UiFormDialog):
     """
     UI extensions of form dialog.
     """
+    ENV_LABEL = "Remote environment:"
 
     def setup_ui(self, dialog):
         super().setup_ui(dialog)
@@ -264,6 +277,19 @@ class UiSshDialog(UiFormDialog):
             self.pbsSystemComboBox.addItem(dialect_items[key], key)
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.pbsSystemComboBox)
+                                  
+        # 8 row
+        self.envPresetLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.envPresetLabel.setObjectName("envPresetLabel")
+        self.envPresetLabel.setText(self.ENV_LABEL)
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
+                                   self.envPresetLabel)
+        self.envPresetComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.envPresetComboBox.setObjectName(
+            "envPresetComboBox")
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
+                                   self.envPresetComboBox)
 
         return dialog
 

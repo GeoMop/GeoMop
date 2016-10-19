@@ -12,6 +12,7 @@ from geomop_util import Serializable
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
 from ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
+from geomop_analysis import Analysis
 
 class PersistentDict(dict):
     """Persistent dictionary containing configuration."""
@@ -139,6 +140,8 @@ class ConfigData:
         """Name of active analysis"""
         self.selected_mj = kw_or_def('selected_mj', None)
         """Selected multijob in UI"""
+        self.local_env = kw_or_def('local_env', None)
+        """Selected multijob in UI"""
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
@@ -193,13 +196,21 @@ class DataContainer:
         Saves all data containers for app.
         :return:
         """
-        self.workspaces.save(self.config.selected_mj)
+        self.workspaces.save(self.config.selected_mj, self.config.analysis)
         self.multijobs.save(self.workspaces.get_id())
         self.ssh_presets.save()
         self.pbs_presets.save()
         self.resource_presets.save()
         self.env_presets.save()
         self.config.save()
+        
+    def save_mj(self, mj=None):
+        """
+        Saves only mj data for app.
+        :return:
+        """
+        self.multijobs.save(self.workspaces.get_id())
+        self.backup_presets()
 
     def open_all(self):
         """
@@ -214,6 +225,18 @@ class DataContainer:
         self.env_presets = EnvPresets.open()
         self.config = ConfigData.open()
         
+    def backup_presets(self):
+        """backup actual presets to workspace dir"""
+        self.workspaces. save_to_workspace(
+            {
+                'IESsh':self.ssh_presets,
+                'IEPbs':self.pbs_presets, 
+                'IERes':self.resource_presets, 
+                'IEEnv':self.env_presets, 
+                'IEMj':self.multijobs
+            }
+            )
+    
     def reload_workspace(self, path):
         """
         Reload selected worspace
@@ -221,14 +244,17 @@ class DataContainer:
         Call this function after succesful selection of workspace
         and pausing workspace jobs
         """
-        if self.workspaces.select_workspace(path):
+        if self.workspaces.select_workspace(path, self):
+            if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
+                self.config.analysis = None
             self.pause_func()
-            self.multijobs = MultiJobData.open(self.workspaces.get_id())
+            self.multijobs = MultiJobData.open(self.workspaces.get_id())            
             self.reload_func()            
             self.config.selected_mj = self.workspaces.get_selected_mj()
-            self.workspaces.save(self.config.selected_mj)
-            self.multijobs.save(self.workspaces.get_id())
+            self.config.analysis = self.workspaces.get_selected_analysis() 
+            self.save_mj()
             self.config.save()
+            
           
             return True
         return False

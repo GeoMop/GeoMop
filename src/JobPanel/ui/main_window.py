@@ -50,8 +50,18 @@ class MainWindow(QtWidgets.QMainWindow):
     """default polling interval in ms"""
 
     multijobs_changed = QtCore.pyqtSignal(dict)
+    
+    def perform_reload_action(self):
+        # refresh presets and mj        
+        self.ssh_presets_dlg.set_presets(self.ssh_presets_dlg.presets)
+        self.pbs_presets_dlg.set_presets(self.data.pbs_presets)
+        self.resource_presets_dlg.set_presets(self.data.resource_presets)
+        self.env_presets_dlg.set_presets(self.data.env_presets)
+        self.perform_multijob_startup_action()
 
     def perform_multijob_startup_action(self):
+        # reload view
+        self.ui.overviewWidget.reload_items(self.data.multijobs)
         for mj_id, mj in self.data.multijobs.items():
             status = mj.get_state().status
             if status == TaskStatus.deleting:
@@ -92,15 +102,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mj_dlg = MultiJobDialog(parent=self,
                                      resources=self.data.resource_presets, data=data)
         self.ssh_presets_dlg = SshPresets(parent=self,
-                                          presets=self.data.ssh_presets)
+                                          presets=self.data.ssh_presets,
+                                          env=self.data.env_presets)
         self.pbs_presets_dlg = PbsPresets(parent=self,
                                           presets=self.data.pbs_presets)
         self.resource_presets_dlg \
             = ResourcePresets(parent=self,
                               presets=self.data.resource_presets,
                               pbs=self.data.pbs_presets,
-                              ssh=self.data.ssh_presets,
-                              env=self.data.env_presets)
+                              ssh=self.data.ssh_presets)
 
         self.env_presets_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
@@ -118,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_delete_remote_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
-        self.multijobs_changed.connect(self.data.multijobs.save)
+        self.multijobs_changed.connect(self.data.save_mj)
         self.resource_presets_dlg.presets_changed.connect(
             self.mj_dlg.set_resource_presets)
 
@@ -175,9 +185,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.tabWidget.ui.logsTab.ui.saveButton.clicked.connect(
             self._handle_save_res_log_button_clicked)
 
-        # reload view
-        self.ui.overviewWidget.reload_items(self.data.multijobs)
-
         # load settings
         self.load_settings()
         # attach workspace and project observers
@@ -187,7 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.config.notify()
         
         #reload func
-        self.data.set_reload_funcs(self.pause_all, self.perform_multijob_startup_action)
+        self.data.set_reload_funcs(self.pause_all, self.perform_reload_action)
 
         # resume paused multijobs
         self.perform_multijob_startup_action()
@@ -238,6 +245,9 @@ class MainWindow(QtWidgets.QMainWindow):
                                       MULTIJOBS_DIR, mj.preset.name)
                 shutil.rmtree(mj_dir)
                 self.data.multijobs.pop(mj_id)  # delete from gui
+            else:
+                self.data.multijobs[mj_id].preset.deleted_remote = True
+                
             if error is not None:
                 self.report_error("Deleting error: {0}".format(error))
             mj.get_state().status = mj.last_status
@@ -280,10 +290,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_ui_locks(self, mj_id):
         if mj_id is None:
-            self.ui.menuBar.multiJob.lock_by_status(None)
+            self.ui.menuBar.multiJob.lock_by_status(True, None)
         else:
             status = self.data.multijobs[mj_id].state.status
-            self.ui.menuBar.multiJob.lock_by_status(status)
+            rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
+            self.ui.menuBar.multiJob.lock_by_status(rdeleted, status)
             mj = self.data.multijobs[mj_id]
             self.ui.tabWidget.reload_view(mj)
 
@@ -307,7 +318,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
     def _handle_add_multijob_action(self):
-        self.mj_dlg.exec_add()        
+        self.mj_dlg.exec_add()       
 
     def _handle_reuse_multijob_action(self):
         if self.data.multijobs:
@@ -323,8 +334,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
-            self.com_manager.delete_jobs.append(key)
-            self._delete_mj_local.append(key)
+            if self.data.multijobs[key].preset.deleted_remote:
+                self.com_manager.jobs_deleted[key] = None
+                self._delete_mj_local.append(key)
+            else:
+                self.com_manager.delete_jobs.append(key)
+                self._delete_mj_local.append(key)
             self._set_deleting(key)
             
     def _set_deleting(self, key):
@@ -339,8 +354,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_delete_remote_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
-            self.com_manager.delete_jobs.append(key)
-            self._set_deleting(key)
+            if not  self.data.multijobs[key].preset.deleted_remote:
+                self.com_manager.delete_jobs.append(key)
+                self._set_deleting(key)
 
     def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
@@ -379,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.com_manager.stop_jobs.append(key)
 
     def _handle_options(self):
-        OptionsDialog(self, self.data.workspaces).show()
+        OptionsDialog(self, self.data,self.data.env_presets).show()
 
     def _handle_save_results_button_clicked(self):
         src_dir_path = os.path.join(installation.__install_dir__,
