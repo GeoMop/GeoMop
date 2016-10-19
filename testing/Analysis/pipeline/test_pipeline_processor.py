@@ -10,14 +10,19 @@ from pipeline.wrapper_actions import *
 from pipeline.parametrized_actions import *
 import pipeline.action_types as action
 from client_pipeline.identical_list_creator import *
+from .pomfce import *
 import time
 import shutil
+
 
 def test_run_pipeline(request):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
+        remove_if_exist("pipeline/resources/test1_3_0.yaml")
+        remove_if_exist("pipeline/resources/test1_3_1.yaml")
+        remove_if_exist("pipeline/resources/test1_3_2.yaml")
+        remove_if_exist("pipeline/resources/test1_3_3.yaml")
+        remove_if_exist("pipeline/resources/test1_3_4.yaml")
     request.addfinalizer(clear_backup)
     
     action.__action_counter__ = 0
@@ -91,10 +96,7 @@ def test_run_pipeline(request):
 
 def test_set_restore_id(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        shutil.rmtree("backup", ignore_errors=True)
     request.addfinalizer(clear_backup)
 
     action.__action_counter__ = 0
@@ -120,12 +122,9 @@ def test_set_restore_id(request):
 def test_hashes_and_store_restore(request):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
-        if os.path.isfile("identical_list.json"):
-            os.remove("identical_list.json")
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        remove_if_exist("identical_list.json")
+        remove_if_exist("pipeline/resources/test1_4.yaml")
+        remove_if_exist("pipeline/resources/test2_5.yaml")
     request.addfinalizer(clear_backup)
 
     # create pipeline first time

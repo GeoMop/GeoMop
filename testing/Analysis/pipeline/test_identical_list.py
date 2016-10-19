@@ -20,7 +20,7 @@ def test_identical_list(request):
 
     # save
     il = IdenticalList({"1": "2", "3": "4", "5": "6"})
-    file = os.path.join(TEST_FILES, "compare_list.json")
+    file = os.path.join(TEST_FILES, "identical_list.json")
     il.save(file)
 
     # load

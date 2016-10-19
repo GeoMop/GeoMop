@@ -8,12 +8,10 @@ from .pomfce import *
 import pipeline.action_types as action
 import os
 
+
 def test_workflow_code_init(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
-        if os.path.isfile("pipeline/resources/test2_param.yaml"):
-            os.remove("pipeline/resources/test2_param.yaml")
+        pass
     request.addfinalizer(clear_backup)
 
     # test workflow with more action
@@ -81,7 +79,7 @@ def test_workflow_code_init(request):
 
     # test validation
     err = pipeline.validate()
-    assert len(err) == 1
+    assert len(err) == 0
 
     # test _get_hashes_list()
     hlist = pipeline._get_hashes_list()

@@ -1,3 +1,6 @@
+import os
+
+
 def compare_with_file(fname, lines):
     with open(fname) as f:
         res = f.readlines()
@@ -12,4 +15,8 @@ def compare_with_file(fname, lines):
             i += 1
         assert i>=len(res), \
             "Line {0} is not in file\n{1}".format(str(i+1),lines[i].rstrip())    
-    
+
+
+def remove_if_exist(file):
+    if os.path.isfile(file):
+        os.remove(file)

@@ -2,6 +2,8 @@ from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStat
 from .data_types_tree import Struct, String
 
 from flow_util import YamlSupportRemote, analysis
+from .flow_data_types import *
+
 import os
 import codecs
 
@@ -19,9 +21,9 @@ class Flow123dAction(ParametrizedActionType):
         """
         super(Flow123dAction, self).__init__(**kwargs)
         self._logical_queue = QueueType.external
-        self._file_output = self.__file_output()
+        #self._file_output = self.__file_output()
         self._yaml_support = YamlSupportRemote()
-            
+
     def _inicialize(self):
         """inicialize action run variables"""
         if self._get_state().value > ActionStateType.created.value:
@@ -89,7 +91,7 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d", "-s", params[0]]
+        runner.command = ["flow123d", "-s", params[0], "-o", os.path.join("output", self._store_id)]
         return runner
         
     def _update(self):    
@@ -98,14 +100,16 @@ class Flow123dAction(ParametrizedActionType):
         environment and return Runner class with  process description if 
         action is set for externall processing.        
         """
+        # todo: remove output files
         file = self.__parametrise_file()
-        return  self._get_runner([file])
+        return self._get_runner([file])
         
     def _after_update(self, store_dir):    
         """
         Set real output variable and set finished state.
         """
-        # TODO read output from files
+
+        self._output = self.__file_result()
         self._store_results(store_dir)
         self._state = ActionStateType.finished
 
@@ -139,17 +143,15 @@ class Flow123dAction(ParametrizedActionType):
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
-        #ys = YamlSupport()
-        #ys.parse(self._variables['YAMLFile'])
+        #return FlowOutputType.create_type(self._yaml_support)
+        return Struct(a=String())
 
-        # TODO logic
-        return String("Test")
-
-    def __file_result(self,  file):
+    def __file_result(self):
         """Add to DTT output real values from returned file"""
-        # TODO logic
-        return String("Test")
-        
+        # TODO: exception if fail
+        #return FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
+        return Struct(a=String("test"))
+
     def __parametrise_file(self):
         """Rename and make completation of Yaml file and return new file path"""
 
@@ -157,7 +159,7 @@ class Flow123dAction(ParametrizedActionType):
         file = self._variables['YAMLFile']
         dir, name = os.path.split(file)
         s = name.rsplit(sep=".", maxsplit=1)
-        new_name = s[0] + "_param"
+        new_name = s[0] + "_" + self._store_id
         if len(s) == 2:
             new_name += "." + s[1]
         new_file = os.path.join(dir, new_name)
@@ -177,7 +179,7 @@ class Flow123dAction(ParametrizedActionType):
         return text data for storing
         """
         res = ""
-        # TODO copy result files to store path and store only files names
+
         return res
 
     def _restore(self, text, path):
@@ -187,11 +189,11 @@ class Flow123dAction(ParametrizedActionType):
         
         if result file  in not pressented, throw exception
         """
-        # TODO instead next commented line restore files names and make output from it
-        # self._output = eval(res)
+
+        self._output = self.__file_result()
 
     def get_resources(self):
         """Return list of resource files"""
         d = {"name": self.name,
-             "YAMLFile": os.path.realpath(self._variables['YAMLFile'])}
+             "YAMLFile": self._variables['YAMLFile']}
         return [d]

@@ -26,8 +26,7 @@ def test_flow_code_init():
 
 def test_flow_runner_command(request):
     def clear_backup():
-        if os.path.isfile("pipeline/resources/test1_param.yaml"):
-            os.remove("pipeline/resources/test1_param.yaml")
+        remove_if_exist("pipeline/resources/test1_2.yaml")
     request.addfinalizer(clear_backup)
 
     action.__action_counter__ = 0
@@ -40,4 +39,5 @@ def test_flow_runner_command(request):
     assert len(err) == 0
 
     runner = flow._update()
-    assert runner.command == ["flow123d", "-s", os.path.join("pipeline/resources", "test1_param.yaml")]
+    assert runner.command == ["flow123d", "-s", os.path.join("pipeline/resources", "test1_2.yaml"),
+                              "-o", os.path.join("output", "2")]

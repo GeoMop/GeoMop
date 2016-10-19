@@ -88,7 +88,7 @@ items = [
 #gen = RangeGenerator(Items=items)
 gen = VariableGenerator(Variable=Ensemble(Struct(cond=Float()), Struct(cond=Float(0.06)), Struct(cond=Float(0.07)), Struct(cond=Float(0.08))))
 workflow = Workflow()
-flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="d:/test/cal/moje/V7_jb_par.yaml")
+flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="V7_jb_par.yaml")
 workflow.set_config(OutputAction=flow, InputAction=flow)
 foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
 pipeline = Pipeline(ResultActions=[foreach])
@@ -102,7 +102,7 @@ tt="\n".join(test)
 
 
 
-err = MjPreparation.prepare(workspace="d:/test/ws", analysis="an1", mj="mj1", python_script="s.py", pipeline_name="Pipeline_5")
+err = MjPreparation.prepare(workspace="d:/test/ws", analysis="an2", mj="mj1", python_script="s.py", pipeline_name="Pipeline_5", last_analysis="an1")
 
 
 
