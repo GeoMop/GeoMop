@@ -59,7 +59,7 @@ target/
 
 #Eric project files
 .eric5project/
-_eric6project/
+.eric6project/
 *.e4g
 *.e4t
 *.e4p

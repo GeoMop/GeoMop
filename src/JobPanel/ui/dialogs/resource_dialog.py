@@ -119,15 +119,6 @@ class ResourceDialog(AFormDialog):
                 self.ui.multiJobSshPresetComboBox.addItem(ssh[key].name, key)
                 self.ui.jobSshPresetComboBox.addItem(ssh[key].name, key)
 
-    def set_env_presets(self, env):
-        self.ui.mjEnvPresetComboBox.clear()
-        self.ui.jobEnvPresetComboBox.clear()
-        if env:
-            # sort dict by list, not sure how it works
-            for key in env:
-                self.ui.mjEnvPresetComboBox.addItem(env[key].name, key)
-                self.ui.jobEnvPresetComboBox.addItem(env[key].name, key)
-
     def get_data(self):
         preset = ResPreset(name=self.ui.nameLineEdit.text())
 
@@ -143,8 +134,7 @@ class ResourceDialog(AFormDialog):
         if self.ui.multiJobPbsPresetComboBox.isEnabled() and \
                 self.ui.multiJobPbsPresetComboBox.currentIndex() != 0:
             preset.mj_pbs_preset =\
-                self.ui.multiJobPbsPresetComboBox.currentData()
-        preset.mj_env = self.ui.mjEnvPresetComboBox.currentData()
+                self.ui.multiJobPbsPresetComboBox.currentData()        
 
         if self.ui.jobSshPresetComboBox.currentText() != UiResourceDialog.SSH_LOCAL_EXEC:
             preset.j_ssh_preset = self.ui.jobSshPresetComboBox.currentData()
@@ -188,28 +178,20 @@ class ResourceDialog(AFormDialog):
                     'local' if preset.mj_ssh_preset is None else preset.mj_ssh_preset))
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
-                    'no PBS' if preset.mj_pbs_preset is None else preset.mj_pbs_preset))
-            self.ui.mjEnvPresetComboBox.setCurrentIndex(
-                self.ui.mjEnvPresetComboBox.findData(preset.mj_env))
+                    'no PBS' if preset.mj_pbs_preset is None else preset.mj_pbs_preset))            
 
             self.ui.jobSshPresetComboBox.setCurrentIndex(
                 self.ui.jobSshPresetComboBox.findData(
                     'local' if preset.j_ssh_preset is None else preset.j_ssh_preset))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(
-                    'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset))
-            self.ui.jobEnvPresetComboBox.setCurrentIndex(
-                self.ui.jobEnvPresetComboBox.findData(preset.j_env))
-
+                    'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset)) 
         else:
             self.ui.nameLineEdit.clear()
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(0)
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
 
             self.ui.jobPbsPresetComboBox.setCurrentIndex(0)
-
-            self.ui.mjEnvPresetComboBox.setCurrentIndex(-1)
-            self.ui.jobEnvPresetComboBox.setCurrentIndex(-1)
 
 
 class UiResourceDialog(UiFormDialog):
@@ -219,8 +201,7 @@ class UiResourceDialog(UiFormDialog):
     EXECUTE_USING_LABEL = "Execute using:"
     EXECUTION_TYPE_LABEL = "Execution type:"
     SSH_PRESET_LABEL = "SSH host:"
-    PBS_PRESET_LABEL = "PBS options:"
-    MJ_ENV_LABEL = "MultiJob environment:"
+    PBS_PRESET_LABEL = "PBS options:"    
     JOB_ENV_LABEL = "Job environment:"
 
     EXEC_LABEL = "EXEC"
@@ -313,19 +294,6 @@ class UiResourceDialog(UiFormDialog):
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobPbsPresetComboBox)
 
-        # 3 row
-        self.mjEnvPresetLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.mjEnvPresetLabel.setObjectName("mjEnvPresetLabel")
-        self.mjEnvPresetLabel.setText(self.MJ_ENV_LABEL)
-        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                   self.mjEnvPresetLabel)
-        self.mjEnvPresetComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.mjEnvPresetComboBox.setObjectName(
-            "mjEnvPresetComboBox")
-        self.formLayout2.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                   self.mjEnvPresetComboBox)
-
         # divider
         self.formDivider1 = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
         self.formDivider1.setObjectName("formDivider")
@@ -374,20 +342,6 @@ class UiResourceDialog(UiFormDialog):
             "jobPbsPresetComboBox")
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.jobPbsPresetComboBox)
-
-        # 3 row
-        self.jobEnvPresetLabel = QtWidgets.QLabel(
-            self.mainVerticalLayoutWidget)
-        self.jobEnvPresetLabel.setObjectName("jobEnvPresetLabel")
-        self.jobEnvPresetLabel.setText(self.JOB_ENV_LABEL)
-        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.LabelRole,
-                                   self.jobEnvPresetLabel)
-        self.jobEnvPresetComboBox = QtWidgets.QComboBox(
-            self.mainVerticalLayoutWidget)
-        self.jobEnvPresetComboBox.setObjectName(
-            "jobEnvPresetComboBox")
-        self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
-                                   self.jobEnvPresetComboBox)
 
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)

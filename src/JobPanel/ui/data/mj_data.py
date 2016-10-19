@@ -115,7 +115,7 @@ class MultiJobPreset(APreset):
 
         self.resource_preset = kw_or_def('resource_preset')
         """Selected resource preset"""
-        self.pbs_preset = kw_or_def('pbs_preset')
+       # self.pbs_preset = kw_or_def('pbs_preset')
         """AdHoc PBS preset override"""
         self.log_level = kw_or_def('log_level', logging.DEBUG)
         """Logging level"""
@@ -124,6 +124,8 @@ class MultiJobPreset(APreset):
         self.analysis = kw_or_def('analysis')
         """Name of the analysis used in this multijob"""
         self.from_mj = kw_or_def('from_mj', None)
+        """Name of the source multijob (if reused)."""
+        self.deleted_remote = kw_or_def('deleted_remote', False)
         """Name of the source multijob (if reused)."""
 
     def __repr__(self):

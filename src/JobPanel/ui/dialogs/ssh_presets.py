@@ -14,7 +14,7 @@ class SshPresets(APresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent=None, presets=None):
+    def __init__(self, parent=None, presets=None, env=None):
         super().__init__(parent)
 
         # setup preset specific UI
@@ -22,14 +22,18 @@ class SshPresets(APresetsDialog):
         self.ui.setup_ui(self)
 
         # assign presets and reload view
-        self.presets = presets
-        self.reload_view(self.presets)
+        self.set_presets(presets)
 
         self.DlgClass = SshDialog
+        self.env = env
 
         # connect generic presets slots (must be called after UI setup)
         super().connect_slots()
-
+        
+    def create_dialog(self):
+        super(SshPresets, self).create_dialog()
+        self.presets_dlg.set_env_preset(self.env)
+        
 
 class UiSshPresets(UiPresetsDialog):
     """

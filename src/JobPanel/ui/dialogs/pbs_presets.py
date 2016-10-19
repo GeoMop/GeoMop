@@ -22,8 +22,7 @@ class PbsPresets(APresetsDialog):
         self.ui.setup_ui(self)
 
         # assign presets and reload view
-        self.presets = presets
-        self.reload_view(self.presets)
+        self.set_presets(presets)
 
         self.DlgClass = PbsDialog
 
