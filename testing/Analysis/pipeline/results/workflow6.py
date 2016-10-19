@@ -26,7 +26,7 @@ ForEach_6 = ForEach(
     Inputs=[
         RangeGenerator_2
     ],
-    WrapperActions=Workflow_4
+    WrappedAction=Workflow_4
 )
 Workflow_3.set_config(
     OutputAction=ForEach_6,
@@ -36,7 +36,7 @@ ForEach_7 = ForEach(
     Inputs=[
         RangeGenerator_1
     ],
-    WrapperActions=Workflow_3
+    WrappedAction=Workflow_3
 )
 Pipeline_8 = Pipeline(
     ResultActions=[ForEach_7]
