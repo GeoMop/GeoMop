@@ -309,7 +309,7 @@ class WorkspacesConf():
         """Workspaces array"""
         self.selected  = kw_or_def("selected")
         """selected workspace"""
-        if self.selected >= len(self.workspaces):
+        if  self.selected is not None and self.selected >= len(self.workspaces):
             if  len(self.workspaces) == 0:
                 self.selected = None
             else:

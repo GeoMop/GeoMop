@@ -27,7 +27,7 @@ class YamlSupportLocal(YamlSupportRemote):
             with open(file_name, 'r') as file_d:
                 text = file_d.read()
         except (RuntimeError, IOError) as err:
-                cls._report_error("Can't open format file '" + cls.curr_format_file + "'", err)
+                cls._report_error("Can't open format file '" + curr_format_file + "'", err)
         try:
             root_input_type = get_root_input_type_from_json(text)
         except Exception as e:
