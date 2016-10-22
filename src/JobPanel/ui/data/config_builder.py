@@ -296,7 +296,7 @@ class ConfigBuilder:
     @staticmethod
     def gain_login(cc):
         if cc.ssh is not None and not cc.ssh.to_pc:
-            dialog = SshPasswordDialog(None, cc)
+            dialog = SshPasswordDialog(None, cc.ssh)
             if dialog.exec_():
                 return Users.get_preset_pwd2(config.__config_dir__, dialog.password, cc.ssh.key, cc.conf_long_id)
 

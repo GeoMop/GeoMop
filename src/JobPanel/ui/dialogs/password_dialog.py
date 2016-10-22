@@ -8,17 +8,17 @@ from PyQt5 import QtWidgets
 class SshPasswordDialog(QtWidgets.QDialog):
     """Dialog to enter shh password."""
 
-    def __init__(self, parent, cc):
+    def __init__(self, parent, ssh):
         """Initializes the class."""
         super(SshPasswordDialog, self).__init__(parent)
 
-        self.cc = cc
+        self.ssh = ssh
 
         message = "Please enter password for {name} ssh connection\n({user}@{host}:{port})"  .format(
-            name=cc.ssh.name,
-            user=cc.ssh.uid,
-            host=cc.ssh.host,
-            port=cc.ssh.port
+            name=ssh.name,
+            user=ssh.uid,
+            host=ssh.host,
+            port=ssh.port
         )
         self._connection_label = QtWidgets.QLabel(message, self)
         self._connection_label.setMinimumSize(85, 40)

@@ -13,7 +13,7 @@ import yaml
 import time
 
 BASE_DIR = 'JobPanel'
-WORKSPACE_CONF_DIR = '.conf'
+WORKSPACE_CONF_DIR = 'conf'
 
 
 class WorkspaceConf():

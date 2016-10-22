@@ -775,29 +775,41 @@ class Installation:
             self.prepare_mpi_env_static(term, self.libs_env)
     
     @staticmethod
-    def prepare_python_env_static(term,  python_env):
+    def prepare_python_env_static(term,  python_env, logger=True):
         """Prepare python environment for installation"""
         if sys.platform == "win32":
             if python_env.scl_enable_exec is not None:
                 mess = term.exec_("scl enable " +  python_env.scl_enable_exec + " bash")
                 if mess != "":
-                    logger.warning("Enable scl error: " + mess)
+                    if logger:
+                        logger.warning("Enable scl error: " + mess)
+                    else:
+                        raise Exception("Enable scl error: " + mess)
             if python_env.module_add is not None:
                 mess = term.exec_("module add " +  python_env.module_add)
                 if mess != "":
-                    logger.warning("Add module error: " + mess)
+                    if logger:
+                        logger.warning("Add module error: " + mess)
+                    else:
+                        raise Exception("Enable scl error: " + mess)
         else:
             if python_env.scl_enable_exec is not None:
                 term.sendline("scl enable " +  python_env.scl_enable_exec + " bash")
                 term.expect(".*scl enable " +  python_env.scl_enable_exec + " bash\r\n")
                 if len(term.before)>0:
-                    logger.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
+                    if logger:
+                        logger.warning("Ssh message (scl enable): " + str(term.before, 'utf-8').strip()) 
+                    else:
+                        raise Exception("Ssh message (scl enable): " + str(term.before, 'utf-8').strip())
             if python_env.module_add is not None:
                 term.sendline("module add " +  python_env.module_add)
                 term.expect(".*module add " +  python_env.module_add + "\r\n")
                 if len(term.before)>0:
-                    logger.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
-    
+                    if logger:
+                        logger.warning("Ssh message (Add module): " + str(term.before, 'utf-8').strip()) 
+                    else:
+                        raise Exception("Ssh message (Add module): " + str(term.before, 'utf-8').strip())
+                        
     def prepare_popen_env(self):
         self.prepare_popen_env_static(self.python_env, self.libs_env)
     

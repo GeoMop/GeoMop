@@ -7,7 +7,6 @@ Main window module
 import copy
 import logging
 import os
-from shutil import copyfile
 import time
 import shutil
 
@@ -103,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                      resources=self.data.resource_presets, data=data)
         self.ssh_presets_dlg = SshPresets(parent=self,
                                           presets=self.data.ssh_presets,
-                                          env=self.data.env_presets)
+                                          container=self.data)
         self.pbs_presets_dlg = PbsPresets(parent=self,
                                           presets=self.data.pbs_presets)
         self.resource_presets_dlg \
@@ -478,7 +477,7 @@ class MainWindow(QtWidgets.QMainWindow):
             file_name = os.path.basename(f.file_path)
             res_dir = os.path.dirname(os.path.abspath(f.file_path))
             if os.path.samefile(src_dir_path, res_dir):
-                copyfile(f.file_path, os.path.join(dst_dir_path, file_name))
+                shutil.copyfile(f.file_path, os.path.join(dst_dir_path, file_name))
             else:            
                 ext_path = dst_dir_path
                 res_dir, tail = os.path.split(res_dir)
@@ -486,7 +485,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     ext_path = os.path.join(ext_path, tail)
                     if os.path.samefile(src_dir_path, res_dir):
                         os.makedirs(ext_path, exist_ok=True)
-                        copyfile(f.file_path, 
+                        shutil.copyfile(f.file_path, 
                              os.path.join(ext_path, file_name))
                         break
                     res_dir, tail = os.path.split(res_dir)

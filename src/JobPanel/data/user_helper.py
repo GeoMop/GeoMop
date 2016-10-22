@@ -117,6 +117,10 @@ class Users():
         m.update(str.encode(reg))
         m.update(str.encode(u))
         code = m.digest()
-        tr = _trim(code)
+        tr = _trim(code)        
         text = tr.decrypt(text, padmode=PAD_PKCS5)         
-        return str(text, 'utf-8')
+        try:
+            text = str(text, 'utf-8')
+        except:
+            return None
+        return text

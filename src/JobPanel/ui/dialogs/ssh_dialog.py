@@ -11,7 +11,9 @@ from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
+from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
+from ui.dialogs import SshPasswordDialog
 import config
 
 
@@ -44,6 +46,7 @@ class SshDialog(AFormDialog):
     def __init__(self, parent=None, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
+        self.data = None
 
         # setup specific UI
         self.ui = UiSshDialog()
@@ -65,7 +68,7 @@ class SshDialog(AFormDialog):
             valid = False
         return valid
 
-    def get_data(self):
+    def get_data(self, save_reg=True):
         name=self.ui.nameLineEdit.text()
         preset = SshPreset(name=name)
         preset.host = self.ui.hostLineEdit.text()
@@ -82,14 +85,15 @@ class SshDialog(AFormDialog):
         # password
         if self.ui.passwordLineEdit.isEnabled():
             password = self.ui.passwordLineEdit.text()
-            if self.preset is None or password != self.preset.pwd:
-                # if password changed
-                key = Users.save_reg(name, password, config.__config_dir__)
-                preset.pwd = "a124b.#"
-                preset.key = key
-            else:
-                preset.pwd = self.preset.pwd
-                preset.key = self.preset.key
+            if save_reg:
+                if self.preset is None or password != self.preset.pwd:
+                    # if password changed
+                    key = Users.save_reg(name, password, config.__config_dir__)
+                    preset.pwd = "a124b.#"
+                    preset.key = key
+                else:
+                    preset.pwd = self.preset.pwd
+                    preset.key = self.preset.key
 
         return {'preset': preset,
                 'old_name': self.old_name}
@@ -113,8 +117,12 @@ class SshDialog(AFormDialog):
             self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
             pwd = Users.get_reg(preset.name, preset.key, config.__config_dir__)
-            self.ui.passwordLineEdit.setText(pwd)
-            self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
+            if pwd is not None:
+                self.ui.passwordLineEdit.setText(pwd)
+                self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
+            else:
+                self.ui.passwordLineEdit.setText("")
+                self.ui.rememberPasswordCheckbox.setChecked(False)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
@@ -132,13 +140,28 @@ class SshDialog(AFormDialog):
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
             self.ui.envPresetComboBox.setCurrentIndex(-1)
             
-    def set_env_preset(self, env):
+    def set_data_container(self, data):
+        self.data = data
+        env = data.env_presets
         self.ui.envPresetComboBox.clear()
         if env:
             # sort dict by list, not sure how it works
             for key in env:
                 self.ui.envPresetComboBox.addItem(env[key].name, key)
-
+                
+    def handle_test(self):
+        """Do ssh connection test"""
+        preset = self.get_data(False)['preset']
+        if not preset.to_pc:
+            dialog = SshPasswordDialog(None, preset)
+            if dialog.exec_():
+                preset.pwd = dialog.password
+            else:
+                return
+        else:
+            preset.pwd = self.ui.passwordLineEdit.text()
+        dialog = TestSSHDialog(self, preset, self.data)
+        dialog.exec_()
 
 
 class UiSshDialog(UiFormDialog):
@@ -290,6 +313,10 @@ class UiSshDialog(UiFormDialog):
             "envPresetComboBox")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                    self.envPresetComboBox)
+                                   
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Help)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Help).setText("Test Connection")
+        self.buttonBox.helpRequested.connect(dialog.handle_test)
 
         return dialog
 
