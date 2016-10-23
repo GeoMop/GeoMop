@@ -21,7 +21,8 @@ analysis="an1"
 mj="mj1"
 python_script="s.py"
 pipeline_name="Pipeline_5"
-err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj, python_script=python_script, pipeline_name=pipeline_name)
+err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                            python_script=python_script, pipeline_name=pipeline_name)
 if len(err) > 0:
     for e in err:
         print(e)
@@ -71,13 +72,16 @@ while pp.is_run():
         process = subprocess.Popen(command, stderr=subprocess.PIPE)
         return_code = process.wait(10)
         if return_code is not None:
-            print(process.stderr)
+            #print(process.stderr)
+            pass
         pp.set_job_finished(runner.id)
     i += 1
     assert i < 1000, "Timeout"
 
+print("\nrun flows\n---------")
 for name in names:
     print(name)
+print("")
 
 # return cwd
 os.chdir(cwd)

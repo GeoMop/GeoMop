@@ -101,4 +101,9 @@ class MjPreparation():
                 il = ILCreator.create_identical_list(compare_list, last_cl)
                 il.save(os.path.join(mj_config_dir, "identical_list.json"))
 
+        # copy backup files
+        if last_analysis is not None:
+            shutil.copytree(os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "backup"),
+                            os.path.join(mj_config_dir, "backup"))
+
         return err
