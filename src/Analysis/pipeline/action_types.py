@@ -644,6 +644,24 @@ class ParametrizedActionType(BaseActionType, metaclass=abc.ABCMeta):
         return err
 
 
+class OutputActionType(BaseActionType, metaclass=abc.ABCMeta):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def _check_params(self):
+        """check if all require params is set"""
+        err = []
+        if self._is_state(ActionStateType.created):
+            self._add_error(err, "Inicialize method should be processed before checking")
+        if len(self._inputs)  != 1:
+            self._add_error(err, "Output action requires exactly one input parameter")
+        else:
+            for input in self._inputs:
+                if not isinstance(input, BaseActionType):
+                    self._add_error(err, "Parameter 'Inputs' must be BaseActionType")
+        return err
+
+
 class WrapperActionBridge(Bridge):
     """Action that provide output to wrapped action"""
 
