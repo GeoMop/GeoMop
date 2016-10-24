@@ -314,7 +314,8 @@ class pxssh (spawn):
             raise ExceptionPxssh('unexpected login response')
         if not self.sync_original_prompt(sync_multiplier):
             self.close()
-            raise ExceptionPxssh('could not synchronize with original prompt')
+            raise ExceptionPxssh('could not synchronize with original prompt '
+                '(recieved: %r)' % (self.before))
         # We appear to be in.
         # set shell prompt to something unique.
         if auto_prompt_reset:

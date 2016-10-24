@@ -28,7 +28,6 @@ class OptionsDialog(QDialog):
         
         self.envPresetLabel = QLabel(self.ENV_LABEL)
         self.envPresetComboBox = QComboBox()
-        i = 0
         for key in env:
             self.envPresetComboBox.addItem(env[key].name, key)
         if data.config.local_env is not None:
@@ -57,6 +56,11 @@ class OptionsDialog(QDialog):
 
     def accept(self):
         """Handles a confirmation."""
+        if self.workspace_selector.value is None:
+            from geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(self)
+            err_dialog.open_error_dialog("", Exception("Workspace is not selected."))
+            return
         self.data.reload_workspace(self.workspace_selector.value)
         if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
             self.data.config.analysis = None
