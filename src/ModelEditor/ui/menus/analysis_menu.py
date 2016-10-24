@@ -63,8 +63,11 @@ class AnalysisMenu(QMenu):
                 self, 'No Workspace',
                 'Please select workspace in Settings before creating an analysis.')
         else:
-            AnalysisDialog(self, AnalysisDialog.PURPOSE_ADD,
-                           config=self.config).exec_()
+            dialog = AnalysisDialog(self, AnalysisDialog.PURPOSE_ADD,
+                           config=self.config)            
+            if QtWidgets.QDialog.Accepted == dialog.exec_():
+                self.config.analysis = self.analysis.name
+                self.config.save()
 
     def _show_analysis_settings(self):
         """Show analysis settings dialog."""

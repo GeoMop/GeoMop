@@ -117,8 +117,6 @@ class AnalysisDialog(AFormDialog):
             self.analysis.workspace = self.config.workspace
             self.analysis.analysis_dir = path
             self.analysis.save()
-            self.config.analysis = name
-            self.config.save()
         if self.purpose == AnalysisDialog.PURPOSE_EDIT:
             # get all config files
             for i in range(self.ui.filesLayout.count()):

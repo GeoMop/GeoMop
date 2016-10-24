@@ -315,6 +315,11 @@ class WorkspacesConf():
             else:
                 self.selected = 0
 
+    @property
+    def workspace(self):
+        """Application main window."""
+        return self.workspaces[self.selected].path
+        
     @staticmethod
     def _get_compare_path(path):
         """return uppercase normalized real path"""
