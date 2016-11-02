@@ -129,7 +129,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.save_mj)
         self.resource_presets_dlg.presets_changed.connect(
-            self.mj_dlg.set_resource_presets)
+            lambda: self.mj_dlg.set_resource_presets(self.data.resource_presets))
 
         # ssh presets
         self.ui.menuBar.settings.actionSshPresets.triggered.connect(

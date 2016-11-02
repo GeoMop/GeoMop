@@ -15,11 +15,13 @@ class TestSSHDialog(QtWidgets.QDialog):
         message2 = "Errors:" 
         self._error_label = QtWidgets.QLabel(message2, self)
         self._error = QtWidgets.QListWidget(self)
-        self._error.resize(400,60)        
+        self._error.resize(400,60)
+        self._error.itemDoubleClicked.connect(self._error_item_clicked)       
         message3 = "Log:"
         self._log_label = QtWidgets.QLabel(message3, self)
         self._log = QtWidgets.QListWidget(self)
-        self._log.resize(400,260)       
+        self._log.resize(400,260)
+        self._log.itemDoubleClicked.connect(self._log_item_clicked)       
         
         self._button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Cancel)
         self._button_box.rejected.connect(self.reject)
@@ -72,7 +74,7 @@ class TestSSHDialog(QtWidgets.QDialog):
             if mess.endswith("..."):            
                 self._log.addItem(mess)
             else:
-                self._log.addItem("   " + mess)
+                self._log.addItem("- " + mess)
                 if mess.endswith("!!!"):
                     item = self._log.item(self._log.count()-1)
                     item.setForeground(QtGui.QColor(255,0,0))
@@ -82,4 +84,34 @@ class TestSSHDialog(QtWidgets.QDialog):
             self._button_box.button(QtWidgets.QDialogButtonBox.Cancel).setText("Close")
             self.log_timer.stop()
             self.finished = True
+            
+    def _error_item_clicked(self, item):
+        """error item is clicked"""
+        self._list_item_clicked(self._error, item)
+        
+    def _log_item_clicked(self, item):
+        """log item is clicked"""
+        self._list_item_clicked(self._log, item)
+ 
+    def _copy(self, txt, list=None):
+        """copy item text to clicbord (if txt is None copy all lines)"""
+        if txt is None:
+            if list is None:
+                return
+            txt = ""
+            for i in range(0, list.count()):
+                item = list.item(i)
+                txt += item.text() + "\n"
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.clear(mode=clipboard.Clipboard )
+        clipboard.setText(txt, mode=clipboard.Clipboard)
+
+    def _list_item_clicked(self, list, item):
+        """double click standart action"""
+        menu =  QtWidgets.QMenu()
+        action1 = menu.addAction("Copy line to clipboard")
+        action1.triggered.connect( lambda: self._copy(item.text()))
+        action2 = menu.addAction("Copy all content to clipboard")
+        action2.triggered.connect( lambda: self._copy(None, list))
+        menu.exec_(QtGui.QCursor.pos() - QtCore.QPoint(20, 10))
  

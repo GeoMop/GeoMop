@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 if sys.platform == "win32":
     import ui.helpers.ssh.win_conn as conn
@@ -194,7 +195,24 @@ class Tests():
             python_env, libs_env = ConfFactory.get_env_conf(env)
             Installation.prepare_python_env_static(self.conn.conn, python_env, False)            
             version = self.conn.get_python_version(python_env.python_exec)
-            logs.append("Python version is: {0}".format(version))
+            if re.search("command not found") :                
+                logs.append("Can't find out python version !!!")
+                errors.append("Command '{0}' is not valid perl interpreter.".format(
+                    python_env.python_exec))
+            v = re.search(r'^Python\s+(\d+)\.(\d+)\.(\d+)}\s*$', version)
+            if not v:                
+                logs.append("Can't find out python version !!!")
+                errors.append("Python command return: {0}".format(
+                    version))
+            v1 = v.group(1)
+            v2 = v.group(2)
+            v3 = v.group(3)
+            logs.append("Python version is: {0}.{1}.{2}".format(v1, v2, v3))
+            if int(v1)<3 or (int(v1)==3 and int(v2)<2):
+                errors.append("Python version is too low. Vewsion 3.1 or higher is required.")
+            
+            
+            
         except conn.SshError as err:
             logs.append("Can't find out python version !!!")
             errors.append(err.message)        

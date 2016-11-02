@@ -35,8 +35,6 @@ class OptionsDialog(QDialog):
                 self.envPresetComboBox.findData(data.config.local_env))
         else:
             self.envPresetComboBox.setCurrentIndex(-1)
-                
-
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)

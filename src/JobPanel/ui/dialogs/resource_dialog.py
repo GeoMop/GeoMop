@@ -154,7 +154,6 @@ class ResourceDialog(AFormDialog):
                 self.ui.jobPbsPresetComboBox.currentIndex() != 0:
             preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.currentData()
 
-        preset.j_env = self.ui.jobEnvPresetComboBox.currentData()
         return {
             'preset': preset,
             'old_name': self.old_name
