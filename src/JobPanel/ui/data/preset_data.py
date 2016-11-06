@@ -62,7 +62,9 @@ class PbsPreset(APreset):
 
         name = kw_or_def('name', 'Default PBS options name')
         super().__init__(name)
-
+        
+        self.pbs_system = kw_or_def('pbs_system')
+        """Defines PBS system dialect"""
         self.queue = kw_or_def('queue')
         """Defines preferred queue for execution"""
         self.walltime = kw_or_def('walltime')

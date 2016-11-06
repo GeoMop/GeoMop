@@ -5,7 +5,7 @@ Resource dialog
 @contact: jan.gabriel@tul.cz
 """
 
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ui.data.preset_data import ResPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
@@ -62,17 +62,45 @@ class ResourceDialog(AFormDialog):
 
     def _handle_mj_ssh_changed(self, index):
         key = self.ui.multiJobSshPresetComboBox.currentText()
-        if key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
+        if key == -1 or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
             self.ui.multiJobPbsPresetComboBox.setEnabled(False)
         else:
-            self.ui.multiJobPbsPresetComboBox.setEnabled(True)
+            self._enable_pbs(self.ui.multiJobPbsPresetComboBox, key)
+            
+    def _enable_pbs(self, combo, key):
+        """Enable all pbs presets with same sytems as is in choosed ssh preset"""
+        combo.setEnabled(True)            
+        model = combo.model()
+        if not key in self.ssh:
+            system = ''
+        else:
+            system = self.ssh[key].pbs_system
+        reselect = False
+        curr = combo.currentIndex()
+        for i in range(0, combo.count()):
+            item = model.item(i)
+            if not item.text() in self.pbs:
+                continue
+            pbs_system = self.pbs[item.text()].pbs_system
+            disable = pbs_system is None or system != pbs_system                
+            if disable:
+                item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEnabled))
+                item.setData(combo.palette().color(
+                    QtGui.QPalette.Disabled, QtGui.QPalette.Text), QtCore.Qt.TextColorRole)
+                if curr == i:
+                    reselect = True
+            else:
+                item.setFlags( item.flags()|QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEnabled);
+                item.setData(QtCore.QVariant(), QtCore.Qt.TextColorRole)
+        if reselect:
+            combo.setCurrentIndex(0)
 
     def _handle_j_ssh_changed(self, index):
         key = self.ui.jobSshPresetComboBox.currentText()
         if key in self.ssh and self.ssh[key].pbs_system == '':
             self.ui.jobPbsPresetComboBox.setEnabled(False)
         else:
-            self.ui.jobPbsPresetComboBox.setEnabled(True)
+            self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
 
     def valid(self):
         valid = True
@@ -94,6 +122,8 @@ class ResourceDialog(AFormDialog):
         # add default PBS options (none)
         self.ui.multiJobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
         self.ui.jobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
+        
+        self.pbs = pbs
 
         if pbs:
             # sort dict by list, not sure how it works

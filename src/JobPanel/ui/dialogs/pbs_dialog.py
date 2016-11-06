@@ -7,8 +7,8 @@ Pbs dialog
 
 from PyQt5 import QtCore, QtWidgets
 
+from helpers.importer import DialectImporter
 from ui.data.preset_data import PbsPreset
-from ui.data.queues import PbsQueues
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from ui.validators.validation import PbsNameValidator, WalltimeValidator, \
     MemoryValidator, ScratchValidator, ValidationColorizer
@@ -68,6 +68,8 @@ class PbsDialog(AFormDialog):
 
     def get_data(self):
         preset = PbsPreset(name=self.ui.nameLineEdit.text())
+        if self.ui.pbsSystemComboBox.currentText():
+            preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
         if self.ui.queueComboBox.currentText():
             preset.queue = self.ui.queueComboBox.currentText()
         if self.ui.walltimeLineEdit.text():
@@ -99,6 +101,8 @@ class PbsDialog(AFormDialog):
                     self.excluded_names.remove(preset.name)
                 except ValueError:
                     pass
+            self.ui.pbsSystemComboBox.setCurrentIndex(
+                self.ui.pbsSystemComboBox.findData(preset.pbs_system))
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.queueComboBox.setCurrentText(preset.queue)
             self.ui.walltimeLineEdit.setText(preset.walltime)
@@ -108,6 +112,11 @@ class PbsDialog(AFormDialog):
             self.ui.infinibandCheckbox.setChecked(preset.infiniband)
         else:
             self.ui.nameLineEdit.clear()
+            dialect_items = DialectImporter.get_available_dialects()
+            if len(dialect_items)==0:
+                self.ui.pbsSystemComboBox.setCurrentIndex(-1)
+            else:
+                self.ui.pbsSystemComboBox.setCurrentIndex(0)
             self.ui.queueComboBox.setCurrentIndex(-1)
             self.ui.walltimeLineEdit.clear()
             self.ui.nodesSpinBox.setValue(self.ui.nodesSpinBox.minimum())
@@ -154,27 +163,43 @@ class UiPbsDialog(UiFormDialog):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
-        
         # 2 row
+        self.pbsSystemLabel = QtWidgets.QLabel(
+            self.mainVerticalLayoutWidget)
+        self.pbsSystemLabel.setObjectName("pbsSystemLabel")
+        self.pbsSystemLabel.setText("PBS System:")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+                                  self.pbsSystemLabel)
+        self.pbsSystemComboBox = QtWidgets.QComboBox(
+            self.mainVerticalLayoutWidget)
+        self.pbsSystemComboBox.setObjectName(
+            "pbsSystemComboBox")        
+        dialect_items = DialectImporter.get_available_dialects()
+        for key in dialect_items:
+            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+                                  self.pbsSystemComboBox)
+        
+        # 3 row
         self.queueLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.queueLabel.setObjectName("queueLabel")
         self.queueLabel.setText("Queue:")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.queueLabel)
         self.queueComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.queueComboBox.setObjectName(
             "queueComboBox")
         self.queueComboBox.setEditable(True)
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.queueComboBox)
         
-        # 3 row
+        # 4 row
         self.walltimeLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.walltimeLabel.setObjectName("walltimeLabel")
         self.walltimeLabel.setText("Walltime:")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.walltimeLabel)
         self.walltimeLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
@@ -182,14 +207,14 @@ class UiPbsDialog(UiFormDialog):
         self.walltimeLineEdit.setPlaceholderText("1d4h or 20h")
         self.walltimeLineEdit.setProperty("clearButtonEnabled", True)
         self.walltimeLineEdit.setValidator(self.walltimeValidator)
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.walltimeLineEdit)
 
-        # 4 row
+        # 5 row
         self.nodesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.nodesLabel.setObjectName("nodesLabel")
         self.nodesLabel.setText("Number of  Nodes:")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.nodesLabel)
         self.nodesSpinBox = QtWidgets.QSpinBox(
             self.mainVerticalLayoutWidget)
@@ -201,14 +226,14 @@ class UiPbsDialog(UiFormDialog):
         self.nodesSpinBox.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt
             .AlignVCenter)
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
                                   self.nodesSpinBox)
 
-        # 5 row
+        # 6 row
         self.ppnLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.ppnLabel.setObjectName("ppnLabel")
         self.ppnLabel.setText("Processes per Node:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.ppnLabel)
         self.ppnSpinBox = QtWidgets.QSpinBox(
             self.mainVerticalLayoutWidget)
@@ -220,14 +245,14 @@ class UiPbsDialog(UiFormDialog):
         self.ppnSpinBox.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt
             .AlignVCenter)
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.ppnSpinBox)
 
-        # 6 row
+        # 7 row
         self.memoryLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.memoryLabel.setObjectName("walltimeLabel")
         self.memoryLabel.setText("Memory:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
                                   self.memoryLabel)
         self.memoryLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
@@ -235,19 +260,19 @@ class UiPbsDialog(UiFormDialog):
         self.memoryLineEdit.setPlaceholderText("300mb or 1gb")
         self.memoryLineEdit.setProperty("clearButtonEnabled", True)
         self.memoryLineEdit.setValidator(self.memoryValidator)
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.memoryLineEdit)
 
-        # 7 row
+        # 8 row
         self.infinibandLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.infinibandLabel.setObjectName("infinibandLabel")
         self.infinibandLabel.setText("Infiniband:")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
                                   self.infinibandLabel)
         self.infinibandCheckbox = QtWidgets.QCheckBox(
             self.mainVerticalLayoutWidget)
         self.infinibandCheckbox.setObjectName("infinibandCheckbox")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                   self.infinibandCheckbox)
 
         return dialog

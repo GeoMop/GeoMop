@@ -73,7 +73,7 @@ class IEEnv(IE):
     default_items = {}
     
 class IEPbs(IE):
-    items = ["infiniband", "memory", "name", "nodes", "ppn", "queue", "walltime"]
+    items = ["infiniband", "pbs_system", "memory", "name", "nodes", "ppn", "queue", "walltime"]
     default_items = {}
     
 class IESsh(IE):
