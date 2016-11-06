@@ -25,6 +25,10 @@ VariableGenerator_1 = VariableGenerator(
     )
 )
 Workflow_2 = Workflow()
+
+# shift id
+fake_action = VariableGenerator(Variable=(String("fake_action")))
+
 Flow123d_3 = Flow123dAction(
     Inputs=[
         Workflow_2.input()

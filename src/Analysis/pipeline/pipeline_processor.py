@@ -363,11 +363,31 @@ class Pipelineprocessor():
                     store_path, restore_path, str(err))
                 logger.error(error)
                 raise Exception(error)
+        il = None
         if identical_list is not None:
             il = IdenticalList()
             il.load(identical_list)
             self._pipeline._set_restore_id(il)
-        # Todo: rename output files
+
+        # rename output files
+        output_dir = "./output"
+        output_tmp_dir = "./output_tmp"
+        if os.path.isdir(output_dir):
+            shutil.rmtree(output_tmp_dir, ignore_errors=True)
+            os.makedirs(output_tmp_dir)
+            if il is not None:
+                inverse_il = {v: k for k, v in il._instance_dict.items()}
+                for entry in os.listdir(output_dir):
+                    if os.path.isdir(os.path.join(output_dir, entry)):
+                        s = entry.split(sep="_", maxsplit=1)
+                        old_id = s[0]
+                        suffix = "_" + (s[1] if len(s) == 2 else "")
+                        if old_id in inverse_il:
+                            new_id = inverse_il[old_id]
+                            shutil.move(os.path.join(output_dir, old_id + suffix),
+                                        os.path.join(output_tmp_dir, new_id + suffix))
+            shutil.rmtree(output_dir, ignore_errors=True)
+            os.rename(output_tmp_dir, output_dir)
         
     def __set_loger(self,  path,  level):
         """set logger"""        

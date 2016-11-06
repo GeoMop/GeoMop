@@ -5,6 +5,7 @@ from flow_util import YamlSupportRemote, analysis
 from .flow_data_types import *
 
 import os
+import shutil
 import codecs
 
 class Flow123dAction(ParametrizedActionType):
@@ -101,6 +102,7 @@ class Flow123dAction(ParametrizedActionType):
         action is set for externall processing.        
         """
         # todo: remove output files
+        shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
         file = self.__parametrise_file()
         return self._get_runner([file])
         
