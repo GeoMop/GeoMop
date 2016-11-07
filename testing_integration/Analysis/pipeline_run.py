@@ -42,6 +42,7 @@ try:
 except (RuntimeError, IOError) as e:
     print("Can't open script file: {0}".format(e))
     exit()
+action_types.__action_counter__ = 0
 exec(script_text)
 pipeline = locals()[pipeline_name]
 

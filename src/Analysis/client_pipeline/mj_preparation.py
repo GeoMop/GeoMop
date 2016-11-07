@@ -39,6 +39,7 @@ class MjPreparation():
         except (RuntimeError, IOError) as e:
             err.append("Can't open script file: {0}".format(e))
             return err
+        action_types.__action_counter__ = 0
         exec(script_text)
         pipeline = locals()[pipeline_name]
 
@@ -69,6 +70,7 @@ class MjPreparation():
             err.append("Can't open script file: {0}".format(e))
             os.chdir(cwd)
             return err
+        action_types.__action_counter__ = 0
         exec(script_text)
         pipeline2 = locals()[pipeline_name]
 
@@ -103,7 +105,18 @@ class MjPreparation():
 
         # copy backup files
         if last_analysis is not None:
-            shutil.copytree(os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "backup"),
-                            os.path.join(mj_config_dir, "backup"))
+            last_backup_dir = os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "backup")
+            backup_dir = os.path.join(mj_config_dir, "backup")
+            if os.path.isdir(last_backup_dir):
+                shutil.rmtree(backup_dir, ignore_errors=True)
+                shutil.copytree(last_backup_dir, backup_dir)
+
+        # copy output files
+        if last_analysis is not None:
+            last_output_dir = os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "output")
+            output_dir = os.path.join(mj_config_dir, "output")
+            if os.path.isdir(last_output_dir):
+                shutil.rmtree(output_dir, ignore_errors=True)
+                shutil.copytree(last_output_dir, output_dir)
 
         return err
