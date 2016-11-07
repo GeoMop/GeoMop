@@ -24,7 +24,7 @@ import communication.installation as inst
 from communication import Communicator
 import data.transport_data as tdata
 
-from communication.installation import __ins_files__
+from communication.installation import __ins_files__, __input_dir__
 
 logger = logging.getLogger("Remote")
 finished = False
@@ -45,7 +45,14 @@ def  job_action_function_before(message):
         return_code = process.poll()
         if return_code is not None:
             finished = True 
-            rc = return_code 
+            rc = return_code
+            out =  read_err(process.stderr)
+            if len(out)>0:
+                if return_code==0:
+                    logger.warning("Flow123d output message: " + out)
+            if return_code!=0:
+                logger.error("Flow123d error(return code: " + str(return_code) +
+                    ",stderr:" + out + ")")
         action = tdata.Action(tdata.ActionType.job_state)
         action.data.set_data(return_code)
         return False, action.get_message()
@@ -129,9 +136,9 @@ if len(com_conf.cli_params)>0:
                 si = subprocess.STARTUPINFO()
                 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             process = subprocess.Popen(pre_execute, stdout=subprocess.PIPE, 
-                stderr=subprocess.STDOUT, startupinfo=si)
+                stderr=subprocess.STDOUT, shell=True, startupinfo=si)
             return_code = process.wait()
-            if return_code is not None:
+            if return_code is None or return_code!=0:
                 out =  read_err(process.stderr)
                 if out is None:
                     out = ""
@@ -147,7 +154,7 @@ if com_conf.flow_path is None:
 
 flow_execute = [com_conf.flow_path, 
                             '-s', 
-                            os.path.join(directory, conf_file), 
+                            os.path.join(directory, __input_dir__, conf_file), 
                             '-o', 
                             os.path.join(directory, 'res', mj_id)
                         ]

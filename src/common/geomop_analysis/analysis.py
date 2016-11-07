@@ -14,6 +14,7 @@ ANALYSIS_MAIN_FILE_NAME = 'analysis'
 ANALYSIS_MAIN_FILE = ANALYSIS_MAIN_FILE_NAME + '.' + ANALYSIS_MAIN_FILE_EXT
 MULTIJOBS_DIR = 'mj'
 CONFIG_DIR = '.settings'
+MJ_CONFIG_DIR = 'mj_input'
 
 
 class InvalidAnalysis(Exception):
@@ -227,7 +228,9 @@ class Analysis:
 
     def copy_into_mj_folder(self, mj):
         """Copy this analysis into multijob folder."""
-        mj_dir = os.path.join(self.analysis_dir, MULTIJOBS_DIR, mj.preset.name)
+        mj_dir = os.path.join(self.analysis_dir, MULTIJOBS_DIR, mj.preset.name, MJ_CONFIG_DIR)
+        if not os.path.isdir(mj_dir):
+            os.makedirs(mj_dir)
 
         # get all files used by analyses
         files = self.selected_file_paths

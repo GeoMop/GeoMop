@@ -264,7 +264,7 @@ class ConfigBuilder:
     def _build_jobs_config(self, mj_name, an_name):
         """Create jobs and associate them with individual configuration files."""
         jobs = {}
-        mj_dir = os.path.join(Installation.get_mj_data_dir_static(mj_name, an_name))
+        mj_dir = Installation.get_mj_data_dir_static(mj_name, an_name)
         job_configs_path = os.path.join(Installation.get_config_dir_static(mj_name, an_name),
                                       ins.__ins_files__['job_configurations'])
         job_counter = 1

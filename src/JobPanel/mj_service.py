@@ -24,7 +24,7 @@ import data.communicator_conf as comconf
 import communication.installation as inst
 import data.transport_data as tdata
 
-from communication.installation import __ins_files__
+from communication.installation import __ins_files__, __input_dir__
 
 logger = logging.getLogger("Remote")
 
@@ -97,7 +97,9 @@ except Exception as error:
     logger.error(error)
     raise error
 
-jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
+logger.debug("Jobs input dir {0})".format(
+    os.path.join(directory, __input_dir__, __ins_files__['job_configurations'])))
+jobs = load_jobs(os.path.join(directory, __input_dir__, __ins_files__['job_configurations']))
 jobs_to_exec = list(jobs.keys())
 count = len(jobs)
 comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,

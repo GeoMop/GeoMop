@@ -19,7 +19,7 @@ from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
 from ui.data.data_structures import BASE_DIR
-from ui.dialogs import FilesSavedMessageBox, MessageDialog
+from ui.dialogs import MessageDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
 from ui.dialogs.options_dialog import OptionsDialog
@@ -177,12 +177,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # connect current multijob changed
         self.ui.overviewWidget.currentItemChanged.connect(
             self._handle_current_mj_changed)
-
-        # connect tabWidget
-        self.ui.tabWidget.ui.resultsTab.ui.saveButton.clicked.connect(
-            self._handle_save_res_log_button_clicked)
-        self.ui.tabWidget.ui.logsTab.ui.saveButton.clicked.connect(
-            self._handle_save_res_log_button_clicked)
 
         # load settings
         self.load_settings()
@@ -395,70 +389,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_options(self):
         OptionsDialog(self, self.data,self.data.env_presets).show()
-
-    def _handle_save_results_button_clicked(self):
-        src_dir_path = os.path.join(installation.__install_dir__,
-                                    installation.__jobs_dir__,
-                                    self.current_mj.preset.name,
-                                    installation.__result_dir__)
-        dst_dir_name = installation.__result_dir__
-        files = self.ui.tabWidget.ui.resultsTab.files
-        self._handle_save_results(src_dir_path, dst_dir_name, files)
-
-    def _handle_save_res_log_button_clicked(self):
-        # if not project - alert
-        if not Analysis.current:
-            self.report_error("No analysis selected!")
-
-        dst_dir_location = os.path.join(Analysis.current.analysis_dir,
-                                        "analysis_results",
-                                        time.strftime("%Y%m%d_%H%M%S"))
-        self._save_results(dst_dir_location)
-        self._save_logs(dst_dir_location)
-        self._save_debug_files(dst_dir_location)
-
-        # alert with open dir option
-        FilesSavedMessageBox(self, dst_dir_location).show()
-
-    def _save_logs(self, dst_dir_location):
-        src_dir_path = os.path.join(installation.__install_dir__,
-                                    installation.__jobs_dir__,
-                                    self.current_mj.preset.name,
-                                    installation.__result_dir__,
-                                    installation.__logs_dir__)
-        dst_dir_path = os.path.join(dst_dir_location,
-                                    installation.__logs_dir__)
-        files = self.ui.tabWidget.ui.logsTab.files
-        self.copy_files(src_dir_path, dst_dir_path, files)
-
-    def _save_results(self, dst_dir_location):
-        src_dir_path = os.path.join(installation.__install_dir__,
-                                    installation.__jobs_dir__,
-                                    self.current_mj.preset.name,
-                                    installation.__result_dir__)
-        dst_dir_path = os.path.join(dst_dir_location,
-                                    installation.__result_dir__)
-        files = self.ui.tabWidget.ui.resultsTab.files
-        self.copy_files(src_dir_path, dst_dir_path, files)
-
-    def _save_debug_files(self, dst_dir_location):
-        """Save file usefull for debug (That will send to developer)"""
-        app = os.path.join(os.path.split(
-            os.path.dirname(os.path.realpath(__file__)))[0])        
-        res_dir_path = os.path.join(installation.__install_dir__,
-                                    installation.__jobs_dir__,
-                                    self.current_mj.preset.name)
-        conf_dir_path = os.path.join(res_dir_path, installation.__conf_dir__)
-        dst_dir_path = os.path.join(dst_dir_location,
-                                    installation.__conf_dir__)
-        central_log_file = []
-        central_log_file.append(AMultiJobFile(
-            os.path.join(app, "log"), "app-centrall.log"))
-        self.copy_files(app, os.path.join(
-            dst_dir_location, "log"), central_log_file)
-
-        files = self._get_config_files(conf_dir_path)
-        self.copy_files(conf_dir_path, dst_dir_path, files)
 
     @staticmethod
     def _get_config_files(conf_dir_path):
