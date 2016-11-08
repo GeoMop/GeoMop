@@ -72,6 +72,8 @@ class ComWorker(threading.Thread):
         """planning counter (in main thread, not lock)"""
         self._busycounter = 1
         """counter that prevent overloading of requarements"""
+        self.__qued_time = None
+        """queued time is not possible find out in communicator"""
         
     def get_error(self):
         self.__state_lock.acquire()
@@ -385,12 +387,16 @@ class ComWorker(threading.Thread):
                 self.__state_lock.acquire()
                 self.__start_state = TaskStatus.installation
                 if phase == TaskStatus.queued.value:
-                    self.__start_state = TaskStatus.queued
+                    if self.__qued_time is None:                        
+                        self.__qued_time = time.time()
+                    self.__start_state = TaskStatus.queued                    
                 self.__state_lock.release()
             if mess.action_type == tdata.ActionType.ok:
                 self.__state_lock.acquire()
                 self.__starting = False
                 self.__running = True
+                if self.__qued_time is None:                        
+                    self.__qued_time = time.time()
                 self.__state_lock.release()
                 return True                
             time.sleep(2)
@@ -505,6 +511,7 @@ class ComWorker(threading.Thread):
             data = tmp_data.get_mjstate(self._com.mj_name)
             self.__state_lock.acquire()
             self.__state = data
+            self.__state.queued_time = self.__qued_time 
             self.__state_lock.release()
  
     def _results(self):

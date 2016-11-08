@@ -37,6 +37,7 @@ __root_dir__ = "js_services"
 __jobs_dir__ = "jobs"
 __logs_dir__ = "log"
 __conf_dir__ = "mj_conf"
+__input_dir__ = "mj_input"
 __an_subdir__ = "mj"
 __result_dir__ = "res"
 __status_dir__ = "status"
@@ -368,7 +369,8 @@ class Installation:
             self._create_dir(conn, mjs_dir)
             mjs_dir += '/' + self.mj_name
             self._create_dir(conn, mjs_dir, False)
-            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
+            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False) 
+            self._create_dir(conn, mjs_dir + '/' +  __input_dir__, False) 
             conf_path = os.path.join(__install_dir__, mjs_dir)
             #conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
@@ -376,6 +378,9 @@ class Installation:
                 res = conn.put_r(__conf_dir__) 
                 if len(res)>0:
                     logger.warning("Sftp message (put -r '" + __conf_dir__ + "'): " + res)
+                res = conn.put_r(__input_dir__) 
+                if len(res)>0:
+                    logger.warning("Sftp message (put -r '" + __input_dir__ + "'): " + res)
         else:
             import pexpect            
             # copy mj configuration directory
@@ -393,8 +398,10 @@ class Installation:
             self._create_dir(conn, mjs_dir)
             mjs_dir += '/' + self.mj_name                                                                
             self._create_dir(conn, mjs_dir, False)
-            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False)  
+            self._create_dir(conn, mjs_dir + '/' + __conf_dir__, False) 
+            self._create_dir(conn, mjs_dir + '/' + __input_dir__, False)  
             conf_path = self.get_config_dir()
+            input_path = self.get_input_dir()
             if os.path.isdir(conf_path):
                 mj_path = os.path.join(__install_dir__, mjs_dir)
                 conn.sendline('cd ' + mjs_dir)
@@ -415,6 +422,17 @@ class Installation:
                         logger.debug(
                             "Sftp message(put -r " + __conf_dir__ + "): " +
                             str(conn.before, 'utf-8').strip())
+                conn.sendline('put -r ' + input_path)
+                conn.expect('.*put -r ' + input_path + "\r\n")
+                end=0
+                while end==0:
+                    #wait 3s after last message
+                    end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=3)
+                    if end == 0 and len(conn.before)>0:
+                        logger.debug(
+                            "Sftp message(put -r " + __input_dir__ + "): " +
+                            str(conn.before, 'utf-8').strip())
+
 
     def copy_install_files(self, conn, ssh):
         """Copy installation files"""
@@ -661,7 +679,39 @@ class Installation:
 
     def get_config_dir(self):
         """Return dir for configuration """
-        return self.get_config_dir_static(self.mj_name, self.an_name)         
+        return self.get_config_dir_static(self.mj_name, self.an_name)
+
+    @classmethod
+    def get_input_dir_static(cls, mj_name, an_name):
+        """Return dir for inputuration"""
+        try:
+            if cls.paths_config is not None and \
+                cls.paths_config.work_dir is not None:
+                path = cls.paths_config.work_dir
+            else:
+                path = os.path.join(__install_dir__, __jobs_dir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, an_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join( path, __an_subdir__)            
+            if not os.path.isdir(path):
+                os.makedirs(path)                
+            path = os.path.join( path, mj_name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            path = os.path.join(path,__input_dir__)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except Exception as err:
+            logger.warning("Get mj input dir error: " + str(err))
+            return "."
+        return path
+
+    def get_input_dir(self):
+        """Return dir for input """
+        return self.get_input_dir_static(self.mj_name, self.an_name) 
 
     @classmethod
     def get_mj_data_dir_static(cls, mj_name, an_name):
