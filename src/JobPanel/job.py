@@ -47,7 +47,9 @@ def  job_action_function_before(message):
             finished = True 
             rc = return_code
             out =  read_err(process.stderr)
-            if len(out)>0:
+            if out is None:
+                out = ""
+            if len(out)>0 and return_code==0:
                 if return_code==0:
                     logger.warning("Flow123d output message: " + out)
             if return_code!=0:

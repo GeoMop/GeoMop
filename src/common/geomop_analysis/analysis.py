@@ -121,7 +121,7 @@ class Analysis:
     def open_from_mj(mj_dir, analysis_name='N/A'):
         """Retrieve analysis from multijob directory."""
         analysis = config.get_config_file(ANALYSIS_MAIN_FILE_NAME,
-                                          directory=mj_dir,
+                                          directory=os.path.join(mj_dir , MJ_CONFIG_DIR),
                                           extension=ANALYSIS_MAIN_FILE_EXT,
                                           cls=Analysis)
         if analysis is None:
