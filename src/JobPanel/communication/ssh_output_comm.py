@@ -211,6 +211,8 @@ else:
                 
         def exec_(self, python_file, mj_id):
             """run set python file in ssh"""
+            if not self._connected:
+                raise Exception("SSH connection with remote server is not established")    
             self.ssh.sendline("cd " + self.installation.copy_path)
             if self.ssh.prompt():
                 mess = str(self.ssh.before, 'utf-8').strip()

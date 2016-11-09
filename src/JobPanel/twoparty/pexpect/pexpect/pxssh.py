@@ -46,7 +46,7 @@ class pxssh (spawn):
 
     Example that runs a few commands on a remote server and prints the result::
 
-        from pexpect import pxssh
+        import pxssh
         import getpass
         try:
             s = pxssh.pxssh()
@@ -68,14 +68,6 @@ class pxssh (spawn):
             print("pxssh failed on login.")
             print(e)
 
-    Example showing how to specify SSH options::
-
-        from pexpect import pxssh
-        s = pxssh.pxssh(options={
-                            "StrictHostKeyChecking": "no",
-                            "UserKnownHostsFile": "/dev/null"})
-        ...
-
     Note that if you have ssh-agent running while doing development with pxssh
     then this can lead to a lot of confusion. Many X display managers (xdm,
     gdm, kdm, etc.) will automatically start a GUI agent. You may see a GUI
@@ -94,13 +86,9 @@ class pxssh (spawn):
     '''
 
     def __init__ (self, timeout=30, maxread=2000, searchwindowsize=None,
-                    logfile=None, cwd=None, env=None, ignore_sighup=True, echo=True,
-                    options={}, encoding=None, codec_errors='strict'):
+                    logfile=None, cwd=None, env=None):
 
-        spawn.__init__(self, None, timeout=timeout, maxread=maxread,
-                       searchwindowsize=searchwindowsize, logfile=logfile,
-                       cwd=cwd, env=env, ignore_sighup=ignore_sighup, echo=echo,
-                       encoding=encoding, codec_errors=codec_errors)
+        spawn.__init__(self, None, timeout=timeout, maxread=maxread, searchwindowsize=searchwindowsize, logfile=logfile, cwd=cwd, env=env)
 
         self.name = '<pxssh>'
 
@@ -131,10 +119,6 @@ class pxssh (spawn):
         # Unsetting SSH_ASKPASS on the remote side doesn't disable it! Annoying!
         #self.SSH_OPTS = "-x -o'RSAAuthentication=no' -o 'PubkeyAuthentication=no'"
         self.force_password = False
-
-        # User defined SSH options, eg,
-        # ssh.otions = dict(StrictHostKeyChecking="no",UserKnownHostsFile="/dev/null")
-        self.options = options
 
     def levenshtein_distance(self, a, b):
         '''This calculates the Levenshtein distance between a and b.
@@ -172,7 +156,7 @@ class pxssh (spawn):
         # maximum time for reading the entire prompt
         total_timeout = timeout_multiplier * 3.0
 
-        prompt = self.string_type()
+        prompt = b''
         begin = time.time()
         expired = 0.0
         timeout = first_char_timeout
@@ -181,7 +165,7 @@ class pxssh (spawn):
             try:
                 prompt += self.read_nonblocking(size=1, timeout=timeout)
                 expired = time.time() - begin # updated total time expired
-                timeout = inter_char_timeout
+                timeout = inter_char_timeout 
             except TIMEOUT:
                 break
 
@@ -257,7 +241,7 @@ class pxssh (spawn):
         manually set the :attr:`PROMPT` attribute.
         '''
 
-        ssh_options = ''.join([" -o '%s=%s'" % (o, v) for (o, v) in self.options.items()])
+        ssh_options = ''
         if quiet:
             ssh_options = ssh_options + ' -q'
         if not check_local_ip:
@@ -277,14 +261,14 @@ class pxssh (spawn):
         # This does not distinguish between a remote server 'password' prompt
         # and a local ssh 'passphrase' prompt (for unlocking a private key).
         spawn._spawn(self, cmd)
-        i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT, "(?i)connection closed by remote host", EOF], timeout=login_timeout)
+        i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT, "(?i)connection closed by remote host"], timeout=login_timeout)
 
         # First phase
         if i==0:
             # New certificate -- always accept it.
             # This is what you get if SSH does not have the remote host's
             # public key stored in the 'known_hosts' cache.
-            self.sendline("yes")
+            self.sendline("yes")            
             i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT])
         if i==2: # password or passphrase
             self.sendline(password)
@@ -292,9 +276,6 @@ class pxssh (spawn):
         if i==4:
             self.sendline(terminal_type)
             i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT])
-        if i==7:
-            self.close()
-            raise ExceptionPxssh('Could not establish connection to host')
 
         # Second phase
         if i==0:
@@ -333,14 +314,15 @@ class pxssh (spawn):
             raise ExceptionPxssh('unexpected login response')
         if not self.sync_original_prompt(sync_multiplier):
             self.close()
-            raise ExceptionPxssh('could not synchronize with original prompt')
+            raise ExceptionPxssh('could not synchronize with original prompt '
+                '(recieved: %r)' % (self.before))
         # We appear to be in.
         # set shell prompt to something unique.
         if auto_prompt_reset:
             if not self.set_unique_prompt():
                 self.close()
                 raise ExceptionPxssh('could not set shell prompt '
-                                     '(received: %r, expected: %r).' % (
+                                     '(recieved: %r, expected: %r).' % (
                                          self.before, self.PROMPT,))
         return True
 

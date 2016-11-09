@@ -1,18 +1,20 @@
 """Generic wrapper for read-eval-print-loops, a.k.a. interactive shells
 """
-import os.path
 import signal
 import sys
+import re
 
 import pexpect
 
 PY3 = (sys.version_info[0] >= 3)
 
 if PY3:
-    basestring = str
+    def u(s): return s
+else:
+    def u(s): return s.decode('utf-8')
 
-PEXPECT_PROMPT = u'[PEXPECT_PROMPT>'
-PEXPECT_CONTINUATION_PROMPT = u'[PEXPECT_PROMPT+'
+PEXPECT_PROMPT = u('[PEXPECT_PROMPT>')
+PEXPECT_CONTINUATION_PROMPT = u('[PEXPECT_PROMPT+')
 
 class REPLWrapper(object):
     """Wrapper for a REPL.
@@ -27,15 +29,12 @@ class REPLWrapper(object):
       parameters, so you can use ``{}`` style formatting to insert them into
       the command.
     :param str new_prompt: The more unique prompt to expect after the change.
-    :param str extra_init_cmd: Commands to do extra initialisation, such as
-      disabling pagers.
     """
     def __init__(self, cmd_or_spawn, orig_prompt, prompt_change,
                  new_prompt=PEXPECT_PROMPT,
-                 continuation_prompt=PEXPECT_CONTINUATION_PROMPT,
-                 extra_init_cmd=None):
-        if isinstance(cmd_or_spawn, basestring):
-            self.child = pexpect.spawn(cmd_or_spawn, echo=False, encoding='utf-8')
+                 continuation_prompt=PEXPECT_CONTINUATION_PROMPT):
+        if isinstance(cmd_or_spawn, str):
+            self.child = pexpect.spawnu(cmd_or_spawn, echo=False)
         else:
             self.child = cmd_or_spawn
         if self.child.echo:
@@ -53,9 +52,6 @@ class REPLWrapper(object):
         self.continuation_prompt = continuation_prompt
 
         self._expect_prompt()
-
-        if extra_init_cmd is not None:
-            self.run_command(extra_init_cmd)
 
     def set_prompt(self, orig_prompt, prompt_change):
         self.child.expect(orig_prompt)
@@ -84,11 +80,9 @@ class REPLWrapper(object):
         if not cmdlines:
             raise ValueError("No command was given")
 
-        res = []
         self.child.sendline(cmdlines[0])
         for line in cmdlines[1:]:
-            self._expect_prompt(timeout=timeout)
-            res.append(self.child.before)
+            self._expect_prompt(timeout=1)
             self.child.sendline(line)
 
         # Command was fully submitted, now wait for the next prompt
@@ -98,25 +92,12 @@ class REPLWrapper(object):
             self._expect_prompt(timeout=1)
             raise ValueError("Continuation prompt found - input was incomplete:\n"
                              + command)
-        return u''.join(res + [self.child.before])
+        return self.child.before
 
 def python(command="python"):
     """Start a Python shell and return a :class:`REPLWrapper` object."""
-    return REPLWrapper(command, u">>> ", u"import sys; sys.ps1={0!r}; sys.ps2={1!r}")
+    return REPLWrapper(command, u(">>> "), u("import sys; sys.ps1={0!r}; sys.ps2={1!r}"))
 
-def bash(command="bash"):
+def bash(command="bash", orig_prompt=re.compile('[$#]')):
     """Start a bash shell and return a :class:`REPLWrapper` object."""
-    bashrc = os.path.join(os.path.dirname(__file__), 'bashrc.sh')
-    child = pexpect.spawn(command, ['--rcfile', bashrc], echo=False,
-                          encoding='utf-8')
-
-    # If the user runs 'env', the value of PS1 will be in the output. To avoid
-    # replwrap seeing that as the next prompt, we'll embed the marker characters
-    # for invisible characters in the prompt; these show up when inspecting the
-    # environment variable, but not when bash displays the prompt.
-    ps1 = PEXPECT_PROMPT[:5] + u'\[\]' + PEXPECT_PROMPT[5:]
-    ps2 = PEXPECT_CONTINUATION_PROMPT[:5] + u'\[\]' + PEXPECT_CONTINUATION_PROMPT[5:]
-    prompt_change = u"PS1='{0}' PS2='{1}' PROMPT_COMMAND=''".format(ps1, ps2)
-
-    return REPLWrapper(child, u'\$', prompt_change,
-                       extra_init_cmd="export PAGER=cat")
+    return REPLWrapper(command, orig_prompt, u("PS1='{0}' PS2='{1}' PROMPT_COMMAND=''"))
