@@ -23,10 +23,13 @@ def data():
     import config
     config.__config_dir__ = SETTINGS_DIR
 
+    import ui.imports.workspaces_conf as wc
+    wc.BASE_DIR = '.'
     import ui.data.data_structures as ds
-    ds.BASE_DIR = '.'
 
-    return ds.DataContainer()
+    container = ds.DataContainer()
+    container.config.local_env = 'local'
+    return container
     
 def start(cm, id, timeout=5):
     # return False for timeout
@@ -133,7 +136,7 @@ def test_local(request, data):
     mj = data.multijobs["test2_local_2"]
     # test start - stop, start - terminate
     for action in ["stop", "terminate"]:
-        communicator_files_builder.make_installation(TEST_DIR, data)            
+        communicator_files_builder.make_installation(TEST_DIR, data)     
         assert start(cm, 'test2_local_2')   
         if mj.state.status == TaskStatus.error:
             assert False, "Can't start multijob({0})".format(mj.error) 

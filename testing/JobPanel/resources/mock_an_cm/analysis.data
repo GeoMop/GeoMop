@@ -3,24 +3,9 @@ additional_files:
   params: []
   selected: true
 files:
-- file_path: config_simple.yaml
-  params: []
-  selected: false
 - file_path: flow_gmsh-tr.yaml
   params: []
   selected: true
-- file_path: 24_total_flux_implicit_true.yaml
-  params: []
-  selected: false
-- file_path: flow_gmsh.yaml
-  params: []
-  selected: false
-- file_path: 24_total_flux_implicit.yaml
-  params: []
-  selected: false
-- file_path: flow_gmsh2.yaml
-  params: []
-  selected: false
 flow123d_version: 2.0.0_rc
 mj_counter: 25
 params: []

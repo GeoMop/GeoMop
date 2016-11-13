@@ -1,4 +1,4 @@
 hydra: {host: hydra.kai.tul.cz, name: hydra, pbs_system: pbs_hydra,
-  port: 22, pwd: password, uid: user}
-metacentrum: {host: skirit.metacentrum.cz, name: metacentrum,
+  port: 22, pwd: password, uid: user, env: hydra}
+metacentrum: {host: skirit.metacentrum.cz, name: metacentrum, env: metacentrum,
   pbs_system: pbs_metacentrum, port: 22, pwd: password, uid: user}

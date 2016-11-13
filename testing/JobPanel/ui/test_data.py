@@ -12,8 +12,9 @@ def data():
     config.__config_dir__ = os.path.join(os.path.split(
             os.path.dirname(os.path.realpath(__file__)))[0], "resources", "mock_settings")
 
+    import ui.imports.workspaces_conf as wc
+    wc.BASE_DIR = '.'
     import ui.data.data_structures as ds
-    ds.BASE_DIR = '.'
 
     return ds.DataContainer()
 
@@ -81,12 +82,10 @@ def test_resource_preset(data):
 
     assert 'hydra' in data.resource_presets
     preset = data.resource_presets['hydra']
-    assert preset.j_env == 'hydra'
     assert preset.j_execution_type == 'REMOTE'
     assert preset.j_pbs_preset == 'hydra'
     assert preset.j_remote_execution_type == 'PBS'
     assert preset.j_ssh_preset == 'hydra'
-    assert preset.mj_env == 'hydra'
     assert preset.mj_execution_type == 'DELEGATOR'
     assert preset.mj_pbs_preset == 'hydra'
     assert preset.mj_remote_execution_type == 'PBS'
@@ -95,12 +94,10 @@ def test_resource_preset(data):
 
     assert 'local_pc' in data.resource_presets
     preset = data.resource_presets['local_pc']
-    assert preset.j_env == 'localhost'
     assert preset.j_execution_type == 'EXEC'
     assert preset.j_pbs_preset is None
     assert preset.j_remote_execution_type is None
     assert preset.j_ssh_preset is None
-    assert preset.mj_env == 'localhost'
     assert preset.mj_execution_type == 'EXEC'
     assert preset.mj_pbs_preset is None
     assert preset.mj_remote_execution_type is None
@@ -109,12 +106,10 @@ def test_resource_preset(data):
 
     assert 'metacentrum' in data.resource_presets
     preset = data.resource_presets['metacentrum']
-    assert preset.j_env == 'metacentrum'
     assert preset.j_execution_type == 'PBS'
     assert preset.j_pbs_preset == 'metacentrum'
     assert preset.j_remote_execution_type is None
     assert preset.j_ssh_preset is None
-    assert preset.mj_env == 'metacentrum'
     assert preset.mj_execution_type == 'DELEGATOR'
     assert preset.mj_pbs_preset == 'metacentrum'
     assert preset.mj_remote_execution_type == 'PBS'
@@ -133,6 +128,7 @@ def test_ssh_preset(data):
     assert preset.port == 22
     assert preset.pwd == 'password'
     assert preset.uid == 'user'
+    assert preset.env == 'hydra'    
 
     assert 'metacentrum' in data.ssh_presets
     preset = data.ssh_presets['metacentrum']
@@ -142,3 +138,4 @@ def test_ssh_preset(data):
     assert preset.port == 22
     assert preset.pwd == 'password'
     assert preset.uid == 'user'
+    assert preset.env == 'metacentrum'

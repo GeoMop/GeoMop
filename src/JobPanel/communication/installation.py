@@ -95,7 +95,6 @@ class Installation:
             cls.paths_config = PathsConfig()
         cls.paths_config.home_dir = home
         cls.paths_config.work_dir = workspace
-
         
     def set_version_params(self, app_version, data_version):
         """Set install specific settings"""

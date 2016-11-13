@@ -22,11 +22,15 @@ ANAL_DIR =  os.path.join(HOME_DIR, "resources", "mock_an_cm")
 def data():    
     import config
     config.__config_dir__ = SETTINGS_DIR
-
+    
+    import ui.imports.workspaces_conf as wc
+    wc.BASE_DIR = '.'
     import ui.data.data_structures as ds
-    ds.BASE_DIR = '.'
 
-    return ds.DataContainer()
+    container = ds.DataContainer()
+    container.config.local_env = 'local'
+    
+    return container
     
 def start(data, key, timeout=5):
     conf_builder = ConfigBuilder(data)

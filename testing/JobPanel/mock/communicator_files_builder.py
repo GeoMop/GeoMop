@@ -58,7 +58,8 @@ def make_installation(dir, data):
     if not os.path.isdir(workspace):
         os.makedirs(workspace)
     Installation.set_init_paths(home, workspace)
-    data.config.workspace = workspace
+    assert len(data.workspaces.workspaces) == 1
+    data.workspaces.workspaces[data.workspaces.selected].path = workspace
     config.__config_dir__ = home
     for ssh in data.ssh_presets:        
         if data.ssh_presets[ssh].to_pc:
@@ -72,7 +73,7 @@ def clear_files(dir):
         logger.removeHandler(hdlr)
     
 def copy_an_to_config(an_name, mj_name, an_dir):
-    path = Installation.get_mj_data_dir_static(mj_name, an_name)
+    path = Installation. get_input_dir_static(mj_name, an_name)
     names = os.listdir(an_dir)    
     for name in names:
         src = os.path.join(an_dir, name)
