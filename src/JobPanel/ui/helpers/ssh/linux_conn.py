@@ -75,7 +75,19 @@ class Conn():
             self.conn.setwinsize(128,512)                    
         except Exception as err:
             self.conn = None
-            raise  SshError("Connect error: " + str(err))
+            try:
+                self.conn = pxssh.pxssh()
+                self.conn.login(self.ssh.host, self.ssh.uid,self.ssh.pwd, check_local_ip=False, quiet=False)            
+            except Exception as err:  
+                before_err = str(self.conn.before, 'utf-8').strip() 
+                self.conn = None 
+                if len(before_err)>3:
+                    raise  SshError("SSH connection error:\nMessage: " + before_err + "\nError: " + str(err))
+                else:
+                    raise  SshError("SSH connection error: " + str(err))                               
+            self.disconnect()
+            self.conn = None
+            raise  SshError("SSH connection non-quiet error: " + str(err))
             
     def connect_sftp(self, local, remote):
         """return sftp connection"""

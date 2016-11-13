@@ -313,7 +313,7 @@ class ComWorker(threading.Thread):
             if self.__stop:
                 self.__stop = False
                 self.__state_lock.release()
-                self._stop()                
+                self._stop_conn()                
                 break
             if  self.__terminate:
                 self.__terminate = False
@@ -330,7 +330,7 @@ class ComWorker(threading.Thread):
                 self.__state_lock.release()                
                 self._results()
                 self._state()
-                self._stop()                
+                self._stop_conn()                
                 break
             if self.__get_state:
                 self.__get_state = False
@@ -383,7 +383,7 @@ class ComWorker(threading.Thread):
                     self.__start_state = TaskStatus.stopped
                     self.__error = mess.get_action().data.data["msg"]
                     self.__state_lock.release() 
-                    self._stop()
+                    self._stop_conn()
                     self.__state_lock.acquire()
                     self.__starting = False
                     self.__state_lock.release()
@@ -412,7 +412,7 @@ class ComWorker(threading.Thread):
         self.__start_state = TaskStatus.stopped
         self.__error = "Installation timeout exceed"
         self.__state_lock.release() 
-        self._stop()
+        self._stop_conn()
         self.__state_lock.acquire()
         self.__starting = False
         self.__state_lock.release()
@@ -459,7 +459,7 @@ class ComWorker(threading.Thread):
         self.__state_lock.release()
         return True
  
-    def _stop(self):
+    def _stop_conn(self):
         mess = self._com.send_long_action(tdata.Action(
                     tdata.ActionType.stop))
         if mess is None or mess.action_type != tdata.ActionType.ok:
@@ -506,7 +506,7 @@ class ComWorker(threading.Thread):
             self.__start_state = TaskStatus.stopped
             self.__error = mess.get_action().data.data["msg"]
             self.__state_lock.release() 
-            self._stop()
+            self._stop_conn()
             return False
         return True
 
