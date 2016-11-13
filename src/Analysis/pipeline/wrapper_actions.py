@@ -2,6 +2,14 @@ from .action_types import WrapperActionType, ActionStateType, BaseActionType, Ac
 from .data_types_tree import Ensemble, DTT
 from .generator_actions import VariableGenerator
 from .workflow_actions import Workflow
+from .data_types_tree import Struct, Float
+
+import threading
+import time
+from enum import IntEnum
+
+import numpy as np
+from scipy.optimize import minimize
 
 
 class ForEach(WrapperActionType):
@@ -196,6 +204,11 @@ class ForEach(WrapperActionType):
 
 
 class Calibration(WrapperActionType):
+    class ScipyState(IntEnum):
+        created = 0
+        running = 1
+        waiting = 2
+        finished = 3
 
     name = "Calibration"
     """Display name of action"""
@@ -205,25 +218,57 @@ class Calibration(WrapperActionType):
     def __init__(self, **kwargs):
         """
         Class for calibration of model parameters.
-        :param Workflow Model: Wrapped action
+        :param Workflow WrappedAction: Wrapped action
         :param list of CalibrationParameter Parameters: list of parameters to calibrate
         :param list of CalibrationObservation Observations: list of observations
         :param CalibrationOutputType Output: output from calibration
         :param Action Input: action that return input to calibration
         """
 
-        super.__init__(**kwargs)
+        self._wa_instances = []
+        """
+        Set wrapper class serve only as template, for run is make
+        copy of this class. The variable is for the copies.
+        """
+        self._procesed_instances = 0
+        """How many instances is procesed"""
+        self._tmp_action = None
+
+        self._scipy_thread = None
+        """thread for running scipy optimize"""
+        self._scipy_lock = threading.Lock()
+        """lock for communication with scipy thread"""
+        self._scipy_state = self.ScipyState.created
+        """scipy state"""
+        self._scipy_x = None
+        self._scipy_y = None
+
+        super().__init__(**kwargs)
+
+    def _set_bridge(self, bridge):
+        """redirect bridge to wrapper"""
+        bridge._set_new_link(self, self._get_output_to_wrapper)
 
     def _inicialize(self):
         """inicialize action run variables"""
-        super._inicialize()
+        super()._inicialize()
         self.__make_output()
+
+    def _get_output_to_wrapper(self):
+        """return output relevant for wrapper action"""
+        if 'WrappedAction' in self._variables and \
+            isinstance(self._variables['WrappedAction'],  BaseActionType):
+            # for wraped action return previous input
+            ensemble = self.get_input_val(0)
+            if isinstance(ensemble,  Ensemble):
+                return ensemble.subtype
+        return None
 
     def __make_output(self):  # ToDo:
         """return output relevant for set action"""
-        if 'Model' in self._variables and \
-            isinstance(self._variables['Model'],  BaseActionType):
-            output=self._variables['Model']._get_output()
+        if 'WrappedAction' in self._variables and \
+            isinstance(self._variables['WrappedAction'],  BaseActionType):
+            output=self._variables['WrappedAction']._get_output()
             if not isinstance(output, DTT):
                 return None
             res=Ensemble(output)
@@ -236,16 +281,132 @@ class Calibration(WrapperActionType):
     def _get_variables_script(self):
         """return array of variables python scripts"""
         var = super._get_variables_script()
-        if 'Model' in self._variables:
-            model = 'Model={0}'.format(self._variables['Model']._get_instance_name())
-            var.append([model])
+        if 'WrappedAction' in self._variables:
+            wrapper = 'WrappedAction={0}'.format(self._variables['WrappedAction']._get_instance_name())
+            var.append([wrapper])
         return var
 
     def _set_storing(self, identical_list):
         """set restore id"""
         super._set_storing(identical_list)
-        if 'Model' in self._variables:
-            self._variables['Model']._set_storing(identical_list)
+        if 'WrappedAction' in self._variables:
+            self._variables['WrappedAction']._set_storing(identical_list)
+
+    def _plan_action(self, path):
+        """
+        If next action can be panned, return processed state and
+        this action, else return processed state and null
+        """
+        if self._is_state(ActionStateType.processed):
+            return ActionRunningState.wait,  None
+        if self._is_state(ActionStateType.finished):
+            return ActionRunningState.finished,  self
+        if len(self._wa_instances) == 0:
+            # ToDo: promyslet
+            if self._restore_id is not None:
+                # restoring - set processed state as in classic action
+                if self._is_state(ActionStateType.processed):
+                    return ActionRunningState.wait,  None
+                self._restore_results(path)
+                if self._restore_id is not None:
+                    self._set_state(ActionStateType.processed)
+                    # send as short action for storing and settings state
+                    return ActionRunningState.repeat,  self
+            # run scipy thread
+            self._scipy_thread = threading.Thread(target=self._scipy_run)
+            self._scipy_thread.daemon = True
+            self._scipy_thread.start()
+            # ensemble = []
+            # for i in range(0, len(self._inputs)):
+            #     ensemble.append(self.get_input_val(i))
+            # if len(ensemble[0])== 0:
+            #     return ActionRunningState.error,  \
+            #         ["Empty Ensemble in ForEach input"]
+            # for i in range(0, len(ensemble[0]._list)):
+            #     inputs = []
+            #     for j in range(0, len(self._inputs)):
+            #         if len(ensemble[j])<=i:
+            #             return ActionRunningState.error,  \
+            #                 ["Ensamble in Input({0}) has less items".format(str(i))]
+            #         gen = VariableGenerator(Variable=ensemble[j]._list[i])
+            #         gen._inicialize()
+            #         gen._update()
+            #         gen._after_update(None)
+            #         if self._inputs[j]._restore_id is not None:
+            #             # input is restored => mark generator as restored
+            #             gen._set_restored()
+            #         inputs.append(gen)
+            #     name = self._variables['WrappedAction']._get_instance_name()
+            #     script = self._variables['WrappedAction']._get_settings_script()
+            #     script.insert(0, "from pipeline import *")
+            #     script = '\n'.join(script)
+            #     script = script.replace(name, "new_dupl_workflow")
+            #     exec (script, globals())
+            #     self._wa_instances.append(new_dupl_workflow)
+            #     self._wa_instances[-1].set_inputs(inputs)
+            #     self._wa_instances[-1]._inicialize()
+            #     self._wa_instances[-1]._reset_storing(
+            #         self._variables['WrappedAction'], self._index_iden +"_"+ str(i))
+            self._wa_instances.append(1)
+        if self._procesed_instances == len(self._wa_instances):
+            for instance in self._wa_instances:
+                #if not instance._is_state(ActionStateType.finished):
+                    return ActionRunningState.wait, None
+            self._set_state(ActionStateType.processed)
+            return ActionRunningState.repeat, self
+        next_wa = self._procesed_instances
+        while True:#next_wa < len(self._wa_instances):
+            if self._get_scipy_state() == self.ScipyState.waiting:
+                if self._tmp_action is None:
+                    self._tmp_action = self._create_tmp_action(Struct(cond=Float(self._scipy_x)))
+                state, action = self._tmp_action._plan_action(path)
+                if state is ActionRunningState.finished:
+                    # if next_wa == self._procesed_instances:
+                    # self._procesed_instances += 1
+                    output = action._get_output()
+                    self._scipy_y = output.flow_result.balance._list[4][1].flux_out
+                    self._tmp_action = None
+                    self._set_scipy_state(self.ScipyState.running)
+                    return ActionRunningState.wait, None
+                if state is ActionRunningState.repeat:
+                    return state, action
+                if state is ActionRunningState.error:
+                    return state, action
+                if state is ActionRunningState.wait and action is not None:
+                    return ActionRunningState.repeat, action
+            if self._get_scipy_state() == self.ScipyState.running:
+                return ActionRunningState.wait, None
+            if self._get_scipy_state() == self.ScipyState.finished:
+                self._set_state(ActionStateType.finished)
+                return ActionRunningState.wait, None
+            #state, action = self._wa_instances[next_wa]._plan_action(path)
+            #state = ActionRunningState.finished
+            #action = None
+            # run return wait, try next
+            #next_wa += 1
+            return ActionRunningState.wait, None
+        return ActionRunningState.wait, None
+
+    def _create_tmp_action(self, input):
+        gen = VariableGenerator(Variable=input)
+        gen._inicialize()
+        gen._update()
+        gen._after_update(None)
+        # if self._inputs[j]._restore_id is not None:
+        #     # input is restored => mark generator as restored
+        #     gen._set_restored()
+        inputs = [gen]
+        name = self._variables['WrappedAction']._get_instance_name()
+        script = self._variables['WrappedAction']._get_settings_script()
+        script.insert(0, "from pipeline import *")
+        script = '\n'.join(script)
+        script = script.replace(name, "new_dupl_workflow")
+        exec(script, globals())
+        new_dupl_workflow.set_inputs(inputs)
+        new_dupl_workflow._inicialize()
+        #new_dupl_workflow._reset_storing(
+            #self._variables['WrappedAction'], self._index_iden + "_" + str(i))
+        return new_dupl_workflow
 
     def _after_update(self, store_dir):
         """
@@ -257,12 +418,12 @@ class Calibration(WrapperActionType):
 
     def _check_params(self):
         """check if all require params is set"""
-        err = super._check_params()
+        err = super()._check_params()
         if len(self._inputs) == 0:
             self._add_error(err, "No input action for Calibration")
-        if 'Model' in self._variables:
-            if not isinstance(self._variables['Model'], Workflow):
-                self._add_error(err, "Parameter 'Model' must be Workflow")
+        if 'WrappedAction' in self._variables:
+            if not isinstance(self._variables['WrappedAction'], Workflow):
+                self._add_error(err, "Parameter 'WrappedAction' must be Workflow")
 
         # ToDo: check inputs
         # for i in range(len(self._inputs)):
@@ -273,10 +434,10 @@ class Calibration(WrapperActionType):
 
     def validate(self):
         """validate variables, input and output"""
-        err = super.validate()
-        if 'Model' in self._variables and \
-                isinstance(self._variables['Model'], BaseActionType):
-            err.extend(self._variables['Model'].validate())
+        err = super().validate()
+        if 'WrappedAction' in self._variables and \
+                isinstance(self._variables['WrappedAction'], BaseActionType):
+            err.extend(self._variables['WrappedAction'].validate())
         return err
 
     def _get_statistics(self):  # ToDo:
@@ -291,3 +452,36 @@ class Calibration(WrapperActionType):
         ret = ActionsStatistics()
         ret.add(stat, number)
         return ret
+
+    def _get_scipy_state(self):
+        self._scipy_lock.acquire()
+        ret = self._scipy_state
+        self._scipy_lock.release()
+        return ret
+
+    def _set_scipy_state(self, state):
+        self._scipy_lock.acquire()
+        self._scipy_state = state
+        self._scipy_lock.release()
+
+    def _scipy_run(self):
+        self._set_scipy_state(self.ScipyState.running)
+        x0 = np.array([0.0259])
+        res = minimize(self._scipy_fun, x0, method='nelder-mead', callback=self._scipy_callback, options={'xtol': 1e-8, 'disp': True})
+        #self._scipy_fun(0.06)
+        #self._scipy_fun(0.07)
+        #self._scipy_fun(0.08)
+
+        self._set_scipy_state(self.ScipyState.finished)
+
+    def _scipy_fun(self, x):
+        print("_scipy_fun enter")
+        self._scipy_x = x[0]
+        self._set_scipy_state(self.ScipyState.waiting)
+
+        while self._get_scipy_state() != self.ScipyState.running:
+            time.sleep(0.1)
+        return (self._scipy_y.value - 1.05) ** 2
+
+    def _scipy_callback(self, xk):
+        print(xk)

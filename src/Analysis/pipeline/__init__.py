@@ -6,4 +6,4 @@ from .parametrized_actions import Flow123dAction
 from .convertors import Convertor, Predicate, KeyConvertor, Adapter
 from .pipeline import Pipeline
 from .workflow_actions import Workflow
-from .wrapper_actions import ForEach
+from .wrapper_actions import ForEach, Calibration
