@@ -74,6 +74,11 @@ class ComWorker(threading.Thread):
         """counter that prevent overloading of requarements"""
         self.__qued_time = None
         """queued time is not possible find out in communicator"""
+        self.__start_time = None
+        """
+        start time is time after installation when first communicator is started
+        start time is not possible find out in communicator
+        """
         
     def get_error(self):
         self.__state_lock.acquire()
@@ -154,8 +159,9 @@ class ComWorker(threading.Thread):
         """return instalation state"""
         self.__state_lock.acquire()
         state = self.__start_state
+        qued_time = self.__qued_time
         self.__state_lock.release()
-        return state
+        return state, qued_time
         
     def resume(self):
         """resume communication"""
@@ -191,7 +197,7 @@ class ComWorker(threading.Thread):
         return res
         
     def delete(self):
-        """delete mj data""" 
+        """delete mj data"""
         self.start()
         self.__state_lock.acquire()
         self.__starting = True
@@ -360,7 +366,7 @@ class ComWorker(threading.Thread):
             self.__error_state = True
             self.__error = self._com.instalation_fails_mess            
             self.__state_lock.release()
-            return False            
+            return False
         sec = time.time() + 1300
         message = tdata.Action(tdata.ActionType.installation).get_message()
         mess = None
@@ -397,6 +403,7 @@ class ComWorker(threading.Thread):
                 self.__running = True
                 if self.__qued_time is None:                        
                     self.__qued_time = time.time()
+                self.__start_time =  time.time()
                 self.__state_lock.release()
                 return True                
             time.sleep(2)
@@ -511,7 +518,8 @@ class ComWorker(threading.Thread):
             data = tmp_data.get_mjstate(self._com.mj_name)
             self.__state_lock.acquire()
             self.__state = data
-            self.__state.queued_time = self.__qued_time 
+            self.__state.queued_time = self.__qued_time
+            self.__state.start_time = self.__start_time
             self.__state_lock.release()
  
     def _results(self):

@@ -98,7 +98,8 @@ class Overview(QtWidgets.QTreeWidget):
         self.clear()
         if data:
             for key in data:
-                self.add_item(key, data[key].state)
+                if data[key].valid:
+                    self.add_item(key, data[key].state)
         self.setCurrentItem(self.topLevelItem(0))
         self.resizeColumnToContents(1)
 

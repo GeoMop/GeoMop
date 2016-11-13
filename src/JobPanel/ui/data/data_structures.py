@@ -48,8 +48,14 @@ class MultiJobData(PersistentDict):
     )
 
     @staticmethod
-    def open(id):
-        return PersistentDict.open(MultiJobData, id)
+    def open(id, path):
+        mjs = PersistentDict.open(MultiJobData, id)
+        if path is not None:
+            for key in mjs:
+                dir = os.path.join(path, mjs[key].preset.analysis, 'mj', mjs[key].preset.name)
+                if  not os.path.isdir(dir):
+                    mjs[key].valid = False            
+        return mjs
      
     def save(self, id):
         super(MultiJobData, self).save(id)
@@ -218,7 +224,7 @@ class DataContainer:
         :return:
         """
         self.workspaces = WorkspacesConf.open()
-        self.multijobs = MultiJobData.open( self.workspaces.get_id())
+        self.multijobs = MultiJobData.open( self.workspaces.get_id(), self.workspaces.get_path())
         self.ssh_presets = SshData.open()
         self.pbs_presets = PbsData.open()
         self.resource_presets = ResourcesData.open()
@@ -248,7 +254,7 @@ class DataContainer:
             if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
                 self.config.analysis = None
             self.pause_func()
-            self.multijobs = MultiJobData.open(self.workspaces.get_id())            
+            self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())            
             self.reload_func()            
             self.config.selected_mj = self.workspaces.get_selected_mj()
             self.config.analysis = self.workspaces.get_selected_analysis() 

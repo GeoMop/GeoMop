@@ -63,8 +63,8 @@ class MultiJobState:
         :param new_state: Communication new_state data
         :return: None
         """
-        # self.queued_time = new_state.queued_time
-        # self.start_time = new_state.start_time
+        self.queued_time = new_state.queued_time
+        self.start_time = new_state.start_time
         self.run_interval = new_state.run_interval
         self.status = new_state.status
         self.known_jobs = new_state.known_jobs
@@ -140,7 +140,8 @@ class MultiJob:
 
     __serializable__ = Serializable(
         composite={'preset': MultiJobPreset,
-                   'state': MultiJobState}
+                   'state': MultiJobState}, 
+        excluded=['valid']
     )
 
     def __init__(self, preset, **kwargs):
@@ -155,6 +156,7 @@ class MultiJob:
         """mj error for error state"""
         self.last_status = kw_or_def('last_status', None)
         """State before deleting"""
+        self.valid = True
 
     @property
     def id(self):
@@ -316,120 +318,3 @@ class MultiJobConf(AMultiJobFile):
 
     def __init__(self, path, file):
         super().__init__(path, file)
-
-
-class MultiJobActions:
-    @classmethod
-    def run(cls, mj):
-        """
-        Reset times and remove previous results.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().run_interval = 0
-        mj.get_state().queued_time = None
-        mj.get_state().start_time = None
-        mj.get_state().known_jobs = 0
-        mj.get_state().estimated_jobs = 0
-        mj.get_state().finished_jobs = 0
-        mj.get_state().running_jobs = 0
-
-        mj.get_state().set_status(TaskStatus.installation)
-
-    @classmethod
-    def pausing(cls, mj):
-        """
-        Changes status to pausing.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.pausing)
-
-    @classmethod
-    def paused(cls, mj):
-        """
-        Changes status to paused.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.paused)
-
-    @classmethod
-    def resuming(cls, mj):
-        """
-        Changes status to resuming.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.resuming)
-
-    @classmethod
-    def resumed(cls, mj):
-        """
-        Changes status to resumed.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.running)
-
-    @classmethod
-    def stopping(cls, mj):
-        """
-        Changes status to stopping.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.stopping)
-
-    @classmethod
-    def stopped(cls, mj):
-        """
-        Changes status to stopped.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.none)
-
-    @classmethod
-    def installation(cls, mj):
-        """
-        Changes status to installation.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().queued_time = time.time()
-
-        mj.get_state().set_status(TaskStatus.installation)
-
-    @classmethod
-    def queued(cls, mj):
-        """
-        Changes status to queued and sets queued time.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().queued_time = time.time()
-
-        mj.get_state().set_status(TaskStatus.queued)
-
-    @classmethod
-    def running(cls, mj):
-        """
-        Changes status to queued and sets queued time.
-        :param mj: MultiJob instance
-        :return:
-        """
-        if not mj.get_state().queued_time:
-            mj.get_state().queued_time = time.time()
-        mj.get_state().start_time = time.time()
-
-        mj.get_state().set_status(TaskStatus.running)
-
-    @classmethod
-    def finished(cls, mj):
-        """
-        Changes status to finished.
-        :param mj: MultiJob instance
-        :return:
-        """
-        mj.get_state().set_status(TaskStatus.finished)

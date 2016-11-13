@@ -46,7 +46,7 @@ class WorkspaceConf():
         self.uuid = kw_or_def("uuid",str(uuid.uuid4()))
         """workspace uuid for checking"""
         dir = os.path.join(self.path, WORKSPACE_CONF_DIR)
-        if not os.path.isdir(dir):
+        if  os.path.isdir(self.path) and not os.path.isdir(dir):
             os.makedirs(dir)
         
     def save_workspace(self, presets):

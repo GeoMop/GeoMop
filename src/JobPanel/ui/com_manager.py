@@ -282,10 +282,11 @@ class ComManager:
                     delete_key.append(key)
                     del self._workers[key]
                 else:
-                    state = worker.get_start_state()
+                    state, qued_time = worker.get_start_state()
                     mj = self._data_app.multijobs[key]
                     if mj.get_state().get_status() != state:
                         mj.get_state().set_status(state)
+                        mj.state.qued_time = qued_time
                         self.state_change_jobs.append(key)
             else:
                 ComWorker.get_loger().error("MultiJob {0} can't be started, run record is not found")
