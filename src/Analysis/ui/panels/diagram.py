@@ -27,6 +27,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.set_data(data)        
         
     def set_data(self, data):
+        """set data structure to Graphic Scene"""
         self._data = data
         self.clear()
         self._conn = []
@@ -136,4 +137,3 @@ class Diagram(QtWidgets.QGraphicsScene):
         node = self._data.add_node(pos.x(), pos.y(), action_template)
         n = Node(node)
         self.addItem(n)
-            
