@@ -30,12 +30,12 @@ class LayerEditor:
         #test
         import ui.data as data
         diagram = data.Diagram()
-        for i in range(0, 10):
-            for j in range(0, 10):
+        for i in range(0, 50):
+            for j in range(0, 50):
                 x1 = i*50
-                x2 = i*50+50 
+                x2 = i*50+20*(i%9-5) +20*(j%11-6) 
                 y1= j*50
-                y2 = j*50 +20 + i%4 + j%3
+                y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
                 p1 = diagram.add_point(x1, y1)
                 diagram.add_line(p1, x2, y2)
         self.mainwindow.set_diagram_data(diagram)
