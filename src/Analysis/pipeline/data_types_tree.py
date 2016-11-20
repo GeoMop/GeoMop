@@ -82,37 +82,37 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
         return self.__class__.__name__
     
     def __lt__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__lt__(other.value))
         return Bool(self.value.__lt__(other))
         
     def __le__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__le__(other.value))
         return Bool(self.value.__le__(other))
         
     def __eq__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__eq__(other.value))
         return Bool(self.value.__eq__(other))
         
     def __ne__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__ne__(other.value))
         return Bool(self.value.__ne__(other))
         
     def __gt__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__gt__(other.value))
         return Bool(self.value.__gt__(other))
         
     def __ge__(self, other):
-        """operators for comaration"""
+        """operators for comparation"""
         if isinstance(other, BaseDTT):
             return Bool(self.value.__ge__(other.value))
         return Bool(self.value.__ge__(other))

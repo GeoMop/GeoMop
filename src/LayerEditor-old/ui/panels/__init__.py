@@ -1,0 +1,1 @@
+from .addpicture import AddPictureWidget

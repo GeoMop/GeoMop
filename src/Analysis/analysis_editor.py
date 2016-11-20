@@ -56,16 +56,16 @@ def main():
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
             from geomop_dialogs import GMErrorDialog
-            if model_editor is not None:
+            if analyzis_editor is not None:
                 err_dialog = None
                 # display message box with the exception
-                if model_editor.mainwindow is not None:
-                    err_dialog = GMErrorDialog(model_editor.mainwindow)
+                if analyzis_editor.mainwindow is not None:
+                    err_dialog = GMErrorDialog(analyzis_editor.mainwindow)
 
                 # try to reload editor to avoid inconsistent state
-                if callable(model_editor.mainwindow.reload):
+                if callable(analyzis_editor.mainwindow.reload):
                     try:
-                        model_editor.mainwindow.reload()
+                        analyzis_editor.mainwindow.reload()
                     except:
                         if err_dialog is not None:
                             err_dialog.open_error_dialog("Application performed invalid operation!",
@@ -81,8 +81,8 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # launch the application
-    model_editor = AnalyzisEditor()
-    model_editor.main()
+    analyzis_editor = AnalyzisEditor()
+    analyzis_editor.main()
     cfg.save()
     sys.exit(0)
 
