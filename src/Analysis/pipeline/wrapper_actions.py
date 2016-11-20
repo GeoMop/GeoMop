@@ -3,10 +3,12 @@ from .data_types_tree import Ensemble, DTT
 from .generator_actions import VariableGenerator
 from .workflow_actions import Workflow
 from .data_types_tree import Struct, Float
+from .calibration_data_types import *
 
 import threading
 import time
 from enum import IntEnum
+import math
 
 import numpy as np
 from scipy.optimize import minimize
@@ -221,6 +223,7 @@ class Calibration(WrapperActionType):
         :param Workflow WrappedAction: Wrapped action
         :param list of CalibrationParameter Parameters: list of parameters to calibrate
         :param list of CalibrationObservation Observations: list of observations
+        :param CalibrationTerminationCriteria TerminationCriteria: termination criteria
         :param CalibrationOutputType Output: output from calibration
         :param Action Input: action that return input to calibration
         """
@@ -242,6 +245,9 @@ class Calibration(WrapperActionType):
         """scipy state"""
         self._scipy_x = None
         self._scipy_y = None
+        self._scipy_res = None
+        self._scipy_xy_log = []
+        self._scipy_iterations = []
 
         super().__init__(**kwargs)
 
@@ -266,17 +272,49 @@ class Calibration(WrapperActionType):
 
     def __make_output(self):  # ToDo:
         """return output relevant for set action"""
-        if 'WrappedAction' in self._variables and \
-            isinstance(self._variables['WrappedAction'],  BaseActionType):
-            output=self._variables['WrappedAction']._get_output()
-            if not isinstance(output, DTT):
-                return None
-            res=Ensemble(output)
-            if not self._is_state(ActionStateType.finished):
-                for instance in self._wa_instances:
-                    """Running instance, get input from generator"""
-                    res.add_item(instance._get_output())
-            self._output = res
+        if self._is_state(ActionStateType.finished):
+            opt = Sequence(SingleIterationInfo.create_type(self._variables['Parameters'], self._variables['Observations']))
+            for i in range(len(self._scipy_iterations)):
+                y = 0.0
+                for xy in self._scipy_xy_log:
+                    if xy[0] == self._scipy_iterations[i]:
+                        y = xy[1]
+                        break
+                par = Struct()
+                for p in self._variables['Parameters']:
+                    if p.fixed:
+                        pt = "Fixed"
+                    else:
+                        pt = "Free"
+                    spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
+                                 value=Float(0.0),  # ToDo:
+                                 interval_estimate=Tuple(Float(0.0), Float(0.0)),
+                                 sensitivity=Float(0.0),
+                                 relative_sensitivity=Float(0.0))
+                    setattr(par, p.name, spo)
+                obs = Struct()
+                for o in self._variables['Observations']:
+                    soo = Struct(measured_value=Float(o.observation),
+                                 model_value=Float(0.0),  # ToDo:
+                                 residual=Float(o.observation - 0.0),
+                                 sensitivity=Float(0.0))
+                    setattr(par, o.name, soo)
+                opt.add_item(Struct(iteration=Int(i),
+                                    residual=Float(y),
+                                    converge_reason=Enum(["none", "converged", "failure"], "none"),
+                                    parameters=par,
+                                    observations=obs))
+            if self._scipy_res.success:
+                cr = "converged"
+            else:
+                cr = "failure"
+            res = Struct(n_iter=Int(len(self._scipy_iterations)),
+                         converge_reason=Enum(["none", "converged", "failure"], cr),
+                         residual=Float(self._scipy_res.fun))
+            self._output = Struct(optimisation=opt, result=res)
+            print("\n".join(self._output._get_settings_script()))
+        else:
+            self._output = CalibrationOutputType.create_type(self._variables['Parameters'], self._variables['Observations'])
 
     def _get_variables_script(self):
         """return array of variables python scripts"""
@@ -358,13 +396,13 @@ class Calibration(WrapperActionType):
         while True:#next_wa < len(self._wa_instances):
             if self._get_scipy_state() == self.ScipyState.waiting:
                 if self._tmp_action is None:
-                    self._tmp_action = self._create_tmp_action(Struct(cond=Float(self._scipy_x)))
+                    self._tmp_action = self._create_tmp_action(self._scipy_x_to_wrapped_input(self._scipy_x))
                 state, action = self._tmp_action._plan_action(path)
                 if state is ActionRunningState.finished:
                     # if next_wa == self._procesed_instances:
                     # self._procesed_instances += 1
                     output = action._get_output()
-                    self._scipy_y = output.flow_result.balance._list[4][1].flux_out
+                    self._scipy_y = self._wrapped_output_to_scipy_y(output)
                     self._tmp_action = None
                     self._set_scipy_state(self.ScipyState.running)
                     return ActionRunningState.wait, None
@@ -378,6 +416,7 @@ class Calibration(WrapperActionType):
                 return ActionRunningState.wait, None
             if self._get_scipy_state() == self.ScipyState.finished:
                 self._set_state(ActionStateType.finished)
+                self.__make_output()
                 return ActionRunningState.wait, None
             #state, action = self._wa_instances[next_wa]._plan_action(path)
             #state = ActionRunningState.finished
@@ -419,6 +458,29 @@ class Calibration(WrapperActionType):
     def _check_params(self):
         """check if all require params is set"""
         err = super()._check_params()
+        if 'Parameters' in self._variables:
+            if isinstance(self._variables['Parameters'], list):
+                for i in range(len(self._variables['Parameters'])):
+                    if not isinstance(self._variables['Parameters'][i], CalibrationParameter):
+                        self._add_error(err, "Type of parameter 'Parameters[{0}]' must be CalibrationParameter".format(str(i)))
+            else:
+                self._add_error(err, "Parameter 'Parameters' must be list of CalibrationParameter")
+        else:
+            self._add_error(err, "Parameter 'Parameters' is required")
+        if 'Observations' in self._variables:
+            if isinstance(self._variables['Observations'], list):
+                for i in range(len(self._variables['Observations'])):
+                    if not isinstance(self._variables['Observations'][i], CalibrationObservation):
+                        self._add_error(err, "Type of parameter 'Observations[{0}]' must be CalibrationObservation".format(str(i)))
+            else:
+                self._add_error(err, "Parameter 'Observations' must be list of CalibrationObservation")
+        else:
+            self._add_error(err, "Parameter 'Observations' is required")
+        if 'TerminationCriteria' in self._variables:
+            if not isinstance(self._variables['TerminationCriteria'], CalibrationTerminationCriteria):
+                self._add_error(err, "Parameter 'TerminationCriteria' must be CalibrationTerminationCriteria")
+        else:
+            self._add_error(err, "Parameter 'TerminationCriteria' is required")
         if len(self._inputs) == 0:
             self._add_error(err, "No input action for Calibration")
         if 'WrappedAction' in self._variables:
@@ -465,23 +527,56 @@ class Calibration(WrapperActionType):
         self._scipy_lock.release()
 
     def _scipy_run(self):
+        init_values = []
+        for par in self._variables['Parameters']:
+            if not par.fixed:
+                init_values.append(par.init_value)
+        x0 = np.array(init_values)
+
+        # ToDo: if all pars are fixed change behavior
+
         self._set_scipy_state(self.ScipyState.running)
-        x0 = np.array([0.0259])
-        res = minimize(self._scipy_fun, x0, method='nelder-mead', callback=self._scipy_callback, options={'xtol': 1e-8, 'disp': True})
-        #self._scipy_fun(0.06)
-        #self._scipy_fun(0.07)
-        #self._scipy_fun(0.08)
+
+        self._scipy_res = minimize(self._scipy_fun, x0, method='SLSQP', callback=self._scipy_callback,
+                                   options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
+                                            'eps': 1e-4, 'ftol': 1e-6, 'disp': True})
 
         self._set_scipy_state(self.ScipyState.finished)
 
     def _scipy_fun(self, x):
         print("_scipy_fun enter")
-        self._scipy_x = x[0]
+        print(x)
+        self._scipy_x = x
         self._set_scipy_state(self.ScipyState.waiting)
 
         while self._get_scipy_state() != self.ScipyState.running:
             time.sleep(0.1)
-        return (self._scipy_y.value - 1.05) ** 2
+        print(self._scipy_y)
+
+        self._scipy_xy_log.append((self._scipy_x, self._scipy_y))
+
+        return self._scipy_y
 
     def _scipy_callback(self, xk):
-        print(xk)
+        self._scipy_iterations.append(xk)
+
+    def _scipy_x_to_wrapped_input(self, x):
+        ret = Struct()
+        ind = 0
+        for par in self._variables['Parameters']:
+            if par.fixed:
+                v = par.init_value
+            else:
+                v = x[ind]
+            if par.log_transform:
+                v = math.exp(v)
+            v = par.scale * v + par.offset
+            setattr(ret, par.name, Float(v))
+            ind += 1
+        return ret
+
+    def _wrapped_output_to_scipy_y(self, output):
+        ret = 0.0
+        for obs in self._variables['Observations']:
+            ret += (obs.observation - getattr(output, obs.name).value)**2 * obs.weight**2
+        return ret

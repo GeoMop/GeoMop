@@ -7,3 +7,5 @@ from .convertors import Convertor, Predicate, KeyConvertor, Adapter
 from .pipeline import Pipeline
 from .workflow_actions import Workflow
 from .wrapper_actions import ForEach, Calibration
+from .calibration_data_types import (CalibrationParameter, CalibrationObservationType,
+                                     CalibrationObservation, CalibrationTerminationCriteria)

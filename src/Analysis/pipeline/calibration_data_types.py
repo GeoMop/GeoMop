@@ -1,6 +1,8 @@
 from .data_types_tree import *
 from .flow_data_types import Enum
 
+from enum import IntEnum
+
 
 class CalibrationParameter():
     def __init__(self, name, group="", bounds=(0.0, 1.0), init_value=None, offset=None, scale=1.0,
@@ -27,7 +29,7 @@ class CalibrationParameter():
             self.init_value = init_value
 
         if offset is None:
-            self.offset = init_value
+            self.offset = 0.0
         else:
             self.offset = offset
 
@@ -44,7 +46,7 @@ class CalibrationObservationType(IntEnum):
 
 
 class CalibrationObservation():
-    def __init__(self, name, group="", observation_type=CalibrationObservationType.scalar, weight=1.0):
+    def __init__(self, name, observation, group="", observation_type=CalibrationObservationType.scalar, weight=1.0):
         """
         :param string name: observation name
         :param string group: observation group
@@ -53,9 +55,19 @@ class CalibrationObservation():
         """
 
         self.name = name
+        self.observation = observation
         self.group = group
         self.observation_type = observation_type
         self.weight = weight
+
+
+class CalibrationTerminationCriteria():
+    def __init__(self, n_max_steps=100):
+        """
+        :param int n_max_steps: maximum number of iterations to perform
+        """
+
+        self.n_max_steps = n_max_steps
 
 
 class SingleParameterOutput():
@@ -72,7 +84,7 @@ class SingleObservationOutput():
     @staticmethod
     def create_type():
         return Struct(measured_value=Float(),
-                      model_value=Flost(),
+                      model_value=Float(),
                       residual=Float(),
                       sensitivity=Float())
 
@@ -82,10 +94,10 @@ class SingleIterationInfo():
     def create_type(parameters, observations):
         par = Struct()
         for p in parameters:
-            setattr(par, p, SingleParameterOutput.create_type())
+            setattr(par, p.name, SingleParameterOutput.create_type())
         obs = Struct()
-        for o in parameters:
-            setattr(par, o, SingleObservationOutput.create_type())
+        for o in observations:
+            setattr(par, o.name, SingleObservationOutput.create_type())
         return Struct(iteration=Int(),
                       residual=Float(),
                       converge_reason=Enum(["none", "converged", "failure"]),
@@ -96,7 +108,7 @@ class SingleIterationInfo():
 class CalibrationOutputType():
     @staticmethod
     def create_type(parameters, observations):
-        return Struct(optimisation=Sequence(SingleIterationInfo(parameters, observations)),
+        return Struct(optimisation=Sequence(SingleIterationInfo.create_type(parameters, observations)),
                       result=Struct(n_iter=Int(),
-                                    converge_reason=Enum(["Free", "Tied", "Fixed", "Frozen"]),
+                                    converge_reason=Enum(["none", "converged", "failure"]),
                                     residual=Float()))
