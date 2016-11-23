@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import shutil
 
 if sys.platform == "win32":
     import ui.helpers.ssh.win_conn as conn
@@ -153,15 +154,64 @@ class Tests():
         
     def download_file(self, mess=False):
         """Dowload file over sftp"""
+        if mess:
+            return "Downlding file over SFTP ..."
         errors=[]
         logs=[]
+        file = "testout.txt"
+        file_text = "This is test"
+        res_dir =  os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_tests")
+        os.mkdir(res_dir)
+        try:            
+            self.conn.download_file(file, res_dir)
+            logs.append("File {0} is downloaded".format(file))
+            res_file = os.path.join(res_dir, file)
+            if not os.path.isfile(res_file):
+                logs.append("Can't find downloaded file !!!")
+                errors.append("Can't find downloaded file")
+            else:
+                with open(res_file, 'r') as f:
+                    lines = f.readlines()
+                    if len(lines) != 1 or lines[0] != file_text:
+                        logs.append("Downloaded file is corrupted !!!")
+                        errors.append("Downloaded file is corrupted")
+        except conn.SshError as err:
+            logs.append("Can't download file over SFTP !!!")
+            errors.append(err.message)
+        
+        shutil.rmtree(res_dir, ignore_errors=True)
         
         return logs, errors
 
     def download_dir(self, mess=False):
         """Dowload file over sftp"""
+        if mess:
+            return "Downlding folder over SFTP ..."
         errors=[]
         logs=[]
+        dir = "remote_tests"
+        source_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "remote_tests")
+        res_dir =  os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp_tests")
+        os.mkdir(res_dir)
+        try:            
+            self.conn.download_dir(dir, res_dir)
+            logs.append("Folder {0} is downloaded".format(dir))
+            names = os.listdir( source_dir)
+            is_error = False
+            for name in names:                        
+                path = os.path.join(res_dir)
+                if not os.path.isfile(path) and not os.path.isdir(path):
+                    errors.append("Can't find downloaded file: {0}".format(path))
+                    is_error = True
+            if is_error:                    
+                logs.append("Can't find one or more downloaded files !!!")
+            else:
+                logs.append("All downloaded files is chacked")
+        except conn.SshError as err:
+            logs.append("Can't download directory over SFTP !!!")
+            errors.append(err.message)
+        
+        shutil.rmtree(res_dir, ignore_errors=True)
         
         return logs, errors
         
@@ -195,24 +245,22 @@ class Tests():
             python_env, libs_env = ConfFactory.get_env_conf(env)
             Installation.prepare_python_env_static(self.conn.conn, python_env, False)            
             version = self.conn.get_python_version(python_env.python_exec)
-            if re.search("command not found") :                
+            if re.search("command not found", version) :                
                 logs.append("Can't find out python version !!!")
                 errors.append("Command '{0}' is not valid perl interpreter.".format(
                     python_env.python_exec))
-            v = re.search(r'^Python\s+(\d+)\.(\d+)\.(\d+)}\s*$', version)
+            v = re.search(r'^Python\s+(\d+)\.(\d+)\.(\d+)\s*$', version)
             if not v:                
                 logs.append("Can't find out python version !!!")
                 errors.append("Python command return: {0}".format(
                     version))
+                return logs, errors   
             v1 = v.group(1)
             v2 = v.group(2)
             v3 = v.group(3)
             logs.append("Python version is: {0}.{1}.{2}".format(v1, v2, v3))
             if int(v1)<3 or (int(v1)==3 and int(v2)<2):
                 errors.append("Python version is too low. Vewsion 3.1 or higher is required.")
-            
-            
-            
         except conn.SshError as err:
             logs.append("Can't find out python version !!!")
             errors.append(err.message)        
@@ -225,11 +273,38 @@ class Tests():
         
         return logs, errors
         
-    def run_python(self, mess=False):
+    def run_python(self, mess, env):
         """Run python script on Remote"""
+        if mess:
+            return "Python script running test ..."
         errors=[]
         logs=[]
-        
+        file = "testout.txt"
+        file_text = "This is test"
+        try:  
+            # prepare python env
+            python_env, libs_env = ConfFactory.get_env_conf(env)
+            Installation.prepare_python_env_static(self.conn.conn, python_env, False)
+            self.conn.test_python_script(python_env.python_exec,
+                "remote_tests/test_env.py",  file, file_text)
+            logs.append("Python script is finished succesfuly")
+        except conn.SshError as err:
+            logs.append("Errors occured during running python script!!!")
+            errors.append(err.message) 
+        try:
+            ok = False  
+            files = self.conn.ls_dir("./")
+            for f in files:
+                if f=='testout.txt':
+                    ok = True                    
+            if ok:
+                logs.append("Python script create test file")
+            else:
+                logs.append("Can't find created output file !!!")
+                errors.append("Can't find created output file")
+        except conn.SshError as err:
+            logs.append("Can't check script output file!!!")
+            errors.append(err.message) 
         return logs, errors
         
     def test_pbs(self, mess=False):

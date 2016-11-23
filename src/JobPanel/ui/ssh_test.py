@@ -65,7 +65,7 @@ class SshTester(threading.Thread):
         env = self._preset.env
         if env is None or env not in self._data.env_presets:
             self.__massage_lock.acquire()
-            self.__errors.append("Incorect environment name {0} in ssh settings")
+            self.__errors.append("Incorect environment name {0} in ssh settings", env)
             self.__finished = True
             self.__massage_lock.release()
             return
@@ -83,9 +83,10 @@ class SshTester(threading.Thread):
             return self._finish()
         if self.__stop or not self._test(self.__tests_lib.upload_dir):
             return self._finish()
-        if self.__stop or not self._test(self.__tests_lib.test_python, env):
-            return self._finish()
-            
+        self._test(self.__tests_lib.test_python, env)
+        self._test(self.__tests_lib.run_python, env)
+        self._test(self.__tests_lib.download_file)
+        self._test(self.__tests_lib.download_dir)
         self._finish()
         
     def _finish(self):
@@ -109,7 +110,7 @@ class SshTester(threading.Thread):
         try:
             (logs, errs) = func(False, *args)
         except Exception as err:
-            logs = ["Something is wrong"]
+            logs = ["Something is wrong !!!"]
             errs = [str(err)]
         res = len(errs) == 0
         self.__massage_lock.acquire()

@@ -84,6 +84,21 @@ class TestSSHDialog(QtWidgets.QDialog):
             self._button_box.button(QtWidgets.QDialogButtonBox.Cancel).setText("Close")
             self.log_timer.stop()
             self.finished = True
+            if self._error.count()>0:
+                self._error.addItem("Test finished with {0} errors".format(self._error.count()))
+                item = self._error.item(self._error.count()-1)
+                item.setForeground(QtGui.QColor(255, 0, 0))
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+            else:
+                self._error.addItem("Test finished without errors")
+                item = self._error.item(self._error.count()-1)
+                item.setForeground(QtGui.QColor(0, 128, 0))
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+            
             
     def _error_item_clicked(self, item):
         """error item is clicked"""
