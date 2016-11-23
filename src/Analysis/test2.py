@@ -16,6 +16,28 @@ from pipeline.pipeline_processor import *
 from pipeline.identical_list import *
 #from .pomfce import *
 import pipeline.action_types as action
+from pipeline.connector_actions import *
+from pipeline.convertors import *
+
+
+
+gen = VariableGenerator(Variable=Sequence(Float()))
+conn = Connector()
+conn.set_inputs([gen])
+conn.set_config(
+    Convertor = Convertor(Struct(tunnelflowrate=Input(0).head()))
+)
+gen._inicialize()
+conn._inicialize()
+
+
+
+
+
+
+
+
+
 
 
 

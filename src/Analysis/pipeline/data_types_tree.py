@@ -873,10 +873,16 @@ class Sequence(Ensemble):
         return Sequence(*new_list)
 
     def head(self):
-        return self._list[0]
+        if len(self._list) > 0:
+            return self._list[0]
+        else:
+            return self.subtype
         
     def tail(self):
-        return self._list[-1]
+        if len(self._list) > 0:
+            return self._list[-1]
+        else:
+            return self.subtype
 
     def select(self, predicate):
         """return selected Ensamble accoding set predicate"""

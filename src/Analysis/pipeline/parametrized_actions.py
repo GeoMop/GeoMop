@@ -80,7 +80,9 @@ class Flow123dAction(ParametrizedActionType):
         self._hash.update(bytes(self._yaml_support.get_yaml_file_hash(), "utf-8"))
         self._hash.update(bytes(self._yaml_support.get_mesh_file_hash(), "utf-8"))
 
-    def _get_variables_script(self):    
+        self._output = self.__file_output()
+
+    def _get_variables_script(self):
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
         var.append(["YAMLFile='{0}'".format(self._variables["YAMLFile"])])
