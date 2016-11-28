@@ -46,7 +46,7 @@ class CalibrationObservationType(IntEnum):
 
 
 class CalibrationObservation():
-    def __init__(self, name, observation, group="", observation_type=CalibrationObservationType.scalar, weight=1.0):
+    def __init__(self, name, group="", observation_type=CalibrationObservationType.scalar, weight=1.0):
         """
         :param string name: observation name
         :param string group: observation group
@@ -55,10 +55,22 @@ class CalibrationObservation():
         """
 
         self.name = name
-        self.observation = observation
         self.group = group
         self.observation_type = observation_type
         self.weight = weight
+
+
+class CalibrationAlgorithmParameter():
+    def __init__(self, group="", diff_inc_rel=0.01, diff_inc_abs=0.01):
+        """
+        :param string group: parameter group
+        :param float diff_inc_rel: step for derivation eval relative
+        :param float diff_inc_abs: step for derivation eval absolute
+        """
+
+        self.group = group
+        self.diff_inc_rel = diff_inc_rel
+        self.diff_inc_abs = diff_inc_abs
 
 
 class CalibrationTerminationCriteria():

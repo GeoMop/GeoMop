@@ -8,4 +8,5 @@ from .pipeline import Pipeline
 from .workflow_actions import Workflow
 from .wrapper_actions import ForEach, Calibration
 from .calibration_data_types import (CalibrationParameter, CalibrationObservationType,
-                                     CalibrationObservation, CalibrationTerminationCriteria)
+                                     CalibrationObservation, CalibrationAlgorithmParameter,
+                                     CalibrationTerminationCriteria)
