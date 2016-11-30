@@ -6,6 +6,7 @@ if error was occured throw exception
 
 import pxssh
 import pexpect
+import time
 
 class Conn():
     def __init__(self,ssh):
@@ -28,13 +29,75 @@ class Conn():
         """return python version"""
         command = "{0} --version".format(interpreter)
         self.conn.sendline(command)
-        ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])        
+        ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])
+        time.sleep(0.1)
         if ok != 0:
             err = str(self.conn.before, 'utf-8').strip() 
             raise  SshError("Error message during calling python ({0}): {1}".format(
                 interpreter, str(err)))
         ret = str(self.conn.readline(), 'utf-8').strip()
         return ret
+        
+    def get_flow123_help(self, flow, modules):
+        """Call flow123s with help parameter and return result"""
+        # import modules
+        wrns = []
+        for module in modules:
+            command = '{0}'.format(module)
+            self.conn.sendline(command)
+            ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])
+            time.sleep(0.1)
+            if ok != 0:
+                err = str(self.conn.before, 'utf-8').strip() 
+                wrns.append("Environments CLI params Error ({0}): {1}".format(
+                    module, err))
+        err = ""
+        help = []
+        command = '{0} --help'.format(flow)
+        self.conn.sendline(command)
+        ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])
+        time.sleep(0.1)        
+        if ok != 0:
+            err = str(self.conn.before, 'utf-8').strip()
+        else:
+            ok = 0
+            while ok==0:
+                ok = self.conn.expect(["\r\n", "[PEXPECT]$", pexpect.TIMEOUT], timeout=2)
+                if ok==0:
+                    help.append(str(self.conn.before, 'utf-8').strip())
+        return help, err, wrns 
+
+    def get_pbs_info(self):
+        """Call pbs -version and pbs -q and obtain version and list of queues"""
+        version = []
+        queues = []
+        command = 'qstat --version'
+        self.conn.sendline(command)
+        ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT]) 
+        time.sleep(0.1)       
+        if ok != 0:
+            raise  SshError("Error message during calling 'qstat --version': {0}".format(
+                str(self.conn.before, 'utf-8').strip()))           
+        else:
+            ok = 0
+            while ok==0:
+                ok = self.conn.expect(["\r\n", "[PEXPECT]$", pexpect.TIMEOUT], timeout=2)
+                if ok==0:
+                    version.append(str(self.conn.before, 'utf-8').strip())
+        command = 'qstat -q'
+        self.conn.sendline(command)
+        ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT]) 
+        time.sleep(0.1)
+        if ok != 0:
+            raise  SshError("Error message during calling 'qstat -q': {1}".format(
+                str(self.conn.before, 'utf-8').strip()))            
+        else:
+            ok = 0
+            while ok==0:
+                ok = self.conn.expect(["\r\n", "[PEXPECT]$", pexpect.TIMEOUT], timeout=2)
+                if ok==0:
+                    queues.append(str(self.conn.before, 'utf-8').strip())
+        return version, queues
         
     def test_python_script(self,  interpreter, script_file, file_name, file_text): 
         """
@@ -51,6 +114,7 @@ class Conn():
             interpreter, script_file, printed, file_name, file_text)
         self.conn.sendline(command)
         res = self.conn.expect( ["--" + printed + "--", pexpect.TIMEOUT], timeout=5)
+        time.sleep(0.1)
         if res>0:
             raise  SshError("Run test python script error:" + str(self.conn.before,'utf-8').strip())
     
@@ -121,7 +185,7 @@ class Conn():
             res = self.sftp.expect(['.*assword:', 'sftp> '])
         except pexpect.TIMEOUT:
             self.sftp.kill(0)
-            self.sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=30)
+            self.sftp = pexpect.spawn('sftp ' +  self.ssh.uid + "@" + self.ssh.host, timeout=30)
             res = self.sftp.expect(['.*assword:', 'sftp> '])
         if res == 0:
             # password requaried
@@ -160,7 +224,11 @@ class Conn():
         self.sftp.sendline('lcd ' + result_dir)
         self.sftp.expect('.*lcd ' + result_dir + "\r\n")
         self.sftp.sendline('get ' + file)
-        self.sftp.expect("sftp> ")
+        self.sftp.expect('get ' + file)
+        end = 0
+        while end==0:
+            #wait 2s after last message
+            end =  self.sftp.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
 
     def download_dir(self, dir, result_dir):
         """download directory over sftp connection"""

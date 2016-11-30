@@ -206,7 +206,7 @@ class Tests():
             if is_error:                    
                 logs.append("Can't find one or more downloaded files !!!")
             else:
-                logs.append("All downloaded files is chacked")
+                logs.append("All downloaded files is checked")
         except conn.SshError as err:
             logs.append("Can't download directory over SFTP !!!")
             errors.append(err.message)
@@ -266,11 +266,33 @@ class Tests():
             errors.append(err.message)        
         return logs, errors
         
-    def test_flow123d(self, mess=False):
+    def test_flow123d(self, mess,  env):
         """Test flow123d properties"""
+        if mess:
+            return "Testing flow123d installation ..."
         errors=[]
         logs=[]
-        
+        try:  
+            # prepare python env
+            python_env, libs_env = ConfFactory.get_env_conf(env)
+            Installation.prepare_python_env_static(self.conn.conn, python_env, False)            
+            flow_help, err, wrns = self.conn.get_flow123_help(env.flow_path,  env.cli_params)
+            if len(wrns)>0:
+                for wrn in wrns:
+                    logs.append("{0} !!!".format(wrn))
+            if len(err)>0:
+                logs.append("Can't process Flow123d !!!")
+                errors.append("Flow123d processing error: " + err)        
+            elif len(flow_help)==0:
+                logs.append("Flow123d help is empty !!!")
+                errors.append("Flow123d help is empty")
+            else:
+                if flow_help[0]!="Allowed options:":
+                    logs.append("Incorrect Flow123d help file !!!")
+                    errors.append("Incorrect Flow123d help file:\n" + "\n".join(flow_help))                    
+        except conn.SshError as err:
+            logs.append("Can't obtain flow123d help !!!")
+            errors.append(err.message)         
         return logs, errors
         
     def run_python(self, mess, env):
@@ -308,8 +330,37 @@ class Tests():
         return logs, errors
         
     def test_pbs(self, mess=False):
-        """Test pbs properties"""
+        """Test pbs version and list of queues"""
+        if mess:
+            return "Testing pbs system ..."
         errors=[]
-        logs=[]    
-        
+        logs=[]
+        try:  
+            version, queues = self.conn.get_pbs_info()
+            if len(version)==0:
+                logs.append("Can't obtain pbs version !!!")
+            elif not version[0].startswith('version'):
+                logs.append("Pbs system checking error !!!")
+                errors.append("Qstat return: {0}".format("\n".join(version)))
+                return logs, errors
+            else:
+                logs.append("Pbs version is {0}".format(version))
+            if len(queues)==0:
+                logs.append("Can't obtain pbs list of pbs queues !!!")
+            else:
+                logs.append("Pbs queues:\n{0}".format(self._format_pbs_ques(queues)))
+        except conn.SshError as err:
+            logs.append("Pbs system checking error !!!")
+            errors.append(err.message)         
         return logs, errors
+        
+    def _format_pbs_ques(self, queues):
+        """Return list of queues as string."""
+        res = ""
+        for queue in queues:
+            name = re.search(r'^(\S+)\s+', queue)
+            if name:                
+                res += name.group(1) + ", "
+        res = res.strip(", ")
+        return res
+            

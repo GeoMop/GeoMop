@@ -87,6 +87,9 @@ class SshTester(threading.Thread):
         self._test(self.__tests_lib.run_python, env)
         self._test(self.__tests_lib.download_file)
         self._test(self.__tests_lib.download_dir)
+        self._test(self.__tests_lib.test_flow123d, env)
+        if self._preset.pbs_system is not None and len(self._preset.pbs_system)>0:
+            self._test(self.__tests_lib.test_pbs)
         self._finish()
         
     def _finish(self):
