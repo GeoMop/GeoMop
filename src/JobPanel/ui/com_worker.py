@@ -7,6 +7,27 @@ from data.states import TaskStatus
 from ui.data.mj_data import MultiJobState
 from  communication.installation import __install_dir__
 from communication.communicator import __NOT_INSTALLED__
+from enum import IntEnum
+
+__SFTP_NEVER_DOWNLOADED__ = "Results is not downloaded"
+__SFTP_LASTNOT_DOWNLOADED__ = "Last version of results is not downloaded"
+
+class SftpDownloadState(IntEnum):
+    """
+    Communication state for sftp download
+    """
+    never = 0
+    """
+    sftp download is not never processed successfuly
+    """
+    not_last = 1
+    """
+    last sftp download is not processed successfuly
+    """
+    ok = 2
+    """
+    last sftp download is processed successfuly
+    """
 
 class ComWorker(threading.Thread):   
     """
@@ -75,11 +96,16 @@ class ComWorker(threading.Thread):
         self.__qued_time = None
         """queued time is not possible find out in communicator"""
         self.__start_time = None
-        """
-        start time is time after installation when first communicator is started
-        start time is not possible find out in communicator
-        """
-        
+        """start time"""
+        self.__sftp_state = SftpDownloadState.never
+        """sftp download state"""
+    
+    def get_sftp_download_state(self):
+        self.__state_lock.acquire()
+        state = self.__sftp_state
+        self.__state_lock.release()
+        return state
+    
     def get_error(self):
         self.__state_lock.acquire()
         error = self.__error
@@ -330,7 +356,14 @@ class ComWorker(threading.Thread):
                 self.__state_lock.release()                
                 self._results()
                 self._state()
-                self._stop_conn()                
+                self._stop_conn() 
+                #sftp download problems
+                if self.__sftp_state == SftpDownloadState.never:
+                    self.__error_state = True
+                    self.__error = __SFTP_NEVER_DOWNLOADED__
+                if self.__sftp_state == SftpDownloadState.not_last:
+                    self.__error_state = True
+                    self.__error = __SFTP_LASTNOT_DOWNLOADED__    
                 break
             if self.__get_state:
                 self.__get_state = False
@@ -526,9 +559,18 @@ class ComWorker(threading.Thread):
         mess = self._com.send_long_action(tdata.Action(
                     tdata.ActionType.download_res))
         if mess.action_type == tdata.ActionType.ok:
-            self._com.download()
+            res = self._com.download()
             self.__state_lock.acquire()
             self.__downloaded = True
+            if res:
+                self.__sftp_state = SftpDownloadState.ok
+            elif self.__sftp_state == SftpDownloadState.ok:
+                self.__sftp_state = SftpDownloadState.not_last   
+            self.__state_lock.release()
+        else:
+            self.__state_lock.acquire()
+            if self.__sftp_state == SftpDownloadState.ok:
+                self.__sftp_state = SftpDownloadState.not_last
             self.__state_lock.release()
 
     @staticmethod

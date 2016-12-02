@@ -152,7 +152,7 @@ else:
             try:
                 if self.password is None:
                     self.password = ""
-                self.ssh.login(self.host, self.name, self.password, check_local_ip=False)            
+                self.ssh.login(self.host, self.name, self.password, check_local_ip=False, sync_multiplier=1.5)            
                 self.ssh.setwinsize(128,512)
                 self.last_mess = None
                 self._connected = True

@@ -108,15 +108,6 @@ class ActionEnvPresets(QtWidgets.QAction):
         self.setShortcut("Shift+E")
         self.setObjectName("actionEnvPresets")
 
-
-class ActionCreateAnalysis(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("Create")
-        self.setShortcut("Ctrl+Alt+A")
-        self.setObjectName("actionCreateAnalysis")
-
-
 class ActionOptions(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)

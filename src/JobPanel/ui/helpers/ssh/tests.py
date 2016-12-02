@@ -98,7 +98,7 @@ class Tests():
             return "Closing SFTP connection ..."
         errors=[]
         logs=[]
-        try:            
+        try:
             self.conn.disconnect_sftp()
             logs.append("SFTP connection is closed")
         except conn.SshError as err:
@@ -287,7 +287,9 @@ class Tests():
                 logs.append("Flow123d help is empty !!!")
                 errors.append("Flow123d help is empty")
             else:
-                if flow_help[0]!="Allowed options:":
+                if flow_help[0]!="Allowed options:" or \
+                    not re.search(r'This is Flow123d', flow_help[0]) or \
+                        flow_help[5]!="Usage:":
                     logs.append("Incorrect Flow123d help file !!!")
                     errors.append("Incorrect Flow123d help file:\n" + "\n".join(flow_help))                    
         except conn.SshError as err:
@@ -357,10 +359,18 @@ class Tests():
     def _format_pbs_ques(self, queues):
         """Return list of queues as string."""
         res = ""
+        start = True
         for queue in queues:
             name = re.search(r'^(\S+)\s+', queue)
-            if name:                
-                res += name.group(1) + ", "
+            if name:
+                name = name.group(1)
+                if len(name)>2 and name[:3]=="---":
+                    if start:
+                        break
+                    else:
+                        start = True
+                        continue
+                res += name + ", "
         res = res.strip(", ")
         return res
             

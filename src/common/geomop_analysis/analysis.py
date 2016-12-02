@@ -82,7 +82,7 @@ class Analysis:
                                           extension=ANALYSIS_MAIN_FILE_EXT,
                                           cls=Analysis)
         if analysis is None:
-            raise InvalidAnalysis("Current analysis is invalid.")
+            raise InvalidAnalysis("Selected analysis is invalid.")
 
         analysis.analysis_dir = directory
         analysis.filename = os.path.join(directory, ANALYSIS_MAIN_FILE)
@@ -125,7 +125,7 @@ class Analysis:
                                           extension=ANALYSIS_MAIN_FILE_EXT,
                                           cls=Analysis)
         if analysis is None:
-            raise InvalidAnalysis("Current analysis is invalid.")
+            raise InvalidAnalysis("Selected analysis is invalid.")
 
         analysis.analysis_dir = mj_dir
         analysis.filename = os.path.join(mj_dir, ANALYSIS_MAIN_FILE)

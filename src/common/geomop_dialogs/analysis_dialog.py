@@ -4,10 +4,8 @@
 
 import os
 from PyQt5 import QtWidgets, QtGui
-
-from geomop_analysis import Analysis, InvalidAnalysis
-
 from .dialogs import AFormDialog, UiFormDialog
+from geomop_analysis import Analysis
 
 
 class AnalysisDialog(AFormDialog):

@@ -114,8 +114,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.env_presets_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
 
-        self.analysis_dialog = None
-
         # multijob dialog
         self.ui.menuBar.multiJob.actionAddMultiJob.triggered.connect(
             self._handle_add_multijob_action)
@@ -269,8 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if item_count > 0 and item_count > tmp_index:
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
-        self.ui.overviewWidget.setCurrentItem(item)
-        self.mj_dlg.set_analyses(self.data.workspaces)
+        self.ui.overviewWidget.setCurrentItem(item)        
 
     def notify(self):
         """Handle update of data.set_data."""
@@ -311,6 +308,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
     def _handle_add_multijob_action(self):
+        self.mj_dlg.set_analyses(self.data.workspaces)
         self.mj_dlg.exec_add()       
 
     def _handle_reuse_multijob_action(self):
@@ -351,12 +349,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.com_manager.delete_jobs.append(key)
                 self._set_deleting(key)
 
-    def handle_multijob_dialog(self, purpose, data):
+    def handle_multijob_dialog(self, purpose, data):        
         mj = MultiJob(data['preset'])
-        self.data.multijobs[mj.id] = mj
         if purpose in (self.mj_dlg.PURPOSE_ADD, self.mj_dlg.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
-            analysis = Analysis.open(self.data.workspaces.get_path(), mj.preset.analysis)
+            try:
+                analysis = Analysis.open(self.data.workspaces.get_path(), mj.preset.analysis)
+            except Exception as e:
+                self.report_error("Multijob error", e)
+                self.multijobs_changed.emit(self.data.multijobs)
+                return
             analysis.mj_counter += 1
             analysis.save()
             if purpose == self.mj_dlg.PURPOSE_ADD:
@@ -364,17 +366,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 try:
                     analysis.copy_into_mj_folder(mj)
                 except Exception as e:
-                    logger.error("Failed to copy analysis into mj folder: " + str(e))
+                    logger.error("Failed to copy analysis into mj folder: " + str(e))                
+                self.data.multijobs[mj.id] = mj
                 self.com_manager.start_jobs.append(mj.id) 
             elif purpose == self.mj_dlg.PURPOSE_COPY:
+                self.data.multijobs[mj.id] = mj
                 src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
                 src_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                        MULTIJOBS_DIR, src_mj_name)
                 dst_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                        MULTIJOBS_DIR, mj.preset.name)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
-                    'res', 'log', 'status', 'mj_conf', '*.log'))
-                self.com_manager.start_jobs.append(mj.id)        
+                    'res', 'log', 'status', 'mj_conf', '*.log'))                
+                self.com_manager.start_jobs.append(mj.id)
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):

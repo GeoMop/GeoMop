@@ -160,13 +160,13 @@ class Conn():
         """Connect to ssh"""
         self.conn = pxssh.pxssh()
         try:
-            self.conn.login(self.ssh.host, self.ssh.uid,self.ssh.pwd, check_local_ip=False)            
+            self.conn.login(self.ssh.host, self.ssh.uid,self.ssh.pwd, check_local_ip=False, sync_multiplier=1.5)            
             self.conn.setwinsize(128,512)                    
         except Exception as err:
             self.conn = None
             try:
                 self.conn = pxssh.pxssh()
-                self.conn.login(self.ssh.host, self.ssh.uid,self.ssh.pwd, check_local_ip=False, quiet=False)            
+                self.conn.login(self.ssh.host, self.ssh.uid,self.ssh.pwd, check_local_ip=False, quiet=False, sync_multiplier=1.5)            
             except Exception as err:  
                 before_err = str(self.conn.before, 'utf-8').strip() 
                 self.conn = None 

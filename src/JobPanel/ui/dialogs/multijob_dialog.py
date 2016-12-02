@@ -89,13 +89,14 @@ class MultiJobDialog(AFormDialog):
                 self.ui.resourceComboBox.addItem(resources[key].name, key)
 
     def set_analyses(self, config):
-        self.ui.analysisComboBox.clear()
-        self.ui.analysisComboBox.addItem('')
+        self.ui.analysisComboBox.clear()        
         if config is not None:
             path = config.get_path()
             if path is not None:
                 for analysis_name in Analysis.list_analyses_in_workspace(path):
                     self.ui.analysisComboBox.addItem(analysis_name, analysis_name)
+        if self.ui.analysisComboBox.count()==0:            
+            self.ui.analysisComboBox.addItem('')
 
     def get_data(self):
         key = self.ui.idLineEdit.text()

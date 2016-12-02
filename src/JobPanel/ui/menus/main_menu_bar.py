@@ -107,10 +107,6 @@ class MultiJobMenu(QtWidgets.QMenu):
             else:
                 menu_action.setDisabled(False)
 
-    def lock_remote_delete(self):
-        """desable delete remote action"""
-        menu_action.setDisabled(True)
-
 class SettingsMenu(QtWidgets.QMenu):
     """
     Settings sub menu.

@@ -422,11 +422,12 @@ class Communicator():
     def download(self):
         """download result files"""
         logger.debug("Start downloading result files")
-        self.output.download_result()
+        res = self.output.download_result()
         logger.debug("End downloading result files")
         self._download_processed_lock.acquire()
         self._download_processed = tdata.ProcessType.finished
         self._download_processed_lock.release()
+        return res
     
     def is_next_installed(self):
         """return if next communicator is inicialized"""
