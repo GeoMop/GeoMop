@@ -7,6 +7,8 @@ if error was occured throw exception
 import pxssh
 import pexpect
 import time
+import subprocess
+import re
 
 class Conn():
     def __init__(self,ssh):
@@ -46,7 +48,7 @@ class Conn():
             command = '{0}'.format(module)
             self.conn.sendline(command)
             ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])
-            time.sleep(0.1)
+            time.sleep(0.2)
             if ok != 0:
                 err = str(self.conn.before, 'utf-8').strip() 
                 wrns.append("Environments CLI params Error ({0}): {1}".format(
@@ -56,7 +58,7 @@ class Conn():
         command = '{0} --help'.format(flow)
         self.conn.sendline(command)
         ok = self.conn.expect([".*" + command + "\r\n", pexpect.TIMEOUT])
-        time.sleep(0.1)        
+        time.sleep(1)        
         if ok != 0:
             err = str(self.conn.before, 'utf-8').strip()
         else:
@@ -155,6 +157,28 @@ class Conn():
         if ok != 0:
             err = str(self.conn.before, 'utf-8').strip() 
             raise  SshError("Error message during cd command: " + err)
+           
+    def ping(self):
+        """ping to server"""
+        process = subprocess.Popen(["ping -c 5 -W 10 " + self.ssh.host],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        try:
+            outs, errs = process.communicate(timeout=15)
+        except subprocess.TimeoutExpired as err:
+            process.kill()
+            raise  SshError("Ping timeout error(" + err.stderr + ")")
+        if errs is not None:
+            raise  SshError("Ping error(" + str(errs, 'utf-8').strip()  + ")")
+        out = ""
+        if outs is None:
+            raise  SshError("Ping command not return result")
+        out = str(outs, 'utf-8').strip() 
+        number = re.search("5 packets transmitted, (\d) received", out)
+        if not number:
+            raise  SshError("Ping unknown result (" + out + ")")
+        count = int(number.group(1))
+        if count !=5:
+            raise  SshError("Ping: 5 packets transmitted, but only {0} received".format(str(count)))
            
     def connect(self):
         """Connect to ssh"""

@@ -52,6 +52,20 @@ class Tests():
             errors.append(err.message)        
         return logs, errors
         
+    def ping(self, mess=False):
+        """Close ssh connection"""
+        if mess:
+            return "Ping to host ..."
+        errors=[]
+        logs=[]
+        try:            
+            self.conn.ping()
+            logs.append("Ping to host is processed")
+        except conn.SshError as err:
+            logs.append("Ping error !!!")
+            errors.append(err.message)        
+        return logs, errors
+        
     def create_dir_struc(self, mess=False):
         """Create directory on remote"""
         if mess:

@@ -72,8 +72,11 @@ class SshTester(threading.Thread):
         else:
             env = self._data.env_presets[env]
             
-        if self.__stop or not self._test(self.__tests_lib.open_connection):
-            return self._finish() 
+        if not self.__stop:
+            if not self._test(self.__tests_lib.open_connection):
+                if not self.__stop:
+                    self._test(self.__tests_lib.ping)
+                return self._finish() 
         self.__remove_dirs = True
         if self.__stop or not self._test(self.__tests_lib.create_dir_struc):
             return self._finish()        
