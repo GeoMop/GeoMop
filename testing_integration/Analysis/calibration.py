@@ -19,7 +19,7 @@ shutil.copytree("calibration_res/workspace", workspace)
 # prepare mj
 analysis="an1"
 mj="mj1"
-python_script="s.py"
+python_script="s1.py"
 pipeline_name="Pipeline_5"
 err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
                             python_script=python_script, pipeline_name=pipeline_name)
