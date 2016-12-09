@@ -1,26 +1,27 @@
 VariableGenerator_1 = VariableGenerator(
     Variable=(
         Struct(
-            observations=Struct(tunnelflowrate=Float(-1.05))
+            observations=Struct(
+                tunnelflowrate=Float(-1.05),
+                pressurecorner=Float(0.0)
+            )
         )
     )
 )
 Workflow_2 = Workflow()
-conn_in = Connector()
-conn_in.set_inputs([Workflow_2.input()])
-conn_in.set_config(
-    Convertor = Convertor(Input(0).parameters)
-)
 Flow123d_3 = Flow123dAction(
     Inputs=[
-        conn_in
+        Workflow_2.input()
     ],
     YAMLFile='V7_jb_par.yaml'
 )
 conn_out = Connector()
 conn_out.set_inputs([Flow123d_3])
 conn_out.set_config(
-    Convertor = Convertor(Struct(tunnelflowrate=Input(0).flow_result.balance.select(Predicate(Input(0)[1].region == ".tunnel")).head()[1].flux_out))
+    Convertor = Convertor(Struct(
+        tunnelflowrate=Input(0).flow_result.balance.select(Predicate(Input(0)[1].region == ".tunnel")).head()[1].flux_out,
+        pressurecorner=Input(0)  # ?????
+    ))
 )
 Workflow_2.set_config(
     OutputAction=conn_out,
@@ -33,17 +34,22 @@ Calibration_4 = Calibration(
     WrappedAction=Workflow_2,
     Parameters=[
         CalibrationParameter(
-            name="cond",
+            name="vodivost",
             group="pokus",
-            bounds=(-1e+10, 1e+10),
+            bounds=(0.0, 1e+10),
             init_value=0.0259
         )
     ],
     Observations=[
         CalibrationObservation(
             name="tunnelflowrate",
-            #observation=-1.05,
-            group="tunel"
+            group="tunel",
+            weight=1.0
+        ),
+        CalibrationObservation(
+            name="pressurecorner",
+            group="tunel",
+            weight=1.0
         )
     ],
     AlgorithmParameters=[
@@ -55,7 +61,8 @@ Calibration_4 = Calibration(
     ],
     TerminationCriteria=CalibrationTerminationCriteria(
         n_max_steps=100
-    )
+    ),
+    MinimizationMethod="SLSQP"
 )
 Pipeline_5 = Pipeline(
     ResultActions=[Calibration_4]

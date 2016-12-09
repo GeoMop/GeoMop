@@ -2,6 +2,7 @@ from .data_types_tree import *
 from .flow_data_types import Enum
 
 from enum import IntEnum
+import numpy as np
 
 
 class CalibrationParameter():
@@ -74,12 +75,74 @@ class CalibrationAlgorithmParameter():
 
 
 class CalibrationTerminationCriteria():
-    def __init__(self, n_max_steps=100):
+    def __init__(self, n_lowest=10, tol_lowest=1e-6, n_from_lowest=10,
+                 n_param_change=10, tol_rel_param_change=1e-6, n_max_steps=100):
         """
+        :param int n_lowest:
+        :param float tol_lowest: stop if difference of min and max
+            from n_lowest min values of objective function
+        :param int n_from_lowest: stop if n iterations without improvement
+        :param int n_param_change:
+        :param float tol_rel_param_change: stop if max relative change of parameter form last n_param_change
+            is lower than tol_rel_param_change (must be satisfied for all parameters)
         :param int n_max_steps: maximum number of iterations to perform
         """
 
+        self.n_lowest = n_lowest
+        self.tol_lowest = tol_lowest
+        self.n_from_lowest = n_from_lowest
+        self.n_param_change = n_param_change
+        self.tol_rel_param_change = tol_rel_param_change
         self.n_max_steps = n_max_steps
+
+    # ToDo:
+    def get_terminator(self):
+        n_iterations = [0]
+        lowest_list = []
+        lowest_f = [0]
+        lowest_i = [0]
+        last_x = [None]
+
+        def terminator(x, f, g):
+            ret = False
+
+            n_iterations[0] += 1
+
+            # n_lowest, tol_lowest
+            # if len(lowest_list) < self.n_lowest:
+            #     lowest_list.append(f)
+            # else:
+            #     for v in lowest_list
+
+            # n_from_lowest
+            if n_iterations[0] == 1:
+                lowest_f[0] = f
+            if f < lowest_f[0]:
+                lowest_f[0] = f
+                lowest_i[0] = n_iterations[0]
+            if n_iterations[0] - lowest_i[0] >= self.n_lowest:
+                ret = True
+
+            # n_param_change, tol_rel_param_change
+
+            # n_max_steps
+            if n_iterations[0] >= self.n_max_steps:
+                ret = True
+
+            # internal termination criteria
+            eps = 1e-8
+            if f < eps:
+                ret = True
+            if np.linalg.norm(g) < eps:
+                ret = True
+            if last_x[0] is not None and np.linalg.norm(x - last_x[0]) < eps:
+                ret = True
+
+            last_x[0] = x
+
+            return ret
+
+        return terminator
 
 
 class SingleParameterOutput():

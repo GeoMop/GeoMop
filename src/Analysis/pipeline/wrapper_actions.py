@@ -4,6 +4,8 @@ from .generator_actions import VariableGenerator
 from .workflow_actions import Workflow
 from .data_types_tree import Struct, Float
 from .calibration_data_types import *
+from .calibration_lbfgsb import min_lbfgsb
+from .calibration_slsqp import min_slsqp
 
 import threading
 import time
@@ -225,6 +227,7 @@ class Calibration(WrapperActionType):
         :param list of CalibrationObservation Observations: list of observations
         :param list of CalibrationAlgorithmParameter AlgorithmParameters: list of algorithm parameters
         :param CalibrationTerminationCriteria TerminationCriteria: termination criteria
+        :param str MinimizationMethod: type of solver
         :param CalibrationOutputType Output: output from calibration
         :param Action Input: action that return input to calibration
         """
@@ -268,11 +271,11 @@ class Calibration(WrapperActionType):
         super()._inicialize()
         self.__make_output()
 
-    def _get_output_to_wrapper(self):
+    def _get_output_to_wrapper(self):  # ToDo:
         """return output relevant for wrapper action"""
         if 'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  BaseActionType):
-            return Struct(cond=Float())
+            return Struct(vodivost=Float(), tlak=Float())
             # for wraped action return previous input
             ensemble = self.get_input_val(0)
             if isinstance(ensemble,  Ensemble):
@@ -502,6 +505,12 @@ class Calibration(WrapperActionType):
             self._add_error(err, "Parameter 'TerminationCriteria' is required")
         if len(self._inputs) == 0:
             self._add_error(err, "No input action for Calibration")
+        if 'MinimizationMethod' in self._variables:
+            if isinstance(self._variables['MinimizationMethod'], str):
+                if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP"]:
+                    self._add_error(err, "Method '{0}' is not supported.".format(self._variables['MinimizationMethod']))
+            else:
+                self._add_error(err, "Parameter 'MinimizationMethod' must be string")
         if 'WrappedAction' in self._variables:
             if not isinstance(self._variables['WrappedAction'], Workflow):
                 self._add_error(err, "Parameter 'WrappedAction' must be Workflow")
@@ -570,9 +579,16 @@ class Calibration(WrapperActionType):
         self._scipy_event.set()
         self._set_scipy_state(self.ScipyState.running)
 
-        self._scipy_res = minimize(self._scipy_fun, x0, method='SLSQP', jac=self._scipy_jac, callback=self._scipy_callback,
-                                   options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
-                                            'ftol': 1e-6, 'disp': True})
+        # self._scipy_res = minimize(self._scipy_fun, x0, method='SLSQP', jac=self._scipy_jac, callback=self._scipy_callback,
+        #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
+        #                                     'ftol': 1e-6, 'disp': True})
+
+        if self._variables['MinimizationMethod'] == "L-BFGS-B":
+            self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'])
+        else:
+            self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'])
 
         self._set_scipy_state(self.ScipyState.finished)
 
@@ -602,7 +618,7 @@ class Calibration(WrapperActionType):
 
     def _scipy_model_eval(self, x):
         for xy in self._scipy_xy_log:
-            if xy[0] == x:
+            if np.all(xy[0] == x):
                 return xy[1]
 
         self._scipy_model_eval_num += 1
@@ -625,10 +641,11 @@ class Calibration(WrapperActionType):
             v = par.scale * v + par.offset
             setattr(mod_par, par.name, Float(v))
             ind += 1
-        ret = Struct(parameters=mod_par)
+        #ret = Struct(parameters=mod_par)
+        ret = mod_par
 
-        if hasattr(self.get_input_val(0), "data"):
-            ret.data = self.get_input_val(0).data
+        # if hasattr(self.get_input_val(0), "data"):
+        #     ret.data = self.get_input_val(0).data
 
         return ret
 
