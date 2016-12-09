@@ -81,7 +81,7 @@ class TaskStatus(IntEnum):
     """
     interrupted = 11
     """
-    Bo respons, connection with application was interupted
+    No respons, connection with application was interupted
     :permited actions: no
     :start app action: resume
     """

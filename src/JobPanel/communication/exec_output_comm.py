@@ -107,7 +107,10 @@ class ExecOutputComm(OutputComm):
     def send(self,  mess):
         """send json message"""        
         b = bytes(mess.pack(), "us-ascii")
-        self.conn.sendall(b)
+        try:
+            self.conn.sendall(b)
+        except Exception as err:
+            logger.warning("Error during sending message: " + str(err))
 
     def receive(self, timeout=60):
         """receive json message"""

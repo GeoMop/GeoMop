@@ -215,6 +215,9 @@ class Communicator():
    
     def  standart_action_function_before(self, message):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.ping:
+            #action will be processed in after funcion
+            return False, None
         if message.action_type == tdata.ActionType.destroy:
             self._destroy()
         if message.action_type == tdata.ActionType.restore_connection or \
@@ -275,6 +278,9 @@ class Communicator():
         
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.ping:
+            action = tdata.Action(tdata.ActionType.ping_response)
+            return action.get_message()
         if message.action_type == tdata.ActionType.interupt_connection:
             self._interupt = True
             action = tdata.Action(tdata.ActionType.ok)

@@ -7,6 +7,7 @@ MujtiJob data structure.
 import logging
 import os
 import time
+import copy
 
 from communication import Installation
 from data.states import TaskStatus, JobsState
@@ -56,6 +57,17 @@ class MultiJobState:
         """Count of running jobs"""
         self.update_time = kw_or_def('update_time')
         """When MultiJobState  was last updated"""
+        
+    def copy(self, new_status=None):
+        """
+        Deep copy state
+        :param new_status: Set status if is not None
+        :return: new state
+        """
+        new_state =  copy.deepcopy(self)
+        if new_status is not None:            
+            new_state.status =new_status
+        return new_state
 
     def update(self, new_state):
         """

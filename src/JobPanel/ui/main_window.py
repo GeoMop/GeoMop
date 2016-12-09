@@ -9,6 +9,7 @@ import logging
 import os
 import time
 import shutil
+import threading
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
@@ -78,6 +79,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None, data=None, com_manager=None):
         super().__init__(parent)
+        self.__pool_lock = threading.Lock()
+        """lock for prevention of pool multiple runnig"""
         self.close_dialog = None
         # setup UI
         self.closing = False
@@ -194,6 +197,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def poll_com_manager(self):
         """poll com manager and update gui"""
+        if not self.__pool_lock.acquire(False):
+            return
         self.com_manager.poll()
 
         current = self.ui.overviewWidget.currentItem()
@@ -257,6 +262,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.closing and not self.com_manager.run_jobs and not self.com_manager.start_jobs \
                 and not self.com_manager.delete_jobs:
             self.close()
+        self.__pool_lock.release()
 
     def load_settings(self):
         # select last selected mj

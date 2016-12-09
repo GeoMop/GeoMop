@@ -512,11 +512,21 @@ class Installation:
             conn.sendline('get -r *')
             conn.expect(r'.*get -r \*\r\n')
             end=0
+            ret = ""
+            counter = 0
             while end==0:
                 #wait 2s after last message
                 end = conn.expect(["\r\n", pexpect.TIMEOUT], timeout=2)
                 if end == 0 and len(conn.before)>0:
-                    logger.debug("Sftp message(get -r *): " + str(conn.before, 'utf-8').strip())
+                    ret = str(conn.before, 'utf-8').strip()                    
+                    logger.debug("Sftp message(get -r *): " + ret)
+                    counter = 0
+                if end == 1:
+                    lines = ret.splitlines(False)
+                    if len(lines)==0 or lines[-1].find('100%') == -1:
+                        counter += 1
+                        if counter<4:
+                            end=0
      
     def is_local_and_remote_same(self, conn):
         """Test if local and remote directory is same (open file with uuid in local and try find it in remote)"""

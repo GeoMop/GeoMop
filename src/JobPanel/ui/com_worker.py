@@ -58,6 +58,8 @@ class ComWorker(threading.Thread):
         """deleting mj data"""
         self.__deleted = False
         """mj data was deleted"""
+        self.__interupted = False
+        """connection to mj was interupted"""
         self.__error_state = False
         """Error is occured, communication is stopped"""
         self.__error = None
@@ -170,6 +172,9 @@ class ComWorker(threading.Thread):
         if self.__error is not None:
             error = self.__error
             self.__error = None
+        elif self.is_interupted():
+            state = self._last_state.copy(TaskStatus.interupted)
+            error = "Connection to multijob was interupted"
         return state,  error, downloaded, downloaded, downloaded
        
     def start_mj(self):
@@ -235,7 +240,10 @@ class ComWorker(threading.Thread):
         
     def is_interupted(self):
         """return if communication is interupted"""
-        return False
+        self.__state_lock.acquire()
+        res = self.__interupted
+        self.__state_lock.release()
+        return res
         
     def is_error(self):
         """
@@ -300,8 +308,23 @@ class ComWorker(threading.Thread):
         self.__state_lock.release()        
         
     def run(self):
+        ping_interval = 15
+        ping_time = 0
         while True:
             self.__state_lock.acquire()
+            if  self.__interupted:
+                self.__state_lock.release()
+                if time.time()>(ping_time+ping_interval):
+                    if self._ping():
+                        ping_interval = 15
+                    else:
+                        if ping_interval<120:
+                            ping_interval *= 2
+                        else:
+                            self._resume()
+                        ping_time = time.time()
+                        time.sleep(1)
+                        continue           
             if self.__start:
                 self.__start = False
                 self.__state_lock.release()
@@ -379,7 +402,7 @@ class ComWorker(threading.Thread):
                 self._results()
                 continue
             self.__state_lock.release() 
-            time.sleep(0.1)
+            time.sleep(0.2)
         time.sleep(0.1)
         self._com.close( )
         time.sleep(0.1)
@@ -530,6 +553,22 @@ class ComWorker(threading.Thread):
         self.__state = state
         self.__state_lock.release()        
 
+    def _ping(self):
+        """test if connection is ok"""
+        action = tdata.Action( tdata.ActionType.ping)
+        message = action.get_message()
+        self._com.send_message(message)
+        response = self._com.receive_message(5)
+        if response is None or response.action_type != tdata.ActionType.ping_response:
+            self.__state_lock.acquire()
+            self.__interupted = res = True
+            self.__state_lock.release()
+        else:
+            self.__state_lock.acquire()
+            self.__interupted = res = True
+            self.__state_lock.release()
+        return res
+
     def _delete(self):
         mess = self._com.send_long_action(tdata.Action(
                     tdata.ActionType.delete))
@@ -554,6 +593,8 @@ class ComWorker(threading.Thread):
             self.__state.queued_time = self.__qued_time
             self.__state.start_time = self.__start_time
             self.__state_lock.release()
+        else:
+            self._ping()
  
     def _results(self):
         mess = self._com.send_long_action(tdata.Action(
@@ -572,6 +613,7 @@ class ComWorker(threading.Thread):
             if self.__sftp_state == SftpDownloadState.ok:
                 self.__sftp_state = SftpDownloadState.not_last
             self.__state_lock.release()
+            self._ping()
 
     @staticmethod
     def _set_loger(self,  path, name, level, central_log):

@@ -108,7 +108,7 @@ class PbsOutputComm(ExecOutputComm):
             # if self.node is "--", node information is not ready 
             if self.node is None or self.node != "--":
                 break
-            time.sleep(1)
+            time.sleep(3)
 
     def is_running_next(self):
         """
@@ -145,6 +145,7 @@ class PbsOutputComm(ExecOutputComm):
         """send json message"""        
         if self.config.with_socket:
             super(PbsOutputComm, self).send(mess)
+            
 
     def receive(self, timeout=60):
         """receive json message"""

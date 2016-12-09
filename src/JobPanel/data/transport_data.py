@@ -30,6 +30,8 @@ class ActionType(Enum):
     destroy = 15
     delete = 16
     restore = 17
+    ping = 18
+    ping_response = 19
     
 
 class ProcessType(Enum):
@@ -209,6 +211,10 @@ class Action():
             self.data = StartCountsData(json_data)
         elif type == ActionType.destroy:
             self.data = ErrorData(json_data)
+        elif type == ActionType.ping:
+            self.data = EmptyData()
+        elif type == ActionType.ping_response:
+            self.data = EmptyData()
             
     def get_message(self):
         """return message from action"""
