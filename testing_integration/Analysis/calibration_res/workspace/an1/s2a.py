@@ -2,7 +2,7 @@ VariableGenerator_1 = VariableGenerator(
     Variable=(
         Struct(
             observations=Struct(
-                tunnelflowrate=Float(-1.05),
+                tunnelflowrate=Float(-0.43),
                 pressurecorner=Float(0.0)
             )
         )
@@ -13,14 +13,14 @@ Flow123d_3 = Flow123dAction(
     Inputs=[
         Workflow_2.input()
     ],
-    YAMLFile='V7_jb_par.yaml'
+    YAMLFile='V7_jb_par3.yaml'
 )
 conn_out = Connector()
 conn_out.set_inputs([Flow123d_3])
 conn_out.set_config(
     Convertor = Convertor(Struct(
         tunnelflowrate=Input(0).flow_result.balance.select(Predicate(Input(0)[1].region == ".tunnel")).head()[1].flux_out,
-        pressurecorner=Input(0)  # ?????
+        pressurecorner=Input(0).flow_result.observe_data.head()[1].head().pressure_p1
     ))
 )
 Workflow_2.set_config(
@@ -49,7 +49,7 @@ Calibration_4 = Calibration(
         CalibrationObservation(
             name="pressurecorner",
             group="tunel",
-            weight=1.0
+            weight=0.1
         )
     ],
     AlgorithmParameters=[

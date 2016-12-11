@@ -275,7 +275,8 @@ class Calibration(WrapperActionType):
         """return output relevant for wrapper action"""
         if 'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  BaseActionType):
-            return Struct(vodivost=Float(), tlak=Float())
+            #return Struct(vodivost=Float(), tlak=Float())
+            return Struct(X1=Float(), X2=Float(), X3=Float(), A=Float(), B=Float())
             # for wraped action return previous input
             ensemble = self.get_input_val(0)
             if isinstance(ensemble,  Ensemble):
@@ -579,20 +580,21 @@ class Calibration(WrapperActionType):
         self._scipy_event.set()
         self._set_scipy_state(self.ScipyState.running)
 
-        # self._scipy_res = minimize(self._scipy_fun, x0, method='SLSQP', jac=self._scipy_jac, callback=self._scipy_callback,
-        #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
-        #                                     'ftol': 1e-6, 'disp': True})
+        self._scipy_res = minimize(self._scipy_fun, x0, method='L-BFGS-B', jac=self._scipy_jac, callback=self._scipy_callback,
+                                   options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
+                                            'ftol': 1e-6, 'disp': True})
 
-        if self._variables['MinimizationMethod'] == "L-BFGS-B":
-            self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-                                         disp=True, ter_crit=self._variables['TerminationCriteria'])
-        else:
-            self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-                                         disp=True, ter_crit=self._variables['TerminationCriteria'])
+        # if self._variables['MinimizationMethod'] == "L-BFGS-B":
+        #     self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'])
+        # else:
+        #     self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'])
 
         self._set_scipy_state(self.ScipyState.finished)
 
         print("scipy_model_eval_num = {}".format(str(self._scipy_model_eval_num)))
+        print("x = {}".format(str(self._scipy_res.x)))
 
     def _scipy_fun(self, x):
         print("_scipy_fun enter")
