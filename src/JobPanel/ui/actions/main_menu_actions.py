@@ -22,7 +22,13 @@ class ActionLog(QtWidgets.QAction):
         self.setText("Log")
         self.setShortcut("Ctrl+L")
         self.setObjectName("actionLog")
-
+        
+class ActionRemLog(QtWidgets.QAction):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("Remove Log")
+        self.setShortcut("Ctrl+R")
+        self.setObjectName("actionRemLog")
 
 class ActionAddMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
@@ -53,6 +59,13 @@ class ActionDeleteMultiJob(QtWidgets.QAction):
         super().__init__(parent)
         self.setText("Delete MultiJob")
         self.setObjectName("actionDeleteMultiJob")
+        
+        
+class ActionSendReport(QtWidgets.QAction):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("Send Report")
+        self.setObjectName("actionSendReport")    
 
 
 class ActionDeleteRemote(QtWidgets.QAction):
@@ -60,6 +73,7 @@ class ActionDeleteRemote(QtWidgets.QAction):
         super().__init__(parent)
         self.setText("Delete Remote")
         self.setObjectName("actionDeleteRemote")
+        
 
 class ActionResumeMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):
