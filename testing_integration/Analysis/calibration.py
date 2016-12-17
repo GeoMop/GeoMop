@@ -19,7 +19,7 @@ shutil.copytree("calibration_res/workspace", workspace)
 # prepare mj
 analysis="an1"
 mj="mj1"
-python_script="s1.py"
+python_script="s3a.py"
 pipeline_name="Pipeline_5"
 err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
                             python_script=python_script, pipeline_name=pipeline_name)
@@ -71,7 +71,7 @@ while pp.is_run():
         if command[0] == "flow123d":
             command[0] = "flow123d.bat"
         process = subprocess.Popen(command, stderr=subprocess.PIPE)
-        return_code = process.wait(10)
+        return_code = process.wait(100)
         if return_code is not None:
             #print(process.stderr)
             pass

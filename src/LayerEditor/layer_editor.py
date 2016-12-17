@@ -30,8 +30,8 @@ class LayerEditor:
         #test
         import ui.data as data
         diagram = data.Diagram()
-        for i in range(0, 50):
-            for j in range(0, 50):
+        for i in range(0, 20):
+            for j in range(0, 20):
                 x1 = i*50
                 x2 = i*50+20*(i%9-5) +20*(j%11-6) 
                 y1= j*50

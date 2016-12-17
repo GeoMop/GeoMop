@@ -414,7 +414,7 @@ class XYZEquationResultType():
         ret.balance = BalanceType.create_type(yaml_support.get_regions(), quantity_options)
 
         if "observed_quantities" in yaml_support.get_active_processes()[equation]:
-            ret.observation = ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"])
+            ret.observe_points, ret.observe_data = ObservationType.create_type(yaml_support.get_active_processes()[equation]["observed_quantities"])
 
         return ret
 

@@ -12,8 +12,6 @@ from data.communicator_conf import  PathsConfig
 
 from locks import Lock, LockFileError
 
-UIHOME_BASE_DIR = 'JobPanel'
-
 logger = logging.getLogger("Remote")
 
 __install_dir__ = os.path.split(
@@ -188,7 +186,7 @@ class Installation:
         home = None
         if self.paths_config is not None and \
             self.paths_config.home_dir is not None:
-            home = os.path.join(self.paths_config.home_dir, UIHOME_BASE_DIR)
+            home = os.path.join(self.paths_config.home_dir)
         lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
         try:
             if lock.lock_app(self.app_version, self.data_version, 
@@ -204,7 +202,7 @@ class Installation:
         home = None
         if self.paths_config is not None and \
             self.paths_config.home_dir is not None:
-            home = os.path.join(self.paths_config.home_dir, UIHOME_BASE_DIR)
+            home = self.paths_config.home_dir
 
         lock = Lock(self.an_name + "_" + self.mj_name, __install_dir__, home)
         try:
@@ -221,7 +219,7 @@ class Installation:
         home = None
         if cls.paths_config is not None and \
             cls.paths_config.home_dir is not None:
-            home = os.path.join(cls.paths_config.home_dir, UIHOME_BASE_DIR)
+            home = os.path.join(cls.paths_config.home_dir)
 
         lock = Lock(an_name + "_" + mj_name, __install_dir__, home)
         try:
@@ -239,7 +237,7 @@ class Installation:
         home = None
         if cls.paths_config is not None and \
                 cls.paths_config.home_dir is not None:
-            home = os.path.join(cls.paths_config.home_dir, UIHOME_BASE_DIR)
+            home = os.path.join(cls.paths_config.home_dir)
 
         lock = Lock("", __install_dir__, home)
         try:
@@ -257,7 +255,7 @@ class Installation:
         home = None
         if cls.paths_config is not None and \
                 cls.paths_config.home_dir is not None:
-            home = os.path.join(cls.paths_config.home_dir, UIHOME_BASE_DIR)
+            home = os.path.join(cls.paths_config.home_dir)
 
         lock = Lock("", __install_dir__, home)
         try:
@@ -617,7 +615,7 @@ class Installation:
             home = __install_dir__
             if cls.paths_config is not None and \
                 cls.paths_config.home_dir is not None:
-                home = os.path.join(cls.paths_config.home_dir, UIHOME_BASE_DIR)
+                home = os.path.join(cls.paths_config.home_dir)
             path = os.path.join(home,  "log")
             if not os.path.isdir(path):
                 os.makedirs(path)

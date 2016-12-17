@@ -27,11 +27,12 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 4:
 from ui.com_manager import ComManager
 from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
+from ui.imports.workspaces_conf import BASE_DIR
 import icon
 from  communication.installation import Installation
 
 import config as cfg
-CONFIG_DIR = os.path.join(cfg.__config_dir__, 'JobPanel')
+CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")

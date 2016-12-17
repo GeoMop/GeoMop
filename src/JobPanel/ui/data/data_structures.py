@@ -148,6 +148,8 @@ class ConfigData:
         """Selected multijob in UI"""
         self.local_env = kw_or_def('local_env', None)
         """Selected multijob in UI"""
+        self.report_dir = kw_or_def('report_dir', os.path.expanduser("~"))
+        """Last folder wher was saved report file"""
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value

@@ -19,7 +19,7 @@ from communication import installation
 from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from ui.actions.main_menu_actions import *
 from ui.data.mj_data import MultiJob, AMultiJobFile
-from ui.data.data_structures import BASE_DIR
+from ui.imports.workspaces_conf import BASE_DIR
 from ui.dialogs import MessageDialog
 from ui.dialogs.env_presets import EnvPresets
 from ui.dialogs.multijob_dialog import MultiJobDialog
@@ -124,6 +124,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_reuse_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
+        self.ui.menuBar.multiJob.actionSendReport.triggered.connect(
+            self._handle_send_report_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
             self._handle_delete_remote_action)
         self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
@@ -163,9 +165,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.menuBar.app.actionExit.triggered.connect(
             QtWidgets.QApplication.quit)
 
-        # connect exit action
+        # connect log action
         self.ui.menuBar.app.actionLog.triggered.connect(
             self._handle_log_action)
+
+        # connect remove log action
+        self.ui.menuBar.app.actionRemLog.triggered.connect(
+            self._handle_rem_log_action)
 
         # connect multijob stop action
         self.ui.menuBar.multiJob.actionStopMultiJob.triggered.connect(
@@ -313,6 +319,16 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.isfile(file_path):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
+    @staticmethod
+    def _handle_rem_log_action():
+        path = installation.Installation.get_central_log_dir_static()
+        for file in os.listdir(path):
+            file_path = os.path.join(path, file)
+            if os.path.isfile(file_path):
+                with open(file_path, 'w'):
+                    pass
+
+
     def _handle_add_multijob_action(self):
         self.mj_dlg.set_analyses(self.data.workspaces)
         self.mj_dlg.exec_add()       
@@ -338,6 +354,46 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.com_manager.delete_jobs.append(key)
                 self._delete_mj_local.append(key)
             self._set_deleting(key)
+            
+    def _handle_send_report_action(self):
+        if self.data.multijobs:
+            key = self.ui.overviewWidget.currentItem().text(0)
+            mj = self.data.multijobs[key]
+            mj_name = mj.preset.name
+            an_name = mj.preset.analysis
+            dialog = QtWidgets.QFileDialog(
+                self, "Choose Multijob Report File Name",
+                os.path.join(self.data.config.report_dir, key + ".zip"), 
+                "Report Archiv Files (*.zip)")
+            dialog.setDefaultSuffix('.zip')
+            dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+            dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+            dialog.setViewMode(QtWidgets.QFileDialog.Detail)
+            if dialog.exec_():                
+                report_file = dialog.selectedFiles()[0]
+                dir = dialog.directory().absolutePath()
+                if dir:
+                    self.data.config.report_dir = dir
+                    self.data.config.save()
+                if report_file:
+                    central_log_path = installation.Installation.get_central_log_dir_static()
+                    log_path = installation.Installation.get_mj_log_dir_static(mj_name, an_name)
+                    config_path = installation.Installation.get_config_dir_static(mj_name, an_name)
+                    tmp_dir = os.path.join(__config_dir__, BASE_DIR, "tmp")
+                    output_dir = os.path.join(__config_dir__, BASE_DIR, "tmp", "output_zip")
+                    if not os.path.isdir(tmp_dir):
+                        os.makedirs(tmp_dir)
+                    if os.path.isdir(output_dir):
+                        shutil.rmtree(output_dir, ignore_errors=True)
+                    os.makedirs(output_dir)
+                    if os.path.isdir(output_dir):
+                        shutil.copytree(central_log_path, os.path.join(output_dir, "central"))
+                    if os.path.isdir(config_path):
+                        shutil.copytree(config_path, os.path.join(output_dir, "config"))
+                    if os.path.isdir(log_path):
+                        shutil.copytree(log_path, os.path.join(output_dir,"log" ))
+                    shutil.make_archive(report_file,"zip", output_dir)
+                    shutil.rmtree(output_dir, ignore_errors=True)
             
     def _set_deleting(self, key):
         """save state before deleting and mark mj as deleted"""

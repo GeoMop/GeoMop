@@ -20,6 +20,7 @@ from version import Version
 from data import Users
 from ui.dialogs import SshPasswordDialog
 from geomop_analysis import Analysis, InvalidAnalysis
+from ui.imports.workspaces_conf import BASE_DIR
 
 JOB_NAME_LABEL = "flow"
 COPY_EX_LIBS = ['pyssh']
@@ -360,7 +361,7 @@ class ConfBuilder:
         return os.path.join(path, file)
 
     def set_paths_before_ssh(self, workspace, mj, copy_ex_libs=False):
-        self.conf.paths_config.home_dir = config.__config_dir__
+        self.conf.paths_config.home_dir = os.path.join(config.__config_dir__, BASE_DIR)
         self.conf.paths_config.work_dir = workspace
         self.conf.paths_config.app_dir = None
         self.conf.paths_config.ex_lib_path = EX_LIB_PATH
