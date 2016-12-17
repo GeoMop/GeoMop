@@ -7,19 +7,20 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ui import panels
 from ui import data
+from ui.menus.tools import ToolsMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""
 
-    def __init__(self, model_editor):
+    def __init__(self, layer_editor):
         """Initialize the class."""
         super(MainWindow, self).__init__()
 
         self.setMinimumSize(960, 660)
 
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
-        self._model_editor = model_editor
+        self._layer_editor = layer_editor
         self.setCentralWidget(self._hsplitter)
         # splitters
         self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
@@ -39,6 +40,12 @@ class MainWindow(QtWidgets.QMainWindow):
        # self.diagramView.setMinimumSize(QtCore.QSize(500, 500)) 
 
         self._hsplitter.insertWidget(0, self.diagramView)
+        
+        # Menu bar
+        self._menu = self.menuBar()
+        self._tools_menu = ToolsMenu(self, self.diagramScene)
+
+        self._menu.addMenu(self._tools_menu)
         
         # status bar
         self._column = QtWidgets.QLabel(self)

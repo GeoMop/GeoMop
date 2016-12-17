@@ -12,6 +12,8 @@ class Point():
         """y coordinate"""
         self.lines = []
         """This point instance is use for these lines"""
+        self.object = None
+        """Graphic object""" 
         
     def __lt__(self, other):
         """operators for comparation"""
@@ -61,7 +63,9 @@ class Line():
         self.p1 = p1
         """First point"""
         self.p2 = p2
-        """Second point"""        
+        """Second point"""
+        self.object = None
+        """Graphic object"""        
 
 class Diagram():
     """
