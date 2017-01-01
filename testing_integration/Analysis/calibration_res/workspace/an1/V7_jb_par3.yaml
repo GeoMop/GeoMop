@@ -1,0 +1,58 @@
+flow123d_version: 2.0.0
+problem: !Coupling_Sequential
+  description: Test2 - Transport 1D-2D (convection, dual porosity, sorption)
+  mesh:
+    mesh_file: ./V7.msh
+    regions:
+      - !Union
+        name: dirichlet_boundary
+        regions:
+          - .surface
+          - .tunnel
+          - .bottom
+          - .right_side
+          - .left_side
+      - !Union
+        name: 2D
+        regions:
+          - 2D_upper_massive
+          - 2D_middle_massive
+          - 2D_downer_massive
+  flow_equation: !Flow_Darcy_MH
+    nonlinear_solver:
+      linear_solver: !Petsc
+        accuracy: 1.0e-07
+    input_fields:
+      - region: 2D
+        conductivity: <vodivost>
+        cross_section: 1
+        sigma: 1
+      - region: .surface
+        bc_type: total_flux
+        bc_flux: 0.00233
+      - region: .tunnel
+        bc_type: dirichlet
+        bc_pressure: 0
+      - region: .bottom
+        bc_type: dirichlet
+        bc_pressure: <tlak>
+      - region: .left_side
+        bc_type: total_flux
+        bc_flux: -0.0
+      - region: .right_side
+        bc_type: total_flux
+        bc_flux: -0.0
+    output:
+      fields:
+        - pressure_p0
+        - pressure_p1
+        - velocity_p0
+      observe_fields: [ pressure_p1]
+    output_stream:
+      file: ./flow.pvd
+      format: !vtk
+        variant: ascii
+      observe_points:
+        - [ 0, -250, 0 ]
+      name: flow_output_stream
+    balance: {}

@@ -172,8 +172,9 @@ class SingleIterationInfo():
             setattr(par, p.name, SingleParameterOutput.create_type())
         obs = Struct()
         for o in observations:
-            setattr(par, o.name, SingleObservationOutput.create_type())
+            setattr(obs, o.name, SingleObservationOutput.create_type())
         return Struct(iteration=Int(),
+                      cumulative_n_evaluation=Int(),
                       residual=Float(),
                       converge_reason=Enum(["none", "converged", "failure"]),
                       parameters=par,

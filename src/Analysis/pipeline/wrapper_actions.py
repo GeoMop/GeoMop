@@ -257,6 +257,7 @@ class Calibration(WrapperActionType):
         self._scipy_diff_inc_abs = []
         self._scipy_res = None
         self._scipy_xy_log = []
+        self._scipy_x_output_log = []
         self._scipy_iterations = []
         self._scipy_model_eval_num = 0
 
@@ -275,8 +276,8 @@ class Calibration(WrapperActionType):
         """return output relevant for wrapper action"""
         if 'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  BaseActionType):
-            #return Struct(vodivost=Float(), tlak=Float())
-            return Struct(X1=Float(), X2=Float(), X3=Float(), A=Float(), B=Float())
+            return Struct(vodivost=Float(), tlak=Float())
+            #return Struct(X1=Float(), X2=Float(), X3=Float(), A=Float(), B=Float())
             # for wraped action return previous input
             ensemble = self.get_input_val(0)
             if isinstance(ensemble,  Ensemble):
@@ -288,6 +289,15 @@ class Calibration(WrapperActionType):
         if self._is_state(ActionStateType.finished):
             opt = Sequence(SingleIterationInfo.create_type(self._variables['Parameters'], self._variables['Observations']))
             for i in range(len(self._scipy_iterations)):
+                # find output
+                output = None
+                for o in self._scipy_x_output_log:
+                    if np.all(o[0] == self._scipy_iterations[i][0]):
+                        output = o[1]
+                        break
+
+                input = self._scipy_x_to_wrapped_input(self._scipy_iterations[i][0])
+
                 par = Struct()
                 for p in self._variables['Parameters']:
                     if p.fixed:
@@ -295,7 +305,7 @@ class Calibration(WrapperActionType):
                     else:
                         pt = "Free"
                     spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
-                                 value=Float(0.0),  # ToDo:
+                                 value=getattr(input, p.name),
                                  interval_estimate=Tuple(Float(0.0), Float(0.0)),
                                  sensitivity=Float(0.0),
                                  relative_sensitivity=Float(0.0))
@@ -303,12 +313,14 @@ class Calibration(WrapperActionType):
                 obs = Struct()
                 for o in self._variables['Observations']:
                     m = getattr(self.get_input_val(0).observations, o.name).value
+                    mv = getattr(output, o.name).value
                     soo = Struct(measured_value=Float(m),
-                                 model_value=Float(0.0),  # ToDo:
-                                 residual=Float(m - 0.0),
+                                 model_value=Float(mv),
+                                 residual=Float(m - mv),
                                  sensitivity=Float(0.0))
-                    setattr(par, o.name, soo)
+                    setattr(obs, o.name, soo)
                 opt.add_item(Struct(iteration=Int(i),
+                                    cumulative_n_evaluation=Int(self._scipy_iterations[i][2]),
                                     residual=Float(self._scipy_iterations[i][1]),
                                     converge_reason=Enum(["none", "converged", "failure"], "none"),
                                     parameters=par,
@@ -616,7 +628,7 @@ class Calibration(WrapperActionType):
         return jac
 
     def _scipy_callback(self, xk):
-        self._scipy_iterations.append((xk.copy(), self._scipy_model_eval(xk)))
+        self._scipy_iterations.append((xk.copy(), self._scipy_model_eval(xk), self._scipy_model_eval_num))
 
     def _scipy_model_eval(self, x):
         for xy in self._scipy_xy_log:
@@ -652,6 +664,9 @@ class Calibration(WrapperActionType):
         return ret
 
     def _wrapped_output_to_scipy_y(self, output, x):
+        # log
+        self._scipy_x_output_log.append((x.copy(), output))
+
         ret = 0.0
         for obs in self._variables['Observations']:
             ret += (getattr(self.get_input_val(0).observations, obs.name).value - getattr(output, obs.name).value)**2 * obs.weight**2

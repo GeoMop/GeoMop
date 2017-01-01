@@ -120,7 +120,7 @@ class BaseDTT(DTT, metaclass=abc.ABCMeta):
     def __and__(self, other):
         if isinstance(other, BaseDTT):
             return Bool(self.value and other.value)
-        return Bool(self.value or other)
+        return Bool(self.value and other)
         
     def __or__(self, other):
         if isinstance(other, BaseDTT):
