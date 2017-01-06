@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+from .states import ItemStates, get_state_color
 
 class Point(QtWidgets.QGraphicsEllipseItem):
     """ 
@@ -9,39 +10,67 @@ class Point(QtWidgets.QGraphicsEllipseItem):
    
     def __init__(self, point,data, parent=None):
         """if item is selected"""
-        self._point = point
+        self.point = point
+        self._tmp = False
         self.data = data
         point.object = self
-        super(Point, self).__init__(self._point.x-2*data.zoom, 
-            self._point.y-2*data.zoom, 4*data.zoom, 4*data.zoom, parent)   
+        self.state = ItemStates.standart
+        """Item state"""
+        super(Point, self).__init__(self.point.x-2*data.zoom, 
+            self.point.y-2*data.zoom, 4*data.zoom, 4*data.zoom, parent)   
         self.setPen(self.data.pen)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))     
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))    
+        self.setZValue(20) 
+        
+    def set_tmp(self):
+        """set style and z"""
+        self._tmp = True
+        self.state = ItemStates.added
+        self.setZValue(0) 
         
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
         if self.data.pen.widthF() != self.pen().widthF():
             self.prepareGeometryChange()
-            self.setRect(self._point.x-2/self.data.zoom, 
-                self._point.y-2/self.data.zoom, 4/self.data.zoom, 4/self.data.zoom)
+            self.setRect(self.point.x-2/self.data.zoom, 
+                self.point.y-2/self.data.zoom, 4/self.data.zoom, 4/self.data.zoom)
             self.setPen(self.data.pen)
+        if self.pen().color()!=get_state_color(self.state):
+            pen = QtGui.QPen(self.data.pen)
+            pen.setColor(get_state_color(self.state))
+            self.setPen(pen)
         super(Point, self).paint(painter, option, widget)
         
-    def move_point(self, pos):
+    def move_point(self, pos, new_state=None):
         """Move point to new pos and move all affected lines"""
-        self._point.x = pos.x()
-        self._point.y = pos.y()
-        self.setRect(self._point.x-2*self.data.zoom, 
-            self._point.y-2*self.data.zoom, 4*self.data.zoom, 4*self.data.zoom) 
-        for line in self._point.lines:
-            line.object.move_line()
+        if new_state is not None:
+            self.state = new_state
+        self.point.x = pos.x()
+        self.point.y = pos.y()
+        self.setRect(self.point.x-2*self.data.zoom, 
+            self.point.y-2*self.data.zoom, 4*self.data.zoom, 4*self.data.zoom) 
+        for line in self.point.lines:
+            line.object.move_line(new_state)
             
-    def shift_point(self, shift):
-        """Move point to new pos and move all affected lines"""
-        pos = QtCore.QPointF(self._point.x, self._point.y) + shift
-        self.move_point(pos)
+    def shift_point(self, shift, new_state=None):
+        """Move point to new pos and move all affected lines"""        
+        pos = QtCore.QPointF(self.point.x, self.point.y) + shift
+        self.move_point(pos, new_state)
         
     def mousePressEvent(self,event):
-        """Standart mouse event"""        
-        event.gobject = self
-
+        """Standart mouse event"""
+        if self._tmp:
+            super(Point, self).mousePressEvent(event)
+        else:
+            event.gobject = self
         
+    def mouseReleaseEvent(self,event):
+        """Standart mouse event"""
+        if self._tmp:
+            super(Point, self).mouseReleaseEvent(event)
+        else:
+            event.gobject = self
+        
+    def release_point(self):
+        self.point.object = None
+        self.data = None

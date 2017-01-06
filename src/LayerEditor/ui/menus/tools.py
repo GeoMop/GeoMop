@@ -31,7 +31,7 @@ class ToolsMenu(QMenu):
 
         self._line_op_action = QAction('&Line Operations', self)
         self._line_op_action.setCheckable(True)
-        self._point_op_action.setData(OperatinState.line)
+        self._line_op_action.setData(OperatinState.line)
         self._operation_mode_group.addAction(self._line_op_action)        
         self._line_op_action.setStatusTip('Set line operation mode')
         self.addAction(self._line_op_action)

@@ -148,7 +148,17 @@ class Diagram():
     def add_line(self,p, x, y):
         """Add line from point p to [x,y]"""
         p2 = self.add_point(x, y)
-        return self.join_line(p, p2)
+        return p2, self.join_line(p, p2)
+        
+    def add_point_to_line(self, line, x, y):
+        """Add point to line and split it """
+        xn, yn = self.get_point_on_line(line, x, y)
+        p = self.add_point(xn, yn)
+        p.lines.append(line)
+        line.p2.lines.remove(line)
+        l2 = self.join_line(p, line.p2)
+        line.p2 = p
+        return p, l2
         
     def join_line(self,p1, p2):
         """Add line from point p1 to p2"""
@@ -167,4 +177,36 @@ class Diagram():
         self.lines.append(line)
         return line
         
+    def delete_line(self, l):
+        """remove set line from lines end points"""
+        self.lines.remove(l)
+        l.p1.lines.remove(l)
+        l.p2.lines.remove(l)
+        
+    def delete_point(self, p):
+        """Try remove set point, and return it 
+        if point is in some line return False"""
+        if len(p.lines)>0:
+            return False
+        self.points.remove(p)    
+        return True
+    
+    @staticmethod
+    def make_tmp_line(p1x, p1y, p2x, p2y):
+        """Make temporrary line"""
+        p1 = Point(p1x, p1y)
+        p2 = Point(p2x, p2y)
+        line = Line(p1,p2)
+        p1.lines.append(line)
+        p2.lines.append(line)
+        return line
+        
+    @staticmethod
+    def get_point_on_line(line, px, py):
+        """Compute point on line"""
+        dx = line.p2.x-line.p1.x
+        dy = line.p2.y-line.p1.y 
+        if dx>dy:
+            return px, line.p1.y + (px-line.p1.x)*dy/dx
+        return line.p1.x + (py-line.p1.y)*dx/dy, py
     
