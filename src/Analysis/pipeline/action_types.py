@@ -241,6 +241,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
                     res.extend(Formater.format_parameter(var._get_settings_script(), spaces+4))
                 elif isinstance(var, BaseActionType):
                     res.append((spaces+4)*" "+"{0},".format(var._get_instance_name()))
+                elif isinstance(var, str):
+                    res.append((spaces+4)*" "+"'{0}',".format(var))
                 else:
                     raise Exception(err)
             res[-1] = res[-1][:-1]
