@@ -8,6 +8,7 @@ import PyQt5.QtGui as QtGui
 from ui import panels
 from ui import data
 from ui.menus.tools import ToolsMenu
+from ui.menus.edit import EditMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -44,8 +45,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Menu bar
         self._menu = self.menuBar()
         self._tools_menu = ToolsMenu(self, self.diagramScene)
+        self._edit_menu = EditMenu(self, self.diagramScene)
 
         self._menu.addMenu(self._tools_menu)
+        self._menu.addMenu(self._edit_menu)
         
         # status bar
         self._column = QtWidgets.QLabel(self)

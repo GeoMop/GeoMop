@@ -40,8 +40,14 @@ class ToolsMenu(QMenu):
         """set diagram mode"""
         state = self._selmode_action.isChecked()
         self._diagram.set_select_mode(state)
+        self._enable_operation(not state)
         
     def _select_operation(self):
         """set diagram operation"""
         action = self._operation_mode_group.checkedAction()
         self._diagram.set_operation_state(action.data())
+        
+    def _enable_operation(self, enable):
+        """enable operations items"""
+        self._line_op_action.setEnabled(enable)
+        self._point_op_action.setEnabled(enable)

@@ -1,6 +1,7 @@
 """Diagram file"""
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
+import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
 from ui.gitems import Line, Point
 from ui.gitems import ItemStates
@@ -80,6 +81,14 @@ class Diagram(QtWidgets.QGraphicsScene):
         """if first point of last line is real, there is"""
         self._last_counter = 0
         """counter for last line"""
+        # selected operation
+        self._selected_points = []
+        """list of selected points"""
+        self._selected_lines = []
+        """list of selected lines"""
+        # control object
+        self._control_object = None
+        """object, that is below cursor, if button press event is emited"""
         super(Diagram, self).__init__(parent)        
         self.set_data(data)    
         self.setSceneRect(0, 0, 20, 20)
@@ -93,7 +102,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         elif isinstance(gobject, Point):
             return gobject
         elif isinstance(gobject, Line):                
-            point, l2 = self._data.add_point_to_line(gobject.line, p1.x(), p1.y())
+            point, l2 = self._data.add_new_point_to_line(gobject.line, p1.x(), p1.y())
             l = Line(l2, self._data)
             self.addItem(l) 
             p = Point(point,  self._data)
@@ -113,12 +122,12 @@ class Diagram(QtWidgets.QGraphicsScene):
             elif isinstance(gobject, Point):
                 self._last_p1_real = gobject
                 self._last_p1_on_line = None
-                px = gobject.x()
-                py = gobject.y()
+                px = gobject.point.x
+                py = gobject.point.y
             elif isinstance(gobject, Line):
                 self._last_p1_real = None
                 self._last_p1_on_line = gobject
-                px, py =  struc.Diagram.get_point_on_line(gobject, p.x(), p.y())
+                px, py =  struc.Diagram.get_point_on_line(gobject.line, p.x(), p.y())
         else:
             if self._last_p1_real is not None:
                 if isinstance(gobject, Point) and gobject==self._last_p1_real:
@@ -130,7 +139,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     return
                 p1 = self._last_p1_real               
             else:
-                p1 = self._add_point(gobject, QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y))
+                p1 = self._add_point(None, QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y))
             p2 = self._add_point(gobject, p)
             px = p.x()
             py = p.y()            
@@ -154,7 +163,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_line = line
         
     def _shift_last(self, new_p2):
-        """Shift point p2 and line (p1,p2) in diagram and repaint it."""
+        """Shift point p2 and line (p1,p2) in diagram and repaint it."""        
         self._last_line.p2.object.move_point(new_p2)
         
     def _remove_last(self):
@@ -239,67 +248,173 @@ class Diagram(QtWidgets.QGraphicsScene):
     def _next_point(self, event):
         """next point in line or point mode is clicked"""
         if self.operation_state is OperatinState.line:
-            if event.button()==QtCore.Qt.Qt.LeftButton:
-                self._add_line(event.gobject, event.scenePos())            
-            elif event.button()==QtCore.Qt.Qt.RightButton:
-                self._add_line(event.gobject, event.scenePos(), False)
-                
+            self._add_line(event.gobject, event.scenePos())            
         elif self.operation_state is OperatinState.point:
             if event.gobject is None or not isinstance(event.gobject, Point):
-                if event.button()==QtCore.Qt.Qt.LeftButton:
-                    self._add_point(event.gobject, event.scenePos())
+                self._add_point(event.gobject, event.scenePos())
+
+    def _select_point(self, point):
+        """set point as selected"""
+        if not point in self._selected_points:
+            self._selected_points.append(point)
+            point.select_point()
+
+    def _deselect_point(self, point):
+        """deselect point"""
+        if point in self._selected_points:
+            self._selected_points.remove(point)
+        point.deselect_point()
+        
+    def _deselect_line(self, line, with_points):
+        """deselect line"""
+        if line in self._selected_lines:
+            self._selected_lines.remove(line)
+            line.deselect_line()
+        if with_points:
+            self._deselect_point(line.line.p1.object)
+            self._deselect_point(line.line.p2.object)
+        
+    def _select_line(self, line, with_points):
+        """set line as selected"""
+        if not line in self._selected_lines:
+            self._selected_lines.append(line)
+            line.select_line()
+        if with_points:
+            self._select_point(line.line.p1.object)
+            self._select_point(line.line.p2.object)
+        
+    def delete_selected(self):
+        """delete selected"""
+        for line in self._selected_lines:
+            l = line.line
+            line.release_line()
+            self.removeItem(line)
+            self._data.delete_line(l)
+        self._selected_lines = []
+        removed = []
+        for point in self._selected_points:            
+            p = point.point
+            if   self._data.delete_point(p):
+                point.release_point()
+                self.removeItem(point)
+                removed.append(point)
+        for point in removed:
+            self._selected_points.remove(point)       
     
+    def select_all(self): 
+        """select all items"""
+        for line in self._data.lines:
+            self._select_line(line.object, False)
+        for point in self._data.points:
+            self._select_point(point.object)
+    
+    def deselect_selected(self):
+        """deselect all items"""
+        for line in self._selected_lines:
+           line.deselect_line()
+        for point in self._selected_points:
+            point.deselect_point()
+        self._selected_points = []
+        self._selected_lines = []
+        
+    def _anchor_moved_point(self, event):
+        """Test if point colide with other and move it"""
+        below_item = self.itemAt(event.scenePos(), QtGui.QTransform())
+        if below_item==self._point_moving:
+            # moved point with small zorder value is below cursor 
+            self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+        elif isinstance(below_item, Line):
+            new_line, merged_lines = self._data.add_point_to_line(below_item.line, self._point_moving.point)
+            l = Line(new_line, self._data)
+            self.addItem(l) 
+            self._point_moving.move_point(QtCore.QPointF(
+                self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
+            for line in merged_lines:
+                merged_lines.oject.release_line()
+                self.removeItem(merged_lines)
+        elif isinstance(below_item, Point):
+            removed_lines = self._data.merge_point(below_item.point, self._point_moving.point)
+            self._point_moving.release_point()
+            self.removeItem(self._point_moving)
+            for line in removed_lines:
+                merged_lines.oject.release_line()
+                self.removeItem(merged_lines)
+            below_item.move_point(event.scenePos(), ItemStates.standart)
+        else:
+            self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            
     def mouseReleaseEvent(self,event):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
-        if self._moving:
-            self._moving = False
-            if  self._moving_counter>0:
-                self._data.x += (self._moving_x-event.screenPos().x())/self._data.zoom
-                self._data.y += (self._moving_y-event.screenPos().y())/self._data.zoom
-                self.possChanged.emit()
-            else:
-                if not self._selection_mode:
-                    self._next_point(event)                       
-        elif self._point_moving is not None:
-            if  self._point_moving_counter>0:
-                self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            else:
-                if not self._selection_mode:
-                    self._next_point(event)
-            self._point_moving = None
-        elif self._line_moving is not None:
-            if  self._line_moving_counter>0:
-                self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
-            else:
-                if not self._selection_mode:
-                    self._next_point(event)
-            self._line_moving = None    
+        if event.button()==QtCore.Qt.LeftButton:
+            if self._moving:
+                self._moving = False
+                if  self._moving_counter>1:
+                    self._data.x += (self._moving_x-event.screenPos().x())/self._data.zoom
+                    self._data.y += (self._moving_y-event.screenPos().y())/self._data.zoom
+                    self.possChanged.emit()
+                else:
+                    if not self._selection_mode:
+                        self._next_point(event)                       
+            elif self._point_moving is not None:
+                if  self._point_moving_counter>1:
+                    self._anchor_moved_point(event)                    
+                else:
+                    if not self._selection_mode:
+                        self._next_point(event)
+                    else:
+                        self._select_point(event.gobject)
+                self._point_moving = None
+            elif self._line_moving is not None:
+                if  self._line_moving_counter>1:
+                    self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
+                else:
+                    if not self._selection_mode:
+                        self._next_point(event)
+                    else:
+                        self._select_line(event.gobject, 
+                            (event.modifiers() & QtCore.Qt.ControlModifier)==QtCore.Qt.ControlModifier)
+                self._line_moving = None
+        if event.button()==QtCore.Qt.RightButton:
+            if not self._selection_mode and self._last_line is not None:                 
+                self._add_line(event.gobject, event.scenePos(), False)                
+            if self._control_object is not None and self._control_object==event.gobject:
+                if self._selection_mode:                
+                    if isinstance(event.gobject, Line):
+                        self._deselect_line(event.gobject, 
+                            (event.modifiers() & QtCore.Qt.ControlModifier)==QtCore.Qt.ControlModifier)
+                    else:
+                        # point
+                        self._deselect_point(event.gobject)                    
+        self._control_object = None    
             
     def mousePressEvent(self,event):
         """Standart mouse event"""
         event.gobject = None
         super(Diagram, self). mousePressEvent(event)
+        self._control_object = event.gobject
         if self._moving:
             # fix bad state
             self.possChanged.emit()
             self._moving = False
             if event.gobject is None:
                 return
-        if event.gobject is None:
-            self._moving_counter = 0
-            self._moving = True
-            self._moving_x = event.screenPos().x()
-            self._moving_y = event.screenPos().y()
-        else:
-            if isinstance(event.gobject, Line):
-                self._line_moving_counter = 0
-                self._line_moving = event.gobject
-                self._line_moving_pos = event.scenePos()
+        if event.button()==QtCore.Qt.LeftButton:
+            if event.gobject is None:
+                self._moving_counter = 0
+                self._moving = True
+                self._moving_x = event.screenPos().x()
+                self._moving_y = event.screenPos().y()
             else:
-                # point
-                self._point_moving_counter = 0
-                self._point_moving = event.gobject
+                if isinstance(event.gobject, Line):
+                    self._line_moving_counter = 0
+                    self._line_moving = event.gobject
+                    self._line_moving_pos = event.scenePos()
+                else:
+                    # point
+                    self._point_moving_counter = 0
+                    self._point_moving = event.gobject
 
     def wheelEvent(self, event):
         """wheel event for zooming"""

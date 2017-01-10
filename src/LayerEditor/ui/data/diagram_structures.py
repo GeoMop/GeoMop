@@ -150,15 +150,80 @@ class Diagram():
         p2 = self.add_point(x, y)
         return p2, self.join_line(p, p2)
         
-    def add_point_to_line(self, line, x, y):
-        """Add point to line and split it """
+    def add_new_point_to_line(self, line, x, y):
+        """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
         p = self.add_point(xn, yn)
         p.lines.append(line)
         line.p2.lines.remove(line)
-        l2 = self.join_line(p, line.p2)
+        point2 = line.p2
         line.p2 = p
+        l2 = self.join_line(point2, line.p2)
         return p, l2
+        
+    def add_point_to_line(self, line, point):
+        """
+        Add point to line and split it. Return new line and array of lines that should be removed.
+        This lines is released from data, but object is existed, and should be relesed after discarding
+        graphic object.
+        """
+        releasing_lines = []
+        xn, yn = self.get_point_on_line(line, point.x, point.y)
+        point.x = xn
+        point.y = yn
+        point.lines.append(line)
+        line.p2.lines.remove(line)
+        point2 = line.p2
+        line.p2 = point
+        l2 = self.join_line(point, point2)        
+        # TODO: case if one line is merged (line between new point and one of line point)
+        # TODO: case if two lines is merged (triangle) 
+        return l2, releasing_lines
+        
+    def merge_point(self, point, atached_point):
+        """
+        Merge rwo points. Atached_point will be remove from data
+        and shoud be released after discarding graphic object.
+        Return array of lines that should be removed. This lines is 
+        released from data, but object is existed, and should be relesed 
+        after discarding graphic object.
+        """
+        releasing_lines = []
+        # move all lines from atached_point to point
+        for line in atached_point.lines:
+            if line in point.lines:
+                # line between point and atached_point
+                assert (line.p1== point and line.p2 == atached_point) or \
+                    (line.p2 == point and line.p1 == atached_point)
+                releasing_lines.append(line)                
+                self.lines.remove(line)
+                point.lines.remove(line)
+                continue
+            p = None            
+            if line.p1== atached_point:
+                p = line.p1
+            else:
+                assert line.p2== atached_point
+                p = line.p2
+            for mline in point.lines:
+                if (mline.p1== p) or (mline.p2==p):
+                    # exist two lines between: p - atached_point and 
+                    # the p - point ₌> merge this lines
+                    releasing_lines.append(line)
+                    self.lines.remove(line)                    
+                    p.lines.remove(line)
+                    p=None
+                    break
+            if p is not None:
+                # move line from atached_point to point
+                if p == line.p1:
+                    line.p1 = point
+                else:
+                    line.p2 = point
+                point.lines.append(line)
+        # remove point             
+        self.points.remove(atached_point) 
+        return releasing_lines
         
     def join_line(self,p1, p2):
         """Add line from point p1 to p2"""

@@ -7,6 +7,10 @@ class Point(QtWidgets.QGraphicsEllipseItem):
     """ 
     Represents a block in the diagram 
     """
+    
+    STANDART_ZVALUE = 120
+    MOVE_ZVALUE = 20
+    TMP_ZVALUE = 0
    
     def __init__(self, point,data, parent=None):
         """if item is selected"""
@@ -19,14 +23,15 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         super(Point, self).__init__(self.point.x-2*data.zoom, 
             self.point.y-2*data.zoom, 4*data.zoom, 4*data.zoom, parent)   
         self.setPen(self.data.pen)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))    
-        self.setZValue(20) 
+        self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))    
+        self.setZValue(self.STANDART_ZVALUE) 
         
     def set_tmp(self):
         """set style and z"""
         self._tmp = True
         self.state = ItemStates.added
-        self.setZValue(0) 
+        self.setZValue(self.TMP_ZVALUE) 
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
@@ -45,6 +50,13 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         """Move point to new pos and move all affected lines"""
         if new_state is not None:
             self.state = new_state
+            if new_state is ItemStates.moved:
+                self.setZValue(self.MOVE_ZVALUE)
+                self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+                self.ungrabMouse()
+            else:
+                self.setZValue(self.STANDART_ZVALUE)
+                self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor)) 
         self.point.x = pos.x()
         self.point.y = pos.y()
         self.setRect(self.point.x-2*self.data.zoom, 
@@ -56,6 +68,18 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         """Move point to new pos and move all affected lines"""        
         pos = QtCore.QPointF(self.point.x, self.point.y) + shift
         self.move_point(pos, new_state)
+        
+    def select_point(self):
+        """set selected and repaint point"""
+        if self.state==ItemStates.standart:
+            self.state = ItemStates.selected
+            self.update()
+        
+    def deselect_point(self):
+        """set unselected and repaint point"""
+        if self.state==ItemStates.selected:
+            self.state = ItemStates.standart
+            self.update()
         
     def mousePressEvent(self,event):
         """Standart mouse event"""
