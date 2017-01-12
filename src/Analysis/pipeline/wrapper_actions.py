@@ -11,6 +11,7 @@ import threading
 import time
 from enum import IntEnum
 import math
+from math import *
 
 import numpy as np
 from scipy.optimize import minimize
@@ -261,6 +262,8 @@ class Calibration(WrapperActionType):
         self._scipy_iterations = []
         self._scipy_model_eval_num = 0
 
+        self._tied_params_order = None
+
         super().__init__(**kwargs)
 
     def _set_bridge(self, bridge):
@@ -489,6 +492,7 @@ class Calibration(WrapperActionType):
                             self._add_error(err, "Parameter 'Parameters[{0}]': Upper bound must be greater or equal to lower bound".format(str(i)))
                     else:
                         self._add_error(err, "Type of parameter 'Parameters[{0}]' must be CalibrationParameter".format(str(i)))
+                self._extend_error(err, self.__check_tied_parameters(self._variables['Parameters']))
             else:
                 self._add_error(err, "Parameter 'Parameters' must be list of CalibrationParameter")
         else:
@@ -543,6 +547,51 @@ class Calibration(WrapperActionType):
         #     if not isinstance(ensemble, Ensemble):
         #         self._add_error(err, "Input action {0} not produce Ensemble type variable".format(str(i)))
         return err
+
+    def __check_tied_parameters(self, parameters):
+        """check tied parameters"""
+        err = []
+        parameters_list = []
+        for par in parameters:
+            parameters_list.append(par.name)
+        for par in parameters:
+            if par.tied_expression is not None:
+                if par.tied_params is None or len(par.tied_params) < 1:
+                    self._add_error(err, "Tied parameter '{0}' must have at least one parameter".format(par.name))
+                for p in par.tied_params:
+                    if p not in parameters_list:
+                        self._add_error(err, "Tied parameter '{0}' have parameter '{1}' which is not in Parameters".format(par.name, p))
+
+        # check circular dependencies
+        self._tied_params_order = self._get_tied_params_order(parameters)
+        if self._tied_params_order is None:
+            self._add_error(err, "Tied parameters have circular dependencies")
+
+    def _get_tied_params_order(self, parameters):
+        """sort tied params to right evaluation order"""
+        tpar = []
+        for par in parameters:
+            if par.tied_expression is not None:
+                tpar.append(par)
+        opar = []
+        while len(tpar) > 0:
+            for i in range(len(tpar)):
+                p = tpar.pop(0)
+                d = False
+                for r in p.tied_params:
+                    for s in tpar:
+                        if r == tpar.name:
+                            d = True
+                            break
+                    if d:
+                        break
+                if d:
+                    tpar.append(p)
+                else:
+                    opar.append(p.name)
+                    break
+            return None
+        return opar
 
     def validate(self):
         """validate variables, input and output"""
@@ -644,17 +693,37 @@ class Calibration(WrapperActionType):
 
     def _scipy_x_to_wrapped_input(self, x):
         mod_par = Struct()
+        par_dict = {}
         ind = 0
         for par in self._variables['Parameters']:
             if par.fixed:
                 v = par.init_value
             else:
                 v = x[ind]
+                ind += 1
+            par_dict[par.name] = v
             if par.log_transform:
                 v = math.exp(v)
             v = par.scale * v + par.offset
             setattr(mod_par, par.name, Float(v))
-            ind += 1
+
+        # tied params
+        if self._tied_params_order is None:
+            self._tied_params_order = self._get_tied_params_order(self._variables['Parameters'])
+        if self._tied_params_order is not None:
+            for tp in self._tied_params_order:
+                par = None
+                for r in self._variables['Parameters']:
+                    if tp == r.name:
+                        par = r
+                        break
+                v = eval(par.tied_expression, globals(), par_dict)
+                par_dict[par.name] = v
+                if par.log_transform:
+                    v = math.exp(v)
+                v = par.scale * v + par.offset
+                setattr(mod_par, par.name, Float(v))
+
         #ret = Struct(parameters=mod_par)
         ret = mod_par
 
