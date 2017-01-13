@@ -9,6 +9,18 @@ class EditMenu(QMenu):
         self.setTitle(title)
         self._diagram = diagram
         self.parent = parent
+        
+        self._undo_action = QAction('&Undo', self)
+        self._undo_action.setStatusTip('Revert last operation')
+        self._undo_action.triggered.connect(self._undo)
+        self.addAction(self._undo_action)
+        
+        self._redo_action = QAction('&Redo', self)
+        self._redo_action.setStatusTip('Put last reverted operation back')
+        self._redo_action.triggered.connect(self._redo)
+        self.addAction(self._redo_action)        
+
+        self.addSeparator()
 
         self._delete_action = QAction('&Delete', self)
         self._delete_action.setStatusTip('Delete selected items')
@@ -24,6 +36,14 @@ class EditMenu(QMenu):
         self._select_action.setStatusTip('Select all items')
         self._select_action.triggered.connect(self._select)
         self.addAction(self._select_action)
+        
+    def _undo(self):
+        """Revert last diagram operation"""
+        self._diagram.undo_to_label() 
+
+    def _redo(self):
+        """Put last diagram reverted operation back"""
+        self._diagram.redo_to_label()
 
     def _delete(self):
         """delete selected items"""
