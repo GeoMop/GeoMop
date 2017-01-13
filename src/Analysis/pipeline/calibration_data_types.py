@@ -7,7 +7,7 @@ import numpy as np
 
 class CalibrationParameter():
     def __init__(self, name, group="", bounds=(0.0, 1.0), init_value=None, offset=None, scale=1.0,
-                 fixed=False, log_transform=False, tied=None):
+                 fixed=False, log_transform=False, tied_params=None, tied_expression=None):
         """
         :param string name: parameter name, in configuration and inside model
         :param string group: parameter group
@@ -17,7 +17,9 @@ class CalibrationParameter():
         :param float scale:
         :param bool fixed: if True then parameter is fixed in init value
         :param bool log_transform: if True the body parameter is scale * exp( tuned parameter ) + offset
-        :param string tied: python expression, may use other parameters, this parameter is not calibrated
+        :param list of string tied_params: parameters used in tied_expression
+        :param string tied_expression: python expression, may use other parameters (defined in tied_params),
+            this parameter is not calibrated
         """
 
         self.name = name
@@ -37,7 +39,8 @@ class CalibrationParameter():
         self.scale = scale
         self.fixed = fixed
         self.log_transform = log_transform
-        self.tied = tied
+        self.tied_params = tied_params
+        self.tied_expression = tied_expression
 
 
 class CalibrationObservationType(IntEnum):
