@@ -738,7 +738,14 @@ class Calibration(WrapperActionType):
 
         ret = 0.0
         for obs in self._variables['Observations']:
-            ret += (getattr(self.get_input_val(0).observations, obs.name).value - getattr(output, obs.name).value)**2 * obs.weight**2
+            mo = getattr(output, obs.name).value
+            ret += (getattr(self.get_input_val(0).observations, obs.name).value - mo)**2 * obs.weight**2
+
+            # observation bounds
+            if obs.upper_bound is not None and mo > obs.upper_bound:
+                ret += (mo - obs.upper_bound)**2 * 1e+3 * obs.weight**2
+            if obs.lower_bound is not None and mo < obs.lower_bound:
+                ret += (obs.lower_bound - mo)**2 * 1e+3 * obs.weight**2
 
         lb = self._scipy_lb
         ub = self._scipy_ub
