@@ -50,18 +50,23 @@ class CalibrationObservationType(IntEnum):
 
 
 class CalibrationObservation():
-    def __init__(self, name, group="", observation_type=CalibrationObservationType.scalar, weight=1.0):
+    def __init__(self, name, group="", observation_type=CalibrationObservationType.scalar, weight=1.0,
+                 upper_bound=None, lower_bound=None):
         """
         :param string name: observation name
         :param string group: observation group
         :param CalibrationObservationType observation_type: observation type
         :param float weight: observation weight in target function
+        :param float upper_bound: if computed value is greater than this parameter, special penalization is applied
+        :param float lower_bound: if computed value is smaller than this parameter, special penalization is applied
         """
 
         self.name = name
         self.group = group
         self.observation_type = observation_type
         self.weight = weight
+        self.upper_bound = upper_bound
+        self.lower_bound = lower_bound
 
 
 class CalibrationAlgorithmParameter():
