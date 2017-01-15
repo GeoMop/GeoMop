@@ -36,8 +36,8 @@ class LayerEditor:
                 x2 = i*50+20*(i%9-5) +20*(j%11-6) 
                 y1= j*50
                 y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
-                p1 = diagram.add_point(x1, y1)
-                diagram.add_line(p1, x2, y2)
+                p1 = diagram.add_point(x1, y1, None, None, True)
+                diagram.add_line(p1, x2, y2, None, True)
         self.mainwindow.set_diagram_data(diagram)
 
     def main(self):

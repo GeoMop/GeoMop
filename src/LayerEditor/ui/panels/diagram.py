@@ -104,7 +104,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             p = Point(point,  self._data)
             self.addItem(p)
         elif isinstance(gobject, Point):
-            return gobject
+            return gobject, label
         elif isinstance(gobject, Line): 
             if label=='Add point':
                 label='Add new point to line'
@@ -113,7 +113,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.addItem(l) 
             p = Point(point,  self._data)
             self.addItem(p)                 
-        return p
+        return p, None
         
     def _add_line(self, gobject, p,  add_last=True):
         """If self._last_line is set, last line is repaint to point p and change 
@@ -135,6 +135,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self._last_p1_on_line = gobject
                 px, py =  struc.Diagram.get_point_on_line(gobject.line, p.x(), p.y())
         else:
+            label = "Add line"
             if self._last_p1_real is not None:
                 if isinstance(gobject, Point) and gobject==self._last_p1_real:
                     # line with len==0, ignore 
@@ -145,11 +146,12 @@ class Diagram(QtWidgets.QGraphicsScene):
                     return
                 p1 = self._last_p1_real               
             else:
-                p1 = self._add_point(None, QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y))
-            p2 = self._add_point(gobject, p, "Add line")
+                p1, label = self._add_point(None, 
+                    QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
+            p2, label = self._add_point(gobject, p, label)
             px = p.x()
             py = p.y()            
-            line = self._data. join_line(p1.point, p2.point, None)
+            line = self._data. join_line(p1.point, p2.point, label)
             l = Line(line, self._data)
             self.addItem(l) 
             self._last_p1_real = p2
@@ -198,17 +200,19 @@ class Diagram(QtWidgets.QGraphicsScene):
         for point in added_points:
             p = Point(point,  self._data)
             self.addItem(p)
-        for point in removed_points:
-            point.object.release_point()
-            self.removeItem(point.object)
-        for point in moved_points:
-            point.object.move_point()
         for line in added_lines:
             l = Line(line,  self._data)
             self.addItem(l) 
+        for point in removed_points:
+            p = point.object
+            p.release_point()
+            self.removeItem(p)
         for line in removed_lines:
-            line.object.release_line()
-            self.removeItem(line.object)
+            l = line.object
+            l.release_line()
+            self.removeItem(l)
+        for point in moved_points:
+            point.object.move_point()        
     
     def undo_to_label(self, label=None):
         """undo to set label, if label is None, undo to previous operation"""
@@ -366,8 +370,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._data.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
         elif isinstance(below_item, Line):
-            self._point_moving.move_point_after(self._point_moving_old.x(), self._point_moving_old.y(), 
-                'Move point to Line')
+            self._data.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+                self._point_moving_old.y(), 'Move point to Line')
             new_line, merged_lines = self._data.add_point_to_line(below_item.line, 
                 self._point_moving.point, None)
             l = Line(new_line, self._data)
@@ -376,8 +380,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
             self._update_changes([], [],  [], [], merged_lines)
         elif isinstance(below_item, Point):
-            self._point_moving.move_point_after(self._point_moving_old.x(), self._point_moving_old.y(), 
-                'Merge points')
+            self._data.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+                self._point_moving_old.y(), 'Merge points')
             removed_lines = self._data.merge_point(below_item.point, self._point_moving.point, None)
             self._point_moving.release_point()
             self.removeItem(self._point_moving)

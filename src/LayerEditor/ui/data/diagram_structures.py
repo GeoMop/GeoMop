@@ -176,12 +176,12 @@ class Diagram():
                 if self._rect.bottom()<p.y:
                     self._rect.setBottom(p.y)
         
-    def add_point(self, x, y, label='Add point', id=None, for_history=False):
+    def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
         point = Point(x, y, id)
         self.points.append(point)
         #save revert operations to history
-        if not for_history:
+        if not not_history:
             self._history.delete_point(point.id, label)
         # recount canvas size
         if self._rect is None:
@@ -197,10 +197,10 @@ class Diagram():
                 self._rect.setBottom(y)
         return point
     
-    def move_point(self, p, x, y, label='Move point', for_history=False):
+    def move_point(self, p, x, y, label='Move point', not_history=False):
         """Add point to canvas"""
         #save revert operations to history
-        if not for_history:
+        if not not_history:
             self._history.move_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
@@ -216,11 +216,11 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
             
-    def delete_point(self, p, label='Delete point', for_history=False):
+    def delete_point(self, p, label='Delete point', not_history=False):
         assert len(p.lines)==0
         #save revert operations to history
-        if not for_history:
-            self._history.add_point(p.x, p.y, label)
+        if not not_history:
+            self._history.add_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
         small = (self._rect.width()+self._rect.height())/1000000
@@ -233,7 +233,7 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
 
-    def join_line(self,p1, p2, label=None, id=None, for_history=False):
+    def join_line(self,p1, p2, label=None, id=None, not_history=False):
         """Add line from point p1 to p2"""
         assert p1 != p2
         if p1>p2:
@@ -248,17 +248,17 @@ class Diagram():
         p2.lines.append(line)
         self.lines.append(line)
         #save revert operations to history
-        if not for_history:
+        if not not_history:
             self._history.delete_line(line.id, label)
         return line
         
-    def delete_line(self, l, label="Delete line", for_history=False):
+    def delete_line(self, l, label="Delete line", not_history=False):
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
         l.p2.lines.remove(l)
         #save revert operations to history
-        if not for_history:
+        if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
@@ -272,10 +272,10 @@ class Diagram():
             (not self._rect.contains(p.qpointf())):
             self.recount_canvas()
         
-    def add_line(self,p, x, y, label='Add line'):
+    def add_line(self,p, x, y, label='Add line', no_history=False):
         """Add line from point p to [x,y]"""
-        p2 = self.add_point(x, y, label)
-        return p2, self.join_line(p, p2)
+        p2 = self.add_point(x, y, label, None, no_history)
+        return p2, self.join_line(p, p2, None, None, no_history)
         
     def add_new_point_to_line(self, line, x, y, label='Add new point to line'):
         """Add new point to line and split it """
@@ -299,14 +299,14 @@ class Diagram():
         """
         releasing_lines = []
         xn, yn = self.get_point_on_line(line, point.x, point.y)
-        point = self.add_point(xn, yn, label)
+        self.move_point(point, xn, yn, label)
         point.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = point
         l2 = self.join_line(point, point2)        
         #save revert operations to history
-        self._history.add_line(line.id, line.p1, point2, None)
+        self._history.add_line(line.id, line.p1.id, point2.id, None)
         self._history.delete_line(line.id, None)
         # TODO: case if one line is merged (line between new point and one of line point)
         # TODO: case if two lines is merged (triangle) 
@@ -350,13 +350,16 @@ class Diagram():
                     break
             if p is not None:
                 # move line from atached_point to point
+                objekt = line.object
+                id = line.id
                 self.delete_line(line, label)
                 label = None
                 if p == line.p1:
                     line.p1 = point
                 else:
                     line.p2 = point
-                self.add_line(line.p1, line.p2, label)
+                line = self.join_line(line.p1, line.p2, label, id)
+                line.object = objekt                
         # remove point 
         self.delete_point(atached_point, label)
         return releasing_lines
@@ -470,16 +473,20 @@ class History():
                 revert.label=step.label
             self.undo_steps.append(revert)
             if step.label is not None and (label is None or label==step.label):
-                self.last_undo_steps=len(step.label)
+                self.last_undo_steps=len(self.steps)
                 break
         return  self._return_op( )
         
     def redo_to_label(self, label=None):
         """redo to set label, if label is None, redo to next operation, 
         that has not None label"""
+        if self.last_undo_steps!=len(self.steps):
+            self.undo_steps = []
+            return
         end = False
         while len(self.undo_steps)>0 and \
-            (self.undo_steps[-1].label is not None or not end):
+            (self.undo_steps[-1].label is None or not end):
+            # finish if not undo steps or end is set to True and next step has label
             step = self.undo_steps.pop()
             revert = step.process()
             if step.label is not None:
@@ -487,7 +494,7 @@ class History():
             self.steps.append(revert)
             if step.label is not None and (label is None or label==step.label):
                 end = True
-        self.last_undo_steps=len(step.label)
+        self.last_undo_steps=len(self.steps)
         return  self._return_op( )
         
     def add_multi(self, label):
