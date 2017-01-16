@@ -20,8 +20,8 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         point.object = self
         self.state = ItemStates.standart
         """Item state"""
-        super(Point, self).__init__(self.point.x-2*data.zoom, 
-            self.point.y-2*data.zoom, 4*data.zoom, 4*data.zoom, parent)   
+        super(Point, self).__init__(self.point.x-2/data.zoom, 
+            self.point.y-2/data.zoom, 4/data.zoom, 4/data.zoom, parent)   
         self.setPen(self.data.pen)
         self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))    
         self.setZValue(self.STANDART_ZVALUE) 
