@@ -46,7 +46,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             self.setPen(pen)
         super(Point, self).paint(painter, option, widget)
         
-    def move_point(self, pos, new_state=None):
+    def move_point(self, pos=None, new_state=None):
         """Move point to new pos and move all affected lines"""
         if new_state is not None:
             self.state = new_state
@@ -57,8 +57,9 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             else:
                 self.setZValue(self.STANDART_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor)) 
-        self.point.x = pos.x()
-        self.point.y = pos.y()
+        if pos is not None:
+            self.point.x = pos.x()
+            self.point.y = pos.y()
         self.setRect(self.point.x-2*self.data.zoom, 
             self.point.y-2*self.data.zoom, 4*self.data.zoom, 4*self.data.zoom) 
         for line in self.point.lines:
