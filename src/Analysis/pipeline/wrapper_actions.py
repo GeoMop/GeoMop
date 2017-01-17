@@ -212,7 +212,6 @@ class Calibration(WrapperActionType):
     class ScipyState(IntEnum):
         created = 0
         running = 1
-        #waiting = 2
         finished = 3
 
     name = "Calibration"
@@ -258,6 +257,7 @@ class Calibration(WrapperActionType):
         self._scipy_diff_inc_abs = []
         self._scipy_res = None
         self._scipy_xy_log = []
+        self._scipy_xj_log = []
         self._scipy_x_output_log = []
         self._scipy_iterations = []
         self._scipy_model_eval_num = 0
@@ -275,22 +275,21 @@ class Calibration(WrapperActionType):
         super()._inicialize()
         self.__make_output()
 
-    def _get_output_to_wrapper(self):  # ToDo:
+    def _get_output_to_wrapper(self):
         """return output relevant for wrapper action"""
         if 'WrappedAction' in self._variables and \
-            isinstance(self._variables['WrappedAction'],  BaseActionType):
-            return Struct(vodivost=Float(), tlak=Float())
-            #return Struct(X1=Float(), X2=Float(), X3=Float(), A=Float(), B=Float())
-            # for wraped action return previous input
-            ensemble = self.get_input_val(0)
-            if isinstance(ensemble,  Ensemble):
-                return ensemble.subtype
+                isinstance(self._variables['WrappedAction'],  BaseActionType):
+            ret = Struct()
+            for par in self._variables['Parameters']:
+                setattr(ret, par.name, Float())
+            return ret
         return None
 
-    def __make_output(self):  # ToDo:
+    def __make_output(self):
         """return output relevant for set action"""
         if self._is_state(ActionStateType.finished):
-            opt = Sequence(SingleIterationInfo.create_type(self._variables['Parameters'], self._variables['Observations']))
+            opt = Sequence(SingleIterationInfo.create_type(
+                self._variables['Parameters'], self._variables['Observations']))
             for i in range(len(self._scipy_iterations)):
                 # find output
                 output = None
@@ -299,18 +298,31 @@ class Calibration(WrapperActionType):
                         output = o[1]
                         break
 
+                # get input from x
                 input = self._scipy_x_to_wrapped_input(self._scipy_iterations[i][0])
 
+                # find jacobian
+                jac = None
+                for j in self._scipy_xj_log:
+                    if np.all(j[0] == self._scipy_iterations[i][0]):
+                        jac = j[1]
+                        break
+
                 par = Struct()
+                sen_ind = 0
                 for p in self._variables['Parameters']:
+                    sen = 0.0
                     if p.fixed:
                         pt = "Fixed"
                     else:
                         pt = "Free"
+                        if p.tied_expression is None and jac is not None:
+                            sen = jac[sen_ind]
+                            sen_ind += 1
                     spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
                                  value=getattr(input, p.name),
                                  interval_estimate=Tuple(Float(0.0), Float(0.0)),
-                                 sensitivity=Float(0.0),
+                                 sensitivity=Float(sen),
                                  relative_sensitivity=Float(0.0))
                     setattr(par, p.name, spo)
                 obs = Struct()
@@ -322,7 +334,7 @@ class Calibration(WrapperActionType):
                                  residual=Float(m - mv),
                                  sensitivity=Float(0.0))
                     setattr(obs, o.name, soo)
-                opt.add_item(Struct(iteration=Int(i),
+                opt.add_item(Struct(iteration=Int(i + 1),
                                     cumulative_n_evaluation=Int(self._scipy_iterations[i][2]),
                                     residual=Float(self._scipy_iterations[i][1]),
                                     converge_reason=Enum(["none", "converged", "failure"], "none"),
@@ -336,13 +348,16 @@ class Calibration(WrapperActionType):
                          converge_reason=Enum(["none", "converged", "failure"], cr),
                          residual=Float(self._scipy_res.fun))
             self._output = Struct(optimisation=opt, result=res)
+
+            # ToDo: remove next line
             print("\n".join(self._output._get_settings_script()))
         else:
-            self._output = CalibrationOutputType.create_type(self._variables['Parameters'], self._variables['Observations'])
+            self._output = CalibrationOutputType.create_type(
+                self._variables['Parameters'], self._variables['Observations'])
 
-    def _get_variables_script(self):
+    def _get_variables_script(self): # ToDo:
         """return array of variables python scripts"""
-        var = super._get_variables_script()
+        var = super()._get_variables_script()
         if 'WrappedAction' in self._variables:
             wrapper = 'WrappedAction={0}'.format(self._variables['WrappedAction']._get_instance_name())
             var.append([wrapper])
@@ -350,7 +365,7 @@ class Calibration(WrapperActionType):
 
     def _set_storing(self, identical_list):
         """set restore id"""
-        super._set_storing(identical_list)
+        super()._set_storing(identical_list)
         if 'WrappedAction' in self._variables:
             self._variables['WrappedAction']._set_storing(identical_list)
 
@@ -567,6 +582,8 @@ class Calibration(WrapperActionType):
         if self._tied_params_order is None:
             self._add_error(err, "Tied parameters have circular dependencies")
 
+        return err
+
     def _get_tied_params_order(self, parameters):
         """sort tied params to right evaluation order"""
         tpar = []
@@ -674,6 +691,7 @@ class Calibration(WrapperActionType):
             xh = x.copy()
             xh[i] += h
             jac[i] = (self._scipy_model_eval(xh) - fx) / h
+        self._scipy_xj_log.append((x.copy(), jac.copy()))
         return jac
 
     def _scipy_callback(self, xk):
@@ -696,6 +714,8 @@ class Calibration(WrapperActionType):
         par_dict = {}
         ind = 0
         for par in self._variables['Parameters']:
+            if par.tied_expression is not None:
+                continue
             if par.fixed:
                 v = par.init_value
             else:

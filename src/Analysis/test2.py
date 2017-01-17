@@ -21,10 +21,101 @@ from pipeline.convertors import *
 
 
 
+VariableGenerator_1 = VariableGenerator(
+    Variable=(
+        Struct(
+            observations=Struct(
+                y1=Float(1.0),
+                y2=Float(5.0)
+            )
+        )
+    )
+)
+Workflow_2 = Workflow()
+Function_3 = FunctionAction(
+    Inputs=[
+        Workflow_2.input()
+    ],
+    Params=["x1", "x2"],
+    Expressions=["y1 = 2 * x1 + 2", "y2 = 2 * x2 + 3"]
+)
+Workflow_2.set_config(
+    OutputAction=Function_3,
+    InputAction=Function_3
+)
+Calibration_4 = Calibration(
+    Inputs=[
+        VariableGenerator_1
+    ],
+    WrappedAction=Workflow_2,
+    Parameters=[
+        CalibrationParameter(
+            name="x1",
+            group="pokus",
+            bounds=(-1e+10, 1e+10),
+            init_value=1.0
+        ),
+        CalibrationParameter(
+            name="x2",
+            group="pokus",
+            bounds=(-1e+10, 1e+10),
+            init_value=1.0
+        )
+    ],
+    Observations=[
+        CalibrationObservation(
+            name="y1",
+            group="tunel",
+            weight=1.0
+        ),
+        CalibrationObservation(
+            name="y2",
+            group="tunel",
+            weight=1.0
+        )
+    ],
+    AlgorithmParameters=[
+        CalibrationAlgorithmParameter(
+            group="pokus",
+            diff_inc_rel=0.01,
+            diff_inc_abs=0.0
+        )
+    ],
+    TerminationCriteria=CalibrationTerminationCriteria(
+        n_max_steps=100
+    ),
+    MinimizationMethod="SLSQP"
+)
+Pipeline_5 = Pipeline(
+    ResultActions=[Calibration_4]
+)
+#ss=Function_3._get_settings_script()
+#ss = "\n".join(Calibration_4._get_settings_script())
+pp = Pipelineprocessor(Pipeline_5)
+err = pp.validate()
 
+# run pipeline
+names = []
+pp.run()
+i = 0
 
-
-
+while pp.is_run():
+    runner = pp.get_next_job()
+    if runner is None:
+        time.sleep(0.1)
+    else:
+        names.append(runner.name)
+        command = runner.command
+        if command[0] == "flow123d":
+            command[0] = "flow123d.bat"
+        process = subprocess.Popen(command, stderr=subprocess.PIPE)
+        return_code = process.wait(100)
+        if return_code is not None:
+            #print(process.stderr)
+            pass
+        pp.set_job_finished(runner.id)
+    i += 1
+    assert i < 100000, "Timeout"
 
 
 
