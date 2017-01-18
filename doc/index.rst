@@ -15,6 +15,7 @@
    :titlesonly:
    :caption: Developer Documentation
 
+   Analysis <http://geomop.github.io/GeoMop/indexAN.html>
    ModelEditor <http://geomop.github.io/GeoMop/indexME.html>
    JobPanel <http://geomop.github.io/GeoMop/indexJP.html>
    LayerEditor <http://geomop.github.io/GeoMop/indexLE.html>

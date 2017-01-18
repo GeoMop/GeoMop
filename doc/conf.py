@@ -28,6 +28,8 @@ elif sys.argv[4] == 'JP':
     sys.path.insert(2, os.path.abspath('../src/JobPanel/twoparty/pexpect'))
 elif sys.argv[4] == 'ME':
     sys.path.insert(1, os.path.abspath('../src/ModelEditor'))
+elif sys.argv[4] == 'AN':
+    sys.path.insert(1, os.path.abspath('../src/Analysis'))
 
 print("********************************************")
 print(sys.argv[4])
@@ -65,6 +67,10 @@ elif sys.argv[4] == 'common':
   source_suffix = '.rstd'
   master_doc = 'indexCommon'
   project = u'GeoMop Common Source Documentation'
+elif sys.argv[4] == 'rste':
+  source_suffix = '.rste'
+  master_doc = 'indexAnalysis'
+  project = u'GeoMop Analysis Source Documentation'
 else:
   source_suffix = '.rst'
   # The master toctree document.

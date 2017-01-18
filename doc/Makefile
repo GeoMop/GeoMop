@@ -62,8 +62,10 @@ modules.JP.rst:
 modules.common.rst:
 	sphinx-apidoc -fo ./aut/common -s .rstd ../src/common/
 
+modules.AN.rst:
+	sphinx-apidoc -fo ./aut/Analysis -s .rste ../src/Analysis/
 
-autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst
+autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst modules.AN.rst
 
 html: autogen_src
 	$(SPHINXBUILD) -b html -t LE $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -75,6 +77,9 @@ html: autogen_src
 	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html
+	$(SPHINXBUILD) -b html -t AN $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexAN.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexAN.html
 	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html

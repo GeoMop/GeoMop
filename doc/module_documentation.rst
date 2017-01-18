@@ -3,6 +3,7 @@
    :caption: ModuleDocumentation
    :titlesonly:
 
+   Analyzis <indexAN.html#http://>
    ModelEditor <indexME.html#http://>
    JobPanel <indexJP.html#http://>
    LayerEditor <indexLE.html#http://>
@@ -14,6 +15,7 @@ Modules Source Documentation
 Each module of GeoMop has its own source documentation.
 The following links lead to the source documentation of each module.
 
+* Analyzis <indexAN.html#http://>
 * ModelEditor <indexME.html#http://>
 * JobPanel <indexJP.html#http://>
 * LayerEditor <indexLE.html#http://>
