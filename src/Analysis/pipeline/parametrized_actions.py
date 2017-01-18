@@ -154,7 +154,10 @@ class Flow123dAction(ParametrizedActionType):
     def __file_result(self):
         """Add to DTT output real values from returned file"""
         # TODO: exception if fail
-        #return FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
+        #ret = FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
+
+        #shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
+        #return ret
         return Struct(a=String("test"))
 
     def __parametrise_file(self):
@@ -245,8 +248,12 @@ class FunctionAction(ParametrizedActionType):
     def _get_variables_script(self):
         """return array of variables python scripts"""
         var = super()._get_variables_script()
-        var.append(self._format_array("Params", self._variables["Params"], 4, "Unknown type"))
-        var.append(self._format_array("Expressions", self._variables["Expressions"], 4, "Unknown type"))
+        lines = self._format_array("Params", self._variables["Params"], 0, "Unknown type")
+        lines[-1] = lines[-1][:-1]
+        var.append(lines)
+        lines = self._format_array("Expressions", self._variables["Expressions"], 0, "Unknown type")
+        lines[-1] = lines[-1][:-1]
+        var.append(lines)
         return var
 
     def _update(self):
