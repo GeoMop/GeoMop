@@ -13,6 +13,8 @@ Model Editor Source Documentation
    aut/ModelEditor/model_editor
    aut/ModelEditor/ui
    aut/ModelEditor/util
+   aut/ModelEditor/exporter
+   aut/ModelEditor/normalize_ist
 
 .. toctree::
    :caption: GeoMop

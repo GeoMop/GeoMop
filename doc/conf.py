@@ -67,9 +67,9 @@ elif sys.argv[4] == 'common':
   source_suffix = '.rstd'
   master_doc = 'indexCommon'
   project = u'GeoMop Common Source Documentation'
-elif sys.argv[4] == 'rste':
+elif sys.argv[4] == 'AN':
   source_suffix = '.rste'
-  master_doc = 'indexAnalysis'
+  master_doc = 'indexAN'
   project = u'GeoMop Analysis Source Documentation'
 else:
   source_suffix = '.rst'

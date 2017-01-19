@@ -10,6 +10,7 @@ Job Panel Source Documentation
    aut/JobPanel/delegator
    aut/JobPanel/helpers
    aut/JobPanel/job
+   aut/JobPanel/locks
    aut/JobPanel/job_scheduler
    aut/JobPanel/mj_service
    aut/JobPanel/test

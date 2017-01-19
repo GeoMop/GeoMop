@@ -1,0 +1,24 @@
+Analysis Source Documentation
+=================================
+
+.. toctree::
+   :caption: Analysis Source
+   :maxdepth: 4
+
+   aut/Analysis/aeconfig
+   aut/Analysis/client_pipeline
+   aut/Analysis/pipeline
+   aut/Analysis/ui
+   aut/Analysis/analysis
+   aut/Analysis/analysis_editor
+
+.. toctree::
+   :caption: GeoMop
+
+   GeoMop Documentation <http://geomop.github.io/GeoMop/>
+
+Indices and tables
+==================
+
+* `Index <genindexME.html>`_
+* `Module Index <py-modindexME.html>`_

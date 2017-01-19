@@ -91,9 +91,9 @@ class Diagram():
     """
     Layer diagram
     
-    Use only class functions for adding new shapes. This function ensure olloving 
+    Use only class functions for adding new shapes. This function ensure folloving 
     requirements. New class function must ensure this requirements too.
-    requirements::
+    requirements:
         - All points is unique
         - All points contains used lines
         - Point is griater if is right or x coordinate is equol and point is below 
