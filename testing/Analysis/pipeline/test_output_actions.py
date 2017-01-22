@@ -59,6 +59,6 @@ def test_print_dtt_action(request):
     # check result
     try:
         with open(output_file, 'r') as fd:
-            assert fd.read() == "\n".join(var._get_settings_script())
+            assert fd.read() == "\n".join(var._get_settings_script()) + "\n"
     except (RuntimeError, IOError) as e:
         assert False

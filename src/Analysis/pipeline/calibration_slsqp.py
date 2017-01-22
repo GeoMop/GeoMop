@@ -1,6 +1,7 @@
-# replacement of _minimize_slsqp from scipy.optimize.slsqp
-# scipy version 0.18.1
-
+"""
+replacement of _minimize_slsqp from scipy.optimize.slsqp
+scipy version 0.18.1
+"""
 
 import numpy as np
 from scipy.optimize._slsqp import slsqp

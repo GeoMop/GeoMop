@@ -44,6 +44,7 @@ class PrintDTTAction(OutputActionType):
             with open(self._variables['OutputFile'], 'w') as fd:
                 input = self.get_input_val(0)
                 fd.write("\n".join(input._get_settings_script()))
+                fd.write("\n")
         except Exception as e:
             err.append("Output file saving error: {0}".format(e))
         # ToDo: process errors

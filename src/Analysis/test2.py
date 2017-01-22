@@ -18,6 +18,70 @@ from pipeline.identical_list import *
 import pipeline.action_types as action
 from pipeline.connector_actions import *
 from pipeline.convertors import *
+from pipeline.output_actions import *
+
+sys.exit()
+
+vg = VariableGenerator(Variable=Ensemble(Float(), Float(1.0), Float(2.0), Float(3.0)))
+w = Workflow()
+c1 = Connector()
+c1.set_inputs([w.input()])
+c1.set_config(Convertor = Convertor(Struct(x=Input(0))))
+f = FunctionAction(
+    Inputs=[c1],
+    Params=["x"],
+    Expressions=["y = 2 * x + 3"]
+)
+c2 = Connector()
+c2.set_inputs([f])
+c2.set_config(Convertor = Convertor(Struct(z=Input(0).y)))
+w.set_config(
+    OutputAction=c2,
+    InputAction=c1
+)
+fe = ForEach(
+    Inputs=[vg],
+    WrappedAction=w
+)
+pa = PrintDTTAction(Inputs=[fe], OutputFile="output.txt")
+p = Pipeline(ResultActions=[pa])
+
+
+
+
+
+pp = Pipelineprocessor(p)
+err = pp.validate()
+
+# run pipeline
+names = []
+pp.run()
+i = 0
+
+while pp.is_run():
+    runner = pp.get_next_job()
+    if runner is None:
+        time.sleep(0.1)
+    else:
+        names.append(runner.name)
+        command = runner.command
+        if command[0] == "flow123d":
+            command[0] = "flow123d.bat"
+        process = subprocess.Popen(command, stderr=subprocess.PIPE)
+        return_code = process.wait(100)
+        if return_code is not None:
+            #print(process.stderr)
+            pass
+        pp.set_job_finished(runner.id)
+    i += 1
+    assert i < 100000, "Timeout"
+
+
+sys.exit()
+
+
+
+
 
 
 

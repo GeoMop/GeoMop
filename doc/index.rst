@@ -23,6 +23,8 @@
    organization/procedures
    organization/rules
    organization/pylint_rules
+   organization/function_action
+   organization/pipeline_example
 
 
 Indices and tables

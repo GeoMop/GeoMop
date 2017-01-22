@@ -1,6 +1,7 @@
-# replacement of _minimize_lbfgsb from scipy.optimize.lbfgsb
-# scipy version 0.18.1
-
+"""
+replacement of _minimize_lbfgsb from scipy.optimize.lbfgsb
+scipy version 0.18.1
+"""
 
 import numpy as np
 from numpy import array, asarray, float64, int32, zeros
