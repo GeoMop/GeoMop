@@ -280,8 +280,18 @@ class Calibration(WrapperActionType):
         if 'WrappedAction' in self._variables and \
                 isinstance(self._variables['WrappedAction'],  BaseActionType):
             ret = Struct()
+
+            # static parameters
+            try:
+                if hasattr(self.get_input_val(0), "static_parameters"):
+                    ret = self.get_input_val(0).static_parameters.duplicate()
+            except ValueError:
+                pass
+
+            # parameters
             for par in self._variables['Parameters']:
                 setattr(ret, par.name, Float())
+
             return ret
         return None
 
@@ -350,7 +360,7 @@ class Calibration(WrapperActionType):
             self._output = Struct(optimisation=opt, result=res)
 
             # ToDo: remove next line
-            print("\n".join(self._output._get_settings_script()))
+            #print("\n".join(self._output._get_settings_script()))
         else:
             self._output = CalibrationOutputType.create_type(
                 self._variables['Parameters'], self._variables['Observations'])
@@ -393,46 +403,13 @@ class Calibration(WrapperActionType):
             self._scipy_thread = threading.Thread(target=self._scipy_run)
             self._scipy_thread.daemon = True
             self._scipy_thread.start()
-            # ensemble = []
-            # for i in range(0, len(self._inputs)):
-            #     ensemble.append(self.get_input_val(i))
-            # if len(ensemble[0])== 0:
-            #     return ActionRunningState.error,  \
-            #         ["Empty Ensemble in ForEach input"]
-            # for i in range(0, len(ensemble[0]._list)):
-            #     inputs = []
-            #     for j in range(0, len(self._inputs)):
-            #         if len(ensemble[j])<=i:
-            #             return ActionRunningState.error,  \
-            #                 ["Ensamble in Input({0}) has less items".format(str(i))]
-            #         gen = VariableGenerator(Variable=ensemble[j]._list[i])
-            #         gen._inicialize()
-            #         gen._update()
-            #         gen._after_update(None)
-            #         if self._inputs[j]._restore_id is not None:
-            #             # input is restored => mark generator as restored
-            #             gen._set_restored()
-            #         inputs.append(gen)
-            #     name = self._variables['WrappedAction']._get_instance_name()
-            #     script = self._variables['WrappedAction']._get_settings_script()
-            #     script.insert(0, "from pipeline import *")
-            #     script = '\n'.join(script)
-            #     script = script.replace(name, "new_dupl_workflow")
-            #     exec (script, globals())
-            #     self._wa_instances.append(new_dupl_workflow)
-            #     self._wa_instances[-1].set_inputs(inputs)
-            #     self._wa_instances[-1]._inicialize()
-            #     self._wa_instances[-1]._reset_storing(
-            #         self._variables['WrappedAction'], self._index_iden +"_"+ str(i))
             self._wa_instances.append(1)
         if self._procesed_instances == len(self._wa_instances):
-            for instance in self._wa_instances:
-                #if not instance._is_state(ActionStateType.finished):
-                    return ActionRunningState.wait, None
+            if len(self._wa_instances) > 0:
+                return ActionRunningState.wait, None
             self._set_state(ActionStateType.processed)
             return ActionRunningState.repeat, self
-        next_wa = self._procesed_instances
-        while True:#next_wa < len(self._wa_instances):
+        while True:
             if self._get_scipy_state() == self.ScipyState.running:
                 if self._scipy_event.is_set():
                     return ActionRunningState.wait, None
@@ -441,12 +418,9 @@ class Calibration(WrapperActionType):
                         self._tmp_action = self._create_tmp_action(self._scipy_x_to_wrapped_input(self._scipy_x))
                     state, action = self._tmp_action._plan_action(path)
                     if state is ActionRunningState.finished:
-                        # if next_wa == self._procesed_instances:
-                        # self._procesed_instances += 1
                         output = action._get_output()
                         self._scipy_y = self._wrapped_output_to_scipy_y(output, self._scipy_x)
                         self._tmp_action = None
-                        #self._set_scipy_state(self.ScipyState.running)
                         self._scipy_event.set()
                         return ActionRunningState.wait, None
                     if state is ActionRunningState.repeat:
@@ -459,11 +433,6 @@ class Calibration(WrapperActionType):
                 self._set_state(ActionStateType.finished)
                 self.__make_output()
                 return ActionRunningState.wait, None
-            #state, action = self._wa_instances[next_wa]._plan_action(path)
-            #state = ActionRunningState.finished
-            #action = None
-            # run return wait, try next
-            #next_wa += 1
             return ActionRunningState.wait, None
         return ActionRunningState.wait, None
 
@@ -556,11 +525,25 @@ class Calibration(WrapperActionType):
             if not f:
                 self._add_error(err, "Algorithm parameter for group '{0}' must be in AlgorithmParameters".format(par.group))
 
-        # ToDo: check inputs
-        # for i in range(len(self._inputs)):
-        #     ensemble = self.get_input_val(i)
-        #     if not isinstance(ensemble, Ensemble):
-        #         self._add_error(err, "Input action {0} not produce Ensemble type variable".format(str(i)))
+        # check inputs
+        if len(self._inputs) != 1:
+            self._add_error(err, "Calibration must have one Input action.")
+        input = self.get_input_val(0)
+        if isinstance(input, Struct):
+            try:
+                if hasattr(input, "observations"):
+                    for obs in self._variables['Observations']:
+                        try:
+                            if hasattr(input.observations, obs.name):
+                                pass
+                        except ValueError:
+                            self._add_error(err, "In Input missing observation '{0}'.".format(obs.name))
+                    ret = input.observations.duplicate()
+            except ValueError:
+                self._add_error(err, "Input Struct must have attribute 'observations'.")
+        else:
+            self._add_error(err, "Input action not produce Struct type variable.")
+
         return err
 
     def __check_tied_parameters(self, parameters):
@@ -621,25 +604,23 @@ class Calibration(WrapperActionType):
     def _get_statistics(self):  # ToDo:
         """return all statistics for this and child action"""
         stat = self._variables['WrappedAction']._get_statistics()
-        number = 0
-        if len(self._wa_instances)>0:
-            number = len(self._wa_instances)
-        else:
-            ensemble = self.get_input_val(0)
-            #number = len(ensemble)
+        number = self._scipy_model_eval_num
         ret = ActionsStatistics()
         ret.add(stat, number)
         return ret
 
     def _get_scipy_state(self):
+        """get scipy state"""
         with self._scipy_lock:
             return self._scipy_state
 
     def _set_scipy_state(self, state):
+        """set scipy state"""
         with self._scipy_lock:
             self._scipy_state = state
 
-    def _scipy_run(self):
+    def _scipy_run(self): # todo:
+        """run scipy minimalization"""
         init_values = []
         alg_par = {}
         for par in self._variables['AlgorithmParameters']:
@@ -671,19 +652,21 @@ class Calibration(WrapperActionType):
 
         self._set_scipy_state(self.ScipyState.finished)
 
-        print("scipy_model_eval_num = {}".format(str(self._scipy_model_eval_num)))
-        print("x = {}".format(str(self._scipy_res.x)))
+        #print("scipy_model_eval_num = {}".format(str(self._scipy_model_eval_num)))
+        #print("x = {}".format(str(self._scipy_res.x)))
 
     def _scipy_fun(self, x):
-        print("_scipy_fun enter")
-        print(x)
+        """objective function called by scipy"""
+        #print("_scipy_fun enter")
+        #print(x)
         y = self._scipy_model_eval(x)
-        print(y)
+        #print(y)
 
         return y
 
     def _scipy_jac(self, x):
-        print("_scipy_jac enter")
+        """jacobian function called by scipy"""
+        #print("_scipy_jac enter")
         fx = self._scipy_model_eval(x)
         jac = np.zeros_like(x)
         for i in range(x.shape[0]):
@@ -695,9 +678,11 @@ class Calibration(WrapperActionType):
         return jac
 
     def _scipy_callback(self, xk):
+        """called by scipy after each iteration"""
         self._scipy_iterations.append((xk.copy(), self._scipy_model_eval(xk), self._scipy_model_eval_num))
 
     def _scipy_model_eval(self, x):
+        """model evaluation used in _scipy_fun and _scipy_jac"""
         for xy in self._scipy_xy_log:
             if np.all(xy[0] == x):
                 return xy[1]
@@ -710,7 +695,16 @@ class Calibration(WrapperActionType):
         return self._scipy_y
 
     def _scipy_x_to_wrapped_input(self, x):
-        mod_par = Struct()
+        """convert x from scipy format to workflow format"""
+        ret = Struct()
+
+        # static parameters
+        try:
+            if hasattr(self.get_input_val(0), "static_parameters"):
+                ret = self.get_input_val(0).static_parameters.duplicate()
+        except ValueError:
+            pass
+
         par_dict = {}
         ind = 0
         for par in self._variables['Parameters']:
@@ -725,7 +719,7 @@ class Calibration(WrapperActionType):
             if par.log_transform:
                 v = math.exp(v)
             v = par.scale * v + par.offset
-            setattr(mod_par, par.name, Float(v))
+            setattr(ret, par.name, Float(v))
 
         # tied params
         if self._tied_params_order is None:
@@ -742,17 +736,12 @@ class Calibration(WrapperActionType):
                 if par.log_transform:
                     v = math.exp(v)
                 v = par.scale * v + par.offset
-                setattr(mod_par, par.name, Float(v))
-
-        #ret = Struct(parameters=mod_par)
-        ret = mod_par
-
-        # if hasattr(self.get_input_val(0), "data"):
-        #     ret.data = self.get_input_val(0).data
+                setattr(ret, par.name, Float(v))
 
         return ret
 
     def _wrapped_output_to_scipy_y(self, output, x):
+        """convert output from workflow to scipy objective value"""
         # log
         self._scipy_x_output_log.append((x.copy(), output))
 

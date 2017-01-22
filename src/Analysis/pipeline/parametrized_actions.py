@@ -148,17 +148,14 @@ class Flow123dAction(ParametrizedActionType):
         
     def __file_output(self):
         """Return DTT output structure from Yaml file"""
-        #return FlowOutputType.create_type(self._yaml_support)
-        return Struct(a=String())
+        return FlowOutputType.create_type(self._yaml_support)
 
     def __file_result(self):
         """Add to DTT output real values from returned file"""
         # TODO: exception if fail
-        #ret = FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
-
+        ret = FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
         #shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
-        #return ret
-        return Struct(a=String("test"))
+        return ret
 
     def __parametrise_file(self):
         """Rename and make completation of Yaml file and return new file path"""
