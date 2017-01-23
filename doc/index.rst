@@ -9,6 +9,7 @@
 
    user/linux_installation_guide
    user/model_editor
+   user/analysis_pipeline_example
 
 .. toctree::
    :maxdepth: 1
@@ -24,7 +25,6 @@
    organization/rules
    organization/pylint_rules
    organization/function_action
-   organization/pipeline_example
 
 
 Indices and tables
