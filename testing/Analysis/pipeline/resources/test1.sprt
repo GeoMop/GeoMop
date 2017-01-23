@@ -1,0 +1,18 @@
+{
+    "active_processes": {
+    },
+    "mesh_file": "./input/test1_new.msh",
+    "mesh_file_hash": "a26d532d1dad9b44b100591da8c6dd0dba46e67c07c78bc9c41faaafa7998f89c90d3e3f33bc248355f1947938db7d8561a7f4750a61bb03378befb7105fa129",
+    "params": [],
+    "regions": [
+        ".1d_channel",
+        ".2d_fracture_1",
+        ".2d_fracture_2",
+        ".3d_cube",
+        "1d_channel",
+        "2d_fracture_1",
+        "2d_fracture_2",
+        "3d_cube"
+    ],
+    "yaml_file_hash": "8cb45499a1f441191068d49efe9b7d0579d4b9d134115307e91403aed90ab8734f6215dc99d479e073fc5f653f5d18e291fa860c73b32ab2a06b4408f957aa75"
+}

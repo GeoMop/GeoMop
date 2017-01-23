@@ -1,0 +1,104 @@
+VariableGenerator_1 = VariableGenerator(
+    Variable=(
+        Struct(
+            a=String('test'),
+            b=Int(3)
+        )
+    )
+)
+VariableGenerator_2 = VariableGenerator(
+    Variable=(
+        Struct(
+            a=String('test new'),
+            b=Int(8)
+        )
+    )
+)
+VariableGenerator_3 = VariableGenerator(
+    Variable=(
+        Ensemble(
+            (
+                Struct(
+                    a=String(),
+                    bc_type=Int(),
+                    time=Int(),
+                    value=Float()
+                )
+            ),
+            (
+                Struct(
+                    a=String('a1'),
+                    bc_type=Int(4),
+                    time=Int(500),
+                    value=Float(5.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a2'),
+                    bc_type=Int(4),
+                    time=Int(650),
+                    value=Float(2.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a3'),
+                    bc_type=Int(3),
+                    time=Int(700),
+                    value=Float(8.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a4'),
+                    bc_type=Int(4),
+                    time=Int(750),
+                    value=Float(12.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a5'),
+                    bc_type=Int(3),
+                    time=Int(850),
+                    value=Float(2.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a6'),
+                    bc_type=Int(4),
+                    time=Int(900),
+                    value=Float(13.0)
+                )
+            ),
+            (
+                Struct(
+                    a=String('a7'),
+                    bc_type=Int(6),
+                    time=Int(1100),
+                    value=Float(18.0)
+                )
+            )
+        )
+    )
+)
+Key_2 = KeyConvertor(
+    Input(0).value
+)
+Conv_3 = Convertor(
+    Struct(
+        a=Input(0).a,
+        b=Input(1).b,
+        c=Input(2).sort(Key_2)
+    )
+)
+Conn_6 = Connector(
+    Inputs=[
+        VariableGenerator_1,
+        VariableGenerator_2,
+        VariableGenerator_3
+    ],
+    Convertor=Conv_3
+)

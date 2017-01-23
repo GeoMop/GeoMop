@@ -172,12 +172,12 @@ def test_transf():
         if input_files[i]=="":
             continue
         input = os.path.join(path, input_files[i])
-        output = output_files[i]
+        output = os.path.join(path, output_files[i])
         print(input)
         
         cfg.init(None)
         cfg.import_file(input)
-        cfg.transform("flow123d")
+        cfg.transform("flow123d_1.8.3_to_2.0.0_rc")
         
         with open(output) as f:
             templ = f.readlines()

@@ -1,7 +1,3 @@
-import sys
-
-import pytest
-
 from ui.panels.tree import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *

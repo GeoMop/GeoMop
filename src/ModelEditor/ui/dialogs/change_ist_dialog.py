@@ -44,11 +44,10 @@ class ChangeISTDialog(QDialog):
     def accept(self):
         """Handles a confirmation."""
         cfg.curr_format_file = self.f123d_version_combo_box.currentText()
+        node = None
         try:
             node = cfg.root.get_node_at_path('/flow123d_version')
-        except LookupError:
+        except (LookupError, AttributeError):
             pass
-        else:
-            # replace text
-            pass
+        # replace text
         super(ChangeISTDialog, self).accept()

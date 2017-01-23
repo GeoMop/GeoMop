@@ -17,13 +17,17 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
 from meconfig import cfg
-from data import DataNode
-from helpers import (Notification, AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
+from model_data import DataNode, Notification
+from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, shortcuts)
 from ui.dialogs import FindReplaceDialog
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
-from util import Position, PosType, CursorType
+from util import PosType, CursorType
+from geomop_util import Position
+
+RELOAD_INTERVAL = 5000
+"""default reload interval in ms"""
 
 
 class YamlEditorWidget(QsciScintilla):
@@ -92,7 +96,6 @@ class YamlEditorWidget(QsciScintilla):
 
         self.reload_chunk = ReloadChunk()
         """Context manager for undo/redo actions."""
-
         self._pos = EditorPosition()
         """Helper for monitoring the cursor position."""
 
@@ -186,6 +189,12 @@ class YamlEditorWidget(QsciScintilla):
         # change editor appearance
         appearance.set_default_appearence(self)
         self.SendScintilla(QsciScintilla.SCI_STYLESETFONT, 1)
+        
+        # set reloader
+        Reloader.init(self._reload, self._pos)
+        self.reloader_timer = QtCore.QTimer()
+        self.reloader_timer.timeout.connect(Reloader.check)
+        self.reloader_timer.start(RELOAD_INTERVAL)
 
 # ------------------------------ PROPERTIES ----------------------------------
 
@@ -724,10 +733,12 @@ class YamlEditorWidget(QsciScintilla):
         self._pos.make_post_operation(self, line, column)
         if not self._valid_bounds:
             self.structureChanged.emit(line + 1, column + 1)
+            Reloader.reload()
         else:
             if self._pos.new_pos(self, line, column):
                 if self._pos.is_changed:
                     self.structureChanged.emit(line + 1, column + 1)
+                    Reloader.reload()
                 else:
                     self.nodeChanged.emit(line + 1, column + 1)
             else:
@@ -757,11 +768,19 @@ class YamlEditorWidget(QsciScintilla):
             # turned on globally
             if cfg.config.display_autocompletion:
                 cfg.autocomplete_helper.pending_check = True
+        Reloader.activity += 1
+
+    def _reload(self):
+        """Reload editor text structure"""
+        line, index = self.getCursorPosition()
+        self.structureChanged.emit(line + 1, index + 1)
+        Reloader.reload()
+        
 
     def _reload_chunk_on_exit(self):
         """Emit a structure change upon closing a reload chunk."""
-        line, index = self.getCursorPosition()
-        self.structureChanged.emit(line + 1, index + 1)
+        self._reload()
+        self.reloader_timer.stop()
 
     def _on_element_changed(self):
         """Handle element changed event."""
@@ -812,6 +831,48 @@ class ReloadChunk(ContextDecorator, QObject):
         self.onExit.emit()
         return False
 
+class Reloader:
+    """
+    Main function is start format checking after 5s inaction
+    """
+    reload_funcion = None
+    pos = None
+    """Function for editor reloading"""
+    activity = 0
+    """this variable is increment after action"""
+    was_changed = False
+    """If editor text is changed during last period"""
+    
+    @classmethod
+    def init(cls, reload_func,  pos):
+        """initialize reloader as static class"""
+        cls.reload_funcion = reload_func
+        cls.pos = pos
+        cls.activity = 0
+        cls.was_changed = False
+        
+    @classmethod
+    def reload(cls):
+        """editor was reload"""
+        cls.was_changed = False
+    
+    @classmethod
+    def check(cls):
+        """chek reload in choosed interval"""
+        if not cls.pos.is_changed:
+            cls.was_changed = False
+            return
+            
+        if not cls.was_changed:
+            cls.was_changed = True
+            cls.activity = 0
+            return
+            
+        if  cls.activity == 0:
+            cls.reload_funcion()
+            cls.was_changed = False
+        cls.activity = 0
+            
 
 class EditorPosition:
     """Helper for guarding cursor position above node.

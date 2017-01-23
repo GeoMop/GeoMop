@@ -26,6 +26,6 @@ script:
   - cd ../ModelEditor
   - export PYTHONPATH=../../src/ModelEditor:../../src/common:./mock
   - py.test
-  - cd ../JobsScheduler
-  - export PYTHONPATH=../../src/JobsScheduler
+  - cd ../JobPanel
+  - export PYTHONPATH=../../src/JobPanel
   - py.test

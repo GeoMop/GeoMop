@@ -26,6 +26,14 @@ class AnalyzisEditor:
 
         # show
         self.mainwindow.show()
+        
+        #test
+        import ui.data as data
+        diagram = data.Diagram()
+        n1 = diagram.add_node(100, 200, 0)
+        n2 = diagram.add_node(100, 400, 0)
+        diagram.add_connection(n1, n2)
+        self.mainwindow.set_diagram_data(diagram)
 
     def main(self):
         """go"""        
@@ -48,16 +56,16 @@ def main():
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
             from geomop_dialogs import GMErrorDialog
-            if model_editor is not None:
+            if analyzis_editor is not None:
                 err_dialog = None
                 # display message box with the exception
-                if model_editor.mainwindow is not None:
-                    err_dialog = GMErrorDialog(model_editor.mainwindow)
+                if analyzis_editor.mainwindow is not None:
+                    err_dialog = GMErrorDialog(analyzis_editor.mainwindow)
 
                 # try to reload editor to avoid inconsistent state
-                if callable(model_editor.mainwindow.reload):
+                if callable(analyzis_editor.mainwindow.reload):
                     try:
-                        model_editor.mainwindow.reload()
+                        analyzis_editor.mainwindow.reload()
                     except:
                         if err_dialog is not None:
                             err_dialog.open_error_dialog("Application performed invalid operation!",
@@ -67,14 +75,14 @@ def main():
                 if err_dialog is not None:
                     err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 
-        log_unhandled_exceptions(cfg.CONTEXT_NAME, on_unhandled_exception)
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # launch the application
-    model_editor = AnalyzisEditor()
-    model_editor.main()
+    analyzis_editor = AnalyzisEditor()
+    analyzis_editor.main()
     cfg.save()
     sys.exit(0)
 

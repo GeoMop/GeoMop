@@ -1,0 +1,44 @@
+flow123d_version: 1.8.3
+problem: !SequentialCoupling
+  description: Test
+  mesh:
+    mesh_file: mesh.msh
+  primary_equation: !Steady_MH
+  
+    # Test data
+    input_fields:
+      # Transposed input_fields to array with two items
+      - rid: 1
+        # and duplicated scalar value
+        time: 4
+        # and converted bc_flux values into records with default_descendant FieldConstant
+        bc_flux: !FieldConstant
+          value: 3.0
+        # and converted bc_pressure values into records with given tag
+        bc_pressure: !FieldFormula
+          value: x
+        # and converted anisotropy values into two dimensional arrays
+        anisotropy: !FieldFormula 
+          value: [y, z]              
+              
+      - rid: 2
+        time: 4
+        bc_flux: !FieldConstant
+          value: 4.0
+        bc_pressure: !FieldFormula
+          value: y
+        anisotropy: !FieldFormula 
+          value: [y, z]
+
+    # Placeholder data
+    solver: !Petsc
+        r_tol: 1
+        a_tol: 1
+    balance: 
+      balance_on: true
+    output:
+      output_stream: 
+        file: ./test1.pvd
+        format: !gmsh
+      output_fields:
+        - pressure_diff

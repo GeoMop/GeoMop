@@ -8,5 +8,3 @@ references between modules.
 """
 
 from .enums import CursorType, KeyType, PosType
-from .util import TextValue
-from .locators import Span, Position

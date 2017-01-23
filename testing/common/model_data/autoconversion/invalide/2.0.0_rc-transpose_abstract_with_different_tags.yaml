@@ -1,0 +1,30 @@
+flow123d_version: 2.0.0_rc
+problem: !Coupling_Sequential
+  description: Test
+  mesh:
+    mesh_file: mesh.msh
+  flow_equation: !Flow_Darcy_MH
+  
+    # Test data
+    input_fields:
+      # Transpose input_fields to array with two items
+      # with different tags for each item
+      anisotropy:
+        - !FieldPython
+            function: f1
+        - !FieldFormula [x*x, y*y, z*z]
+
+
+    # Placeholder data
+    nonlinear_solver:
+      linear_solver: !Petsc
+        r_tol: 1
+        a_tol: 1
+    balance: 
+      balance_on: true
+    output:
+      output_stream: 
+        file: ./test1.pvd
+        format: !gmsh
+      output_fields:
+        - pressure_diff

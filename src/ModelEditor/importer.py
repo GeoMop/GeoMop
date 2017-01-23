@@ -55,6 +55,7 @@ if __name__ == "__main__":
             raise Exception("File already exists")
 
         cfg.init(None)
+        cfg.set_current_format_file("1.8.3")
         cfg.import_file(args.con_file)
         if args.transformation_name is not None:
             for transf in args.transformation_name:

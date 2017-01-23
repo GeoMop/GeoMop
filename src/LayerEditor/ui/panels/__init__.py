@@ -1,1 +1,1 @@
-from .addpicture import AddPictureWidget
+from .diagram import Diagram

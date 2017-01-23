@@ -3,7 +3,7 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 import re
-from data import DataNode
+from model_data import DataNode
 from .node_analyzer import NodeAnalyzer
 
 class NodeDescription:
@@ -224,6 +224,8 @@ class StructureChanger:
     def replace(lines, new,  old,  l1, c1, l2, c2):
         """replace first occurence of defined value, and return if is len updated"""        
         for i in range(l1, l2+1):
+            if len(lines)==i:
+                break
             if i == l1:
                 prefix =  lines[i][:c1]
                 line =  lines[i][c1:]

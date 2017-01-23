@@ -1,0 +1,7 @@
+hydra: {env: hydra, host: hydra.kai.tul.cz, key: d1a377c2-59a6-4352-90ec-7605b023fd5d,
+  name: hydra, pbs_system: pbs_hydra, port: 22, pwd: a124b.#, remote_dir: js_services,
+  to_pc: False, to_remote: False, uid: user}
+metacentrum: {env: metacentrum, host: skirit.metacentrum.cz, key: 283a81b2-8a62-4b86-8f64-44be26e55919,
+  name: metacentrum, pbs_system: pbs_metacentrum, port: 22, pwd: a124b.#, remote_dir: js_services,
+  to_pc: false, to_remote: false, uid: par}
+

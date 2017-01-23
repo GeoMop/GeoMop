@@ -23,11 +23,13 @@ import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('../src/common'))
 if sys.argv[4] == 'LE':
     sys.path.insert(1, os.path.abspath('../src/LayerEditor'))
-elif sys.argv[4] == 'JS':
-    sys.path.insert(1, os.path.abspath('../src/JobsScheduler/'))
-    sys.path.insert(2, os.path.abspath('../src/JobsScheduler/twoparty/pexpect'))
+elif sys.argv[4] == 'JP':
+    sys.path.insert(1, os.path.abspath('../src/JobPanel/'))
+    sys.path.insert(2, os.path.abspath('../src/JobPanel/twoparty/pexpect'))
 elif sys.argv[4] == 'ME':
     sys.path.insert(1, os.path.abspath('../src/ModelEditor'))
+elif sys.argv[4] == 'AN':
+    sys.path.insert(1, os.path.abspath('../src/Analysis'))
 
 print("********************************************")
 print(sys.argv[4])
@@ -51,11 +53,11 @@ if sys.argv[4] == 'LE':
   project = u'Layer Editor Source Documentation'
   # The master toctree document.
   master_doc = 'indexLE'
-elif sys.argv[4] == 'JS':
+elif sys.argv[4] == 'JP':
   source_suffix = '.rstb'
   # The master toctree document.
-  master_doc = 'indexJS'
-  project = u'Jobs Scheduler Source Documentation'
+  master_doc = 'indexJP'
+  project = u'Job Panel Source Documentation'
 elif sys.argv[4] == 'ME':
   source_suffix = '.rstc'
   # The master toctree document.
@@ -65,6 +67,10 @@ elif sys.argv[4] == 'common':
   source_suffix = '.rstd'
   master_doc = 'indexCommon'
   project = u'GeoMop Common Source Documentation'
+elif sys.argv[4] == 'AN':
+  source_suffix = '.rste'
+  master_doc = 'indexAN'
+  project = u'GeoMop Analysis Source Documentation'
 else:
   source_suffix = '.rst'
   # The master toctree document.

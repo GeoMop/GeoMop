@@ -1,0 +1,32 @@
+flow123d_version: 1.8.3
+problem: !SequentialCoupling
+  description: Test
+  mesh:
+    mesh_file: mesh.msh
+  primary_equation: !Steady_MH
+  
+    # Test data
+    input_fields:
+      # Transposed input_fields to array with two items
+      - rid: 1
+        # and converted bc_flux value into record with given type
+        bc_flux: !FieldFormula
+          value: x+y
+        
+      - rid: 2
+        bc_flux: !FieldFormula 
+          value: x-y
+
+
+    # Placeholder data
+    solver: !Petsc
+        r_tol: 1
+        a_tol: 1
+    balance: 
+      balance_on: true
+    output:
+      output_stream: 
+        file: ./test1.pvd
+        format: !gmsh
+      output_fields:
+        - pressure_diff

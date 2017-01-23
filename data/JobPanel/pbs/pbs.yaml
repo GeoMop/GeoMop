@@ -1,0 +1,4 @@
+hydra: {infiniband: false, memory: null, name: hydra, nodes: 1, pbs_system: pbs_hydra,
+  ppn: 1, queue: null, walltime: null}
+metacentrum: {infiniband: false, memory: null, name: metacentrum, nodes: 1, pbs_system: pbs_metacentrum,
+  ppn: 1, queue: q_2h, walltime: null}

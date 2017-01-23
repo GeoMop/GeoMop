@@ -1,0 +1,27 @@
+localhost:
+  cli_params: []
+  flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123d.exe
+  module_add: null
+  name: localhost
+  pbs_params: []
+  python_exec: C:\Program Files (x86)\GeoMop\env\Scripts\python.exe
+  scl_enable_exec: null
+metacentrum:
+  cli_params: [module load /software/modules/current/metabase, module load cmake-2.8.12,
+    module load gcc-4.9.2, module load boost-1.56-gcc, module load perl-5.20.1-gcc,
+    module load openmpi, module load python27-modules-gcc, module load python-2.7.10-gcc,
+    module unload gcc-4.8.1, module unload openmpi-1.8.2-gcc]
+  flow_path: /storage/praha1/home/jan-hybs/projects/Flow123dDocker/flow123d/bin/flow123d
+  module_add: python34-modules-gcc
+  name: metacentrum
+  pbs_params: []
+  python_exec: python3
+  scl_enable_exec: null
+hydra:
+  cli_params: []
+  flow_path: /share/apps/flow123d/flow123d-2.0.0_rc/bin/flow123d
+  module_add: null
+  name: hydra
+  pbs_params: []
+  python_exec: /opt/python/bin/python3.3
+  scl_enable_exec: null

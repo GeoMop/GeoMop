@@ -5,10 +5,17 @@ Common Source Documentation
    :caption: Common Source
    :maxdepth: 4
 
-   aut/common/config
+   aut/common/flow_util
+   aut/common/geomop_analysis
    aut/common/geomop_dialogs
    aut/common/geomop_util
+   aut/common/widgets
+   aut/common/model_data
+   aut/common/pyperclip
+   aut/common/pyssh
+   aut/common/config
    aut/common/icon
+   aut/common/version
 
 .. toctree::
    :caption: GeoMop
