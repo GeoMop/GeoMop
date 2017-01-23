@@ -20,7 +20,7 @@
    ModelEditor <http://geomop.github.io/GeoMop/indexME.html>
    JobPanel <http://geomop.github.io/GeoMop/indexJP.html>
    LayerEditor <http://geomop.github.io/GeoMop/indexLE.html>
-   Common <http://geomop.github.io/GeoMop/indexCommon.html/>
+   Common <http://geomop.github.io/GeoMop/indexCommon.html>
    organization/procedures
    organization/rules
    organization/pylint_rules
