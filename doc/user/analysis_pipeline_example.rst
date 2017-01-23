@@ -1,5 +1,5 @@
-Pipeline example (czech)
-========================
+Analysis - Pipeline example (czech)
+===================================
 
 Tento dokument popisuje vytvoření ukázkové pipeline.
 
