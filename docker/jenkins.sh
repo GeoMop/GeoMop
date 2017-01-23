@@ -3,11 +3,11 @@
 echo "************ RUNNING TESTS *************"
 
 # test
-docker run \
-  -v /var/lib/jenkins/workspace/GeoMop:/mnt/GeoMop \
-  geomop/test \
-  /home/geomop/test.sh
-if [[ $? != 0 ]]; then exit 1; fi
+#docker run \
+#  -v /var/lib/jenkins/workspace/GeoMop:/mnt/GeoMop \
+#  geomop/test \
+#  /home/geomop/test.sh
+#if [[ $? != 0 ]]; then exit 1; fi
 
 echo "************ RUNNING BUILD *************"
 
