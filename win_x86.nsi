@@ -167,8 +167,8 @@ SectionEnd
 #  ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
 #  ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
 #  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'
-
-SectionEnd
+#
+#SectionEnd
 
 
 # Section /o "LayerEditor" SecLayerEditor
