@@ -149,24 +149,24 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
-Section "JobsScheduler" SecJobsScheduler
-
-  # Section is mandatory.
-  SectionIn RO
-
-  RMDir /r "$INSTDIR\JobsScheduler"
-  SetOutPath $INSTDIR
-  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc /x jobs /x log "${SRC_DIR}\JobsScheduler"
-
-  CreateDirectory "$INSTDIR\JobsScheduler\jobs"
-  CreateDirectory "$INSTDIR\JobsScheduler\log"
-  CreateDirectory "$INSTDIR\JobsScheduler\versions"
-
-  # Grant jobs, lock folder permissions to Users
-  ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'  
+#Section "JobsScheduler" SecJobsScheduler
+#
+#  # Section is mandatory.
+#  SectionIn RO
+#
+#  RMDir /r "$INSTDIR\JobsScheduler"
+#  SetOutPath $INSTDIR
+#  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc /x jobs /x log "${SRC_DIR}\JobsScheduler"
+#
+#  CreateDirectory "$INSTDIR\JobsScheduler\jobs"
+#  CreateDirectory "$INSTDIR\JobsScheduler\log"
+#  CreateDirectory "$INSTDIR\JobsScheduler\versions"
+#
+#  # Grant jobs, lock folder permissions to Users
+#  ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
+#  ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
+#  ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
+#  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'
 
 SectionEnd
 
