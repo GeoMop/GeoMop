@@ -1,6 +1,6 @@
 localhost:
   cli_params: []
-  flow_path: C:\Program Files\Flow123d 2.0.0_rc\bin\flow123d.exe
+  flow_path: C:\Program Files\Flow123d 2.1.0\bin\flow123d.exe
   module_add: null
   name: localhost
   pbs_params: []
@@ -16,12 +16,4 @@ metacentrum:
   name: metacentrum
   pbs_params: []
   python_exec: python3
-  scl_enable_exec: null
-hydra:
-  cli_params: []
-  flow_path: /share/apps/flow123d/flow123d-2.0.0_rc/bin/flow123d
-  module_add: null
-  name: hydra
-  pbs_params: []
-  python_exec: /opt/python/bin/python3.3
   scl_enable_exec: null
