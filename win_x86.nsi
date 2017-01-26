@@ -128,7 +128,11 @@ Section "Runtime Environment" SecRuntime
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
   # Install NumPy, SciPy.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"'
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win_amd64.whl"'
 
   # Create directories with samples.
