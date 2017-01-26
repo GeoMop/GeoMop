@@ -107,11 +107,6 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\common"
 
   # Install virtualenv.
-
-  # test
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
-  
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
   ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
@@ -132,10 +127,12 @@ Section "Runtime Environment" SecRuntime
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
-  # Install NumPy, SciPy.
-  #SetOutPath $INSTDIR\prerequisites
-  #File "${BUILD_DIR}\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"
-  #ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"'
+  # Install NumPy.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"'
+
+  # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win_amd64.whl"'
