@@ -107,6 +107,11 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\common"
 
   # Install virtualenv.
+
+  # test
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
+  
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
   ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
