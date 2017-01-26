@@ -42,7 +42,7 @@ def check_pexpect(data, mj_name):
     conn.conn.expect(".*pwd\r\n")
     ret = str(conn.conn.readline(), 'utf-8').strip()
     conn.disconnect()
-    assert ret == '/home/test'
+    assert ret == '/home/tester'
 
 class _Conn():
     def __init__(self,data, mj_name):
@@ -72,9 +72,9 @@ class _Conn():
            
     def connect(self):
         cfg_dir = config.__config_dir__
-        reg = os.path.join(cfg_dir, ".reg")
+        reg = os.path.join(cfg_dir, "JobPanel", ".reg")
         assert os.path.isfile(reg)         
-        u = Users(self.ssh.name, dir, cfg_dir, self.ssh.to_pc,  self.ssh.to_remote)
+        u = Users(self.ssh.name, dir, os.path.join(cfg_dir, "JobPanel"), self.ssh.to_pc,  self.ssh.to_remote)
         pwd = u.get_login(self.ssh.pwd, self.ssh.key, "LONG")
         assert pwd == self.ssh.pwd
         assert pwd is not None

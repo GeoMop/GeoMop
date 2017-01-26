@@ -320,7 +320,7 @@ def test_ssh(request, data):
             stop(cm, mj)       
         if instalation is not None:
             ssh_helper.clear_ssh_installation(data, instalation)
-        communicator_files_builder.clear_files(TEST_DIR)
+#        communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_local)   
     
     mj_name = data.multijobs["test2_local_ssh"].preset.name    
