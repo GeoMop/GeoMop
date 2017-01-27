@@ -108,6 +108,8 @@ Section "Runtime Environment" SecRuntime
 
   CreateDirectory "$INSTDIR\env"
   ExecWait 'icacls "$INSTDIR\env" /grant *S-1-5-32-545:(F)'
+  CreateDirectory "$INSTDIR\env\Scripts"
+  ExecWait 'icacls "$INSTDIR\env\Scripts" /grant *S-1-5-32-545:(F)'
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
