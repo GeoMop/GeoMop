@@ -106,6 +106,9 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
+  CreateDirectory "$INSTDIR\env"
+  ExecWait 'icacls "$INSTDIR\env" /grant *S-1-5-32-545:(F)'
+
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
