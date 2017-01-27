@@ -112,9 +112,9 @@ Section "Runtime Environment" SecRuntime
   #ExecWait 'icacls "$INSTDIR\env\Scripts" /grant *S-1-5-32-545:(F)'
 
   # Install virtualenv.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
+  #SetOutPath $INSTDIR\prerequisites
+  #File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
+  #ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
   #ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
   ExecWait '"$PYTHON_EXE" -m venv "$INSTDIR\env"'
 
