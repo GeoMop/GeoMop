@@ -12,4 +12,4 @@ sys.path.insert(2, __lib_dir__)
 sys.path.insert(3, __mock_dir__)
 
 import pytest
-pytest.main(['-x', 'ModelEditor'""", '-k',  "not test_transformace.py" """])
+pytest.main(['-x', 'ModelEditor'])#""", '-k'  "not test_transformace.py" """])

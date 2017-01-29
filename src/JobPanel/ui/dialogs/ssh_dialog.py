@@ -327,4 +327,4 @@ class UiSshDialog(UiFormDialog):
             self.passwordLineEdit.setEnabled(False)
         else:
             self.copyPasswordCheckbox.setEnabled(True)
-            self.passwordLineEdit.setEnabled(True)
+            self.passwordLineEdit.setEnabled(True)            

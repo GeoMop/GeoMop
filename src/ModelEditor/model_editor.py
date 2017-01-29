@@ -66,6 +66,14 @@ class ModelEditor:
             self._update_document_name()
             self.mainwindow.show_status_message("File '" + yaml_file[0] + "' is opened")
             
+    def open_set_file(self, file):
+        """open set file"""
+        cfg.open_file(file)
+        self.mainwindow.reload()
+        self.mainwindow.update_recent_files()
+        self._update_document_name()
+        self.mainwindow.show_status_message("File '" + file + "' is opened")
+            
     def open_window(self):
         """open new instance of model editor"""
         subprocess.Popen([sys.executable, __file__])
@@ -205,6 +213,7 @@ def main():
     """ModelEditor application entry point."""
     parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('file', help='Yaml file', default=None,  nargs='?')
     args = parser.parse_args()
 
     if args.debug:
@@ -244,6 +253,8 @@ def main():
 
     # launch the application
     model_editor = ModelEditor()
+    if args.file is not None:
+        model_editor.open_set_file(args.file)
     model_editor.main()
     sys.exit(0)
 

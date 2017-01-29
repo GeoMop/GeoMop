@@ -96,6 +96,11 @@ else:
     directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.job.value)
+    
+if __name__ == "job":
+    # no doc generation
+    exit
+
 try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
@@ -192,9 +197,7 @@ except Exception as err:
     finished = True
     rc=-1
 
-if __name__ != "job":
-    # no doc generation
-    comunicator.run()
+comunicator.run()
    
 comunicator.close()   
     
