@@ -81,8 +81,8 @@ Function .onInit
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.4.3.msi"
-        ExecWait 'msiexec /i python-3.4.3.msi'
+        File "${BUILD_DIR}\python-3.4.4.msi"
+        ExecWait 'msiexec /i python-3.4.4.msi'
 
         # Check installation.
         Goto CheckPython
@@ -112,11 +112,11 @@ Section "Runtime Environment" SecRuntime
   #ExecWait 'icacls "$INSTDIR\env\Scripts" /grant *S-1-5-32-545:(F)'
 
   # Install virtualenv.
-  #SetOutPath $INSTDIR\prerequisites
-  #File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
-  #ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
-  #ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
-  ExecWait '"$PYTHON_EXE" -m venv "$INSTDIR\env"'
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\virtualenv-15.1.0-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-15.1.0-py2.py3-none-any.whl"'
+  ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
+  #ExecWait '"$PYTHON_EXE" -m venv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
   SetOutPath $INSTDIR
@@ -135,13 +135,13 @@ Section "Runtime Environment" SecRuntime
 
   # Install NumPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"'
+  File "${BUILD_DIR}\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"'
 
   # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win_amd64.whl"'
+  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
 
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
