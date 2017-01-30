@@ -24,7 +24,7 @@ DISPLAY=:1 py.test
 if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 cd $TEST_DIR/JobPanel
-export PYTHONPATH=$SRC_DIR/JobPanel:$SRC_DIR/JobPanel/twoparty/pexpect:/$SRC_DIR/common:./mock
+export PYTHONPATH=$SRC_DIR/JobPanel:$SRC_DIR/JobPanel/twoparty/pexpect:/$SRC_DIR/common:$SRC_DIR/JobPanel/twoparty/pexpect:./mock
 DISPLAY=:1 py.test
 if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
