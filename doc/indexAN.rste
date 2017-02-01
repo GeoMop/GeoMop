@@ -9,7 +9,6 @@ Analysis Source Documentation
    aut/Analysis/client_pipeline
    aut/Analysis/pipeline
    aut/Analysis/ui
-   aut/Analysis/analysis
    aut/Analysis/analysis_editor
 
 .. toctree::
