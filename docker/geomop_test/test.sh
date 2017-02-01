@@ -20,6 +20,8 @@ chmod 600 ~/.ssh/id_rsa
 # copy known hosts
 cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
+ls -al ~/.ssh/
+
 ssh tester@localhost pwd
 
 # Run tests.
