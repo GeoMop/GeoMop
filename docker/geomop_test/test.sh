@@ -20,6 +20,8 @@ PID=$!
 # copy known hosts
 #cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
+echo $USER
+
 ls -al ~/.ssh/
 
 ssh tester@localhost pwd
