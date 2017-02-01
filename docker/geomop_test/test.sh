@@ -13,16 +13,16 @@ Xvfb :1 &
 PID=$!
 
 # copy ssh key
-mkdir -p -m 700 ~/.ssh
-cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
-chmod 600 ~/.ssh/id_rsa
+#mkdir -p -m 700 ~/.ssh
+#cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
+#chmod 600 ~/.ssh/id_rsa
 
 # copy known hosts
-cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
+#cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
 ls -al ~/.ssh/
 
-ssh tester@172.17.0.1 pwd
+ssh tester@localhost pwd
 
 # Run tests.
 #cd $TEST_DIR/common
