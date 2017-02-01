@@ -12,7 +12,7 @@ pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 Xvfb :1 &
 PID=$!
 
-ping localhost
+
 ssh tester@localhost pwd
 
 # Run tests.
