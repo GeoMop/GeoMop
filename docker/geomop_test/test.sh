@@ -13,14 +13,14 @@ Xvfb :1 &
 PID=$!
 
 # copy ssh key
-#mkdir -p -m 700 ~/.ssh
-#cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
-#chmod 600 ~/.ssh/id_rsa
+mkdir -p -m 700 ~/.ssh
+cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
 
 # copy known hosts
-#cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
+cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
-echo $USER
+#echo $USER
 
 ls -al ~/.ssh/
 

@@ -8,14 +8,14 @@ RUN apt-get update && apt-get install -y \
   openssh-client \
   xvfb  # Used for a virtual X server framebuffer to run GUI tests.
 
-ENV HOME /home/geomop
+ENV HOME_DIR /home/geomop
 ENV GITSRC /mnt/GeoMop
 
 # Create directories
-RUN mkdir -m 777 $HOME
+RUN mkdir -m 777 $HOME_DIR
 RUN mkdir -m 777 $GITSRC
 RUN mkdir -m 777 /mnt/ssh
 #RUN mkdir -p -m 700 ~/.ssh
 
 # Copy test script
-COPY test.sh $HOME/
+COPY test.sh $HOME_DIR/
