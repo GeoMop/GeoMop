@@ -22,7 +22,7 @@ cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
 ls -al ~/.ssh/
 
-ssh tester@localhost pwd
+ssh tester@172.17.0.1 pwd
 
 # Run tests.
 #cd $TEST_DIR/common
