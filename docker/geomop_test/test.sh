@@ -12,6 +12,8 @@ pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 Xvfb :1 &
 PID=$!
 
+ssh tester@ci3.nti.tul.cz pwd
+
 # Run tests.
 #cd $TEST_DIR/common
 #export PYTHONPATH=$SRC_DIR/common
