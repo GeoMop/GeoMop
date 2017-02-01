@@ -13,6 +13,10 @@ Xvfb :1 &
 PID=$!
 
 
+cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
+
 ssh tester@localhost pwd
 
 # Run tests.
