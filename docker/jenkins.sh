@@ -4,6 +4,7 @@ echo "************ RUNNING TESTS *************"
 
 # test
 docker run \
+  --net=host \
   -v /var/lib/jenkins/workspace/GeoMop:/mnt/GeoMop \
   geomop/test \
   /home/geomop/test.sh
