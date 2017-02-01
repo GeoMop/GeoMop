@@ -127,6 +127,7 @@ class ModelEditor:
         dialog.setDefaultSuffix('.yaml')
         dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
             file_name = dialog.selectedFiles()[0]
