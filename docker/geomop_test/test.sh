@@ -12,9 +12,12 @@ pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 Xvfb :1 &
 PID=$!
 
-
+# copy ssh key
+mkdir -p -m 700 ~/.ssh
 cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa
+
+# copy known hosts
 cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
 ssh tester@localhost pwd

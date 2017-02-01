@@ -15,7 +15,7 @@ ENV GITSRC /mnt/GeoMop
 RUN mkdir -m 777 $HOME
 RUN mkdir -m 777 $GITSRC
 RUN mkdir -m 777 /mnt/ssh
-RUN mkdir -p -m 700 ~/.ssh
+#RUN mkdir -p -m 700 ~/.ssh
 
 # Copy test script
 COPY test.sh $HOME/
