@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
   python3-pyqt5.qsci \
   python3-pyqt5.qtwebkit \
   openssh-client \
+  openssh-server \
   xvfb  # Used for a virtual X server framebuffer to run GUI tests.
 
 ENV HOME_DIR /home/geomop

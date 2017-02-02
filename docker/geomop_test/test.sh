@@ -12,21 +12,24 @@ pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 Xvfb :1 &
 PID=$!
 
+RUN useradd -m -p MojeHeslo123 -s /bin/bash test
+
+
 # copy ssh key
-mkdir -p -m 700 ~/.ssh
-cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
-chmod 600 ~/.ssh/id_rsa
+#mkdir -p -m 700 ~/.ssh
+#cp /mnt/ssh/id_rsa ~/.ssh/id_rsa
+#chmod 600 ~/.ssh/id_rsa
 
 # copy known hosts
-cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
+#cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
 #echo $USER
 
-ls -al ~/.ssh/
+#ls -al ~/.ssh/
 
-ifconfig
+#ifconfig
 
-ssh tester@localhost pwd
+ssh test@localhost pwd
 
 # Run tests.
 #cd $TEST_DIR/common
