@@ -24,6 +24,8 @@ cp /mnt/ssh/known_hosts ~/.ssh/known_hosts
 
 ls -al ~/.ssh/
 
+ifconfig
+
 ssh tester@localhost pwd
 
 # Run tests.
