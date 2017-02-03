@@ -6,7 +6,7 @@ import os
 from data import Users
 
 def clear_ssh_installation(data, mj_name):
-    dir = '/home/tester/js_services'
+    dir = '/home/test/js_services'
     conn = _Conn(data, mj_name)
     conn.connect()
     conn.remove_dir(dir)
@@ -18,7 +18,7 @@ def check_ssh_installation(data, mj_name):
     INS_FILES2 = ["communication.py","communicator.py", "exec_output_comm.py", "__init__.py", 
         "installation.py", "jobs_communicator.py", "pbs_input_comm.py", "pbs_output_comm.py",
         "socket_input_comm.py", "ssh_output_comm.py", "std_input_comm.py"]
-    dir = '/home/tester/js_services'
+    dir = '/home/test/js_services'
     conn = _Conn(data, mj_name)
     conn.connect()
     contents = conn.ls_dir(dir)
@@ -42,7 +42,7 @@ def check_pexpect(data, mj_name):
     conn.conn.expect(".*pwd\r\n")
     ret = str(conn.conn.readline(), 'utf-8').strip()
     conn.disconnect()
-    assert ret == '/home/tester'
+    assert ret == '/home/test'
 
 class _Conn():
     def __init__(self,data, mj_name):
