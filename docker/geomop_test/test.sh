@@ -18,7 +18,9 @@ echo test:MojeHeslo123 | chpasswd
 
 mkdir -p /var/run/sshd
 #/usr/sbin/sshd -D
-
+sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+service ssh restart
 sleep 10
 
 # copy ssh key
