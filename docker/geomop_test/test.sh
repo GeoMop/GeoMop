@@ -37,7 +37,7 @@ sleep 10
 
 #ifconfig
 
-ssh test@localhost pwd
+ssh test:MojeHeslo123@localhost pwd
 
 # Run tests.
 #cd $TEST_DIR/common
