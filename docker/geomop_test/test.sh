@@ -6,7 +6,7 @@ TEST_DIR=$GIT_DIR/testing
 SRC_DIR=$GIT_DIR/src
 
 # Update/install pip dependencies.
-#pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
+pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 
 # Create X virtual framebuffer to run GUI tests.
 Xvfb :1 &
@@ -37,7 +37,7 @@ sleep 10
 
 #ifconfig
 
-ssh test:MojeHeslo123@localhost pwd
+#sshpass -p 'YourPassword'ssh test:MojeHeslo123@localhost pwd
 
 # Run tests.
 #cd $TEST_DIR/common
