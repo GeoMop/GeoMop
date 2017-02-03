@@ -310,6 +310,7 @@ else:
             """download result files from installation folder"""
             try:
                 sftp = self._get_sftp()
+                sftp.setwinsize(128,512)
                 self.installation.get_results(sftp)
                 sftp.close()
             except Exception as err:
@@ -320,6 +321,7 @@ else:
         def _get_sftp(self):
             """return sftp connection"""
             sftp = pexpect.spawn('sftp ' + self.name + "@" + self.host, timeout=15)
+            sftp.setwinsize(128,512)
             try:
                 res = sftp.expect(['.*assword:', 'sftp> '])
             except pexpect.TIMEOUT:

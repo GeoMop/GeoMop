@@ -68,21 +68,18 @@ modules.AN.rst:
 autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst modules.AN.rst
 
 html: autogen_src
+	$(SPHINXBUILD) -b html -t JP $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
+	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html
 	$(SPHINXBUILD) -b html -t AN $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexAN.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexAN.html
 	$(SPHINXBUILD) -b html -t LE $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexLE.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexLE.html
-	$(SPHINXBUILD) -b html -t JP $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
-	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html	
-	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
