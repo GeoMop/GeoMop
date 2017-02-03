@@ -106,17 +106,11 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
-  #CreateDirectory "$INSTDIR\env"
-  #ExecWait 'icacls "$INSTDIR\env" /grant *S-1-5-32-545:(F)'
-  #CreateDirectory "$INSTDIR\env\Scripts"
-  #ExecWait 'icacls "$INSTDIR\env\Scripts" /grant *S-1-5-32-545:(F)'
-
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\virtualenv-15.1.0-py2.py3-none-any.whl"
   ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-15.1.0-py2.py3-none-any.whl"'
   ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
-  #ExecWait '"$PYTHON_EXE" -m venv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
   SetOutPath $INSTDIR
@@ -220,9 +214,9 @@ Section "Start Menu shortcuts" SecStartShortcuts
   SetOutPath $INSTDIR
   CreateShortcut "$SMPROGRAMS\GeoMop\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
 
-  IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
-    SetOutPath $INSTDIR\JobsScheduler
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
+    SetOutPath $INSTDIR\JobPanel
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -237,9 +231,9 @@ SectionEnd
 
 Section "Desktop icons" SecDesktopIcons
 
-  IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
-    SetOutPath $INSTDIR\JobsScheduler
-    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
+    SetOutPath $INSTDIR\JobPanel
+    CreateShortCut "$DESKTOP\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -253,8 +247,8 @@ SectionEnd
 
 
 # TODO next version - unchecked by default and solve data dir for new install
-# Section /o "Wipe settings" SecWipeSettings
-Section "Wipe settings" SecWipeSettings
+Section /o "Wipe settings" SecWipeSettings
+#Section "Wipe settings" SecWipeSettings
 
   # Clear all configuration from APPDATA
   RMDir /r "${APP_HOME_DIR}"
@@ -262,7 +256,6 @@ Section "Wipe settings" SecWipeSettings
   # fill data home to default resources data
   SetOutPath "${APP_HOME_DIR}"
   File /r "${DATA_DIR}/*"
-
 
 SectionEnd
 
@@ -311,7 +304,7 @@ Section "Uninstall"
   DeleteRegKey HKLM SOFTWARE\GeoMop
 
   # Delete desktop icons.
-  Delete "$DESKTOP\JobsScheduler.lnk"
+  Delete "$DESKTOP\JobPanel.lnk"
   Delete "$DESKTOP\LayerEditor.lnk"
   Delete "$DESKTOP\ModelEditor.lnk"
 
