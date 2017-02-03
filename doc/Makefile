@@ -68,6 +68,9 @@ modules.AN.rst:
 autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst modules.AN.rst
 
 html: autogen_src
+	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html
 	$(SPHINXBUILD) -b html -t JP $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
