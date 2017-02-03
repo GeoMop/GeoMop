@@ -12,8 +12,11 @@ pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 Xvfb :1 &
 PID=$!
 
-RUN useradd -m -p MojeHeslo123 -s /bin/bash test
+useradd -m -s /bin/bash test
+echo test:MojeHeslo123 | chpasswd
 
+
+mkdir -p /var/run/sshd
 
 # copy ssh key
 #mkdir -p -m 700 ~/.ssh
