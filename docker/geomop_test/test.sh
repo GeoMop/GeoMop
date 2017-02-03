@@ -17,7 +17,9 @@ echo test:MojeHeslo123 | chpasswd
 
 
 mkdir -p /var/run/sshd
-./usr/sbin/sshd -D
+/usr/sbin/sshd -D
+
+sleep 10
 
 # copy ssh key
 #mkdir -p -m 700 ~/.ssh
