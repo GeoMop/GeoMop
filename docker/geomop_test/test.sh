@@ -6,7 +6,7 @@ TEST_DIR=$GIT_DIR/testing
 SRC_DIR=$GIT_DIR/src
 
 # Update/install pip dependencies.
-pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
+#pip3 install -r $GIT_DIR/requirements-development.txt > /dev/null 2>&1
 
 # Create X virtual framebuffer to run GUI tests.
 Xvfb :1 &
@@ -17,6 +17,7 @@ echo test:MojeHeslo123 | chpasswd
 
 
 mkdir -p /var/run/sshd
+./usr/sbin/sshd -D
 
 # copy ssh key
 #mkdir -p -m 700 ~/.ssh
