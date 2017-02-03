@@ -9,6 +9,10 @@ import os
 import pkgutil
 import importlib
 
+'''
+Import of PBS dialects: 
+'''
+
 
 class DialectImporter:
     @staticmethod

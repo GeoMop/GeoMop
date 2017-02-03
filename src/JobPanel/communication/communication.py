@@ -1,16 +1,34 @@
-"""Classes for handing messages over net"""
+"""
+Base classes for sending and recieving messsages.
+
+The comunication is always initiated by the client application sending a request message that is forwarded further
+and finally processed and the respond message is forwarded back up to the client application.
+For every connection there are two ends: the output end that is closer to the clinet app and the input end.
+
+OutputComm - base of class responsible for sending the request and the recieving response
+InputComm - base of class responsible for recieving the request and sending back the response
+"""
 
 import abc
 import communication.installation as dinstall
 
 class OutputComm(metaclass=abc.ABCMeta):
-    """Ancestor of output communication classes"""
+    """
+    OutputComm - base of classes responsible for sending the request and the recieving response
+
+    JB, Question: Why there are some specific methods for some actions? It should just pass messages
+    there and back.
+    """
     
     def __init__(self, host, mj_name, an_name):
         self.host=host
-        """ip or dns of host for communication"""
+        """ip or dns of host for communication"""  # JB? Why DNS?
+
         self.installation = dinstall.Installation(mj_name, an_name)
-        """installation where is copied files"""
+        """
+        Installation where is copied files
+        JB, Question: Why is this in base class, only Job and MJ cares about instalation
+        """
        
     def set_version_params(self, app_version, data_version):
         self.installation.set_version_params(app_version, data_version)
@@ -19,7 +37,10 @@ class OutputComm(metaclass=abc.ABCMeta):
         return self.installation.instalation_fails_mess
         
     def lock_installation(self):
-        """Set installation locks, return if should installation continue"""
+        """
+        Set installation locks, return if should installation continue
+        JB, TODO: Describe exactly what resource is locked.
+        """
         self.installation.lock_installation()
         
     def unlock_installation(self):

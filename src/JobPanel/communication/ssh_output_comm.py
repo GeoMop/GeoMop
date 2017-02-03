@@ -4,6 +4,11 @@ import data.transport_data as tdata
 import re
 from communication.communication import OutputComm
 
+"""
+JB, TODO:
+Separate windows and linux implementation into distinguish classes.
+"""
+
 logger = logging.getLogger("Remote")
 
 if sys.platform == "win32":
@@ -132,6 +137,8 @@ else:
         def is_running_next(self):
             """
             Return if next communicator run
+
+            JB, Question: Where _proc comes from? What "next" communicator is meant?
             """
             return self._proc.isconnected()
             
@@ -143,11 +150,17 @@ else:
                 self.disconnect()
                 
         def isconnected(self):
-            """Connection is opened"""
+            """
+            Connection is opened
+            """
             return self._connected
             
         def connect(self):
-            """connect session"""
+            """
+            Start SSH connection.
+
+            JB, Question: Why this do not perform also remote installation?
+            """
             self.ssh = pxssh.pxssh()
             try:
                 if self.password is None:

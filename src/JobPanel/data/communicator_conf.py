@@ -28,7 +28,7 @@ class InputCommType(IntEnum):
 
 class CommType(Enum):
     """Types of communicators"""
-    none = ""
+    non0e = ""
     app = "app"
     delegator = "delegator"
     remote = "remote"
