@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if TESTS; then
+if $TESTS; then
 
 echo "************ RUNNING TESTS *************"
 
