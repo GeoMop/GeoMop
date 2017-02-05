@@ -159,7 +159,7 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
-Section "JobsScheduler" SecJobsScheduler
+Section "-JobsScheduler" SecJobsScheduler
 
   # Section is mandatory.
   SectionIn RO
@@ -264,7 +264,7 @@ Section /o "Wipe settings" SecWipeSettings
 SectionEnd
 
 
-Section "Default resources data" SecDefaultResourcesData
+Section "-Default resources data" SecDefaultResourcesData
 
   # Section is mandatory.
   SectionIn RO
@@ -302,7 +302,7 @@ SectionEnd
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
 "The runtime environment for GeoMop - Python 3.4 with PyQt5."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
-"The jobs scheduler."
+"Remove jobs scheduler."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
 "The job panel."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecModelEditor} \
