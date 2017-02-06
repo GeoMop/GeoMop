@@ -18,5 +18,3 @@ RUN mkdir -m 777 $GITSRC
 
 # Copy test script
 COPY test.sh $HOME_DIR/
-
-EXPOSE 22

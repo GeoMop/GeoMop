@@ -11,10 +11,6 @@ docker run \
   /home/geomop/test.sh
 if [[ $? != 0 ]]; then exit 1; fi
 
-#-v /home/geomop/.ssh:/home/geomop/.ssh \
-#--net=host \
-#-p 22:22 \
-
 fi
 
 

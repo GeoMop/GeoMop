@@ -26,15 +26,15 @@ service ssh restart
 #sshpass -p 'YourPassword'ssh test:MojeHeslo123@localhost pwd
 
 # Run tests.
-#cd $TEST_DIR/common
-#export PYTHONPATH=$SRC_DIR/common
-#DISPLAY=:1 py.test
-#if [[ $? != 0 ]]; then kill $PID; exit 1; fi
+cd $TEST_DIR/common
+export PYTHONPATH=$SRC_DIR/common
+DISPLAY=:1 py.test
+if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 #cd $TEST_DIR/ModelEditor
-#export PYTHONPATH=$SRC_DIR/ModelEditor:$SRC_DIR/common:./mock
-#DISPLAY=:1 py.test
-#if [[ $? != 0 ]]; then kill $PID; exit 1; fi
+export PYTHONPATH=$SRC_DIR/ModelEditor:$SRC_DIR/common:./mock
+DISPLAY=:1 py.test
+if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 #cd $TEST_DIR/JobPanel
 #export PYTHONPATH=$SRC_DIR/JobPanel:$SRC_DIR/JobPanel/twoparty/pexpect:/$SRC_DIR/common:./mock
@@ -47,5 +47,3 @@ service ssh restart
 #if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 kill $PID
-
-sleep 100000
