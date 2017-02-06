@@ -15,6 +15,9 @@ PID=$!
 useradd -m -s /bin/bash test
 echo test:MojeHeslo123 | chpasswd
 
+useradd -m -s /bin/bash pavel
+echo pavel:MojeHeslo123 | chpasswd
+
 mkdir -p /var/run/sshd
 #sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 #sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
@@ -33,10 +36,10 @@ service ssh restart
 #DISPLAY=:1 py.test
 #if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
-cd $TEST_DIR/JobPanel
-export PYTHONPATH=$SRC_DIR/JobPanel:$SRC_DIR/JobPanel/twoparty/pexpect:/$SRC_DIR/common:./mock
-DISPLAY=:1 py.test
-if [[ $? != 0 ]]; then kill $PID; exit 1; fi
+#cd $TEST_DIR/JobPanel
+#export PYTHONPATH=$SRC_DIR/JobPanel:$SRC_DIR/JobPanel/twoparty/pexpect:/$SRC_DIR/common:./mock
+#DISPLAY=:1 py.test
+#if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 #cd $TEST_DIR/Analysis
 #export PYTHONPATH=$SRC_DIR/Analysis:/$SRC_DIR/common
@@ -44,3 +47,5 @@ if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 #if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 kill $PID
+
+sleep 100000
