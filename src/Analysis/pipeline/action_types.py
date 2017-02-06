@@ -290,11 +290,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self._id), self.__class__.__name__))
-        inputs = []
-        for input in self._inputs:
-            if not isinstance(input, WrapperActionBridge):
-                inputs.append(input)
-        lines.extend(self._format_array("Inputs", inputs, 4, "Unknown input type"))
+        lines.extend(self._format_array("Inputs", self._inputs, 4, "Unknown input type"))
         for script in self._get_variables_script():
             lines.extend(Formater.indent(script, 4))
             lines[-1] += ","
@@ -664,22 +660,6 @@ class OutputActionType(BaseActionType, metaclass=abc.ABCMeta):
         return err
 
 
-class WrapperActionBridge(Bridge):
-    """Action that provide output to wrapped action"""
-
-    name = "WrapperActionBridge"
-    """Display name of action"""
-    description = "WrapperActionBridge"
-    """Display description of action"""
-
-    def __init__(self):
-        super().__init__(None)
-
-    def _get_instance_name(self):
-        #return BaseActionType._get_instance_name(self)
-        return self.name
-
-
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     """
     Wrapper for some action (usualy workflow), that provide cyclic
@@ -697,9 +677,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         """String identificator for construction inner store names"""
         self._index_iden = ""
         super(WrapperActionType, self).__init__(**kwargs)
-        self.bridge = WrapperActionBridge()
-        """bridge that provide output to wrapped action"""
-        
+
     def _inicialize(self):
         """inicialize action run variables"""
         if self._get_state().value > ActionStateType.created.value:
@@ -710,9 +688,8 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if  'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  WorkflowActionType):            
             #set workflow bridge to special wrapper action bridge
-            self._set_bridge(self.bridge)
-            self.bridge.action_checkable = False
-            self._variables['WrappedAction'].set_config(Inputs=[self.bridge])
+            self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._variables['WrappedAction'].bridge.action_checkable = False
             self._variables['WrappedAction']._inicialize()
             self._hash.update(bytes(self._variables['WrappedAction']._get_hash(), "utf-8"))
  
