@@ -3,9 +3,8 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QMessageBox,
-                             QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QFontDialog,
-                             QHBoxLayout, QGroupBox, QComboBox)
-from PyQt5.QtGui import QFont
+                             QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QHBoxLayout,
+                             QGroupBox, QComboBox)
 
 from helpers import shortcuts
 from meconfig import cfg
@@ -81,11 +80,11 @@ class GeneralTab(QWidget):
         self.line_endings_layout.addWidget(self.line_ends_combo_box)
         self.line_endings_layout.setContentsMargins(0,0,0,0)
 
-        self.autocompletion_checkbox = QCheckBox("Display Automatically")
+        self.autocompletion_checkbox = QCheckBox("Display completicion automaticaly")
         if cfg.config.display_autocompletion:
             self.autocompletion_checkbox.setChecked(True)
 
-        self.symbol_completion_checkbox = QCheckBox("Complete brackets and array symbols")
+        self.symbol_completion_checkbox = QCheckBox("CComplete bracked and braces")
         if cfg.config.symbol_completion:
             self.symbol_completion_checkbox.setChecked(True)
 
