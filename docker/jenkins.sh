@@ -7,7 +7,6 @@ echo "************ RUNNING TESTS *************"
 # test
 docker run \
   -v /var/lib/jenkins/workspace/GeoMop:/mnt/GeoMop \
-  -v /home/geomop/.ssh:/mnt/ssh \
   geomop/test \
   /home/geomop/test.sh
 if [[ $? != 0 ]]; then exit 1; fi
