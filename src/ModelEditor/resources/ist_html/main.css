@@ -257,6 +257,7 @@ a.selected {
     font-weight: bold;
 }
 
-.key-type-optional {
+a.key-type-optional {
     font-style: italic;
+    color: #5e6195;
 }

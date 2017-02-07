@@ -1164,6 +1164,11 @@ class EditorPosition:
             else:
                 node = self.node
 
+        if node is not None and \
+            node.origin is not DataNode.Origin.structure and \
+            node.parent is not None:
+            node = node.parent
+
         if node is None or getattr(node, 'input_type', None) is None:
             # use root input type
             input_type = cfg.root_input_type
