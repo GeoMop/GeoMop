@@ -151,15 +151,15 @@ class InfoTextGenerator:
                         title = ''
                         if 'default' in key:
                             cls_ += ' key-type-' + key['default']['type'].replace(' ', '-')
-                            if key['default']['type']=="value at declaration":
-                                title = "key has value at declaration"
+                            if key['default']['type'][:5]=="value":
+                                title = "default " + key['default']['type']
                             else:
-                                title = "key is "+key['default']['type']
+                                title = key['default']['type'] + " key"
                         if 'reducible_to_key' in type_:
                             if len(title)>0:
-                                title += ", key is reducible"
+                                title += ", conversion key"
                             else:
-                                title += "key is reducible"
+                                title += "conversion key"
                         att={'class': cls_, 'href': href, 'title':"title"}
                         if len(title)>0:
                             att['title']=title
