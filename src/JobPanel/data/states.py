@@ -6,6 +6,11 @@ from enum import IntEnum
 
 logger = logging.getLogger("Remote")
 
+"""
+JB, question: Why we have two partly same and partly different files with mj ans job states?
+This one and transport_data.
+"""
+
 
 class TaskStatus(IntEnum):
     """

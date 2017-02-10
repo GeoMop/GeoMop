@@ -18,16 +18,18 @@ class OutputComm(metaclass=abc.ABCMeta):
 
     JB, Question: Why there are some specific methods for some actions? It should just pass messages
     there and back.
+
+    JB, TODO: Remove unused methods.
     """
     
     def __init__(self, host, mj_name, an_name):
         self.host=host
-        """ip or dns of host for communication"""  # JB? Why DNS?
+        """ip or dns of host for communication"""
 
         self.installation = dinstall.Installation(mj_name, an_name)
         """
-        Installation where is copied files
-        JB, Question: Why is this in base class, only Job and MJ cares about instalation
+        Installation - representation of the next communicator.
+        ? Can we move this into comunicator?
         """
        
     def set_version_params(self, app_version, data_version):
@@ -39,7 +41,8 @@ class OutputComm(metaclass=abc.ABCMeta):
     def lock_installation(self):
         """
         Set installation locks, return if should installation continue
-        JB, TODO: Describe exactly what resource is locked.
+        We need to lock the instalation directory (by a file lock) to prevent simultaneous installation of
+        two multijobs etc.
         """
         self.installation.lock_installation()
         
@@ -48,7 +51,9 @@ class OutputComm(metaclass=abc.ABCMeta):
         self.installation.unlock_installation()
         
     def install_job_libs(self):
-        """Install libs for jobs"""
+        """
+        Install libs for jobs. Why another method for installation.
+        """
         self.installation.install_job_libs()
         
     def delete(self):

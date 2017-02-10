@@ -28,12 +28,18 @@ class ComManager:
                   check function can be call with higher frequency)
 
         - call stop_all or pause_all function and wait till run_jobs, delete_jobs and start_jobs array is not empty
+
+
+     JB, TODO: Describe better data structures. What are individual states/queues exactly?
     """
     def __init__(self, data_app):        
         self._workers = dict()
         self._data_app = data_app
         self.current_job = None
-        """current job id"""
+        """
+        current job id
+        What is current_job?
+        """
         self.start_jobs = []
         """array of job ids, that will be started"""
         self.resume_jobs = []
@@ -79,6 +85,7 @@ class ComManager:
             bussy = bussy or self._check_deleted()
         if not bussy:
             bussy = bussy or self._check_started()
+
         self._refresh_queues()
         if not bussy:
             self._check_cancelled()
@@ -167,7 +174,9 @@ class ComManager:
         return False
 
     def _stop(self):
-        """stop all job in queue and return True else return False"""
+        """
+        stop all job in queue and return True else return False
+        """
         res = False
         while len(self.stop_jobs)>0:
             key = self.stop_jobs.pop()
@@ -183,7 +192,12 @@ class ComManager:
         return res
 
     def _terminate(self):
-        """terminate all jobs in queue and return True else return False"""
+        """
+        terminate all jobs in queue and return True else return False
+
+        JB, Question: What is difference between terminate and stop?
+
+        """
         res = False
         while len(self.terminate_jobs)>0:
             key = self.terminate_jobs.pop()
