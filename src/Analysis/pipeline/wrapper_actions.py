@@ -358,9 +358,6 @@ class Calibration(WrapperActionType):
                          converge_reason=Enum(["none", "converged", "failure"], cr),
                          residual=Float(self._scipy_res.fun))
             self._output = Struct(optimisation=opt, result=res)
-
-            # ToDo: remove next line
-            #print("\n".join(self._output._get_settings_script()))
         else:
             self._output = CalibrationOutputType.create_type(
                 self._variables['Parameters'], self._variables['Observations'])

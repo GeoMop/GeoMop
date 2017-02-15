@@ -22,7 +22,7 @@ from pipeline.output_actions import *
 
 
 
-sys.exit()
+#sys.exit()
 
 
 
@@ -99,7 +99,9 @@ Pipeline_5 = Pipeline(
     ResultActions=[pa]
 )
 #ss=Function_3._get_settings_script()
-#ss = "\n".join(Calibration_4._get_settings_script())
+ss = "\n".join(Calibration_4._get_settings_script())
+print(ss)
+#sys.exit()
 pp = Pipelineprocessor(Pipeline_5)
 err = pp.validate()
 
@@ -108,6 +110,15 @@ names = []
 pp.run()
 i = 0
 
+
+while pp.is_run():
+    time.sleep(0.1)
+
+    i += 1
+    assert i < 100000, "Timeout"
+
+
+sys.exit()
 while pp.is_run():
     runner = pp.get_next_job()
     if runner is None:
