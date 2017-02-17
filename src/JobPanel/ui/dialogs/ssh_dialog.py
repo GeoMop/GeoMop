@@ -14,7 +14,9 @@ from ui.validators.validation import SshNameValidator, ValidationColorizer, Remo
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
 from ui.dialogs import SshPasswordDialog
+from ui.imports.workspaces_conf import BASE_DIR
 import config
+import os
 
 
 class SshDialog(AFormDialog):
@@ -88,7 +90,8 @@ class SshDialog(AFormDialog):
             if save_reg:
                 if self.preset is None or password != self.preset.pwd:
                     # if password changed
-                    key = Users.save_reg(name, password, config.__config_dir__)
+                    key = Users.save_reg(name, password,
+                        os.path.join(config.__config_dir__, BASE_DIR))
                     preset.pwd = "a124b.#"
                     preset.key = key
                 else:
@@ -116,7 +119,8 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
-            pwd = Users.get_reg(preset.name, preset.key, config.__config_dir__)
+            pwd = Users.get_reg(preset.name, preset.key, 
+                os.path.join(config.__config_dir__, BASE_DIR))
             if pwd is not None:
                 self.ui.passwordLineEdit.setText(pwd)
                 self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)

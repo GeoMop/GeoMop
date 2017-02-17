@@ -16,6 +16,7 @@ class OutputCommType(IntEnum):
     ssh = 1
     exec_ = 2
     pbs = 3
+    ssh_tunnel = 4
 
 
 class InputCommType(IntEnum):

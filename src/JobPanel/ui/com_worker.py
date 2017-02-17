@@ -173,7 +173,7 @@ class ComWorker(threading.Thread):
             error = self.__error
             self.__error = None
         elif self.is_interupted():
-            state = self._last_state.copy(TaskStatus.interupted)
+            state = self._last_state.copy(TaskStatus.interrupted)
             error = "Connection to multijob was interupted"
         return state,  error, downloaded, downloaded, downloaded
        
@@ -414,7 +414,7 @@ class ComWorker(threading.Thread):
     def _install(self):
         """installation, if return False, thrad is stoped"""
         self._com.lock_installation()
-        self._com.install()
+        self._com.install()       
         self._com. unlock_installation()
         if self._com.instalation_fails_mess is not None:
             self.__state_lock.acquire()
@@ -454,6 +454,7 @@ class ComWorker(threading.Thread):
                     self.__start_state = TaskStatus.queued                    
                 self.__state_lock.release()
             if mess.action_type == tdata.ActionType.ok:
+                self._com.local_tunnel()
                 self.__state_lock.acquire()
                 self.__starting = False
                 self.__running = True

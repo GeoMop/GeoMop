@@ -151,7 +151,6 @@ class ComManager:
         com = Communicator(com_conf)
         worker = ComWorker(key, com)
         self._workers[key] = worker
-
                 
     def _delete_first(self):
         """delete first job in queue and return True else return False"""
@@ -210,7 +209,7 @@ class ComManager:
                     mj = self._data_app.multijobs[key]
                     mj.error = worker.get_error()
                     if worker.is_interupted():
-                        mj.get_state().set_status(TaskStatus.interupted)
+                        mj.get_state().set_status(TaskStatus.interrupted)
                         self.run_jobs.append(key)
                     else:
                         mj.get_state().set_status(TaskStatus.error)

@@ -23,7 +23,7 @@ class ActionType(Enum):
     get_state = 8
     state = 9
     add_job = 10
-    job_conn = 11
+    socket_conn = 11
     job_state = 12
     install_in_process = 13
     set_start_jobs_count = 14
@@ -32,7 +32,7 @@ class ActionType(Enum):
     restore = 17
     ping = 18
     ping_response = 19
-    
+    redirect_socket_conn = 20    
 
 class ProcessType(Enum):
     """Action type"""
@@ -203,8 +203,8 @@ class Action():
             self.data = JobStateData(json_data)            
         elif type == ActionType.add_job:
             self.data = JobData(json_data)
-        elif type == ActionType.job_conn:
-            self.data = JobConn(json_data)
+        elif type == ActionType.socket_conn:
+            self.data = SocketConn(json_data)
         elif type == ActionType.install_in_process:
             self.data = InstallData(json_data)
         elif type == ActionType.set_start_jobs_count:
@@ -214,6 +214,8 @@ class Action():
         elif type == ActionType.ping:
             self.data = EmptyData()
         elif type == ActionType.ping_response:
+            self.data = EmptyData()
+        elif type == ActionType.redirect_socket_conn:
             self.data = EmptyData()
             
     def get_message(self):
@@ -278,7 +280,7 @@ class JobData(ActionData):
         """Set job id"""
         self.data["id"] = id
 
-class JobConn(ActionData):
+class SocketConn(ActionData):
     """Connection parameters of a new job over remote"""
     def __init__(self, json_data=None):
         self.data={}

@@ -90,7 +90,7 @@ def  remote_action_function_before(message):
                         action=tdata.Action(tdata.ActionType.action_in_process)
                     else:
                         # ToDo for remote exec return host (not localhost-])
-                        action=tdata.Action(tdata.ActionType.job_conn)
+                        action=tdata.Action(tdata.ActionType.socket_conn)
                         action.data.set_conn(host, port)
                 else:
                     started_jobs[id] = JobStarter(comunicator.conf, id)

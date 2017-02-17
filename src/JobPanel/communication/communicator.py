@@ -13,6 +13,7 @@ from data.communicator_status import CommunicatorStatus
 from communication.std_input_comm import StdInputComm
 from  communication.socket_input_comm import SocketInputComm
 from  communication.ssh_output_comm import SshOutputComm
+from  communication.ssh_output_tunnel_comm import SshOutputTunnelComm
 from  communication.exec_output_comm import  ExecOutputComm
 from  communication.installation import Installation
 from  communication.pbs_output_comm import PbsOutputComm
@@ -57,6 +58,8 @@ class Communicator():
         """log level for communicator"""
         self._instaled = False        
         """if installation process of next communicator is finished"""
+        self._tunneled = False        
+        """if is tunneled connecting to next next communicator"""
         self._restored = False        
         """if restored process is finished"""
         self.instalation_fails_mess = None        
@@ -72,6 +75,14 @@ class Communicator():
         """_download_processed lock"""
         self._instalation_begined = False
         """if installation begined"""
+        self._tunnelation_begined = False
+        """if tunnelation begined"""
+        self._get_port_finished = False
+        """if try gain port is finished"""
+        self._tunnelation_port = None
+        """tunnelation port"""
+        self._tunnelation_host = None
+        """tunnelation host"""
         self.stop = False
         """Stop processing of run function"""
         self.mj_name = init_conf.mj_name
@@ -143,14 +154,18 @@ class Communicator():
     def get_output(conf, mj_name, an_name, new_name=None):
         """Inicialize output using defined type"""
         output = None
-        if conf.output_type == comconf.OutputCommType.ssh:            
+        if conf.output_type == comconf.OutputCommType.ssh or \
+            conf.output_type == comconf.OutputCommType.ssh_tunnel:
             home_dir = None
             if conf.paths_config is not None:
                 home_dir = conf.paths_config.home_dir
             dir = Installation.get_mj_data_dir_static(mj_name, an_name)
             u = Users(conf.ssh.name, dir, home_dir, conf.ssh.to_pc,  conf.ssh.to_remote)
             pwd = u.get_login(conf.ssh.pwd, conf.ssh.key,conf.conf_long_id)
-            output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid,pwd)
+            if conf.output_type == comconf.OutputCommType.ssh:
+                output = SshOutputComm(conf.ssh.host, conf.mj_name, conf.an_name, conf.ssh.uid,pwd)
+            else:
+                output = SshOutputTunnelComm(conf.ssh.host, conf.port, conf.mj_name, conf.an_name, conf.ssh.uid,pwd)
             output.connect()
         elif conf.output_type == comconf.OutputCommType.pbs:
             old_name = conf.pbs.name
@@ -218,6 +233,17 @@ class Communicator():
         if message.action_type == tdata.ActionType.ping:
             #action will be processed in after funcion
             return False, None
+        if message.action_type == tdata.ActionType.redirect_socket_conn:
+            if not isinstance(self.output, ExecOutputComm):
+                action=tdata.Action(tdata.ActionType.error)
+                action.data.data["msg"] = "Input type is not support socket connection"
+                action.data.data["severity"] = 5 
+                logger.error("Unsupported message redirect_socket_conn")                
+            else:
+                action=tdata.Action(tdata.ActionType.socket_conn)
+                action.data.set_conn(self.output.host, str(self.output.port))
+                self._interupt = True
+            return False, action.get_message()
         if message.action_type == tdata.ActionType.destroy:
             self._destroy()
         if message.action_type == tdata.ActionType.restore_connection or \
@@ -236,6 +262,21 @@ class Communicator():
                 action = tdata.Action(tdata.ActionType.action_in_process)
                 return False, action.get_message()
         if message.action_type == tdata.ActionType.installation:
+            if self._tunnelation_begined:
+                self._install_lock.acquire()
+                get_port_finished = self._get_port_finished
+                self._install_lock.release()
+                if not get_port_finished:
+                    self._get_tunnel_addres()                    
+                    action = tdata.Action(tdata.ActionType.install_in_process)
+                    return False, action.get_message()                    
+                self._install_lock.acquire()
+                tunneled = self._tunneled
+                self._install_lock.release()
+                if not tunneled:
+                    action = tdata.Action(tdata.ActionType.install_in_process)
+                    return False, action.get_message()
+                return True, None
             if self.is_installed() and self.instalation_fails_mess is not None:
                 action=tdata.Action(tdata.ActionType.error)
                 action.data.data["msg"] = self.instalation_fails_mess
@@ -278,6 +319,15 @@ class Communicator():
         
     def  standart_action_function_after(self, message,  response):
         """This function will be set by communicator. This is empty default implementation."""
+        if message.action_type == tdata.ActionType.installation and \
+            isinstance(self.output, SshOutputTunnelComm):
+            if response.action_type == tdata.ActionType.ok:
+                self._tunnelation_begined = True
+                t = threading.Thread(target=self.tunnel)
+                t.daemon = True
+                t.start()                
+                action = tdata.Action(tdata.ActionType.action_in_process)
+                return action.get_message()
         if message.action_type == tdata.ActionType.ping:
             action = tdata.Action(tdata.ActionType.ping_response)
             return action.get_message()
@@ -424,6 +474,38 @@ class Communicator():
             self._install_lock.acquire()
             self._instaled = True
             self._install_lock.release()
+            
+    def _get_tunnel_addres(self):
+        """Find out socket port and host from next communicator for tunneling"""
+        action=tdata.Action(tdata.ActionType.redirect_socket_conn)
+        mess = action.get_message()
+        self.send_message(mess)
+        mess = self.receive_message()
+        if mess is not None and mess.action_type == tdata.ActionType.socket_conn:           
+            self._tunnelation_host = mess.get_action().data.data['host']
+            self._tunnelation_port = mess.get_action().data.data['port']
+        self._install_lock.acquire()
+        self._get_port_finished = True
+        self._install_lock.release()
+        
+    def local_tunnel(self):
+        """make ssh tunel synchrony on local computer"""
+        self._get_tunnel_addres()
+        self.tunnel()
+            
+    def tunnel(self):
+        """make ssh tunnel"""
+        while(True):
+            self._install_lock.acquire()
+            get_port_finished = self._get_port_finished
+            self._install_lock.release()
+            if get_port_finished:
+                break
+            time.sleep(0.5)
+        self.output.create_tunnel(self._tunnelation_port, self._tunnelation_host)
+        self._install_lock.acquire()
+        self._tunneled = True
+        self._install_lock.release()
         
     def download(self):
         """download result files"""
