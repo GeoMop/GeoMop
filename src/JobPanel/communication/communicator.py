@@ -490,8 +490,9 @@ class Communicator():
         
     def local_tunnel(self):
         """make ssh tunel synchrony on local computer"""
-        self._get_tunnel_addres()
-        self.tunnel()
+        if isinstance(self.output, SshOutputTunnelComm):
+            self._get_tunnel_addres()
+            self.tunnel()
             
     def tunnel(self):
         """make ssh tunnel"""
