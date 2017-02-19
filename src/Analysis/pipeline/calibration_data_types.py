@@ -42,6 +42,25 @@ class CalibrationParameter():
         self.tied_params = tied_params
         self.tied_expression = tied_expression
 
+    def _get_variables_script(self):
+        lines = ["CalibrationParameter("]
+        lines.extend(Formater.format_variable("name", ["'{0}'".format(self.name)], 4))
+        lines.extend(Formater.format_variable("group", ["'{0}'".format(self.group)], 4))
+        lines.extend(Formater.format_variable("bounds", [str(self.bounds)], 4))
+        lines.extend(Formater.format_variable("init_value", [str(self.init_value)], 4))
+        lines.extend(Formater.format_variable("offset", [str(self.offset)], 4))
+        lines.extend(Formater.format_variable("scale", [str(self.scale)], 4))
+        lines.extend(Formater.format_variable("fixed", [str(self.fixed)], 4))
+        lines.extend(Formater.format_variable("log_transform", [str(self.log_transform)], 4))
+        lines.extend(Formater.format_variable("tied_params", [str(self.tied_params)], 4))
+        if self.tied_expression is None:
+            lines.extend(Formater.format_variable("tied_expression", ["None"], 4))
+        else:
+            lines.extend(Formater.format_variable("tied_expression", ["'{0}'".format(self.tied_expression)], 4))
+        lines[-1] = lines[-1][:-1]
+        lines.append(")")
+        return lines
+
 
 class CalibrationObservationType(IntEnum):
     """Calibration Observation Type"""
@@ -68,6 +87,18 @@ class CalibrationObservation():
         self.upper_bound = upper_bound
         self.lower_bound = lower_bound
 
+    def _get_variables_script(self):
+        lines = ["CalibrationObservation("]
+        lines.extend(Formater.format_variable("name", ["'{0}'".format(self.name)], 4))
+        lines.extend(Formater.format_variable("group", ["'{0}'".format(self.group)], 4))
+        lines.extend(Formater.format_variable("observation_type", [str(self.observation_type)], 4))
+        lines.extend(Formater.format_variable("weight", [str(self.weight)], 4))
+        lines.extend(Formater.format_variable("upper_bound", [str(self.upper_bound)], 4))
+        lines.extend(Formater.format_variable("lower_bound", [str(self.lower_bound)], 4))
+        lines[-1] = lines[-1][:-1]
+        lines.append(")")
+        return lines
+
 
 class CalibrationAlgorithmParameter():
     def __init__(self, group="", diff_inc_rel=0.01, diff_inc_abs=0.01):
@@ -80,6 +111,16 @@ class CalibrationAlgorithmParameter():
         self.group = group
         self.diff_inc_rel = diff_inc_rel
         self.diff_inc_abs = diff_inc_abs
+
+
+    def _get_variables_script(self):
+        lines = ["CalibrationObservation("]
+        lines.extend(Formater.format_variable("group", ["'{0}'".format(self.group)], 4))
+        lines.extend(Formater.format_variable("diff_inc_rel", [str(self.diff_inc_rel)], 4))
+        lines.extend(Formater.format_variable("diff_inc_abs", [str(self.diff_inc_abs)], 4))
+        lines[-1] = lines[-1][:-1]
+        lines.append(")")
+        return lines
 
 
 class CalibrationTerminationCriteria():
@@ -102,6 +143,20 @@ class CalibrationTerminationCriteria():
         self.n_param_change = n_param_change
         self.tol_rel_param_change = tol_rel_param_change
         self.n_max_steps = n_max_steps
+
+
+    def _get_variables_script(self):
+        lines = ["CalibrationTerminationCriteria("]
+        lines.extend(Formater.format_variable("n_lowest", [str(self.n_lowest)], 4))
+        lines.extend(Formater.format_variable("tol_lowest", [str(self.tol_lowest)], 4))
+        lines.extend(Formater.format_variable("n_from_lowest", [str(self.n_from_lowest)], 4))
+        lines.extend(Formater.format_variable("n_param_change", [str(self.n_param_change)], 4))
+        lines.extend(Formater.format_variable("tol_rel_param_change", [str(self.tol_rel_param_change)], 4))
+        lines.extend(Formater.format_variable("n_max_steps", [str(self.n_max_steps)], 4))
+        lines[-1] = lines[-1][:-1]
+        lines.append(")")
+        return lines
+
 
     # ToDo:
     def get_terminator(self):

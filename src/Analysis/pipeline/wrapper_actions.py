@@ -365,9 +365,52 @@ class Calibration(WrapperActionType):
     def _get_variables_script(self): # ToDo:
         """return array of variables python scripts"""
         var = super()._get_variables_script()
+
+        # WrappedAction
         if 'WrappedAction' in self._variables:
             wrapper = 'WrappedAction={0}'.format(self._variables['WrappedAction']._get_instance_name())
             var.append([wrapper])
+
+        # Parameters
+        v = ['Parameters=[']
+        for par in self._variables['Parameters']:
+            v.extend(Formater.indent(par._get_variables_script(), 4))
+            v[-1] += ','
+        if len(self._variables['Parameters']) > 0:
+            v[-1] = v[-1][:-1]
+        v.append(']')
+        var.append(v)
+
+        # Observations
+        v = ['Observations=[']
+        for obs in self._variables['Observations']:
+            v.extend(Formater.indent(obs._get_variables_script(), 4))
+            v[-1] += ','
+        if len(self._variables['Observations']) > 0:
+            v[-1] = v[-1][:-1]
+        v.append(']')
+        var.append(v)
+
+        # AlgorithmParameters
+        v = ['AlgorithmParameters=[']
+        for par in self._variables['AlgorithmParameters']:
+            v.extend(Formater.indent(par._get_variables_script(), 4))
+            v[-1] += ','
+        if len(self._variables['AlgorithmParameters']) > 0:
+            v[-1] = v[-1][:-1]
+        v.append(']')
+        var.append(v)
+
+        # TerminationCriteria
+        v = self._variables['TerminationCriteria']._get_variables_script()
+        v[0] = "TerminationCriteria=" + v[0]
+        var.append(v)
+
+        # MinimizationMethod
+        if 'MinimizationMethod' in self._variables:
+            v = "MinimizationMethod='{0}'".format(self._variables['MinimizationMethod'])
+            var.append([v])
+
         return var
 
     def _set_storing(self, identical_list):

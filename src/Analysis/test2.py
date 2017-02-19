@@ -61,7 +61,7 @@ Calibration_4 = Calibration(
             name="x1",
             group="pokus",
             bounds=(-1e+10, 1e+10),
-            init_value=1.0
+            init_value=1.0,tied_expression="a +    2*b"
         ),
         CalibrationParameter(
             name="x2",
@@ -100,8 +100,9 @@ Pipeline_5 = Pipeline(
 )
 #ss=Function_3._get_settings_script()
 ss = "\n".join(Calibration_4._get_settings_script())
+#ss = "\n".join(VariableGenerator_1._get_settings_script())
 print(ss)
-#sys.exit()
+sys.exit()
 pp = Pipelineprocessor(Pipeline_5)
 err = pp.validate()
 
