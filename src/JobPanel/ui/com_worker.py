@@ -317,6 +317,7 @@ class ComWorker(threading.Thread):
                 if time.time()>(ping_time+ping_interval):
                     if self._ping():
                         ping_interval = 15
+                        self.__state_lock.acquire()
                     else:
                         if ping_interval<120:
                             ping_interval *= 2

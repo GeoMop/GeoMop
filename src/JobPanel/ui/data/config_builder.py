@@ -154,8 +154,12 @@ class ConfigBuilder:
             mj.set_in_comm(InputCommType.socket)
 
         elif mj_execution_type == UiResourceDialog.DELEGATOR_LABEL:
+            if mj_ssh_preset.use_tunneling:
+                ssh_type = OutputCommType.ssh_tunnel
+            else:
+                ssh_type = OutputCommType.ssh
             app.set_next_comm(CommType.delegator)\
-                .set_out_comm(OutputCommType.ssh_tunnel)\
+                .set_out_comm(ssh_type)\
                 .set_ssh(mj_ssh)
 
             delegator = ConfBuilder(basic_conf)
@@ -178,8 +182,12 @@ class ConfigBuilder:
                 .set_out_comm(OutputCommType.exec_)
             job.set_in_comm(InputCommType.socket)
         elif j_execution_type == UiResourceDialog.REMOTE_LABEL:
+            if j_ssh_preset.use_tunneling:
+                ssh_type = OutputCommType.ssh_tunnel
+            else:
+                ssh_type = OutputCommType.ssh
             mj.set_next_comm(CommType.remote)\
-                .set_out_comm(OutputCommType.ssh_tunnel)\
+                .set_out_comm(ssh_type)\
                 .set_ssh(j_ssh)\
                 .set_python_env(jmj_python_env)\
                 .set_libs_env(jmj_libs_env)

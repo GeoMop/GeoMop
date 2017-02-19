@@ -32,7 +32,8 @@ class ActionType(Enum):
     restore = 17
     ping = 18
     ping_response = 19
-    redirect_socket_conn = 20    
+    redirect_socket_conn = 20
+    socket_reconn_input = 21
 
 class ProcessType(Enum):
     """Action type"""
@@ -216,6 +217,8 @@ class Action():
         elif type == ActionType.ping_response:
             self.data = EmptyData()
         elif type == ActionType.redirect_socket_conn:
+            self.data = EmptyData()
+        elif type == ActionType.socket_reconn_input:
             self.data = EmptyData()
             
     def get_message(self):

@@ -122,9 +122,12 @@ class ComManager:
         """resume first job in queue and return True else return False"""
         for  key in  self.resume_jobs:
             if not key in self._workers:
-                self.__resume_mj(key)
-                self._workers[key].resume()
-                return True
+                try:
+                    self.__resume_mj(key)
+                    self._workers[key].resume()
+                    return True
+                except Exception as err:
+                    ComWorker.get_loger().warning("Resume multijob error: " + str(err))                
         return False
     
     def __is_mj_initialized(self, key):
@@ -177,7 +180,7 @@ class ComManager:
                     self.__cancel_jobs.append(key) 
                     res = True
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found".format(key))
                 return
         return res
 
@@ -193,7 +196,7 @@ class ComManager:
                     self.__cancel_jobs.append(key) 
                     res = True
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be terminate, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be terminate, run record is not found".format(key))
         return res
 
     def _check_resumed(self):
@@ -221,7 +224,7 @@ class ComManager:
                     worker.init_update()
                     delete_key.append(key)    
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be resume, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be resume, run record is not found".format(key))
                 delete_key.append(key)
                 break
         for key in delete_key:
@@ -253,7 +256,7 @@ class ComManager:
                         self.jobs_deleted[key] = error
                         delete_key.append(key)
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be deleted, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be deleted, run record is not found".format(key))
                 delete_key.append(key)
                 break
         for key in delete_key:
@@ -288,7 +291,7 @@ class ComManager:
                         mj.state.qued_time = qued_time
                         self.state_change_jobs.append(key)
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be started, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be started, run record is not found".format(key))
                 delete_key.append(key)
                 break
         for key in delete_key:
@@ -306,7 +309,7 @@ class ComManager:
                     delete_key.append(key)
                     self._refresh_queues()
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found".format(key))
                 delete_key.append(key)
                 break
         for key in delete_key:
@@ -335,7 +338,7 @@ class ComManager:
                     worker.pause()
                     self.__cancel_jobs.append(key) 
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be paused, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be paused, run record is not found".format(key))
         
     def stop_all(self):
         """stop all running and starting jobs"""
@@ -346,4 +349,4 @@ class ComManager:
                     worker.stop()
                     self.__cancel_jobs.append(key) 
             else:
-                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found")
+                ComWorker.get_loger().error("MultiJob {0} can't be stopped, run record is not found".format(key))

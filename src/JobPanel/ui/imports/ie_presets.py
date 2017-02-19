@@ -78,7 +78,8 @@ class IEPbs(IE):
     
 class IESsh(IE):
     items = ["env", "host", "name", "pbs_system", "port", "remote_dir", "uid"]
-    default_items = {"key":"", "pwd":"", "to_pc": False, "to_remote": False}
+    default_items = {"key":"", "pwd":"", "to_pc": False, "to_remote": False, 
+    "use_tunneling": False}
         
 class IERes(IE):
     items = ["j_execution_type", "j_pbs_preset", "j_remote_execution_type", 

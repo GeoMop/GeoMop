@@ -233,6 +233,9 @@ class Communicator():
         if message.action_type == tdata.ActionType.ping:
             #action will be processed in after funcion
             return False, None
+        if message.action_type == tdata.ActionType.socket_reconn_input:
+            #action will be processed in after funcion
+            return False, None            
         if message.action_type == tdata.ActionType.redirect_socket_conn:
             if not isinstance(self.output, ExecOutputComm):
                 action=tdata.Action(tdata.ActionType.error)
@@ -240,6 +243,9 @@ class Communicator():
                 action.data.data["severity"] = 5 
                 logger.error("Unsupported message redirect_socket_conn")                
             else:
+                action=tdata.Action(tdata.ActionType.socket_reconn_input)
+                self.send_message(action.get_message())
+                self.receive_message()
                 action=tdata.Action(tdata.ActionType.socket_conn)
                 action.data.set_conn(self.output.host, str(self.output.port))
                 self._interupt = True
@@ -331,6 +337,11 @@ class Communicator():
         if message.action_type == tdata.ActionType.ping:
             action = tdata.Action(tdata.ActionType.ping_response)
             return action.get_message()
+        if message.action_type == tdata.ActionType.socket_reconn_input:
+            if isinstance(self.input,  SocketInputComm):
+                self.input.lazy_reconnect()
+            action = tdata.Action(tdata.ActionType.ok)
+            return action.get_message()                
         if message.action_type == tdata.ActionType.interupt_connection:
             self._interupt = True
             action = tdata.Action(tdata.ActionType.ok)

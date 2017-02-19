@@ -107,6 +107,8 @@ class SshConfig(object):
         """password is store in computer"""
         self.to_remote = False
         """password is store in remote"""
+        self.use_tunneling = False
+        """Communication is switch to socket over ssh tunnel"""
         self.key = False
 
 class PythonEnvConfig(object):

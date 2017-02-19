@@ -80,6 +80,7 @@ class SshDialog(AFormDialog):
         preset.to_pc = self.ui.rememberPasswordCheckbox.isChecked()
         preset.to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
                             self.ui.copyPasswordCheckbox.isChecked())
+        preset.use_tunneling = self.ui.useTunnelingCheckbox.isChecked()
         preset.env = self.ui.envPresetComboBox.currentData()
         if self.ui.pbsSystemComboBox.currentText():
             preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
@@ -128,6 +129,7 @@ class SshDialog(AFormDialog):
                 self.ui.passwordLineEdit.setText("")
                 self.ui.rememberPasswordCheckbox.setChecked(False)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
+            self.ui.useTunnelingCheckbox.setChecked(preset.use_tunneling)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
             self.ui.envPresetComboBox.setCurrentIndex(
@@ -141,6 +143,7 @@ class SshDialog(AFormDialog):
             self.ui.passwordLineEdit.clear()
             self.ui.rememberPasswordCheckbox.setChecked(True)
             self.ui.copyPasswordCheckbox.setChecked(True)
+            self.ui.useTunnelingCheckbox.setChecked(False)
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
             self.ui.envPresetComboBox.setCurrentIndex(-1)
             
@@ -276,10 +279,14 @@ class UiSshDialog(UiFormDialog):
         self.rememberPasswordCheckbox = QtWidgets.QCheckBox()
         self.rememberPasswordCheckbox.setText('Remember password')
         self.copyPasswordCheckbox = QtWidgets.QCheckBox()
-        self.copyPasswordCheckbox.setText('Copy password to remote')
+        self.copyPasswordCheckbox.setText('Copy password to remote')        
+        self.useTunnelingCheckbox = QtWidgets.QCheckBox()
+        self.useTunnelingCheckbox.setText('Use ssh tunneling')        
         self.passwordLayout.addWidget(self.passwordLineEdit)
         self.passwordLayout.addWidget(self.rememberPasswordCheckbox)
         self.passwordLayout.addWidget(self.copyPasswordCheckbox)
+        self.passwordLayout.addWidget(self.useTunnelingCheckbox)
+        
         self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordLayout)
 
