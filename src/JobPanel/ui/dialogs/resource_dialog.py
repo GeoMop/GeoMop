@@ -97,7 +97,15 @@ class ResourceDialog(AFormDialog):
 
     def _handle_j_ssh_changed(self, index):
         key = self.ui.jobSshPresetComboBox.currentText()
-        if key in self.ssh and self.ssh[key].pbs_system == '':
+        if key == UiResourceDialog.SSH_LOCAL_EXEC:
+            #get server pbs
+            key = self.ui.multiJobSshPresetComboBox.currentText()
+            if key == -1 or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
+                self.ui.jobPbsPresetComboBox.setEnabled(False)
+            else:
+                self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
+           
+        elif key in self.ssh and self.ssh[key].pbs_system == '':
             self.ui.jobPbsPresetComboBox.setEnabled(False)
         else:
             self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
