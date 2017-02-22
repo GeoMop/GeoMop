@@ -92,7 +92,8 @@ Calibration_4 = Calibration(
     TerminationCriteria=CalibrationTerminationCriteria(
         n_max_steps=100
     ),
-    MinimizationMethod="SLSQP"
+    MinimizationMethod="SLSQP",
+    BoundsType=CalibrationBoundsType.soft
 )
 pa = PrintDTTAction(Inputs=[Calibration_4], OutputFile="output.txt")
 Pipeline_5 = Pipeline(
