@@ -1,4 +1,17 @@
 Workflow_2 = Workflow()
+Function_3 = FunctionAction(
+    Inputs=[
+        Workflow_2.input()
+    ],
+    Params=[
+        'x1',
+        'x2'
+    ],
+    Expressions=[
+        'y1 = 2 * x1 + 2',
+        'y2 = 2 * x2 + 3'
+    ]
+)
 Workflow_2.set_config(
     OutputAction=Function_3,
     InputAction=Function_3
@@ -53,7 +66,7 @@ Calibration_4 = Calibration(
         )
     ],
     AlgorithmParameters=[
-        CalibrationObservation(
+        CalibrationAlgorithmParameter(
             group='pokus',
             diff_inc_rel=0.01,
             diff_inc_abs=0.0

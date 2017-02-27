@@ -5,6 +5,7 @@ from pipeline.data_types_tree import *
 from pipeline.workflow_actions import *
 from pipeline.pipeline import *
 from pipeline.pipeline_processor import *
+import pipeline.action_types as action
 from .pomfce import *
 import shutil
 
@@ -91,6 +92,7 @@ def test_calibration(request):
         shutil.rmtree("backup", ignore_errors=True)
     request.addfinalizer(clear_backup)
 
+    action.__action_counter__ = 0
     gen = VariableGenerator(
         Variable=(
             Struct(
@@ -161,13 +163,13 @@ def test_calibration(request):
         ResultActions=[cal]
     )
 
-    # _get_settings_script
-    test = cal._get_settings_script()
-    compare_with_file(os.path.join("pipeline", "results", "cal1.py"), test)
-
     pp = Pipelineprocessor(p)
     err = pp.validate()
     assert len(err) == 0
+
+    # _get_settings_script
+    test = cal._get_settings_script()
+    compare_with_file(os.path.join("pipeline", "results", "cal1.py"), test)
 
     # run pipeline
     pp.run()

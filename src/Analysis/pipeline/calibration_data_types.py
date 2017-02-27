@@ -113,7 +113,7 @@ class CalibrationAlgorithmParameter():
         self.diff_inc_abs = diff_inc_abs
 
     def _get_variables_script(self):
-        lines = ["CalibrationObservation("]
+        lines = ["CalibrationAlgorithmParameter("]
         lines.extend(Formater.format_variable("group", ["'{0}'".format(self.group)], 4))
         lines.extend(Formater.format_variable("diff_inc_rel", [str(self.diff_inc_rel)], 4))
         lines.extend(Formater.format_variable("diff_inc_abs", [str(self.diff_inc_abs)], 4))

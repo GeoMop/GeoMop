@@ -40,7 +40,7 @@ gen = VariableGenerator(
     )
 )
 w = Workflow()
-f = FunctionAction(
+Function_3 = FunctionAction(
     Inputs=[
         w.input()
     ],
@@ -48,8 +48,8 @@ f = FunctionAction(
     Expressions=["y1 = 2 * x1 + 2", "y2 = 2 * x2 + 3"]
 )
 w.set_config(
-    OutputAction=f,
-    InputAction=f
+    OutputAction=Function_3,
+    InputAction=Function_3
 )
 cal = Calibration(
     Inputs=[
@@ -96,16 +96,18 @@ cal = Calibration(
     BoundsType=CalibrationBoundsType.hard
 )
 pa = PrintDTTAction(Inputs=[cal], OutputFile="output.txt")
-Pipeline_5 = Pipeline(
+p = Pipeline(
     ResultActions=[pa]
 )
+#sys.exit()
+pp = Pipelineprocessor(p)
+err = pp.validate()
+
 #ss=Function_3._get_settings_script()
-ss = "\n".join(cal._get_settings_script())
+ss = "\n".join(p._get_settings_script())
 #ss = "\n".join(VariableGenerator_1._get_settings_script())
 print(ss)
-#sys.exit()
-pp = Pipelineprocessor(Pipeline_5)
-err = pp.validate()
+
 
 # run pipeline
 names = []
@@ -119,6 +121,12 @@ while pp.is_run():
     i += 1
     assert i < 100000, "Timeout"
 
+
+
+#exec(ss)
+#print(locals().keys())
+
+p._set_orig_from_script(locals())
 
 
 
