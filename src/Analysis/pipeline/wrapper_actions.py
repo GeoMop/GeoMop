@@ -709,16 +709,16 @@ class Calibration(WrapperActionType):
         self._scipy_event.set()
         self._set_scipy_state(self.ScipyState.running)
 
-        self._scipy_res = minimize(self._scipy_fun, x0, method='L-BFGS-B', jac=self._scipy_jac, callback=self._scipy_callback,
-                                   options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
-                                            'ftol': 1e-6, 'disp': True}, **args)
+        # self._scipy_res = minimize(self._scipy_fun, x0, method='L-BFGS-B', jac=self._scipy_jac, callback=self._scipy_callback,
+        #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
+        #                                     'ftol': 1e-6, 'disp': True}, **args)
 
-        # if self._variables['MinimizationMethod'] == "L-BFGS-B":
-        #     self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
-        # else:
-        #     self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
+        if self._variables['MinimizationMethod'] == "L-BFGS-B":
+            self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
+        else:
+            self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
 
         self._set_scipy_state(self.ScipyState.finished)
 

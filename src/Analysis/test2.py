@@ -29,7 +29,7 @@ from pipeline.output_actions import *
 
 
 
-VariableGenerator_1 = VariableGenerator(
+gen = VariableGenerator(
     Variable=(
         Struct(
             observations=Struct(
@@ -39,29 +39,29 @@ VariableGenerator_1 = VariableGenerator(
 )
     )
 )
-Workflow_2 = Workflow()
-Function_3 = FunctionAction(
+w = Workflow()
+f = FunctionAction(
     Inputs=[
-        Workflow_2.input()
+        w.input()
     ],
     Params=["x1", "x2"],
     Expressions=["y1 = 2 * x1 + 2", "y2 = 2 * x2 + 3"]
 )
-Workflow_2.set_config(
-    OutputAction=Function_3,
-    InputAction=Function_3
+w.set_config(
+    OutputAction=f,
+    InputAction=f
 )
-Calibration_4 = Calibration(
+cal = Calibration(
     Inputs=[
-        VariableGenerator_1
+        gen
     ],
-    WrappedAction=Workflow_2,
+    WrappedAction=w,
     Parameters=[
         CalibrationParameter(
             name="x1",
             group="pokus",
             bounds=(-1e+10, 1e+10),
-            init_value=1.0,tied_expression="a +    2*b"
+            init_value=1.0
         ),
         CalibrationParameter(
             name="x2",
@@ -93,17 +93,17 @@ Calibration_4 = Calibration(
         n_max_steps=100
     ),
     MinimizationMethod="SLSQP",
-    BoundsType=CalibrationBoundsType.soft
+    BoundsType=CalibrationBoundsType.hard
 )
-pa = PrintDTTAction(Inputs=[Calibration_4], OutputFile="output.txt")
+pa = PrintDTTAction(Inputs=[cal], OutputFile="output.txt")
 Pipeline_5 = Pipeline(
     ResultActions=[pa]
 )
 #ss=Function_3._get_settings_script()
-ss = "\n".join(Calibration_4._get_settings_script())
+ss = "\n".join(cal._get_settings_script())
 #ss = "\n".join(VariableGenerator_1._get_settings_script())
 print(ss)
-sys.exit()
+#sys.exit()
 pp = Pipelineprocessor(Pipeline_5)
 err = pp.validate()
 
@@ -118,6 +118,8 @@ while pp.is_run():
 
     i += 1
     assert i < 100000, "Timeout"
+
+
 
 
 sys.exit()

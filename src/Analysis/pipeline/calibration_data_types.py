@@ -155,7 +155,6 @@ class CalibrationTerminationCriteria():
         lines.append(")")
         return lines
 
-    # ToDo:
     def get_terminator(self):
         n_iterations = [0]
         lowest_list = []
@@ -165,22 +164,25 @@ class CalibrationTerminationCriteria():
         last_x = [None]
 
         def terminator(x, f, g):
+            nonlocal n_iterations, lowest_list, lowest_f, lowest_i, x_list, last_x
+
             ret = False
 
             n_iterations[0] += 1
 
             # n_lowest, tol_lowest
-            lowest_list.append(f.copy())
+            lowest_list.append(f)
             if len(lowest_list) >= self.n_lowest:
-                lowest_list = lowest_list[-self.n_lowest:]
+                lowest_list.sort()
+                lowest_list = lowest_list[:self.n_lowest]
                 if max(lowest_list) - min(lowest_list) < self.tol_lowest:
                     ret = True
 
             # n_from_lowest
             if n_iterations[0] == 1:
-                lowest_f[0] = f.copy()
+                lowest_f[0] = f
             elif f < lowest_f[0]:
-                lowest_f[0] = f.copy()
+                lowest_f[0] = f
                 lowest_i[0] = n_iterations[0]
             if n_iterations[0] - lowest_i[0] >= self.n_lowest:
                 ret = True
