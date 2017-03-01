@@ -1,29 +1,83 @@
 import subprocess
 import async_repeater as ar
+import logging
+import concurrent.futures
+
+def LongRequest():
+    """
+    Auxiliary decorator to mark requests that takes long time or
+    prefrom its own communication and so must be processed in its own thread.
+    """
+    def decorator(func):
+        func.run_in_thread = True
+        return func
+    return decorator
+
 
 class ServiceStarter:
+    """
+    Start a child service and return ChildServiceProxy object.
+
+
+    """
     def __init__(self):
         pass
 
     def start_pbs(self):
         pass
 
+
 class ActionProcessor:
-    def call_action(self, action, data):
+    """
+    Base class for request processing and on_answer processing classes.
+    """
+    def __init__(self):
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+
+    def call_action(self, , action, data):
+        """
+        Call method with name given by 'action' with 'data' as its only argument.
+        Used for processing requests and on_answer actions.
+        If the action method is marked be the LongRequest delegator it is processed in separate thread.
+        :param action:
+        :param data:
+        :return:
+        """
         try:
             action_method = getattr(self, action)
         except  AttributeError:
-            answer = {'error': 'Invalid action: %s' % (action)}
+            result = {'error': 'Invalid action: %s' % (action)}
         else:
-            answer = action_method(data)
-        return answer
+            result = action_method(data)
+        return result
 
 class ChildServiceProxy(ActionProcessor):
     """
     Auxiliary class to store state of a child service.
 
     Can keep status, near history, downloaded data, etc.
-    Should be probably implemented by ServiceBase child classes.
+    Implements simple request
+
+    TODO, idea:
+    This is key class, it should define classes for all actions with MJs. These remote actions are only of two kinds:
+    1. Make something on remote and confirm success on client or report an error.
+    2. Update some state variables of the proxy.
+
+    This can be called in async way and should be ok for GUI.
+    Actions are mentioned in client_test.py.
+    Would be nice if we can make methods corresponding to remote actions using metaprograming .. can be done using __getattr__
+
+    def __getattr__(name):
+        func = ServiceClass.getattr(name)
+        assert( func and func is decorated as remote )
+        def wrapper(*karg):
+            repeater.send_request({'action': name, 'data': *karg})
+        return wrapper
+
+
+    - how to get parameters
+    - use  unpack **dict when calling actions
+
     """
     def __init__(self, child_id, service):
         self.child_id = child_id
@@ -40,9 +94,17 @@ class ChildServiceProxy(ActionProcessor):
 
     def on_answer_ok(self, data):
         answer_data=data[1]
-        print(answer_data)
-        print("answer: OK")
+        logging.info(str(answer_data))
+        logging.info("answer: OK")
         pass
+
+    def error_answer(self, data):
+        """
+        Called if the answer reports an error.
+        :param data:
+        :return:
+        """
+        answer_data =
 
 
 class ServiceBase(ActionProcessor):
@@ -83,21 +145,28 @@ class ServiceBase(ActionProcessor):
 
 
     def process_answers(self):
+        logging.info("Process answers ...")
         for answer_data in self.repeater.get_answers():
+            logging.info("Processing: " + str(answer_data))
             child_id = answer_data.sender[0]
             on_answer = answer_data.on_answer
             answer = answer_data.answer
-            if (hasattr(answer, 'error')):
+            if 'error' in answer.keys():
                 self.child_services[child_id].error_answer(answer_data)
             self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
         return
 
     def process_requests(self):
-        for request_data in self.repeater.get_requests():
-            (id, action, data) = request
+        requests = self.repeater.get_requests()
+        for request_data in requests:
             request = request_data.request
-            answer = self.call_action(request['action'], request['data'])
-            self.repeater.send_answer(answer)
+            logging.info("Process Request: " + str(request))
+            data = None
+            if 'data' in request.keys():
+                data = request['data']
+            assert( 'action' in request.keys() )
+            answer = self.call_action(request['action'], data)
+            self.repeater.send_answer(request_data.id, answer)
         return
 
     """"""

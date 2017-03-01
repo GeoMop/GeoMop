@@ -4,12 +4,11 @@ import asyncore
 import threading
 import json
 import traceback
-
+import sys
+import logging
 
 """
 TODO:
-- asyncchat nenni idealni, potrebujeme posilat zpravy s danou adresou a delkou
--  podivat na implementaci jsonsocket, upravit pro nase potreby, definovat v jakem formatu budeme akceptovat zpravy
 - AsyncRepeater umi:
     - poslat pozadavek
     - dat posledni odpoved z fronty, odpoved i s pozadavakem?
@@ -28,7 +27,7 @@ vraceni odpovedi: id, recipient, answer, request
 """
 
 
-_terminator = b'\n'
+_terminator = '\n'.encode()
 
 def _pack_message(id, sender, recipient, data):
     str_json=json.dumps((id, sender, recipient, data))
@@ -45,7 +44,20 @@ def _exception_answer(e):
     """
     return { 'error': 'Exception', 'exception': repr(e), 'traceback': traceback.format_tb() }
 
+def _close_request():
+    """
+    Auxiliary request to inform service about clossed server-side connection.
+    Action should return no answer.
+    :return:
+    """
+    return {'action': 'request_close'}
 
+def _close_answer():
+    """
+    Auxiliary answer to inform service about clossed clinet-side connection.
+    :return:
+    """
+    return {'action': 'on_answer_close'}
 
 class RequestData:
     """
@@ -83,11 +95,15 @@ class AnswerData:
 
 
 
-class ClientDispatcher(asynchat.async_chat):
+class _ClientDispatcher(asynchat.async_chat):
+    """
+    Client part of the communication. Send requests, process answers.
+    """
     def __init__(self, repeater_address, socket_address, server_dispatcher):
         """
-        :param address: (host, port)
-        :param client_id:
+        :param repeater_address: Address of this repeater.
+        :param socket_address: (ip, port) we connect to
+        :param server_dispatcher: Server side of the repeater (can be None).
         """
         self.repeater_address = repeater_address
         # Own address given by parent repeater.
@@ -101,7 +117,7 @@ class ClientDispatcher(asynchat.async_chat):
 
         asynchat.async_chat.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("Connecting: ", self.address)
+        logging.info( "Connecting: %s\n"%(str(self.address)) )
         self.connect( self.address )
 
 
@@ -115,9 +131,10 @@ class ClientDispatcher(asynchat.async_chat):
         size=len(self.answers)
         for i in range(size):
             answer = self.answers.pop(0)
-            (id, sender, reciever, data) = answer
+            logging.info("Copy answer: " + str(answer))
+            (id, sender, reciever, answer_dict) = answer
             (request, on_answer) = self.sent_requests.pop(id)
-            copy.append( AnswerData(id, sender, request, answer, on_answer) )
+            copy.append( AnswerData(id, sender, request, answer_dict, on_answer) )
         return copy
 
 
@@ -131,7 +148,9 @@ class ClientDispatcher(asynchat.async_chat):
         self.request_id +=1
         id = self.request_id
         self.sent_requests[id] = (data, on_answer)
+        logging.info('Push: %s\n'%( _pack_message(id, self.repeater_address, target, data)) )
         self.push( _pack_message(id, self.repeater_address, target, data) )
+
 
 
     """
@@ -139,20 +158,22 @@ class ClientDispatcher(asynchat.async_chat):
     """
 
     def handle_connect(self):
-        print("Connected")
+        logging.info("Connected")
         self.set_terminator(_terminator)
 
     def collect_incoming_data(self, data):
         """Read an incoming message from the client and put it into our outgoing queue."""
-        self.received_data.append(data)
+        logging.info("Collect")
+        self.received_data.extend(data)
 
     def found_terminator(self):
 
-        msg = _unpack_message(''.join(self.received_data))
-        print("Client, message: ", msg)
+        msg = _unpack_message(self.received_data)
+        logging.info("Client, message: "+ str(msg))
         self.received_data = bytearray()
         if msg:
             recipient = msg[2]
+            logging.info("recp: %s addr: %s"%(str(recipient), str(self.repeater_address)))
             if recipient != self.repeater_address:
                 assert self.server, "Wrong recipient: %s"%(str(recipient))
                 # forward answer
@@ -170,8 +191,9 @@ class Server(asyncore.dispatcher):
         host - get automatically
         :param port - port ( same as in socket module)
         """
-        self.server_dispatcher = ServerDispatcher(port, repeater_address, clients)
         asyncore.dispatcher.__init__(self)
+        self.server_dispatcher = ServerDispatcher(repeater_address, port, clients)
+
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind( (socket.gethostname(), port) )
         self.address=self.socket.getsockname()
@@ -185,8 +207,7 @@ class Server(asyncore.dispatcher):
     def handle_accept(self):
         # Called when a client connects to our socket
         client_info = self.accept()
-        #global log
-        #log.write("Incomming connection accepted.\n")
+        logging.info("Incomming connection accepted.\n")
         self.server_dispatcher.accept(client_info[0])
         return
 
@@ -200,6 +221,7 @@ class ServerDispatcher(asynchat.async_chat):
         :param port - port ( same as in socket module)
         """
         self.repeater_address = repeater_address
+        logging.info("Raddr: %s"%(str(repeater_address)))
         # Own address given by parent repeater.
         self.port = port
         # Port we will connect after accept.
@@ -211,12 +233,14 @@ class ServerDispatcher(asynchat.async_chat):
         # Dict  id-> sender. Used to send answers to correct origin.
         self.received_data = bytearray()
         # Uncomplete request.
-
-        asynchat.async_chat.__init__(self)
+        self.answer_id = 0
+        # Server numbering of answers.
 
 
     def accept(self, socket):
-        self.set_socket(socket)
+        logging.info("Accept\n")
+        asynchat.async_chat.__init__(self, sock = socket)
+        #self.set_socket(socket)
         self.set_terminator(_terminator)
         return
 
@@ -228,9 +252,10 @@ class ServerDispatcher(asynchat.async_chat):
         """
         copy=[]
         req_len=len(self.requests)
+        logging.info("GET requests len: %d"%( len(self.requests) ))
         for i in range(req_len):
             request = self.requests.pop(0)
-            print("copy req:", request)
+            logging.info("copy req: " + str(request) )
             (request_id, sender, recipient, data) = request
             self.request_senders[self.answer_id]=(request_id, sender)
             copy.append( RequestData(self.answer_id, sender, data) )
@@ -239,7 +264,8 @@ class ServerDispatcher(asynchat.async_chat):
 
     def send_answer(self, answer_id, data):
 
-        (id, sender) = self.reqest_senders.pop(answer_id)
+        (id, sender) = self.request_senders.pop(answer_id)
+        logging.info("send answer: " + str(_pack_message(id, self.repeater_address, sender, data)) )
         self.push( _pack_message(id, self.repeater_address, sender, data) )
 
 
@@ -257,14 +283,15 @@ class ServerDispatcher(asynchat.async_chat):
         The end of a command or message has been seen.
         """
         msg = _unpack_message(self.received_data)
-        print("Server, message: ", msg)
+        logging.info("Server, message: " + str(msg))
         self.received_data = bytearray()
         if msg:
             (id, sender, recipient, request) = msg
             if len(recipient) == 0:
                 # empty recipient, we have to process
-                print("process: ", msg)
+                logging.info("process: " + str(msg))
                 self.requests.append( msg )
+                logging.info("requests len: %d"%( len(self.requests)  ))
             else:
                 if recipient[0] in self.clients:
                     client = self.clients[recipient[0]]
@@ -294,7 +321,7 @@ class ServerDispatcher(asynchat.async_chat):
 
 class AsyncRepeater():
     """
-    Interface to request-answeer communication tree.
+    Interface to request-answer communication tree.
 
     AsyncRepeaters forms a tree with root in client, first level with single node (backend),
     second level corresponding to multi jobs, and third level corresponding to Jobs.
@@ -303,20 +330,6 @@ class AsyncRepeater():
     and then propagating back the requests. Repeater do not process requests itself. Only in case of error
     it sends the error answer itself.
 
-
-    TODO:
-    - finish sending requests, similarly sending answeers
-    - make getting answers
-    - request/answer ids, is it enough having them local?
-    - need to store return target! MJ or client?
-
-    Test:
-    staaart manually:
-    client (test) script running on local: 192.168.0.178
-    backend (test) script running in docker: 172.17.0.1: 8123
-    mj (test) script running on local: 192.168.0.178: 8124
-
-    client test just send message to backend and mj, and print the answer
     """
     def __init__(self, repeater_address, listen_port):
         """
@@ -335,7 +348,7 @@ class AsyncRepeater():
             self._server = Server(repeater_address, listen_port, self.clients)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
-        # print("Listen: " + str(self.listen_port))
+        # logging.info("Listen: " + str(self.listen_port))
 
 
     def connect_child_repeater(self, socket_address):
@@ -350,7 +363,7 @@ class AsyncRepeater():
         """
         self.max_client_id += 1
         id = self.max_client_id
-        self.clients[id] = ClientDispatcher(self.repeater_address, socket_address, self._server_dispatcher)
+        self.clients[id] = _ClientDispatcher(self.repeater_address, socket_address, self._server_dispatcher)
         return id
 
 
@@ -384,7 +397,7 @@ class AsyncRepeater():
         Get list of requests to process.
         :return: [ RequestData, ... ]
         """
-        print("GR")
+        #logging.info("GR")
         return self._server_dispatcher.get_requests()
 
     def get_answers(self):
@@ -392,11 +405,22 @@ class AsyncRepeater():
         Get list of answers from all clients.
         :return: [ AnswerData, ... ]
         """
-        print("GA")
+        #logging.info("GA")
         answers=[]
         for client in self.clients.values():
             answers.extend(client.get_answers())
         return answers
 
     def run(self, timeout = None):
-        asyncore.loop(timeout)
+        logging.info("before loop")
+
+        self.loop_thread = threading.Thread(target=asyncore.loop, kwargs = {'timeout':1})
+        logging.info("start")
+        self.loop_thread.start()
+        logging.info("after start")
+
+    def stop(self):
+        self._server_dispatcher.close()
+        for c in self.clients.values():
+            c.close()
+        self.loop_thread.join()

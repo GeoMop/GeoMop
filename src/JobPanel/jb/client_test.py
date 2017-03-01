@@ -2,6 +2,35 @@ import subprocess
 import service_base
 import os
 import re
+import logging
+import time
+
+
+"""
+MJ and Jb states:
+see class TaskStatus in data/states.py
+
+List of requests:
+- ping; cl to bk, cl to mj, mj to jb
+- start mj, jb; cl to bk (long)
+- stop mj, jb; cl to mj, mj to jb
+- kill mj, jb; cl to bk, ( possible role of delegator to kill mj and jb)
+- reconnect mj; cl to bk
+- get analysis progress; completion of actions, prograss of actions
+
+- get analysis action summary (over socket), include big data list
+- get analysis action data (download);
+
+
+Aim:
+Proof of concept of async messaging:
+- start backend (start in docker)
+- connect to beckend, ping
+- start mj back on origin machine (start by exec over ssh)
+- ping mj
+- stop mj
+- stop backend
+"""
 
 class BackendProxy:
     def __init__(self):
@@ -21,7 +50,7 @@ class BackendProxy:
         except:
             pass
 
-        print("Starting backend ...\n")
+        logging.info("Starting backend ...\n")
         self.docker_process = subprocess.Popen(
             ['docker', 'run', '--rm',
              '--cidfile=' + host_id_file,
@@ -62,7 +91,7 @@ class BackendProxy:
 
     def __del__(self):
         if (self.docker_process):
-            print("Stopping backend ...\n")
+            logging.info("Stopping backend ...\n")
             output=subprocess.check_output(['docker','rm','-f',self.docker_hash])
             self.docker_process.kill()
 
@@ -80,7 +109,7 @@ class Client(service_base.ServiceBase):
         backend_address = ("172.17.0.2", 45847)#self.backend.address
         child_id = self.repeater.connect_child_repeater(backend_address)
         self.child_services[child_id] = self.make_child_proxy(child_id, self)
-        print("Try ping")
+        logging.info("Try ping")
         self.child_services[child_id].make_ping()
 
 
@@ -92,13 +121,15 @@ class Client(service_base.ServiceBase):
 
         # !! Timeout is internal timeout of the select method, loop runs infinitelly, must use some thread
         self.repeater.run(0.1) # run for some time
-        print("After run")
+        logging.info("After run")
+        while True:
+            time.sleep(1)
+            self.process_answers()
 
-        self.process_answers()
 
+
+logging.basicConfig(filename='client_log', filemode="w", level=logging.DEBUG)
 
 client = Client()
 client.start_docker()
-
-while True:
-    client.run()
+client.run()

@@ -2,6 +2,9 @@
 import async_repeater as ar
 import service_base
 import sys
+import logging
+import time
+import json
 
 class BackendService(service_base.ServiceBase):
     def __init__(self, service_address):
@@ -10,10 +13,11 @@ class BackendService(service_base.ServiceBase):
 
 
     def run(self):
+        self.repeater.run(0.1)  # run for some time
+        logging.info("After run")
         while not self.closing:
-
-            self.repeater.run(0.1)  # run for some time
-            print("After run")
+            logging.info("Loop")
+            time.sleep(1)
             self.process_answers()
             self.process_requests()
         self.repeater.close()
@@ -23,17 +27,23 @@ class BackendService(service_base.ServiceBase):
 # Main body
 ##########
 
-log = open('backlog',"w")
+logging.basicConfig(filename='backlog',  filemode="w", level=logging.DEBUG)
 
-address = sys.argv[1]
+address = json.loads(sys.argv[1])
+logging.info("addr: %s"%(str(address)))
 port_output_file = sys.argv[2]
 bs=BackendService(address)
-log.write("port file: %s\n"%(port_output_file))
+logging.info("port file: %s\n"%(port_output_file))
 print("port: %d\n"%(bs.get_listen_port())  )
 with open(port_output_file, "a") as f:
-    log.write("port: %d\n" % (bs.get_listen_port()))
+    logging.info("port: %d\n" % (bs.get_listen_port()))
     f.write(" %d"%(bs.get_listen_port()))
-log.close()
 sys.stdout.flush()
 
 bs.run()
+
+# TODO:
+# use only logging, check that loggig flush
+# try to proof ping
+#
+
