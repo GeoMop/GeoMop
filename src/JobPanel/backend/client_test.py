@@ -11,10 +11,10 @@ MJ and Jb states:
 see class TaskStatus in data/states.py
 
 List of requests:
-- ping; cl to bk, cl to mj, mj to jb
-- start mj, jb; cl to bk (long)
-- stop mj, jb; cl to mj, mj to jb
-- kill mj, jb; cl to bk, ( possible role of delegator to kill mj and jb)
+- ping; cl to bk, cl to mj, mj to backend
+- start mj, backend; cl to bk (long)
+- stop mj, backend; cl to mj, mj to backend
+- kill mj, backend; cl to bk, ( possible role of delegator to kill mj and backend)
 - reconnect mj; cl to bk
 - get analysis progress; completion of actions, prograss of actions
 
@@ -35,12 +35,12 @@ Proof of concept of async messaging:
 class BackendProxy:
     def __init__(self):
         self.docker_process = None
-        host_geomop_root = "/home/jb/workspace/GeoMop/src/JobPanel"
+        host_geomop_root = "/home/backend/workspace/GeoMop/src/JobPanel"
         guest_geomop_root = "/home/geomop/root"
-        host_workspace = "/home/jb"
+        host_workspace = "/home/backend"
         guest_workspace="/home/geomop/workspace"
         docker_image = "geomop:backend"
-        backend_service = guest_geomop_root + "/" + "jb/backend_service.py"
+        backend_service = guest_geomop_root + "/" + "backend/backend_service.py"
         id_file="__backend_cont_id.txt"
 
         host_id_file=host_workspace + "/" + id_file
