@@ -22,6 +22,8 @@ class TaskStatus(IntEnum):
     :permited actions: resume, stop (but only if js_services is allready installed, 
     in gui is action permited and wait ComManager )
     :start app action: terminate job and set error message
+
+    JB: unnecessary
     """
     queued = 1
     """
@@ -41,30 +43,40 @@ class TaskStatus(IntEnum):
     Multijob is about stopping
     :permited actions: no
     :start app action: terminate job
+
+    JB: unnecessary
     """
     ready = 4
     """
     Job is finished
     :permited actions: no
     :start app action: resume
+
+    JB: unnecessary, duplicate of finished
     """
     none = 5
     """
     MultiJob is New or state is unknown
     :permited actions: Run, Delete
     :start app action: OK
+
+    JB: unnecessary or just for GUI
     """
     pausing = 6
     """
     MultiJob is about pausing
     :permited actions: no
     :start app action: resume job
+
+    JB: unnecessary, have common flag to mark status change in progress
     """
     paused = 7
     """
     MultiJob is paused (only debug or switch off application)
     :permited actions: no
     :start app action: resume job
+
+    JB: pause and resume
     """
     resuming = 8
     """
@@ -89,6 +101,8 @@ class TaskStatus(IntEnum):
     No respons, connection with application was interupted
     :permited actions: no
     :start app action: resume
+
+    JB: GUI only, rename to "disconnected"
     """
     error = 12
     """

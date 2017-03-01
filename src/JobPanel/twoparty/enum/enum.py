@@ -1,5 +1,9 @@
 """Python Enumerations"""
 
+"""
+JB: TODO: Pythin 3.4 have enum as internal module, and it is in conflict with this one. Check it
+"""
+
 import sys as _sys
 
 __all__ = ['Enum', 'IntEnum', 'unique']
