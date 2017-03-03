@@ -1,3 +1,6 @@
+import json
+
+
 """
 We should have a testing mechanism of ProcessExec and ProcessPBS classes.
 Tests are used both for unit testing and for testing configuration of the system.
@@ -37,7 +40,11 @@ class JsonData:
         Initialize class dict from config serialization.
         :param config:
         """
-    pass
+        d = json.loads(config)
+        self.__dict__.update(d)
+
+    def get_json(self):
+        return json.dumps(self.__dict__)
 
 
 class Executable(JsonData):
