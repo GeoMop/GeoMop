@@ -33,6 +33,9 @@ class JsonData:
     We want to use it for both sending the data and storing them in files,
     while some of these files should be human readable/writable.
 
+    Serializable classes will be derived from this one. And data members
+    that should not be serialized are prefixed by '_'.
+
     Move to own module. ?? Anything similar in current JobPanel?
     """
     def __init__(self, config):
@@ -46,31 +49,59 @@ class JsonData:
     def get_json(self):
         return json.dumps(self.__dict__)
 
+    def serialize(self):
+        """
+        Serialize the object into JSON.
+        :return:
+        """
+        pass
+
+
+
+
+
+
+
+
+
+
+###################################################################
+
+
+
 
 class Executable(JsonData):
     """
     Data class to collect executable specific informations.
     These data are specific to particular installation.
+
+    This class will be managed for every executed process even for own services of the JobPanel backend.
     """
     name=""
     """ Name of executable. Same accross different installations."""
     path=[]
     """ Path to executable in particular installation."""
-    mpi_parallel=True
-    """ If executable is MPI parallel (can be executed by mpiexec)."""
     mpiexec_path=""
     """ Optional executable specific mpiexec. Default is to use systemwide mpiexec."""
     modules=[]
     """ Modules that executable depends on."""
+
+    script=False
+    """If executable is python script."""
+    mpi_parallel=False
+    """
+    If executable is MPI parallel (can be executed by mpiexec).
+    Can be turned off by test_executable.
+    """
+    test_args=[]
+    """Arguments to test executable. Test should be short and finish with success."""
+    works=False
+    """Is set by Installation.test_executable."""
     pass
 
 
 
-
-
-
-
-class ProcessParameters(JsonData):
+class ExecArgs(JsonData):
     """
     Parameters of particular process.
     """
@@ -85,12 +116,98 @@ class ProcessParameters(JsonData):
     """Arguments passed to mpiexec. Do not use."""
 
 
-class SystemConfig(JsonData):
+
+class Installation(JsonData):
     """
-    Various system specific data.
+    Represents GeoMop backend installation.
+
+    Keep information about all executables that are part of the installation,
+    metainformation about executables and scripts.
+    Can run given executable
+
     """
-    pbs_dialect="Default"
+
+    root = []
+    """Path to the root directory of the GeoMop backend installtion."""
+    version_id = ""
+    """ Version ID of the installation. This is set by 'test_installation'
+    and checked against true state of the installation in constructor."""
+    executables = []
+    """List of Executables available on the installation."""
+
+    # System configuration follows
+    mpiexec = []
+    """Path to the system wide (default) mpiexec."""
+    python = []
+    """Path to the python interpreter."""
+    pbs = PbsSystem()
     """ Resolve class to implement details of particular PBS."""
+
+    def __init__(self, config):
+        """
+        If config have 'version_id' we just check that it match
+        the version installed at 'root'. Otherwise we start test_installation.
+        :param config: InstallationData
+        """
+        JsonData.__init__(self, config)
+
+
+
+    def test_installation(self):
+        """
+        Test all executables, find executables ...
+        Try to use already filled data.
+        :return:
+        """
+
+
+
+    def exec(self, executable_name, args):
+        """
+        Execute executable (possibly with mpiexec), wait for finish.
+        Raise exception on abnormal return code.
+        :param executable_name: name of executable to run
+        :param args: ExecArgs
+        :return: (StdOut, StdErr)
+        """
+
+
+
+    def test_executable(self, executable_name):
+        """
+        Test if executable works in current installation and if it
+        works with mpiexec.
+        Set flags: mpi_parallel,
+        :param executable_name:
+        :return:
+        """
+        pass
+
+
+    def exec_persistent(self, executable, arg):
+        """
+        Start given executable in a new persistent process.
+        Load correct modules, can run only scripts and only without mpi.
+        Is used to start services.
+
+        :param executable: Executable
+        :param parameters: ProcessParameters
+        :return: process_id - string that identify the process on the same machine
+        """
+
+    def kill_persistent(self, process_id):
+        """
+        Kill process with given ID.
+        :return: True if process was killed.
+        """
+        pass
+
+
+
+
+########################################################################
+
+
 
 
 class ProcessExec(JsonData):
