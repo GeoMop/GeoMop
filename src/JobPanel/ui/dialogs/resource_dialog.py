@@ -223,6 +223,8 @@ class ResourceDialog(AFormDialog):
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(
                     'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset)) 
+            self._handle_mj_ssh_changed(0)
+            self._handle_j_ssh_changed(0)
         else:
             self.ui.nameLineEdit.clear()
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(0)

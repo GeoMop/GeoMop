@@ -1,0 +1,90 @@
+#########################################################################################
+# Test and build all platform
+#########################################################################################
+
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell: VERSION=${version} TESTS=${process_tests} /home/geomop/docker/jenkins.sh
+    concurrent: false
+    description: null
+    disabled: false
+    name: 'gm-build'
+    display-name: "GeoMop Build"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    - string:
+        default: ''
+        description: Specify version string.
+        name: version
+    - bool:
+        default: true
+        description: Test GeoMop application before installation building.
+        name: process_tests
+    project-type: freestyle
+    publishers:
+    - archive:
+        artifacts: 'dist/*.deb, dist/*.exe'
+        allow-empty: false
+        only-if-success: false
+        fingerprint: true
+        default-excludes: false
+        case-sensitive: true
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+    triggers: []
+    wrappers: []
+
+#########################################################################################
+# Test after commit
+#########################################################################################
+
+
+- job:
+    name: "gm-linux-tests"
+    display-name: "GeoMop Linux Tests"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+    project-type: multijob
+    builders:
+      - shell: cd /var/lib/jenkins/workspace/GeoMop/testing;python3 ${test-file}
+      - multijob:
+          condition: COMPLETED
+          name: 'Common'
+          projects:
+            - name: common-params
+              predefined-parameters: test-file='runCm.py'
+      - multijob:
+          condition: COMPLETED
+          name: 'Model Editor'
+          projects:
+            - name: common-params
+              predefined-parameters: test-file='runMe.py'
+      - multijob:
+          condition: COMPLETED
+          name: 'Job Panel'
+          projects:
+            - name: common-params
+              predefined-parameters: test-file='runJp.py'
+      - multijob:
+          condition: COMPLETED
+          name: 'Analysis'
+          projects:
+            - name: common-params
+              predefined-parameters: test-file='runAn.py'
+
