@@ -228,6 +228,7 @@ class Calibration(WrapperActionType):
         :param list of CalibrationAlgorithmParameter AlgorithmParameters: list of algorithm parameters
         :param CalibrationTerminationCriteria TerminationCriteria: termination criteria
         :param str MinimizationMethod: type of solver
+        :param CalibrationBoundsType BoundsType: type of bounds
         :param CalibrationOutputType Output: output from calibration
         :param Action Input: action that return input to calibration
         """
@@ -411,6 +412,11 @@ class Calibration(WrapperActionType):
             v = "MinimizationMethod='{0}'".format(self._variables['MinimizationMethod'])
             var.append([v])
 
+        # BoundsType
+        if 'BoundsType' in self._variables:
+            v = "BoundsType={0}".format(str(self._variables['BoundsType']))
+            var.append([v])
+
         return var
 
     def _set_storing(self, identical_list):
@@ -508,6 +514,8 @@ class Calibration(WrapperActionType):
     def _check_params(self):
         """check if all require params is set"""
         err = super()._check_params()
+
+        # Parameters
         if 'Parameters' in self._variables:
             if isinstance(self._variables['Parameters'], list):
                 for i in range(len(self._variables['Parameters'])):
@@ -521,6 +529,8 @@ class Calibration(WrapperActionType):
                 self._add_error(err, "Parameter 'Parameters' must be list of CalibrationParameter")
         else:
             self._add_error(err, "Parameter 'Parameters' is required")
+
+        # Observations
         if 'Observations' in self._variables:
             if isinstance(self._variables['Observations'], list):
                 for i in range(len(self._variables['Observations'])):
@@ -530,6 +540,8 @@ class Calibration(WrapperActionType):
                 self._add_error(err, "Parameter 'Observations' must be list of CalibrationObservation")
         else:
             self._add_error(err, "Parameter 'Observations' is required")
+
+        # AlgorithmParameters
         if 'AlgorithmParameters' in self._variables:
             if isinstance(self._variables['AlgorithmParameters'], list):
                 for i in range(len(self._variables['AlgorithmParameters'])):
@@ -539,6 +551,8 @@ class Calibration(WrapperActionType):
                 self._add_error(err, "Parameter 'AlgorithmParameters' must be list of CalibrationAlgorithmParameter")
         else:
             self._add_error(err, "Parameter 'AlgorithmParameters' is required")
+
+        # TerminationCriteria
         if 'TerminationCriteria' in self._variables:
             if not isinstance(self._variables['TerminationCriteria'], CalibrationTerminationCriteria):
                 self._add_error(err, "Parameter 'TerminationCriteria' must be CalibrationTerminationCriteria")
@@ -546,12 +560,24 @@ class Calibration(WrapperActionType):
             self._add_error(err, "Parameter 'TerminationCriteria' is required")
         if len(self._inputs) == 0:
             self._add_error(err, "No input action for Calibration")
+
+        # MinimizationMethod
         if 'MinimizationMethod' in self._variables:
             if isinstance(self._variables['MinimizationMethod'], str):
                 if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP"]:
                     self._add_error(err, "Method '{0}' is not supported.".format(self._variables['MinimizationMethod']))
             else:
                 self._add_error(err, "Parameter 'MinimizationMethod' must be string")
+
+        # BoundsType
+        if 'BoundsType' in self._variables:
+            if isinstance(self._variables['BoundsType'], CalibrationBoundsType):
+                if not self._variables['BoundsType'] in [CalibrationBoundsType.hard, CalibrationBoundsType.soft]:
+                    self._add_error(err, "Bounds type '{0}' is not supported.".format(self._variables['BoundsType']))
+            else:
+                self._add_error(err, "Parameter 'BoundsType' must be CalibrationBoundsType")
+
+        # WrappedAction
         if 'WrappedAction' in self._variables:
             if not isinstance(self._variables['WrappedAction'], Workflow):
                 self._add_error(err, "Parameter 'WrappedAction' must be Workflow")
@@ -673,22 +699,26 @@ class Calibration(WrapperActionType):
                 self._scipy_diff_inc_rel.append(alg_par[par.group].diff_inc_rel)
                 self._scipy_diff_inc_abs.append(alg_par[par.group].diff_inc_abs)
         x0 = np.array(init_values)
+        args = {}
+        if 'BoundsType' not in self._variables or \
+                self._variables['BoundsType'] == CalibrationBoundsType.hard:
+            args["bounds"] = tuple(zip(self._scipy_lb, self._scipy_ub))
 
         # ToDo: if all pars are fixed change behavior
 
         self._scipy_event.set()
         self._set_scipy_state(self.ScipyState.running)
 
-        self._scipy_res = minimize(self._scipy_fun, x0, method='L-BFGS-B', jac=self._scipy_jac, callback=self._scipy_callback,
-                                   options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
-                                            'ftol': 1e-6, 'disp': True})
+        # self._scipy_res = minimize(self._scipy_fun, x0, method='L-BFGS-B', jac=self._scipy_jac, callback=self._scipy_callback,
+        #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
+        #                                     'ftol': 1e-6, 'disp': True}, **args)
 
-        # if self._variables['MinimizationMethod'] == "L-BFGS-B":
-        #     self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'])
-        # else:
-        #     self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
-        #                                  disp=True, ter_crit=self._variables['TerminationCriteria'])
+        if self._variables['MinimizationMethod'] == "L-BFGS-B":
+            self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
+        else:
+            self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
+                                         disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
 
         self._set_scipy_state(self.ScipyState.finished)
 
@@ -796,13 +826,15 @@ class Calibration(WrapperActionType):
             if obs.lower_bound is not None and mo < obs.lower_bound:
                 ret += (obs.lower_bound - mo)**2 * 1e+3 * obs.weight**2
 
-        lb = self._scipy_lb
-        ub = self._scipy_ub
-        c = 1e+6
-        for i in range(x.shape[0]):
-            if x[i] < lb[i]:
-                ret += ((lb[i] - x[i]) / (ub[i] - lb[i]))**2 * c
-            if x[i] > ub[i]:
-                ret += ((x[i] - ub[i]) / (ub[i] - lb[i]))**2 * c
+        if 'BoundsType' in self._variables and \
+                self._variables['BoundsType'] == CalibrationBoundsType.soft:
+            lb = self._scipy_lb
+            ub = self._scipy_ub
+            c = 1e+6
+            for i in range(x.shape[0]):
+                if x[i] < lb[i]:
+                    ret += ((lb[i] - x[i]) / (ub[i] - lb[i]))**2 * c
+                if x[i] > ub[i]:
+                    ret += ((x[i] - ub[i]) / (ub[i] - lb[i]))**2 * c
 
         return ret

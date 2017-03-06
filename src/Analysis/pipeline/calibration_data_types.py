@@ -112,9 +112,8 @@ class CalibrationAlgorithmParameter():
         self.diff_inc_rel = diff_inc_rel
         self.diff_inc_abs = diff_inc_abs
 
-
     def _get_variables_script(self):
-        lines = ["CalibrationObservation("]
+        lines = ["CalibrationAlgorithmParameter("]
         lines.extend(Formater.format_variable("group", ["'{0}'".format(self.group)], 4))
         lines.extend(Formater.format_variable("diff_inc_rel", [str(self.diff_inc_rel)], 4))
         lines.extend(Formater.format_variable("diff_inc_abs", [str(self.diff_inc_abs)], 4))
@@ -144,7 +143,6 @@ class CalibrationTerminationCriteria():
         self.tol_rel_param_change = tol_rel_param_change
         self.n_max_steps = n_max_steps
 
-
     def _get_variables_script(self):
         lines = ["CalibrationTerminationCriteria("]
         lines.extend(Formater.format_variable("n_lowest", [str(self.n_lowest)], 4))
@@ -157,36 +155,52 @@ class CalibrationTerminationCriteria():
         lines.append(")")
         return lines
 
-
-    # ToDo:
     def get_terminator(self):
         n_iterations = [0]
         lowest_list = []
         lowest_f = [0]
         lowest_i = [0]
+        x_list = []
         last_x = [None]
 
         def terminator(x, f, g):
+            nonlocal n_iterations, lowest_list, lowest_f, lowest_i, x_list, last_x
+
             ret = False
 
             n_iterations[0] += 1
 
             # n_lowest, tol_lowest
-            # if len(lowest_list) < self.n_lowest:
-            #     lowest_list.append(f)
-            # else:
-            #     for v in lowest_list
+            lowest_list.append(f)
+            if len(lowest_list) >= self.n_lowest:
+                lowest_list.sort()
+                lowest_list = lowest_list[:self.n_lowest]
+                if max(lowest_list) - min(lowest_list) < self.tol_lowest:
+                    ret = True
 
             # n_from_lowest
             if n_iterations[0] == 1:
                 lowest_f[0] = f
-            if f < lowest_f[0]:
+            elif f < lowest_f[0]:
                 lowest_f[0] = f
                 lowest_i[0] = n_iterations[0]
             if n_iterations[0] - lowest_i[0] >= self.n_lowest:
                 ret = True
 
             # n_param_change, tol_rel_param_change
+            x_list.append(x.copy())
+            if len(x_list) >= self.n_param_change + 1:
+                x_list = x_list[-(self.n_param_change + 1):]
+                b = False
+                for j in range(x.shape[0]):
+                    for i in range(1, len(x_list)):
+                        if (x_list[i][j] - x_list[i-1][j]) / x_list[i-1][j] >= self.tol_rel_param_change:
+                            b = True
+                            break
+                    if b:
+                        break
+                if not b:
+                    ret = True
 
             # n_max_steps
             if n_iterations[0] >= self.n_max_steps:
@@ -201,11 +215,17 @@ class CalibrationTerminationCriteria():
             if last_x[0] is not None and np.linalg.norm(x - last_x[0]) < eps:
                 ret = True
 
-            last_x[0] = x
+            last_x[0] = x.copy()
 
             return ret
 
         return terminator
+
+
+class CalibrationBoundsType(IntEnum):
+    """Calibration bounds type"""
+    hard = 0 # use bounds from SciPy
+    soft = 1 # use penalization
 
 
 class SingleParameterOutput():
