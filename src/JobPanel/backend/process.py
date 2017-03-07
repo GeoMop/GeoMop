@@ -1,4 +1,3 @@
-import json
 
 
 """
@@ -20,41 +19,6 @@ Tests:
 
 """
 
-class JsonData:
-    """
-    Abstract base class for various data classes.
-    These classes are basically just documented dictionaries,
-    which are JSON serializable and provide some syntactic sugar
-    (see DotDict from Flow123d - Jan Hybs)
-    In order to simplify also serialization of non-data classes, we
-    should implement serialization of __dict__.
-
-    Why use JSON for serialization? (e.g. instead of pickle)
-    We want to use it for both sending the data and storing them in files,
-    while some of these files should be human readable/writable.
-
-    Serializable classes will be derived from this one. And data members
-    that should not be serialized are prefixed by '_'.
-
-    Move to own module. ?? Anything similar in current JobPanel?
-    """
-    def __init__(self, config):
-        """
-        Initialize class dict from config serialization.
-        :param config:
-        """
-        d = json.loads(config)
-        self.__dict__.update(d)
-
-    def get_json(self):
-        return json.dumps(self.__dict__)
-
-    def serialize(self):
-        """
-        Serialize the object into JSON.
-        :return:
-        """
-        pass
 
 
 
