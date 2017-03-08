@@ -1,6 +1,20 @@
 import json
 
 
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class WrongKeyError(Error):
+    """"""
+    def __init__(self, key):
+        self.key = key
+
+    def __str__(self):
+        return "'{}'".format(self.key)
+
+
 class ClassFactory:
     """
     Helper class for JsonData.
@@ -20,13 +34,14 @@ class ClassFactory:
         :param config:
         :return:
         """
-        if "__class__" not in config:
-            return None
+        assert "__class__" in config
 
         for c in self.class_list:
             if c.__name__ == config["__class__"]:
+                config = config.copy()
+                del config["__class__"]
                 return c(config)
-        return None
+        assert False
 
 class JsonData:
     """
@@ -52,76 +67,64 @@ class JsonData:
         :param config:
         """
         for k, v in config.items():
-            if k in self.__dict__:
-                # dict
-                if isinstance(self.__dict__[k], dict):
-                    if isinstance(v, dict):
-                        for k2, v2 in v.items():
-                            if k2 in self.__dict__[k]:
-                                obj = self._simple(self.__dict__[k][k2], v2)
-                                if obj is not None:
-                                    self.__dict__[k][k2] = obj
-                # list
-                elif isinstance(self.__dict__[k], list):
-                    if len(self.__dict__[k]) == 0:
-                        if isinstance(v, list):
-                            self.__dict__[k] = v
-                    elif len(self.__dict__[k]) == 1:
-                        if isinstance(v, list):
-                            l = []
-                            for vi in v:
-                                obj = self._simple(self.__dict__[k][0], vi)
-                                if obj is not None:
-                                    l.append(obj)
-                            self.__dict__[k] = l
-                # tuple
-                elif isinstance(self.__dict__[k], tuple):
-                    if isinstance(v, list) and len(self.__dict__[k]) == len(v):
+            if k not in self.__dict__:
+                raise WrongKeyError(k)
+            # dict
+            if isinstance(self.__dict__[k], dict):
+                if isinstance(v, dict):
+                    for k2, v2 in v.items():
+                        if k2 in self.__dict__[k]:
+                            obj = self._simple(self.__dict__[k][k2], v2)
+                            if obj is not None:
+                                self.__dict__[k][k2] = obj
+            # list
+            elif isinstance(self.__dict__[k], list):
+                if len(self.__dict__[k]) == 0:
+                    if isinstance(v, list):
+                        self.__dict__[k] = v
+                elif len(self.__dict__[k]) == 1:
+                    if isinstance(v, list):
                         l = []
-                        for ki, vi in zip(self.__dict__[k], v):
-                            obj = self._simple(ki, vi)
+                        for vi in v:
+                            obj = self._simple(self.__dict__[k][0], vi)
                             if obj is not None:
                                 l.append(obj)
-                        self.__dict__[k] = tuple(l)
-                else:
-                    obj = self._simple(self.__dict__[k], v)
-                    if obj is not None:
-                        self.__dict__[k] = obj
+                        self.__dict__[k] = l
+            # tuple
+            elif isinstance(self.__dict__[k], tuple):
+                if isinstance(v, list) and len(self.__dict__[k]) == len(v):
+                    l = []
+                    for ki, vi in zip(self.__dict__[k], v):
+                        obj = self._simple(ki, vi)
+                        if obj is not None:
+                            l.append(obj)
+                    self.__dict__[k] = tuple(l)
+            else:
+                obj = self._simple(self.__dict__[k], v)
+                if obj is not None:
+                    self.__dict__[k] = obj
 
     def _simple(self, temp, data):
         # JsonData
         if isinstance(temp, JsonData):
+            c = temp.__class__
+            data = data.copy()
+            del data["__class__"]
             return temp.__class__(data)
         # ClassFactory
         elif isinstance(temp, ClassFactory):
             return temp.make_instance(data)
-        # str
-        elif isinstance(temp, str):
-            if isinstance(data, str):
-                return data
-        # int
-        elif isinstance(temp, int):
-            if isinstance(data, int):
-                return data
-        # float
-        elif isinstance(temp, float):
-            if isinstance(data, float) or isinstance(data, int):
-                return float(data)
-        # bool
-        elif isinstance(temp, bool):
-            if isinstance(data, bool):
-                return data
         # other
         else:
+            assert temp.__class__ is data.__class__
             return data
-        return None
 
     def serialize(self):
         """
-        Serialize the object into JSON.
+        Serialize the object.
         :return:
         """
-        return json.dumps(self._get_dict(), sort_keys=True)
+        return self._get_dict()
 
     def _get_dict(self):
         """Return dict for serialization."""

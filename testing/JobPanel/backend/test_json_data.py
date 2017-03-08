@@ -12,14 +12,14 @@ def test_json_data():
 
             super().__init__(config)
 
-    a = A({"a": 2, "d": 3})
+    a = A({"a": 2})
 
     assert a.a == 2
     assert a.b == "test"
     assert a.c == 2.0
     assert a._u == 5
 
-    assert a.serialize() == '{"__class__": "A", "a": 2, "b": "test", "c": 2.0}'
+    assert json.dumps(a.serialize(), sort_keys=True) == '{"__class__": "A", "a": 2, "b": "test", "c": 2.0}'
 
     # JsonData object
     class B(JsonData):
@@ -36,7 +36,7 @@ def test_json_data():
     assert b.b.a == 3
     assert b.b.b == "aaa"
 
-    assert b.serialize() == '{"__class__": "B", "a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa", "c": 2.0}}'
+    assert json.dumps(b.serialize(), sort_keys=True) == '{"__class__": "B", "a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa", "c": 2.0}}'
 
     # ClassFactory
     class A2(JsonData):
@@ -60,7 +60,7 @@ def test_json_data():
     assert c.b.a == 3
     assert c.b.b == "aaa"
 
-    assert c.serialize() == '{"__class__": "C", "a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa", "c": 2.0}}'
+    assert json.dumps(c.serialize(), sort_keys=True) == '{"__class__": "C", "a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa", "c": 2.0}}'
 
     # dict
     class D(JsonData):
@@ -79,7 +79,7 @@ def test_json_data():
     assert d.b["c"].__class__ is A
     assert d.b["c"].a == 3
 
-    assert d.serialize() == '{"__class__": "D", "a": 2, "b": {"a": 3, "b": 3.0, "c": {"__class__": "A", "a": 3, "b": "test", "c": 2.0}}}'
+    assert json.dumps(d.serialize(), sort_keys=True) == '{"__class__": "D", "a": 2, "b": {"a": 3, "b": 3.0, "c": {"__class__": "A", "a": 3, "b": "test", "c": 2.0}}}'
 
     # list in list in dict
     class D2(JsonData):
@@ -95,7 +95,7 @@ def test_json_data():
     assert d2.b["c"][0] == 2
     assert d2.b["c"][1][1] == 4
 
-    assert d2.serialize() == '{"__class__": "D2", "a": 2, "b": {"a": 3, "b": 3.0, "c": [2, [3, 4]]}}'
+    assert json.dumps(d2.serialize(), sort_keys=True) == '{"__class__": "D2", "a": 2, "b": {"a": 3, "b": 3.0, "c": [2, [3, 4]]}}'
 
     # empty list
     class E(JsonData):
@@ -111,7 +111,7 @@ def test_json_data():
     assert e.b[1] == 2.0
     assert e.b[2] == "aaa"
 
-    assert e.serialize() == '{"__class__": "E", "a": 2, "b": [1, 2.0, "aaa"]}'
+    assert json.dumps(e.serialize(), sort_keys=True) == '{"__class__": "E", "a": 2, "b": [1, 2.0, "aaa"]}'
 
     # list with one item
     class E2(JsonData):
@@ -127,7 +127,7 @@ def test_json_data():
     assert e2.b[0].a == 3
     assert e2.b[1].a == 5
 
-    assert e2.serialize() == '{"__class__": "E2", "a": 2, "b": [{"__class__": "A", "a": 3, "b": "test", "c": 2.0}, {"__class__": "A", "a": 5, "b": "test", "c": 2.0}]}'
+    assert json.dumps(e2.serialize(), sort_keys=True) == '{"__class__": "E2", "a": 2, "b": [{"__class__": "A", "a": 3, "b": "test", "c": 2.0}, {"__class__": "A", "a": 5, "b": "test", "c": 2.0}]}'
 
     # tuple
     class F(JsonData):
@@ -144,4 +144,11 @@ def test_json_data():
     assert f.b[2].__class__ is A
     assert f.b[2].a == 3
 
-    assert f.serialize() == '{"__class__": "F", "a": 2, "b": [2, 3.0, {"__class__": "A", "a": 3, "b": "test", "c": 2.0}]}'
+    assert json.dumps(f.serialize(), sort_keys=True) == '{"__class__": "F", "a": 2, "b": [2, 3.0, {"__class__": "A", "a": 3, "b": "test", "c": 2.0}]}'
+
+    # WrongKeyError
+    try:
+        a = A({"a": 2, "d": 3})
+        assert False
+    except WrongKeyError:
+        pass

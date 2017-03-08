@@ -65,10 +65,14 @@ class F(JsonData):
 
         super().__init__(config)
 
-a = A({"a": 2, "d": 3})
+
+
+
+
+a = A({"a": 2})
 print(a.serialize())
 
-b = B({"a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa"}})
+b = B({"a": 2, "b": {"a": 3, "b": "aaa"}})
 print(b.serialize())
 
 c = C({"a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa"}})
@@ -88,3 +92,6 @@ print(e2.serialize())
 
 f = F({"a": 2, "b": [2, 3.0, {"__class__": "A", "a": 3}]})
 print(f.serialize())
+
+
+a = A({"a": 2, "d": 3, "q": 8})
