@@ -65,33 +65,20 @@ class F(JsonData):
 
         super().__init__(config)
 
+class G(JsonData):
+    def __init__(self, config):
+        self.a = 1
+        self.b = (1, 2.0, [A({"a": 2})])
+        self.c = {"a": 2, "b": {"c": ClassFactory([A, A2])}}
+
+        super().__init__(config)
 
 
 
 
-a = A({"a": 2})
-print(a.serialize())
+g = G({"a": 2, "b": [2, 3.0, [{"__class__": "A", "a": 3}, {"__class__": "A", "a": 5}]],
+       "c": {"a": 3, "b": {"c": {"__class__": "A", "a": 7}}}})
 
-b = B({"a": 2, "b": {"a": 3, "b": "aaa"}})
-print(b.serialize())
+print(json.dumps(g.serialize(),
+                  sort_keys=True))
 
-c = C({"a": 2, "b": {"__class__": "A", "a": 3, "b": "aaa"}})
-print(c.serialize())
-
-d = D({"a": 2, "b": {"a": 3, "b": 3.0, "c": {"__class__": "A", "a": 3}}})
-print(d.serialize())
-
-d2 = D2({"a": 2, "b": {"a": 3, "b": 3.0, "c": [2, [3, 4]]}})
-print(d2.serialize())
-
-e = E({"a": 2, "b": [1, 2.0, "aaa"]})
-print(e.serialize())
-
-e2 = E2({"a": 2, "b": [{"__class__": "A", "a": 3}, {"__class__": "A", "a": 5}]})
-print(e2.serialize())
-
-f = F({"a": 2, "b": [2, 3.0, {"__class__": "A", "a": 3}]})
-print(f.serialize())
-
-
-a = A({"a": 2, "d": 3, "q": 8})

@@ -1,4 +1,4 @@
-import json
+#import json
 
 
 class Error(Exception):
@@ -7,7 +7,7 @@ class Error(Exception):
 
 
 class WrongKeyError(Error):
-    """"""
+    """Raised when attempt assign data to key that not exist"""
     def __init__(self, key):
         self.key = key
 
@@ -43,6 +43,7 @@ class ClassFactory:
                 return c(config)
         assert False
 
+
 class JsonData:
     """
     Abstract base class for various data classes.
@@ -69,51 +70,59 @@ class JsonData:
         for k, v in config.items():
             if k not in self.__dict__:
                 raise WrongKeyError(k)
-            # dict
-            if isinstance(self.__dict__[k], dict):
-                if isinstance(v, dict):
-                    for k2, v2 in v.items():
-                        if k2 in self.__dict__[k]:
-                            obj = self._simple(self.__dict__[k][k2], v2)
-                            if obj is not None:
-                                self.__dict__[k][k2] = obj
-            # list
-            elif isinstance(self.__dict__[k], list):
-                if len(self.__dict__[k]) == 0:
-                    if isinstance(v, list):
-                        self.__dict__[k] = v
-                elif len(self.__dict__[k]) == 1:
-                    if isinstance(v, list):
-                        l = []
-                        for vi in v:
-                            obj = self._simple(self.__dict__[k][0], vi)
-                            if obj is not None:
-                                l.append(obj)
-                        self.__dict__[k] = l
-            # tuple
-            elif isinstance(self.__dict__[k], tuple):
-                if isinstance(v, list) and len(self.__dict__[k]) == len(v):
-                    l = []
-                    for ki, vi in zip(self.__dict__[k], v):
-                        obj = self._simple(ki, vi)
-                        if obj is not None:
-                            l.append(obj)
-                    self.__dict__[k] = tuple(l)
-            else:
-                obj = self._simple(self.__dict__[k], v)
-                if obj is not None:
-                    self.__dict__[k] = obj
+            self.__dict__[k] = JsonData._deserialize(self.__dict__[k], v)
 
-    def _simple(self, temp, data):
+    @staticmethod
+    def _deserialize(temp, data):
+        """
+        Deserialize data.
+        :param temp: template for assign data
+        :param data: data for deserialization
+        :return:
+        """
         # JsonData
         if isinstance(temp, JsonData):
-            c = temp.__class__
             data = data.copy()
             del data["__class__"]
             return temp.__class__(data)
+
         # ClassFactory
         elif isinstance(temp, ClassFactory):
             return temp.make_instance(data)
+
+        # dict
+        elif isinstance(temp, dict):
+            assert temp.__class__ is dict
+            d = {}
+            for k, v in data.items():
+                if k not in temp:
+                    raise WrongKeyError(k)
+                d[k] = JsonData._deserialize(temp[k], v)
+            return d
+
+        # list
+        elif isinstance(temp, list):
+            assert temp.__class__ is list
+            l = []
+            if len(temp) == 0:
+                for v in data:
+                    l.append(JsonData._deserialize(v, v))
+            elif len(temp) == 1:
+                for v in data:
+                    l.append(JsonData._deserialize(temp[0], v))
+            else:
+                assert False
+            return l
+
+        # tuple
+        elif isinstance(temp, tuple):
+            assert data.__class__ is list
+            assert len(temp) == len(data)
+            l = []
+            for k, v in zip(temp, data):
+                l.append(JsonData._deserialize(k, v))
+            return tuple(l)
+
         # other
         else:
             assert temp.__class__ is data.__class__
@@ -131,27 +140,26 @@ class JsonData:
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
             if k[0] != "_":
-                if isinstance(v, JsonData):
-                    d[k] = v._get_dict()
-                elif isinstance(v, dict):
-                    d2 = {}
-                    for k2, v2 in v.items():
-                        if isinstance(v2, JsonData):
-                            d2[k2] = v2._get_dict()
-                        else:
-                            d2[k2] = v2
-                    d[k] = d2
-                elif isinstance(v, list) or isinstance(v, tuple):
-                    l = []
-                    for vi in v:
-                        if isinstance(vi, JsonData):
-                            l.append(vi._get_dict())
-                        else:
-                            l.append(vi)
-                    d[k] = l
-                else:
-                    d[k] = v
+                d[k] = JsonData._serialize_object(v)
         return d
+
+    @staticmethod
+    def _serialize_object(obj):
+        """Prepare object for serialization."""
+        if isinstance(obj, JsonData):
+            return obj._get_dict()
+        elif isinstance(obj, dict):
+            d = {}
+            for k, v in obj.items():
+                d[k] = JsonData._serialize_object(v)
+            return d
+        elif isinstance(obj, list) or isinstance(obj, tuple):
+            l = []
+            for v in obj:
+                l.append(JsonData._serialize_object(v))
+            return l
+        else:
+            return obj
 
     @staticmethod
     def make_instance(config):
