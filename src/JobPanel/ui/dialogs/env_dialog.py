@@ -10,7 +10,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
 from ui.data.preset_data import EnvPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.dialogs.dialogs import AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
@@ -40,13 +40,13 @@ class EnvDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, excluded_names=None):
+    def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
 
         # setup specific UI
         self.ui = UiEnvDialog()
-        self.ui.setup_ui(self, self.excluded_names)
+        self.ui.setup_ui(parent, self.excluded_names)
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
@@ -124,16 +124,17 @@ class EnvDialog(AFormDialog):
             self.ui.cliParamsTextEdit.clear()
 
 
-class UiEnvDialog(UiFormDialog):
+class UiEnvDialog():
     """
     UI extensions of form dialog.
     """
 
     def setup_ui(self, dialog, excluded_names):
-        super().setup_ui(dialog)
 
-        # dialog properties
-        dialog.resize(400, 260)
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setObjectName("formLayout")
+        self.formLayout.setContentsMargins(0, 5, 0, 5)
 
         # validators
         self.nameValidator = PresetNameValidator(
@@ -308,7 +309,4 @@ class UiEnvDialog(UiFormDialog):
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.cliParamsTextEdit)
         
-        # add button box
-        self.mainVerticalLayout.addWidget(self.buttonBox)
-
-        return dialog
+        return self.formLayout

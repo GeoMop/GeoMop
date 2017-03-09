@@ -8,7 +8,7 @@ Resource dialog
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ui.data.preset_data import ResPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.dialogs.dialogs import AFormDialog
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
@@ -38,13 +38,13 @@ class ResourceDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, excluded_names=None):
+    def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
 
         # setup specific UI
         self.ui = UiResourceDialog()
-        self.ui.setup_ui(self)
+        self.ui.setup_ui(parent)
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
@@ -233,7 +233,7 @@ class ResourceDialog(AFormDialog):
             self.ui.jobPbsPresetComboBox.setCurrentIndex(0)
 
 
-class UiResourceDialog(UiFormDialog):
+class UiResourceDialog():
     """
     UI extensions of form dialog.
     """
@@ -251,10 +251,11 @@ class UiResourceDialog(UiFormDialog):
     PBS_OPTION_NONE = "no PBS"
 
     def setup_ui(self, dialog):
-        super().setup_ui(dialog)
 
-        # dialog properties
-        dialog.resize(400, 260)
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setObjectName("formLayout")
+        self.formLayout.setContentsMargins(0, 5, 0, 5)
 
         # validators
         self.nameValidator = PresetNameValidator(
@@ -385,4 +386,4 @@ class UiResourceDialog(UiFormDialog):
         # add button box
         self.mainVerticalLayout.addWidget(self.buttonBox)
 
-        return dialog
+        return self.formLayout

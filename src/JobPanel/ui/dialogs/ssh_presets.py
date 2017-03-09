@@ -15,6 +15,9 @@ class SshPresets(APresetsDialog):
     """
 
     def __init__(self, parent=None, presets=None, container=None):
+        self.DlgClass = SshDialog
+        self.container = container
+        
         super().__init__(parent)
 
         # setup preset specific UI
@@ -24,16 +27,8 @@ class SshPresets(APresetsDialog):
         # assign presets and reload view
         self.set_presets(presets)
 
-        self.DlgClass = SshDialog
-        self.container = container
-
         # connect generic presets slots (must be called after UI setup)
         super().connect_slots()
-        
-    def create_dialog(self):
-        super(SshPresets, self).create_dialog()
-        self.presets_dlg.set_data_container(self.container)
-        
 
 class UiSshPresets(UiPresetsDialog):
     """

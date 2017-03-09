@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from helpers.importer import DialectImporter
 from ui.data.preset_data import PbsPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.dialogs.dialogs import AFormDialog
 from ui.validators.validation import PbsNameValidator, WalltimeValidator, \
     MemoryValidator, ScratchValidator, ValidationColorizer
 
@@ -40,13 +40,13 @@ class PbsDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, excluded_names=None):
+    def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
 
         # setup specific UI
         self.ui = UiPbsDialog()
-        self.ui.setup_ui(self)
+        self.ui.setup_ui(parent)
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
@@ -125,16 +125,17 @@ class PbsDialog(AFormDialog):
             self.ui.infinibandCheckbox.setChecked(False)
 
 
-class UiPbsDialog(UiFormDialog):
+class UiPbsDialog():
     """
     UI extensions of form dialog.
     """
 
     def setup_ui(self, dialog):
-        super().setup_ui(dialog)
 
-        # dialog properties
-        dialog.resize(400, 260)
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setObjectName("formLayout")
+        self.formLayout.setContentsMargins(0, 5, 0, 5)
 
         # validators
         self.nameValidator = PbsNameValidator(
@@ -275,4 +276,4 @@ class UiPbsDialog(UiFormDialog):
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                   self.infinibandCheckbox)
 
-        return dialog
+        return self.formLayout

@@ -10,7 +10,7 @@ from abc import abstractmethod
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class AFormDialog(QtWidgets.QDialog):
+class AFormDialog():
     """
     Abstract form dialog with abstract data manipulation interface.
     """
@@ -51,7 +51,7 @@ class AFormDialog(QtWidgets.QDialog):
 
     def __init__(self, old_name=None):
         """initialize"""
-        super(AFormDialog, self).__init__()        
+#        super(AFormDialog, self).__init__()        
         self.old_name = old_name
 
     def accept(self):
@@ -59,9 +59,9 @@ class AFormDialog(QtWidgets.QDialog):
         Accepts the form if all data fields are valid.
         :return: None
         """
-        if self.valid():
-            super().accept()
-            self.accepted.emit(self.purpose, self.get_data())
+#        if self.valid():
+#            super().accept()
+#            self.accepted.emit(self.purpose, self.get_data())
 
     @abstractmethod
     def valid(self):
@@ -83,10 +83,10 @@ class AFormDialog(QtWidgets.QDialog):
         """
         self.set_data(data)
         self.purpose = purpose
-        self.setObjectName(purpose["objectName"])
-        self.setWindowTitle(purpose["windowTitle"])
-        self.ui.titleLabel.setText(purpose["title"])
-        self.ui.subtitleLabel.setText(purpose["subtitle"])
+#        self.setObjectName(purpose["objectName"])
+#        self.setWindowTitle(purpose["windowTitle"])
+#        self.ui.titleLabel.setText(purpose["title"])
+#        self.ui.subtitleLabel.setText(purpose["subtitle"])
 
     def _connect_slots(self):
         """
@@ -94,8 +94,8 @@ class AFormDialog(QtWidgets.QDialog):
         (must be called after UI setup in child)
         :return: None
         """
-        self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.rejected.connect(self.reject)
+#        self.ui.buttonBox.accepted.connect(self.accept)
+#        self.ui.buttonBox.rejected.connect(self.reject)
 
     def exec_with_purpose(self, purpose, data):
         """
@@ -239,6 +239,10 @@ class APresetsDialog(QtWidgets.QDialog):
     presets_changed = QtCore.pyqtSignal()
     presets_changed_par = QtCore.pyqtSignal(dict)
     
+    def __init__(self, parent=None):        
+        super().__init__(parent)
+        self.create_subdialog()        
+    
     def set_presets(self, presets):
         self.presets = presets
         self.reload_view(self.presets)
@@ -250,38 +254,41 @@ class APresetsDialog(QtWidgets.QDialog):
                 row = QtWidgets.QTreeWidgetItem(self.ui.presets)
                 row.setText(0, str(key))
                 row.setText(1, data[key].get_name())
-                row.setText(2, data[key].get_description())
+                #row.setText(2, data[key].get_description())
             self.ui.presets.resizeColumnToContents(1)
-            self.ui.presets.resizeColumnToContents(2)
+            #self.ui.presets.resizeColumnToContents(2)
 
     def _handle_add_preset_action(self):
-        self.create_dialog()
-        self.presets_dlg.exec_add()
+#        self.create_dialog()
+#        self.presets_dlg.exec_add()
+        pass
 
     def _handle_edit_preset_action(self):
-        if self.presets and self.ui.presets.currentItem():
-            key = self.ui.presets.currentItem().text(0)
-            preset = self.presets[key]
-            data = {
-                "preset": preset
-            }
-            self.create_dialog()
-            self.presets_dlg.exec_edit(data)
+#        if self.presets and self.ui.presets.currentItem():
+#            key = self.ui.presets.currentItem().text(0)
+#            preset = self.presets[key]
+#            data = {
+#                "preset": preset
+#            }
+#            self.create_dialog()
+#            self.presets_dlg.exec_edit(data)
+        pass
 
     def _handle_copy_preset_action(self):
-        if self.presets and self.ui.presets.currentItem():
-            if not hasattr(self, 'presets_dlg') or self.presets_dlg is None:
-                self.create_dialog()
-            key = self.ui.presets.currentItem().text(0)
-            preset = copy.deepcopy(self.presets[key])
-            preset.name = self.presets_dlg.\
-                PURPOSE_COPY_PREFIX + " " + preset.name
-            data = {
-                "key": key,
-                "preset": preset
-            }
-            self.create_dialog()
-            self.presets_dlg.exec_copy(data)
+#        if self.presets and self.ui.presets.currentItem():
+#            if not hasattr(self, 'presets_dlg') or self.presets_dlg is None:
+#                self.create_dialog()
+#            key = self.ui.presets.currentItem().text(0)
+#            preset = copy.deepcopy(self.presets[key])
+#            preset.name = self.presets_dlg.\
+#                PURPOSE_COPY_PREFIX + " " + preset.name
+#            data = {
+#                "key": key,
+#                "preset": preset
+#            }
+#            self.create_dialog()
+#            self.presets_dlg.exec_copy(data)
+        pass
 
     def _handle_delete_preset_action(self):
         if self.presets and self.ui.presets.currentItem():
@@ -291,12 +298,13 @@ class APresetsDialog(QtWidgets.QDialog):
             self.presets_changed_par.emit(self.presets)
 
     def handle_presets_dialog(self, purpose, data):
-        if purpose == self.presets_dlg.PURPOSE_EDIT:
-            self.presets.pop(data['old_name'])
-        preset = data['preset']
-        self.presets[preset.name] = preset
-        self.presets_changed.emit()
-        self.presets_changed_par.emit(self.presets)
+#        if purpose == self.presets_dlg.PURPOSE_EDIT:
+#            self.presets.pop(data['old_name'])
+#        preset = data['preset']
+#        self.presets[preset.name] = preset
+#        self.presets_changed.emit()
+#        self.presets_changed_par.emit(self.presets)
+        pass
 
     def connect_slots(self):
         """
@@ -304,27 +312,31 @@ class APresetsDialog(QtWidgets.QDialog):
         (must be called after UI setup in child)
         :return: None
         """
-        self.presets_changed_par.connect(self.reload_view)
-        self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
-        self.ui.btnEdit.clicked.connect(self._handle_edit_preset_action)
-        self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)
-        self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
-        self.ui.btnClose.clicked.connect(self.reject)
+#        self.presets_changed_par.connect(self.reload_view)
+#        self.ui.btnAdd.clicked.connect(self._handle_add_preset_action)
+#        self.ui.btnEdit.clicked.connect(self._handle_edit_preset_action)
+#        self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)
+#        self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
+#        self.ui.btnClose.clicked.connect(self.reject)
 
-    def create_dialog(self):
+    def create_subdialog(self):
         if self.presets is not None:
             excluded_names = [preset.name for __, preset in self.presets.items()]
         else:
             excluded_names = []
         # set custom dialog
         self.presets_dlg = self.DlgClass(parent=self, excluded_names=excluded_names)
-        self.presets_dlg.accepted.connect(self.handle_presets_dialog)
+        self.subdialog = self.presets_dlg.form
+        #self.presets_dlg.accepted.connect(self.handle_presets_dialog)
 
 
 class UiPresetsDialog:
     """
     UI of basic presets dialog.
     """
+    def __init__(self):        
+        self.subdialog = None
+        """Selected preset panel"""
 
     def setup_ui(self, dialog):
         """
@@ -352,7 +364,7 @@ class UiPresetsDialog:
         self.presets = QtWidgets.QTreeWidget(dialog)
         self.presets.setAlternatingRowColors(True)
         self.presets.setObjectName("presets")
-        self.presets.setHeaderLabels(["Id", "Name", "Description"])
+        self.presets.setHeaderLabels(["Id", "Name"])
         self.presets.setColumnHidden(0, True)
         self.presets.setSortingEnabled(True)
 
@@ -360,7 +372,7 @@ class UiPresetsDialog:
         self.horizontalLayout.addWidget(self.presets)
 
         # buttons
-        self.buttonLayout = QtWidgets.QVBoxLayout()
+        self.buttonLayout = QtWidgets.QHBoxLayout()
         self.buttonLayout.setObjectName("buttonLayout")
 
         self.btnAdd = QtWidgets.QPushButton(dialog)
@@ -368,10 +380,10 @@ class UiPresetsDialog:
         self.btnAdd.setObjectName("btnAdd")
         self.buttonLayout.addWidget(self.btnAdd)
 
-        self.btnEdit = QtWidgets.QPushButton(dialog)
-        self.btnEdit.setText("&Edit")
-        self.btnEdit.setObjectName("btnEdit")
-        self.buttonLayout.addWidget(self.btnEdit)
+        self.btnSave = QtWidgets.QPushButton(dialog)
+        self.btnSave.setText("&Save")
+        self.btnSave.setObjectName("btnSave")
+        self.buttonLayout.addWidget(self.btnSave)
 
         self.btnCopy = QtWidgets.QPushButton(dialog)
         self.btnCopy.setText("&Copy")
@@ -394,10 +406,13 @@ class UiPresetsDialog:
         self.buttonLayout.addWidget(self.btnClose)
 
         # add buttons to layout
-        self.horizontalLayout.addLayout(self.buttonLayout)
+        self.horizontalLayout.addLayout(dialog.subdialog)
 
         # add presets and buttons layout to main
         self.mainVerticalLayout.addLayout(self.horizontalLayout)
+        
+        # add buttons to layout
+        self.mainVerticalLayout.addLayout(self.buttonLayout)
 
         # resize layout to fit dialog
         dialog.setLayout(self.mainVerticalLayout)

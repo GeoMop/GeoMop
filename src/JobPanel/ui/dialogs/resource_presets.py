@@ -31,7 +31,7 @@ class ResourcePresets(APresetsDialog):
         # connect generic presets slots (must be called after UI setup)
         super().connect_slots()
 
-    def create_dialog(self):
+    def create_subdialog(self):
         super(ResourcePresets, self).create_dialog()
         self.presets_dlg.set_pbs_presets(self.pbs)
         self.presets_dlg.set_ssh_presets(self.ssh)        
