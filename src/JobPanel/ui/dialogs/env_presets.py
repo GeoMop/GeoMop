@@ -14,20 +14,9 @@ class EnvPresets(APresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent=None, presets=None):
-        super().__init__(parent)
-
-        # setup preset specific UI
-        self.ui = UiEnvPresets()
-        self.ui.setup_ui(self)
-
-        # assign presets and reload view
-        self.set_presets(presets)
-
-        self.DlgClass = EnvDialog
-
-        # connect generic presets slots (must be called after UI setup)
-        super().connect_slots()
+    def __init__(self, parent, presets):
+        self.ui = UiEnvPresets()        
+        super().__init__(parent, presets, EnvDialog)
 
 
 class UiEnvPresets(UiPresetsDialog):

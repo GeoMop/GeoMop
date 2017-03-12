@@ -9,7 +9,7 @@ from PyQt5 import QtWidgets
 
 from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
-from ui.dialogs.dialogs import AFormDialog
+from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
@@ -18,7 +18,7 @@ from ui.imports.workspaces_conf import BASE_DIR
 import config
 import os
 
-class SshDialog(AFormDialog):
+class SshDialog(AFormContainer):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -33,16 +33,18 @@ class SshDialog(AFormDialog):
 
         self.preset = None
 
-        # connect slots
-        # connect generic presets slots (must be called after UI setup)
-        super()._connect_slots()
-
     def valid(self):
         valid = True
         if not ValidationColorizer.colorize_by_validator(
                 self.ui.nameLineEdit):
             valid = False
         return valid
+        
+    def first_focus(self):
+        """
+        Get focus to first property
+        """
+        self.ui.nameLineEdit.setFocus()
         
     def is_dirty(self):        
         """return if data was changes"""
@@ -54,9 +56,9 @@ class SshDialog(AFormDialog):
             return True
         if self.ui.portSpinBox.value()!=self.preset.port:
             return True
-        if self.ui.remoteDirLineEdit.text!=self.preset.remote_dir:
+        if self.ui.remoteDirLineEdit.text()!=self.preset.remote_dir:
             return True
-        if self.ui.userLineEdit.text!=self.preset.uid:
+        if self.ui.userLineEdit.text()!=self.preset.uid:
             return True
         if self.preset.to_pc!=self.ui.rememberPasswordCheckbox.isChecked():
             return True
@@ -66,7 +68,7 @@ class SshDialog(AFormDialog):
             return True
         if self.preset.use_tunneling!=self.ui.useTunnelingCheckbox.isChecked():
             return True
-        if self.preset.env == self.ui.envPresetComboBox.currentData():
+        if self.preset.env != self.ui.envPresetComboBox.currentData():
             return True
         if self.ui.pbsSystemComboBox.currentText():
             if self.preset.pbs_system!=self.ui.pbsSystemComboBox.currentData():
@@ -74,7 +76,9 @@ class SshDialog(AFormDialog):
         # password
         if self.ui.passwordLineEdit.isEnabled():
             password = self.ui.passwordLineEdit.text()
-            if password != self.preset.pwd:
+            pwd2 = Users.get_reg(self.preset.name, self.preset.key, os.path.join(
+                config.__config_dir__, BASE_DIR))
+            if password != pwd2:
                 return True
         return False
 
@@ -154,6 +158,7 @@ class SshDialog(AFormDialog):
             self.ui.useTunnelingCheckbox.setChecked(False)
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
             self.ui.envPresetComboBox.setCurrentIndex(-1)
+        return 
             
     def set_data_container(self, data):
         self.data = data
@@ -163,6 +168,9 @@ class SshDialog(AFormDialog):
             # sort dict by list, not sure how it works
             for key in env:
                 self.ui.envPresetComboBox.addItem(env[key].name, key)
+            if self.preset is not None:
+                self.ui.envPresetComboBox.setCurrentIndex(
+                    self.ui.envPresetComboBox.findData(self.preset.env))
                 
     def handle_test(self):
         """Do ssh connection test"""

@@ -14,28 +14,15 @@ class ResourcePresets(APresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent=None, presets=None, pbs=None, ssh=None):
-        super().__init__(parent)
-
-        # setup preset specific UI
+    def __init__(self, parent, presets, pbs=None, ssh=None):
         self.ui = UiResourcePresets()
-        self.ui.setup_ui(self)
-
-        # assign presets and reload view
-        self.set_presets(presets)
-
+        """Form builed"""
         self.pbs = pbs
-        self.ssh = ssh        
-        self.DlgClass = ResourceDialog
-
-        # connect generic presets slots (must be called after UI setup)
-        super().connect_slots()
-
-    def create_subdialog(self):
-        super(ResourcePresets, self).create_dialog()
+        self.ssh = ssh   
+        super().__init__(parent, presets, ResourceDialog) 
         self.presets_dlg.set_pbs_presets(self.pbs)
-        self.presets_dlg.set_ssh_presets(self.ssh)        
-
+        self.presets_dlg.set_ssh_presets(self.ssh) 
+ 
 
 class UiResourcePresets(UiPresetsDialog):
     """
@@ -46,5 +33,4 @@ class UiResourcePresets(UiPresetsDialog):
 
         # dialog properties
         dialog.resize(680, 510)
-        dialog.setObjectName("ResourcePresetsDialog")
         dialog.setWindowTitle("Resources")

@@ -103,12 +103,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_send_report_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
             self._handle_delete_remote_action)
- #       self.mj_dlg.accepted.connect(self.handle_multijob_dialog)
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.save_mj)
-#        self.resource_presets_dlg.presets_changed.connect(
-#            lambda: self.mj_dlg.set_resource_presets(self.data.resource_presets))
-
         # ssh presets
         self.ui.menuBar.settings.actionSshPresets.triggered.connect(self.set_ssh)
         # pbs presets
@@ -230,12 +226,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.close()
         self.__pool_lock.release()
         
-    def set_mj(self):
-        """mj dialog"""
-        mj_dlg = MultiJobDialog(parent=self,
-                                     resources=self.data.resource_presets, data=data)
-        mj_dlg.exec_()
-                                     
     def set_ssh(self):                                 
         """ssh dialog"""
         ssh_dlg = SshPresets(parent=self,
@@ -320,11 +310,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.isfile(file_path):
                 with open(file_path, 'w'):
                     pass
-
-
+                    
     def _handle_add_multijob_action(self):
-        self.mj_dlg.set_analyses(self.data.workspaces)
-        self.mj_dlg.exec_add()       
+        mj_dlg = MultiJobDialog(parent=self,
+            resources=self.data.resource_presets, data=self.data)
+        mj_dlg.set_analyses(self.data.workspaces)
+        ret = mj_dlg.exec_add()
+        if ret==QtWidgets.QDialog.Accepted:
+            self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
 
     def _handle_reuse_multijob_action(self):
         if self.data.multijobs:
@@ -335,7 +328,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 "key": key,
                 "preset": preset
             }
-            self.mj_dlg.exec_copy(data)
+            
+            mj_dlg = MultiJobDialog(parent=self,
+            resources=self.data.resource_presets, data=self.data)
+            mj_dlg.set_analyses(self.data.workspaces)
+            ret = mj_dlg.exec_copy(data)
+            if ret==QtWidgets.QDialog.Accepted:
+                self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
 
     def _handle_delete_multijob_action(self):
         if self.data.multijobs:
@@ -406,7 +405,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handle_multijob_dialog(self, purpose, data):        
         mj = MultiJob(data['preset'])
-        if purpose in (self.mj_dlg.PURPOSE_ADD, self.mj_dlg.PURPOSE_COPY):
+        if purpose in (MultiJobDialog.PURPOSE_ADD, MultiJobDialog.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
             try:
                 analysis = Analysis.open(self.data.workspaces.get_path(), mj.preset.analysis)
@@ -416,7 +415,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             analysis.mj_counter += 1
             analysis.save()
-            if purpose == self.mj_dlg.PURPOSE_ADD:
+            if purpose == MultiJobDialog.PURPOSE_ADD:
                 # Create multijob folder and copy analysis into it
                 try:
                     analysis.copy_into_mj_folder(mj)
@@ -424,7 +423,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     logger.error("Failed to copy analysis into mj folder: " + str(e))                
                 self.data.multijobs[mj.id] = mj
                 self.com_manager.start_jobs.append(mj.id) 
-            elif purpose == self.mj_dlg.PURPOSE_COPY:
+            elif purpose == MultiJobDialog.PURPOSE_COPY:
                 self.data.multijobs[mj.id] = mj
                 src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
                 src_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,

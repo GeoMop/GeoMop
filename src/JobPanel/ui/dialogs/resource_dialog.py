@@ -8,11 +8,11 @@ Resource dialog
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ui.data.preset_data import ResPreset
-from ui.dialogs.dialogs import AFormDialog
+from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
-class ResourceDialog(AFormDialog):
+class ResourceDialog(AFormContainer):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -44,17 +44,11 @@ class ResourceDialog(AFormDialog):
 
         # setup specific UI
         self.ui = UiResourceDialog()
-        self.ui.setup_ui(parent)
+        self.form = self.ui.setup_ui(parent, excluded_names)
 
-        # preset purpose
-        self.set_purpose(self.PURPOSE_ADD)
-
+        self.preset = None
         self.ssh = {}
 
-        # connect slots
-        # connect generic presets slots (must be called after UI setup)
-        super()._connect_slots()
-        # specific slots
         self.ui.multiJobSshPresetComboBox.currentIndexChanged.connect(
             self._handle_mj_ssh_changed)
         self.ui.jobSshPresetComboBox.currentIndexChanged.connect(
@@ -62,7 +56,7 @@ class ResourceDialog(AFormDialog):
 
     def _handle_mj_ssh_changed(self, index):
         key = self.ui.multiJobSshPresetComboBox.currentText()
-        if key == -1 or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
+        if key == "" or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
             self.ui.multiJobPbsPresetComboBox.setEnabled(False)
         else:
             self._enable_pbs(self.ui.multiJobPbsPresetComboBox, key)
@@ -100,7 +94,7 @@ class ResourceDialog(AFormDialog):
         if key == UiResourceDialog.SSH_LOCAL_EXEC:
             #get server pbs
             key = self.ui.multiJobSshPresetComboBox.currentText()
-            if key == -1 or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
+            if key == '' or key == UiResourceDialog.SSH_LOCAL_EXEC or self.ssh[key].pbs_system == '':
                 self.ui.jobPbsPresetComboBox.setEnabled(False)
             else:
                 self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
@@ -138,8 +132,15 @@ class ResourceDialog(AFormDialog):
             for key in pbs:
                 self.ui.multiJobPbsPresetComboBox.addItem(pbs[key].name, key)
                 self.ui.jobPbsPresetComboBox.addItem(pbs[key].name, key)
-
-        self.ui.multiJobPbsPresetComboBox.setCurrentIndex(0)
+                
+            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
+                self.ui.multiJobPbsPresetComboBox.findData(
+                    'no PBS' if self.preset.mj_pbs_preset is None else self.preset.mj_pbs_preset))
+            self.ui.jobPbsPresetComboBox.setCurrentIndex(
+                self.ui.jobPbsPresetComboBox.findData(
+                    'no PBS' if self.preset.j_pbs_preset is None else self.preset.j_pbs_preset)) 
+            self._handle_mj_ssh_changed(0)
+            self._handle_j_ssh_changed(0)
 
     def set_ssh_presets(self, ssh):
         self.ui.multiJobSshPresetComboBox.clear()
@@ -156,7 +157,46 @@ class ResourceDialog(AFormDialog):
             for key in ssh:
                 self.ui.multiJobSshPresetComboBox.addItem(ssh[key].name, key)
                 self.ui.jobSshPresetComboBox.addItem(ssh[key].name, key)
+            self.ui.multiJobSshPresetComboBox.setCurrentIndex(
+                self.ui.multiJobSshPresetComboBox.findData(
+                    'local' if self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset)) 
+            self.ui.jobSshPresetComboBox.setCurrentIndex(
+                self.ui.jobSshPresetComboBox.findData(
+                    'local' if self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
+                
 
+    def first_focus(self):
+        """
+        Get focus to first property
+        """
+        self.ui.nameLineEdit.setFocus()
+        
+    def is_dirty(self):        
+        """return if data was changes"""
+        if self.preset is None:
+            return True
+        if self.old_name!=self.ui.nameLineEdit.text():
+            return True
+        p = self.get_data()['preset']    
+        
+        if p.mj_ssh_preset!=self.preset.mj_ssh_preset:
+            return True
+        if p.mj_execution_type!=self.preset.mj_execution_type:
+            return True
+        if p.mj_remote_execution_type!=self.preset.mj_remote_execution_type:
+            return True
+        if p.mj_pbs_preset!=self.preset.mj_pbs_preset:
+            return True
+        if p.j_ssh_preset!=self.preset.j_ssh_preset:
+            return True
+        if p.j_execution_type!=self.preset.j_execution_type:
+            return True
+        if p.j_remote_execution_type!=self.preset.j_remote_execution_type:
+            return True
+        if p.j_pbs_preset!=self.preset.j_pbs_preset:
+            return True
+        return False
+        
     def get_data(self):
         preset = ResPreset(name=self.ui.nameLineEdit.text())
 
@@ -203,6 +243,7 @@ class ResourceDialog(AFormDialog):
 
         if data:
             preset = data["preset"]
+            self.preset = preset
             self.old_name = preset.name
             if is_edit:
                 try:
@@ -250,40 +291,39 @@ class UiResourceDialog():
     SSH_LOCAL_EXEC = "local"
     PBS_OPTION_NONE = "no PBS"
 
-    def setup_ui(self, dialog):
+    def setup_ui(self, dialog, excluded_names):
 
+        # main dialog layout
+        self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
+        self.mainVerticalLayout = QtWidgets.QVBoxLayout()   
+        self.mainVerticalLayout.setContentsMargins(10, 15, 10, 15)    
+        
         # form layout
         self.formLayout = QtWidgets.QFormLayout()
-        self.formLayout.setObjectName("formLayout")
         self.formLayout.setContentsMargins(0, 5, 0, 5)
+        self.mainVerticalLayout.addLayout(self.formLayout)
 
         # validators
         self.nameValidator = PresetNameValidator(
             parent=self.mainVerticalLayoutWidget,
-            excluded=dialog.excluded_names)
+            excluded=excluded_names)
 
         # form layout
         # hidden row
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.nameLabel.setObjectName("nameLabel")
         self.nameLabel.setText("Name:")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the resource")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
-        # remove button box
-        self.mainVerticalLayout.removeWidget(self.buttonBox)
-
         # divider
         self.formDivider = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
-        self.formDivider.setObjectName("formDivider")
         self.formDivider.setFrameShape(QtWidgets.QFrame.HLine)
         self.formDivider.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mainVerticalLayout.addWidget(self.formDivider)
@@ -295,95 +335,74 @@ class UiResourceDialog():
 
         # multijob label
         self.multiJobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.multiJobLabel.setObjectName("multijobLabel")
         self.multiJobLabel.setFont(labelFont)
         self.multiJobLabel.setText("MultiJob services")
         self.mainVerticalLayout.addWidget(self.multiJobLabel)
 
         # form layout2
         self.formLayout2 = QtWidgets.QFormLayout()
-        self.formLayout2.setObjectName("formLayout2")
         self.formLayout2.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.formLayout2)
 
         # 1 row
         self.multiJobSshPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.multiJobSshPresetLabel.setObjectName("multiJobSshPresetLabel")
         self.multiJobSshPresetLabel.setText(self.SSH_PRESET_LABEL)
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                    self.multiJobSshPresetLabel)
         self.multiJobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.multiJobSshPresetComboBox.setObjectName(
-            "multiJobSshPresetComboBox")
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobSshPresetComboBox)
 
         # 2 row
         self.multiJobPbsPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.multiJobPbsPresetLabel.setObjectName("multiJobPbsPresetLabel")
         self.multiJobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                    self.multiJobPbsPresetLabel)
         self.multiJobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.multiJobPbsPresetComboBox.setObjectName(
-            "multiJobPbsPresetComboBox")
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobPbsPresetComboBox)
 
         # divider
         self.formDivider1 = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
-        self.formDivider1.setObjectName("formDivider")
         self.formDivider1.setFrameShape(QtWidgets.QFrame.HLine)
         self.formDivider1.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mainVerticalLayout.addWidget(self.formDivider1)
 
         # job label
         self.jobLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.jobLabel.setObjectName("jobLabel")
         self.jobLabel.setFont(labelFont)
         self.jobLabel.setText("Job")
         self.mainVerticalLayout.addWidget(self.jobLabel)
 
         # form layout3
-        self.mainVerticalLayout.removeWidget(self.buttonBox)
         self.formLayout3 = QtWidgets.QFormLayout()
-        self.formLayout3.setObjectName("formLayout3")
         self.formLayout3.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.formLayout3)
 
         # 1 row
         self.jobSshPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.jobSshPresetLabel.setObjectName("jobSshPresetLabel")
         self.jobSshPresetLabel.setText(self.SSH_PRESET_LABEL)
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                    self.jobSshPresetLabel)
         self.jobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.jobSshPresetComboBox.setObjectName(
-            "jobSshPresetComboBox")
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                    self.jobSshPresetComboBox)
 
         # 2 row
         self.jobPbsPresetLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.jobPbsPresetLabel.setObjectName("jobPbsPresetLabel")
         self.jobPbsPresetLabel.setText(self.PBS_PRESET_LABEL)
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                    self.jobPbsPresetLabel)
         self.jobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.jobPbsPresetComboBox.setObjectName(
-            "jobPbsPresetComboBox")
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.jobPbsPresetComboBox)
 
-        # add button box
-        self.mainVerticalLayout.addWidget(self.buttonBox)
-
-        return self.formLayout
+        return self.mainVerticalLayout
