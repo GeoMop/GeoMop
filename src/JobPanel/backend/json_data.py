@@ -62,7 +62,7 @@ class JsonData:
 
     ?? Anything similar in current JobPanel?
     """
-    def __init__(self, config):
+    def __init__(self, config={}):
         """
         Initialize class dict from config serialization.
         :param config:
@@ -161,27 +161,27 @@ class JsonData:
         else:
             return obj
 
-    @staticmethod
-    def make_instance(config):
-        """
-        Make instance from config dict.
-        Dict must contain item "__class__" with name of desired class.
-        :param config:
-        :return:
-        """
-        if "__class__" not in config:
-            return None
-
-        # find class by name
-        cn = config["__class__"]
-        if cn in locals():
-            c = locals()[cn]
-        elif cn in globals():
-            c = globals()[cn]
-        else:
-            return None
-
-        # instantiate class
-        d = config.copy()
-        del d["__class__"]
-        return c(d)
+    # @staticmethod
+    # def make_instance(config):
+    #     """
+    #     Make instance from config dict.
+    #     Dict must contain item "__class__" with name of desired class.
+    #     :param config:
+    #     :return:
+    #     """
+    #     if "__class__" not in config:
+    #         return None
+    #
+    #     # find class by name
+    #     cn = config["__class__"]
+    #     if cn in locals():
+    #         c = locals()[cn]
+    #     elif cn in globals():
+    #         c = globals()[cn]
+    #     else:
+    #         return None
+    #
+    #     # instantiate class
+    #     d = config.copy()
+    #     del d["__class__"]
+    #     return c(d)

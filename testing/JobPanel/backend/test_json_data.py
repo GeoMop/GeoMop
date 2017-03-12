@@ -6,7 +6,7 @@ import json
 def test_json_data():
     # create, serialize
     class A(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = "test"
             self.c = 2.0
@@ -25,9 +25,9 @@ def test_json_data():
 
     # JsonData object
     class B(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
-            self.b = A({"a": 2})
+            self.b = A()
 
             super().__init__(config)
 
@@ -43,14 +43,14 @@ def test_json_data():
 
     # ClassFactory
     class A2(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.x = 2
             self.y = "test2"
 
             super().__init__(config)
 
     class C(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = ClassFactory([A, A2])
 
@@ -68,7 +68,7 @@ def test_json_data():
 
     # dict
     class D(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = {"a": 1, "b": 2.0, "c": A({"a": 2})}
 
@@ -88,7 +88,7 @@ def test_json_data():
 
     # list in list in dict
     class D2(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = {"a": 1, "b": 2.0, "c": [[1]]}
 
@@ -105,7 +105,7 @@ def test_json_data():
 
     # empty list
     class E(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = []
 
@@ -121,7 +121,7 @@ def test_json_data():
 
     # list with one item
     class E2(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = [A({"a": 2})]
 
@@ -139,7 +139,7 @@ def test_json_data():
 
     # tuple
     class F(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = (1, 2.0, A({"a": 2}))
 
@@ -164,7 +164,7 @@ def test_json_data():
 
     # recursion
     class G(JsonData):
-        def __init__(self, config):
+        def __init__(self, config={}):
             self.a = 1
             self.b = (1, 2.0, [A({"a": 2})])
             self.c = {"a": 2, "b": {"c": ClassFactory([A, A2])}}
