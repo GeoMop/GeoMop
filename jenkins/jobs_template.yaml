@@ -45,7 +45,26 @@
 #########################################################################################
 # Test after commit
 #########################################################################################
+- job-template:
+    name: "test-{module}"
+    display-name: "Test {module} module"
+    builders:
+      - shell: cd /var/lib/jenkins/workspace/gm-linux-tests/testing;python3 {test-file}
 
+- project:
+    name: "test-{module}"
+    module: 
+        - common:
+            test-file: runCm.py
+        - me:
+            test-file: runMe.py
+        - jp:
+            test-file: runJp.py
+        - an:
+            test-file: runAn.py
+    jobs:
+        - "test-{module}"
+ 
 
 - job:
     name: "gm-linux-tests"
@@ -62,29 +81,12 @@
         url: https://github.com/GeoMop/GeoMop
     project-type: multijob
     builders:
-      - shell: cd /var/lib/jenkins/workspace/GeoMop/testing;python3 ${test-file}
       - multijob:
           condition: COMPLETED
-          name: 'Common'
+          name: 'Unit tests'
           projects:
-            - name: common-params
-              predefined-parameters: test-file='runCm.py'
-      - multijob:
-          condition: COMPLETED
-          name: 'Model Editor'
-          projects:
-            - name: common-params
-              predefined-parameters: test-file='runMe.py'
-      - multijob:
-          condition: COMPLETED
-          name: 'Job Panel'
-          projects:
-            - name: common-params
-              predefined-parameters: test-file='runJp.py'
-      - multijob:
-          condition: COMPLETED
-          name: 'Analysis'
-          projects:
-            - name: common-params
-              predefined-parameters: test-file='runAn.py'
+            - name: test-common
+            - name: test-me
+            - name: test-jp
+            - name: test-an
 
