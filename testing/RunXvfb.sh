@@ -20,7 +20,7 @@ PID=$!
 
 # Run tests.
 cd $TEST_DIR
-DISPLAY=:1 python3 $TESTFILE
+DISPLAY=:1 python3 $TEST_FILE
 if [[ $? != 0 ]]; then kill $PID; exit 1; fi
 
 kill $PID

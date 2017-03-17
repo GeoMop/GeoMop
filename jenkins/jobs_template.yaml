@@ -83,10 +83,22 @@
     builders:
       - multijob:
           condition: COMPLETED
-          name: 'Unit tests'
+          name: 'Unit tests - common'
           projects:
             - name: test-common
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Model Editor'
+          projects:
             - name: test-me
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Job Panel'
+          projects:
             - name: test-jp
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Analyzis'
+          projects:
             - name: test-an
 
