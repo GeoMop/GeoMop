@@ -49,7 +49,7 @@
     name: "test-{module}"
     display-name: "Test {module} module"
     builders:
-      - shell: cd /var/lib/jenkins/workspace/gm-linux-tests/testing;python3 {test-file}
+      - shell: cd /var/lib/jenkins/workspace/gm-linux-tests/testing;RunXvfb.sh {test-file} ./
 
 - project:
     name: "test-{module}"
