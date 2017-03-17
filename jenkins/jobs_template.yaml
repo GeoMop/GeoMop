@@ -63,8 +63,7 @@
         - an:
             test-file: runAn.py
     jobs:
-        - "test-{module}"
- 
+        - "test-{module}" 
 
 - job:
     name: "gm-linux-tests"
