@@ -10,11 +10,11 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
 from ui.data.preset_data import EnvPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import PresetNameValidator, ValidationColorizer
 
 
-class EnvDialog(AFormDialog):
+class EnvDialog(AFormContainer):
     """
     Dialog executive code with bindings and other functionality.
     """
@@ -40,21 +40,16 @@ class EnvDialog(AFormDialog):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent=None, excluded_names=None):
+    def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
+        self.data = None
 
         # setup specific UI
         self.ui = UiEnvDialog()
-        self.ui.setup_ui(self, self.excluded_names)
+        self.form = self.ui.setup_ui(parent, self.excluded_names)
 
-        # preset purpose
-        self.set_purpose(self.PURPOSE_ADD)
-
-        # connect slots
-        # connect generic presets slots (must be called after UI setup)
-        super()._connect_slots()
-        # specific slots
+        self.preset = None
         self.ui.sclEnableCheckBox.stateChanged.connect(
             lambda state: self.ui.sclEnableLineEdit.setDisabled(not state)
         )
@@ -68,6 +63,52 @@ class EnvDialog(AFormDialog):
                 self.ui.nameLineEdit):
             valid = False
         return valid
+        
+    def first_focus(self):
+        """
+        Get focus to first property
+        """
+        self.ui.nameLineEdit.setFocus()
+        
+    def is_dirty(self):        
+        """return if data was changes"""
+        if self.preset is None:
+            return True
+        if self.old_name!=self.ui.nameLineEdit.text():
+            return True            
+        if self.ui.sclEnableCheckBox.isChecked():
+            if self.preset.scl_enable_exec!=self.ui.sclEnableLineEdit.text():
+                return True
+        else:
+            if self.preset.scl_enable_exec is not None:
+                return True
+        if self.ui.addModuleCheckBox.isChecked():
+            if self.preset.module_add!=self.ui.addModuleLineEdit.text():
+                return True
+        else:
+            if self.preset.module_add is not None:
+                return True
+        if self.ui.flowPathEdit.text():
+            if self.preset.flow_path!=self.ui.flowPathEdit.text():
+                return True
+        else:
+            if self.preset.flow_path is not None:
+                return True
+        if self.ui.pbsParamsTextEdit.toPlainText():
+            if self.preset.pbs_params!=self.ui.pbsParamsTextEdit.toPlainText().splitlines():
+                return True
+        else:
+            if self.preset.pbs_params is not None and \
+                len(self.preset.pbs_params)!=0:
+                return True
+        if self.ui.cliParamsTextEdit.toPlainText():
+            if self.preset.cli_params!=self.ui.cliParamsTextEdit.toPlainText().splitlines():
+                return True
+        else:
+            if self.preset.cli_params is not None and \
+                len(self.preset.cli_params)!=0:
+                return True
+        return False
 
     def get_data(self):
         preset = EnvPreset(name=self.ui.nameLineEdit.text())
@@ -94,6 +135,7 @@ class EnvDialog(AFormDialog):
 
         if data:
             preset = data['preset']
+            self.preset = preset
             self.old_name = preset.name
             if is_edit:
                 try:
@@ -111,7 +153,6 @@ class EnvDialog(AFormDialog):
             self.ui.flowPathEdit.setText(preset.flow_path)
             self.ui.pbsParamsTextEdit.setPlainText('\n'.join(preset.pbs_params))
             self.ui.cliParamsTextEdit.setPlainText('\n'.join(preset.cli_params))
-
         else:
             self.ui.nameLineEdit.clear()
             self.ui.pythonExecLineEdit.clear()
@@ -124,43 +165,43 @@ class EnvDialog(AFormDialog):
             self.ui.cliParamsTextEdit.clear()
 
 
-class UiEnvDialog(UiFormDialog):
+class UiEnvDialog():
     """
     UI extensions of form dialog.
     """
 
     def setup_ui(self, dialog, excluded_names):
-        super().setup_ui(dialog)
 
-        # dialog properties
-        dialog.resize(400, 260)
+        # main dialog layout
+        self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
+        self.mainVerticalLayout = QtWidgets.QVBoxLayout()   
+        self.mainVerticalLayout.setContentsMargins(10, 15, 10, 15)
+        
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setContentsMargins(0, 5, 0, 5)
+        self.mainVerticalLayout.addLayout(self.formLayout)
 
         # validators
         self.nameValidator = PresetNameValidator(
             parent=self.mainVerticalLayoutWidget,
-            excluded=dialog.excluded_names)
+            excluded=excluded_names)
 
         # form layout
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.nameLabel.setObjectName("nameLabel")
         self.nameLabel.setText("Name:")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the environment")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
-        # remove button box
-        self.mainVerticalLayout.removeWidget(self.buttonBox)
-
         # divider
         self.formDivider = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
-        self.formDivider.setObjectName("formDivider")
         self.formDivider.setFrameShape(QtWidgets.QFrame.HLine)
         self.formDivider.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mainVerticalLayout.addWidget(self.formDivider)
@@ -172,26 +213,22 @@ class UiEnvDialog(UiFormDialog):
 
         # python label
         self.pythonLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.pythonLabel.setObjectName("pythonLabel")
         self.pythonLabel.setFont(labelFont)
         self.pythonLabel.setText("Python")
         self.mainVerticalLayout.addWidget(self.pythonLabel)
 
         # form layout2
         self.formLayout2 = QtWidgets.QFormLayout()
-        self.formLayout2.setObjectName("formLayout2")
         self.formLayout2.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.formLayout2)
 
         # 1 row
         self.pythonExecLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.pythonExecLabel.setObjectName("pythonExecLabel")
         self.pythonExecLabel.setText("Interpreter:")
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                    self.pythonExecLabel)
         self.pythonExecLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
-        self.pythonExecLineEdit.setObjectName("pythonExecLineEdit")
         self.pythonExecLineEdit.setPlaceholderText("for example: python3")
         self.pythonExecLineEdit.setProperty("clearButtonEnabled", True)
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.FieldRole,
@@ -199,21 +236,17 @@ class UiEnvDialog(UiFormDialog):
 
         # 2 row
         self.sclEnableLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.sclEnableLabel.setObjectName("sclEnableLabel")
         self.sclEnableLabel.setText("SCL Enable:")
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                    self.sclEnableLabel)
         self.sclEnableRowSplit = QtWidgets.QHBoxLayout()
-        self.sclEnableRowSplit.setObjectName("sclEnableRowSplit")
         self.sclEnableLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
-        self.sclEnableLineEdit.setObjectName("sclEnableLineEdit")
         self.sclEnableLineEdit.setPlaceholderText("for example: python33")
         self.sclEnableLineEdit.setProperty("clearButtonEnabled", True)
         self.sclEnableLineEdit.setDisabled(True)
         self.sclEnableCheckBox = QtWidgets.QCheckBox(
             self.mainVerticalLayoutWidget)
-        self.sclEnableCheckBox.setObjectName("sclEnableCheckBox")
         self.sclEnableRowSplit.addWidget(self.sclEnableCheckBox)
         self.sclEnableRowSplit.addWidget(self.sclEnableLineEdit)
         self.formLayout2.setLayout(2, QtWidgets.QFormLayout.FieldRole,
@@ -221,22 +254,18 @@ class UiEnvDialog(UiFormDialog):
 
         # 3 row
         self.addModuleLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.addModuleLabel.setObjectName("addModuleLabel")
         self.addModuleLabel.setText("Add module:")
         self.formLayout2.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                    self.addModuleLabel)
         self.addModuleRowSplit = QtWidgets.QHBoxLayout()
-        self.addModuleRowSplit.setObjectName("addModuleRowSplit")
         self.addModuleLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
-        self.addModuleLineEdit.setObjectName("addModuleLineEdit")
         self.addModuleLineEdit.setPlaceholderText("for example: "
                                                   "python34-module-gcc")
         self.addModuleLineEdit.setProperty("clearButtonEnabled", True)
         self.addModuleLineEdit.setDisabled(True)
         self.addModuleCheckBox = QtWidgets.QCheckBox(
             self.mainVerticalLayoutWidget)
-        self.addModuleCheckBox.setObjectName("addModuleCheckBox")
         self.addModuleRowSplit.addWidget(self.addModuleCheckBox)
         self.addModuleRowSplit.addWidget(self.addModuleLineEdit)
         self.formLayout2.setLayout(3, QtWidgets.QFormLayout.FieldRole,
@@ -244,35 +273,29 @@ class UiEnvDialog(UiFormDialog):
 
         # divider
         self.formDivider1 = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
-        self.formDivider1.setObjectName("formDivider")
         self.formDivider1.setFrameShape(QtWidgets.QFrame.HLine)
         self.formDivider1.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mainVerticalLayout.addWidget(self.formDivider1)
 
         # flow label
         self.flowLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.flowLabel.setObjectName("flowLabel")
         self.flowLabel.setFont(labelFont)
         self.flowLabel.setText("Flow123d")
         self.mainVerticalLayout.addWidget(self.flowLabel)
 
         # form layout3
-        self.mainVerticalLayout.removeWidget(self.buttonBox)
         self.formLayout3 = QtWidgets.QFormLayout()
-        self.formLayout3.setObjectName("formLayout3")
         self.formLayout3.setContentsMargins(0, 5, 0, 5)
         self.mainVerticalLayout.addLayout(self.formLayout3)
 
         # 1 row
         self.flowPathLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.flowPathLabel.setObjectName("flowPathLabel")
         self.flowPathLabel.setText("Flow123d path:")
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                    self.flowPathLabel)
         self.flowPathEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
-        self.flowPathEdit.setObjectName("flowPathEdit")
         self.flowPathEdit.setPlaceholderText("flow123d")
         #self.flowPathEdit.setProperty("clearButtonEnabled", True)
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.FieldRole,
@@ -281,13 +304,11 @@ class UiEnvDialog(UiFormDialog):
         # 2 row
         self.pbsParamsLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.pbsParamsLabel.setObjectName("pbsParamsLabel")
         self.pbsParamsLabel.setText("PBS Params:")
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                    self.pbsParamsLabel)
         self.pbsParamsTextEdit = QtWidgets.QPlainTextEdit(
             self.mainVerticalLayoutWidget)
-        self.pbsParamsTextEdit.setObjectName("pbsParamsTextEdit")
         self.pbsParamsTextEdit.setMinimumHeight(55)
         self.pbsParamsTextEdit.setTabChangesFocus(True)
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
@@ -296,19 +317,14 @@ class UiEnvDialog(UiFormDialog):
         # 3 row
         self.cliParamsLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.cliParamsLabel.setObjectName("cliParamsLabel")
         self.cliParamsLabel.setText("CLI Params:")
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                    self.cliParamsLabel)
         self.cliParamsTextEdit = QtWidgets.QPlainTextEdit(
             self.mainVerticalLayoutWidget)
-        self.cliParamsTextEdit.setObjectName("cliParamsTextEdit")
         self.cliParamsTextEdit.setMinimumHeight(55)
         self.cliParamsTextEdit.setTabChangesFocus(True)
         self.formLayout3.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                    self.cliParamsTextEdit)
         
-        # add button box
-        self.mainVerticalLayout.addWidget(self.buttonBox)
-
-        return dialog
+        return self.mainVerticalLayout

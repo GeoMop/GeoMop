@@ -15,4 +15,5 @@ sys.path.insert(3, __mock_dir__)
 sys.path.insert(4, __pexpect_dir__)
 
 import pytest
-pytest.main(['-x', 'JobPanel'])
+code = pytest.main(['-x', 'JobPanel'])
+sys.exit(code)

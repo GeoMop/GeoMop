@@ -14,21 +14,10 @@ class PbsPresets(APresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent=None, presets=None):
-        super().__init__(parent)
-
-        # setup preset specific UI
+    def __init__(self, parent, presets):
         self.ui = UiPbsPresets()
-        self.ui.setup_ui(self)
-
-        # assign presets and reload view
-        self.set_presets(presets)
-
-        self.DlgClass = PbsDialog
-
-        # connect generic presets slots (must be called after UI setup)
-        super().connect_slots()
-
+        """Form builed"""
+        super().__init__(parent, presets, PbsDialog)
 
 class UiPbsPresets(UiPresetsDialog):
     """

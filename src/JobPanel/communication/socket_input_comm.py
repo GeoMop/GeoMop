@@ -10,6 +10,7 @@ from communication.communication import InputComm
 
 logger = logging.getLogger("Remote")
 __MAX_OPEN_PORTS__=200
+__RECONNECT_TIMEOUT__=600
 
 class SocketInputComm(InputComm):
     """Socket server connection"""
@@ -30,6 +31,8 @@ class SocketInputComm(InputComm):
         """Lock for connected"""
         self._established = False
         """Port and host for Socket Connection was recognised"""
+        self._reconnect_lazy= False
+        """reconnect session during next message reading"""
 
     def isconnected(self):
         """Connection is opened"""
@@ -93,6 +96,11 @@ class SocketInputComm(InputComm):
         
         Function wait for answer for set time in seconds
         """
+        if self._reconnect_lazy:
+            logger.debug("Reconnect action is received") 
+            self._reconnect_lazy = False
+            self._reconnect()                
+            return 
         if not self.isconnected():
             time.sleep(1)
             return 
@@ -102,9 +110,8 @@ class SocketInputComm(InputComm):
         except socket.timeout:
             return None
         if len(data) == 0:
-            if self._conn_interupted_count > 600:
-                self.disconnect
-                self.connect()
+            if self._conn_interupted_count > __RECONNECT_TIMEOUT__:
+                self._reconnect()                
                 return 
             time.sleep(1)
             if not self._conn_interupted:
@@ -130,7 +137,18 @@ class SocketInputComm(InputComm):
         self._connected_lock.release()
         self.conn.shutdown(socket.SHUT_RDWR)        
         self.conn.close() 
-        logger.debug("Server close connection on port " + str(self.port))        
+        logger.debug("Server close connection on port " + str(self.port))  
+  
+    def _reconnect(self):
+        """reconnect session"""
+        self._conn_interupted_count=0
+        self.disconnect()
+        time.sleep(10)
+        self.connect() 
+        
+    def lazy_reconnect(self):
+        """reconnect session during next message reading"""
+        self._reconnect_lazy= True        
         
     def save_state(self, state):
         """save state to variable"""

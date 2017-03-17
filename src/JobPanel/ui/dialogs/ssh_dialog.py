@@ -9,57 +9,29 @@ from PyQt5 import QtWidgets
 
 from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
 from ui.dialogs import SshPasswordDialog
+from ui.imports.workspaces_conf import BASE_DIR
 import config
+import os
 
-
-class SshDialog(AFormDialog):
+class SshDialog(AFormContainer):
     """
     Dialog executive code with bindings and other functionality.
     """
-
-    # purposes of dialog by action
-    PURPOSE_ADD = dict(purposeType="PURPOSE_ADD",
-                       objectName="AddSshDialog",
-                       windowTitle="Job Panel - Add SSH host",
-                       title="Add SSH host",
-                       subtitle="Please select details for new SSH host.")
-
-    PURPOSE_EDIT = dict(purposeType="PURPOSE_EDIT",
-                        objectName="EditSshDialog",
-                        windowTitle="Job Panel - Edit SSH host",
-                        title="Edit SSH host",
-                        subtitle="Change desired parameters and press SAVE to "
-                                 "apply changes.")
-
-    PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
-                        objectName="CopySshDialog",
-                        windowTitle="Job Panel - Copy SSH host",
-                        title="Copy SSH host",
-                        subtitle="Change desired parameters and press SAVE to "
-                                 "apply changes.")    
-
-    def __init__(self, parent=None, excluded_names=None):
+    def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
         self.excluded_names = excluded_names
         self.data = None
 
         # setup specific UI
         self.ui = UiSshDialog()
-        self.ui.setup_ui(self)
-
-        # preset purpose
-        self.set_purpose(self.PURPOSE_ADD)
+        self.form = self.ui.setup_ui(parent, excluded_names, self)
 
         self.preset = None
-
-        # connect slots
-        # connect generic presets slots (must be called after UI setup)
-        super()._connect_slots()
 
     def valid(self):
         valid = True
@@ -67,6 +39,48 @@ class SshDialog(AFormDialog):
                 self.ui.nameLineEdit):
             valid = False
         return valid
+        
+    def first_focus(self):
+        """
+        Get focus to first property
+        """
+        self.ui.nameLineEdit.setFocus()
+        
+    def is_dirty(self):        
+        """return if data was changes"""
+        if self.preset is None:
+            return True
+        if self.old_name!=self.ui.nameLineEdit.text():
+            return True            
+        if self.ui.hostLineEdit.text()!=self.preset.host:
+            return True
+        if self.ui.portSpinBox.value()!=self.preset.port:
+            return True
+        if self.ui.remoteDirLineEdit.text()!=self.preset.remote_dir:
+            return True
+        if self.ui.userLineEdit.text()!=self.preset.uid:
+            return True
+        if self.preset.to_pc!=self.ui.rememberPasswordCheckbox.isChecked():
+            return True
+        to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
+                            self.ui.copyPasswordCheckbox.isChecked())                            
+        if self.preset.to_remote!=to_remote:
+            return True
+        if self.preset.use_tunneling!=self.ui.useTunnelingCheckbox.isChecked():
+            return True
+        if self.preset.env != self.ui.envPresetComboBox.currentData():
+            return True
+        if self.ui.pbsSystemComboBox.currentText():
+            if self.preset.pbs_system!=self.ui.pbsSystemComboBox.currentData():
+                return True
+        # password
+        if self.ui.passwordLineEdit.isEnabled():
+            password = self.ui.passwordLineEdit.text()
+            pwd2 = Users.get_reg(self.preset.name, self.preset.key, os.path.join(
+                config.__config_dir__, BASE_DIR))
+            if password != pwd2:
+                return True
+        return False
 
     def get_data(self, save_reg=True):
         name=self.ui.nameLineEdit.text()
@@ -78,6 +92,7 @@ class SshDialog(AFormDialog):
         preset.to_pc = self.ui.rememberPasswordCheckbox.isChecked()
         preset.to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
                             self.ui.copyPasswordCheckbox.isChecked())
+        preset.use_tunneling = self.ui.useTunnelingCheckbox.isChecked()
         preset.env = self.ui.envPresetComboBox.currentData()
         if self.ui.pbsSystemComboBox.currentText():
             preset.pbs_system = self.ui.pbsSystemComboBox.currentData()
@@ -85,10 +100,11 @@ class SshDialog(AFormDialog):
         # password
         if self.ui.passwordLineEdit.isEnabled():
             password = self.ui.passwordLineEdit.text()
-            if save_reg:
+            if save_reg:                
                 if self.preset is None or password != self.preset.pwd:
                     # if password changed
-                    key = Users.save_reg(name, password, config.__config_dir__)
+                    key = Users.save_reg(name, password,
+                        os.path.join(config.__config_dir__, BASE_DIR))
                     preset.pwd = "a124b.#"
                     preset.key = key
                 else:
@@ -116,7 +132,8 @@ class SshDialog(AFormDialog):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
-            pwd = Users.get_reg(preset.name, preset.key, config.__config_dir__)
+            pwd = Users.get_reg(preset.name, preset.key, 
+                os.path.join(config.__config_dir__, BASE_DIR))
             if pwd is not None:
                 self.ui.passwordLineEdit.setText(pwd)
                 self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
@@ -124,6 +141,7 @@ class SshDialog(AFormDialog):
                 self.ui.passwordLineEdit.setText("")
                 self.ui.rememberPasswordCheckbox.setChecked(False)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
+            self.ui.useTunnelingCheckbox.setChecked(preset.use_tunneling)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
             self.ui.envPresetComboBox.setCurrentIndex(
@@ -137,8 +155,10 @@ class SshDialog(AFormDialog):
             self.ui.passwordLineEdit.clear()
             self.ui.rememberPasswordCheckbox.setChecked(True)
             self.ui.copyPasswordCheckbox.setChecked(True)
+            self.ui.useTunnelingCheckbox.setChecked(False)
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
             self.ui.envPresetComboBox.setCurrentIndex(-1)
+        return 
             
     def set_data_container(self, data):
         self.data = data
@@ -148,6 +168,9 @@ class SshDialog(AFormDialog):
             # sort dict by list, not sure how it works
             for key in env:
                 self.ui.envPresetComboBox.addItem(env[key].name, key)
+            if self.preset is not None:
+                self.ui.envPresetComboBox.setCurrentIndex(
+                    self.ui.envPresetComboBox.findData(self.preset.env))
                 
     def handle_test(self):
         """Do ssh connection test"""
@@ -164,36 +187,35 @@ class SshDialog(AFormDialog):
         dialog.exec_()
 
 
-class UiSshDialog(UiFormDialog):
+class UiSshDialog():
     """
     UI extensions of form dialog.
     """
     ENV_LABEL = "Remote environment:"
 
-    def setup_ui(self, dialog):
-        super().setup_ui(dialog)
+    def setup_ui(self, dialog, excluded_names, parent):
 
-        # dialog properties
-        dialog.resize(400, 260)
+        # main dialog layout
+        self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
+        
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setContentsMargins(10, 15, 10, 15)
 
         # validators
         self.nameValidator = SshNameValidator(
             parent=self.mainVerticalLayoutWidget,
-            excluded=dialog.excluded_names)
+            excluded=excluded_names)
         self.remoteDirValidator = RemoteDirectoryValidator(
             parent=self.mainVerticalLayoutWidget
-        )
-
-        # form layout
+        )        
 
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.nameLabel.setObjectName("nameLabel")
         self.nameLabel.setText("Name:")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
                                   self.nameLabel)
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.nameLineEdit.setObjectName("nameLineEdit")
         self.nameLineEdit.setPlaceholderText("Name of the host")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
         self.nameLineEdit.setValidator(self.nameValidator)
@@ -202,12 +224,10 @@ class UiSshDialog(UiFormDialog):
 
         # 2 row
         self.hostLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.hostLabel.setObjectName("hostLabel")
         self.hostLabel.setText("Host:")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
                                   self.hostLabel)
         self.hostLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.hostLineEdit.setObjectName("hostLineEdit")
         self.hostLineEdit.setPlaceholderText("Valid host address or Ip")
         self.hostLineEdit.setProperty("clearButtonEnabled", True)
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
@@ -215,7 +235,6 @@ class UiSshDialog(UiFormDialog):
 
         # 3 row
         self.portLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.portLabel.setObjectName("portLabel")
         self.portLabel.setText("Specify port:")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.portLabel)
@@ -226,18 +245,15 @@ class UiSshDialog(UiFormDialog):
         self.portSpinBox.setMinimum(1)
         self.portSpinBox.setValue(22)
         self.portSpinBox.setMaximum(65535)
-        self.portSpinBox.setObjectName("portSpinBox")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.portSpinBox)
 
         # 4 row
         self.remoteDirLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.remoteDirLabel.setObjectName("remoteDirLabel")
         self.remoteDirLabel.setText("Remote directory:")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.remoteDirLabel)
         self.remoteDirLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.remoteDirLineEdit.setObjectName("remoteDirLineEdit")
         self.remoteDirLineEdit.setText("js_services")
         self.remoteDirLineEdit.setValidator(self.remoteDirValidator)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
@@ -245,12 +261,10 @@ class UiSshDialog(UiFormDialog):
 
         # 5 row
         self.userLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.userLabel.setObjectName("userLabel")
         self.userLabel.setText("User:")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
                                   self.userLabel)
         self.userLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.userLineEdit.setObjectName("userLineEdit")
         self.userLineEdit.setPlaceholderText("User name")
         self.userLineEdit.setProperty("clearButtonEnabled", True)
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
@@ -258,24 +272,26 @@ class UiSshDialog(UiFormDialog):
 
         # 6 row
         self.passwordLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.passwordLabel.setObjectName("passwordLabel")
         self.passwordLabel.setText("Password:")
         self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
 
         self.passwordLayout = QtWidgets.QVBoxLayout()
         self.passwordLineEdit = QtWidgets.QLineEdit()
-        self.passwordLineEdit.setObjectName("passwordLineEdit")
         self.passwordLineEdit.setPlaceholderText("User password")
         self.passwordLineEdit.setProperty("clearButtonEnabled", True)
         self.passwordLineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.rememberPasswordCheckbox = QtWidgets.QCheckBox()
         self.rememberPasswordCheckbox.setText('Remember password')
         self.copyPasswordCheckbox = QtWidgets.QCheckBox()
-        self.copyPasswordCheckbox.setText('Copy password to remote')
+        self.copyPasswordCheckbox.setText('Copy password to remote')        
+        self.useTunnelingCheckbox = QtWidgets.QCheckBox()
+        self.useTunnelingCheckbox.setText('Use ssh tunneling')        
         self.passwordLayout.addWidget(self.passwordLineEdit)
         self.passwordLayout.addWidget(self.rememberPasswordCheckbox)
         self.passwordLayout.addWidget(self.copyPasswordCheckbox)
+        self.passwordLayout.addWidget(self.useTunnelingCheckbox)
+        
         self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordLayout)
 
@@ -286,14 +302,11 @@ class UiSshDialog(UiFormDialog):
         # 7 row
         self.pbsSystemLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
-        self.pbsSystemLabel.setObjectName("pbsSystemLabel")
         self.pbsSystemLabel.setText("PBS System:")
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
                                   self.pbsSystemLabel)
         self.pbsSystemComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.pbsSystemComboBox.setObjectName(
-            "pbsSystemComboBox")
         self.pbsSystemComboBox.addItem('No Pbs', '')
         dialect_items = DialectImporter.get_available_dialects()
         for key in dialect_items:
@@ -303,22 +316,23 @@ class UiSshDialog(UiFormDialog):
                                   
         # 8 row
         self.envPresetLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.envPresetLabel.setObjectName("envPresetLabel")
         self.envPresetLabel.setText(self.ENV_LABEL)
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
                                    self.envPresetLabel)
         self.envPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.envPresetComboBox.setObjectName(
-            "envPresetComboBox")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                    self.envPresetComboBox)
                                    
-        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Help)
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Help).setText("Test Connection")
-        self.buttonBox.helpRequested.connect(dialog.handle_test)
+        # 9 row
+        self.btnTest = QtWidgets.QPushButton(dialog)
+        self.btnTest.setText("Test Connection")
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
+                                   self.btnTest)
+                                   
+        self.btnTest.clicked.connect(parent.handle_test)
 
-        return dialog
+        return self.formLayout
 
     def _handle_remember_password_checkbox_changed(self, state=None):
         if not self.rememberPasswordCheckbox.isChecked():

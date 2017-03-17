@@ -26,7 +26,7 @@ if sys.platform == "win32":
             """
             Return if next communicator run
             """
-            return self._proc.isconnected()
+            return self.isconnected()
             
         def kill_next(self):
             """
@@ -133,7 +133,7 @@ else:
             """
             Return if next communicator run
             """
-            return self._proc.isconnected()
+            return self.isconnected()
             
         def kill_next(self):
             """

@@ -116,6 +116,8 @@ class SshPreset(APreset):
         """Remember password on pc"""
         self.to_remote = kw_or_def('to_remote', False)
         """Copy password to remote"""
+        self.use_tunneling = kw_or_def('use_tunneling', False)
+        """Communication is switch to socket over ssh tunnel"""
         self.key = kw_or_def('key', '')
         """Key for password"""
         self.pbs_system = kw_or_def('pbs_system')

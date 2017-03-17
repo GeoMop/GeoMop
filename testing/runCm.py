@@ -7,4 +7,5 @@ __lib_dir__ = os.path.join(os.path.split(
 sys.path.insert(1, __lib_dir__)
 
 import pytest
-pytest.main(['-x', 'common'])
+code = pytest.main(['-x', 'common'])
+sys.exit(code)

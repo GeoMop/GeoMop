@@ -141,6 +141,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         variable that is used during last run result 
         evaluation by pipeline.
         """
+        self._orig_name = None
+        """original name"""
         self.set_config(**kwargs)
         
     def _set_state(self, new_state):
@@ -506,7 +508,11 @@ class BaseActionType(metaclass=abc.ABCMeta):
 
     def _add_error(self, err, message):
         """Append error message to err list"""
-        err.append("{0}: {1}".format(self._get_instance_name(), message))
+        if self._orig_name is not None:
+            iname = "{0}({1})".format(self._orig_name, self._get_instance_name())
+        else:
+            iname = self._get_instance_name()
+        err.append("{0}: {1}".format(iname, message))
 
     def _extend_error(self, err, new_err):
         """Extend err list with new err list"""
@@ -516,6 +522,23 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def get_resources(self):
         """Return list of resource files"""
         return []
+
+    def set_orig_name(self, name):
+        """Set original name"""
+        self._orig_name = name
+
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        if self._orig_name is None:
+            for k, v in script_dict.items():
+                if v is self:
+                    self._orig_name = k
+                    return
+
 
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
@@ -730,6 +753,15 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         """Return list of resource files"""
         return self._variables['WrappedAction'].get_resources()
 
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        super()._set_orig_from_script(script_dict)
+        self._variables['WrappedAction']._set_orig_from_script(script_dict)
+
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
@@ -936,3 +968,13 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         for action in self._get_child_list():
             ret.extend(action.get_resources())
         return ret
+
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        super()._set_orig_from_script(script_dict)
+        for action in self._get_child_list():
+            action._set_orig_from_script(script_dict)
