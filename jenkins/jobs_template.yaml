@@ -68,19 +68,11 @@
 - job:
     name: "gm-linux-tests"
     display-name: "GeoMop Linux Tests"
-    parameters:
-    - string:
-        default: ${GIT_BRANCH}
-        description: Select git branch.
-        name: branch
     scm:
     - git:
         branches:
-        - refs/heads/${branch}
+        - master
         url: https://github.com/GeoMop/GeoMop
-    wrappers:
-      - build-name:
-          name:  "${BUILD_DISPLAY_NAME} (Branch: ${branch})"
     project-type: multijob
     triggers:
       - github
