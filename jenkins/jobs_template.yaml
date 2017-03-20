@@ -51,8 +51,7 @@
     builders:
       - shell: |
           cd /var/lib/jenkins/workspace/gm-linux-tests/testing;
-          ./RunXvfb.sh {test-file} ./
-          cp "{result-file}" /var/lib/jenkins/workspace/test-{module}/
+          ./RunXvfb.sh {test-file} {result-file} /var/lib/jenkins/workspace/test-{module}/
     publishers:
       - junit:
           results: "{result-file}"

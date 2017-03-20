@@ -2,25 +2,28 @@
 
 echo $#
 
-if [ $# -ne 2 ]; then
-   echo "Usage: RunXvfb test_file test_dir"
-   echo "       test_file - test python file without path"
-   echo "       test_dir - path to test file"
-   echo "Script run set test in frame buffer"
+if [ $# -ne 3 ]; then
+   echo "Usage: RunXvfb test_file result_file copy_dir"
+   echo "       test_file - test python file without path that is in current folder"
+   echo "       result_file - xml junit result file"
+   echo "       copy_dir - where copy xml junit result file"
+   echo "Script run set test in frame buffer and copy result to set folder"
    exit 1
 fi
 
 # Variables.
 TEST_FILE="$1"
-TEST_DIR="$2"
+TEST_RESULT_FILE="$2"
+COPY_DIR="$3"
 
 # Create X virtual framebuffer to run GUI tests.
 Xvfb :1 &
 PID=$!
 
 # Run tests.
-cd $TEST_DIR
 DISPLAY=:1 python3 $TEST_FILE
-if [[ $? != 0 ]]; then kill $PID; exit 1; fi
+RESULT= $?
+cp $TEST_RESULT_FILE $COPY_DIR
+if [[ $RESULT != 0 ]]; then kill $PID; exit 1; fi
 
 kill $PID
