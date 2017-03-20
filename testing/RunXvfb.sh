@@ -22,8 +22,8 @@ PID=$!
 
 # Run tests.
 DISPLAY=:1 python3 $TEST_FILE
-RESULT= $?
+RESULT="$?"
 cp $TEST_RESULT_FILE $COPY_DIR
-if [[ $RESULT != 0 ]]; then kill $PID; exit 1; fi
+if [[ $RESULT != "0" ]]; then kill $PID; exit 1; fi
 
 kill $PID
