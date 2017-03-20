@@ -11,6 +11,8 @@ sys.path.insert(1, __me_dir__)
 sys.path.insert(2, __lib_dir__)
 sys.path.insert(3, __mock_dir__)
 
+__root_dir__ = os.getcwd()
+
 import pytest
-code = pytest.main(['-x', 'ModelEditor'])#""", '-k'  "not test_transformace.py" """])
+code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testMe.xml") + " ModelEditor")#""", '-k'  "not test_transformace.py" """])
 sys.exit(code)

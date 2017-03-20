@@ -14,6 +14,8 @@ sys.path.insert(2, __lib_dir__)
 sys.path.insert(3, __mock_dir__)
 sys.path.insert(4, __pexpect_dir__)
 
+__root_dir__ = os.getcwd()
+
 import pytest
-code = pytest.main(['-x', 'JobPanel'])
+code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testJp.xml") + ' JobPanel')
 sys.exit(code)

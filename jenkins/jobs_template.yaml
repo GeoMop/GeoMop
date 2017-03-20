@@ -50,18 +50,25 @@
     display-name: "Test {module} module"
     builders:
       - shell: cd /var/lib/jenkins/workspace/gm-linux-tests/testing;./RunXvfb.sh {test-file} ./
+    publishers:
+      - junit:
+          results: "{result-file}"
 
 - project:
     name: "test-{module}"
     module: 
         - common:
             test-file: runCm.py
+            result-file: testCommon.xml
         - me:
             test-file: runMe.py
+            result-file: testMe.xml
         - jp:
             test-file: runJp.py
+            result-file: testJp.xml
         - an:
             test-file: runAn.py
+            result-file: testAn.xml
     jobs:
         - "test-{module}" 
 
