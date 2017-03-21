@@ -55,9 +55,15 @@
     publishers:
       - junit:
           results: "{result-file}"
+    wrappers:
+      - build-name:
+          name: "$BUILD_NAME"
 
 - project:
     name: "test-{module}"
+    wrappers:
+      - build-name:
+          name: "$GIT_BRANCH@$GIT_REVISION"
     module: 
         - common:
             test-file: runCm.py
@@ -85,25 +91,32 @@
     project-type: multijob
     triggers:
       - github
+    wrappers:
+      - build-name:
+          name: "$GIT_BRANCH@$GIT_REVISION"
     builders:
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - common'
           projects:
             - name: test-common
+              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Model Editor'
           projects:
             - name: test-me
+              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Job Panel'
           projects:
             - name: test-jp
+              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Analysis'
           projects:
             - name: test-an
+              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
 
