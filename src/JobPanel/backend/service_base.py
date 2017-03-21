@@ -48,6 +48,7 @@ class ActionProcessor:
         except  AttributeError:
             result = {'error': 'Invalid action: %s' % (action)}
         else:
+
             result = action_method(data)
         return result
 
@@ -134,6 +135,7 @@ class ServiceBase(ActionProcessor):
 
     def __init__(self, service_address, listen_port):
         self.child_services={}
+        self.requests=[]
         self.repeater = ar.AsyncRepeater(service_address, listen_port)
 
     def get_listen_port(self):
@@ -157,8 +159,8 @@ class ServiceBase(ActionProcessor):
         return
 
     def process_requests(self):
-        requests = self.repeater.get_requests()
-        for request_data in requests:
+        self.requests.extend( self.repeater.get_requests() )
+        for request_data in self.requests:
             request = request_data.request
             logging.info("Process Request: " + str(request))
             data = None
