@@ -61,9 +61,6 @@
 
 - project:
     name: "test-{module}"
-    wrappers:
-      - build-name:
-          name: "$GIT_BRANCH@$GIT_REVISION"
     module: 
         - common:
             test-file: runCm.py
@@ -100,7 +97,7 @@
           name: 'Unit tests - common'
           projects:
             - name: test-common
-              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
+              predefined-parameters: BUILD_NAME="${GIT_BRANCH}@${GIT_REVISION}"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Model Editor'
