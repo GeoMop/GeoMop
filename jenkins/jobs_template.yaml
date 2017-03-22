@@ -89,10 +89,10 @@
     triggers:
       - github
     wrappers:
-      - build-name:
-          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
       - inject:
-          properties-content: "BUILD_NAME=${GIT_REVISION, length=6}"
+          properties-content: BUILD_NAME="${GIT_BRANCH}@${GIT_REVISION, length=6}"
+      - build-name:
+          name: BUILD_NAME      
     builders:
       - multijob:
           condition: COMPLETED
