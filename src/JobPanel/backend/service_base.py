@@ -6,7 +6,7 @@ import concurrent.futures
 def LongRequest():
     """
     Auxiliary decorator to mark requests that takes long time or
-    prefrom its own communication and so must be processed in its own thread.
+    perform its own communication and so must be processed in its own thread.
     """
     def decorator(func):
         func.run_in_thread = True
