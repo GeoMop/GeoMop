@@ -90,30 +90,32 @@
       - github
     wrappers:
       - build-name:
-          name: "$GIT_BRANCH@$GIT_REVISION"
+          name: "${{GIT_BRANCH}}@${{GIT_REVISION, length=6}}"
+      - inject:
+          properties-content: BUILD_NAME="${{GIT_BRANCH}}@${{GIT_REVISION, length=6}}"
     builders:
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - common'
           projects:
             - name: test-common
-              predefined-parameters: BUILD_NAME="${GIT_BRANCH}@${GIT_REVISION}"
+              predefined-parameters: BUILD_NAME="$BUILD_NAME"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Model Editor'
           projects:
             - name: test-me
-              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
+              predefined-parameters: BUILD_NAME="$BUILD_NAME"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Job Panel'
           projects:
             - name: test-jp
-              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
+              predefined-parameters: BUILD_NAME="$BUILD_NAME"
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Analysis'
           projects:
             - name: test-an
-              predefined-parameters: BUILD_NAME="$GIT_BRANCH@$GIT_REVISION"
+              predefined-parameters: BUILD_NAME="BUILD_NAME"
 
