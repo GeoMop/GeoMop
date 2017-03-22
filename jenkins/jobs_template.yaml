@@ -90,9 +90,9 @@
       - github
     wrappers:
       - inject:
-          properties-content: BUILD_NAME="${GIT_BRANCH}@${GIT_REVISION, length=6}"
+          properties-content: BUILD_NAME="$GIT_REVISION"
       - build-name:
-          name: BUILD_NAME      
+          name: $BUILD_NAME      
     builders:
       - multijob:
           condition: COMPLETED
