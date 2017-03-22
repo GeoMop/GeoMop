@@ -90,7 +90,7 @@
       - github
     wrappers:
       - inject:
-          properties-content: BUILD_NAME=${GIT_BRANCH}@${GIT_COMMIT}
+          properties-content: BUILD_NAME=${GIT_BRANCH}@${GIT_COMMIT, length=6}
       - build-name:
           name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"      
     builders:
