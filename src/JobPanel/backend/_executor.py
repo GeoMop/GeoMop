@@ -50,7 +50,22 @@ class Executable(JsonData):
         """Is set by Installation.test_executable."""
         JsonData.__init__(self, config)
 
-# qsub pbs_options mpirun
+
+class ExecArgs(JsonData):
+    """
+    Parameters of particular process.
+    """
+    args = []
+    """ Arguments passed to executable."""
+    pbs_args = PbsConfig()
+    """
+    Arguments passed to PBS system.
+    Reuse data.communicator_conf.PbsConfig, remove dialect, move into PBS module.
+    """
+    mpi_args = []
+    """Arguments passed to mpiexec. Do not use."""
+
+
 
 class Environment(JsonData):
     """
@@ -60,13 +75,14 @@ class Environment(JsonData):
     metainformation about executables and scripts.
     (Can run given executable)
 
-    Process of initialization. Environment configuration should be part of
-    connection as it is related to particular machine. Still allowing to
-    copy one connection to other and reuse environment or ssh.
-    1. User set root dir.
-    2. Default list of executables and other parts of configuration is test
-    on the remote (using delegator) and returned back. Possible problems can be resolved
-    by user manualy and further tested in a Connection panel.
+        GUI side: Environment configuration should be part of
+        connection as it is related to particular machine. Still allowing to
+        copy the  connection to new one reusing environment or ssh. Environment setup should be minimalistic
+        by default just setting workspace and root dir of GeoMop installation.
+
+        SSH connection test should perform test both test of SSH connection as well as test of installation
+        this fill rest of environment and allows to modify invalid setting (mpi, python, etc.)
+        Possible problems can be resolved by user manually and further tested in the Connection panel.
     """
 
     def __init__(self, config):
@@ -75,7 +91,7 @@ class Environment(JsonData):
         the version installed at 'root'. Otherwise we start test_installation.
         :param config: InstallationData
         """
-        self.root = []
+        self.geomop_dir = []
         """
         Path to the root directory of the GeoMop backend installtion.
         The only attribute that must be provided by user.
@@ -94,6 +110,7 @@ class Environment(JsonData):
         self.pbs = None
         """ Resolve class to implement details of particular PBS."""
         JsonData.__init__(self, config)
+
 
 
     def test_installation(self):
@@ -139,6 +156,10 @@ class Environment(JsonData):
         :return: True if process was killed.
         """
         pass
+
+
+
+
 
 
 
@@ -258,6 +279,12 @@ service_data = {
 
 """
 
+#==================================================
+"""
+TODO: implement backbone of service starting mechanism in
+ServiceProxy and possibly use ServiceStarterXYZ resolution classes for
+code that is special for different kind of service starting (Exec, PBS, docker).
+"""
 
 class ServiceStarterBase(JsonData):
     def __init__(self, environment):
@@ -328,7 +355,6 @@ class ServiceStarterDocker(ProcessBase):
 
 
 ############################################################################################
-    ########################################################################
 
 
 
@@ -385,15 +411,22 @@ class ServiceStarterDocker(ProcessBase):
             """
             pass
 
-    class ProcessPBS(JsonData):
-        """
-        Same interface as ProcessExec.
 
-        Reuse: pbs_output_comm.PBSOutputComm._exec, pbs.py, dialects
 
-        How we incorporate posible advanced PBS functions specific to queued jobs. e.g.
-        estimate of start time, target nodes, ...
 
-        Remove checks for dialect and default implementation in pbs.py
-        """
-        pass
+
+
+class ProcessPBS(JsonData):
+    """
+    Same interface as ProcessExec.
+
+    Reuse: pbs_output_comm.PBSOutputComm._exec, pbs.py, dialects
+
+    How we incorporate posible advanced PBS functions specific to queued jobs. e.g.
+    estimate of start time, target nodes, ...
+
+    Remove checks for dialect and default implementation in pbs.py
+    """
+    pass
+
+
