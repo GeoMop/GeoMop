@@ -90,7 +90,7 @@
       - github
     wrappers:
       - inject:
-          properties-content: BUILD_NAME="$GIT_REVISION"
+          properties-content: BUILD_NAME=$GIT_REVISION
       - build-name:
           name: $BUILD_NAME      
     builders:
