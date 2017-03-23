@@ -95,7 +95,7 @@
           properties-content: "BUILD_NAME=${{GIT_BRANCH##origin/}}@${{GIT_COMMIT:0:6}}"
     builders:
       - shell: |
-          echo "BUILD_NAME=${GIT_BRANCH}@${GIT_COMMIT:0:6}" >prop.file
+          echo "BUILD_NAME=${GIT_BRANCH}@${GIT_COMMIT}" >prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - common'
