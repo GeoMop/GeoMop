@@ -57,7 +57,7 @@
           results: "{result-file}"
     wrappers:
       - build-name:
-          name: "${PROPFILE,file=\"/var/lib/jenkins/workspace/gm-linux-tests/prop.file\",property=\"BUILD_NAME\"}"
+          name: "${{PROPFILE,file=\"/var/lib/jenkins/workspace/gm-linux-tests/prop.file\",property=\"BUILD_NAME\"}}"
 
 - project:
     name: "test-{module}"
