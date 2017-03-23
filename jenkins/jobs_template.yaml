@@ -57,7 +57,7 @@
           results: "{result-file}"
     wrappers:
       - build-name:
-          name: "${{PROPFILE,file=\"/var/lib/jenkins/workspace/gm-linux-tests/prop.file\",property=\"BUILD_NAME\"}}"
+          name: "${{PROPFILE,file=\"prop.file\",property=\"BUILD_NAME\"}}"
 
 - project:
     name: "test-{module}"
@@ -100,22 +100,22 @@
           name: 'Unit tests - common'
           projects:
             - name: test-common
-            - property-file: prop.file
+              property-file: prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Model Editor'
           projects:
             - name: test-me
-            - property-file: prop.file
+              property-file: prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Job Panel'
           projects:
             - name: test-jp
-            - property-file: prop.file
+              property-file: prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Analysis'
           projects:
             - name: test-an
-            - property-file: prop.file
+              property-file: prop.file
