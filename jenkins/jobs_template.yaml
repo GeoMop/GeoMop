@@ -92,7 +92,8 @@
       - build-name:
           name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
       - inject:
-          properties-content: "BUILD_NAME=${{GIT_BRANCH##origin/}}@${{GIT_COMMIT:0:6}}"
+          script-content: 
+            "echo \"BUILD_NAME=${{GIT_BRANCH#origin/}}@${{GIT_COMMIT:0:6}}\" >prop.file"
     builders:
       - multijob:
           condition: COMPLETED
