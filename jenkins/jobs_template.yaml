@@ -91,29 +91,33 @@
     wrappers:
       - build-name:
           name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+      - inject:
+          properties-content: "BUILD_NAME=${{GIT_BRANCH##origin/}}@${{GIT_COMMIT:0:6}}"
     builders:
+      - shell: |
+          echo "BUILD_NAME=${GIT_BRANCH}@${GIT_COMMIT:0:6}" >prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - common'
           projects:
             - name: test-common
-              predefined-parameters: BUILD_NAME=$BUILD_DISPLAY_NAME
+              predefined-parameters: BUILD_NAME=$BUILD_NAME
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Model Editor'
           projects:
             - name: test-me
-              predefined-parameters: BUILD_NAME=$BUILD_DISPLAY_NAME
+              predefined-parameters: BUILD_NAME=$BUILD_NAME
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Job Panel'
           projects:
             - name: test-jp
-              predefined-parameters: BUILD_NAME=$BUILD_DISPLAY_NAME
+              predefined-parameters: BUILD_NAME=$BUILD_NAME
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Analysis'
           projects:
             - name: test-an
-              predefined-parameters: BUILD_NAME=$BUILD_DISPLAY_NAME
+              predefined-parameters: BUILD_NAME=$BUILD_NAME
 
