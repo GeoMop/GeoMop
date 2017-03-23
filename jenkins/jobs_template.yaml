@@ -57,7 +57,7 @@
           results: "{result-file}"
     wrappers:
       - build-name:
-          name: "${{PROPFILE,file=\"prop.file\",property=\"BUILD_NAME\"}}"
+          name: $BUILD_NAME
 
 - project:
     name: "test-{module}"
