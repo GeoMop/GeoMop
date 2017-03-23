@@ -95,7 +95,6 @@
           properties-content: "BUILD_NAME=${{GIT_BRANCH##origin/}}@${{GIT_COMMIT:0:6}}"
     builders:
       - shell: |
-          echo "BUILD_NAME=${{GIT_BRANCH}}@${{GIT_COMMIT}}" >prop.file1
           echo "BUILD_NAME=\${GIT_BRANCH}@\${GIT_COMMIT}" >prop.file2
           echo "BUILD_NAME=${GIT_BRANCH}@'${GIT_COMMIT}'" >prop.file3
           TEST=${GIT_COMMIT}
