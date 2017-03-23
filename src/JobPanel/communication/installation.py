@@ -371,7 +371,7 @@ class Installation:
             conf_path = os.path.join(__install_dir__, mjs_dir)
             #conf_path = os.path.join(os.path.join(__install_dir__, mjs_dir), __conf_dir__)
             if os.path.isdir(conf_path):
-                conn.set_sftp_paths( conf_path , self.copy_path + '/' +  mjs_dir)
+                conn.set_sftp_paths( conf_path , self.copy_path + '/' +  mjs_dir)                
                 res = conn.put_r(__conf_dir__) 
                 if len(res)>0:
                     logger.warning("Sftp message (put -r '" + __conf_dir__ + "'): " + res)
@@ -400,15 +400,12 @@ class Installation:
             conf_path = self.get_config_dir()
             input_path = self.get_input_dir()
             if os.path.isdir(conf_path):
-                mj_path = os.path.join(__install_dir__, mjs_dir)
                 conn.sendline('cd ' + mjs_dir)
                 conn.expect('.*cd ' + mjs_dir + "\r\n")
                 conn.expect("sftp> ")
                 if len(conn.before) > 0:
                     logger.warning("Sftp message (cd " + mjs_dir + "): " +
                                     str(conn.before, 'utf-8').strip())
-                conn.sendline('lcd ' + mj_path)
-                conn.expect('.*lcd ' + mj_path)
                 conn.sendline('put -r ' + conf_path)
                 conn.expect('.*put -r ' + conf_path + "\r\n")
                 end=0
@@ -429,7 +426,6 @@ class Installation:
                         logger.debug(
                             "Sftp message(put -r " + __input_dir__ + "): " +
                             str(conn.before, 'utf-8').strip())
-
 
     def copy_install_files(self, conn, ssh):
         """Copy installation files"""
