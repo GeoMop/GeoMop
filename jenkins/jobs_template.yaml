@@ -50,14 +50,14 @@
     display-name: "Test {module} module"
     builders:
       - shell: |
-          cd /var/lib/jenkins/workspace/gm-linux-tests/testing;
+          cd /var/lib/jenkins/workspace/gm-linux-tests/testing
           ./RunXvfb.sh {test-file} {result-file} /var/lib/jenkins/workspace/test-{module}/
     publishers:
       - junit:
           results: "{result-file}"
     wrappers:
       - build-name:
-          name: "$BUILD_NAME"
+          name: "${PROPFILE,file=\"/var/lib/jenkins/workspace/gm-linux-tests/prop.file\",property=\"BUILD_NAME\"}"
 
 - project:
     name: "test-{module}"
