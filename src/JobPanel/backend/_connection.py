@@ -69,8 +69,6 @@ class ConnectionBase(JsonData):
         """ user id for ssh connection """
         self.password=""
         """ password for ssh connection """
-        self.workspace=""
-        """ Absolute path to the workspace """
         self.environment = Environment()
         """ Seems that only path to the installation is necesary, possibly path to python."""
         super().__init__(config)
@@ -141,13 +139,10 @@ class ConnectionLocal(ConnectionBase):
         return
 
     def _copy(self, paths, from_prefix, to_prefix):
-        if not os.path.isabs(to_prefix):
-            to_prefix = os.path.join(self.workspace, to_prefix)
-
         if from_prefix == to_prefix:
             return
         for path in paths:
-            shutil.copy(os.path.join(from_prefix, path), os.path.join(to_prefix, path))
+            shutil.copyfile(os.path.join(from_prefix, path), os.path.join(to_prefix, path))
 
 
 g_verbose = False
@@ -241,7 +236,7 @@ class ConnectionSSH(ConnectionBase):
 
         # start server in thread
         t = threading.Thread(target=server.serve_forever)
-        t.daemon = True
+        t.daemon = False
         t.start()
 
         return local_port
