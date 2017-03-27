@@ -1,6 +1,6 @@
 # prerequisites for this tests:
-# 1: on machine must be user "test" with ssh keys set for user which runs tests
-# 2: directory "/test/test_dir" must be writable for user which runs tests
+# 1: on machine must be user "test" with ssh keys set for user which runs tests (or password in secret file)
+# 2: directory "/home/test/test_dir" must be writable for user which runs tests
 
 
 from backend._connection import *
@@ -10,6 +10,33 @@ import socket
 import socketserver
 import os
 import shutil
+
+
+def get_passwords():
+    """Return dict with passwords from secret file."""
+    file = os.path.expanduser("~/.ssh/passwords")
+    d = {}
+    try:
+        with open(file, 'r') as fd:
+            for line in fd:
+                line = line.split(sep="#", maxsplit=1)[0]
+                line = line.strip()
+                sp = line.split(sep=":")
+                if len(sp) == 3:
+                    d[sp[0]] = (sp[1], sp[2])
+    except:
+        pass
+    return d
+
+
+def get_test_password():
+    u = "test"
+    p = ""
+    d = get_passwords()
+    if "test" in d:
+        u = d["test"][0]
+        p = d["test"][1]
+    return u, p
 
 
 def test_port_forwarding():
@@ -55,7 +82,8 @@ def test_port_forwarding():
     con.close_connections()
 
     # ConnectionSSH
-    con = ConnectionSSH({"address": "localhost", "uid": "test", "password": ""})
+    u, p = get_test_password()
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p})
 
     forwarded_port = con.forward_local_port(origin_port)
     assert connection_test("localhost", forwarded_port)
@@ -126,7 +154,8 @@ def test_upload_download(request):
     con.close_connections()
 
     # ConnectionSSH
-    con = ConnectionSSH({"address": "localhost", "uid": "test", "password": ""})
+    u, p = get_test_password()
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p})
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
     rem = os.path.join(REMOTE_TEST_FILES, "rem")
