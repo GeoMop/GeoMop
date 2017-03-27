@@ -12,6 +12,7 @@ import os
 import shutil
 
 
+
 def get_passwords():
     """Return dict with passwords from secret file."""
     file = os.path.expanduser("~/.ssh/passwords")
