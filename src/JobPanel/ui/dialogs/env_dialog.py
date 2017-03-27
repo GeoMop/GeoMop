@@ -42,12 +42,16 @@ class EnvDialog(AFormContainer):
 
     def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
-        self.excluded_names = excluded_names
+        
+        self.excluded = {}
+        self.excluded["name"]=excluded_names
+        self.permitted = {}
         self.data = None
 
         # setup specific UI
         self.ui = UiEnvDialog()
-        self.form = self.ui.setup_ui(parent, self.excluded_names)
+        self.form = self.ui.setup_ui(parent)
+        self.ui.validator.connect(self.valid)
 
         self.preset = None
         self.ui.sclEnableCheckBox.stateChanged.connect(
@@ -132,7 +136,7 @@ class EnvDialog(AFormContainer):
             self.old_name = preset.name
             if is_edit:
                 try:
-                    self.excluded_names.remove(preset.name)
+                    self.excluded["name"].remove(preset.name)
                 except ValueError:
                     pass
             self.ui.nameLineEdit.setText(preset.name)
@@ -146,6 +150,7 @@ class EnvDialog(AFormContainer):
             self.ui.flowPathEdit.setText(preset.flow_path)
             self.ui.pbsParamsTextEdit.setPlainText('\n'.join(preset.pbs_params))
             self.ui.cliParamsTextEdit.setPlainText('\n'.join(preset.cli_params))
+            self.valid()
         else:
             self.ui.nameLineEdit.clear()
             self.ui.pythonExecLineEdit.clear()
@@ -163,7 +168,7 @@ class UiEnvDialog():
     UI extensions of form dialog.
     """
 
-    def setup_ui(self, dialog, excluded_names):
+    def setup_ui(self, dialog):
 
         # main dialog layout
         self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)

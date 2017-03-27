@@ -22,6 +22,7 @@ class ResourcePresets(APresetsDialog):
         super().__init__(parent, presets, ResourceDialog) 
         self.presets_dlg.set_pbs_presets(self.pbs)
         self.presets_dlg.set_ssh_presets(self.ssh) 
+        self.presets_dlg.valid()
  
 
 class UiResourcePresets(UiPresetsDialog):

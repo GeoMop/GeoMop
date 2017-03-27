@@ -62,12 +62,9 @@ class AFormContainer():
         out problems with form.
         (To be overridden in child)
         :return: None
-        """
-        excluded = {}
-        permitted = {}
-        excluded["name"]=self.excluded_names
+        """        
         data = self.get_data()
-        errors = data.validate(excluded, permitted)
+        errors = data['preset'].validate(self.excluded, self.permitted)
         self.ui.validator.colorize(errors)
         return len(errors)==0
 
@@ -475,6 +472,7 @@ class APresetsDialog(QtWidgets.QDialog):
                         self.reload_data = False
                         self.ui.presets.setCurrentItem(self.last_selected)
                         self.reload_data = True
+                        return False
                 elif ret==QtWidgets.QMessageBox.Reset:
                     self.reload_data = False
                     self.ui.presets.setCurrentItem(self.last_selected)
@@ -495,6 +493,7 @@ class APresetsDialog(QtWidgets.QDialog):
                     self.reload_data = False
                     self.ui.presets.setCurrentItem(self.last_selected)
                     self.reload_data = True
+                    return False
             elif ret==QtWidgets.QMessageBox.Reset:
                 self.reload_data = False
                 self.ui.presets.setCurrentItem(None)

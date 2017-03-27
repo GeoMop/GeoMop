@@ -10,8 +10,8 @@ import logging
 from PyQt5 import QtCore, QtWidgets
 from ui.data.mj_data import MultiJobPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from ui.validators.validation import MultiJobNameValidator
 from geomop_analysis import Analysis, InvalidAnalysis
+from ui.validators.validation import PresetsValidationColorizer
 
 
 class MultiJobDialog(AFormDialog):
@@ -155,8 +155,7 @@ class UiMultiJobDialog(UiFormDialog):
         dialog.resize(500, 440)
 
         # validators
-        self.nameValidator = MultiJobNameValidator(
-            parent=self.mainVerticalLayoutWidget)
+        self.validator = PresetsValidationColorizer()
 
         # form layout
         # hidden row
@@ -208,7 +207,7 @@ class UiMultiJobDialog(UiFormDialog):
         self.nameLineEdit.setPlaceholderText("Only alphanumeric characters "
                                              "and - or _")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
+        self.validator.add('name',self.nameLineEdit)
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 

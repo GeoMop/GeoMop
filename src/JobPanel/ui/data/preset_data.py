@@ -15,7 +15,7 @@ class Id:
 
 
 class APreset:
-    re_name = re.compile("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
+    re_name = re.compile("^[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*$")
 
     def __init__(self, name="Default Preset Name"):
         """
@@ -41,7 +41,7 @@ class APreset:
         """
         return self.get_name()
         
-    def validate(self, data, excluded, permited):
+    def validate(self, excluded, permited):
         """
         validate set data end return dictionary of invalid key, with error
         description
@@ -49,12 +49,12 @@ class APreset:
         ret = {}
         if not self.re_name.match(self.name):
             ret["name"]="Bad format of preset name"
-        for key, list in excluded:
-            variable = getattr(data, key)
+        for key, list in excluded.items():
+            variable = getattr(self, key)
             if variable in list:
                 ret[key]="Variable '{0}' is already in use".format(key)
-        for key, list in permited:
-            variable = getattr(data, key)
+        for key, list in permited.items():
+            variable = getattr(self, key)
             if variable not in list:
                 ret[key]="Value {0} in variable '{1}' is not permited values".format(
                     variable, key)        
@@ -106,18 +106,19 @@ class PbsPreset(APreset):
         """
         return self.name + ": " + str(self.walltime)
         
-    def validate(self, data, excluded, permited):
+    def validate(self, excluded, permited):
         """
         validate set data end return dictionary of invalid key, with error
         description
         :param excluded: Is dictionary of lists excluded values for set key.
         :param permited: Is dictionary of lists permited values for set key.
         """
-        ret = super().validate(data, excluded, permited)       
+        ret = super().validate(excluded, permited)       
         if not re.match("^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?", self.walltime):
             ret["walltime"]="Bad format of walltime"
         if not re.match("^$|\d+(mb|gb)", self.memory):
             ret["memory"]="Bad format of memory"
+        return ret
 
 
 class SshPreset(APreset):
@@ -166,14 +167,14 @@ class SshPreset(APreset):
         """
         return self.name + ": " + self.host + "; " + self.uid
         
-    def validate(self, data, excluded, permited):
+    def validate(self, excluded, permited):
         """
         validate set data end return dictionary of invalid key, with error
         description
         :param excluded: Is dictionary of lists excluded values for set key.
         :param permited: Is dictionary of lists permited values for set key.
         """
-        ret = super().validate(data, excluded, permited)
+        ret = super().validate(excluded, permited)
         if not self.re_name.match(self.remote_dir):
             ret["name"]="Bad format of remote directory"
         return ret

@@ -39,14 +39,18 @@ class PbsDialog(AFormContainer):
                         subtitle="Change desired parameters and press SAVE to "
                                  "apply changes.")
 
-    def __init__(self, parent, excluded_names=None):
+    def __init__(self, parent, excluded_names):
         super().__init__(parent)
-        self.excluded_names = excluded_names
+        
+        self.excluded = {}
+        self.excluded["name"]=excluded_names
+        self.permitted = {}
         self.data = None
         
         # setup specific UI
         self.ui = UiPbsDialog()
-        self.form = self.ui.setup_ui(parent, excluded_names)
+        self.form = self.ui.setup_ui(parent)
+        self.ui.validator.connect(self.valid)
         
         self.preset = None
 
@@ -117,7 +121,7 @@ class PbsDialog(AFormContainer):
             self.old_name = preset.name
             if is_edit:
                 try:
-                    self.excluded_names.remove(preset.name)
+                    self.excluded["name"].remove(preset.name)
                 except ValueError:
                     pass
             self.ui.pbsSystemComboBox.setCurrentIndex(
@@ -129,6 +133,7 @@ class PbsDialog(AFormContainer):
             self.ui.ppnSpinBox.setValue(preset.ppn)
             self.ui.memoryLineEdit.setText(preset.memory)
             self.ui.infinibandCheckbox.setChecked(preset.infiniband)
+            self.valid()
         else:
             self.ui.nameLineEdit.clear()
             dialect_items = DialectImporter.get_available_dialects()
@@ -149,7 +154,7 @@ class UiPbsDialog():
     UI extensions of form dialog.
     """
 
-    def setup_ui(self, dialog, excluded_names):
+    def setup_ui(self, dialog):
         self.validator = PresetsValidationColorizer()
         
         # main dialog layout

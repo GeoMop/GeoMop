@@ -40,11 +40,15 @@ class ResourceDialog(AFormContainer):
 
     def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
-        self.excluded_names = excluded_names
+        
+        self.excluded = {}
+        self.excluded["name"]=excluded_names
+        self.permitted = {}
 
         # setup specific UI
         self.ui = UiResourceDialog()
         self.form = self.ui.setup_ui(parent)
+        self.ui.validator.connect(self.valid)
 
         self.preset = None
         self.ssh = {}
@@ -118,6 +122,11 @@ class ResourceDialog(AFormContainer):
         self.ui.multiJobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
         self.ui.jobPbsPresetComboBox.addItem(self.ui.PBS_OPTION_NONE, self.ui.PBS_OPTION_NONE)
         
+        self.permitted['mj_pbs_preset'] = []
+        self.permitted['mj_pbs_preset'].append(None)
+        self.permitted['j_pbs_preset'] = []
+        self.permitted['j_pbs_preset'].append(None)
+        
         self.pbs = pbs
 
         if pbs:
@@ -125,6 +134,8 @@ class ResourceDialog(AFormContainer):
             for key in pbs:
                 self.ui.multiJobPbsPresetComboBox.addItem(pbs[key].name, key)
                 self.ui.jobPbsPresetComboBox.addItem(pbs[key].name, key)
+                self.permitted['mj_pbs_preset'].append(key)
+                self.permitted['j_pbs_preset'].append(key)
                 
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
@@ -142,6 +153,11 @@ class ResourceDialog(AFormContainer):
         # add default SSH option for local execution
         self.ui.multiJobSshPresetComboBox.addItem(self.ui.SSH_LOCAL_EXEC, self.ui.SSH_LOCAL_EXEC)
         self.ui.jobSshPresetComboBox.addItem(self.ui.SSH_LOCAL_EXEC, self.ui.SSH_LOCAL_EXEC)
+        
+        self.permitted['mj_ssh_preset'] = []
+        self.permitted['mj_ssh_preset'].append(None)
+        self.permitted['j_ssh_preset'] = []
+        self.permitted['j_ssh_preset'].append(None)
 
         self.ssh = ssh
 
@@ -150,6 +166,8 @@ class ResourceDialog(AFormContainer):
             for key in ssh:
                 self.ui.multiJobSshPresetComboBox.addItem(ssh[key].name, key)
                 self.ui.jobSshPresetComboBox.addItem(ssh[key].name, key)
+                self.permitted['mj_ssh_preset'].append(key)
+                self.permitted['j_ssh_preset'].append(key)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
                     'local' if self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset)) 
@@ -194,8 +212,12 @@ class ResourceDialog(AFormContainer):
         preset = ResPreset(name=self.ui.nameLineEdit.text())
 
         if self.ui.multiJobSshPresetComboBox.currentText() != UiResourceDialog.SSH_LOCAL_EXEC:
-            preset.mj_ssh_preset = self.ui.multiJobSshPresetComboBox.currentData()
+            if self.ui.multiJobSshPresetComboBox.currentIndex() == -1:
+                preset.mj_ssh_preset = ""
+            else:
+                preset.mj_ssh_preset = self.ui.multiJobSshPresetComboBox.currentData()
         preset.mj_execution_type = UiResourceDialog.DELEGATOR_LABEL
+
         if self.ui.multiJobSshPresetComboBox.currentText() == UiResourceDialog.SSH_LOCAL_EXEC:
             preset.mj_execution_type = UiResourceDialog.EXEC_LABEL
         elif self.ui.multiJobPbsPresetComboBox.currentText() == UiResourceDialog.PBS_OPTION_NONE:
@@ -204,11 +226,19 @@ class ResourceDialog(AFormContainer):
             preset.mj_remote_execution_type = UiResourceDialog.PBS_LABEL
         if self.ui.multiJobPbsPresetComboBox.isEnabled() and \
                 self.ui.multiJobPbsPresetComboBox.currentIndex() != 0:
-            preset.mj_pbs_preset =\
-                self.ui.multiJobPbsPresetComboBox.currentData()        
+            if self.ui.jobPbsPresetComboBox.currentIndex() == -1:
+                preset.mj_pbs_preset = ""
+            else:
+                preset.mj_pbs_preset =\
+                    self.ui.multiJobPbsPresetComboBox.currentData() 
+            if preset.mj_pbs_preset is None:
+                preset.mj_pbs_preset = ""
 
         if self.ui.jobSshPresetComboBox.currentText() != UiResourceDialog.SSH_LOCAL_EXEC:
-            preset.j_ssh_preset = self.ui.jobSshPresetComboBox.currentData()
+            if self.ui.jobSshPresetComboBox.currentIndex() == -1:
+                preset.j_ssh_preset = ""
+            else:
+                preset.j_ssh_preset = self.ui.jobSshPresetComboBox.currentData()
 
         preset.j_execution_type = UiResourceDialog.REMOTE_LABEL
         if self.ui.jobSshPresetComboBox.currentText() == UiResourceDialog.SSH_LOCAL_EXEC:
@@ -223,7 +253,10 @@ class ResourceDialog(AFormContainer):
 
         if self.ui.jobPbsPresetComboBox.isEnabled() and \
                 self.ui.jobPbsPresetComboBox.currentIndex() != 0:
-            preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.currentData()
+            if self.ui.jobPbsPresetComboBox.currentIndex() == -1:
+                preset.j_pbs_preset = ""
+            else:
+                preset.j_pbs_preset = self.ui.jobPbsPresetComboBox.currentData()
 
         return {
             'preset': preset,
@@ -240,7 +273,7 @@ class ResourceDialog(AFormContainer):
             self.old_name = preset.name
             if is_edit:
                 try:
-                    self.excluded_names.remove(preset.name)
+                    self.excluded["name"].remove(preset.name)
                 except ValueError:
                     pass
             self.ui.nameLineEdit.setText(preset.name)
@@ -259,6 +292,7 @@ class ResourceDialog(AFormContainer):
                     'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset)) 
             self._handle_mj_ssh_changed(0)
             self._handle_j_ssh_changed(0)
+            self.valid()
         else:
             self.ui.nameLineEdit.clear()
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(0)
@@ -343,6 +377,7 @@ class UiResourceDialog():
                                    self.multiJobSshPresetLabel)
         self.multiJobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.validator.add('mj_ssh_preset', self.multiJobSshPresetComboBox) 
         self.formLayout2.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobSshPresetComboBox)
 
@@ -354,6 +389,7 @@ class UiResourceDialog():
                                    self.multiJobPbsPresetLabel)
         self.multiJobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.validator.add('mj_pbs_preset', self.multiJobPbsPresetComboBox) 
         self.formLayout2.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.multiJobPbsPresetComboBox)
 
@@ -382,6 +418,7 @@ class UiResourceDialog():
                                    self.jobSshPresetLabel)
         self.jobSshPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.validator.add('j_ssh_preset', self.jobSshPresetComboBox) 
         self.formLayout3.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                    self.jobSshPresetComboBox)
 
@@ -393,6 +430,7 @@ class UiResourceDialog():
                                    self.jobPbsPresetLabel)
         self.jobPbsPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.validator.add('j_pbs_preset', self.jobPbsPresetComboBox) 
         self.formLayout3.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                    self.jobPbsPresetComboBox)
 

@@ -24,12 +24,16 @@ class SshDialog(AFormContainer):
     """
     def __init__(self, parent, excluded_names=None):
         super().__init__(parent)
-        self.excluded_names = excluded_names
+        
+        self.excluded = {}
+        self.excluded["name"]=excluded_names
+        self.permitted = {}
         self.data = None
 
         # setup specific UI
-        self.ui = UiSshDialog()
-        self.form = self.ui.setup_ui(parent, excluded_names, self)
+        self.ui = UiSshDialog() 
+        self.form = self.ui.setup_ui(parent, self)
+        self.ui.validator.connect(self.valid)
 
         self.preset = None
        
@@ -117,7 +121,7 @@ class SshDialog(AFormContainer):
             self.old_name = preset.name
             if is_edit:
                 try:
-                    self.excluded_names.remove(preset.name)
+                    self.excluded["name"].remove(preset.name)
                 except ValueError:
                     pass
             self.ui.nameLineEdit.setText(preset.name)
@@ -139,6 +143,7 @@ class SshDialog(AFormContainer):
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
             self.ui.envPresetComboBox.setCurrentIndex(
                 self.ui.envPresetComboBox.findData(preset.env))
+            self.valid()
         else:
             self.ui.nameLineEdit.clear()
             self.ui.hostLineEdit.clear()
@@ -186,7 +191,7 @@ class UiSshDialog():
     """
     ENV_LABEL = "Remote environment:"
 
-    def setup_ui(self, dialog, excluded_names, parent):
+    def setup_ui(self, dialog, parent):
 
         # main dialog layout
         self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
@@ -244,7 +249,6 @@ class UiSshDialog():
         self.remoteDirLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.remoteDirLineEdit.setText("js_services")
         self.validator.add('remote_dir',self.remoteDirLineEdit)
-        self.remoteDirLineEdit.setValidator(self.remoteDirValidator)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.remoteDirLineEdit)
 
