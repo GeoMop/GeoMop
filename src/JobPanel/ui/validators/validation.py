@@ -5,8 +5,7 @@ Validators for UI
 @contact: jan.gabriel@tul.cz
 """
 from enum import Enum
-from PyQt5 import QtCore
-from PyQt5.QtGui import QRegExpValidator, QColor, QValidator
+from PyQt5.QtGui import QColor
 
 
 class ValidationColors(Enum):
@@ -73,109 +72,41 @@ class ValidationColorizer:
         cls.colorize(field, ValidationColors.yellow.value)
 
     @classmethod
-    def colorize_by_validator(cls, field, validator=None):
+    def colorize_by_validator(cls, field, errors):
         """
         :param field: Field handler.
-        :param validator: External validator if needed, otherwise taken from
-        field.validator().
+        :param errors: Data errors dictionary.
         :return: True if state is acceptable, otherwise False
         """
-        if validator is None:
-            validator = field.validator()
-        state = validator.validate(field.text(), 0)[0]
-        if state == QValidator.Acceptable:
-            color = ValidationColors.green.value
-        elif state == QValidator.Intermediate:
-            color = ValidationColors.yellow.value
+        validator = field.validator()
+        state,  error_text = validator.validate(errors)
+        if state:
+            color = ValidationColors.white.value
         else:
             color = ValidationColors.red.value
         cls.colorize(field, color)
 
-        if state == QValidator.Acceptable:
-            return True
-        else:
-            return False
-
-
-class PresetNameValidator(QRegExpValidator):
-    """
-    Preset name validator.
-    """
-    def __init__(self, rx=None, parent=None, excluded=None):
-        if excluded is None:
-            excluded = []
-        self.excluded = excluded
-        if rx is None:
-            rx = QtCore.QRegExp("([a-zA-Z0-9])([a-zA-Z0-9]|[_-\s])*")
-        super(PresetNameValidator, self).__init__(rx, parent)
-
-    def validate(self, text, pos):
-        if text in self.excluded:
-            return (QValidator.Intermediate, text, pos)
-        return super(PresetNameValidator, self).validate(text, pos)
-
-
-class SshNameValidator(PresetNameValidator):
-    def __init__(self, rx=None, parent=None, excluded=None):
-        if excluded is None:
-            excluded = []
-        if 'local' not in excluded:
-            excluded.append('local')
-        super(SshNameValidator, self).__init__(rx, parent, excluded)
-
-
-class RemoteDirectoryValidator(QRegExpValidator):
-    """
-    Remote directory validator, only alphanumeric values and (_-).
-    """
-    def __init__(self, rx=None, parent=None):
-        if rx is None:
-            rx = QtCore.QRegExp("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
-        super().__init__(rx, parent)
-
-
-class PbsNameValidator(PresetNameValidator):
-    def __init__(self, rx=None, parent=None, excluded=None):
-        if excluded is None:
-            excluded = []
-        if 'no PBS' not in excluded:
-            excluded.append('no PBS')
-        super(PbsNameValidator, self).__init__(rx, parent, excluded)
-
-
-class MultiJobNameValidator(PresetNameValidator):
-    """
-    MultiJob validator, only alphanumeric values and (_-).
-    """
-    def __init__(self, rx=None, parent=None, excluded=None):
-        if rx is None:
-            rx = QtCore.QRegExp("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
-        super().__init__(rx, parent, excluded)
-
-
-class WalltimeValidator(QRegExpValidator):
-    """
-    Ẅalltime validator, accepts only valid walltime string.
-    """
-    def __init__(self, parent=None):
-        rx = QtCore.QRegExp(
-            "^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?")
-        super().__init__(rx, parent)
-
-
-class MemoryValidator(QRegExpValidator):
-    """
-    Memory validator, accepts only valid memory string.
-    """
-    def __init__(self, parent=None):
-        rx = QtCore.QRegExp("^$|\d+(mb|gb)")
-        super().__init__(rx, parent)
-
-
-class ScratchValidator(QRegExpValidator):
-    """
-    Scratch validator, accepts only valid scratch string.
-    """
-    def __init__(self, parent=None):
-        rx = QtCore.QRegExp("^$|\d+(mb|gb)(:(ssd|shared|local|first))?")
-        super().__init__(rx, parent)
+class PresetsValidationColorizer():
+    """validator for controls in preset."""
+    
+    def __init__(self):
+        self.controls={}
+        """dictionary of validated controls"""
+        
+    def add(self, key, control):
+        """add control for validation"""
+        self.control[key] = control
+        
+    def colorize(self, errors):
+        """Colorized associated control and return if any control was colorized"""
+        valid = True
+        for key, control in self.controls.items():
+            if key in errors:                
+                ValidationColorizer.colorize_by_validator(control)
+                valid = False
+        return valid
+    
+    def reset_colorize(self):
+        """Colorized associated control to white"""
+        for key, control in self.controls.items():
+            ValidationColorizer.colorize_white(control)

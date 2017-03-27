@@ -10,7 +10,7 @@ from PyQt5 import QtWidgets
 from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import SshNameValidator, ValidationColorizer, RemoteDirectoryValidator
+from ui.validators.validation import PresetsValidationColorizer
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
 from ui.dialogs import SshPasswordDialog
@@ -32,14 +32,7 @@ class SshDialog(AFormContainer):
         self.form = self.ui.setup_ui(parent, excluded_names, self)
 
         self.preset = None
-
-    def valid(self):
-        valid = True
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.nameLineEdit):
-            valid = False
-        return valid
-        
+       
     def first_focus(self):
         """
         Get focus to first property
@@ -116,7 +109,7 @@ class SshDialog(AFormContainer):
 
     def set_data(self, data=None, is_edit=False):
         # reset validation colors
-        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+        self.ui.validator.reset_colorize()
 
         if data:
             preset = data['preset']
@@ -203,12 +196,7 @@ class UiSshDialog():
         self.formLayout.setContentsMargins(10, 15, 10, 15)
 
         # validators
-        self.nameValidator = SshNameValidator(
-            parent=self.mainVerticalLayoutWidget,
-            excluded=excluded_names)
-        self.remoteDirValidator = RemoteDirectoryValidator(
-            parent=self.mainVerticalLayoutWidget
-        )        
+        self.validator = PresetsValidationColorizer()
 
         # 1 row
         self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
@@ -218,7 +206,7 @@ class UiSshDialog():
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setPlaceholderText("Name of the host")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
+        self.validator.add('name',self.nameLineEdit)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
@@ -255,6 +243,7 @@ class UiSshDialog():
                                   self.remoteDirLabel)
         self.remoteDirLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.remoteDirLineEdit.setText("js_services")
+        self.validator.add('remote_dir',self.remoteDirLineEdit)
         self.remoteDirLineEdit.setValidator(self.remoteDirValidator)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.remoteDirLineEdit)

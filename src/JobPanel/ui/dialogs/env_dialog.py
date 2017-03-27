@@ -11,7 +11,7 @@ from PyQt5.QtCore import Qt
 
 from ui.data.preset_data import EnvPreset
 from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetNameValidator, ValidationColorizer
+from ui.validators.validation import PresetsValidationColorizer
 
 
 class EnvDialog(AFormContainer):
@@ -57,13 +57,6 @@ class EnvDialog(AFormContainer):
             lambda state: self.ui.addModuleLineEdit.setDisabled(not state)
         )
 
-    def valid(self):
-        valid = True
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.nameLineEdit):
-            valid = False
-        return valid
-        
     def first_focus(self):
         """
         Get focus to first property
@@ -131,8 +124,8 @@ class EnvDialog(AFormContainer):
 
     def set_data(self, data=None, is_edit=False):
         # reset validation colors
-        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
-
+        self.ui.validator.reset_colorize()
+        
         if data:
             preset = data['preset']
             self.preset = preset
@@ -183,9 +176,7 @@ class UiEnvDialog():
         self.mainVerticalLayout.addLayout(self.formLayout)
 
         # validators
-        self.nameValidator = PresetNameValidator(
-            parent=self.mainVerticalLayoutWidget,
-            excluded=excluded_names)
+        self.validator = PresetsValidationColorizer()
 
         # form layout
         # 1 row
@@ -196,7 +187,7 @@ class UiEnvDialog():
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setPlaceholderText("Name of the environment")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
+        self.validator.add('name',self.nameLineEdit)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 

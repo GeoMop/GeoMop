@@ -56,7 +56,6 @@ class AFormContainer():
         """
         return NotImplemented
 
-    @abstractmethod
     def valid(self):
         """
         Validates input fields and returns True if valid. Otherwise points
@@ -64,7 +63,13 @@ class AFormContainer():
         (To be overridden in child)
         :return: None
         """
-        return NotImplemented
+        excluded = {}
+        permitted = {}
+        excluded["name"]=self.excluded_names
+        data = self.get_data()
+        errors = data.validate(excluded, permitted)
+        self.ui.validator.colorize(errors)
+        return len(errors)==0
 
     def set_purpose(self, purpose=PURPOSE_ADD, data=None):
         """

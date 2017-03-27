@@ -5,6 +5,7 @@ Unified data structure for presets.
 @contact: jan.gabriel@tul.cz
 """
 import uuid
+import re
 
 
 class Id:
@@ -14,6 +15,7 @@ class Id:
 
 
 class APreset:
+    re_name = re.compile("[a-zA-Z0-9]([a-zA-Z0-9]|[_-])*")
 
     def __init__(self, name="Default Preset Name"):
         """
@@ -38,6 +40,25 @@ class APreset:
         :return: Custom description string.
         """
         return self.get_name()
+        
+    def validate(self, data, excluded, permited):
+        """
+        validate set data end return dictionary of invalid key, with error
+        description
+        """
+        ret = {}
+        if not self.re_name.match(self.name):
+            ret["name"]="Bad format of preset name"
+        for key, list in excluded:
+            variable = getattr(data, key)
+            if variable in list:
+                ret[key]="Variable '{0}' is already in use".format(key)
+        for key, list in permited:
+            variable = getattr(data, key)
+            if variable not in list:
+                ret[key]="Value {0} in variable '{1}' is not permited values".format(
+                    variable, key)        
+        return ret
 
     def __repr__(self):
         """
@@ -84,6 +105,19 @@ class PbsPreset(APreset):
         :return: String
         """
         return self.name + ": " + str(self.walltime)
+        
+    def validate(self, data, excluded, permited):
+        """
+        validate set data end return dictionary of invalid key, with error
+        description
+        :param excluded: Is dictionary of lists excluded values for set key.
+        :param permited: Is dictionary of lists permited values for set key.
+        """
+        ret = super().validate(data, excluded, permited)       
+        if not re.match("^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?", self.walltime):
+            ret["walltime"]="Bad format of walltime"
+        if not re.match("^$|\d+(mb|gb)", self.memory):
+            ret["memory"]="Bad format of memory"
 
 
 class SshPreset(APreset):
@@ -131,6 +165,19 @@ class SshPreset(APreset):
         :return: String
         """
         return self.name + ": " + self.host + "; " + self.uid
+        
+    def validate(self, data, excluded, permited):
+        """
+        validate set data end return dictionary of invalid key, with error
+        description
+        :param excluded: Is dictionary of lists excluded values for set key.
+        :param permited: Is dictionary of lists permited values for set key.
+        """
+        ret = super().validate(data, excluded, permited)
+        if not self.re_name.match(self.remote_dir):
+            ret["name"]="Bad format of remote directory"
+        return ret
+        
 
 
 class ResPreset(APreset):
@@ -212,4 +259,3 @@ class EnvPreset(APreset):
         """PBS parameters for running flow123d"""
         self.cli_params = kw_or_def('cli_params', [])
         """Command line parameters for flow123d"""
-

@@ -10,8 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 from helpers.importer import DialectImporter
 from ui.data.preset_data import PbsPreset
 from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PbsNameValidator, WalltimeValidator, \
-    MemoryValidator, ScratchValidator, ValidationColorizer
+from ui.validators.validation import PresetsValidationColorizer
 
 
 class PbsDialog(AFormContainer):
@@ -51,19 +50,6 @@ class PbsDialog(AFormContainer):
         
         self.preset = None
 
-    def valid(self):
-        valid = True
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.nameLineEdit):
-            valid = False
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.walltimeLineEdit):
-            valid = False
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.memoryLineEdit):
-            valid = False
-        return valid
-        
     def first_focus(self):
         """
         Get focus to first property
@@ -123,10 +109,8 @@ class PbsDialog(AFormContainer):
 
     def set_data(self, data=None, is_edit=False):
         # reset validation colors
-        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
-        ValidationColorizer.colorize_white(self.ui.walltimeLineEdit)
-        ValidationColorizer.colorize_white(self.ui.memoryLineEdit)
-
+        self.ui.validator.reset_colorize()
+        
         if data:
             preset = data["preset"]
             self.preset = preset
@@ -166,6 +150,7 @@ class UiPbsDialog():
     """
 
     def setup_ui(self, dialog, excluded_names):
+        self.validator = PresetsValidationColorizer()
         
         # main dialog layout
         self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
@@ -173,18 +158,6 @@ class UiPbsDialog():
         # form layout
         self.formLayout = QtWidgets.QFormLayout()
         self.formLayout.setContentsMargins(10, 15, 10, 15)
-
-        # validators
-        self.nameValidator = PbsNameValidator(
-            parent=self.mainVerticalLayoutWidget,
-            excluded=excluded_names)
-        self.walltimeValidator = WalltimeValidator(
-            self.mainVerticalLayoutWidget)
-        self.memoryValidator = MemoryValidator(
-            self.mainVerticalLayoutWidget)
-        self.scratchValidator = ScratchValidator(
-            self.mainVerticalLayoutWidget)
-
 
         # form layout
         # 1 row
@@ -195,7 +168,7 @@ class UiPbsDialog():
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setPlaceholderText("Name of the PBS options")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
+        self.validator.add('name',self.nameLineEdit)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
@@ -234,7 +207,7 @@ class UiPbsDialog():
             self.mainVerticalLayoutWidget)
         self.walltimeLineEdit.setPlaceholderText("1d4h or 20h")
         self.walltimeLineEdit.setProperty("clearButtonEnabled", True)
-        self.walltimeLineEdit.setValidator(self.walltimeValidator)
+        self.validator.add('walltime',self.walltimeLineEdit)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.walltimeLineEdit)
 
@@ -280,8 +253,8 @@ class UiPbsDialog():
         self.memoryLineEdit = QtWidgets.QLineEdit(
             self.mainVerticalLayoutWidget)
         self.memoryLineEdit.setPlaceholderText("300mb or 1gb")
-        self.memoryLineEdit.setProperty("clearButtonEnabled", True)
-        self.memoryLineEdit.setValidator(self.memoryValidator)
+        self.memoryLineEdit.setProperty("clearButtonEnabled", True)        
+        self.validator.add('memory',self.memoryLineEdit)
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.memoryLineEdit)
 

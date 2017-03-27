@@ -9,7 +9,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ui.data.preset_data import ResPreset
 from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetNameValidator, ValidationColorizer
+from ui.validators.validation import PresetsValidationColorizer
 
 
 class ResourceDialog(AFormContainer):
@@ -44,7 +44,7 @@ class ResourceDialog(AFormContainer):
 
         # setup specific UI
         self.ui = UiResourceDialog()
-        self.form = self.ui.setup_ui(parent, excluded_names)
+        self.form = self.ui.setup_ui(parent)
 
         self.preset = None
         self.ssh = {}
@@ -103,13 +103,6 @@ class ResourceDialog(AFormContainer):
             self.ui.jobPbsPresetComboBox.setEnabled(False)
         else:
             self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
-
-    def valid(self):
-        valid = True
-        if not ValidationColorizer.colorize_by_validator(
-                self.ui.nameLineEdit):
-            valid = False
-        return valid
 
     def accept(self):
         if self.ui.nameLineEdit.text() == "":
@@ -239,7 +232,7 @@ class ResourceDialog(AFormContainer):
 
     def set_data(self, data=None, is_edit=False):
         # reset validation colors
-        ValidationColorizer.colorize_white(self.ui.nameLineEdit)
+        self.ui.validator.reset_colorize()
 
         if data:
             preset = data["preset"]
@@ -291,7 +284,7 @@ class UiResourceDialog():
     SSH_LOCAL_EXEC = "local"
     PBS_OPTION_NONE = "no PBS"
 
-    def setup_ui(self, dialog, excluded_names):
+    def setup_ui(self, dialog):
 
         # main dialog layout
         self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
@@ -304,9 +297,7 @@ class UiResourceDialog():
         self.mainVerticalLayout.addLayout(self.formLayout)
 
         # validators
-        self.nameValidator = PresetNameValidator(
-            parent=self.mainVerticalLayoutWidget,
-            excluded=excluded_names)
+        self.validator = PresetsValidationColorizer()
 
         # form layout
         # hidden row
@@ -318,7 +309,7 @@ class UiResourceDialog():
         self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.nameLineEdit.setPlaceholderText("Name of the resource")
         self.nameLineEdit.setProperty("clearButtonEnabled", True)
-        self.nameLineEdit.setValidator(self.nameValidator)
+        self.validator.add('name',self.nameLineEdit)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.nameLineEdit)
 
