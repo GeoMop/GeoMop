@@ -50,7 +50,7 @@ class ServiceProxy:
         """
         Process of starrting a Job
         1. have service configuration data (from constructor)
-        2. get connection parameter - from parent service
+        2. get connection parameter - (in constructor)
         3. upload job files (specified in service_data, using the connection
         4. get delegator from connection
         5. open starting port LXX (localhost) ... must be implemented in self.repeater (ParentStartingServer)

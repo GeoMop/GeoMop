@@ -203,11 +203,19 @@ class ConnectionSSH(ConnectionBase):
     def get_delegator(self, local_service):
         """
         Start delegator and return its proxy.
+        MJ and Backand seeervices should be derived from Delegator service or have delegator instance
+        so that we can process requests processed by remote delegator localy.
 
-        We assume that Service itself can behave as ServiceProxy but not vice versa.
-        :return: service_proxy
+        Process of starting a delegator
+        1. start delegator on remote using SSH, get listenning port from stdout.
+        2. create DelegatorProxy object (similar to ServiceProxy, but without start_service)
+        3. call dlegator_proxy.connect_service( delegator port)
+        ...
+        Delegator process:
+        - open and listen on final port RYY
+        - process requests
         """
-        return local_service
+        return delegator_service
 
     def close_connections(self):
         """
