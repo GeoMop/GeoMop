@@ -81,8 +81,8 @@ Function .onInit
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.4.3.msi"
-        ExecWait 'msiexec /i python-3.4.3.msi'
+        File "${BUILD_DIR}\python-3.4.4.msi"
+        ExecWait 'msiexec /i python-3.4.4.msi'
 
         # Check installation.
         Goto CheckPython
@@ -106,15 +106,10 @@ Section "Runtime Environment" SecRuntime
   RMDir /r "$INSTDIR\env"
   RMDir /r "$INSTDIR\common"
 
-  CreateDirectory "$INSTDIR\env"
-  ExecWait 'icacls "$INSTDIR\env" /grant *S-1-5-32-545:(F)'
-  CreateDirectory "$INSTDIR\env\Scripts"
-  ExecWait 'icacls "$INSTDIR\env\Scripts" /grant *S-1-5-32-545:(F)'
-
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\virtualenv-13.1.2-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-13.1.2-py2.py3-none-any.whl"'
+  File "${BUILD_DIR}\virtualenv-15.1.0-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-15.1.0-py2.py3-none-any.whl"'
   ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
@@ -134,13 +129,13 @@ Section "Runtime Environment" SecRuntime
 
   # Install NumPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.2rc1+mkl-cp34-cp34m-win_amd64.whl"'
+  File "${BUILD_DIR}\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"'
 
   # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win_amd64.whl"'
+  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
 
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
@@ -164,26 +159,36 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
-#Section "JobsScheduler" SecJobsScheduler
-#
-#  # Section is mandatory.
-#  SectionIn RO
-#
-#  RMDir /r "$INSTDIR\JobsScheduler"
-#  SetOutPath $INSTDIR
-#  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc /x jobs /x log "${SRC_DIR}\JobsScheduler"
-#
-#  CreateDirectory "$INSTDIR\JobsScheduler\jobs"
-#  CreateDirectory "$INSTDIR\JobsScheduler\log"
-#  CreateDirectory "$INSTDIR\JobsScheduler\versions"
-#
-#  # Grant jobs, lock folder permissions to Users
-#  ExecWait 'icacls "$INSTDIR\JobsScheduler\jobs" /grant *S-1-5-32-545:(F)'
-#  ExecWait 'icacls "$INSTDIR\JobsScheduler\lock" /grant *S-1-5-32-545:(F)'
-#  ExecWait 'icacls "$INSTDIR\JobsScheduler\log" /grant *S-1-5-32-545:(F)'
-#  ExecWait 'icacls "$INSTDIR\JobsScheduler\versions" /grant *S-1-5-32-545:(F)'
-#
-#SectionEnd
+Section "-JobsScheduler" SecJobsScheduler
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\JobsScheduler"
+
+SectionEnd
+
+
+Section "JobPanel" SecJobPanel
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\JobPanel"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc /x jobs /x log "${SRC_DIR}\JobPanel"
+
+  CreateDirectory "$INSTDIR\JobPanel\jobs"
+  CreateDirectory "$INSTDIR\JobPanel\log"
+  CreateDirectory "$INSTDIR\JobPanel\versions"
+
+  # Grant jobs, lock folder permissions to Users
+  ExecWait 'icacls "$INSTDIR\JobPanel\jobs" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobPanel\lock" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobPanel\log" /grant *S-1-5-32-545:(F)'
+  ExecWait 'icacls "$INSTDIR\JobPanel\versions" /grant *S-1-5-32-545:(F)'
+
+SectionEnd
 
 
 # Section /o "LayerEditor" SecLayerEditor
@@ -219,9 +224,9 @@ Section "Start Menu shortcuts" SecStartShortcuts
   SetOutPath $INSTDIR
   CreateShortcut "$SMPROGRAMS\GeoMop\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
 
-  IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
-    SetOutPath $INSTDIR\JobsScheduler
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
+    SetOutPath $INSTDIR\JobPanel
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -236,9 +241,9 @@ SectionEnd
 
 Section "Desktop icons" SecDesktopIcons
 
-  IfFileExists "$INSTDIR\JobsScheduler\job_scheduler.py" 0 +3
-    SetOutPath $INSTDIR\JobsScheduler
-    CreateShortCut "$DESKTOP\JobsScheduler.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobsScheduler\job_scheduler.py"' "$INSTDIR\common\icon\128x128\js-geomap.ico" 0
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
+    SetOutPath $INSTDIR\JobPanel
+    CreateShortCut "$DESKTOP\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -251,17 +256,24 @@ Section "Desktop icons" SecDesktopIcons
 SectionEnd
 
 
-# TODO next version - unchecked by default and solve data dir for new install
-# Section /o "Wipe settings" SecWipeSettings
-Section "Wipe settings" SecWipeSettings
+Section /o "Wipe settings" SecWipeSettings
 
   # Clear all configuration from APPDATA
   RMDir /r "${APP_HOME_DIR}"
-  CreateDirectory "${APP_HOME_DIR}"
-  # fill data home to default resources data
-  SetOutPath "${APP_HOME_DIR}"
-  File /r "${DATA_DIR}/*"
 
+SectionEnd
+
+
+Section "-Default resources data" SecDefaultResourcesData
+
+  # Section is mandatory.
+  SectionIn RO
+
+  IfFileExists "${APP_HOME_DIR}" +4 0
+    CreateDirectory "${APP_HOME_DIR}"
+    # fill data home to default resources data
+    SetOutPath "${APP_HOME_DIR}"
+    File /r "${DATA_DIR}/*"
 
 SectionEnd
 
@@ -290,7 +302,9 @@ SectionEnd
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
 "The runtime environment for GeoMop - Python 3.4 with PyQt5."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
-"The jobs scheduler."
+"Remove jobs scheduler."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
+"The job panel."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecModelEditor} \
 "The interactive editor for Flow123d configuration files."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcuts} \
@@ -299,6 +313,8 @@ SectionEnd
 "This creates icons on your Desktop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecWipeSettings} \
 "Deletes all user settings. Check this option if you're experiencing issues with launching the applications."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDefaultResourcesData} \
+"If user data don't exist, create default resources data."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
@@ -310,7 +326,7 @@ Section "Uninstall"
   DeleteRegKey HKLM SOFTWARE\GeoMop
 
   # Delete desktop icons.
-  Delete "$DESKTOP\JobsScheduler.lnk"
+  Delete "$DESKTOP\JobPanel.lnk"
   Delete "$DESKTOP\LayerEditor.lnk"
   Delete "$DESKTOP\ModelEditor.lnk"
 

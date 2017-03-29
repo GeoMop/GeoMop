@@ -59,13 +59,15 @@ class AutoConverter:
             if not  AutoConverter.in_transposition and Transposer._shift_array(node, input_type):
                 AutoConverter._autoconvert_crawl(node, input_type)
                 return
+            ScalarConverter._replace_empty(node, input_type)
             children = list(node.children)
-            node.children.clear()
-            for child in children:
+            node.children.clear()            
+            for child in children:                                
                 AutoConverter._autoconvert(node, child, input_type['subtype'])                
         elif input_type['base_type'] == 'Record':
             if node.implementation != DataNode.Implementation.mapping:
                 return
+            ScalarConverter._replace_empty(node, input_type)
             children = list(node.children)
             node.children.clear()
             for child in children:
@@ -88,13 +90,13 @@ class AutoConverter:
 
         Arrays are expanded to the expected dimension.
         Records are initialized from the reducible_to_key value.
-        """
+        """        
         deep = True
         parent_in_transposition = AutoConverter.in_transposition
         new_node = Transposer.try_expand_reducible(child, input_type)
         if new_node is not None:
             child =  new_node
-            new_node = None
+            new_node = None        
        
         if input_type is not None:
             is_array = child.implementation == DataNode.Implementation.sequence
@@ -183,7 +185,34 @@ class ScalarConverter:
         if not isinstance(value, str):
             return str(value)
         return value
-
+        
+    @staticmethod
+    def _replace_empty(node, type):
+        """
+        If input type is array, replace None value to empty array.
+        If input type is record or abstaract, replace None value to empty record.
+        """
+        none = []
+        for i in range(0,  len(node.children)):
+            if node.children[i].value is None and \
+                node.children[i].implementation == DataNode.Implementation.scalar:
+                none.append(i)
+        for i in none:    
+            child = node.children[i]
+            if type['base_type'] == 'Array':                
+                input_type = type['subtype']
+            else:
+                if not child.key.value in type['keys']:
+                    continue
+                input_type = type['keys'][child.key.value]['type']
+            if input_type['base_type'] == 'Array':
+                array_node = SequenceDataNode(child.key, child.parent)
+                array_node.span = child.span
+                node.children[i] = array_node 
+            elif input_type['base_type'] in ['Record', 'Abstract']:
+                record_node =MappingDataNode(child.key, child.parent)
+                record_node.span = child.span
+                node.children[i] = record_node
 
 class Transposer:
     """Handle the transposition autoconversion.

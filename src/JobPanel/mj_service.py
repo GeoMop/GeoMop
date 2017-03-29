@@ -90,24 +90,24 @@ else:
     directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.multijob.value)
-try:
-    with open(path, "r") as json_file:
-        comconf.CommunicatorConfigService.load_file(json_file, com_conf)
-except Exception as error:
-    logger.error(error)
-    raise error
-
-jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
-jobs_to_exec = list(jobs.keys())
-count = len(jobs)
-comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
-                               mj_action_function_after, mj_idle_function)
-logger.debug("Mj config dir {0} ({1})".format(path, mj_name))
-logger.debug("Set counter to {0} jobs".format(str(count)))
-comunicator.set_start_jobs_count(count, 0)
-
 if __name__ != "mj_service":
     # no doc generation
+    try:
+        with open(path, "r") as json_file:
+            comconf.CommunicatorConfigService.load_file(json_file, com_conf)
+    except Exception as error:
+        logger.error(error)
+        raise error
+
+    jobs = load_jobs(os.path.join(directory, __ins_files__['job_configurations']))
+    jobs_to_exec = list(jobs.keys())
+    count = len(jobs)
+    comunicator = JobsCommunicator(com_conf, mj_id, mj_action_function_before,
+                                   mj_action_function_after, mj_idle_function)
+    logger.debug("Mj config dir {0} ({1})".format(path, mj_name))
+    logger.debug("Set counter to {0} jobs".format(str(count)))
+    comunicator.set_start_jobs_count(count, 0)
+
     comunicator.run()
-comunicator.close()
-logger.info("Application " + comunicator.communicator_name + " is stopped")
+    comunicator.close()
+    logger.info("Application " + comunicator.communicator_name + " is stopped")

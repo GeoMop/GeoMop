@@ -1,0 +1,16 @@
+Install Jenkins Job Builder:
+---------------------------
+
+sudo pip3 install jenkins-job-builder
+
+Upload jenkins jobs settings
+----------------------------
+
+Copy nti3.ini file to your home config jenkins folder and set user and password to the jenkins account.
+
+Check job_template.yaml file (from this folder):
+jenkins-jobs test jobs_template.yaml
+
+Upload jenkins jobs configuration to server (set your home config jenkins folder):
+jenkins-jobs --conf /home/pavel/jenkins/nti3.ini update jobs_template.yaml
+

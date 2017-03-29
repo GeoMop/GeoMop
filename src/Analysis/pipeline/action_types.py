@@ -141,6 +141,8 @@ class BaseActionType(metaclass=abc.ABCMeta):
         variable that is used during last run result 
         evaluation by pipeline.
         """
+        self._orig_name = None
+        """original name"""
         self.set_config(**kwargs)
         
     def _set_state(self, new_state):
@@ -290,11 +292,7 @@ class BaseActionType(metaclass=abc.ABCMeta):
         """return python script, that create instance of this class"""
         lines = []
         lines.append("{0}_{1} = {2}(".format(self.name, str(self._id), self.__class__.__name__))
-        inputs = []
-        for input in self._inputs:
-            if not isinstance(input, WrapperActionBridge):
-                inputs.append(input)
-        lines.extend(self._format_array("Inputs", inputs, 4, "Unknown input type"))
+        lines.extend(self._format_array("Inputs", self._inputs, 4, "Unknown input type"))
         for script in self._get_variables_script():
             lines.extend(Formater.indent(script, 4))
             lines[-1] += ","
@@ -510,7 +508,11 @@ class BaseActionType(metaclass=abc.ABCMeta):
 
     def _add_error(self, err, message):
         """Append error message to err list"""
-        err.append("{0}: {1}".format(self._get_instance_name(), message))
+        if self._orig_name is not None:
+            iname = "{0}({1})".format(self._orig_name, self._get_instance_name())
+        else:
+            iname = self._get_instance_name()
+        err.append("{0}: {1}".format(iname, message))
 
     def _extend_error(self, err, new_err):
         """Extend err list with new err list"""
@@ -520,6 +522,23 @@ class BaseActionType(metaclass=abc.ABCMeta):
     def get_resources(self):
         """Return list of resource files"""
         return []
+
+    def set_orig_name(self, name):
+        """Set original name"""
+        self._orig_name = name
+
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        if self._orig_name is None:
+            for k, v in script_dict.items():
+                if v is self:
+                    self._orig_name = k
+                    return
+
 
 class Bridge(BaseActionType):
     """Action that directed output to output method of link class"""
@@ -664,22 +683,6 @@ class OutputActionType(BaseActionType, metaclass=abc.ABCMeta):
         return err
 
 
-class WrapperActionBridge(Bridge):
-    """Action that provide output to wrapped action"""
-
-    name = "WrapperActionBridge"
-    """Display name of action"""
-    description = "WrapperActionBridge"
-    """Display description of action"""
-
-    def __init__(self):
-        super().__init__(None)
-
-    def _get_instance_name(self):
-        #return BaseActionType._get_instance_name(self)
-        return self.name
-
-
 class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     """
     Wrapper for some action (usualy workflow), that provide cyclic
@@ -697,9 +700,7 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         """String identificator for construction inner store names"""
         self._index_iden = ""
         super(WrapperActionType, self).__init__(**kwargs)
-        self.bridge = WrapperActionBridge()
-        """bridge that provide output to wrapped action"""
-        
+
     def _inicialize(self):
         """inicialize action run variables"""
         if self._get_state().value > ActionStateType.created.value:
@@ -710,9 +711,8 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
         if  'WrappedAction' in self._variables and \
             isinstance(self._variables['WrappedAction'],  WorkflowActionType):            
             #set workflow bridge to special wrapper action bridge
-            self._set_bridge(self.bridge)
-            self.bridge.action_checkable = False
-            self._variables['WrappedAction'].set_config(Inputs=[self.bridge])
+            self._set_bridge(self._variables['WrappedAction'].bridge)
+            self._variables['WrappedAction'].bridge.action_checkable = False
             self._variables['WrappedAction']._inicialize()
             self._hash.update(bytes(self._variables['WrappedAction']._get_hash(), "utf-8"))
  
@@ -752,6 +752,15 @@ class WrapperActionType(BaseActionType, metaclass=abc.ABCMeta):
     def get_resources(self):
         """Return list of resource files"""
         return self._variables['WrappedAction'].get_resources()
+
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        super()._set_orig_from_script(script_dict)
+        self._variables['WrappedAction']._set_orig_from_script(script_dict)
 
 
 class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
@@ -959,3 +968,13 @@ class WorkflowActionType(BaseActionType, metaclass=abc.ABCMeta):
         for action in self._get_child_list():
             ret.extend(action.get_resources())
         return ret
+
+    def _set_orig_from_script(self, script_dict):
+        """
+        Set original name from script dictionary,
+        work recursively,
+        set only if orig name is unset.
+        """
+        super()._set_orig_from_script(script_dict)
+        for action in self._get_child_list():
+            action._set_orig_from_script(script_dict)

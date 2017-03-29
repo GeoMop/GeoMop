@@ -48,6 +48,7 @@ def get_central_log():
 
 def make_installation(dir, data):
     home = os.path.join( dir, __HOME__)
+    reg_dir = os.path.join( dir, __HOME__, "JobPanel")
     workspace = os.path.join( dir, __WORKSPACE__) 
     if os.path.isdir(dir):
         clear_files(dir)
@@ -55,6 +56,8 @@ def make_installation(dir, data):
         os.makedirs(dir)
     if not os.path.isdir(home):
         os.makedirs(home)
+    if not os.path.isdir(reg_dir):
+        os.makedirs(reg_dir)
     if not os.path.isdir(workspace):
         os.makedirs(workspace)
     Installation.set_init_paths(home, workspace)
@@ -63,7 +66,7 @@ def make_installation(dir, data):
     config.__config_dir__ = home
     for ssh in data.ssh_presets:        
         if data.ssh_presets[ssh].to_pc:
-            data.ssh_presets[ssh].key = Users.save_reg(data.ssh_presets[ssh].name,data.ssh_presets[ssh].pwd, home)
+            data.ssh_presets[ssh].key = Users.save_reg(data.ssh_presets[ssh].name,data.ssh_presets[ssh].pwd, reg_dir)
     
 def clear_files(dir):
     shutil.rmtree(dir, ignore_errors=True)

@@ -460,7 +460,8 @@ class MEConfig:
             cls.document = transformator.transform(cls.document, cls)
             cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
             if Analysis.current is not None and \
-                Analysis.current.flow123d_version[:5] == '2.0.0':
+                (Analysis.current.flow123d_version[:5] == '2.0.0' or 
+                Analysis.current.flow123d_version[:5] == '2.1.0'):
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
                 cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
             cls.update_format()

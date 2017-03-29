@@ -148,9 +148,25 @@ class InfoTextGenerator:
                             selected_item=cls.selected_item
                         )
                         # change color/font for different key types
+                        title = ''
                         if 'default' in key:
                             cls_ += ' key-type-' + key['default']['type'].replace(' ', '-')
-                        section.tag('a', key['key'], attrib={'class': cls_, 'href': href})
+                            if key['default']['type'][:5]=="value":
+                                title = "default " + key['default']['type']
+                            else:
+                                title = key['default']['type'] + " key"
+                        if 'reducible_to_key' in type_:
+                            if len(title)>0:
+                                title += ", conversion key"
+                            else:
+                                title += "conversion key"
+                        att={'class': cls_, 'href': href, 'title':"title"}
+                        if len(title)>0:
+                            att['title']=title
+                        if 'reducible_to_key' in type_:
+                            section.tag('a', '•'+key['key']+'•', attrib=att)
+                        else:    
+                            section.tag('a', key['key'], attrib=att)
 
         if selected_key_type is not None:
             with section.open('div', cls='key-description col-md-4 col-sm-4 col-xs-4'):
