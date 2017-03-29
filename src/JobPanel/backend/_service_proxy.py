@@ -49,16 +49,16 @@ class ServiceProxy:
     def start_service(self):
         """
         Process of starrting a Job
-        1. have service configuration data (from constructor)
-        2. get connection parameter - (in constructor)
-        3. upload job files (specified in service_data, using the connection
+        1. # have service configuration data (from constructor)
+        2. # get connection parameter - (in constructor)
+        3. upload job files (specified in service_data, using the connection, upload config file
         4. get delegator from connection
         5. open starting port LXX (localhost) ... must be implemented in self.repeater (ParentStartingServer)
            This server waits for connection, get single message, respond with OK and close connection.
            It put an answer to the async_repeater queue containing: call of 'connect_service' with port RYY
 
         5. use connection for remote port forwarding tunnel: forward remote port RXX to local port LXX
-        6. repeater.expected_answer
+        6. repeater.expected_answer ...
         6. submit (or start) job through delegator
         7. set  Job state as 'queued'
         ...
@@ -77,6 +77,8 @@ class ServiceProxy:
         """
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
+
+        If service_port is None, try to download service_data from remote and get the listening port from it.
 
         - local forwarding tunnel,  port LYY to port RYY
         - create final connection, self.repeater

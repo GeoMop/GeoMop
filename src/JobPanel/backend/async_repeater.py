@@ -390,6 +390,12 @@ class AsyncRepeater():
 
 
     def send_answer(self, id, data):
+        """
+
+        :param id: Id of request to which we answer.
+        :param data: Answer data.
+        :return:
+        """
         self._server_dispatcher.send_answer(id, data)
 
     def get_requests(self):
