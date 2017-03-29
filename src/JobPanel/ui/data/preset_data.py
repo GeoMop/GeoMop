@@ -52,11 +52,11 @@ class APreset:
         for key, list in excluded.items():
             variable = getattr(self, key)
             if variable in list:
-                ret[key]="Variable '{0}' is already in use".format(key)
+                ret[key]="Value '{0}' is already in use".format(key)
         for key, list in permited.items():
             variable = getattr(self, key)
             if variable not in list:
-                ret[key]="Value {0} in variable '{1}' is not permited values".format(
+                ret[key]="Variable's '{1}' value '{0}'  is not in permited values".format(
                     variable, key)        
         return ret
 
@@ -174,9 +174,22 @@ class SshPreset(APreset):
         :param excluded: Is dictionary of lists excluded values for set key.
         :param permited: Is dictionary of lists permited values for set key.
         """
+        valid_addr = re.compile(
+            "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")
+        valid_host = re.compile(
+            "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$")
         ret = super().validate(excluded, permited)
+        if not valid_addr.match(self.host):
+            if not valid_host.match(self.host):
+                ret["host"]="Invalid ssh dns name or ip address"
+        elif len(self.host)>63:
+            ret["host"]="Invalid dns name (too long)" 
+        if not isinstance(self.port, int) or self.port<1 or self.port>65535:
+            ret["port"]="Invalid ssh port"     
         if not self.re_name.match(self.remote_dir):
-            ret["name"]="Bad format of remote directory"
+            ret["remote_dir"]="Bad format of remote directory"
+        if self.uid is None and len(self.uid)==0:
+            ret["uid"]="Bad format of ssh user name"            
         return ret
         
 

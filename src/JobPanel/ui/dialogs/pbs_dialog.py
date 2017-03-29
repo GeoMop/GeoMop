@@ -52,6 +52,12 @@ class PbsDialog(AFormContainer):
         self.form = self.ui.setup_ui(parent)
         self.ui.validator.connect(self.valid)
         
+        self.permitted['pbs_system'] = []        
+        dialect_items = DialectImporter.get_available_dialects()
+        for key in dialect_items:
+            self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
+            self.permitted['pbs_system'].append(key)
+        
         self.preset = None
 
     def first_focus(self):
@@ -65,24 +71,21 @@ class PbsDialog(AFormContainer):
         if self.preset is None:
             return True
         if self.old_name!=self.ui.nameLineEdit.text():
-            return True  
-        if self.preset.pbs_system!=self.ui.pbsSystemComboBox.currentData():
             return True
-        if self.preset.queue!=self.ui.queueComboBox.currentText():
-            if self.ui.queueComboBox.currentText()!='' and \
-                self.preset.queue is not None:
-                return True
-        if self.preset.walltime!=self.ui.walltimeLineEdit.text():
+        p = self.get_data()['preset']
+        if self.preset.pbs_system!=p.pbs_system:
             return True
-        if self.preset.nodes!=self.ui.nodesSpinBox.value():
+        if self.preset.queue!=p.queue:
             return True
-        if self.preset.ppn!=self.ui.ppnSpinBox.value():
+        if self.preset.walltime!=p.walltime:
             return True
-        if self.preset.memory!=self.ui.memoryLineEdit.text():
+        if self.preset.nodes!=p.nodes:
             return True
-        if self.ui.infinibandCheckbox.isChecked() == self.preset.infiniband:
-            return False
-        else:
+        if self.preset.ppn!=p.ppn:
+            return True
+        if self.preset.memory!=p.memory:
+            return True
+        if p.infiniband != self.preset.infiniband:
             return True
         return False
 
@@ -185,9 +188,7 @@ class UiPbsDialog():
                                   self.pbsSystemLabel)
         self.pbsSystemComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        dialect_items = DialectImporter.get_available_dialects()
-        for key in dialect_items:
-            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+        self.validator.add('pbs_system',self.nameLineEdit)         
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                   self.pbsSystemComboBox)
         

@@ -48,28 +48,27 @@ class SshDialog(AFormContainer):
         if self.preset is None:
             return True
         if self.old_name!=self.ui.nameLineEdit.text():
-            return True            
-        if self.ui.hostLineEdit.text()!=self.preset.host:
             return True
-        if self.ui.portSpinBox.value()!=self.preset.port:
+            
+        p = self.get_data()['preset']                
+        if p.host!=self.preset.host:
             return True
-        if self.ui.remoteDirLineEdit.text()!=self.preset.remote_dir:
+        if p.port!=self.preset.port:
             return True
-        if self.ui.userLineEdit.text()!=self.preset.uid:
+        if p.remote_dir!=self.preset.remote_dir:
             return True
-        if self.preset.to_pc!=self.ui.rememberPasswordCheckbox.isChecked():
+        if p.uid!=self.preset.uid:
             return True
-        to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
-                            self.ui.copyPasswordCheckbox.isChecked())                            
-        if self.preset.to_remote!=to_remote:
+        if self.preset.to_pc!=p.to_pc:
             return True
-        if self.preset.use_tunneling!=self.ui.useTunnelingCheckbox.isChecked():
+        if self.preset.to_remote!=p.to_remote:
             return True
-        if self.preset.env != self.ui.envPresetComboBox.currentData():
+        if self.preset.use_tunneling!=p.use_tunneling:
             return True
-        if self.ui.pbsSystemComboBox.currentText():
-            if self.preset.pbs_system!=self.ui.pbsSystemComboBox.currentData():
-                return True
+        if self.preset.env != p.env:
+            return True
+        if self.preset.pbs_system!=p.pbs_system:
+            return True
         # password
         if self.ui.passwordLineEdit.isEnabled():
             password = self.ui.passwordLineEdit.text()
@@ -162,13 +161,29 @@ class SshDialog(AFormContainer):
         self.data = data
         env = data.env_presets
         self.ui.envPresetComboBox.clear()
+        
+        self.permitted['env'] = [] 
+        if not env or len(env)==0:
+            self.permitted['env'].append("")
+            self.ui.pbsSystemComboBox.addItem('Please set any environment preset', '')
+        self.permitted['pbs_system'] = []
+        self.permitted['pbs_system'].append("")
+        
         if env:
             # sort dict by list, not sure how it works
             for key in env:
                 self.ui.envPresetComboBox.addItem(env[key].name, key)
+                self.permitted['env'].append(key)
             if self.preset is not None:
                 self.ui.envPresetComboBox.setCurrentIndex(
                     self.ui.envPresetComboBox.findData(self.preset.env))
+                    
+        self.ui.envPresetComboBox.clear()
+        self.ui.pbsSystemComboBox.addItem('No Pbs', '')
+        dialect_items = DialectImporter.get_available_dialects()
+        for key in dialect_items:
+            self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
+            self.permitted['pbs_system'].append(key)
                 
     def handle_test(self):
         """Do ssh connection test"""
@@ -223,6 +238,7 @@ class UiSshDialog():
         self.hostLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.hostLineEdit.setPlaceholderText("Valid host address or Ip")
         self.hostLineEdit.setProperty("clearButtonEnabled", True)
+        self.validator.add('host', self.hostLineEdit)
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
                                   self.hostLineEdit)
 
@@ -300,10 +316,7 @@ class UiSshDialog():
                                   self.pbsSystemLabel)
         self.pbsSystemComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.pbsSystemComboBox.addItem('No Pbs', '')
-        dialect_items = DialectImporter.get_available_dialects()
-        for key in dialect_items:
-            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+        self.validator.add('pbs_system', self.pbsSystemComboBox)        
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
                                   self.pbsSystemComboBox)
                                   
@@ -314,6 +327,7 @@ class UiSshDialog():
                                    self.envPresetLabel)
         self.envPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.validator.add('env',  self.envPresetComboBox)  
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                    self.envPresetComboBox)
                                    
