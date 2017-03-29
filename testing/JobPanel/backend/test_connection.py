@@ -16,6 +16,7 @@ import logging
 #logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
 
+
 def get_passwords():
     """Return dict with passwords from secret file."""
     file = os.path.expanduser("~/.ssh/passwords")
