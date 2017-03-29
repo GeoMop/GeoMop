@@ -10,7 +10,10 @@ import socket
 import socketserver
 import os
 import shutil
+import logging
 
+
+#logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
 
 def get_passwords():

@@ -6,6 +6,7 @@ import shutil
 import os
 import os.path
 import threading
+import logging
 
 import select
 import socket
@@ -145,12 +146,6 @@ class ConnectionLocal(ConnectionBase):
             shutil.copyfile(os.path.join(from_prefix, path), os.path.join(to_prefix, path))
 
 
-g_verbose = False
-def verbose(s):
-    if g_verbose:
-        print(s)
-
-
 class ConnectionSSH(ConnectionBase):
 
 
@@ -165,18 +160,32 @@ class ConnectionSSH(ConnectionBase):
         try:
             self._ssh.connect(self.address, 22, username=self.uid, password=self.password)
         except Exception as e:
-            verbose('*** Failed to connect to %s:%d: %r' % (self.address, 22, e))
+            logging.error('*** Failed to connect to %s:%d: %r' % (self.address, 22, e))
             raise
 
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
 
-        # server list
-        self._servers = []
+        # dict of forwarded local ports, {'local_port': (thread, server)}
+        self._forwarded_local_ports = {}
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
         self.close_connections()
+
+    def is_alive(self):
+        """
+        Check if SSH connection is still alive.
+        :return:
+        """
+        transport = self._ssh.get_transport()
+        if transport.is_active():
+            try:
+                transport.send_ignore()
+                return True
+            except EOFError:
+                pass
+        return False
 
     def forward_local_port(self, remote_port):
         """
@@ -194,23 +203,27 @@ class ConnectionSSH(ConnectionBase):
             ssh_transport = self._ssh.get_transport()
 
             def handle(self):
+                """
+                This function must do all the work required to service a request.
+                It is called for every request.
+                """
                 try:
                     chan = self.ssh_transport.open_channel('direct-tcpip',
                                                            ("localhost", remote_port),
                                                            self.request.getpeername())
                 except Exception as e:
-                    verbose('Incoming request to %s:%d failed: %s' % ("localhost",
-                                                                      remote_port,
-                                                                      repr(e)))
+                    logging.error('Incoming request to %s:%d failed: %s' % ("localhost",
+                                                                            remote_port,
+                                                                            repr(e)))
                     return
                 if chan is None:
-                    verbose('Incoming request to %s:%d was rejected by the SSH server.' %
-                            ("localhost", remote_port))
+                    logging.error('Incoming request to %s:%d was rejected by the SSH server.' %
+                                  ("localhost", remote_port))
                     return
 
-                verbose('Connected!  Tunnel open %r -> %r -> %r' % (self.request.getpeername(),
-                                                                    chan.getpeername(),
-                                                                    ("localhost", remote_port)))
+                logging.info('Connected!  Tunnel open %r -> %r -> %r' % (self.request.getpeername(),
+                                                                         chan.getpeername(),
+                                                                         ("localhost", remote_port)))
                 while True:
                     r, w, x = select.select([self.request, chan], [], [])
                     if self.request in r:
@@ -227,19 +240,42 @@ class ConnectionSSH(ConnectionBase):
                 peername = self.request.getpeername()
                 chan.close()
                 self.request.close()
-                verbose('Tunnel closed from %r' % (peername,))
+                logging.info('Tunnel closed from %r' % (peername,))
 
         # port 0 means to select an arbitrary unused port
         server = ForwardServer(('', 0), Handler)
-        ip, local_port = server.server_address
-        self._servers.append(server)
+        local_port = server.server_address[1]
+        logging.info("TADY: {}".format(server.server_address))
 
         # start server in thread
         t = threading.Thread(target=server.serve_forever)
         t.daemon = False
         t.start()
 
+        # add thread and server to dict
+        self._forwarded_local_ports[local_port] = (t, server)
+
         return local_port
+
+    def close_forwarded_local_port(self, local_port):
+        """
+        Close forwarded local port.
+        :param local_port:
+        :return:
+        """
+        if local_port in self._forwarded_local_ports:
+            # shutdown server
+            t, server = self._forwarded_local_ports[local_port]
+            server.shutdown()
+            server.server_close()
+
+            # wait for server's thread ends
+            t.join(1.0)
+            if t.is_alive():
+                logging.error("Server's thread stopping timeout")
+
+            # remove from dict
+            del self._forwarded_local_ports[local_port]
 
     def forward_remote_port(self, local_port):
         """
@@ -255,11 +291,11 @@ class ConnectionSSH(ConnectionBase):
                 try:
                     sock.connect(("localhost", local_port))
                 except Exception as e:
-                    verbose('Forwarding request to %s:%d failed: %r' % ("localhost", local_port, e))
+                    logging.error('Forwarding request to %s:%d failed: %r' % ("localhost", local_port, e))
                     return
 
-                verbose('Connected!  Tunnel open %r -> %r -> %r' % (chan.origin_addr,
-                                                                    chan.getpeername(), ("localhost", local_port)))
+                logging.info('Connected!  Tunnel open %r -> %r -> %r' % (chan.origin_addr,
+                                                                         chan.getpeername(), ("localhost", local_port)))
                 while True:
                     r, w, x = select.select([sock, chan], [], [])
                     if sock in r:
@@ -274,7 +310,7 @@ class ConnectionSSH(ConnectionBase):
                         sock.send(data)
                 chan.close()
                 sock.close()
-                verbose('Tunnel closed from %r' % (chan.origin_addr,))
+                logging.info('Tunnel closed from %r' % (chan.origin_addr,))
 
             t = threading.Thread(target=inner_handler)
             t.setDaemon(True)
@@ -282,6 +318,14 @@ class ConnectionSSH(ConnectionBase):
 
         remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
         return remote_port
+
+    def close_forwarded_remote_port(self, remote_port):
+        """
+        Close forwarded remote port.
+        :param remote_port:
+        :return:
+        """
+        self._ssh.get_transport().cancel_port_forward('', remote_port)
 
     def upload(self, paths, local_prefix, remote_prefix):
         """
@@ -322,9 +366,10 @@ class ConnectionSSH(ConnectionBase):
         :param self:
         :return:
         """
-        for server in self._servers:
-            server.shutdown()
-            server.server_close()
+        # close all forwarded local ports
+        for port in list(self._forwarded_local_ports.keys()):
+            self.close_forwarded_local_port(port)
+
         self._sftp.close()
         self._ssh.close()
 
