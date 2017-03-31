@@ -228,7 +228,12 @@ class MEConfig:
     config = _Config.open()
     """Serialized variables"""
     curr_file = None
-    """Serialized variables"""
+    """Name of open file"""
+    curr_file_timestamp = None
+    """
+    Timestamp of opened file, if editor text is 
+    imported or new timestamp is None
+    """
     imported_file_name = None
     """if a file was imported, this is its suggested name"""
     root = None
@@ -352,7 +357,67 @@ class MEConfig:
             return
         cls.curr_format_file = file_name
         cls.update_format()
+        
+    @classmethod
+    def _confront_file_timestamp(cls):
+        """
+        Compare file timestamp with file time and if is diferent
+        show dialog, and reload file content.
+        :return: if file is reloaded 
+        """
+        if cls.curr_file_timestamp is not None and \
+            cls.curr_file is not None:
+            try:
+                timestamp = os.path.getmtime(cls.curr_file)
+                if timestamp!=cls.curr_file_timestamp:
+                    from PyQt5 import QtWidgets
+                    msg = QtWidgets.QMessageBox()
+                    msg.setText(
+                        "File has been modified outside of Model editor. Do you want to reload it?")
+                    msg.setStandardButtons( QtWidgets.QMessageBox.Ignore | \
+                        QtWidgets.QMessageBox.Reset)
+                    msg.button(QtWidgets.QMessageBox.Reset).setText("Reload")
+                    msg.setDefaultButton(QtWidgets.QMessageBox.Ignore);
+                    ret = msg.exec_()
+                    if ret==QtWidgets.QMessageBox.Reset: 
+                        with open(cls.curr_file, 'r') as file_d:
+                            cls.document = file_d.read()
+                        cls.curr_file_timestamp = timestamp
+                        cls.update()                        
+                        return True
+            except OSError:
+                pass
+        return False
 
+    @classmethod
+    def _set_file(cls, file, imported=False):
+        """
+        save file name and timestamp
+        """        
+        if imported:
+            base_name = os.path.splitext(os.path.basename(file))[0]
+            cls.imported_file_name = base_name
+            i = 1
+            dir_path = cls.config.last_data_dir + os.path.sep
+            while os.path.isfile(dir_path + cls.imported_file_name + '.yaml'):
+                if i > 999:
+                    break
+                cls.imported_file_name = "{0}{1:03d}".format(base_name, i)
+                i += 1
+            cls.imported_file_name = dir_path + cls.imported_file_name + '.yaml'
+            cls.curr_file = None
+            cls.curr_file_timestamp = None
+        else:
+            cls.curr_file = file
+            cls.imported_file_name = None
+            if file is None:
+                cls.curr_file_timestamp = None
+            else:
+                try:
+                    cls.curr_file_timestamp = os.path.getmtime(file)
+                except OSError:
+                    cls.curr_file_timestamp = None
+        
     @classmethod
     def new_file(cls):
         """
@@ -365,8 +430,7 @@ class MEConfig:
                 cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
         cls.changed = False
-        cls.curr_file = None
-        cls.imported_file_name = None
+        cls._set_file(None)
 
     @classmethod
     def open_file(cls, file_name):
@@ -383,8 +447,7 @@ class MEConfig:
                 with open(file_name, 'r') as file_d:
                     cls.document = file_d.read().expandtabs(tabsize=2)
             cls.config.update_last_data_dir(file_name)
-            cls.curr_file = file_name
-            cls.imported_file_name = None
+            cls._set_file(file_name)
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.update()
             cls._set_format_file_from_data()
@@ -434,17 +497,7 @@ class MEConfig:
                 con = file_d.read()
             cls.document = parse_con(con)
             # find available file name
-            base_name = os.path.splitext(os.path.basename(file_name))[0]
-            cls.imported_file_name = base_name
-            i = 1
-            dir_path = cls.config.last_data_dir + os.path.sep
-            while os.path.isfile(dir_path + cls.imported_file_name + '.yaml'):
-                if i > 999:
-                    break
-                cls.imported_file_name = "{0}{1:03d}".format(base_name, i)
-                i += 1
-            cls.imported_file_name = dir_path + cls.imported_file_name + '.yaml'
-            cls.curr_file = None
+            cls.set_file(file_name, True)
             cls.update()
             cls.document = fix_intendation(cls.document, cls.root)
             cls.update()
@@ -503,7 +556,7 @@ class MEConfig:
             with open(file_name, 'r') as file_d:
                 cls.document = file_d.read()
             cls.config.update_last_data_dir(file_name)
-            cls.curr_file = file_name
+            cls._set_file(file_name)
             cls.config. add_recent_file(file_name, cls.curr_format_file)
             cls.update()
             cls._set_format_file_from_data()
@@ -575,6 +628,8 @@ class MEConfig:
     @classmethod
     def save_file(cls):
         """save file"""
+        if cls._confront_file_timestamp():
+            return
         cls.update()
         try:
             with codecs.open(cls.curr_file, 'w', 'utf-8') as file_d:
@@ -598,7 +653,7 @@ class MEConfig:
             with codecs.open(file_name, 'w', 'utf-8') as file_d:
                 file_d.write(cls.document)
             cls.config.update_last_data_dir(file_name)
-            cls.curr_file = file_name
+            cls._set_file(file_name)
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
         except (RuntimeError, IOError) as err:
