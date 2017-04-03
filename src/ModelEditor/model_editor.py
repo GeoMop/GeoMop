@@ -13,6 +13,7 @@ sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+import PyQt5.QtCore as QtCore
 
 import icon
 from meconfig import cfg
@@ -21,6 +22,8 @@ from ui import MainWindow
 from util import constants
 import subprocess
 
+RELOAD_INTERVAL = 5000
+"""interval for file time checjing in ms"""
 
 class ModelEditor:
     """Model editor main class"""
@@ -40,6 +43,17 @@ class ModelEditor:
 
         # show
         self.mainwindow.show()
+        
+        self.reloader_timer = QtCore.QTimer()
+        """timer for file time checking in ms"""
+        self.reloader_timer.timeout.connect(self.check_file)
+        self.reloader_timer.start(RELOAD_INTERVAL)
+        
+    def check_file(self):
+        """timer for file time checking in ms"""
+        if self.mainwindow.isActiveWindow():
+            if cfg.confront_file_timestamp():
+                self.mainwindow.reload()
 
     def new_file(self):
         """new file menu action"""
@@ -108,12 +122,16 @@ class ModelEditor:
         """save file menu action"""
         if cfg.curr_file is None:
             return self.save_as()
+        if cfg.confront_file_timestamp():
+            return
         cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.save_file()
         self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
+        if cfg.confront_file_timestamp():
+            return
         cfg.update_yaml_file(self.mainwindow.editor.text())
         if cfg.curr_file is None:
             if cfg.imported_file_name is not None:

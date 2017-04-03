@@ -359,7 +359,7 @@ class MEConfig:
         cls.update_format()
         
     @classmethod
-    def _confront_file_timestamp(cls):
+    def confront_file_timestamp(cls):
         """
         Compare file timestamp with file time and if is diferent
         show dialog, and reload file content.
@@ -628,8 +628,6 @@ class MEConfig:
     @classmethod
     def save_file(cls):
         """save file"""
-        if cls._confront_file_timestamp():
-            return
         cls.update()
         try:
             with codecs.open(cls.curr_file, 'w', 'utf-8') as file_d:
