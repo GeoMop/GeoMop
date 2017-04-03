@@ -1218,6 +1218,7 @@ class EditorPosition:
 #            self.node = node
 
         self.pred_parent = None
+        
         if  (self._old_text[self.line].isspace() or len(self._old_text[self.line]) == 0) or \
             (self.node is not None and self.node.origin == DataNode.Origin.error):
             if self.node is not None:
@@ -1225,8 +1226,7 @@ class EditorPosition:
             else:
                 na = NodeAnalyzer(self._old_text, cfg.root)
             self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
-                                                            editor.text(self.line))
-
+                                                            editor.text(self.line)) 
         # if node is not None:
         #     self.reload_autocompletion(editor)
         self.reload_autocompletion(editor)

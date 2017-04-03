@@ -135,7 +135,15 @@ class NodeAnalyzer:
                 return None
             if not self._lines[l].isspace() and len(self._lines[l])>0: 
                 node =  root.get_node_at_position(Position(l+1, len(self._lines[l])-1))
+                if node.parent is None:
+                    # probably error on the line end, try begin
+                    indent = LineAnalyzer.get_indent(self._lines[l])
+                    node =  root.get_node_at_position(Position(l+1, indent))                        
             l -= 1
+            if node is not None and  node.parent is None:
+                node = None
+            if node is not None and node.origin == DataNode.Origin.error:
+                node = None        
         return node            
     
     def get_parent_for_unfinished(self, line, index, line_text):
@@ -144,13 +152,13 @@ class NodeAnalyzer:
         if node is None:
             return None
         indent = LineAnalyzer.get_indent(line_text)
-        if line_text.isspace():
+        if line_text.isspace() or self._node.origin == DataNode.Origin.error:
             indent = index
         while True:
             if node.parent is None:
                 return node
             prev_indent=LineAnalyzer.get_indent(self._lines[node.start.line-1])            
-            if prev_indent < indent and self._node.origin != DataNode.Origin.error:
+            if prev_indent < indent:
                 if len(self._lines[node.start.line-1]) >= prev_indent+2 and \
                     self._lines[node.start.line-1][prev_indent:prev_indent+2] == "- " and \
                     prev_indent >= indent-2 and node.parent is not None and \
@@ -160,3 +168,5 @@ class NodeAnalyzer:
                 return node
             node = node.parent 
         return None
+        
+        

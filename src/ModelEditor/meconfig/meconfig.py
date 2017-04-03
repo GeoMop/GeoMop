@@ -633,6 +633,7 @@ class MEConfig:
             with codecs.open(cls.curr_file, 'w', 'utf-8') as file_d:
                 file_d.write(cls.document)
             # format is save to recent files up to save file
+            cls._set_file(cls.curr_file)
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
         except (RuntimeError, IOError) as err:
