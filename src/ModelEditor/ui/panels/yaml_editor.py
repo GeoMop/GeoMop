@@ -246,11 +246,9 @@ class YamlEditorWidget(QsciScintilla):
         from_line, from_col, to_line, to_col = self.getSelection()
         nothing_selected = from_line == -1 and to_line == -1
         if nothing_selected:
-            # regular Tab keyPress
-            spaces = ''.join([' ' * self.tabWidth()])
-
             # insert spaces and move the cursor position
-            self.insert_at_cursor(spaces)
+            line, col = self.getCursorPosition()
+            super(YamlEditorWidget, self).indent(line)
         else:
             # perform indent
             with self.reload_chunk:
