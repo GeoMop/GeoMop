@@ -7,10 +7,30 @@ import os
 import os.path
 import threading
 import logging
-
+import errno
 import select
 import socket
 import socketserver
+
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class SSHError(Error):
+    """Raised when error in SSH session."""
+    pass
+
+
+class SSHAuthenticationError(SSHError):
+    """Raised when authentication fail."""
+    pass
+
+
+class SSHTimeoutError(SSHError):
+    """Raised when timeout occurs."""
+    pass
 
 
 class Environment(JsonData):
@@ -105,6 +125,8 @@ class ConnectionLocal(ConnectionBase):
         by 'remote_prefix' for destination.
         If target exists, replace it.
         :return: None
+        :raises FileNotFoundError:
+        :raises PermissionError:
 
         Implementation: just copy
         """
@@ -117,6 +139,8 @@ class ConnectionLocal(ConnectionBase):
         by 'remote_prefix' for source.
         If target exists, replace it.
         :return: None
+        :raises FileNotFoundError:
+        :raises PermissionError:
 
         Implementation: just copy
         """
@@ -150,7 +174,15 @@ class ConnectionSSH(ConnectionBase):
 
 
     def __init__(self, config={}):
+        """
+        :param config:
+        :raises SSHAuthenticationError:
+        :raises SSHError:
+        """
         super().__init__(config)
+
+        self._timeout = 10
+        """timeout for ssh operations"""
 
         # open ssh connection
         self._ssh = paramiko.SSHClient()
@@ -158,13 +190,18 @@ class ConnectionSSH(ConnectionBase):
         self._ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
 
         try:
-            self._ssh.connect(self.address, 22, username=self.uid, password=self.password)
+            self._ssh.connect(self.address, 22, username=self.uid, password=self.password, timeout=self._timeout)
+        except paramiko.AuthenticationException:
+            raise SSHAuthenticationError
+        except (paramiko.SSHException, socket.error):
+            raise SSHError
         except Exception as e:
             logging.error('*** Failed to connect to %s:%d: %r' % (self.address, 22, e))
             raise
 
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
+        self._sftp.get_channel().settimeout(self._timeout)
 
         # dict of forwarded local ports, {'local_port': (thread, server)}
         self._forwarded_local_ports = {}
@@ -245,7 +282,6 @@ class ConnectionSSH(ConnectionBase):
         # port 0 means to select an arbitrary unused port
         server = ForwardServer(('', 0), Handler)
         local_port = server.server_address[1]
-        logging.info("TADY: {}".format(server.server_address))
 
         # start server in thread
         t = threading.Thread(target=server.serve_forever)
@@ -283,6 +319,7 @@ class ConnectionSSH(ConnectionBase):
         from a remote port to the given 'local_port'.
         :param local_port:
         :return: remote_port
+        :raises SSHError:
         """
 
         def handler(chan, origin, server):
@@ -316,7 +353,10 @@ class ConnectionSSH(ConnectionBase):
             t.setDaemon(True)
             t.start()
 
-        remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
+        try:
+            remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
+        except paramiko.SSHException:
+            raise SSHError
         return remote_port
 
     def close_forwarded_remote_port(self, remote_port):
@@ -333,11 +373,29 @@ class ConnectionSSH(ConnectionBase):
         by 'remote_prefix' for destination.
         If target exists, replace it.
         :return: None
+        :raises FileNotFoundError:
+        :raises PermissionError:
+        :raises SSHTimeoutError:
 
         Implementation: just copy
         """
         for path in paths:
-            self._sftp.put(os.path.join(local_prefix, path), os.path.join(remote_prefix, path))
+            loc = os.path.join(local_prefix, path)
+            rem = os.path.join(remote_prefix, path)
+            try:
+                self._sftp.put(loc, rem)
+            except FileNotFoundError as e:
+                if e.filename is None:
+                    raise OSError(errno.ENOENT, "No such remote file", rem)
+                else:
+                    raise
+            except PermissionError as e:
+                if e.filename is None:
+                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+                else:
+                    raise
+            except socket.timeout:
+                raise SSHTimeoutError
 
     def download(self, paths, local_prefix, remote_prefix):
         """
@@ -345,11 +403,29 @@ class ConnectionSSH(ConnectionBase):
         by 'remote_prefix' for source.
         If target exists, replace it.
         :return: None
+        :raises FileNotFoundError:
+        :raises PermissionError:
+        :raises SSHTimeoutError:
 
         Implementation: just copy
         """
         for path in paths:
-            self._sftp.get(os.path.join(remote_prefix, path), os.path.join(local_prefix, path))
+            loc = os.path.join(local_prefix, path)
+            rem = os.path.join(remote_prefix, path)
+            try:
+                self._sftp.get(rem, loc)
+            except FileNotFoundError as e:
+                if e.filename is None:
+                    raise OSError(errno.ENOENT, "No such remote file", rem)
+                else:
+                    raise
+            except PermissionError as e:
+                if e.filename is None:
+                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+                else:
+                    raise
+            except socket.timeout:
+                raise SSHTimeoutError
 
     def get_delegator(self, local_service):
         """

@@ -16,7 +16,6 @@ import logging
 #logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
 
-
 def get_passwords():
     """Return dict with passwords from secret file."""
     file = os.path.expanduser("~/.ssh/passwords")
@@ -181,4 +180,33 @@ def test_upload_download(request):
     remove_files(loc)
     remove_files(rem)
 
+    # FileNotFoundError
+    try:
+        con.upload(["x.txt"], loc, rem)
+        assert False
+    except FileNotFoundError:
+        pass
+
+    try:
+        con.download(["x.txt"], loc, rem)
+        assert False
+    except FileNotFoundError:
+        pass
+
     con.close_connections()
+
+
+def test_exceptions():
+    try:
+        ConnectionSSH({"address": "localhost", "uid": "user_not_exist", "password": ""})
+        assert False
+    except SSHAuthenticationError:
+        pass
+
+    try:
+        ConnectionSSH({"address": "unknown_host", "uid": "user", "password": ""})
+        assert False
+    except SSHAuthenticationError:
+        assert False
+    except SSHError:
+        pass
