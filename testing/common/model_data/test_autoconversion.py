@@ -107,7 +107,6 @@ def test_autoconvert():
     node = ScalarDataNode(TextValue('path'), root, 2)
     root.children.append(node)
     converted = ac.autoconvert(root, input_type)
-    assert str(notification_handler.notifications[0]) == 2
     assert converted.get_node_at_path('/path/0/0/a').value == 2
 
 

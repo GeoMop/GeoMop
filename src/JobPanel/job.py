@@ -96,6 +96,11 @@ else:
     directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.job.value)
+    
+if __name__ == "job":
+    # no doc generation
+    exit
+
 try:
     with open(path, "r") as json_file:
         comconf.CommunicatorConfigService.load_file(json_file, com_conf)
@@ -153,12 +158,6 @@ if len(com_conf.cli_params)>0:
 if com_conf.flow_path is None:
     com_conf.flow_path = ""
     
-if not os.path.isdir(os.path.join(directory, 'res', mj_id)):
-    os.makedirs(os.path.join(directory, 'res', mj_id))    
-with open(os.path.join(directory, 'res', mj_id, "test_log"), "w") as test_file:
-    for i  in range(0, 50000):
-        test_file.write("{0} THIS IS LONG LINE FOR TESTING LONG FILE SFTP UPLOAD, ..............................................................................................................................................................................................................................\n".format(str(i)))
-
 flow_execute = [com_conf.flow_path, 
                             '-s', 
                             os.path.join(directory, __input_dir__, conf_file), 
@@ -192,9 +191,7 @@ except Exception as err:
     finished = True
     rc=-1
 
-if __name__ != "job":
-    # no doc generation
-    comunicator.run()
+comunicator.run()
    
 comunicator.close()   
     

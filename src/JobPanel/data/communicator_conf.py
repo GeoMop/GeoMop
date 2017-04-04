@@ -16,6 +16,7 @@ class OutputCommType(IntEnum):
     ssh = 1
     exec_ = 2
     pbs = 3
+    ssh_tunnel = 4
 
 
 class InputCommType(IntEnum):
@@ -28,7 +29,7 @@ class InputCommType(IntEnum):
 
 class CommType(Enum):
     """Types of communicators"""
-    non0e = ""
+    none = ""
     app = "app"
     delegator = "delegator"
     remote = "remote"
@@ -106,6 +107,8 @@ class SshConfig(object):
         """password is store in computer"""
         self.to_remote = False
         """password is store in remote"""
+        self.use_tunneling = False
+        """Communication is switch to socket over ssh tunnel"""
         self.key = False
 
 class PythonEnvConfig(object):

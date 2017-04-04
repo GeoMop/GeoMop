@@ -33,25 +33,25 @@ if os.path.isdir(mj_name) and  os.path.isabs(mj_name):
     directory = os.path.join(mj_name, inst.__conf_dir__)
 else:
     directory = inst.Installation.get_config_dir_static(mj_name, an_name)
-path = comconf.CommunicatorConfigService.get_file_path(
-    directory, comconf.CommType.delegator.value)
-try:
-    with open(path, "r") as json_file:
-        comconf.CommunicatorConfigService.load_file(json_file, com_conf)
-except Exception as error:
-    logger.error(error)
-    raise error
-
-comunicator = Communicator(com_conf, mj_id)
-logger.debug("Mj config dir {0}({1})".format(path, mj_name))
-
 if __name__ != "delegator":
     # no doc generation
+    path = comconf.CommunicatorConfigService.get_file_path(
+        directory, comconf.CommType.delegator.value)
+    try:
+        with open(path, "r") as json_file:
+            comconf.CommunicatorConfigService.load_file(json_file, com_conf)
+    except Exception as error:
+        logger.error(error)
+        raise error
+
+    comunicator = Communicator(com_conf, mj_id)
+    logger.debug("Mj config dir {0}({1})".format(path, mj_name))
+
     try:
         comunicator.run()
     except Exception as err:
         comunicator.close()
         logger.info("Application stop for uncatch error:" + str(err)) 
         sys.exit(1)
-comunicator.close()
-logger.info("Application " + comunicator.communicator_name + " is stopped")
+    comunicator.close()
+    logger.info("Application " + comunicator.communicator_name + " is stopped")

@@ -3,6 +3,7 @@ import hashlib
 import getpass
 import pickle
 import os
+import binascii
 from helpers.pyDes import triple_des as _trim, PAD_PKCS5
 
 CODE ="#šč@58"
@@ -20,6 +21,7 @@ class Users():
         if len(key1)>len(CODE) and key1[:len(CODE)]==CODE:
             if key1 == UCODE:
                 return None
+            pwd =  binascii.a2b_base64(pwd)
             file = os.path.join(self.dir, ".reg")
             with open(file, 'rb') as f:
                 reg = pickle.load(f)
@@ -73,6 +75,7 @@ class Users():
                 code = m.digest()
                 tr = _trim(code)
                 code = tr.encrypt(str_code, padmode=PAD_PKCS5) 
+                code = str(binascii.b2a_base64(code),"us-ascii" )
                 return code, key
             else:
                 return None, UCODE

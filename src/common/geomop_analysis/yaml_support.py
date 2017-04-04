@@ -19,7 +19,8 @@ class YamlSupportLocal(YamlSupportRemote):
 
     def _get_root_input_type(self):
         """Returns root input type."""
-        curr_format_file = "2.0.0"
+        curr_format_file = "2.1.0"
+        err = []
         #file_name = os.path.join("resources", "ist", curr_format_file + ".json")
         #file_name = r"d:\geomop\analysis\GeoMop\src\common\resources\ist\2.0.0.json"
         file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "resources", "ist", curr_format_file + ".json")
@@ -27,12 +28,12 @@ class YamlSupportLocal(YamlSupportRemote):
             with open(file_name, 'r') as file_d:
                 text = file_d.read()
         except (RuntimeError, IOError) as err:
-                cls._report_error("Can't open format file '" + curr_format_file + "'", err)
+            err.append("Can't open format file '" + curr_format_file + "' (" + str(err) + ")")
         try:
             root_input_type = get_root_input_type_from_json(text)
         except Exception as e:
-            cls._report_error("Can't open format file", e)
-        return root_input_type
+            err.append("Can't open format file (" + str(e) + ")")
+        return root_input_type, err
 
     def _get_value_type(self, input_type, value):
         """Returns observed quantities value type."""
@@ -68,12 +69,13 @@ class YamlSupportLocal(YamlSupportRemote):
         except (RuntimeError, IOError) as e:
             err.append("Can't open .yaml file: {0}".format(e))
             return err
-        nh = notification_handler # smazat
         loader = Loader(notification_handler)
         validator = Validator(notification_handler)
         notification_handler.clear()
         root = loader.load(document)
-        root_input_type = self._get_root_input_type()
+        
+        root_input_type, new_err = self._get_root_input_type()
+        err.extend(new_err)
         validator.validate(root, root_input_type)
 
         # mesh file

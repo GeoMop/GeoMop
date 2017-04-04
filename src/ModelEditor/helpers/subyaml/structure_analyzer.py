@@ -116,3 +116,25 @@ class StructureAnalyzer:
                 end_pos = node.children[len(node.children)-1].end
             node.children[len(node.children)-1].is_flow = is_flow
             node.children[len(node.children)-1].delimiters = Span(start_pos, end_pos)
+            
+    @staticmethod
+    def is_edit_parent_array(node):
+        """Return whether parent node is array. If parent was created
+        by autoconversion, is tested parent.parent
+
+        :param Node node: test node
+        :return: True when parent is array
+        :rtype: bool
+        """
+        test_node = node.parent
+        test_child_node = node
+        while test_node.parent is not None and \
+            test_child_node.origin != DataNode.Origin.structure:
+            test_child_node = test_node
+            test_node = test_node.parent
+        while test_node.parent is not None and \
+            test_node.origin != DataNode.Origin.structure:
+            test_node = test_node.parent
+        if test_node.parent is None:
+            return False
+        return test_node.implementation == DataNode.Implementation.sequence            

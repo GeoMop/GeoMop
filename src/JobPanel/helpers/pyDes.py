@@ -27,12 +27,12 @@
 """A pure python implementation of the DES and TRIPLE DES encryption algorithms.
 
 Class initialization
---------------------
+----- --------------
 pyDes.des(key, [mode], [IV], [pad], [padmode])
 pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
 key     -> Bytes containing the encryption key. 8 bytes for DES, 16 or 24 bytes
-	   for Triple DES
+        for Triple DES
 mode    -> Optional argument for encryption type, can be either
 	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
 IV      -> Optional Initial Value bytes, must be supplied if using CBC mode.

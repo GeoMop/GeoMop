@@ -1,4 +1,4 @@
 hydra: {host: hydra.kai.tul.cz, key: '', name: hydra, pbs_system: pbs_hydra, port: 22, env: hydra,
   pwd: p256v22l, remote_dir: js_services, to_pc: true, to_remote: true, uid: pavel.richter}
 local_ssh: {host: localhost, key: '', name: local_ssh, pbs_system: '', port: 22, pwd: MojeHeslo123,
-  remote_dir: js_services, to_pc: true, to_remote: true, uid: tester, env: local}
+  remote_dir: js_services, to_pc: true, to_remote: true, uid: test, env: local}

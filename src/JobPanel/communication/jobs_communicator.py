@@ -160,7 +160,7 @@ class JobsCommunicator(Communicator):
         
         For connection over ssh make:
             - Find next unconnected over socket job and send add_job message to it
-              over remote. If job_conn akcion is returned, connect, and continue 
+              over remote. If socket_conn akcion is returned, connect, and continue 
               connecion over socket
         For other connections make:
             - if stopping is true, try stop next processes
@@ -228,7 +228,7 @@ class JobsCommunicator(Communicator):
                     self._last_send_id = id
                     self.send_message(mess)
                     mess = self.receive_message()
-                    if mess is not None and mess.action_type == tdata.ActionType.job_conn:
+                    if mess is not None and mess.action_type == tdata.ActionType.socket_conn:
                         # connection over remote was established
                         self.jobs[id].state_start()
                         self.job_outputs[id].host = mess.get_action().data.data['host']

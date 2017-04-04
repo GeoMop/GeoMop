@@ -319,7 +319,7 @@ def test_ssh(request, data):
             restore(cm, mj) 
             stop(cm, mj)       
         if instalation is not None:
-            ssh_helper.clear_ssh_installation(data, instalation)
+            ssh_helper.clear_ssh_installation(data, instalation)        
         communicator_files_builder.clear_files(TEST_DIR)
     request.addfinalizer(fin_test_local)   
     
@@ -333,7 +333,7 @@ def test_ssh(request, data):
     ssh_helper.clear_ssh_installation(data, "test2_local_ssh")
     mj = data.multijobs["test2_local_ssh"]
     
-    assert start(cm, 'test2_local_ssh', 100)
+    assert start(cm, 'test2_local_ssh', 200)
     instalation =  'test2_local_ssh'
     assert wait_to_finish(cm, 'test2_local_ssh') 
     if mj.state.status == TaskStatus.error:
@@ -377,7 +377,7 @@ def test_ssh(request, data):
     communicator_files_builder.make_installation(TEST_DIR, data)
     communicator_files_builder.copy_an_to_config(an_name, mj_name, ANAL_DIR)  
 
-    assert start(cm, 'test2_local_ssh', 100)  
+    assert start(cm, 'test2_local_ssh', 200)  
     if mj.state.status == TaskStatus.error:
         assert False, "Can't start multijob({0})".format(mj.error) 
     run_mj = ['test2_local_ssh']

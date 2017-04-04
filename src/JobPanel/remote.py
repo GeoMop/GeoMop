@@ -90,7 +90,7 @@ def  remote_action_function_before(message):
                         action=tdata.Action(tdata.ActionType.action_in_process)
                     else:
                         # ToDo for remote exec return host (not localhost-])
-                        action=tdata.Action(tdata.ActionType.job_conn)
+                        action=tdata.Action(tdata.ActionType.socket_conn)
                         action.data.set_conn(host, port)
                 else:
                     started_jobs[id] = JobStarter(comunicator.conf, id)
@@ -133,21 +133,22 @@ else:
     directory = inst.Installation.get_config_dir_static(mj_name, an_name)
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.remote.value)
-try:
-    with open(path, "r") as json_file:
-        comconf.CommunicatorConfigService.load_file(json_file, com_conf)
-except Exception as error:
-    logger.error(error)
-    raise error
-
-comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before, remote_action_function_after)
-logger.debug("Mj config dir {0}({1})".format(path, mj_name))
 if __name__ != "remote":
     # no doc generation
+    try:
+        with open(path, "r") as json_file:
+            comconf.CommunicatorConfigService.load_file(json_file, com_conf)
+    except Exception as error:
+        logger.error(error)
+        raise error
+
+    comunicator = JobsCommunicator(com_conf, mj_id, remote_action_function_before, remote_action_function_after)
+    logger.debug("Mj config dir {0}({1})".format(path, mj_name))
+
     try:
         comunicator.run()
     except Exception as err:
         comunicator.close()
         logger.info("Application stop for uncatch error:" + str(err)) 
         sys.exit(1)    
-comunicator.close()
+    comunicator.close()

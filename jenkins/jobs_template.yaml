@@ -1,0 +1,122 @@
+#########################################################################################
+# Test and build all platform
+#########################################################################################
+
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell: VERSION=${version} TESTS=${process_tests} /home/geomop/docker/jenkins.sh
+    concurrent: false
+    description: null
+    disabled: false
+    name: 'gm-build'
+    display-name: "GeoMop Build"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    - string:
+        default: ''
+        description: Specify version string.
+        name: version
+    - bool:
+        default: true
+        description: Test GeoMop application before installation building.
+        name: process_tests
+    project-type: freestyle
+    publishers:
+    - archive:
+        artifacts: 'dist/*.deb, dist/*.exe'
+        allow-empty: false
+        only-if-success: false
+        fingerprint: true
+        default-excludes: false
+        case-sensitive: true
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+    triggers: []
+    wrappers: []
+
+#########################################################################################
+# Test after commit
+#########################################################################################
+- job-template:
+    name: "test-{module}"
+    display-name: "Test {module} module"
+    builders:
+      - shell: |
+          cd /var/lib/jenkins/workspace/gm-linux-tests/testing
+          ./RunXvfb.sh {test-file} {result-file} /var/lib/jenkins/workspace/test-{module}/
+    publishers:
+      - junit:
+          results: "{result-file}"
+    wrappers:
+      - build-name:
+          name: $BUILD_NAME
+
+- project:
+    name: "test-{module}"
+    module: 
+        - common:
+            test-file: runCm.py
+            result-file: testCommon.xml
+        - me:
+            test-file: runMe.py
+            result-file: testMe.xml
+        - jp:
+            test-file: runJp.py
+            result-file: testJp.xml
+        - an:
+            test-file: runAn.py
+            result-file: testAn.xml
+    jobs:
+        - "test-{module}" 
+
+- job:
+    name: "gm-linux-tests"
+    display-name: "GeoMop Linux Tests"
+    scm:
+    - git:
+        branches:
+        - master
+        - RS_connection
+        url: https://github.com/GeoMop/GeoMop
+    project-type: multijob
+    triggers:
+      - github
+    wrappers:
+      - build-name:
+          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+    builders:
+      - shell: |
+          echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+          expr substr ${GIT_COMMIT} 1 6 >> prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - common'
+          projects:
+            - name: test-common
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Model Editor'
+          projects:
+            - name: test-me
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Job Panel'
+          projects:
+            - name: test-jp
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Analysis'
+          projects:
+            - name: test-an
+              property-file: prop.file

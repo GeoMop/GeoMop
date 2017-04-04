@@ -19,7 +19,7 @@ import PyQt5.QtWidgets as QtWidgets
 from meconfig import cfg
 from model_data import DataNode, Notification
 from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
-                     NodeAnalyzer, shortcuts)
+                     NodeAnalyzer, StructureAnalyzer, shortcuts)
 from ui.dialogs import FindReplaceDialog
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
@@ -921,6 +921,10 @@ class EditorPosition:
         """last after cursor text of line for comparison"""
         self._to_end_line = True
         """Bound max position is to end line"""
+        self._old_line_indent = None        
+        """Number of line where is cursor before 
+            document number of line changing. This
+            number is for intendation purpose"""
         self._new_line_indent = None
         """indentation for  new array item operation"""
         self._old_line_prefix = None
@@ -941,6 +945,7 @@ class EditorPosition:
         symbol if need be.
         """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
+            self._old_line_indent = self.line
             pre_line = editor.text(self.line)
             indent = LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("- ")
@@ -948,38 +953,40 @@ class EditorPosition:
                 indent_bullet = ("- " if cfg.config.symbol_completion else "")
                 if self.node is None or  \
                    self.node.implementation != DataNode.Implementation.scalar or \
-                   (self.node.parent.start.line-1) == self.line:
+                   not StructureAnalyzer.is_edit_parent_array(self.node):
                     self._new_line_indent = indent*' '+"  "
                 else:
                     self._new_line_indent = indent*' ' + indent_bullet
                 self._old_line_prefix = indent*' ' + indent_bullet
             else:
                 self._new_line_indent = indent*' '
-                self._old_line_prefix = indent*' '
-
+            self._old_line_prefix = indent*' '
+            
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
         fix parent if new line is added (new_line_completation
         function is called).
         """
-        if self._new_line_indent is not None and editor.lines() > line:
-            # after new_line_completation function is called
-            pre_line = editor.text(line - 1)
-            new_line = editor.text(line)
-            # preceding line prefix is unchanged
-            if ((new_line.isspace() or len(new_line) == 0) and
-                    pre_line[:len(self._old_line_prefix)] == self._old_line_prefix):
-                # insert prefix
+        if self._old_line_indent is not None:
+            # new line intendation processing
+            if  editor.lines() > line \
+                and self._old_line_indent+1==line \
+                and index == 0 \
+                and (len(self._old_text)<=line or \
+                    self._old_text[line].strip()!=editor.text(line).strip() or \
+                    editor.text(line).isspace() or len(editor.text(line)) == 0):
+                # not delete and leap to next row and cursor line is changed                
                 editor.insertAt(self._new_line_indent, line, index)
-                editor.setCursorPosition(line, index + len(self._new_line_indent))
-                # fix parent
-                if self.node is not None:
-                    na = NodeAnalyzer(self._old_text, self.node)
-                else:
-                    na = NodeAnalyzer(self._old_text, cfg.root)
-                self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
-                                                                editor.text(self.line))
-            self._new_line_indent = None
+                editor.setCursorPosition(line, len(self._new_line_indent))
+                if editor.lines()==len(self._old_text)+1:
+                    # fix parent
+                    if self.node is not None:
+                        na = NodeAnalyzer(self._old_text, self.node)
+                    else:
+                        na = NodeAnalyzer(self._old_text, cfg.root)                
+                    self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
+                                                                    editor.text(self.line))                    
+            self._old_line_indent = None
         if cfg.config.symbol_completion and self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
             self._spec_char = ""
@@ -1156,6 +1163,11 @@ class EditorPosition:
                 node = self.node.parent
             else:
                 node = self.node
+
+        if node is not None and \
+            node.origin is not DataNode.Origin.structure and \
+            node.parent is not None:
+            node = node.parent
 
         if node is None or getattr(node, 'input_type', None) is None:
             # use root input type
