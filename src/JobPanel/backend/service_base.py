@@ -34,7 +34,7 @@ class ActionProcessor:
     def __init__(self):
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
-    def call_action(self, , action, data):
+    def call_action(self, action, data):
         """
         Call method with name given by 'action' with 'data' as its only argument.
         Used for processing requests and on_answer actions.
@@ -105,7 +105,8 @@ class ChildServiceProxy(ActionProcessor):
         :param data:
         :return:
         """
-        answer_data =
+        #answer_data =
+        pass
 
 
 class ServiceBase(ActionProcessor):

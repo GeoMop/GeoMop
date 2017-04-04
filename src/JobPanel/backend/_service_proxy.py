@@ -70,7 +70,9 @@ class ServiceProxy:
         - send port RYY, wait for OK
         - after OK, close starting connection
         """
-        pass
+
+        # 4.
+        self.connection.get_delegator()
 
 
     def connect_service(self, service_port=None):

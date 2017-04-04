@@ -181,7 +181,7 @@ class ConnectionSSH(ConnectionBase):
         """
         super().__init__(config)
 
-        self._timeout = 10
+        self._timeout = 1000
         """timeout for ssh operations"""
 
         # open ssh connection
@@ -441,8 +441,21 @@ class ConnectionSSH(ConnectionBase):
         Delegator process:
         - open and listen on final port RYY
         - process requests
+
+        :raises SSHError:
+        :raises SSHTimeoutError:
         """
-        return delegator_service
+
+        # 1.
+        try:
+            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/backend_service.py & disown", timeout=self._timeout)
+            print(stdout.readlines())
+        except paramiko.SSHException:
+            raise SSHError
+        except socket.timeout:
+            raise SSHTimeoutError
+
+        #return delegator_service
 
     def close_connections(self):
         """

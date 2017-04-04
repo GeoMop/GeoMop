@@ -3,7 +3,7 @@
 # 2: directory "/home/test/test_dir" must be writable for user which runs tests
 
 
-from backend._connection import *
+from backend.connection import *
 
 import threading
 import socket
