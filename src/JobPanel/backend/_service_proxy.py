@@ -72,7 +72,7 @@ class ServiceProxy:
         """
 
         # 4.
-        self.connection.get_delegator()
+        delegator = self.connection.get_delegator()
 
 
     def connect_service(self, service_port=None):

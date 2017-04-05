@@ -40,7 +40,7 @@ class BackendProxy:
         host_workspace = "/home/backend"
         guest_workspace="/home/geomop/workspace"
         docker_image = "geomop:backend"
-        backend_service = guest_geomop_root + "/" + "backend/backend_service.py"
+        backend_service = guest_geomop_root + "/" + "backend/delegator_service.py"
         id_file="__backend_cont_id.txt"
 
         host_id_file=host_workspace + "/" + id_file

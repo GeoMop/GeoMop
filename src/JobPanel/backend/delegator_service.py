@@ -27,21 +27,29 @@ class Delegator(service_base.ServiceBase):
 # Main body
 ##########
 
-print("ahoj\n")
-sys.exit(0)
+# print("ahoj\n")
+# time.sleep(60)
+# sys.exit(0)
 
 
 logging.basicConfig(filename='backlog',  filemode="w", level=logging.DEBUG)
 
-address = json.loads(sys.argv[1])
-logging.info("addr: %s"%(str(address)))
-port_output_file = sys.argv[2]
-bs=Delegator(address)
-logging.info("port file: %s\n"%(port_output_file))
-print("port: %d\n"%(bs.get_listen_port())  )
-with open(port_output_file, "a") as f:
-    logging.info("port: %d\n" % (bs.get_listen_port()))
-    f.write(" %d"%(bs.get_listen_port()))
+
+bs=Delegator(0)
+print(bs.get_listen_port())
+
+
+# address = json.loads(sys.argv[1])
+# logging.info("addr: %s"%(str(address)))
+# port_output_file = sys.argv[2]
+# bs=Delegator(address)
+# logging.info("port file: %s\n"%(port_output_file))
+# print("port: %d\n"%(bs.get_listen_port())  )
+# with open(port_output_file, "a") as f:
+#     logging.info("port: %d\n" % (bs.get_listen_port()))
+#     f.write(" %d"%(bs.get_listen_port()))
+
+
 sys.stdout.flush()
 
 bs.run()

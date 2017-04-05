@@ -448,8 +448,9 @@ class ConnectionSSH(ConnectionBase):
 
         # 1.
         try:
-            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/backend_service.py & disown", timeout=self._timeout)
-            print(stdout.readlines())
+            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py", timeout=self._timeout, get_pty=True)
+            #stdin, stdout, stderr = self._ssh.exec_command("sleep 1d", timeout=self._timeout, get_pty=True)
+            print(stdout.readline())
         except paramiko.SSHException:
             raise SSHError
         except socket.timeout:
