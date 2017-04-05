@@ -330,6 +330,11 @@ class AsyncRepeater():
     and then propagating back the requests. Repeater do not process requests itself. Only in case of error
     it sends the error answer itself.
 
+    TODO:
+    listen port vzdy ziskat ze systemu (volani s listen_port=0)
+
+
+
     """
     def __init__(self, repeater_address, listen_port):
         """
@@ -348,8 +353,27 @@ class AsyncRepeater():
             self._server = Server(repeater_address, listen_port, self.clients)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
+
+        # TODO:
+        # Start StarterClientDispatcher, trying to connect to parent and send our ID and listen_port
+        # Stop StarterClienDispatcher if Server recievs connection.
+
         # logging.info("Listen: " + str(self.listen_port))
 
+    def add_child(self):
+        """
+        TODO:
+        1. Create StarterServer for child connection (make only one, in constructor)
+           .. it listens for incomming connection from child and for getting first message, respond with OK and
+            start _ClientDispatcher
+
+
+
+        2. listen for child connection.
+        2. Return Child ID
+        :return:
+        """
+        return id
 
     def connect_child_repeater(self, socket_address):
         """
