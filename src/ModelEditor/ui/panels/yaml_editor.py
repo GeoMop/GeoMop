@@ -11,7 +11,7 @@ from contextlib import ContextDecorator
 import math
 
 from PyQt5.Qsci import QsciLexerYAML, QsciScintilla
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QContextMenuEvent
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
@@ -238,17 +238,28 @@ class YamlEditorWidget(QsciScintilla):
 
 # ------------------------- TEXT MANIPULATION METHODS ------------------------
 
-    def indent(self):
+    def indent(self, line):
         """Indent the selected line(s).
 
-        If no line is selected, indent the current line.
+        If var. line is not none and line is in selected lines, unindent selected
+        else line in var. line.        
+        If var. line is none and no line is selected, indent the current line.
         """
         from_line, from_col, to_line, to_col = self.getSelection()
-        nothing_selected = from_line == -1 and to_line == -1
+        nothing_selected = from_line == -1
+        if not nothing_selected and \
+            line is not None and \
+            (line<from_line or line>to_line):
+            nothing_selected = True
         if nothing_selected:
             # insert spaces and move the cursor position
-            line, col = self.getCursorPosition()
+            col = None
+            if line is None:
+                line, col = self.getCursorPosition()            
             super(YamlEditorWidget, self).indent(line)
+            if col is not None:
+                # adjust cursor position
+                self.setCursorPosition(line, col + self.tabWidth())
         else:
             # perform indent
             with self.reload_chunk:
@@ -260,20 +271,28 @@ class YamlEditorWidget(QsciScintilla):
             to_col += self.tabWidth()
             self.setSelection(from_line, from_col, to_line, to_col)
 
-    def unindent(self):
+    def unindent(self, line):
         """Unindent the selected line(s).
-
-        If no line is selected, unindent the current line.
+        
+        If var. line is not none and line is in selected lines, unindent selected
+        else line in var. line.        
+        If  is var. line is none no line and selected, unindent the current line.
         """
         from_line, from_col, to_line, to_col = self.getSelection()
-        nothing_selected = from_line == -1 and to_line == -1
+        nothing_selected = from_line == -1
+        if not nothing_selected and \
+            line is not None and \
+            (line<from_line or line>to_line):
+            nothing_selected = True
         if nothing_selected:
             # unindent current line
-            line, col = self.getCursorPosition()
+            col = None
+            if line is None:
+                line, col = self.getCursorPosition()
             super(YamlEditorWidget, self).unindent(line)
-
-            # adjust cursor position
-            self.setCursorPosition(line, col - self.tabWidth())
+            if col is not None:
+                # adjust cursor position
+                self.setCursorPosition(line, col - self.tabWidth())
         else:
             # unindent selected lines
             for line in range(from_line, to_line + 1):
@@ -284,39 +303,71 @@ class YamlEditorWidget(QsciScintilla):
             to_col -= self.tabWidth()
             self.setSelection(from_line, from_col, to_line, to_col)
 
-    def comment(self):
+    def comment(self, line):
         """Toggle comment for selected lines.
+        
+        If var. line is not none and line is in selected lines, toggle
+        comment for selected lines else line comment in var. line.        
+        If  is var. line is none no line and selected, toggle comment 
+       for the current line.
 
         If no line is selected, toggle comment for current line.
         """
         with self.reload_chunk:
-            from_line, __, to_line, __ = self.getSelection()
-            nothing_selected = from_line == -1 and to_line == -1
+            from_line, from_col, to_line, to_col = self.getSelection()
+            
+            nothing_selected = from_line == -1
+            if not nothing_selected and \
+                line is not None and \
+                (line<from_line or line>to_line):
+                nothing_selected = True
             if nothing_selected:
                 # apply to current line
-                curr_line, __ = self.getCursorPosition()
-                from_line = to_line = curr_line
-
+                if line is None:
+                    line, __ = self.getCursorPosition()                    
+                t_from_line = t_to_line = line
+            else:
+                t_from_line = from_line
+                t_to_line = to_line
             # prepare lines with and without comment
             is_comment = True
             lines_without_comment = []
             lines_with_comment = []
-            for line_index in range(from_line, to_line + 1):
+            b_shift=0
+            e_shift=0
+            
+            for line_index in range(t_from_line, t_to_line + 1):
                 line = self.text(line_index).replace('\n', '')
                 lines_with_comment.append('# ' + line)
-                if LineAnalyzer.begins_with_comment(line):
-                    lines_without_comment.append(LineAnalyzer.uncomment(line))
-                else:
+                if LineAnalyzer.begins_with_comment(line):   
+                    new_line = LineAnalyzer.uncomment(line)
+                    lines_without_comment.append(new_line)
+                    if  line_index == t_from_line:
+                        b_shift=len(new_line)-len(line)
+                    if  line_index == t_to_line:
+                        e_shift=len(new_line)-len(line)
+                else:                    
                     is_comment = False
 
             # replace the selection with the toggled comment
-            self.setSelection(from_line, 0, to_line + 1, 0)  # select entire text
+            self.setSelection(t_from_line, 0, t_to_line + 1, 0)  # select entire text
             if is_comment:  # check if comment is applied to all lines
                 lines_without_comment.append('')
                 self.replaceSelectedText('\n'.join(lines_without_comment))
             else:  # not a comment already - prepend all lines with '# '
+                if from_col==0:
+                    b_shift=0
+                else:
+                    b_shift=2
+                e_shift=2
                 lines_with_comment.append('')
-                self.replaceSelectedText('\n'.join(lines_with_comment))
+                self.replaceSelectedText('\n'.join(lines_with_comment))                
+            if nothing_selected and from_line!=-1:
+                self.setSelection(from_line, from_col, to_line, to_col)
+            elif not nothing_selected:
+                from_col += b_shift
+                to_col += e_shift
+                self.setSelection(from_line, from_col, to_line, to_col)
 
     def undo(self):
         """Undo a single reload."""
@@ -668,7 +719,10 @@ class YamlEditorWidget(QsciScintilla):
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
-        context_menu = EditMenu(self, self)
+        line = None
+        if event.reason()==QContextMenuEvent.Mouse:
+            line=self.lineAt(event.pos())
+        context_menu = EditMenu(self, self, line)
         context_menu.exec_(event.globalPos())
         event.accept()
 

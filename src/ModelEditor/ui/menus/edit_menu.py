@@ -10,11 +10,17 @@ from meconfig import cfg
 class EditMenu(QMenu):
     """Menu with editing actions."""
 
-    def __init__(self, parent, editor, title='&Edit'):
-        """Initializes the class."""
+    def __init__(self, parent, editor, line=None, title='&Edit'):
+        """
+        Initializes the class.
+        
+        :param int line: Prefered line. If menu action is emit by mouse click, 
+            line is clicked line
+        """
         super(EditMenu, self).__init__(parent)
 
         self._editor = editor
+        self.line = line
         self.aboutToShow.connect(self._check_action_availability)
 
         self.undo_action = None
@@ -71,17 +77,17 @@ class EditMenu(QMenu):
 
         self.indent_action = QAction('Indent Block', self)
         self.indent_action.setStatusTip('Indents the selected lines')
-        self.indent_action.triggered.connect(self._editor.indent)
+        self.indent_action.triggered.connect(lambda: self._editor.indent(self.line))
 
         self.unindent_action = QAction('Unindent Block', self)
         self.unindent_action.setShortcut(cfg.get_shortcut('unindent').key_sequence)
         self.unindent_action.setStatusTip('Unindents the selected lines')
-        self.unindent_action.triggered.connect(self._editor.unindent)
+        self.unindent_action.triggered.connect(lambda: self._editor.unindent(self.line))
 
         self.comment_action = QAction('Toggle Comment', self)
         self.comment_action.setShortcut(cfg.get_shortcut('comment').key_sequence)
         self.comment_action.setStatusTip('Toggles Comment for the selected lines')
-        self.comment_action.triggered.connect(self._editor.comment)
+        self.comment_action.triggered.connect(lambda:self._editor.comment(self.line))
 
     def on_select_all_action(self):
         """Handle selectAll action."""
@@ -126,7 +132,7 @@ class MainEditMenu(EditMenu):
         self.find_dialog = None
         self.replace_action = None
         self.replace_dialog = None
-        super(MainEditMenu, self).__init__(parent, editor, title)
+        super(MainEditMenu, self).__init__(parent, editor, None, title)
 
     def init_actions(self):
         """Initializes the actions."""
