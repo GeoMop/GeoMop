@@ -218,8 +218,8 @@ a.selected {
 .navigation-panel {
     position: absolute;
     top: 3px;
-    right: 5px;
-    width: 80px;
+    right: 3px;
+    width: 110px;
     height: 20px;
     clear: both;
 }
@@ -233,6 +233,10 @@ a.selected {
 
 .navigation-panel a:not(:first-child) {
     margin-left: 10px;
+}
+
+.navigation-panel a.parent {
+    background-image: url("img/nav-parent.png");
 }
 
 .navigation-panel a.back {

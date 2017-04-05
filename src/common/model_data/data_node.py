@@ -243,7 +243,7 @@ class DataNode:
             else:
                 record_id = node.input_type['id']
 
-        return {
+        return node, {
             'record_id': record_id,
             'selected_key': selected_key,
             'abstract_id': abstract_id,

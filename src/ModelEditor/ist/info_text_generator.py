@@ -56,40 +56,61 @@ class InfoTextGenerator:
             home = context['home']
             check_fields = ['record_id', 'abstract_id', 'selected_key', 'selected_item']
             displaying_home = True
+
             for field in check_fields:
                 if locals().get(field) != home.get(field):
                     displaying_home = False
                     break
+            displaying_parent = False
+            if 'parent' in context:
+                parent = context['parent']
+                displaying_parent = True
+                for field in check_fields:
+                    if locals().get(field) != parent.get(field):
+                        displaying_parent = False
+                        break  
+                        
+            with html_body.open('div', cls='navigation-panel'):
+                if 'parent' in context and not displaying_parent:
+                    args = copy(context['parent'])
+                    args.update({'direction': 'parent'})
+                    href = cls.generate_href(**args)
+                    class_ = 'parent' 
+                else:
+                    href = '#'
+                    class_ = 'parent not-active'
+                html_body.tag('a', '', attrib={'href': href, 'class': class_})
+                
+                if 'home' in context and not displaying_home:
+                    args = copy(context['home'])
+                    args.update({'direction': 'home'})
+                    href = cls.generate_href(**args)
+                    class_ = 'home'
+                else:
+                    href = '#'
+                    class_ = 'home not-active'
+                html_body.tag('a', '', attrib={'href': href, 'class': class_})
+                
+                if len(context['back']) > 0:
+                    args = copy(context['back'][-1])
+                    args.update({'direction': 'back'})
+                    href = cls.generate_href(**args)
+                    class_ = 'back'
+                else:
+                    href = '#'
+                    class_ = 'back not-active'
+                html_body.tag('a', '', attrib={'href': href, 'class': class_})
 
-            if not displaying_home:  # show navigation bar
-                with html_body.open('div', cls='navigation-panel'):
-                    if len(context['back']) > 0:
-                        args = copy(context['back'][-1])
-                        args.update({'direction': 'back'})
-                        href = cls.generate_href(**args)
-                        class_ = 'back'
-                    else:
-                        href = '#'
-                        class_ = 'back not-active'
-                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
-
-                    if len(context['forward']) > 0:
-                        args = copy(context['forward'][-1])
-                        args.update({'direction': 'forward'})
-                        href = cls.generate_href(**args)
-                        class_ = 'forward'
-                    else:
-                        href = '#'
-                        class_ = 'forward not-active'
-                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
-
-                    if 'home' in context:
-                        args = copy(context['home'])
-                        args.update({'direction': 'home'})
-                        href = cls.generate_href(**args)
-                        class_ = 'home'
-                    html_body.tag('a', '', attrib={'href': href, 'class': class_})
-
+                if len(context['forward']) > 0:
+                    args = copy(context['forward'][-1])
+                    args.update({'direction': 'forward'})
+                    href = cls.generate_href(**args)
+                    class_ = 'forward'
+                else:
+                    href = '#'
+                    class_ = 'forward not-active'
+                html_body.tag('a', '', attrib={'href': href, 'class': class_})
+               
         html_head = htmltree('head')
         html_head.style('bootstrap.min.css')
         html_head.style('katex.min.css')

@@ -56,6 +56,16 @@ class InfoPanelWidget(QWebView):
         :param DataNode node: current node
         :param CursorType cursor_type: indicates cursor position in node
         """
+        is_parent = self._is_parent(cursor_type, node)        
+        node, data = node.get_info_text_data(is_parent)
+        
+        parent = None
+        if node.parent is not None:
+            node, parent = node.get_info_text_data(is_parent)
+        self.update_from_data(data, True, parent)
+        
+    def _is_parent(self, cursor_type, node):
+        """return if parent is need for info"""
         is_parent = False
         if node.parent is not None and node.parent.implementation == node.Implementation.sequence:
             is_parent = True
@@ -65,11 +75,9 @@ class InfoPanelWidget(QWebView):
                 node = new_node
         elif cursor_type == CursorType.parent.value:
             is_parent = True
-        
-        data = node.get_info_text_data(is_parent)
-        self.update_from_data(data)
+        return  is_parent
 
-    def update_from_data(self, data, set_home=True):
+    def update_from_data(self, data, set_home, parent=None):
         """Generate and show the info text from data.
 
         :param dict data: query data; generally IDs or values necessary to generate InfoText
@@ -81,6 +89,8 @@ class InfoPanelWidget(QWebView):
             self._context['home'] = self._data
             self._context['back'] = []
             self._context['forward'] = []
+            if parent is not None:
+                self._context['parent'] = parent
         args = copy(self._data)
         args.update({'context': self._context})
         html = InfoTextGenerator.get_info_text(**args)
@@ -106,6 +116,9 @@ class InfoPanelWidget(QWebView):
             self._context['back'].clear()
             self._context['forward'].clear()
             del data['home']
+        elif 'parent' in data:
+            self._context['back'].append(self._data)
+            del data['parent']
         else:
             self._context['back'].append(self._data)
             self._context['forward'].clear()

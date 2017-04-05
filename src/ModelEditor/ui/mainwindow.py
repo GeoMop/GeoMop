@@ -186,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # show root input type info by default
-        self.info.update_from_data({'record_id': cfg.root_input_type['id']})
+        self.info.update_from_data({'record_id': cfg.root_input_type['id']}, True)
         return
 
     def _on_node_selected(self, line, column):
