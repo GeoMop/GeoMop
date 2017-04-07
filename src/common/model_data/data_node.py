@@ -7,7 +7,7 @@ Contains classes for representing the tree structure of config files.
 """
 
 from enum import Enum
-
+from copy import deepcopy
 from geomop_util.util import TextValue
 
 
@@ -76,6 +76,30 @@ class DataNode:
         """the scalar value of the node (:py:class:`TextValue <util.util.TextValue>`"""
         self.type = None
         """specifies the type of Abstract"""  # TODO is type TextValue?
+        
+    def __deepcopy__(self, memo):
+        """make deep copy without parent and ref"""
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        result.parent = self.parent
+        result.ref = self.ref
+        result.implementation = self.implementation
+        result.children = []
+        for child in self.children:
+            new = deepcopy(child, memo)
+            new.parent = result
+            result.children.append(new)            
+        result.key = deepcopy(self.key, memo)
+        result.input_type = self.input_type
+        result.span = deepcopy(self.span, memo)
+        result.anchor = deepcopy(self.anchor, memo)
+        result.is_flow = self.is_flow
+        result.origin = self.origin
+        result.hidden = self.hidden
+        result.value = deepcopy(self.value, memo)
+        result.type =  deepcopy(self.type, memo)
+        return result
 
     @property
     def absolute_path(self):
