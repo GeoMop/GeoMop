@@ -68,6 +68,10 @@ target/
 *.e4p
 *.e4m
 
+#Profiling files
+*.profile
+*.timings
+
 #PyCharm project files
 .idea/
 
