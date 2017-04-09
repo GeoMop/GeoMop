@@ -42,7 +42,11 @@ class Validator:
         """
         if node is None:
             raise Notification.from_name('ValidationError', 'Invalid node (None)')
-
+        if node.origin==DataNode.Origin.duplicit:
+            notification = Notification.from_name('UselessTag', node.type.value)
+            notification.span = node.type.span
+            self.notification_handler.report(notification)
+            return            
         # parameters
         # TODO: enable parameters in unknown IST?
         if hasattr(node, 'value'):
@@ -107,8 +111,14 @@ class Validator:
         keys.extend(input_type['keys'].keys())
         for key in set(keys):
             if node.origin == DataNode.Origin.error:
-                continue
+                continue            
             child = node.get_child(key)
+            if child is not None and \
+                child.origin==DataNode.Origin.duplicit:
+                notification = Notification.from_name('DuplicateTag')
+                notification.span = child.key.span
+                self._report_notification(notification)
+                continue
             try:
                 checks.check_record_key(node.children_keys, key, input_type)
             except Notification as notification:

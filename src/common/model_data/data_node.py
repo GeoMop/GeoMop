@@ -34,6 +34,7 @@ class DataNode:
         ac_reducible_to_key = 3
         error = 4
         ac_transposition = 5
+        duplicit = 6
 
     class StructureType(Enum):
         """The type of node in the text structure."""
@@ -165,7 +166,7 @@ class DataNode:
                 return child
         return None
 
-    def set_child(self, node):
+    def set_child(self, node, allows_duplicit=True):
         """Set the given node as child of this node.
 
         If the key already exists, replace the original child node.
@@ -180,8 +181,14 @@ class DataNode:
         # does the key already exists? if so, replace it
         for i, child in enumerate(self.children):
             if child.key.value == node.key.value:
-                self.children[i] = node
-                return
+                if allows_duplicit:
+                    self.children[i] = node
+                    return
+                else:
+                    child.key.value += '_dup{0}'.format(str(len(self.children)))
+                    child.origin = DataNode.Origin.duplicit 
+                    child.hidden = True
+                    break                
 
         # the key does not exists, create a new child node
         self.children.append(node)

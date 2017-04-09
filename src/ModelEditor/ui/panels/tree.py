@@ -102,7 +102,9 @@ class TreeWidget(QtWidgets.QTreeView):
             if model_index.column() == 0:
                 is_array_member = (data.parent is not None and
                                    data.parent.implementation == DataNode.Implementation.sequence)
-                has_delimiters = data.is_flow is False and data.delimiters is not None
+                has_delimiters = False
+                if data.implementation != DataNode.Implementation.scalar:
+                    has_delimiters = data.is_flow is False and data.delimiters is not None
                 if is_array_member and has_delimiters:
                     span.start = data.delimiters.start
 

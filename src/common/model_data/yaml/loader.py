@@ -48,7 +48,7 @@ class Loader:
         if self._fatal_error_node:
             if root.implementation != DataNode.Implementation.scalar:
                 # pylint: disable=no-member
-                root.set_child(self._fatal_error_node)
+                root.set_child(self._fatal_error_node, False)
                 root.span.end = self._fatal_error_node.end
         return root
 
@@ -222,7 +222,7 @@ class Loader:
             if child_node is None:  # i.e. unresolved alias
                 continue
             child_node.key = key
-            node.set_child(child_node)
+            node.set_child(child_node, False)
         if self._event is not None:  # update end_mark when map ends correctly
             end_mark = self._event.end_mark
         elif node.children:

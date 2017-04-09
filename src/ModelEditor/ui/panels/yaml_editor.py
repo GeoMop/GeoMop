@@ -756,7 +756,7 @@ class YamlEditorWidget(QsciScintilla):
         if cfg.autocomplete_helper.visible:
             self.SendScintilla(QsciScintilla.SCI_AUTOCCOMPLETE)
         else:
-            self.indent()
+            self.indent(None)
 
     def _handle_keypress_escape(self, event):
         """Handle keyPress event for :kdb:`Esc`."""

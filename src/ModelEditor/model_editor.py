@@ -63,7 +63,7 @@ class ModelEditor:
         self.mainwindow.reload()
         self.mainwindow.update_recent_files(0)
         self._update_document_name()
-        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']})
+        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']}, False)
         self.mainwindow.show_status_message("New file is opened")
 
     def open_file(self):

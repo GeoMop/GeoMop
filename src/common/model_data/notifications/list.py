@@ -374,6 +374,13 @@ _NOTIFICATIONS = [
         'message': 'Using flow style across multiple lines is not recommended',
         'example': 'example_flow_style.yaml'
     },
+    {
+        'code': 904,
+        'name': 'DuplicateTag',
+        'description': 'When tag is redefinate later.',
+        'message': 'Tag has not effect, becose is redefinate.',
+        'example': None,
+    },
 
     # -----------------------------------------------------
     #                  Special Info
