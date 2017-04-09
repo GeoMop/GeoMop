@@ -35,9 +35,9 @@ class AutoConverter:
 
         The function also converts data to the expected data types (if possible).
         """
-        root = deepcopy(node)
-        AutoConverter._autoconvert_crawl(root, input_type)
-        return root
+#        root = deepcopy(node)
+        AutoConverter._autoconvert_crawl(node, input_type)
+        return node
 
     @staticmethod
     def _autoconvert_crawl(node, input_type):

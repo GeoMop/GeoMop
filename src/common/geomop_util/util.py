@@ -7,11 +7,19 @@ Utility classes.
 
 class TextValue:
     """Represents a value in the input text."""
-    def __init__(self, value=None):
+    def __init__(self, value=None, span=None):
         self.value = value
         """the value from input text"""
         self.span = None
         """:class:`.Span` specifies the position of value in input text"""
+        
+    def dcopy(self):
+        """internal deep copy function without memo"""
+        
+        span = None
+        if self.span is not None:
+            span = self.span.dcopy()
+        return TextValue(self.value, span)
 
 
 class Parameter:

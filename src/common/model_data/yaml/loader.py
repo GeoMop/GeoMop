@@ -5,7 +5,7 @@ Package for generating DataNode structure from YAML document.
 """
 
 import re
-import copy
+# import copy
 import yaml as pyyaml
 
 from geomop_util import TextValue, Position, Span
@@ -286,7 +286,8 @@ class Loader:
 
         for child in anchor_node.children:
             if child.key.value not in node.children_keys:
-                node.set_child(copy.deepcopy(child))
+                #node.set_child(copy.deepcopy(child))
+                node.set_child(child.dcopy(node))
         return
 
     def _create_array_node(self):
@@ -321,12 +322,14 @@ class Loader:
             self.notification_handler.report(notification)
             return None
         ref = self.anchors[anchor.value]
-        node = copy.deepcopy(ref)
+        # node = copy.deepcopy(ref)
+        node = ref.dcopy()
         node.anchor = anchor
         node.ref = ref
 
         # set correct node.span
-        node.span = copy.deepcopy(node.anchor.span)
+        #node.span = copy.deepcopy(node.anchor.span)
+        node.span = node.anchor.span.dcopy()
         start = node.span.start
         node.span.start = Position(start.line, start.column - 1)
         return node

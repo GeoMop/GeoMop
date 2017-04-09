@@ -80,27 +80,55 @@ class DataNode:
         
     def __deepcopy__(self, memo):
         """make deep copy without parent and ref"""
+        result = self.dcopy()
+        memo[id(self)] = result
+        return result
+        
+    def dcopy(self, parent=None):
+        """
+        internal deep copy function without memo
+        
+        if parent is None, parent ref is copied
+        """ 
         cls = self.__class__
         result = cls.__new__(cls)
-        memo[id(self)] = result
-        result.parent = self.parent
+        if parent is None:
+            result.parent = self.parent
+        else:
+            result.parent = parent
         result.ref = self.ref
         result.implementation = self.implementation
         result.children = []
         for child in self.children:
-            new = deepcopy(child, memo)
-            new.parent = result
-            result.children.append(new)            
-        result.key = deepcopy(self.key, memo)
+            result.children.append(child.dcopy(result))
+        if self.key is None:
+            result.key = None
+        else:
+            result.key = self.key.dcopy()
         result.input_type = self.input_type
-        result.span = deepcopy(self.span, memo)
-        result.anchor = deepcopy(self.anchor, memo)
+        if self.span is None:
+            result.span = None
+        else:        
+            result.span = self.span.dcopy()
+        if self.anchor is None:
+            result.anchor = None
+        else:
+            result.anchor = self.anchor.dcopy()
         result.is_flow = self.is_flow
         result.origin = self.origin
         result.hidden = self.hidden
-        result.value = deepcopy(self.value, memo)
-        result.type =  deepcopy(self.type, memo)
+        result.value = self._dcopy_value()
+        if self.type is None:    
+            result.type = None
+        else:
+            result.type = self.type.dcopy()
         return result
+        
+    def _dcopy_value(self):
+        """Copy class specific value"""
+        if self.value is None:
+            return None
+        return self.value.dcopy()        
 
     @property
     def absolute_path(self):
@@ -368,6 +396,10 @@ class ScalarDataNode(DataNode):
         super(ScalarDataNode, self).__init__(key, parent)
         self.implementation = DataNode.Implementation.scalar
         self.value = value
+        
+    def _dcopy_value(self):
+        """Copy class specific value"""
+        return self.value
 
     def get_node_at_position(self, position):
         """Retrieve :py:class:`DataNode` at specified

@@ -24,6 +24,10 @@ class Position(ComparableMixin):
 
     def __str__(self):
         return "[{line}:{column}]".format(line=self.line, column=self.column)
+        
+    def dcopy(self):
+        """internal deep copy function without memo"""
+        return Position(self.line, self.column)
 
     @staticmethod
     def from_mark(mark):
@@ -55,6 +59,16 @@ class Span(ComparableMixin):
         """:class:`.Position` indicates the start of the section; inclusive"""
         self.end = end
         """:class:`.Position` indicates the end of the section; exclusive"""
+        
+    def dcopy(self):
+        """internal deep copy function without memo"""
+        start = None
+        end = None
+        if self.start is not None:
+            start = self.start.dcopy()
+        if self.end is not None:
+            end = self.end.dcopy()
+        return Span(start, end)
 
     def __str__(self):
         return "{start}-{end}".format(
