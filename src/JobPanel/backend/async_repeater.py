@@ -6,6 +6,7 @@ import json
 import traceback
 import sys
 import logging
+import time
 
 """
 TODO:
@@ -195,7 +196,7 @@ class Server(asyncore.dispatcher):
         self.server_dispatcher = ServerDispatcher(repeater_address, port, clients)
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind( (socket.gethostname(), port) )
+        self.bind( ("", port) )
         self.address=self.socket.getsockname()
         self.answers=[]
         self.listen(5)
@@ -318,6 +319,47 @@ class ServerDispatcher(asynchat.async_chat):
         return
 
 
+class StarterServer(asyncore.dispatcher):
+    def __init__(self, ar):#,  repeater_address, port, clients):
+        """
+        host - get automatically
+        :param port - port ( same as in socket module)
+        """
+        asyncore.dispatcher.__init__(self)
+        #self.server_dispatcher = ServerDispatcher(repeater_address, port, clients)
+
+        self.ar = ar
+
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.bind(("", 0))
+        self.address=self.socket.getsockname()
+        #self.answers=[]
+        self.listen(5)
+
+
+    # def get_dispatcher(self):
+    #     return self.server_dispatcher
+
+    # def handle_accept(self):
+    #     # Called when a client connects to our socket
+    #     client_info = self.accept()
+    #     logging.info("Incomming connection accepted.\n")
+    #     self.server_dispatcher.accept(client_info[0])
+    #     return
+
+    def handle_accepted(self, sock, addr):
+        #print(sock.getsockname())
+        data = sock.recv(1024)
+        #print(data)
+        s = data.decode().split("\n", maxsplit=2)
+        if len(s) < 2:
+            return
+        id = s[0]
+        port = s[1]
+
+    # def handle_close(self):
+    #     self.close()
+
 
 class AsyncRepeater():
     """
@@ -336,16 +378,19 @@ class AsyncRepeater():
 
 
     """
-    def __init__(self, repeater_address, listen_port):
+    def __init__(self, repeater_address, listen_port, parent_repeater_address = None):
         """
         :param repeater_address: Repeater id given be parent repeater in the tree.
         :param listen_port: None means no Server, 0 - get by kernel
 
         """
         self.repeater_address = repeater_address
+        self.parent_repeater_address = parent_repeater_address
         self.max_client_id=0
         self.clients = {}
         """ Dict of clients. Keys client_id. """
+        self._starter_client_thread = None
+        self._starter_client_attempting = False
         if (listen_port is None):
             self._server_dispatcher = None
             self.listen_port = None
@@ -354,11 +399,31 @@ class AsyncRepeater():
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
+            if self.parent_repeater_address is not None:
+                self._starter_client_attempting = True
+                self._starter_client_thread = threading.Thread(target=self._starter_client_run)
+                self._starter_client_thread.daemon = True
+                self._starter_client_thread.start()
+
+        self._starter_server = StarterServer(self)
+
         # TODO:
         # Start StarterClientDispatcher, trying to connect to parent and send our ID and listen_port
         # Stop StarterClienDispatcher if Server recievs connection.
 
         # logging.info("Listen: " + str(self.listen_port))
+
+    def _starter_client_run(self):
+        s = socket.socket()
+        while self._starter_client_attempting:
+            try:
+                s.connect(self.parent_repeater_address)
+                data = "{}\n{}\n".format(self.repeater_address, self.listen_port).encode()
+                s.sendall(data)
+                s.close()
+            except ConnectionRefusedError:
+                pass
+            time.sleep(10)
 
     def add_child(self):
         """
