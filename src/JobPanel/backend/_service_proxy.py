@@ -75,12 +75,18 @@ class ServiceProxy:
         delegator = self.connection.get_delegator()
 
 
-    def connect_service(self, service_port=None):
+    def connect_service(self, child_id):
         """
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
 
-        If service_port is None, try to download service_data from remote and get the listening port from it.
+        1. Check if repeater.client[child_id] have target port (ClientDispatcher exists)
+        2. If No or child_id == None, download service config file and get port from there ( ... postpone)
+        3. Open forward tunnel
+        4. Call repeater.client[id].connect(port)
+
+        If yes, open forward
+        service_port is None, try to download service_data from remote and get the listening port from it.
 
         - local forwarding tunnel,  port LYY to port RYY
         - create final connection, self.repeater

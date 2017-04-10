@@ -438,9 +438,12 @@ class AsyncRepeater():
         2. Return Child ID
         :return:
         """
+        self.max_client_id += 1
+        id = self.max_client_id
+        self.clients[id] = None # set ClientDispatcher after ful connection
         return id
 
-    def connect_child_repeater(self, socket_address):
+    def _connect_child_repeater(self, socket_address):
         """
         Add new client, new connection to remote Repeater.
         :param id: Client/Repeater ID.
@@ -450,10 +453,10 @@ class AsyncRepeater():
         TODO: We need to reconnect if connection is broken. Should it be done in this class or by
         upper layer? In latter case we need other method to reconnect client.
         """
-        self.max_client_id += 1
-        id = self.max_client_id
-        self.clients[id] = _ClientDispatcher(self.repeater_address, socket_address, self._server_dispatcher)
-        return id
+        # self.max_client_id += 1
+        # id = self.max_client_id
+        # self.clients[id] = _ClientDispatcher(self.repeater_address, socket_address, self._server_dispatcher)
+        # return id
 
 
     def close_child_repeater(self, id):

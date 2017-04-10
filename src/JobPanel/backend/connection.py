@@ -434,7 +434,10 @@ class ConnectionSSH(ConnectionBase):
         so that we can process requests processed by remote delegator localy.
 
         Process of starting a delegator
-        1. start delegator on remote using SSH, get listenning port from stdout.
+        1. Open remote forwarding tunnel (get local port from local_service.repeater.starter_server_port]
+        2. get child ID from repeater ( local_service.repeater.add_child(...) )
+        3. Start delegator on remote using SSH exec. Pass: child ID, starter address
+        1.
         2. create DelegatorProxy object (similar to ServiceProxy, but without start_service)
         3. call dlegator_proxy.connect_service( delegator port)
         ...
@@ -442,6 +445,7 @@ class ConnectionSSH(ConnectionBase):
         - open and listen on final port RYY
         - process requests
 
+        :param local_service: Instance of ServiceBase (or derived class)
         :raises SSHError:
         :raises SSHTimeoutError:
         """
