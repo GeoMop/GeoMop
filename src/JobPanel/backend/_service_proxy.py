@@ -52,15 +52,15 @@ class ServiceProxy:
         1. # have service configuration data (from constructor)
         2. # get connection parameter - (in constructor)
         3. upload job files (specified in service_data, using the connection, upload config file
-        4. get delegator from connection
-        5. open starting port LXX (localhost) ... must be implemented in self.repeater (ParentStartingServer)
-           This server waits for connection, get single message, respond with OK and close connection.
-           It put an answer to the async_repeater queue containing: call of 'connect_service' with port RYY
+        4. get delegator proxy from connection
+        5. setup remote port forwarding for the starter port (get it from repeater)
 
-        5. use connection for remote port forwarding tunnel: forward remote port RXX to local port LXX
-        6. repeater.expected_answer ...
-        6. submit (or start) job through delegator
-        7. set  Job state as 'queued'
+        6. repeater.expected_answer ... Sort of implicit request, we expect that ClientDispatcher
+           form an answer when child service connection is accepted and we recieve its listenning port.
+           We set that connect_service should be called `on_answer`.
+
+        7. submit (or start) job through delegator
+        8. set  Job state as 'queued'
         ...
         Job process:
         - read Job configuration from cofig file (given as argument)

@@ -143,8 +143,18 @@ class ServiceBase(ActionProcessor):
         return self.repeater.listen_port
 
 
-    def make_child_proxy(self, child_id, service):
-        return ChildServiceProxy(child_id, service)
+    def make_child_proxy(self, address):
+        """
+        TODO:
+        - remove address parameter since currently the child initiates the first connection
+        - id = repeater.add_child() #instead of connect_child_repeater
+
+        :return: Created child proxy.
+        """
+        child_id = self.repeater.connect_child_repeater(address)
+        proxy = ChildServiceProxy(child_id, self)
+        self.child_services[child_id] = proxy
+        return proxy
 
 
     def process_answers(self):
@@ -174,9 +184,16 @@ class ServiceBase(ActionProcessor):
 
     """"""
     def request_start_child(self, request_data):
+        """
+        TODO:
+
+        proxy=self.make_child_proxy()
+        proxy.start_service() ... enqueue the seervice
+        :param request_data:
+        :return: `OK`
+        """
         address = request_data['socket_address']
-        child_id = self.repeater.connect_child_repeater(self, address)
-        self.child_services[child_id] = self.make_child_proxy(child_id, self)
+        self.make_child_proxy(address)
         return self.answer_ok
 
 
@@ -195,5 +212,21 @@ class ServiceBase(ActionProcessor):
     def request_stop(self, data):
         self.closing = True
         return {'data' : 'closing'}
+
+
+    """
+    Delegator requests. (WIP)
+    """
+
+    def request_start_service(self, executor_config):
+        executor  = JsonData.make_instance(executor_config)
+        executor.exec()
+
+    def request_kill_service(self, executor_config):
+        executor = JsonData.make_instance(executor_config)
+        executor.kill()
+
+    def request_clean_workspace(self):
+        pass
 
 
