@@ -118,6 +118,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         asynchat.async_chat.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+
         logging.info( "Connecting: %s\n"%(str(self.address)) )
         self.connect( self.address )
 
@@ -425,7 +426,7 @@ class AsyncRepeater():
                 pass
             time.sleep(10)
 
-    def add_child(self):
+    def add_child(self, get_answer_on_connect=None):
         """
         TODO:
         1. Create StarterServer for child connection (make only one, in constructor)
@@ -436,11 +437,12 @@ class AsyncRepeater():
 
         2. listen for child connection.
         2. Return Child ID
+        :param get_answer_on_connect: on_answer passed to the local service when child service is connected
         :return:
         """
         self.max_client_id += 1
         id = self.max_client_id
-        self.clients[id] = None # set ClientDispatcher after ful connection
+        self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, get_answer_on_connect)
         return id
 
     def _connect_child_repeater(self, socket_address):
