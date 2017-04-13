@@ -87,14 +87,8 @@ class ServiceProxy:
         2. If No or child_id == None, download service config file and get port from there ( ... postpone)
         3. Open forward tunnel
         4. Call repeater.client[id].connect(port)
-
-        If yes, open forward
-        service_port is None, try to download service_data from remote and get the listening port from it.
-
-        - local forwarding tunnel,  port LYY to port RYY
-        - create final connection, self.repeater
-        - set Job state to running
-        (repeater starts appropriate dispatcher, automatically reporting problem with connecting after some timeout using special answer).
+           self.repeater._connect_child_repeater(socket_address)
+        5. set Job state to running
         """
 
         # 1.

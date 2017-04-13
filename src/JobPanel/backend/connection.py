@@ -443,9 +443,7 @@ class ConnectionSSH(ConnectionBase):
         1. Open remote forwarding tunnel (get local port from local_service.repeater.starter_server_port]
         2. Get child ID from repeater ( local_service.repeater.add_child(...) )
         3. Start delegator on remote using SSH exec. Pass: child ID, starter address
-           (Delegater connect to local repeater, ClientDispatcher gets listenning port of the delegator and
-            put the "connect_service" answer into the answer queue. However since the repeater.expect_answer is not called
-            and the message is scratched)
+           (Delegater connect to local repeater, ClientDispatcher gets listenning port of the delegator)
         4. wait a bit
         5. call delegator_proxy.connect_service( child_id)
         6. store the delegator proxy in connection return it if asked next time
