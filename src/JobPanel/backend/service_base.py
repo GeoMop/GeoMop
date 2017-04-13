@@ -134,10 +134,10 @@ class ServiceBase(ActionProcessor):
     """
     answer_ok = { 'data' : 'ok' }
 
-    def __init__(self, service_address, listen_port):
+    def __init__(self, service_address, listen_port, parent_repeater_address=None):
         self.child_services={}
         self.requests=[]
-        self.repeater = ar.AsyncRepeater(service_address, listen_port)
+        self.repeater = ar.AsyncRepeater(service_address, listen_port, parent_repeater_address)
 
     def get_listen_port(self):
         return self.repeater.listen_port

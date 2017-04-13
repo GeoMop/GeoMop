@@ -1,4 +1,5 @@
-from .json_data import JsonData
+from json_data import JsonData
+from _service_proxy import ServiceProxy
 
 import paramiko
 
@@ -11,6 +12,7 @@ import errno
 import select
 import socket
 import socketserver
+import time
 
 
 class Error(Exception):
@@ -202,9 +204,13 @@ class ConnectionSSH(ConnectionBase):
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
         self._sftp.get_channel().settimeout(self._timeout)
+        self._sftp_opened = True
 
         # dict of forwarded local ports, {'local_port': (thread, server)}
         self._forwarded_local_ports = {}
+
+        # delegator proxy
+        self._delegator_proxy = None
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -449,17 +455,38 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHTimeoutError:
         """
 
+        if self._delegator_proxy is not None:
+            return self._delegator_proxy
+
         # 1.
+        local_port = local_service.repeater._starter_server.address[1]
+        remote_port = self.forward_remote_port(local_port)
+
+        # 2.
+        child_id = local_service.repeater.add_child()
+
+        # 3.
         try:
-            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py", timeout=self._timeout, get_pty=True)
+            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port), timeout=self._timeout, get_pty=True)
+            #print("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port))
             #stdin, stdout, stderr = self._ssh.exec_command("sleep 1d", timeout=self._timeout, get_pty=True)
-            print(stdout.readline())
+            #print(stdout.readline())
         except paramiko.SSHException:
             raise SSHError
         except socket.timeout:
             raise SSHTimeoutError
 
-        #return delegator_service
+        # 4.
+        time.sleep(5)
+
+        # 5.
+        delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
+        delegator_proxy.connect_service(child_id)
+
+        # 6.
+        self._delegator_proxy = delegator_proxy
+
+        return delegator_proxy
 
     def close_connections(self):
         """
@@ -471,7 +498,10 @@ class ConnectionSSH(ConnectionBase):
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
 
-        self._sftp.close()
+        if self._sftp_opened:
+            self._sftp.close()
+            self._sftp_opened = False
+
         self._ssh.close()
 
 

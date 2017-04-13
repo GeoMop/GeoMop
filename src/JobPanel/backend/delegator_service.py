@@ -7,8 +7,8 @@ import time
 import json
 
 class Delegator(service_base.ServiceBase):
-    def __init__(self, service_address):
-        service_base.ServiceBase.__init__(self, service_address, 45847)
+    def __init__(self, service_address, parent_repeater_address=None):
+        service_base.ServiceBase.__init__(self, service_address, 0, parent_repeater_address)
         self.closing = False
 
 
@@ -35,8 +35,8 @@ class Delegator(service_base.ServiceBase):
 logging.basicConfig(filename='backlog',  filemode="w", level=logging.DEBUG)
 
 
-bs=Delegator(0)
-print(bs.get_listen_port())
+bs=Delegator(sys.argv[1], (sys.argv[2], int(sys.argv[3])))
+#print(bs.get_listen_port())
 
 
 # address = json.loads(sys.argv[1])
@@ -50,7 +50,7 @@ print(bs.get_listen_port())
 #     f.write(" %d"%(bs.get_listen_port()))
 
 
-sys.stdout.flush()
+#sys.stdout.flush()
 
 bs.run()
 

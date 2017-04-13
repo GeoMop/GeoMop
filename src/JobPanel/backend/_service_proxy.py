@@ -18,12 +18,15 @@ class ServiceProxy:
         self.connection = connection
 
         self.status=None
-        """ ServiceStatus enum""""
+        """ ServiceStatus enum"""
         self.connected=False
         """ True if remote service is connected. Is it necessary?? """
         self.changing_status=False
         """ True if a status change action is processed: stopping"""
 
+
+        # smazat
+        return
 
         if (self.service.status != None):
             # reinit, download port, status, etc. from remote file using delegator
@@ -93,7 +96,17 @@ class ServiceProxy:
         - set Job state to running
         (repeater starts appropriate dispatcher, automatically reporting problem with connecting after some timeout using special answer).
         """
-        pass
+
+        # 1.
+        if self.repeater.clients[child_id] is None:
+            return
+
+        # 3.
+        local_port = self.connection.forward_local_port(self.repeater.clients[child_id].address[1])
+        print(local_port)
+
+        # 4.
+        self.repeater.clients[child_id].my_connect(("localhost", local_port))
 
 """
 Use class factory to make proxy classes to Service classes.
