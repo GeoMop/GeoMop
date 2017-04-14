@@ -1,4 +1,4 @@
-from json_data import JsonData
+from .json_data import JsonData
 from _service_proxy import ServiceProxy
 
 import paramiko
