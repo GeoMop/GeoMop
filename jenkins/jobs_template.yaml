@@ -43,6 +43,44 @@
     wrappers: []
 
 #########################################################################################
+# Create doc and push to github
+#########################################################################################
+
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell: |
+        cd /var/lib/jenkins/workspace/gm-doc/doc
+        make html
+        cd /home/geomop/geomop_doc/geomop.github.io
+        rm -R GeoMop
+        cp -R /var/lib/jenkins/workspace/gm-doc/doc/_build/html GeoMop
+        git add . 
+        git commit -m '${cname}'
+        git push
+    concurrent: false
+    description: null
+    disabled: false
+    name: 'gm-doc'
+    display-name: "Update GeoMop Doc"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    - string:
+        default: new version
+        description: Commit doc version name
+        name: cname
+    project-type: freestyle
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+
+#########################################################################################
 # Test after commit
 #########################################################################################
 - job-template:
