@@ -7,7 +7,6 @@ Contains classes for representing the tree structure of config files.
 """
 
 from enum import Enum
-from copy import deepcopy
 from geomop_util.util import TextValue
 
 
@@ -35,6 +34,7 @@ class DataNode:
         error = 4
         ac_transposition = 5
         duplicit = 6
+        redefination = 7
 
     class StructureType(Enum):
         """The type of node in the text structure."""
@@ -211,10 +211,15 @@ class DataNode:
             if child.key.value == node.key.value:
                 if allows_duplicit:
                     self.children[i] = node
-                    return
+                    return                    
                 else:
-                    child.key.value += '_dup{0}'.format(str(len(self.children)))
-                    child.origin = DataNode.Origin.duplicit 
+                    if child.key.span is None:
+                        child.key.value += '_red{0}'.format(str(len(self.children)))
+                        child.origin = DataNode.Origin.redefination
+                        child.key.span = node.key.span.dcopy()
+                    else:
+                        child.key.value += '_dup{0}'.format(str(len(self.children)))
+                        child.origin = DataNode.Origin.duplicit 
                     child.hidden = True
                     break                
 

@@ -376,9 +376,16 @@ _NOTIFICATIONS = [
     },
     {
         'code': 904,
-        'name': 'DuplicateTag',
-        'description': 'When tag is redefinate later.',
-        'message': 'Tag has not effect, becose is redefinate.',
+        'name': 'DuplicateRecord',
+        'description': 'When record is redefinate later.',
+        'message': 'Record has not effect, becose is redefinate.',
+        'example': None,
+    },
+    {
+        'code': 905,
+        'name': 'RedefinateRecord',
+        'description': 'When record is redefinate.',
+        'message': 'This record redefinate previous defined value.',
         'example': None,
     },
 
