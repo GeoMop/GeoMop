@@ -1,10 +1,11 @@
 
-import async_repeater as ar
-import service_base
+import backend.async_repeater as ar
+from backend import service_base
 import sys
 import logging
 import time
 import json
+import traceback
 
 class Delegator(service_base.ServiceBase):
     def __init__(self, service_address, parent_repeater_address=None):
@@ -27,15 +28,22 @@ class Delegator(service_base.ServiceBase):
 # Main body
 ##########
 
-# print("ahoj\n")
-# time.sleep(60)
-# sys.exit(0)
 
 
-logging.basicConfig(filename='backlog',  filemode="w", level=logging.DEBUG)
+logging.basicConfig(filename='delegator.log', filemode="w",
+                    format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
+                    level=logging.INFO)
 
 
-bs=Delegator(sys.argv[1], (sys.argv[2], int(sys.argv[3])))
+try:
+    bs=Delegator(sys.argv[1], (sys.argv[2], int(sys.argv[3])))
+    bs.run()
+except:
+    #logging.error("{}: {}".format(sys.exc_info()[0].__name__, sys.exc_info()[1]))
+    logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
+    raise
+
+
 #print(bs.get_listen_port())
 
 
@@ -52,7 +60,6 @@ bs=Delegator(sys.argv[1], (sys.argv[2], int(sys.argv[3])))
 
 #sys.stdout.flush()
 
-bs.run()
 
 # TODO:
 # use only logging, check that loggig flush

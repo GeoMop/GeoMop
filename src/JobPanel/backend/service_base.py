@@ -1,5 +1,5 @@
 import subprocess
-import async_repeater as ar
+from . import async_repeater as ar
 import logging
 import concurrent.futures
 

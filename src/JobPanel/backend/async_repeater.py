@@ -372,7 +372,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
             if len(s) >= 2:
                 child_id = int(s[0])
                 port = int(s[1])
-                #print((child_id, port))
+                print((child_id, port))
                 # je to paralelne bezpecne??????
                 #print(self.ar.clients)
                 if self.ar.clients[child_id] is None:

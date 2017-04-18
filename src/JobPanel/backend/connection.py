@@ -1,5 +1,5 @@
 from .json_data import JsonData
-from _service_proxy import ServiceProxy
+from ._service_proxy import ServiceProxy
 
 import paramiko
 
@@ -211,6 +211,9 @@ class ConnectionSSH(ConnectionBase):
 
         # delegator proxy
         self._delegator_proxy = None
+
+        # delegator stdin, stdout, stderr
+        self._delegator_std_in_out_err = None
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -465,7 +468,7 @@ class ConnectionSSH(ConnectionBase):
 
         # 3.
         try:
-            stdin, stdout, stderr = self._ssh.exec_command("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port), timeout=self._timeout, get_pty=True)
+            self._delegator_std_in_out_err = self._ssh.exec_command(self.environment.python + " " + os.path.join(self.environment.root, "JobPanel/delegator_service.py") + " {} {} {}".format(child_id, "localhost", remote_port), timeout=self._timeout, get_pty=True)
             #print("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port))
             #stdin, stdout, stderr = self._ssh.exec_command("sleep 1d", timeout=self._timeout, get_pty=True)
             #print(stdout.readline())
