@@ -61,18 +61,20 @@ class InfoTextGenerator:
                 if locals().get(field) != home.get(field):
                     displaying_home = False
                     break
-            displaying_parent = False
-            if 'parent' in context:
-                parent = context['parent']
-                displaying_parent = True
-                for field in check_fields:
-                    if locals().get(field) != parent.get(field):
-                        displaying_parent = False
-                        break  
                         
             with html_body.open('div', cls='navigation-panel'):
-                if 'parent' in context and not displaying_parent:
-                    args = copy(context['parent'])
+                id=None
+                if 'parent' in context:                    
+                    if context['parent']['id'] is None:
+                        id = 0
+                    else:
+                        id = context['parent']['id']+1
+                    if id>=len(context['parent']['arr']):
+                        id=None
+                    if id is not None:
+                        context['parent']['id'] = id                    
+                if 'parent' in context and id is not None:
+                    args = copy(context['parent']['arr'][id])
                     args.update({'direction': 'parent'})
                     href = cls.generate_href(**args)
                     class_ = 'parent' 

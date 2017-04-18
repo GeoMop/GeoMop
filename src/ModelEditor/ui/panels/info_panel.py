@@ -59,9 +59,12 @@ class InfoPanelWidget(QWebView):
         is_parent = self._is_parent(cursor_type, node)        
         node, data = node.get_info_text_data(is_parent)
         
-        parent = None
-        if node.parent is not None:
-            node, parent = node.get_info_text_data(is_parent)
+        parent = {}
+        parent['id']=None
+        parent['arr']=[]
+        while node.parent is not None:
+            node, next_parent = node.get_info_text_data(False)
+            parent['arr'].append(next_parent)            
         self.update_from_data(data, True, parent)
         
     def _is_parent(self, cursor_type, node):
@@ -86,11 +89,15 @@ class InfoPanelWidget(QWebView):
         """
         self._data = data
         if set_home:
+            if parent is None:
+                parent = {}
+                parent['id']=None
+                parent['arr']=[]
             self._context['home'] = self._data
             self._context['back'] = []
             self._context['forward'] = []
-            if parent is not None:
-                self._context['parent'] = parent
+            self._context['parent'] = parent
+            self._context['parent_id'] = 0 
         args = copy(self._data)
         args.update({'context': self._context})
         html = InfoTextGenerator.get_info_text(**args)
@@ -115,6 +122,7 @@ class InfoPanelWidget(QWebView):
         elif 'home' in data:
             self._context['back'].clear()
             self._context['forward'].clear()
+            self._context['parent']['id']=None
             del data['home']
         elif 'parent' in data:
             self._context['back'].append(self._data)

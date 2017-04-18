@@ -57,7 +57,7 @@
         rm -R GeoMop
         cp -R /var/lib/jenkins/workspace/gm-doc/doc/_build/html GeoMop
         git add . 
-        git commit -m '${cname}'
+        git commit -m "${cname}"
         git push
     concurrent: false
     description: null
