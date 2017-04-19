@@ -1,5 +1,6 @@
 from .json_data import JsonData
 from ._service_proxy import ServiceProxy
+from ._development import ServiceStatus
 
 import paramiko
 
@@ -58,7 +59,7 @@ class Environment(JsonData):
         the version installed at 'root'. Otherwise we start test_installation.
         :param config: InstallationData
         """
-        self.root = []
+        self.root = ""
         """
         Path to the root directory of the GeoMop backend installtion.
         The only attribute that must be provided by user.
@@ -70,9 +71,9 @@ class Environment(JsonData):
         """List of Executables available on the installation."""
 
         # System configuration follows
-        self.mpiexec = []
+        self.mpiexec = ""
         """Path to the system wide (default) mpiexec."""
-        self.python = []
+        self.python = ""
         """Path to the python interpreter."""
         self.pbs = None
         """ Resolve class to implement details of particular PBS."""
@@ -204,7 +205,6 @@ class ConnectionSSH(ConnectionBase):
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
         self._sftp.get_channel().settimeout(self._timeout)
-        self._sftp_opened = True
 
         # dict of forwarded local ports, {'local_port': (thread, server)}
         self._forwarded_local_ports = {}
@@ -467,8 +467,11 @@ class ConnectionSSH(ConnectionBase):
         child_id = local_service.repeater.add_child()
 
         # 3.
+        command = self.environment.python + " " \
+                  + os.path.join(self.environment.root, "JobPanel/delegator_service.py") \
+                  + " {} {} {}".format(child_id, "localhost", remote_port)
         try:
-            self._delegator_std_in_out_err = self._ssh.exec_command(self.environment.python + " " + os.path.join(self.environment.root, "JobPanel/delegator_service.py") + " {} {} {}".format(child_id, "localhost", remote_port), timeout=self._timeout, get_pty=True)
+            self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
             #print("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port))
             #stdin, stdout, stderr = self._ssh.exec_command("sleep 1d", timeout=self._timeout, get_pty=True)
             #print(stdout.readline())
@@ -478,11 +481,15 @@ class ConnectionSSH(ConnectionBase):
             raise SSHTimeoutError
 
         # 4.
-        time.sleep(5)
+        while local_service.repeater.clients[child_id].get_remote_address() is None:
+            time.sleep(0.1)
 
         # 5.
         delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
         delegator_proxy.connect_service(child_id)
+
+        if delegator_proxy.status != ServiceStatus.running:
+            delegator_proxy = None
 
         # 6.
         self._delegator_proxy = delegator_proxy
@@ -499,9 +506,9 @@ class ConnectionSSH(ConnectionBase):
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
 
-        if self._sftp_opened:
+        if self._sftp is not None:
             self._sftp.close()
-            self._sftp_opened = False
+            self._sftp = None
 
         self._ssh.close()
 

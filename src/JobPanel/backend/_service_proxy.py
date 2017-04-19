@@ -1,3 +1,7 @@
+from ._development import ServiceStatus
+
+import time
+
 class ServiceProxy:
     """
     Automatic proxy class, provides methods to call 'request_XYZ' methods of
@@ -96,11 +100,21 @@ class ServiceProxy:
             return
 
         # 3.
-        local_port = self.connection.forward_local_port(self.repeater.clients[child_id].address[1])
+        remote_address = self.repeater.clients[child_id].get_remote_address()
+        if remote_address is None:
+            return
+        local_port = self.connection.forward_local_port(remote_address[1])
         print(local_port)
 
         # 4.
-        self.repeater.clients[child_id].my_connect(("localhost", local_port))
+        self.repeater._connect_child_repeater(child_id, ("localhost", local_port))
+
+        # 5.
+        for i in range(10):
+            time.sleep(0.1)
+            if self.repeater.is_child_connected(child_id):
+                self.status = ServiceStatus.running
+                break
 
 """
 Use class factory to make proxy classes to Service classes.

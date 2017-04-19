@@ -116,6 +116,8 @@ class ServiceStatus(enum.IntEnum):
     """
 
 
+class JobData:
+    pass
 
 class Service(JobData):
 
@@ -134,8 +136,7 @@ class JobService(Service):
 
 class MultijobService(JobService):
     def start_service(self, service_data):
-
-    pass
+        pass
 
 
 class BackendService:
@@ -144,7 +145,7 @@ class BackendService:
 
 class ClientService:
     def start_backend(self):
-
+        pass
 
 
 
@@ -155,7 +156,7 @@ class ClientService:
 
 
 def start_backend(client_servicerepeater):
-
+    pass
 
 
 
