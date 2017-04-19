@@ -121,8 +121,7 @@
     scm:
     - git:
         branches:
-        - master
-        - RS_connection
+        - *
         url: https://github.com/GeoMop/GeoMop
     project-type: multijob
     triggers:
