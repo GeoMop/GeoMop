@@ -3,6 +3,28 @@ from . import async_repeater as ar
 import logging
 import concurrent.futures
 
+
+
+class ServiceStatus(enum.IntEnum):
+    """
+    State of a service.
+    """
+    queued = 1
+    """
+    Start of service executed, service queued in PBS.
+    """
+    running = 2
+    """
+    Service is running.
+    """
+    done = 3
+    """
+    Service is finished (both sucess and error), but still alive.
+    """
+
+
+
+
 def LongRequest():
     """
     Auxiliary decorator to mark requests that takes long time or
@@ -54,6 +76,10 @@ class ActionProcessor:
 
 class ChildServiceProxy(ActionProcessor):
     """
+    TODO:
+    - move request methods into ServiceProxyBase
+    - delete this class
+
     Auxiliary class to store state of a child service.
 
     Can keep status, near history, downloaded data, etc.
@@ -135,11 +161,23 @@ class ServiceBase(ActionProcessor):
     answer_ok = { 'data' : 'ok' }
 
     def __init__(self, service_address, listen_port, parent_repeater_address=None):
+        """
+        TODO:
+        - design config data
+        - derive from JSONData
+        - write down config file
+        """
         self.child_services={}
         self.requests=[]
         self.repeater = ar.AsyncRepeater(service_address, listen_port, parent_repeater_address)
 
     def get_listen_port(self):
+        """
+        TODO: Remove, service should maintain its config file and fill the listen_port there.
+        :return:
+        """
+
+
         return self.repeater.listen_port
 
 
@@ -147,6 +185,7 @@ class ServiceBase(ActionProcessor):
         """
         TODO:
         - remove address parameter since currently the child initiates the first connection
+        - Use ServiceProxyBase instead of
         - id = repeater.add_child() #instead of connect_child_repeater
 
         :return: Created child proxy.

@@ -99,6 +99,16 @@ class AnswerData:
 class _ClientDispatcher(asynchat.async_chat):
     """
     Client part of the communication. Send requests, process answers.
+
+    The _ClientDispatcher have following states:
+
+        1. Waiting to get address from child through StarterServer.
+
+        2. Waiting for call connect_to_address(). Have valid self._remote_address, but not connected yet (can not send or recieve message).
+
+        3. Connecting.
+
+        4. Connected.
     """
     def __init__(self, repeater_address, server_dispatcher, get_answer_on_connect=None):
         """
@@ -163,7 +173,8 @@ class _ClientDispatcher(asynchat.async_chat):
     def get_remote_address(self):
         return self._remote_address
 
-
+    def set_remote_address(self, address):
+        self._remote_address = address
 
     """
     Remaining are implementations of asyncore methods.
@@ -368,9 +379,14 @@ class StarterServerDispatcher(asyncore.dispatcher):
                 port = int(s[1])
                 print((child_id, port))
                 #print(self.async_repeater.clients)
+
+                # TODO: check child_id
+                # set_remote_address method
+
                 if self.async_repeater.clients[child_id]._remote_address is None:
                     self.async_repeater.clients[child_id]._remote_address = (self.socket.getpeername(), port)
-                #self.async_repeater.clients[id].answers.append(AnswerData(id, sender, request, answer_dict, on_answer))
+                self.async_repeater.clients[id].sent_requests.append(RequestData(0,)
+                #self.async_repeater.clients[id].answers.append(AnswerData(0, sender, request, answer_dict, on_answer))
         self.close()
 
 
@@ -420,20 +436,7 @@ class AsyncRepeater():
 
         # logging.info("Listen: " + str(self.listen_port))
 
-    def _starter_client_run(self):
-        # az se repeater pripoji nastavit self._starter_client_attempting = False
-        while self._starter_client_attempting: # zeptat se dispatcheru jestli je conected
-            s = socket.socket()
-            try:
-                #print(self.parent_repeater_address)
-                s.connect(self.parent_address)
-                data = "{}\n{}\n".format(self.repeater_address, self.listen_port).encode()
-                s.sendall(data)
-            except ConnectionRefusedError:
-                pass
-            finally:
-                s.close()
-            time.sleep(10)
+
 
     def add_child(self, get_answer_on_connect=None):
         """
@@ -454,7 +457,18 @@ class AsyncRepeater():
         self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, get_answer_on_connect)
         return id
 
-    def _connect_child_repeater(self, child_id, socket_address):
+    def get_child_remote_address(self, child_id):
+        """
+        Get remote listen address of the child. Is thread safe.
+
+        :param child_id:
+        :return:
+        """
+        assert child_id in self.clients, "child_id: {}".format(child_id)
+        return self.clients[child_id].get_remote_address()
+
+
+    def connect_child_repeater(self, child_id, socket_address):
         """
         Add new client, new connection to remote Repeater.
         :param id: Client/Repeater ID.
@@ -464,9 +478,11 @@ class AsyncRepeater():
         TODO: We need to reconnect if connection is broken. Should it be done in this class or by
         upper layer? In latter case we need other method to reconnect client.
         """
+        assert child_id in self.clients, "child_id: {}".format(child_id)
         self.clients[child_id].connect_to_address(socket_address)
 
     def is_child_connected(self, child_id):
+        assert child_id in self.clients, "child_id: {}".format(child_id)
         return self.clients[child_id].is_connected()
 
     def close_child_repeater(self, id):
@@ -535,3 +551,18 @@ class AsyncRepeater():
                 c.close()
         self._starter_server.close()
         self.loop_thread.join()
+
+    def _starter_client_run(self):
+        # az se repeater pripoji nastavit self._starter_client_attempting = False
+        while self._starter_client_attempting: # zeptat se dispatcheru jestli je conected
+            s = socket.socket()
+            try:
+                #print(self.parent_repeater_address)
+                s.connect(self.parent_address)
+                data = "{}\n{}\n".format(self.repeater_address, self.listen_port).encode()
+                s.sendall(data)
+            except ConnectionRefusedError:
+                pass
+            finally:
+                s.close()
+            time.sleep(10)

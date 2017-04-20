@@ -107,7 +107,7 @@ class ServiceProxy:
         print(local_port)
 
         # 4.
-        self.repeater._connect_child_repeater(child_id, ("localhost", local_port))
+        self.repeater.connect_child_repeater(child_id, ("localhost", local_port))
 
         # 5.
         for i in range(10):
