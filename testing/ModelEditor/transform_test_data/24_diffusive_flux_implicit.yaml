@@ -38,10 +38,10 @@ problem: !Coupling_Sequential
           bc_robin_sigma: 1
         - region: .top
           bc_type: diffusive_flux
-          bc_flux: 0.1
+          bc_flux: -0.1
         - region: .bottom
           bc_type: diffusive_flux
-          bc_flux: 0.1
+          bc_flux: -0.1
       solver: 
         a_tol: 1.0e-12
         r_tol: 1.0e-12
