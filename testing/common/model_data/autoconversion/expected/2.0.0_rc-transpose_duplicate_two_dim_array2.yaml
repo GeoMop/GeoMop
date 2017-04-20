@@ -21,8 +21,6 @@ problem: !Coupling_Sequential
       - rid: 2
         anisotropy: !FieldConstant
           value: 
-        anisotropy: !FieldConstant
-          value: 
             - [2.0]
             - [3.0]
             - [4.0]            

@@ -497,7 +497,7 @@ class MEConfig:
                 con = file_d.read()
             cls.document = parse_con(con)
             # find available file name
-            cls.set_file(file_name, True)
+            cls._set_file(file_name, True)
             cls.update()
             cls.document = fix_intendation(cls.document, cls.root)
             cls.update()
