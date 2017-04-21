@@ -110,7 +110,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         4. Connected.
     """
-    def __init__(self, repeater_address, server_dispatcher, get_answer_on_connect=None):
+    def __init__(self, repeater_address, server_dispatcher, connection, get_answer_on_connect=None):
         """
         :param repeater_address: Address of this repeater.
         :param socket_address: (ip, port) we connect to
@@ -127,6 +127,7 @@ class _ClientDispatcher(asynchat.async_chat):
         self.request_id=0
         self.received_data = bytearray()
         # Uncomplete answer.
+        self.connection = connection
 
         asynchat.async_chat.__init__(self)
 
@@ -174,7 +175,25 @@ class _ClientDispatcher(asynchat.async_chat):
         return self._remote_address
 
     def set_remote_address(self, address):
+        if self._remote_address is not None:
+            return
+
         self._remote_address = address
+
+        # forward tunnel
+        local_port = self.connection.forward_local_port(self._remote_address[1])
+
+        self.connect_to_address(("localhost", local_port))
+        for i in range(10):
+            time.sleep(0.1)
+            if self.is_connected():
+                #self.status = ServiceStatus.running
+                break
+
+        # create request 0 a answer 0
+        self.sent_requests[0] = ((None, None))
+        self.answers.append((0, None, None, None))
+
 
     """
     Remaining are implementations of asyncore methods.
@@ -380,13 +399,8 @@ class StarterServerDispatcher(asyncore.dispatcher):
                 print((child_id, port))
                 #print(self.async_repeater.clients)
 
-                # TODO: check child_id
-                # set_remote_address method
-
-                if self.async_repeater.clients[child_id]._remote_address is None:
-                    self.async_repeater.clients[child_id]._remote_address = (self.socket.getpeername(), port)
-                self.async_repeater.clients[id].sent_requests.append(RequestData(0,)
-                #self.async_repeater.clients[id].answers.append(AnswerData(0, sender, request, answer_dict, on_answer))
+                if child_id in self.async_repeater.clients:
+                    self.async_repeater.clients[child_id].set_remote_address((self.socket.getpeername(), port))
         self.close()
 
 
@@ -438,7 +452,7 @@ class AsyncRepeater():
 
 
 
-    def add_child(self, get_answer_on_connect=None):
+    def add_child(self, connection, get_answer_on_connect=None):
         """
         TODO:
         1. Create StarterServer for child connection (make only one, in constructor)
@@ -454,8 +468,14 @@ class AsyncRepeater():
         """
         self.max_client_id += 1
         id = self.max_client_id
-        self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, get_answer_on_connect)
-        return id
+
+        # remote tunnel
+        local_port = self._starter_server.address[1]
+        remote_port = connection.forward_remote_port(local_port)
+
+        self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection, get_answer_on_connect)
+
+        return id, remote_port
 
     def get_child_remote_address(self, child_id):
         """
@@ -468,7 +488,7 @@ class AsyncRepeater():
         return self.clients[child_id].get_remote_address()
 
 
-    def connect_child_repeater(self, child_id, socket_address):
+    #def connect_child_repeater(self, child_id, socket_address):
         """
         Add new client, new connection to remote Repeater.
         :param id: Client/Repeater ID.
@@ -478,8 +498,8 @@ class AsyncRepeater():
         TODO: We need to reconnect if connection is broken. Should it be done in this class or by
         upper layer? In latter case we need other method to reconnect client.
         """
-        assert child_id in self.clients, "child_id: {}".format(child_id)
-        self.clients[child_id].connect_to_address(socket_address)
+        #assert child_id in self.clients, "child_id: {}".format(child_id)
+        #self.clients[child_id].connect_to_address(socket_address)
 
     def is_child_connected(self, child_id):
         assert child_id in self.clients, "child_id: {}".format(child_id)
@@ -524,16 +544,13 @@ class AsyncRepeater():
         #logging.info("GR")
         return self._server_dispatcher.get_requests()
 
-    def get_answers(self):
+    def get_answers(self, child_id):
         """
-        Get list of answers from all clients.
+        Get list of answers from client (child_id).
         :return: [ AnswerData, ... ]
         """
         #logging.info("GA")
-        answers=[]
-        for client in self.clients.values():
-            answers.extend(client.get_answers())
-        return answers
+        return self.clients[child_id].get_answers()
 
     def run(self, timeout = None):
         logging.info("before loop")

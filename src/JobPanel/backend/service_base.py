@@ -2,6 +2,7 @@ import subprocess
 from . import async_repeater as ar
 import logging
 import concurrent.futures
+import enum
 
 
 
@@ -181,16 +182,14 @@ class ServiceBase(ActionProcessor):
         return self.repeater.listen_port
 
 
-    def make_child_proxy(self, address):
+    def make_child_proxy(self):
         """
         TODO:
-        - remove address parameter since currently the child initiates the first connection
         - Use ServiceProxyBase instead of
-        - id = repeater.add_child() #instead of connect_child_repeater
 
         :return: Created child proxy.
         """
-        child_id = self.repeater.connect_child_repeater(address)
+        child_id = self.repeater.add_child()
         proxy = ChildServiceProxy(child_id, self)
         self.child_services[child_id] = proxy
         return proxy
@@ -198,14 +197,15 @@ class ServiceBase(ActionProcessor):
 
     def process_answers(self):
         logging.info("Process answers ...")
-        for answer_data in self.repeater.get_answers():
-            logging.info("Processing: " + str(answer_data))
-            child_id = answer_data.sender[0]
-            on_answer = answer_data.on_answer
-            answer = answer_data.answer
-            if 'error' in answer.keys():
-                self.child_services[child_id].error_answer(answer_data)
-            self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
+        for ch_id in self.child_services.keys():
+            for answer_data in self.repeater.get_answers(ch_id):
+                logging.info("Processing: " + str(answer_data))
+                child_id = answer_data.sender[0]
+                on_answer = answer_data.on_answer
+                answer = answer_data.answer
+                if 'error' in answer.keys():
+                    self.child_services[child_id].error_answer(answer_data)
+                self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
         return
 
     def process_requests(self):

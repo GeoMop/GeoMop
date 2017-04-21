@@ -1,6 +1,6 @@
 from .json_data import JsonData
 from ._service_proxy import ServiceProxy
-from ._development import ServiceStatus
+from .service_base import ServiceStatus
 
 import paramiko
 
@@ -460,11 +460,10 @@ class ConnectionSSH(ConnectionBase):
             return self._delegator_proxy
 
         # 1.
-        local_port = local_service.repeater._starter_server.address[1]
-        remote_port = self.forward_remote_port(local_port)
+        # moved to repeater.add_child
 
         # 2.
-        child_id = local_service.repeater.add_child()
+        child_id, remote_port = local_service.repeater.add_child(self)
 
         # 3.
         command = self.environment.python + " " \
@@ -481,15 +480,20 @@ class ConnectionSSH(ConnectionBase):
             raise SSHTimeoutError
 
         # 4.
-        while local_service.repeater.clients[child_id].get_remote_address() is None:
-            time.sleep(0.1)
 
         # 5.
         delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
-        delegator_proxy.connect_service(child_id)
+        #delegator_proxy.connect_service(child_id)
+        connected = False
+        while not connected:
+            time.sleep(0.1)
+            answers = local_service.repeater.get_answers(child_id)
+            for answer in answers:
+                if answer.id == 0:
+                    connected = True
 
-        if delegator_proxy.status != ServiceStatus.running:
-            delegator_proxy = None
+        # if delegator_proxy.status != ServiceStatus.running:
+        #     delegator_proxy = None
 
         # 6.
         self._delegator_proxy = delegator_proxy

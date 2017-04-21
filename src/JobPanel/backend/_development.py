@@ -95,7 +95,6 @@ Delegator requests:
 
 import sys
 assert sys.version_info >= (3,4)
-import enum
 
 
 class JobData:

@@ -1,4 +1,4 @@
-from ._development import ServiceStatus
+from .service_base import ServiceStatus
 
 import time
 
@@ -96,25 +96,20 @@ class ServiceProxy:
         """
 
         # 1.
-        if self.repeater.clients[child_id] is None:
-            return
+        # if self.repeater.clients[child_id] is None:
+        #     return
 
         # 3.
-        remote_address = self.repeater.clients[child_id].get_remote_address()
-        if remote_address is None:
-            return
-        local_port = self.connection.forward_local_port(remote_address[1])
-        print(local_port)
+        # moved to _ClientDispatcher.set_remote_address()
 
         # 4.
-        self.repeater.connect_child_repeater(child_id, ("localhost", local_port))
 
         # 5.
-        for i in range(10):
-            time.sleep(0.1)
-            if self.repeater.is_child_connected(child_id):
-                self.status = ServiceStatus.running
-                break
+        # for i in range(10):
+        #     time.sleep(0.1)
+        #     if self.repeater.is_child_connected(child_id):
+        #         self.status = ServiceStatus.running
+        #         break
 
 """
 Use class factory to make proxy classes to Service classes.
