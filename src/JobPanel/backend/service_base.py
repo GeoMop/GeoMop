@@ -182,7 +182,7 @@ class ServiceBase(ActionProcessor):
         return self.repeater.listen_port
 
 
-    def make_child_proxy(self):
+    def make_child_proxy(self, address):
         """
         TODO:
         - Use ServiceProxyBase instead of

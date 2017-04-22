@@ -95,21 +95,9 @@ class ServiceProxy:
         5. set Job state to running
         """
 
-        # 1.
-        # if self.repeater.clients[child_id] is None:
-        #     return
 
-        # 3.
-        # moved to _ClientDispatcher.set_remote_address()
-
-        # 4.
-
-        # 5.
-        # for i in range(10):
-        #     time.sleep(0.1)
-        #     if self.repeater.is_child_connected(child_id):
-        #         self.status = ServiceStatus.running
-        #         break
+    def on_answer_connect(self):
+        self.status = ServiceStatus.running
 
 """
 Use class factory to make proxy classes to Service classes.

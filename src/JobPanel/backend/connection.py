@@ -471,34 +471,25 @@ class ConnectionSSH(ConnectionBase):
                   + " {} {} {}".format(child_id, "localhost", remote_port)
         try:
             self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
-            #print("/home/radek/.virtualenvs/GeoMop/bin/python /home/radek/work/GeoMop/src/JobPanel/backend/delegator_service.py {} {} {}".format(child_id, "localhost", remote_port))
-            #stdin, stdout, stderr = self._ssh.exec_command("sleep 1d", timeout=self._timeout, get_pty=True)
-            #print(stdout.readline())
         except paramiko.SSHException:
             raise SSHError
         except socket.timeout:
             raise SSHTimeoutError
 
-        # 4.
-
-        # 5.
-        delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
-        #delegator_proxy.connect_service(child_id)
         connected = False
-        while not connected:
-            time.sleep(0.1)
+        for i in range(10):
+            time.sleep(0.01)
             answers = local_service.repeater.get_answers(child_id)
             for answer in answers:
                 if answer.id == 0:
                     connected = True
+                    break
+            if connected:
+                self._delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
+                self._delegator_proxy.on_answer_connect()
+                break
 
-        # if delegator_proxy.status != ServiceStatus.running:
-        #     delegator_proxy = None
-
-        # 6.
-        self._delegator_proxy = delegator_proxy
-
-        return delegator_proxy
+        return self._delegator_proxy
 
     def close_connections(self):
         """

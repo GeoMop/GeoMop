@@ -184,15 +184,6 @@ class _ClientDispatcher(asynchat.async_chat):
         local_port = self.connection.forward_local_port(self._remote_address[1])
 
         self.connect_to_address(("localhost", local_port))
-        for i in range(10):
-            time.sleep(0.1)
-            if self.is_connected():
-                #self.status = ServiceStatus.running
-                break
-
-        # create request 0 a answer 0
-        self.sent_requests[0] = ((None, None))
-        self.answers.append((0, None, None, None))
 
 
     """
@@ -202,6 +193,10 @@ class _ClientDispatcher(asynchat.async_chat):
     def handle_connect(self):
         logging.info("Connected")
         self.set_terminator(_terminator)
+
+        # create request 0 a answer 0
+        self.sent_requests[0] = ((None, None))
+        self.answers.append((0, None, None, None))
 
     def collect_incoming_data(self, data):
         """Read an incoming message from the client and put it into our outgoing queue."""
@@ -228,13 +223,14 @@ class _ClientDispatcher(asynchat.async_chat):
 
 
 class Server(asyncore.dispatcher):
-    def __init__(self,  repeater_address, port, clients):
+    def __init__(self,  repeater, port, clients):
         """
         host - get automatically
         :param port - port ( same as in socket module)
         """
+        self.repeater = repeater
         asyncore.dispatcher.__init__(self)
-        self.server_dispatcher = ServerDispatcher(repeater_address, port, clients)
+        self.server_dispatcher = ServerDispatcher(repeater.repeater_address, port, clients)
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind( ("", port) )
@@ -248,6 +244,10 @@ class Server(asyncore.dispatcher):
 
     def handle_accept(self):
         # Called when a client connects to our socket
+
+        # stop starter client
+        self.repeater._starter_client_attempting = False
+
         client_info = self.accept()
         logging.info("Incomming connection accepted.\n")
         #print("Incomming connection accepted.")
@@ -432,7 +432,7 @@ class AsyncRepeater():
             self._server_dispatcher = None
             self.listen_port = None
         else:
-            self._server = Server(repeater_address, listen_port, self.clients)
+            self._server = Server(self, listen_port, self.clients)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
@@ -476,34 +476,6 @@ class AsyncRepeater():
         self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection, get_answer_on_connect)
 
         return id, remote_port
-
-    def get_child_remote_address(self, child_id):
-        """
-        Get remote listen address of the child. Is thread safe.
-
-        :param child_id:
-        :return:
-        """
-        assert child_id in self.clients, "child_id: {}".format(child_id)
-        return self.clients[child_id].get_remote_address()
-
-
-    #def connect_child_repeater(self, child_id, socket_address):
-        """
-        Add new client, new connection to remote Repeater.
-        :param id: Client/Repeater ID.
-        :param address: (host, port)
-        :return: Id of connected repeater.
-
-        TODO: We need to reconnect if connection is broken. Should it be done in this class or by
-        upper layer? In latter case we need other method to reconnect client.
-        """
-        #assert child_id in self.clients, "child_id: {}".format(child_id)
-        #self.clients[child_id].connect_to_address(socket_address)
-
-    def is_child_connected(self, child_id):
-        assert child_id in self.clients, "child_id: {}".format(child_id)
-        return self.clients[child_id].is_connected()
 
     def close_child_repeater(self, id):
         self.clients[id].close()
@@ -570,11 +542,9 @@ class AsyncRepeater():
         self.loop_thread.join()
 
     def _starter_client_run(self):
-        # az se repeater pripoji nastavit self._starter_client_attempting = False
-        while self._starter_client_attempting: # zeptat se dispatcheru jestli je conected
+        while self._starter_client_attempting:
             s = socket.socket()
             try:
-                #print(self.parent_repeater_address)
                 s.connect(self.parent_address)
                 data = "{}\n{}\n".format(self.repeater_address, self.listen_port).encode()
                 s.sendall(data)
