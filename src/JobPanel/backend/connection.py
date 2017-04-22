@@ -478,7 +478,7 @@ class ConnectionSSH(ConnectionBase):
 
         connected = False
         for i in range(10):
-            time.sleep(0.01)
+            time.sleep(0.1)
             answers = local_service.repeater.get_answers(child_id)
             for answer in answers:
                 if answer.id == 0:
