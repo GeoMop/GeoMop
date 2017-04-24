@@ -4,6 +4,7 @@
 
 
 from backend.connection import *
+from backend.service_base import ServiceBase
 
 import threading
 import socket
@@ -210,3 +211,26 @@ def test_exceptions():
         assert False
     except SSHError:
         pass
+
+
+def test_get_delegator():
+    # local service
+    local_service = ServiceBase(0, None)
+    local_service.repeater.run()
+
+    # environment
+    env = {"__class__": "Environment",
+           "root": os.path.abspath("../../src"),
+           "python": "python3"}
+
+    # ConnectionSSH
+    u, p = get_test_password()
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
+
+    # get_delegator
+    delegator_proxy = con.get_delegator(local_service)
+    assert isinstance(delegator_proxy, ServiceProxy)
+
+    # stopping, closing
+    local_service.repeater.stop()
+    con.close_connections()
