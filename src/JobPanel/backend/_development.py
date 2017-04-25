@@ -95,27 +95,10 @@ Delegator requests:
 
 import sys
 assert sys.version_info >= (3,4)
-import enum
 
 
-class ServiceStatus(enum.IntEnum):
-    """
-    State of a service.
-    """
-    queued = 1
-    """
-    Start of service executed, service queued in PBS.
-    """
-    running = 2
-    """
-    Service is running.
-    """
-    done = 3
-    """
-    Service is finished (both sucess and error), but still alive.
-    """
-
-
+class JobData:
+    pass
 
 class Service(JobData):
 
@@ -134,8 +117,7 @@ class JobService(Service):
 
 class MultijobService(JobService):
     def start_service(self, service_data):
-
-    pass
+        pass
 
 
 class BackendService:
@@ -144,7 +126,7 @@ class BackendService:
 
 class ClientService:
     def start_backend(self):
-
+        pass
 
 
 
@@ -155,7 +137,7 @@ class ClientService:
 
 
 def start_backend(client_servicerepeater):
-
+    pass
 
 
 

@@ -1,3 +1,7 @@
+from .service_base import ServiceStatus
+
+import time
+
 class ServiceProxy:
     """
     Automatic proxy class, provides methods to call 'request_XYZ' methods of
@@ -18,12 +22,15 @@ class ServiceProxy:
         self.connection = connection
 
         self.status=None
-        """ ServiceStatus enum""""
+        """ ServiceStatus enum"""
         self.connected=False
         """ True if remote service is connected. Is it necessary?? """
         self.changing_status=False
         """ True if a status change action is processed: stopping"""
 
+
+        # smazat
+        return
 
         if (self.service.status != None):
             # reinit, download port, status, etc. from remote file using delegator
@@ -52,15 +59,15 @@ class ServiceProxy:
         1. # have service configuration data (from constructor)
         2. # get connection parameter - (in constructor)
         3. upload job files (specified in service_data, using the connection, upload config file
-        4. get delegator from connection
-        5. open starting port LXX (localhost) ... must be implemented in self.repeater (ParentStartingServer)
-           This server waits for connection, get single message, respond with OK and close connection.
-           It put an answer to the async_repeater queue containing: call of 'connect_service' with port RYY
+        4. get delegator proxy from connection
+        5. setup remote port forwarding for the starter port (get it from repeater)
 
-        5. use connection for remote port forwarding tunnel: forward remote port RXX to local port LXX
-        6. repeater.expected_answer ...
-        6. submit (or start) job through delegator
-        7. set  Job state as 'queued'
+        6. repeater.expected_answer ... Sort of implicit request, we expect that ClientDispatcher
+           form an answer when child service connection is accepted and we recieve its listenning port.
+           We set that connect_service should be called `on_answer`.
+
+        7. submit (or start) job through delegator
+        8. set  Job state as 'queued'
         ...
         Job process:
         - read Job configuration from cofig file (given as argument)
@@ -70,22 +77,27 @@ class ServiceProxy:
         - send port RYY, wait for OK
         - after OK, close starting connection
         """
-        pass
+
+        # 4.
+        delegator = self.connection.get_delegator()
 
 
-    def connect_service(self, service_port=None):
+    def connect_service(self, child_id):
         """
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
 
-        If service_port is None, try to download service_data from remote and get the listening port from it.
-
-        - local forwarding tunnel,  port LYY to port RYY
-        - create final connection, self.repeater
-        - set Job state to running
-        (repeater starts appropriate dispatcher, automatically reporting problem with connecting after some timeout using special answer).
+        1. Check if repeater.client[child_id] have target port (ClientDispatcher exists)
+        2. If No or child_id == None, download service config file and get port from there ( ... postpone)
+        3. Open forward tunnel
+        4. Call repeater.client[id].connect(port)
+           self.repeater._connect_child_repeater(socket_address)
+        5. set Job state to running
         """
-        pass
+
+
+    def on_answer_connect(self):
+        self.status = ServiceStatus.running
 
 """
 Use class factory to make proxy classes to Service classes.

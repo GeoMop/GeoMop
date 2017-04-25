@@ -40,7 +40,7 @@ class BackendProxy:
         host_workspace = "/home/backend"
         guest_workspace="/home/geomop/workspace"
         docker_image = "geomop:backend"
-        backend_service = guest_geomop_root + "/" + "backend/backend_service.py"
+        backend_service = guest_geomop_root + "/" + "backend/delegator_service.py"
         id_file="__backend_cont_id.txt"
 
         host_id_file=host_workspace + "/" + id_file
@@ -107,10 +107,10 @@ class Client(service_base.ServiceBase):
         # get container IP
         # docker inspect --format = \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' d2cc496561d6
         backend_address = ("172.17.0.2", 45847)#self.backend.address
-        child_id = self.repeater.connect_child_repeater(backend_address)
-        self.child_services[child_id] = self.make_child_proxy(child_id, self)
+        child_id = self.repeater.connect_child_repeater()
+        proxy =self.make_child_proxy(backend_address)
         logging.info("Try ping")
-        self.child_services[child_id].make_ping()
+        proxy.make_ping()
 
 
     def run(self):

@@ -1,7 +1,30 @@
 import subprocess
-import async_repeater as ar
+from . import async_repeater as ar
 import logging
 import concurrent.futures
+import enum
+
+
+
+class ServiceStatus(enum.IntEnum):
+    """
+    State of a service.
+    """
+    queued = 1
+    """
+    Start of service executed, service queued in PBS.
+    """
+    running = 2
+    """
+    Service is running.
+    """
+    done = 3
+    """
+    Service is finished (both sucess and error), but still alive.
+    """
+
+
+
 
 def LongRequest():
     """
@@ -34,7 +57,7 @@ class ActionProcessor:
     def __init__(self):
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
-    def call_action(self, , action, data):
+    def call_action(self, action, data):
         """
         Call method with name given by 'action' with 'data' as its only argument.
         Used for processing requests and on_answer actions.
@@ -54,6 +77,10 @@ class ActionProcessor:
 
 class ChildServiceProxy(ActionProcessor):
     """
+    TODO:
+    - move request methods into ServiceProxyBase
+    - delete this class
+
     Auxiliary class to store state of a child service.
 
     Can keep status, near history, downloaded data, etc.
@@ -105,7 +132,8 @@ class ChildServiceProxy(ActionProcessor):
         :param data:
         :return:
         """
-        answer_data =
+        #answer_data =
+        pass
 
 
 class ServiceBase(ActionProcessor):
@@ -133,29 +161,51 @@ class ServiceBase(ActionProcessor):
     """
     answer_ok = { 'data' : 'ok' }
 
-    def __init__(self, service_address, listen_port):
+    def __init__(self, service_address, listen_port, parent_repeater_address=None):
+        """
+        TODO:
+        - design config data
+        - derive from JSONData
+        - write down config file
+        """
         self.child_services={}
         self.requests=[]
-        self.repeater = ar.AsyncRepeater(service_address, listen_port)
+        self.repeater = ar.AsyncRepeater(service_address, listen_port, parent_repeater_address)
 
     def get_listen_port(self):
+        """
+        TODO: Remove, service should maintain its config file and fill the listen_port there.
+        :return:
+        """
+
+
         return self.repeater.listen_port
 
 
-    def make_child_proxy(self, child_id, service):
-        return ChildServiceProxy(child_id, service)
+    def make_child_proxy(self, address):
+        """
+        TODO:
+        - Use ServiceProxyBase instead of
+
+        :return: Created child proxy.
+        """
+        child_id = self.repeater.add_child()
+        proxy = ChildServiceProxy(child_id, self)
+        self.child_services[child_id] = proxy
+        return proxy
 
 
     def process_answers(self):
         logging.info("Process answers ...")
-        for answer_data in self.repeater.get_answers():
-            logging.info("Processing: " + str(answer_data))
-            child_id = answer_data.sender[0]
-            on_answer = answer_data.on_answer
-            answer = answer_data.answer
-            if 'error' in answer.keys():
-                self.child_services[child_id].error_answer(answer_data)
-            self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
+        for ch_id in self.child_services.keys():
+            for answer_data in self.repeater.get_answers(ch_id):
+                logging.info("Processing: " + str(answer_data))
+                child_id = answer_data.sender[0]
+                on_answer = answer_data.on_answer
+                answer = answer_data.answer
+                if 'error' in answer.keys():
+                    self.child_services[child_id].error_answer(answer_data)
+                self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
         return
 
     def process_requests(self):
@@ -173,9 +223,16 @@ class ServiceBase(ActionProcessor):
 
     """"""
     def request_start_child(self, request_data):
+        """
+        TODO:
+
+        proxy=self.make_child_proxy()
+        proxy.start_service() ... enqueue the seervice
+        :param request_data:
+        :return: `OK`
+        """
         address = request_data['socket_address']
-        child_id = self.repeater.connect_child_repeater(self, address)
-        self.child_services[child_id] = self.make_child_proxy(child_id, self)
+        self.make_child_proxy(address)
         return self.answer_ok
 
 
@@ -194,5 +251,21 @@ class ServiceBase(ActionProcessor):
     def request_stop(self, data):
         self.closing = True
         return {'data' : 'closing'}
+
+
+    """
+    Delegator requests. (WIP)
+    """
+
+    def request_start_service(self, executor_config):
+        executor  = JsonData.make_instance(executor_config)
+        executor.exec()
+
+    def request_kill_service(self, executor_config):
+        executor = JsonData.make_instance(executor_config)
+        executor.kill()
+
+    def request_clean_workspace(self):
+        pass
 
 

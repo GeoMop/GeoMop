@@ -1,4 +1,6 @@
 from .json_data import JsonData
+from ._service_proxy import ServiceProxy
+from .service_base import ServiceStatus
 
 import paramiko
 
@@ -11,6 +13,7 @@ import errno
 import select
 import socket
 import socketserver
+import time
 
 
 class Error(Exception):
@@ -56,7 +59,7 @@ class Environment(JsonData):
         the version installed at 'root'. Otherwise we start test_installation.
         :param config: InstallationData
         """
-        self.root = []
+        self.root = ""
         """
         Path to the root directory of the GeoMop backend installtion.
         The only attribute that must be provided by user.
@@ -68,9 +71,9 @@ class Environment(JsonData):
         """List of Executables available on the installation."""
 
         # System configuration follows
-        self.mpiexec = []
+        self.mpiexec = ""
         """Path to the system wide (default) mpiexec."""
-        self.python = []
+        self.python = ""
         """Path to the python interpreter."""
         self.pbs = None
         """ Resolve class to implement details of particular PBS."""
@@ -181,7 +184,7 @@ class ConnectionSSH(ConnectionBase):
         """
         super().__init__(config)
 
-        self._timeout = 10
+        self._timeout = 1000
         """timeout for ssh operations"""
 
         # open ssh connection
@@ -205,6 +208,12 @@ class ConnectionSSH(ConnectionBase):
 
         # dict of forwarded local ports, {'local_port': (thread, server)}
         self._forwarded_local_ports = {}
+
+        # delegator proxy
+        self._delegator_proxy = None
+
+        # delegator stdin, stdout, stderr
+        self._delegator_std_in_out_err = None
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -434,15 +443,53 @@ class ConnectionSSH(ConnectionBase):
         so that we can process requests processed by remote delegator localy.
 
         Process of starting a delegator
-        1. start delegator on remote using SSH, get listenning port from stdout.
-        2. create DelegatorProxy object (similar to ServiceProxy, but without start_service)
-        3. call dlegator_proxy.connect_service( delegator port)
-        ...
-        Delegator process:
-        - open and listen on final port RYY
-        - process requests
+        1. Open remote forwarding tunnel (get local port from local_service.repeater.starter_server_port]
+        2. Get child ID from repeater ( local_service.repeater.add_child(...) )
+        3. Start delegator on remote using SSH exec. Pass: child ID, starter address
+           (Delegater connect to local repeater, ClientDispatcher gets listenning port of the delegator)
+        4. wait a bit
+        5. call delegator_proxy.connect_service( child_id)
+        6. store the delegator proxy in connection return it if asked next time
+
+        :param local_service: Instance of ServiceBase (or derived class)
+        :raises SSHError:
+        :raises SSHTimeoutError:
         """
-        return delegator_service
+
+        if self._delegator_proxy is not None:
+            return self._delegator_proxy
+
+        # 1.
+        # moved to repeater.add_child
+
+        # 2.
+        child_id, remote_port = local_service.repeater.add_child(self)
+
+        # 3.
+        command = self.environment.python + " " \
+                  + os.path.join(self.environment.root, "JobPanel/delegator_service.py") \
+                  + " {} {} {}".format(child_id, "localhost", remote_port)
+        try:
+            self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
+        except paramiko.SSHException:
+            raise SSHError
+        except socket.timeout:
+            raise SSHTimeoutError
+
+        connected = False
+        for i in range(10):
+            time.sleep(0.1)
+            answers = local_service.repeater.get_answers(child_id)
+            for answer in answers:
+                if answer.id == 0:
+                    connected = True
+                    break
+            if connected:
+                self._delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
+                self._delegator_proxy.on_answer_connect()
+                break
+
+        return self._delegator_proxy
 
     def close_connections(self):
         """
@@ -454,7 +501,10 @@ class ConnectionSSH(ConnectionBase):
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
 
-        self._sftp.close()
+        if self._sftp is not None:
+            self._sftp.close()
+            self._sftp = None
+
         self._ssh.close()
 
 
