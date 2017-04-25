@@ -26,7 +26,7 @@ You can run the container with the following command.
 
 ```bash
 docker run \
-  -v /var/lib/jenkins/workspace/GeoMop:/mnt/GeoMop \
+  -v /var/lib/jenkins/workspace/gm-build:/mnt/GeoMop \
   geomop/test \
   /home/geomop/test.sh
 ```

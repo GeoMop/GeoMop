@@ -9,6 +9,7 @@
 
    user/linux_installation_guide
    user/model_editor
+   user/me_panels
    user/analysis_pipeline_example
 
 .. toctree::
