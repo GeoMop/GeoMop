@@ -41,6 +41,8 @@ through or modify the configuration file.
       any notifications, warning or errors that were detected during the validation process, which
       happens automatically as you edit the file.
 
+Components functions is describe in `separate document<me_panels>`
+
 Exploring a configuration file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
