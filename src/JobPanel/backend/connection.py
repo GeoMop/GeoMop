@@ -1,5 +1,5 @@
 from .json_data import JsonData
-from ._service_proxy import ServiceProxy
+from .service_proxy import ServiceProxy
 from .service_base import ServiceStatus
 
 import paramiko
