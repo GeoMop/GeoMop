@@ -8,11 +8,39 @@ class ServiceProxy:
     the class passed as parameter of constructor. Further own thread is created
     (or reused) for every such call (this can be possibly optimized for simple requests in future).
     Returned data are stored in the variable of the name 'answer_XYZ'
+
+
+        Auxiliary class to store state of a child service.
+
+    Can keep status, near history, downloaded data, etc.
+    Implements simple request
+
+    TODO, idea:
+    This is key class, it should define classes for all actions with MJs. These remote actions are only of two kinds:
+    1. Make something on remote and confirm success on client or report an error.
+    2. Update some state variables of the proxy.
+
+    This can be called in async way and should be ok for GUI.
+    Actions are mentioned in client_test.py.
+    Would be nice if we can make methods corresponding to remote actions using metaprograming .. can be done using __getattr__
+
+    def __getattr__(name):
+        func = ServiceClass.getattr(name)
+        assert( func and func is decorated as remote )
+        def wrapper(*karg):
+            repeater.send_request({'action': name, 'data': *karg})
+        return wrapper
+
+
+    - how to get parameters
+    - use  unpack **dict when calling actions
+
+
     """
     def __init__(self, repeater, service_data, connection):
         self.repeater = repeater
         """ Object for communication with remote service."""
-        self.service = service_data
+        self.service_data = service_data
         """
         JSON data used to initialize the service. ?? Should it contain also data of the proxy??
         Proxy data:
@@ -28,8 +56,8 @@ class ServiceProxy:
         self.changing_status=False
         """ True if a status change action is processed: stopping"""
 
-
-        # smazat
+        #TODO:
+        #  smazat
         return
 
         if (self.service.status != None):
@@ -46,12 +74,6 @@ class ServiceProxy:
         :return:
         """
         pass
-
-    def get(self, variable_name):
-        self.call("request_get", variable_name, self.__dict__[variable_name])
-
-    def stop(self):
-        self.call("stop", None, )
 
     def start_service(self):
         """
@@ -96,8 +118,43 @@ class ServiceProxy:
         """
 
 
+    def get(self, variable_name):
+        self.call("request_get", variable_name, self.__dict__[variable_name])
+
+    def stop(self):
+        self.call("stop", None, )
+
+
+
     def on_answer_connect(self):
         self.status = ServiceStatus.running
+
+
+
+    def make_ping(self):
+        self.service.repeater.send_request(
+            target=[self.child_id],
+            data={'action': 'ping'},
+            on_answer={'action': 'on_answer_ok'})
+
+    def on_answer_no_error(self, data):
+        pass
+
+    def on_answer_ok(self, data):
+        answer_data=data[1]
+        logging.info(str(answer_data))
+        logging.info("answer: OK")
+        pass
+
+    def error_answer(self, data):
+        """
+        Called if the answer reports an error.
+        :param data:
+        :return:
+        """
+        #answer_data =
+        pass
+
 
 """
 Use class factory to make proxy classes to Service classes.

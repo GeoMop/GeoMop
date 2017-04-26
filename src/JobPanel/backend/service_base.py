@@ -53,6 +53,11 @@ class ServiceStarter:
 class ActionProcessor:
     """
     Base class for request processing and on_answer processing classes.
+    If a method is decorated as @LongRequest it is executed in sepatate thread
+    and future is stored in a special queue, this queue should be checked in the main service
+    loop for the completed requests.
+
+    TODO: Any particular reason why this is not part of ServiceBase??
     """
     def __init__(self):
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -68,75 +73,18 @@ class ActionProcessor:
         """
         try:
             action_method = getattr(self, action)
+
         except  AttributeError:
             result = {'error': 'Invalid action: %s' % (action)}
         else:
-
-            result = action_method(data)
+            if action_method.run_in_thread:
+                future = self.thread_pool.submit(action_method, data)
+            else:
+                result = action_method(data)
         return result
 
-class ChildServiceProxy(ActionProcessor):
-    """
-    TODO:
-    - move request methods into ServiceProxyBase
-    - delete this class
 
-    Auxiliary class to store state of a child service.
-
-    Can keep status, near history, downloaded data, etc.
-    Implements simple request
-
-    TODO, idea:
-    This is key class, it should define classes for all actions with MJs. These remote actions are only of two kinds:
-    1. Make something on remote and confirm success on client or report an error.
-    2. Update some state variables of the proxy.
-
-    This can be called in async way and should be ok for GUI.
-    Actions are mentioned in client_test.py.
-    Would be nice if we can make methods corresponding to remote actions using metaprograming .. can be done using __getattr__
-
-    def __getattr__(name):
-        func = ServiceClass.getattr(name)
-        assert( func and func is decorated as remote )
-        def wrapper(*karg):
-            repeater.send_request({'action': name, 'data': *karg})
-        return wrapper
-
-
-    - how to get parameters
-    - use  unpack **dict when calling actions
-
-    """
-    def __init__(self, child_id, service):
-        self.child_id = child_id
-        self.service = service
-
-    def make_ping(self):
-        self.service.repeater.send_request(
-            target=[self.child_id],
-            data={'action': 'ping'},
-            on_answer={'action': 'on_answer_ok'})
-
-    def on_answer_no_error(self, data):
-        pass
-
-    def on_answer_ok(self, data):
-        answer_data=data[1]
-        logging.info(str(answer_data))
-        logging.info("answer: OK")
-        pass
-
-    def error_answer(self, data):
-        """
-        Called if the answer reports an error.
-        :param data:
-        :return:
-        """
-        #answer_data =
-        pass
-
-
-class ServiceBase(ActionProcessor):
+class ServiceBase(ActionProcessor, JSONData):
     """
     Process requests and answers.
 
@@ -161,26 +109,52 @@ class ServiceBase(ActionProcessor):
     """
     answer_ok = { 'data' : 'ok' }
 
-    def __init__(self, service_address, listen_port, parent_repeater_address=None):
+    def __init__(self, config):
         """
-        TODO:
-        - design config data
-        - derive from JSONData
-        - write down config file
+        Create the service and its repeater.
         """
+
+        """
+        JSONData initialization
+        """
+        self.repeater_address = []
+        # Repeater address  of the service (path from root). Default is root repeater.
+        self.parent_address=None
+        # Socket address of the parent. Default is root service, no parent.
+        self.environment=Environment()
+        # environment of local installation
+        self.executable=""
+        # executable (script) by which the service is started
+        self.exec_args=""
+        # commandline parameters passed to the executable
+
+        self.listen_port=None
+        #
+        super().__init__(config)
+
         self.child_services={}
         self.requests=[]
-        self.repeater = ar.AsyncRepeater(service_address, listen_port, parent_repeater_address)
+        self.repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
+        self.listen_port=self.repeater.listen_port
+
+        # Write down the JSONData of the service into a config file.
 
     def get_listen_port(self):
         """
         TODO: Remove, service should maintain its config file and fill the listen_port there.
         :return:
         """
-
-
         return self.repeater.listen_port
 
+    def run(self):
+        """
+        TODO: Implementation of the service processing loop. Start the repeater loop.
+        :return:
+        """
+        pass
+
+    # Methods that implements a request but can also be called directly by the service.
+    #
 
     def make_child_proxy(self, address):
         """
@@ -195,7 +169,7 @@ class ServiceBase(ActionProcessor):
         return proxy
 
 
-    def process_answers(self):
+    def _process_answers(self):
         logging.info("Process answers ...")
         for ch_id in self.child_services.keys():
             for answer_data in self.repeater.get_answers(ch_id):
@@ -208,7 +182,7 @@ class ServiceBase(ActionProcessor):
                 self.child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
         return
 
-    def process_requests(self):
+    def _process_requests(self):
         self.requests.extend( self.repeater.get_requests() )
         for request_data in self.requests:
             request = request_data.request
@@ -221,10 +195,12 @@ class ServiceBase(ActionProcessor):
             self.repeater.send_answer(request_data.id, answer)
         return
 
-    """"""
+    """ Requests. """
     def request_start_child(self, request_data):
         """
+        Start a new child service with given data.
         TODO:
+        - implemented only in: RootService, BackendService
 
         proxy=self.make_child_proxy()
         proxy.start_service() ... enqueue the seervice
@@ -245,27 +221,19 @@ class ServiceBase(ActionProcessor):
     #    return self.answer_ok
 
 
-    def request_ping(self, data):
-        return self.answer_ok
+    def request_get_status(self, data):
+        """
+        Return service status (obviously 'running').
+        :param data: None
+        :return:
+        """
+        return ServiceStatus.running
 
     def request_stop(self, data):
         self.closing = True
         return {'data' : 'closing'}
 
 
-    """
-    Delegator requests. (WIP)
-    """
 
-    def request_start_service(self, executor_config):
-        executor  = JsonData.make_instance(executor_config)
-        executor.exec()
-
-    def request_kill_service(self, executor_config):
-        executor = JsonData.make_instance(executor_config)
-        executor.kill()
-
-    def request_clean_workspace(self):
-        pass
 
 

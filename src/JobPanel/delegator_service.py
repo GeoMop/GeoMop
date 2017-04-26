@@ -8,6 +8,11 @@ import json
 import traceback
 
 class Delegator(service_base.ServiceBase):
+    """
+    TODO:
+    - adopt snew ServiceBase constructor
+    - move run into ServiceBase
+    """
     def __init__(self, service_address, parent_repeater_address=None):
         service_base.ServiceBase.__init__(self, service_address, 0, parent_repeater_address)
         self.closing = False
@@ -23,6 +28,24 @@ class Delegator(service_base.ServiceBase):
             self.process_requests()
         self.repeater.close()
 
+    """ Delegator requests. """
+
+
+    """
+    Delegator requests. (WIP)
+    """
+    def request_start_service(self, executor_config):
+        executor = JsonData.make_instance(executor_config)
+        executor.exec()
+
+
+    def request_kill_service(self, executor_config):
+        executor = JsonData.make_instance(executor_config)
+        executor.kill()
+
+
+    def request_clean_workspace(self):
+        pass
 
 ##########
 # Main body
