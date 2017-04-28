@@ -16,6 +16,10 @@ fi
 
 echo "************ RUNNING BUILD *************"
 
+# clear results
+rm -rf /var/lib/jenkins/workspace/gm-build/dist
+mkdir /var/lib/jenkins/workspace/gm-build/dist
+
 # build
 docker run \
   -v /var/lib/jenkins/workspace/gm-build:/mnt/GeoMop \
