@@ -54,6 +54,7 @@
         cd /var/lib/jenkins/workspace/gm-doc/doc
         make html
         cd /home/geomop/geomop_doc/geomop.github.io
+        git pull
         rm -R GeoMop
         cp -R /var/lib/jenkins/workspace/gm-doc/doc/_build/html GeoMop
         git add . 
@@ -121,7 +122,7 @@
     scm:
     - git:
         branches:
-        - *
+        - "*"
         url: https://github.com/GeoMop/GeoMop
     project-type: multijob
     triggers:
