@@ -30,6 +30,11 @@ class Communicator():
     Class with communication interface, that provide place for action.
     Communicator contains:
 
+    JB, Question: absolutely no idea what next lines describe
+    - seems that it describes the constructor, so move it there
+    - input and output communicators are not direct parameters, describe init_conf structure
+    - refer to particular parameter names otherwise reader is lost
+
       - intput - communacion interface 
         (:class:`communication.communication.InputComm`) 
         for communacion with previous communicator
@@ -41,7 +46,19 @@ class Communicator():
         from next communicator 
       - function action_func_after, that is possible set by
         constructor, end is call before resending answer received 
-        from previous communicator        
+        from previous communicator
+
+      JB, note: parm init_conf is class CommunicatorConfig
+
+    JB, TODO:
+    - Every communicator should have a name (client, delegator, mj, job).
+    - Communicator runs in its own thread and is started by a "processing thread".
+    - Message must have address:
+       - [ target_communicator ( name of communicator whose processing thread should hadle the request)
+    - Communicator should be able to recieve requests and recieve answers and send them further unless
+      the communicator is the target of the message.
+       -
+
     """  
     def __init__(self, init_conf, id=None , action_func_before=None, action_func_after=None, idle_func=None):
         self.input = None
@@ -135,7 +152,12 @@ class Communicator():
             All code processed in this function should take a small time intervall,
             if a long action is requared, use thread.
             """
-            
+
+        """
+        JB, question:
+        - Move this into initialization method, see notes in get_output
+        - make similar method get_input
+        """
         if init_conf.input_type == comconf.InputCommType.std:
             self.input =StdInputComm(sys.stdin, sys.stdout)
             self.input.connect()
@@ -152,7 +174,17 @@ class Communicator():
             
     @staticmethod
     def get_output(conf, mj_name, an_name, new_name=None):
-        """Inicialize output using defined type"""
+        """
+        Inicialize output communicator according to conf.
+
+        JB, question:
+        Why these tests for type? just pass conf and to particular constructor.
+        E.g.:
+        conf.output_type = SshOutputComm
+        output = conf.output_type()
+        output.init_from_configuration(conf)
+
+        """
         output = None
         if conf.output_type == comconf.OutputCommType.ssh or \
             conf.output_type == comconf.OutputCommType.ssh_tunnel:
@@ -229,7 +261,9 @@ class Communicator():
         time.sleep(0.5)
    
     def  standart_action_function_before(self, message):
-        """This function will be set by communicator. This is empty default implementation."""
+        """
+        This function will be set by communicator. This is empty default implementation.
+        """
         if message.action_type == tdata.ActionType.ping:
             #action will be processed in after funcion
             return False, None
