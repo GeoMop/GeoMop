@@ -9,24 +9,21 @@ import traceback
 
 class Delegator(service_base.ServiceBase):
     """
-    TODO:
-    - adopt snew ServiceBase constructor
-    - move run into ServiceBase
     """
-    def __init__(self, service_address, parent_repeater_address=None):
-        service_base.ServiceBase.__init__(self, service_address, 0, parent_repeater_address)
-        self.closing = False
+    def __init__(self, config):
+        service_base.ServiceBase.__init__(self, config)
+        #self.closing = False
 
 
-    def run(self):
-        self.repeater.run(0.1)  # run for some time
-        logging.info("After run")
-        while not self.closing:
-            logging.info("Loop")
-            time.sleep(1)
-            self.process_answers()
-            self.process_requests()
-        self.repeater.close()
+    # def run(self):
+    #     self.repeater.run(0.1)  # run for some time
+    #     logging.info("After run")
+    #     while not self.closing:
+    #         logging.info("Loop")
+    #         time.sleep(1)
+    #         self._process_answers()
+    #         self._process_requests()
+    #     self.repeater.close()
 
     """ Delegator requests. """
 
@@ -59,7 +56,8 @@ logging.basicConfig(filename='delegator.log', filemode="w",
 
 
 try:
-    bs=Delegator(sys.argv[1], (sys.argv[2], int(sys.argv[3])))
+    bs = Delegator({"repeater_address": [int(sys.argv[1])],
+                    "parent_address": [sys.argv[2], int(sys.argv[3])]})
     bs.run()
 except:
     #logging.error("{}: {}".format(sys.exc_info()[0].__name__, sys.exc_info()[1]))

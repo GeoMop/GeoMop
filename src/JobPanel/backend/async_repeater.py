@@ -128,12 +128,14 @@ class _ClientDispatcher(asynchat.async_chat):
         # Received answers for local service.
         self.sent_requests={}
         # Sent requests from local service
-        # TODO: Why this is a dictionary in contrast to the answers list?
         self.request_id=0
         # ID of the next request.
         self.received_data = bytearray()
         # Storage for partially received answer.
         self.connection = connection
+
+        # create request 0
+        self.sent_requests[0] = (None, None)
 
         asynchat.async_chat.__init__(self)
 
@@ -177,10 +179,6 @@ class _ClientDispatcher(asynchat.async_chat):
         logging.info('Push: %s\n'%( _pack_message(id, self.repeater_address, target, data)) )
         self.push( _pack_message(id, self.repeater_address, target, data) )
 
-    # TODO: remove if unnecessary
-    #def get_remote_address(self):
-    #    return self._remote_address
-
     def set_remote_address(self, address):
         # Set remote address of the child repeater.
         # This force port forwarding through connection object and connect.
@@ -203,10 +201,7 @@ class _ClientDispatcher(asynchat.async_chat):
         logging.info("Connected")
         self.set_terminator(_terminator)
 
-        # create request 0 a answer 0
-        assert self.request_id, 0
-        self.request_id += 1
-        self.sent_requests[0] = ((None, None))
+        # create answer 0
         self.answers.append((0, None, None, None))
 
     def collect_incoming_data(self, data):
@@ -414,6 +409,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
 
                 if child_id in self.async_repeater.clients:
                     self.async_repeater.clients[child_id].set_remote_address((self.socket.getpeername(), port))
+                    logging.info("Initial back connection done.")
         self.close()
         # We close also if we get wrong data. As whole connection is from bad guy.
 
@@ -429,7 +425,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, listen_port, parent_address=None):
+    def __init__(self, repeater_address, parent_address=None):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater.
@@ -438,9 +434,6 @@ class AsyncRepeater():
                0 - get by kernel (usual case)
         :param parent_address:
                 socket address ( address, port) of the parent repeater to connect for initialization.
-
-        TODO: Probably parent_address should be obligatory and listen_port optional.
-             Possibly we can drop listen_port at all and set parent_address=None for the root repeater.
         """
         self.repeater_address = repeater_address
         self.parent_address = parent_address
@@ -449,30 +442,28 @@ class AsyncRepeater():
         """ Dict of clients. Keys client_id. """
         self._starter_client_thread = None
         self._starter_client_attempting = False
-        if (listen_port is None):
+        if (parent_address is None):
             self._server_dispatcher = None
             self.listen_port = None
         else:
-            self._server = Server(self, listen_port, self.clients)
+            self._server = Server(self, 0, self.clients)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
-            if self.parent_address is not None:
-                self._starter_client_attempting = True
-                self._starter_client_thread = threading.Thread(target=self._starter_client_run)
-                self._starter_client_thread.daemon = True
-                self._starter_client_thread.start()
+            self._starter_client_attempting = True
+            self._starter_client_thread = threading.Thread(target=self._starter_client_run)
+            self._starter_client_thread.daemon = True
+            self._starter_client_thread.start()
 
         self._starter_server = StarterServer(self)
 
 
-    def run(self, timeout = None):
+    def run(self):
         """
         Start the repeater loop in separate thread.
-        :param timeout: ?? timeout parameter for the asyncore loop.
         :return: None
         """
-        self.loop_thread = threading.Thread(target=asyncore.loop, kwargs = {'timeout':1})
+        self.loop_thread = threading.Thread(target=asyncore.loop, kwargs = {'timeout':0.1})
         self.loop_thread.start()
         logging.info("Repeater loop started.")
 
@@ -519,11 +510,11 @@ class AsyncRepeater():
         """
         Check that socket to child is closed. Delete the dispatcher.
 
-        TODO: implement, thread safe?
+        TODO: thread safe?
         :param id:
         :return:
         """
-        #self.clients[id].close()
+        self.clients[id].close()
         del self.clients[id]
         return
 
@@ -573,7 +564,7 @@ class AsyncRepeater():
         return self.clients[child_id].get_answers()
 
 
-    def stop(self):
+    def close(self):
         """
 
         :return:
@@ -592,15 +583,10 @@ class AsyncRepeater():
             s = socket.socket()
             try:
                 s.connect(self.parent_address)
-
-                # TODO: repeater address is not just its ID, isn't it?
-                # We should send just ID of the repeater that.
-                data = "{}\n{}\n".format(self.repeater_address[-1], self.listen_port).encode()
+                data = "{}\n{}".format(self.repeater_address[-1], self.listen_port).encode()
                 s.sendall(data)
             except ConnectionRefusedError:
                 pass
             finally:
-                logging.info("Initial back connection done. Closing thread.")
                 s.close()
-                break # ?? OK
             time.sleep(10)

@@ -1,8 +1,11 @@
 import subprocess
 from . import async_repeater as ar
+from .json_data import JsonData
+from .environment import Environment
 import logging
 import concurrent.futures
 import enum
+import time
 
 
 
@@ -84,7 +87,7 @@ class ActionProcessor:
         return result
 
 
-class ServiceBase(ActionProcessor, JSONData):
+class ServiceBase(ActionProcessor, JsonData):
     """
     Process requests and answers.
 
@@ -119,7 +122,7 @@ class ServiceBase(ActionProcessor, JSONData):
         """
         self.repeater_address = []
         # Repeater address  of the service (path from root). Default is root repeater.
-        self.parent_address=None
+        self.parent_address=("", 0)
         # Socket address of the parent. Default is root service, no parent.
         self.environment=Environment()
         # environment of local installation
@@ -127,15 +130,26 @@ class ServiceBase(ActionProcessor, JSONData):
         # executable (script) by which the service is started
         self.exec_args=""
         # commandline parameters passed to the executable
+        self.workspace = ""
 
         self.listen_port=None
         #
-        super().__init__(config)
+        ActionProcessor.__init__(self)
+        JsonData.__init__(self, config)
 
         self.child_services={}
         self.requests=[]
-        self.repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
+
+        # JsonData type check correction
+        if self.parent_address[0] == "":
+            parent_address = None
+        else:
+            parent_address = self.parent_address
+
+        self.repeater = ar.AsyncRepeater(self.repeater_address, parent_address)
         self.listen_port=self.repeater.listen_port
+
+        self._closing = False
 
         # Write down the JSONData of the service into a config file.
 
@@ -148,10 +162,20 @@ class ServiceBase(ActionProcessor, JSONData):
 
     def run(self):
         """
-        TODO: Implementation of the service processing loop. Start the repeater loop.
         :return:
         """
-        pass
+        # Start the repeater loop.
+        self.repeater.run()
+        logging.info("After run")
+
+        # Service processing loop.
+        while not self._closing:
+            logging.info("Loop")
+            time.sleep(1)
+            self._process_answers()
+            self._process_requests()
+            self._do_work()
+        self.repeater.close()
 
     # Methods that implements a request but can also be called directly by the service.
     #
@@ -230,7 +254,7 @@ class ServiceBase(ActionProcessor, JSONData):
         return ServiceStatus.running
 
     def request_stop(self, data):
-        self.closing = True
+        self._closing = True
         return {'data' : 'closing'}
 
 
