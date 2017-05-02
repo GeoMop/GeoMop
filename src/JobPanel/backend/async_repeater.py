@@ -202,6 +202,9 @@ class _ClientDispatcher(asynchat.async_chat):
         self.set_terminator(_terminator)
 
         # create answer 0
+
+        # The only place sent_requests is accessed from the asyncchat thread.
+        # possibly move into constructor or other method called from the service thread.
         self.answers.append((0, None, None, None))
 
     def collect_incoming_data(self, data):

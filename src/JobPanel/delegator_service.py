@@ -6,6 +6,8 @@ import logging
 import time
 import json
 import traceback
+from .json_data import JsonData
+import ._executor
 
 class Delegator(service_base.ServiceBase):
     """
@@ -26,18 +28,19 @@ class Delegator(service_base.ServiceBase):
     #     self.repeater.close()
 
     """ Delegator requests. """
+    # TODO: Can JsonData.make_instance resolve classes from _executor_py?
+
+    def request_process_start(self, process_config):
+        executor = JsonData.make_instance(process_config)
+        return executor.start()
+
+    def request_process_status(self, process_config):
+        executor = JsonData.make_instance(process_config)
+        return executor.get_status()
 
 
-    """
-    Delegator requests. (WIP)
-    """
-    def request_start_service(self, executor_config):
-        executor = JsonData.make_instance(executor_config)
-        executor.exec()
-
-
-    def request_kill_service(self, executor_config):
-        executor = JsonData.make_instance(executor_config)
+    def request_process_kill(self, process_config):
+        executor = JsonData.make_instance(process_config)
         executor.kill()
 
 

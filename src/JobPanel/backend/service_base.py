@@ -131,16 +131,21 @@ class ServiceBase(ActionProcessor, JsonData):
         self.exec_args=""
         # commandline parameters passed to the executable
         self.workspace = ""
-
+        # service workspace relative to the geomop workspace
         self.listen_port=None
         #
         ActionProcessor.__init__(self)
         JsonData.__init__(self, config)
 
+        self._geomop_workspace = ""
+        # Geomop workspace dir on particular machine the service should run on. This should be
+        # obtained from the global geomop setting not retrieved form the service configuration.
+
         self.child_services={}
         self.requests=[]
 
         # JsonData type check correction
+        # TODO: just modify the AsyncRepeater__init__, zero parent address is invalid as well.
         if self.parent_address[0] == "":
             parent_address = None
         else:

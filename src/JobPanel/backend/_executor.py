@@ -18,7 +18,8 @@ Tests:
 - Similar for PBS + test reporting 'queued' state.
 
 """
-
+from .json_data import JsonData
+from .environment import Environment
 
 class Executable(JsonData):
     """
@@ -52,110 +53,21 @@ class Executable(JsonData):
 
 
 class ExecArgs(JsonData):
-    """
-    Parameters of particular process.
-    """
-    args = []
-    """ Arguments passed to executable."""
-    pbs_args = PbsConfig()
-    """
-    Arguments passed to PBS system.
-    Reuse data.communicator_conf.PbsConfig, remove dialect, move into PBS module.
-    """
-    mpi_args = []
-    """Arguments passed to mpiexec. Do not use."""
-
-
-
-class Environment(JsonData):
-    """
-    Represents GeoMop backend installation and system configuration.
-
-    Keep information about all executables that are part of the installation,
-    metainformation about executables and scripts.
-    (Can run given executable)
-
-        GUI side: Environment configuration should be part of
-        connection as it is related to particular machine. Still allowing to
-        copy the  connection to new one reusing environment or ssh. Environment setup should be minimalistic
-        by default just setting workspace and root dir of GeoMop installation.
-
-        SSH connection test should perform test both test of SSH connection as well as test of installation
-        this fill rest of environment and allows to modify invalid setting (mpi, python, etc.)
-        Possible problems can be resolved by user manually and further tested in the Connection panel.
-    """
-
     def __init__(self, config):
         """
-        If config have 'version_id' we just check that it match
-        the version installed at 'root'. Otherwise we start test_installation.
-        :param config: InstallationData
+        Parameters of particular process.
         """
-        self.geomop_dir = []
+        self.args = []
+        """ Arguments passed to executable."""
+        self.pbs_args = PbsConfig()
         """
-        Path to the root directory of the GeoMop backend installtion.
-        The only attribute that must be provided by user.
+        Arguments passed to PBS system.
+        Reuse data.communicator_conf.PbsConfig, remove dialect, move into PBS module.
         """
-        self.version_id = ""
-        """ Version ID of the installation. This is set by 'test_installation'
-        and checked against true state of the installation in constructor."""
-        self.executables = []
-        """List of Executables available on the installation."""
-
-        # System configuration follows
-        self.mpiexec = []
-        """Path to the system wide (default) mpiexec."""
-        self.python = []
-        """Path to the python interpreter."""
-        self.pbs = None
-        """ Resolve class to implement details of particular PBS."""
+        self.mpi_args = []
+        """Arguments passed to mpiexec. Do not use."""
         JsonData.__init__(self, config)
 
-
-
-    def test_installation(self):
-        """
-        Test all executables, find executables ...
-        Try to use already filled data.
-        :return:
-        """
-
-    def exec(self, executable_name, args):
-        """
-        Execute executable (possibly with mpiexec), wait for finish.
-        Raise exception on abnormal return code.
-        :param executable_name: name of executable to run
-        :param args: ExecArgs
-        :return: (StdOut, StdErr)
-        """
-
-    def test_executable(self, executable_name):
-        """
-        Test if executable works in current installation and if it
-        works with mpiexec.
-        Set flags: mpi_parallel,
-        :param executable_name:
-        :return:
-        """
-        pass
-
-    def exec_persistent(self, executable, arg):
-        """
-        Start given executable in a new persistent process.
-        Load correct modules, can run only scripts and only without mpi.
-        Is used to start services.
-
-        :param executable: Executable
-        :param parameters: ProcessParameters
-        :return: process_id - string that identify the process on the same machine
-        """
-
-    def kill_persistent(self, process_id):
-        """
-        Kill process with given ID.
-        :return: True if process was killed.
-        """
-        pass
 
 
 
@@ -195,193 +107,63 @@ exec_args = "-p <docker_host_address>:<port>"
 6. parent connects to listening port of child service
 7. parent sends service config data, or its actualization:
 
-service_data = {
-    __class__ = (service type ??
-    # get from cmd line
-    parent_host
-    parent_starting_port
-
-    # filled by child service and possibly improtant for parent service
-    running_host
-    listenning_port
-
-    # get from installation
-    environment
-
-    # from cmd line or from file, if it turns upt that initial connection takes over 1s
-    first_request
-
-    # get from parent after start
-    exec_method
-    environment (update)
-}
-
-process requests:
-- (resend messages)
-- upload files to remote
-- start MJ
-- stop MJ (send stop and kill after timeout)
-- download files
-
-- clean on remote
-
-
-
-# Data that must be passed to the service script through a file or through connection
-
-
-
-
-
-Data for Job, MJ,  execution.
-
-starting_host = {
-    __class__ = ( Ssh | Local )
-    IP or DSN
-    uid
-    pass
-    environment = {
-        install_path
-        ... optional, default
-        }
-    }
-
-exec_method = {
-    __class__ = ( popen, pbs, docker )
-    # generic
-    walltime
-    memory
-    n_proc
-    # pbs specific
-    queue
-    ppn
-    }
-
-executable = "" # name reference into environment
-exec_args = ""
-
-# Data that must be passed to the service script through a file or through connection
-service_data = {
-    __class__ = (service type ??
-    exec_method
-    environment
-
-    parent_host
-    parent_starting_port
-
-    first_request
-
-
-    # filled by job and possibly improtant for parent service
-    running_host
-    listenning_port
-}
 
 """
 
-#==================================================
-"""
-TODO: implement backbone of service starting mechanism in
-ServiceProxy and possibly use ServiceStarterXYZ resolution classes for
-code that is special for different kind of service starting (Exec, PBS, docker).
-"""
-
-class ServiceStarterBase(JsonData):
-    def __init__(self, environment):
-        self.environment=Environment()
-        self.environment
-        super().__init__(config)
-
-class ServiceStarterExec(ProcessBase):
-    """
-    Operate with persistent process.
-    """
-    def exec(self, executable, exec_args):
-        """
-        Start executable provided in configuration.
-
-        :param executable:
-        :param exec_args:
-        :return: Process id, serializable object unique on this machine.
-        Implementation: same as in current exec, or with double fork
-        """
-        pass
-
-    def kill(self, process_id):
-        """
-        Kill given process.
-        :param process_id:
-        :return:
-        """
-        pass
-
-class ServiceStarterPBS(ProcessBase):
-    def exec(self, executable, exec_args):
-        """
-        Start executable provided in configuration.
-        :return: Process id, serializable object unique on this machine.
-
-        Implementation: start using pbs with
-        """
-
-    def kill(self, process_id):
-        """
-        Kill given job.
-
-        :param process_id:
-        :return:
-        """
-        pass
 
 
-class ServiceStarterDocker(ProcessBase):
-    def exec(self, executable, exec_args):
-        """
-        Start executable provided in configuration.
-        :return: Process id, serializable object unique on this machine.
-
-        Implementation: start using pbs with
-        """
-        pass
-
-    def kill(self, process_id):
-        """
-        Kill given job.
-
-        :param process_id:
-        :return:
-        """
-        pass
 
 
 ############################################################################################
 
 
+class ProcessBase(JsonData):
+    """
+    Base class defining serializable data of a process.
+
+    Descendants of this class are used to interact with processes:
+    - start method: enqueue a process into PBS for execution, exec it, exec it in docker
+    - status method: check state of a PBS or other process (queued, running, finished, error)
+    - kill method: force terminate running process or delete enqueued process
+
+    A process is started either from the delegator when processing request_start_process
+    or from a Job (or possibly also from MultiJob). The start method returns a process_id,
+    if called from delegator this id is returned back to the parent service
+    """
+    def __init__(self, process_config):
+        self.environment = Environment()
+        self.executable = Executable()
+        self.exec_args = ExecArgs()
+        self.proces_id = ""
+        super().__init__(process_config)
 
 
-    class ProcessExec(JsonData):
+class ProcessExec(ProcessBase):
         """
-        Class for starting a persistent process.
+        Class for starting a local persistent process.
         Constructor inherited.
 
-        How to get return code of the persistent process in order to report error state?
+        TODO: How to get return code of the persistent process in order to report error state?
 
         Should be able to furhter monitor that process is running and
         able to kill it.
+
+        Implementation: same as in ExecOutputComm.exec, or with double fork
         """
 
-        def start(self, executable, parameters):
+
+        def start(self):
             """
             Start given executable in a new persistent process.
             Load correct modules, use mpiexec to start parallel processes.
 
             :param executable: Executable
             :param parameters: ProcessParameters
-            :return: process_id - string that identify the process on the same machine
+            :return: process_id - object that identify the process on the same machine
             """
             pass
 
-        def get_states(self, pid_list):
+        def get_status(self, pid_list):
             """
             Get states of running processes.
             Idea is to get all available states at once since 'qstat' have high latency.
@@ -391,6 +173,9 @@ class ServiceStarterDocker(ProcessBase):
             We want to
 
             :return: [ (process_id, process_state), ... ]
+
+            TODO: Not implement until we know exactly the purpose. Possibly status of the service
+            may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
             """
 
         def full_state_info(self, pid_list):
@@ -401,12 +186,16 @@ class ServiceStarterDocker(ProcessBase):
 
             :param process_id:
             :return:
+
+            TODO: Not implement until we know exactly the purpose. Possibly status of the service
+            may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
+
             """
             pass
 
-        def kill(self, process_id):
+        def kill(self):
             """
-            Kill process with given ID.
+            Kill the process (ID from config).
             :return: True if process was killed.
             """
             pass
@@ -416,13 +205,13 @@ class ServiceStarterDocker(ProcessBase):
 
 
 
-class ProcessPBS(JsonData):
+class ProcessPBS(ProcessBase):
     """
     Same interface as ProcessExec.
 
     Reuse: pbs_output_comm.PBSOutputComm._exec, pbs.py, dialects
 
-    How we incorporate posible advanced PBS functions specific to queued jobs. e.g.
+    TODO: How we incorporate posible advanced PBS functions specific to queued jobs. e.g.
     estimate of start time, target nodes, ...
 
     Remove checks for dialect and default implementation in pbs.py
@@ -430,3 +219,25 @@ class ProcessPBS(JsonData):
     pass
 
 
+class ProcessDocker(ProcessBase):
+    """
+    Same interface as ProcessExec.
+
+    Used to start backend. Seems there will be always only one backend service.
+    In addition we may need a docker configuration data, however try to make
+    the docker info (image in particular) part of the installation so accessible through the environment.
+    """
+
+    def start(self):
+        """
+        See client_test_py for a docker starting process.
+        :return: process_id - possibly hash of the running container.
+        """
+        pass
+
+    def kill(self):
+        """
+        See client_test.py, BackedProxy.__del__
+        :return:
+        """
+        pass

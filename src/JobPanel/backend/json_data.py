@@ -60,6 +60,7 @@ class JsonData:
     Serializable classes will be derived from this one. And data members
     that should not be serialized are prefixed by '_'.
 
+    TODO: Optional parameter in constructor to specify serialized attributes. (For Pavel)
     ?? Anything similar in current JobPanel?
     """
     def __init__(self, config={}):
