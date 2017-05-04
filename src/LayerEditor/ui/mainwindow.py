@@ -6,9 +6,11 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ui import panels
+from leconfig import cfg
 from ui import data
 from ui.menus.tools import ToolsMenu
 from ui.menus.edit import EditMenu
+from ui.menus.file import MainFileMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -40,13 +42,18 @@ class MainWindow(QtWidgets.QMainWindow):
         #    QtWidgets.QSizePolicy.Expanding))
        # self.diagramView.setMinimumSize(QtCore.QSize(500, 500)) 
 
-        self._hsplitter.insertWidget(0, self.diagramView)
+        if not diagram.shp.is_empty():
+            self.shp = panels.ShpFiles(diagram.shp, self._hsplitter)
+            self._hsplitter.insertWidget(0, self.shp)
+            self.shp.reload()
         
         # Menu bar
         self._menu = self.menuBar()
         self._tools_menu = ToolsMenu(self, self.diagramScene)
         self._edit_menu = EditMenu(self, self.diagramScene)
-
+        self._file_menu = MainFileMenu(self,  layer_editor)
+        
+        self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._tools_menu)
         self._menu.addMenu(self._edit_menu)
         
@@ -73,10 +80,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.diagramView.scale(10, 10)
         self.data = None
 
-    def set_diagram_data(self, diagram):
+    def refresh_diagram_data(self):
         """Propagate new diagram scene to canvas"""
-        self.data = diagram
-        self.diagramScene.set_data(diagram)       
+        self.diagramScene.set_data(cfg.diagram)       
         self._move()
         
     def _cursor_changed(self, line, column):
@@ -87,9 +93,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """zooming and moving"""
         view_rect = self.diagramView.rect()
         self.diagramView.setSceneRect(
-            self.data.x, 
-            self.data.y, 
-            view_rect.width()/self.data.zoom, 
-            view_rect.height()/self.data.zoom)
-        transform = QtGui.QTransform(self.data.zoom, 0, 0, self.data.zoom, 0, 0)
+            cfg.diagram.x, 
+            cfg.diagram.y, 
+            view_rect.width()/cfg.diagram.zoom, 
+            view_rect.height()/cfg.diagram.zoom)
+        transform = QtGui.QTransform(cfg.diagram.zoom, 0, 0,cfg.diagram.zoom, 0, 0)
         self.diagramView.setTransform(transform)

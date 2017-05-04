@@ -1,5 +1,6 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+import shapefile
 
 __next_id__ = 1
 
@@ -87,6 +88,130 @@ class Line():
         """return QRectF coordinates"""
         return QtCore.QRectF(self.p1, self.p2)
 
+class ShpLine():
+    """
+    Line from shape file 
+    """   
+    def __init__(self, p1, p2, highlighted=False):
+        self.p1 = p1
+        """First point"""
+        self.p2 = p2
+        """Second point"""
+        self.highlighted = highlighted
+        """Object is highlighted"""
+    
+class ShpPoint():
+    """
+    Point from shape file 
+    """
+    def __init__(self, p, highlighted=False):
+        self.p = p
+        """Point"""
+        self.highlighted = highlighted
+        """Object is highlighted"""    
+
+class ShpData():
+    """
+    Shape file geometric data. 
+    
+    (Only geometric that will be displayed)
+    """
+    def __init__(self):
+        self.lines = []
+        """List of displayed lines in ShpLine data type"""
+        self.points = []
+        """List of displayed points in ShpPoint data type"""
+        self.inicialized = False
+        """Graphic object with shapes is inicialized"""
+        self.object = False
+        """Graphic object"""
+        self.min = None
+        """left top corner in QPoint coordinates"""
+        self.max = None
+        """right bottom corner in QPoint coordinates"""
+
+class ShpDisp():
+    """
+    Shape file displayed settings.
+    """
+    def __init__(self, file):
+        self.file = file
+        """paths to shp file"""
+        self.collor = None
+        """displaing color fir shapes"""
+        self.attrs = []
+        """File attributes"""
+        self.attr = None
+        """Selected attribute"""
+        self.av_names = []
+        """Values for selected attribute"""
+        self.av_show = []
+        """Show shape with this attribute"""
+        self.av_show = []
+        """Show shape with this attribute"""
+        self.av_highlight = []
+        """Highlight shape with this attribute"""
+        self.shpdata = ShpData()
+        """Datat for drawing"""
+        self._init_data(True)
+        
+    def refresh(self, shp_format=None):
+        """Refresh drawing data after settings changes"""
+        pass
+        
+        
+    def _init_data(self, init_attr=False):
+        """Init end refresh data"""
+        sf = shapefile.Reader(self.file)
+        if init_attr:
+            self.attr = None
+            for field in sf.fields:
+                self.attrs.append(field[0])
+                if self.attr is None:
+                    self.attr = field[0]
+        for i in range(0, len(sf.shapes())):
+            shape = sf.shape(i)
+            fields = sf.record(i)
+            if shape.shapeType==1:
+                pass
+        return True
+        
+    def set_color(self, color):
+        """change displayed color"""
+        self.color = color
+
+class ShpFiles():
+    """
+    Shape files, that is displazed in background.
+    """
+    def __init__(self):
+        self.datas=[]
+        """Data for shp files"""
+        
+    def is_empty(self):
+        """Is set some shapefile"""
+        return len(self.datas)==0
+        
+    def is_file_open(self, file):
+        """Is shapefile already opened"""
+        for data in self.datas:
+            if data.file == file:
+                return True
+        return False
+        
+    def add_file(self, file):
+        """Add new shapefile"""
+        disp = ShpDisp(file)         
+        self.datas.append(disp)
+
+    def del_file(self, idx):
+        """Delete existing shapefile according to file index"""
+        pass
+        
+    def set_attr(self, idx):
+        """Other attribute for idx file is selected and new data should be loadet"""
+        pass
+
 class Diagram():
     """
     Layer diagram
@@ -120,6 +245,7 @@ class Diagram():
         """y viw possition"""
         self._history = History(self)
         """history"""
+        self.shp = ShpFiles()
       
     @property
     def rect(self):
