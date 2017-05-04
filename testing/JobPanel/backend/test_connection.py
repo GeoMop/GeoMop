@@ -216,7 +216,7 @@ def test_exceptions():
 def test_get_delegator():
     # local service
     local_service = ServiceBase({})
-    local_service.repeater.run()
+    local_service._repeater.run()
 
     # environment
     env = {"__class__": "Environment",
@@ -232,5 +232,5 @@ def test_get_delegator():
     assert isinstance(delegator_proxy, ServiceProxy)
 
     # stopping, closing
-    local_service.repeater.close()
+    local_service._repeater.close()
     con.close_connections()

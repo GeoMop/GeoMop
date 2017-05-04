@@ -464,6 +464,7 @@ class AsyncRepeater():
         :return: None
         """
         self.loop_thread = threading.Thread(target=asyncore.loop, kwargs = {'timeout':0.1})
+        self.loop_thread.daemon = True
         self.loop_thread.start()
         logging.info("Repeater loop started.")
 

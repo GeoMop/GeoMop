@@ -142,6 +142,18 @@ class ConnectionSSH(ConnectionBase):
         self._timeout = 1000
         """timeout for ssh operations"""
 
+        self._forwarded_local_ports = {}
+        """dict of forwarded local ports, {'local_port': (thread, server)}"""
+
+        self._delegator_proxy = None
+        """delegator proxy"""
+
+        self._delegator_std_in_out_err = None
+        """delegator stdin, stdout, stderr"""
+
+        self._sftp = None
+        """SFTP session"""
+
         # open ssh connection
         self._ssh = paramiko.SSHClient()
         self._ssh.load_system_host_keys()
@@ -160,15 +172,6 @@ class ConnectionSSH(ConnectionBase):
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
         self._sftp.get_channel().settimeout(self._timeout)
-
-        # dict of forwarded local ports, {'local_port': (thread, server)}
-        self._forwarded_local_ports = {}
-
-        # delegator proxy
-        self._delegator_proxy = None
-
-        # delegator stdin, stdout, stderr
-        self._delegator_std_in_out_err = None
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -249,7 +252,7 @@ class ConnectionSSH(ConnectionBase):
 
         # start server in thread
         t = threading.Thread(target=server.serve_forever)
-        t.daemon = False
+        t.daemon = True
         t.start()
 
         # add thread and server to dict
@@ -314,7 +317,7 @@ class ConnectionSSH(ConnectionBase):
                 logging.info('Tunnel closed from %r' % (chan.origin_addr,))
 
             t = threading.Thread(target=inner_handler)
-            t.setDaemon(True)
+            t.daemon = True
             t.start()
 
         try:
@@ -418,7 +421,7 @@ class ConnectionSSH(ConnectionBase):
         # moved to repeater.add_child
 
         # 2.
-        child_id, remote_port = local_service.repeater.add_child(self)
+        child_id, remote_port = local_service._repeater.add_child(self)
 
         # 3.
         command = self.environment.python + " " \
@@ -434,13 +437,13 @@ class ConnectionSSH(ConnectionBase):
         connected = False
         for i in range(10):
             time.sleep(0.1)
-            answers = local_service.repeater.get_answers(child_id)
+            answers = local_service._repeater.get_answers(child_id)
             for answer in answers:
                 if answer.id == 0:
                     connected = True
                     break
             if connected:
-                self._delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
+                self._delegator_proxy = ServiceProxy(local_service._repeater, {}, self)
                 self._delegator_proxy.on_answer_connect()
                 break
 
