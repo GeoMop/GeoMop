@@ -189,3 +189,24 @@ def test_json_data():
         '{"__class__": "G", "a": 2, "b": [2, 3.0, [{"__class__": "A", "a": 3, "b": "test", "c": 2.0}, ' \
         '{"__class__": "A", "a": 5, "b": "test", "c": 2.0}]], ' \
         '"c": {"a": 3, "b": {"c": {"__class__": "A", "a": 7, "b": "test", "c": 2.0}}}}'
+
+    # serialized_attr
+    class H(JsonData):
+        def __init__(self, config={}):
+            self.a = 1
+            self.b = "test"
+            self.c = 2.0
+            self._u = 5
+            self._v = 6
+
+            super().__init__(config, ["a", "b", "_u"])
+
+    h = H({"a": 2, "_u": 7})
+
+    assert h.a == 2
+    assert h.b == "test"
+    assert h.c == 2.0
+    assert h._u == 7
+    assert h._v == 6
+
+    assert json.dumps(h.serialize(), sort_keys=True) == '{"__class__": "H", "_u": 7, "a": 2, "b": "test"}'

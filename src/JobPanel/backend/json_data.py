@@ -60,18 +60,37 @@ class JsonData:
     Serializable classes will be derived from this one. And data members
     that should not be serialized are prefixed by '_'.
 
-    TODO: Optional parameter in constructor to specify serialized attributes. (For Pavel)
+    If list of serialized attributes is provided to constructor,
+    these attributes are serialized no matter if prefixed by '_' or not.
+
     ?? Anything similar in current JobPanel?
     """
-    def __init__(self, config={}):
+    def __init__(self, config, serialized_attr=None):
         """
         Initialize class dict from config serialization.
-        :param config:
+        :param config: config dict
+        :param serialized_attr: list of serialized attributes
         """
+        self._serialized_attr = serialized_attr
+
         for k, v in config.items():
-            if k not in self.__dict__:
+            if (k not in self.__dict__) or (not self._is_attr_serialized(k)):
                 raise WrongKeyError(k)
             self.__dict__[k] = JsonData._deserialize(self.__dict__[k], v)
+
+    def _is_attr_serialized(self, attr):
+        """
+        Return True if attribute is serialized.
+        :param attr: attribute
+        :return:
+        """
+        if self._serialized_attr is None:
+            if attr[0] != "_":
+                return True
+        else:
+            if attr in self._serialized_attr:
+                return True
+        return False
 
     @staticmethod
     def _deserialize(temp, data):
@@ -140,7 +159,7 @@ class JsonData:
         """Return dict for serialization."""
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
-            if k[0] != "_":
+            if self._is_attr_serialized(k):
                 d[k] = JsonData._serialize_object(v)
         return d
 
