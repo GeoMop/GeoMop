@@ -220,7 +220,7 @@ def test_get_delegator():
 
     # environment
     env = {"__class__": "Environment",
-           "root": os.path.abspath("../../src"),
+           "geomop_root": os.path.abspath("../../src"),
            "python": "python3"}
 
     # ConnectionSSH

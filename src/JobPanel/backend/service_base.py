@@ -144,14 +144,7 @@ class ServiceBase(ActionProcessor, JsonData):
         self.child_services={}
         self.requests=[]
 
-        # JsonData type check correction
-        # TODO: just modify the AsyncRepeater__init__, zero parent address is invalid as well.
-        if self.parent_address[0] == "":
-            parent_address = None
-        else:
-            parent_address = self.parent_address
-
-        self.repeater = ar.AsyncRepeater(self.repeater_address, parent_address)
+        self.repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_port=self.repeater.listen_port
 
         self._closing = False

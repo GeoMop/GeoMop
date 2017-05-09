@@ -422,7 +422,7 @@ class ConnectionSSH(ConnectionBase):
 
         # 3.
         command = self.environment.python + " " \
-                  + os.path.join(self.environment.root, "JobPanel/delegator_service.py") \
+                  + os.path.join(self.environment.geomop_root, "JobPanel/delegator_service.py") \
                   + " {} {} {}".format(child_id, "localhost", remote_port)
         try:
             self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)

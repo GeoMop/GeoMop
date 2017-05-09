@@ -202,9 +202,6 @@ class _ClientDispatcher(asynchat.async_chat):
         self.set_terminator(_terminator)
 
         # create answer 0
-
-        # The only place sent_requests is accessed from the asyncchat thread.
-        # possibly move into constructor or other method called from the service thread.
         self.answers.append((0, None, None, None))
 
     def collect_incoming_data(self, data):
@@ -428,7 +425,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, parent_address=None):
+    def __init__(self, repeater_address, parent_address=("", 0)):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater.
@@ -445,7 +442,7 @@ class AsyncRepeater():
         """ Dict of clients. Keys client_id. """
         self._starter_client_thread = None
         self._starter_client_attempting = False
-        if (parent_address is None):
+        if self.parent_address[0] == "":
             self._server_dispatcher = None
             self.listen_port = None
         else:
