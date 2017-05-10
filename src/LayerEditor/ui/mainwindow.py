@@ -82,8 +82,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_diagram_data(self):
         """Propagate new diagram scene to canvas"""
-        self.diagramScene.set_data(cfg.diagram)       
-        self._move()
+        self.diagramScene.set_data(cfg.diagram)
+        self.display_all()
+        
+    def refresh_diagram_shp(self):
+        """refresh diagrams shape files background layer"""
+        self.diagramScene.refresh_shp_backgrounds()
+        if cfg.diagram.first_shp_object():
+            self.display_all()
+        else:
+            self._move()
         
     def _cursor_changed(self, line, column):
         """Editor node change signal"""
@@ -92,6 +100,25 @@ class MainWindow(QtWidgets.QMainWindow):
     def _move(self):
         """zooming and moving"""
         view_rect = self.diagramView.rect()
+        self._display(view_rect)
+    
+    def display_all(self):
+        """Display all diagram"""
+        view_rect = self.diagramView.rect()
+        rect = cfg.diagram.rect
+        if (view_rect.width()/rect.width())>(view_rect.height()/rect.height()):
+            # resize acoording height
+            cfg.diagram.zoom = view_rect.height()/rect.height()
+            cfg.diagram.y = rect.top()
+            cfg.diagram.x = rect.left()+(view_rect.width()/cfg.diagram.zoom-rect.width())/2
+        else:
+            cfg.diagram.zoom = view_rect.width()/rect.width()
+            cfg.diagram.x = rect.left()
+            cfg.diagram.y = rect.top()+(view_rect.height()/cfg.diagram.zoom-rect.height())/2
+        self._display(view_rect)
+        
+    def _display(self, view_rect):
+        """moving"""
         self.diagramView.setSceneRect(
             cfg.diagram.x, 
             cfg.diagram.y, 
@@ -99,3 +126,4 @@ class MainWindow(QtWidgets.QMainWindow):
             view_rect.height()/cfg.diagram.zoom)
         transform = QtGui.QTransform(cfg.diagram.zoom, 0, 0,cfg.diagram.zoom, 0, 0)
         self.diagramView.setTransform(transform)
+    

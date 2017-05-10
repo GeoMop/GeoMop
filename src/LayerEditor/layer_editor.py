@@ -30,14 +30,14 @@ class LayerEditor:
         #test
         import ui.data as data
         cfg.diagram = data.Diagram()
-        for i in range(0, 20):
-            for j in range(0, 20):
-                x1 = i*50
-                x2 = i*50+20*(i%9-5) +20*(j%11-6) 
-                y1= j*50
-                y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
-                p1 = cfg.diagram.add_point(x1, y1, None, None, True)
-                cfg.diagram.add_line(p1, x2, y2, None, True)
+#        for i in range(0, 20):
+#            for j in range(0, 20):
+#                x1 = i*50
+#                x2 = i*50+20*(i%9-5) +20*(j%11-6) 
+#                y1= j*50
+#                y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
+#                p1 = cfg.diagram.add_point(x1, y1, None, None, True)
+#                cfg.diagram.add_line(p1, x2, y2, None, True)
         self.mainwindow.refresh_diagram_data()
         
     def new_file(self):
@@ -63,7 +63,7 @@ class LayerEditor:
             cfg.config.data_dir, "Yaml Files (*.shp)")
         if shp_file[0]:
             if cfg.open_shape_file( shp_file[0]):
-                self.mainwindow.refresh_diagram_data()
+                self.mainwindow.refresh_diagram_shp()
 
     def open_recent(self, action):
         """open recent file menu action"""

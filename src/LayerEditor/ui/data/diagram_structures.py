@@ -99,7 +99,8 @@ class ShpLine():
         """Second point"""
         self.highlighted = highlighted
         """Object is highlighted"""
-    
+ 
+ 
 class ShpPoint():
     """
     Point from shape file 
@@ -109,6 +110,7 @@ class ShpPoint():
         """Point"""
         self.highlighted = highlighted
         """Object is highlighted"""    
+
 
 class ShpData():
     """
@@ -121,14 +123,15 @@ class ShpData():
         """List of displayed lines in ShpLine data type"""
         self.points = []
         """List of displayed points in ShpPoint data type"""
-        self.inicialized = False
-        """Graphic object with shapes is inicialized"""
-        self.object = False
+        self.refreshed = False
+        """Graphic object with shapes is repainted after refresh"""
+        self.object = None
         """Graphic object"""
         self.min = None
         """left top corner in QPoint coordinates"""
         self.max = None
         """right bottom corner in QPoint coordinates"""
+
 
 class ShpDisp():
     """
@@ -137,7 +140,7 @@ class ShpDisp():
     def __init__(self, file):
         self.file = file
         """paths to shp file"""
-        self.collor = None
+        self.color = QtGui.QColor(QtCore.Qt.gray)
         """displaing color fir shapes"""
         self.attrs = []
         """File attributes"""
@@ -147,38 +150,90 @@ class ShpDisp():
         """Values for selected attribute"""
         self.av_show = []
         """Show shape with this attribute"""
-        self.av_show = []
-        """Show shape with this attribute"""
         self.av_highlight = []
         """Highlight shape with this attribute"""
         self.shpdata = ShpData()
         """Datat for drawing"""
         self._init_data(True)
         
-    def refresh(self, shp_format=None):
+    def refresh(self,  attr):
         """Refresh drawing data after settings changes"""
-        pass
+        self._init_data(False, attr)
+        self.refreshed = False
         
-        
-    def _init_data(self, init_attr=False):
+    def _init_data(self, init_attr, load_attr=None):
         """Init end refresh data"""
         sf = shapefile.Reader(self.file)
         if init_attr:
             self.attr = None
-            for field in sf.fields:
+            for i in range(1, len(sf.fields)):
+                field = sf.fields[i]
                 self.attrs.append(field[0])
                 if self.attr is None:
-                    self.attr = field[0]
-        for i in range(0, len(sf.shapes())):
-            shape = sf.shape(i)
+                    self.attr = i
+        if load_attr is None:
+            load_attr = self.attr
+        if self.attr is not None and  \
+            (init_attr or load_attr!=self.attr):            
+            for i in range(0, len(sf.shapes())):            
+                fields = sf.record(i)
+                if fields[load_attr] not in self.av_names:
+                    self.av_names.append(fields[load_attr])
+                    self.av_show.append(True)
+                    self.av_highlight.append(False)
+            self.attr = load_attr
+        for i in range(0, len(sf.shapes())):            
             fields = sf.record(i)
-            if shape.shapeType==1:
-                pass
+            idx = self.av_names.index(fields[self.attr])
+            if not self.av_show[idx]:
+                continue
+            highlighted = self.av_highlight[idx]
+            shape = sf.shape(i)            
+            # layer borders
+            if shape.shapeType==15:
+                if self.shpdata.min is None:
+                    self.shpdata.min = QtCore.QPointF(shape.bbox[0], shape.bbox[1])
+                    self.shpdata.max = QtCore.QPointF(shape.bbox[2], shape.bbox[3])
+                else:
+                    if self.shpdata.min.x()>shape.bbox[0]:
+                        self.shpdata.min.setX(shape.bbox[0])
+                    if self.shpdata.min.y()>shape.bbox[1]:
+                        self.shpdata.min.setY(shape.bbox[1])
+                    if self.shpdata.max.x()<shape.bbox[2]:
+                        self.shpdata.max.setX(shape.bbox[2])
+                    if self.shpdata.max.y()<shape.bbox[3]:
+                        self.shpdata.max.setY(shape.bbox[3])
+                part = 0
+                point = None
+                firstpoint = None
+                for j in range(0, len(shape.points)):
+                    lastPoint = point
+                    point = QtCore.QPointF(shape.points[j][0],shape.points[j][1])
+                    self.shpdata.points.append(
+                            ShpPoint(point, highlighted)
+                        )
+                    if shape.parts[part]==j:
+                        if firstpoint is not None:
+                            self.shpdata.lines.append(
+                                    ShpLine(point, firstpoint, highlighted)
+                                )
+                        firstpoint=point
+                        if len(shape.parts)>(part+1):
+                            part +=1
+                    else:
+                        self.shpdata.lines.append(
+                                ShpLine(lastPoint, point, highlighted)
+                            )
+                if firstpoint is not None:
+                    self.shpdata.lines.append(
+                            ShpLine(point, firstpoint, highlighted)
+                        )
         return True
         
     def set_color(self, color):
         """change displayed color"""
         self.color = color
+        self.refreshed = False
 
 class ShpFiles():
     """
@@ -187,7 +242,19 @@ class ShpFiles():
     def __init__(self):
         self.datas=[]
         """Data for shp files"""
-        
+        self.boundrect = None
+        """shape file bounding rect in QRectF variable or None"""
+    
+    def _shp_rect(self):
+        """compute shape file bounding rect"""
+        rec = None
+        for shp in self.datas:
+            if rec is None:
+                rec = QtCore.QRectF(shp.shpdata.min, shp.shpdata.max)
+            else:
+                rec = rec.united(QtCore.QRectF(shp.shpdata.min, shp.shpdata.max))                
+        return rec
+    
     def is_empty(self):
         """Is set some shapefile"""
         return len(self.datas)==0
@@ -202,15 +269,16 @@ class ShpFiles():
     def add_file(self, file):
         """Add new shapefile"""
         disp = ShpDisp(file)         
-        self.datas.append(disp)
+        self.datas.append(disp) 
+        self.boundrect = self._shp_rect()
 
     def del_file(self, idx):
         """Delete existing shapefile according to file index"""
-        pass
+        self.boundrect = self._shp_rect()
         
     def set_attr(self, idx):
-        """Other attribute for idx file is selected and new data should be loadet"""
-        pass
+        """Other attribute for idx file is selected and new data should be reloaded"""
+        self.boundrect = self._shp_rect()
 
 class Diagram():
     """
@@ -250,7 +318,10 @@ class Diagram():
     @property
     def rect(self):
         if self._rect is None:
-            return QtCore.QRectF(0, 0, 450, 300)
+            if self.shp.boundrect is None:
+                return QtCore.QRectF(0, 0, 450, 300)
+            else:
+                return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100
         return QtCore.QRectF(
             self._rect.left()-margin, 
@@ -271,6 +342,16 @@ class Diagram():
             self.pen_changed = True
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.2/value)
             self._recount_zoom = value
+            
+    def first_shp_object(self):
+        """return if is only one shp object in diagram"""
+        if len( self.points)>0:
+            return False
+        if len( self.lines)>0:
+            return False
+        if len(self.shp.datas)>1:
+            return False
+        return True
     
     def get_point_by_id(self, id):
         """return point or None if not exist"""
@@ -285,10 +366,15 @@ class Diagram():
             if line.id==id:
                 return line
         return None
+        
+    def add_file(self, file):
+        """Add new shapefile"""
+        self.shp.add_file(file)
+        self.recount_canvas()
 
     def recount_canvas(self):
         """recount canvas size"""
-        self._rect = None
+        self._rect = self.shp.boundrect        
         for p in self.points:
             if self._rect is None:
                 self._rect = QtCore.QRectF(p.x, p.y, 0, 0)   

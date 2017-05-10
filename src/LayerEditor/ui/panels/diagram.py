@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
-from ui.gitems import Line, Point
+from ui.gitems import Line, Point, ShpBackground
 from ui.gitems import ItemStates
 from enum import IntEnum
 
@@ -96,6 +96,19 @@ class Diagram(QtWidgets.QGraphicsScene):
         super(Diagram, self).__init__(parent)        
         self.set_data(data)    
         self.setSceneRect(0, 0, 20, 20)
+        
+    def refresh_shp_backgrounds(self):
+        """refresh updated shape files on background"""
+        for shp in self._data.shp.datas:
+            if shp.shpdata.object is None:
+                s = ShpBackground(shp.shpdata, self._data, shp.color)
+                self.addItem(s) 
+               # s.prepareGeometryChange()
+                shp.shpdata.refreshed = True
+            elif not shp.shpdata.refreshed:
+                shp.shpdata.object.color = shp.color
+                shp.shpdata.object.update()
+                shp.shpdata.refreshed = True
     
     def _add_point(self, gobject, p1, label='Add point'):
         """Add point to diagram and paint it."""
