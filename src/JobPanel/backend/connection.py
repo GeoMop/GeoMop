@@ -1,6 +1,6 @@
 from .json_data import JsonData
-from ._service_proxy import ServiceProxy
-from .service_base import ServiceStatus
+from .service_proxy import ServiceProxy
+from .environment import Environment
 
 import paramiko
 
@@ -34,51 +34,6 @@ class SSHAuthenticationError(SSHError):
 class SSHTimeoutError(SSHError):
     """Raised when timeout occurs."""
     pass
-
-
-class Environment(JsonData):
-    """
-    Represents GeoMop backend installation and system configuration.
-
-    Keep information about all executables that are part of the installation,
-    metainformation about executables and scripts.
-    (Can run given executable)
-
-    Process of initialization. Environment configuration should be part of
-    connection as it is related to particular machine. Still allowing to
-    copy one connection to other and reuse environment or ssh.
-    1. User set root dir.
-    2. Default list of executables and other parts of configuration is test
-    on the remote (using delegator) and returned back. Possible problems can be resolved
-    by user manualy and further tested in a Connection panel.
-    """
-
-    def __init__(self, config={}):
-        """
-        If config have 'version_id' we just check that it match
-        the version installed at 'root'. Otherwise we start test_installation.
-        :param config: InstallationData
-        """
-        self.root = ""
-        """
-        Path to the root directory of the GeoMop backend installtion.
-        The only attribute that must be provided by user.
-        """
-        self.version_id = ""
-        """ Version ID of the installation. This is set by 'test_installation'
-        and checked against true state of the installation in constructor."""
-        self.executables = []
-        """List of Executables available on the installation."""
-
-        # System configuration follows
-        self.mpiexec = ""
-        """Path to the system wide (default) mpiexec."""
-        self.python = ""
-        """Path to the python interpreter."""
-        self.pbs = None
-        """ Resolve class to implement details of particular PBS."""
-        JsonData.__init__(self, config)
-
 
 
 class ConnectionBase(JsonData):
@@ -187,6 +142,18 @@ class ConnectionSSH(ConnectionBase):
         self._timeout = 1000
         """timeout for ssh operations"""
 
+        self._forwarded_local_ports = {}
+        """dict of forwarded local ports, {'local_port': (thread, server)}"""
+
+        self._delegator_proxy = None
+        """delegator proxy"""
+
+        self._delegator_std_in_out_err = None
+        """delegator stdin, stdout, stderr"""
+
+        self._sftp = None
+        """SFTP session"""
+
         # open ssh connection
         self._ssh = paramiko.SSHClient()
         self._ssh.load_system_host_keys()
@@ -205,15 +172,6 @@ class ConnectionSSH(ConnectionBase):
         # open an SFTP session
         self._sftp = self._ssh.open_sftp()
         self._sftp.get_channel().settimeout(self._timeout)
-
-        # dict of forwarded local ports, {'local_port': (thread, server)}
-        self._forwarded_local_ports = {}
-
-        # delegator proxy
-        self._delegator_proxy = None
-
-        # delegator stdin, stdout, stderr
-        self._delegator_std_in_out_err = None
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -294,7 +252,7 @@ class ConnectionSSH(ConnectionBase):
 
         # start server in thread
         t = threading.Thread(target=server.serve_forever)
-        t.daemon = False
+        t.daemon = True
         t.start()
 
         # add thread and server to dict
@@ -359,7 +317,7 @@ class ConnectionSSH(ConnectionBase):
                 logging.info('Tunnel closed from %r' % (chan.origin_addr,))
 
             t = threading.Thread(target=inner_handler)
-            t.setDaemon(True)
+            t.daemon = True
             t.start()
 
         try:
@@ -463,7 +421,7 @@ class ConnectionSSH(ConnectionBase):
         # moved to repeater.add_child
 
         # 2.
-        child_id, remote_port = local_service.repeater.add_child(self)
+        child_id, remote_port = local_service._repeater.add_child(self)
 
         # 3.
         command = self.environment.python + " " \
@@ -479,13 +437,13 @@ class ConnectionSSH(ConnectionBase):
         connected = False
         for i in range(10):
             time.sleep(0.1)
-            answers = local_service.repeater.get_answers(child_id)
+            answers = local_service._repeater.get_answers(child_id)
             for answer in answers:
                 if answer.id == 0:
                     connected = True
                     break
             if connected:
-                self._delegator_proxy = ServiceProxy(local_service.repeater, {}, self)
+                self._delegator_proxy = ServiceProxy(local_service._repeater, {}, self)
                 self._delegator_proxy.on_answer_connect()
                 break
 
