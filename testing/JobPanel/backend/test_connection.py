@@ -216,7 +216,7 @@ def test_exceptions():
 def test_get_delegator():
     # local service
     local_service = ServiceBase({})
-    local_service.repeater.run()
+    local_service._repeater.run()
 
     # environment
     env = {"__class__": "Environment",
@@ -232,5 +232,34 @@ def test_get_delegator():
     assert isinstance(delegator_proxy, ServiceProxy)
 
     # stopping, closing
-    local_service.repeater.close()
+    local_service._repeater.close()
+    con.close_connections()
+
+
+METACENTRUM_FRONTEND = "skirit.metacentrum.cz"
+METACENTRUM_HOME = "/storage/brno2/home/"
+
+
+def test_mc_get_delegator():
+    # metacentrum credentials
+    mc_u, mc_p = get_passwords()["metacentrum"]
+
+    # local service
+    local_service = ServiceBase({})
+    local_service._repeater.run()
+
+    # environment
+    env = {"__class__": "Environment",
+           "root": os.path.join(METACENTRUM_HOME, mc_u, "GeoMop/src"),
+           "python": "python3"}
+
+    # ConnectionSSH
+    con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
+
+    # get_delegator
+    delegator_proxy = con.get_delegator(local_service)
+    assert isinstance(delegator_proxy, ServiceProxy)
+
+    # stopping, closing
+    local_service._repeater.stop()
     con.close_connections()
