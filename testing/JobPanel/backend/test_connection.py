@@ -245,8 +245,8 @@ def test_mc_get_delegator():
     mc_u, mc_p = get_passwords()["metacentrum"]
 
     # local service
-    local_service = ServiceBase(0, None)
-    local_service.repeater.run()
+    local_service = ServiceBase({})
+    local_service._repeater.run()
 
     # environment
     env = {"__class__": "Environment",
@@ -254,7 +254,6 @@ def test_mc_get_delegator():
            "python": "python3"}
 
     # ConnectionSSH
-    u, p = get_test_password()
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
 
     # get_delegator
@@ -262,5 +261,5 @@ def test_mc_get_delegator():
     assert isinstance(delegator_proxy, ServiceProxy)
 
     # stopping, closing
-    local_service.repeater.stop()
+    local_service._repeater.stop()
     con.close_connections()
