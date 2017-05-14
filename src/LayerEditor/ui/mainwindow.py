@@ -7,7 +7,6 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ui import panels
 from leconfig import cfg
-from ui import data
 from ui.menus.tools import ToolsMenu
 from ui.menus.edit import EditMenu
 from ui.menus.file import MainFileMenu
@@ -27,9 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self._hsplitter)
         # splitters
         self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        
-        diagram = data.Diagram()
-        self.diagramScene = panels.Diagram(diagram, self._vsplitter)
+        self.diagramScene = panels.Diagram(self._vsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._vsplitter)
         self.diagramView.setResizeAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
@@ -41,11 +38,13 @@ class MainWindow(QtWidgets.QMainWindow):
         #    QtWidgets.QSizePolicy.Expanding))
        # self.diagramView.setMinimumSize(QtCore.QSize(500, 500)) 
 
-        if not diagram.shp.is_empty():
-            self.shp = panels.ShpFiles(diagram.shp, self._hsplitter)
-            self._hsplitter.insertWidget(0, self.shp)
+        self.shp = panels.ShpFiles(cfg.diagram.shp, self._hsplitter)
+        self._hsplitter.insertWidget(0, self.shp)
+        if not cfg.diagram.shp.is_empty():            
             self.shp.reload()
-        
+        else:
+            self.shp.hide()
+            
         # Menu bar
         self._menu = self.menuBar()
         self._tools_menu = ToolsMenu(self, self.diagramScene)
@@ -77,16 +76,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.possChanged.connect(self._move)
         
         # self.diagramView.scale(10, 10)
-        self.data = None        
+#        self.data = None        
 
     def refresh_diagram_data(self):
         """Propagate new diagram scene to canvas"""
-        self.diagramScene.set_data(cfg.diagram)
+        self.diagramScene.set_data()
         self.display_all()
         
     def refresh_diagram_shp(self):
         """refresh diagrams shape files background layer"""
         self.diagramScene.refresh_shp_backgrounds()
+        if not cfg.diagram.shp.is_empty():
+            if not self.shp.isVisible(): 
+                self.shp.show()
+            self.shp.reload()
+        else:
+            self.shp.hide()            
+                
         if cfg.diagram.first_shp_object():
             self.display_all()
         else:

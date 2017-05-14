@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+from leconfig import cfg
 
 class ShpBackground(QtWidgets.QGraphicsItem):
     """ 
@@ -9,30 +10,29 @@ class ShpBackground(QtWidgets.QGraphicsItem):
     
     ZVALUE = -10
     
-    def __init__(self, shp, data, color, parent=None):
+    def __init__(self, shp, color, parent=None):
         super(ShpBackground, self).__init__(parent)
         self.shp = shp
         """shape file objects data"""
         self.color = color
         """shape file objects data color"""
         shp.object = self        
-        self.data = data        
         self.setZValue(self.ZVALUE) 
         
     def boundingRect(self):
         """Redefination of standart boundingRect function, that return boun rect"""
-        r = self.data.pen.widthF()
+        r = cfg.diagram.pen.widthF()
         rect = QtCore.QRectF(self.shp.min, self.shp.max)
         rect.adjust(-r, -r, r, r)
         return rect
 
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that paint object from shape file"""
-        r = self.data.pen.widthF()
-        if self.data.pen.widthF() != painter.pen().widthF():
-            painter.setPen(self.data.pen)
+        r = cfg.diagram.pen.widthF()
+        if cfg.diagram.pen.widthF() != painter.pen().widthF():
+            painter.setPen(cfg.diagram.pen)
         if painter.pen().color()!= self.color:
-            pen = QtGui.QPen(self.data.pen)
+            pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor( self.color)
             painter.setPen(pen)
         highlighted = False
@@ -55,6 +55,4 @@ class ShpBackground(QtWidgets.QGraphicsItem):
             painter.drawEllipse(point.p, r, r)
             
     def release_point(self):
-        self.shp.object = None
-        self.data = None
-        
+        self.shp.object = None        

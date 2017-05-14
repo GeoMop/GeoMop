@@ -8,6 +8,7 @@ import os
 import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
+import ui.data as data
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -51,7 +52,7 @@ class LEConfig:
     """Serialized variables"""
     logger = logging.getLogger(LOGGER_PREFIX +  config.CONTEXT_NAME)
     """root context logger"""
-    diagram = None
+    diagram = data.Diagram()
     """Current diagram data"""
     main_window = None
     """parent of dialogs"""
@@ -59,7 +60,7 @@ class LEConfig:
     @classmethod
     def init(cls, main_window):
         """Init class wit static method"""
-        cls.main_window = main_window
+        cls.main_window = main_window        
      
     @classmethod
     def save(cls):

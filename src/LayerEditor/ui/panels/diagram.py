@@ -6,6 +6,7 @@ import ui.data.diagram_structures as struc
 from ui.gitems import Line, Point, ShpBackground
 from ui.gitems import ItemStates
 from enum import IntEnum
+from leconfig import cfg
 
 
 class OperatinState(IntEnum):
@@ -35,15 +36,13 @@ class Diagram(QtWidgets.QGraphicsScene):
     to signal and change visualisation.
     """
 
-    def __init__(self, data, parent=None):
+    def __init__(self, parent=None):
         """
         Inicialize window
 
         Args:
             parent (QWidget): parent window ( empty is None)
         """ 
-        self._data = data
-        """Diagram data"""
         # move point variables
         self._point_moving = None
         """point is drawn"""
@@ -94,14 +93,14 @@ class Diagram(QtWidgets.QGraphicsScene):
         self._control_object = None
         """object, that is below cursor, if button press event is emited"""
         super(Diagram, self).__init__(parent)        
-        self.set_data(data)    
+        self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
         
     def refresh_shp_backgrounds(self):
         """refresh updated shape files on background"""
-        for shp in self._data.shp.datas:
+        for shp in cfg.diagram.shp.datas:
             if shp.shpdata.object is None:
-                s = ShpBackground(shp.shpdata, self._data, shp.color)
+                s = ShpBackground(shp.shpdata, shp.color)
                 self.addItem(s) 
                # s.prepareGeometryChange()
                 shp.shpdata.refreshed = True
@@ -113,18 +112,18 @@ class Diagram(QtWidgets.QGraphicsScene):
     def _add_point(self, gobject, p1, label='Add point'):
         """Add point to diagram and paint it."""
         if gobject is None:
-            point = self._data.add_point(p1.x(), p1.y(), label) 
-            p = Point(point,  self._data)
+            point =cfg.diagram.add_point(p1.x(), p1.y(), label) 
+            p = Point(point)
             self.addItem(p)
         elif isinstance(gobject, Point):
             return gobject, label
         elif isinstance(gobject, Line): 
             if label=='Add point':
                 label='Add new point to line'
-            point, l2 = self._data.add_new_point_to_line(gobject.line, p1.x(), p1.y(), label)
-            l = Line(l2, self._data)
+            point, l2 = cfg.diagram.add_new_point_to_line(gobject.line, p1.x(), p1.y(), label)
+            l = Line(l2)
             self.addItem(l) 
-            p = Point(point,  self._data)
+            p = Point(point)
             self.addItem(p)                 
         return p, None
         
@@ -164,21 +163,21 @@ class Diagram(QtWidgets.QGraphicsScene):
             p2, label = self._add_point(gobject, p, label)
             px = p.x()
             py = p.y()            
-            line = self._data. join_line(p1.point, p2.point, label)
-            l = Line(line, self._data)
+            line = cfg.diagram. join_line(p1.point, p2.point, label)
+            l = Line(line)
             self.addItem(l) 
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
-            p1 = Point(line.p1, self._data)
+            p1 = Point(line.p1)
             p1.set_tmp()
             self.addItem(p1)             
-            p2 = Point(line.p2, self._data)
+            p2 = Point(line.p2)
             p2.set_tmp()
             self.addItem(p2) 
-            l = Line(line, self._data)
+            l = Line(line)
             l.set_tmp()
             self.addItem(l) 
             self._last_line = line
@@ -211,10 +210,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         
     def _update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
-            p = Point(point,  self._data)
+            p = Point(point)
             self.addItem(p)
         for line in added_lines:
-            l = Line(line,  self._data)
+            l = Line(line)
             self.addItem(l) 
         for point in removed_points:
             p = point.object
@@ -230,25 +229,24 @@ class Diagram(QtWidgets.QGraphicsScene):
     def undo_to_label(self, label=None):
         """undo to set label, if label is None, undo to previous operation"""
         (added_points, removed_points, moved_points, added_lines, removed_lines) = \
-            self._data.undo_to_label(label)
+            cfg.diagram.undo_to_label(label)
         self._update_changes(added_points, removed_points, moved_points, added_lines, removed_lines)
         
     def redo_to_label(self, label=None):
         """redo to set label, if label is None, redo to next operation"""
         (added_points, removed_points, moved_points, added_lines, removed_lines) = \
-            self._data.redo_to_label(label)
+            cfg.diagram.redo_to_label(label)
         self._update_changes(added_points, removed_points, moved_points, added_lines, removed_lines)
         
-    def set_data(self, data):
-        self._data = data
+    def set_data(self):        
         self.clear()
-        for line in data.lines:
-            l = Line(line,  self._data)
+        for line in cfg.diagram.lines:
+            l = Line(line)
             self.addItem(l) 
-        for point in data.points:
-            p = Point(point,  self._data)
+        for point in cfg.diagram.points:
+            p = Point(point)
             self.addItem(p)
-        self._recount_zoom = self._data.zoom
+        self._recount_zoom = cfg.diagram.zoom
             
     def mouseMoveEvent(self, event):
         """Standart mouse event"""
@@ -257,8 +255,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         if self._moving: 
             self._moving_counter += 1
             if self._moving_counter%3==0:
-                self._data.x += (self._moving_x-event.screenPos().x())/self._data.zoom
-                self._data.y += (self._moving_y-event.screenPos().y())/self._data.zoom
+                cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
+                cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                 self._moving_x = event.screenPos().x()
                 self._moving_y = event.screenPos().y()
                 self.possChanged.emit()
@@ -338,10 +336,10 @@ class Diagram(QtWidgets.QGraphicsScene):
             line.release_line()
             self.removeItem(line)
             if first:
-                self._data.delete_line(l, "Delete selected")
+                cfg.diagram.delete_line(l, "Delete selected")
                 first = False
             else:
-                self._data.delete_line(l, None)
+                cfg.diagram.delete_line(l, None)
         self._selected_lines = []
         removed = []
         for point in self._selected_points:            
@@ -351,7 +349,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 first = False
             else:
                 label = None
-            if   self._data.try_delete_point(p, label):
+            if cfg.diagram.try_delete_point(p, label):
                 point.release_point()
                 self.removeItem(point)
                 removed.append(point)
@@ -360,9 +358,9 @@ class Diagram(QtWidgets.QGraphicsScene):
     
     def select_all(self): 
         """select all items"""
-        for line in self._data.lines:
+        for line in cfg.diagram.lines:
             self._select_line(line.object, False)
-        for point in self._data.points:
+        for point in cfg.diagram.points:
             self._select_point(point.object)
     
     def deselect_selected(self):
@@ -380,22 +378,22 @@ class Diagram(QtWidgets.QGraphicsScene):
         if below_item==self._point_moving:
             # moved point with small zorder value is below cursor             
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            self._data.move_point_after(self._point_moving.point, 
+            cfg.diagram.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
         elif isinstance(below_item, Line):
-            self._data.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+            cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Move point to Line')
-            new_line, merged_lines = self._data.add_point_to_line(below_item.line, 
+            new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line, 
                 self._point_moving.point, None)
-            l = Line(new_line, self._data)
+            l = Line(new_line)
             self.addItem(l) 
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
             self._update_changes([], [],  [], [], merged_lines)
         elif isinstance(below_item, Point):
-            self._data.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+            cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Merge points')
-            removed_lines = self._data.merge_point(below_item.point, self._point_moving.point, None)
+            removed_lines = cfg.diagram.merge_point(below_item.point, self._point_moving.point, None)
             self._point_moving.release_point()
             self.removeItem(self._point_moving)
             self._update_changes([], [],  [], [], removed_lines)            
@@ -411,8 +409,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             if self._moving:
                 self._moving = False
                 if  self._moving_counter>1:
-                    self._data.x += (self._moving_x-event.screenPos().x())/self._data.zoom
-                    self._data.y += (self._moving_y-event.screenPos().y())/self._data.zoom
+                    cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
+                    cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                     self.possChanged.emit()
                 else:
                     if not self._selection_mode:
@@ -480,7 +478,7 @@ class Diagram(QtWidgets.QGraphicsScene):
 
     def wheelEvent(self, event):
         """wheel event for zooming"""
-        if self._data is None:
+        if cfg.diagram is None:
             return
         delta = event.delta()/3000
         if delta>0.1:
@@ -488,9 +486,9 @@ class Diagram(QtWidgets.QGraphicsScene):
         if delta<-0.1:
             delta = -0.1        
         # repair possition
-        self._data.x +=  (event.scenePos().x() -  self._data.x) * delta
-        self._data.y += (event.scenePos().y() - self._data.y) * delta
+        cfg.diagram.x +=  (event.scenePos().x() -  cfg.diagram.x) * delta
+        cfg.diagram.y += (event.scenePos().y() - cfg.diagram.y) * delta
         # repair zoom
-        self._data.zoom *= (1.0 + delta)
+        cfg.diagram.zoom *= (1.0 + delta)
         # send signal
         self.possChanged.emit()

@@ -21,15 +21,13 @@ class LayerEditor:
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         self.mainwindow = MainWindow(self)
         
-        # load config
+        # load config        
         cfg.init(self.mainwindow)
 
         # show
         self.mainwindow.show()
         
-        #test
-        import ui.data as data
-        cfg.diagram = data.Diagram()
+        #test        
 #        for i in range(0, 20):
 #            for j in range(0, 20):
 #                x1 = i*50

@@ -2,6 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
+from leconfig import cfg
 
 class Point(QtWidgets.QGraphicsEllipseItem):
     """ 
@@ -12,17 +13,16 @@ class Point(QtWidgets.QGraphicsEllipseItem):
     MOVE_ZVALUE = 20
     TMP_ZVALUE = 0
    
-    def __init__(self, point,data, parent=None):
+    def __init__(self, point, parent=None):
         """if item is selected"""
         self.point = point
         self._tmp = False
-        self.data = data
         point.object = self
         self.state = ItemStates.standart
         """Item state"""
-        super(Point, self).__init__(self.point.x-2/data.zoom, 
-            self.point.y-2/data.zoom, 4/data.zoom, 4/data.zoom, parent)   
-        self.setPen(self.data.pen)
+        super(Point, self).__init__(self.point.x-2/cfg.diagram.zoom, 
+            self.point.y-2/cfg.diagram.zoom, 4/cfg.diagram.zoom, 4/cfg.diagram.zoom, parent)   
+        self.setPen(cfg.diagram.pen)
         self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))    
         self.setZValue(self.STANDART_ZVALUE) 
         
@@ -35,13 +35,13 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
-        if self.data.pen.widthF() != self.pen().widthF():
+        if cfg.diagram.pen.widthF() != self.pen().widthF():
             self.prepareGeometryChange()
-            self.setRect(self.point.x-2/self.data.zoom, 
-                self.point.y-2/self.data.zoom, 4/self.data.zoom, 4/self.data.zoom)
-            self.setPen(self.data.pen)
+            self.setRect(self.point.x-2/cfg.diagram.zoom, 
+                self.point.y-2/cfg.diagram.zoom, 4/cfg.diagram.zoom, 4/cfg.diagram.zoom)
+            self.setPen(cfg.diagram.pen)
         if self.pen().color()!=get_state_color(self.state):
-            pen = QtGui.QPen(self.data.pen)
+            pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor(get_state_color(self.state))
             self.setPen(pen)
         super(Point, self).paint(painter, option, widget)
@@ -60,8 +60,8 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         if pos is not None:
             self.point.x = pos.x()
             self.point.y = pos.y()
-        self.setRect(self.point.x-2*self.data.zoom, 
-            self.point.y-2*self.data.zoom, 4*self.data.zoom, 4*self.data.zoom) 
+        self.setRect(self.point.x-2*cfg.diagram.zoom, 
+            self.point.y-2*cfg.diagram.zoom, 4*cfg.diagram.zoom, 4*cfg.diagram.zoom) 
         for line in self.point.lines:
             line.object.move_line(new_state)
             
@@ -98,4 +98,3 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         
     def release_point(self):
         self.point.object = None
-        self.data = None

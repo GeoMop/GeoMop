@@ -25,7 +25,11 @@ class ShpFiles(QtWidgets.QTableWidget):
         self.data = data
         self.setMinimumSize(250, 400)
         self.setMaximumWidth(450)
-        self.setColumnCount(5)
+        self.setColumnCount(3)
+        
+        labels = ['File/Attr. value', 'Show',  'Set off']
+        self.setHorizontalHeaderLabels(labels)
+
 
     def reload(self):
         """Start of reload data from config."""
