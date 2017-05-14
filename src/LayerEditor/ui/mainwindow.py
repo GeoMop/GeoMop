@@ -34,8 +34,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setResizeAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        
+        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)                
         
         #self.diagramView.setSizePolicy(
         #    QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -78,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.possChanged.connect(self._move)
         
         # self.diagramView.scale(10, 10)
-        self.data = None
+        self.data = None        
 
     def refresh_diagram_data(self):
         """Propagate new diagram scene to canvas"""

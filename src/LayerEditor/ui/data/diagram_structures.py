@@ -1,6 +1,7 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import shapefile
+import struct
 
 __next_id__ = 1
 
@@ -173,16 +174,17 @@ class ShpDisp():
                     self.attr = i
         if load_attr is None:
             load_attr = self.attr
+        count_shapes = self._read_shp_count(sf)
         if self.attr is not None and  \
             (init_attr or load_attr!=self.attr):            
-            for i in range(0, len(sf.shapes())):            
+            for i in range(0, count_shapes):            
                 fields = sf.record(i)
                 if fields[load_attr] not in self.av_names:
                     self.av_names.append(fields[load_attr])
                     self.av_show.append(True)
                     self.av_highlight.append(False)
-            self.attr = load_attr
-        for i in range(0, len(sf.shapes())):            
+            self.attr = load_attr            
+        for i in range(0, count_shapes):            
             fields = sf.record(i)
             idx = self.av_names.index(fields[self.attr])
             if not self.av_show[idx]:
@@ -229,6 +231,28 @@ class ShpDisp():
                             ShpLine(point, firstpoint, highlighted)
                         )
         return True
+    
+    def _read_shp_count(self, sf):
+        """
+        read safetly shapes count
+        
+        if count of record in the dbf file is not match
+        count of shapes in shp file, smaller number is
+        returned
+        """
+        try:
+            i=len(sf.shapes())
+            return i
+        except struct.error:
+            i = 0
+            while True:            
+                try:
+                    sf.record(i)
+                    sf.shape(i)
+                    i += 1
+                except IndexError:
+                    return i
+        return 0
         
     def set_color(self, color):
         """change displayed color"""
