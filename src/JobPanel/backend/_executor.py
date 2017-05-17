@@ -20,6 +20,15 @@ Tests:
 """
 from .json_data import JsonData
 from .environment import Environment
+from .pbs import PbsConfig, Pbs
+
+import psutil
+import os
+import subprocess
+import logging
+import re
+import time
+
 
 class Executable(JsonData):
     """
@@ -28,10 +37,10 @@ class Executable(JsonData):
 
     This class will be managed for every executed process even for own services of the JobPanel backend.
     """
-    def __init__(self, config):
+    def __init__(self, config={}):
         self.name=""
         """ Name of executable. Same accross different installations."""
-        self.path=[]
+        self.path=""
         """ Path to executable in particular installation."""
         self.mpiexec_path=""
         """ Optional executable specific mpiexec. Default is to use systemwide mpiexec."""
@@ -53,7 +62,7 @@ class Executable(JsonData):
 
 
 class ExecArgs(JsonData):
-    def __init__(self, config):
+    def __init__(self, config={}):
         """
         Parameters of particular process.
         """
@@ -66,6 +75,8 @@ class ExecArgs(JsonData):
         """
         self.mpi_args = []
         """Arguments passed to mpiexec. Do not use."""
+        self.work_dir = ""
+        """Working directory running process. For stdoutput ... Relative from workspace."""
         JsonData.__init__(self, config)
 
 
@@ -134,7 +145,7 @@ class ProcessBase(JsonData):
         self.environment = Environment()
         self.executable = Executable()
         self.exec_args = ExecArgs()
-        self.proces_id = ""
+        self.process_id = ""
         super().__init__(process_config)
 
 
@@ -161,9 +172,19 @@ class ProcessExec(ProcessBase):
             :param parameters: ProcessParameters
             :return: process_id - object that identify the process on the same machine
             """
-            pass
+            args = []
+            if self.executable.script:
+                args.append(self.environment.python)
+            args.append(os.path.join(self.environment.geomop_root,
+                                     self.executable.path,
+                                     self.executable.name))
+            args.extend(self.exec_args.args)
+            # ToDo: nastavit korektni cwd
+            cwd = os.getcwd()
+            p = psutil.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=cwd)
+            self.process_id = "{}@{}".format(p.pid, p.create_time())
 
-        def get_status(self, pid_list):
+        def get_status(self, pid_list=None):
             """
             Get states of running processes.
             Idea is to get all available states at once since 'qstat' have high latency.
@@ -177,6 +198,31 @@ class ProcessExec(ProcessBase):
             TODO: Not implement until we know exactly the purpose. Possibly status of the service
             may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
             """
+            # ToDo: zatim vraci True, kdyz bezi
+            if self.process_id == "":
+                return False
+            pid, create_time = self.process_id.split(sep="@", maxsplit=1)
+            try:
+                p = psutil.Process(int(pid))
+                if str(p.create_time()) != create_time:
+                    # already terminated
+                    return False
+                status = p.status()
+                if status == psutil.STATUS_RUNNING or status == psutil.STATUS_SLEEPING:
+                    return True
+                else:
+                    try:
+                        p.wait(timeout=0)
+                    except psutil.TimeoutExpired:
+                        pass
+                    return False
+            except psutil.NoSuchProcess:
+                # already terminated
+                return False
+            except psutil.AccessDenied:
+                # permission is denied
+                assert False
+
 
         def full_state_info(self, pid_list):
             """
@@ -198,7 +244,23 @@ class ProcessExec(ProcessBase):
             Kill the process (ID from config).
             :return: True if process was killed.
             """
-            pass
+            if self.process_id == "":
+                return True
+            pid, create_time = self.process_id.split(sep="@", maxsplit=1)
+            try:
+                p = psutil.Process(int(pid))
+                if str(p.create_time()) != create_time:
+                    # already terminated
+                    return True
+                p.kill()
+                p.wait()
+                return True
+            except psutil.NoSuchProcess:
+                # already terminated
+                return True
+            except psutil.AccessDenied:
+                # permission is denied
+                return False
 
 
 
@@ -216,7 +278,66 @@ class ProcessPBS(ProcessBase):
 
     Remove checks for dialect and default implementation in pbs.py
     """
-    pass
+
+    def start(self):
+        #self.installation.local_copy_path()
+        # Todo: upravit work_dir
+        hlp = Pbs(self.exec_args.work_dir, self.exec_args.pbs_args)
+
+        if self.executable.script:
+            interpreter = self.environment.python
+        else:
+            interpreter = None
+
+        command = os.path.join(self.environment.geomop_root,
+                               self.executable.path,
+                               self.executable.name)
+
+        hlp.prepare_file(command, interpreter, self.exec_args.args)
+        logging.debug("Qsub params: " + str(hlp.get_qsub_args()))
+        process = subprocess.Popen(hlp.get_qsub_args(),
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        return_code = process.poll()
+        if return_code is not None:
+            raise Exception("Can not start next communicator " + "python_file" +
+                " (return code: " + str(return_code) + ")")
+        # wait for jobid
+        out = process.stdout.readline()
+        job = re.match('(\S+)', str(out, 'utf-8'))
+        if job is not None:
+            try:
+                self.jobid = int(job.group(1))
+            except ValueError:
+                jobid = re.match('(\d+)\.', job.group(1))
+                if jobid is not None:
+                    self.process_id = int(jobid.group(1))
+            logging.debug("Job is queued (id:" + str(self.process_id) + ")")
+            if self.config.with_socket:
+                i = 0
+                while(i<1800):
+                    lines = hlp.get_outpup()
+                    time.sleep(1)
+                    if lines is not None and len(lines) >= 2:
+                        lines = hlp.get_outpup()
+                        break
+                    i += 1
+                self._set_node()
+                host = re.match( 'HOST:--(\S+)--',  lines[0])
+                if host is not None:
+                    logger.debug("Next communicator return socket host:" + host.group(1))
+                    self.host = host.group(1)
+                else:
+                    # try node
+                    if self.node is not None:
+                        self.host = self.node
+                port = re.match( 'PORT:--(\d+)--', lines[1])
+                if port is not None:
+                    logger.debug("Next communicator return socket port:" + port.group(1))
+                    self.port = int(port.group(1))
+        #self.initialized=True
+
+    def kill(self):
+        pass
 
 
 class ProcessDocker(ProcessBase):

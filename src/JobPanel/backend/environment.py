@@ -38,6 +38,8 @@ class Environment(JsonData):
         Path to the root directory of the GeoMop backend installtion.
         The only attribute that must be provided by user.
         """
+        self.geomop_analysis_workspace = ""
+        """Path to the workspace root"""
         self.version_id = ""
         """ Version ID of the installation. This is set by 'test_installation'
         and checked against true state of the installation in constructor."""
