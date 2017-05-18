@@ -74,6 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # signals        
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
+        self.shp.background_changed.connect(self.background_changed)
         
         # self.diagramView.scale(10, 10)
 #        self.data = None        
@@ -131,4 +132,9 @@ class MainWindow(QtWidgets.QMainWindow):
             view_rect.height()/cfg.diagram.zoom)
         transform = QtGui.QTransform(cfg.diagram.zoom, 0, 0,cfg.diagram.zoom, 0, 0)
         self.diagramView.setTransform(transform)
+        
+    def background_changed(self):
+        """Background display shapefile paramaters was changed and
+        shp items should be repainted"""
+        self.diagramScene.refresh_shp_backgrounds()
     

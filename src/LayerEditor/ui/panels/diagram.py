@@ -104,7 +104,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.addItem(s) 
                # s.prepareGeometryChange()
                 shp.shpdata.refreshed = True
-            elif not shp.shpdata.refreshed:
+            elif not shp.refreshed:
                 shp.shpdata.object.color = shp.color
                 shp.shpdata.object.update()
                 shp.shpdata.refreshed = True
