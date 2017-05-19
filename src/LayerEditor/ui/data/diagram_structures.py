@@ -131,7 +131,13 @@ class ShpData():
         """left top corner in QPoint coordinates"""
         self.max = None
         """right bottom corner in QPoint coordinates"""
-
+        
+    def clear(self):
+        """Remove all lines, points ant reset border"""
+        self.lines = []
+        self.points = []
+        self.min = None
+        self.max = None
 
 class ShpDisp():
     """
@@ -169,43 +175,55 @@ class ShpDisp():
     def _init_data(self, init_attr, load_attr=None):
         """Init end refresh data"""
         sf = shapefile.Reader(self.file)
+        count_shapes = self._read_shp_count(sf)
+        
         if init_attr:
+            #init attributes
             self.attr = None
             for i in range(1, len(sf.fields)):
                 field = sf.fields[i]
                 self.attrs.append(field[0])
                 if self.attr is None:
                     self.attr = i-1
-        if load_attr is None:
-            load_attr = self.attr
-        count_shapes = self._read_shp_count(sf)
-        if self.attr is not None and  \
-            (init_attr or load_attr!=self.attr):            
-            for i in range(0, count_shapes):            
-                fields = sf.record(i)
-                if fields[load_attr] not in self.av_names:
-                    if isinstance(fields[load_attr], str):
-                        self.av_names.append(fields[load_attr])
-                    else:
-                        # TODO: better logic
-                        if "???" not in self.av_names:
-                            self.av_names.append("???")
-                    self.av_show.append(True)
-                    self.av_highlight.append(False)
-            self.attr = load_attr            
+        
+        if load_attr is None or load_attr != self.attr:
+            #reload values for attributes
+            if load_attr is None:
+                load_attr = self.attr
+            #reset
+            self.av_names = []
+            self.av_show = []
+            self.av_highlight = []
+            # add shapes attributes            
+            if self.attr is not None and  \
+                (init_attr or load_attr!=self.attr):            
+                for i in range(0, count_shapes):            
+                    fields = sf.record(i)
+                    if fields[load_attr] not in self.av_names:
+                        if isinstance(fields[load_attr], str):
+                            self.av_names.append(fields[load_attr])
+                        else:
+                            # TODO: better logic for bad type
+                            if "???" not in self.av_names:
+                                self.av_names.append("???")
+                        self.av_show.append(True)
+                        self.av_highlight.append(False)
+                self.attr = load_attr     
+        # process shapes
+        self.shpdata.clear()
         for i in range(0, count_shapes):            
             fields = sf.record(i)
             if isinstance(fields[load_attr], str):
                 idx = self.av_names.index(fields[self.attr])
             else:
-                # TODO: better logic
+                # TODO: better logic for bad type
                 idx = self.av_names.index("???")
             if not self.av_show[idx]:
                 continue
             highlighted = self.av_highlight[idx]
-            shape = sf.shape(i)            
-            # layer borders
+            shape = sf.shape(i)             
             if shape.shapeType==15 or shape.shapeType==5:
+                # layer borders
                 if self.shpdata.min is None:
                     self.shpdata.min = QtCore.QPointF(shape.bbox[0], shape.bbox[1])
                     self.shpdata.max = QtCore.QPointF(shape.bbox[2], shape.bbox[3])
@@ -221,6 +239,7 @@ class ShpDisp():
                 part = 0
                 point = None
                 firstpoint = None
+                # transform to point and lines
                 for j in range(0, len(shape.points)):
                     lastPoint = point
                     point = QtCore.QPointF(shape.points[j][0],shape.points[j][1])
@@ -276,17 +295,19 @@ class ShpDisp():
         
     def set_attr(self, attr):
         """change dislayed attribute"""
-        self._init_data(False, attr)
+        self.refresh(attr)
         self.refreshed = False        
        
     def set_show(self, i, value):
         """change dislayed attribute value"""
         self.av_show[i] = value
+        self.refresh(self.attr)
         self.refreshed = False
         
     def set_highlight(self, i, value):
         """change highlighted attribute value"""
         self.av_highlight[i] = value
+        self.refresh(self.attr)
         self.refreshed = False
         
 
