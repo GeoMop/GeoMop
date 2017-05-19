@@ -2,6 +2,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import shapefile
 import struct
+import os
 
 __next_id__ = 1
 
@@ -124,8 +125,6 @@ class ShpData():
         """List of displayed lines in ShpLine data type"""
         self.points = []
         """List of displayed points in ShpPoint data type"""
-        self.refreshed = False
-        """Graphic object with shapes is repainted after refresh"""
         self.object = None
         """Graphic object"""
         self.min = None
@@ -157,6 +156,11 @@ class ShpDisp():
         """Datat for drawing"""
         self._init_data(True)
         
+    @property
+    def file_name(self):
+        """File name without path"""
+        return os.path.basename( self.file)
+    
     def refresh(self,  attr):
         """Refresh drawing data after settings changes"""
         self._init_data(False, attr)
@@ -171,7 +175,7 @@ class ShpDisp():
                 field = sf.fields[i]
                 self.attrs.append(field[0])
                 if self.attr is None:
-                    self.attr = i
+                    self.attr = i-1
         if load_attr is None:
             load_attr = self.attr
         count_shapes = self._read_shp_count(sf)
@@ -180,13 +184,22 @@ class ShpDisp():
             for i in range(0, count_shapes):            
                 fields = sf.record(i)
                 if fields[load_attr] not in self.av_names:
-                    self.av_names.append(fields[load_attr])
+                    if isinstance(fields[load_attr], str):
+                        self.av_names.append(fields[load_attr])
+                    else:
+                        # TODO: better logic
+                        if "???" not in self.av_names:
+                            self.av_names.append("???")
                     self.av_show.append(True)
                     self.av_highlight.append(False)
             self.attr = load_attr            
         for i in range(0, count_shapes):            
             fields = sf.record(i)
-            idx = self.av_names.index(fields[self.attr])
+            if isinstance(fields[load_attr], str):
+                idx = self.av_names.index(fields[self.attr])
+            else:
+                # TODO: better logic
+                idx = self.av_names.index("???")
             if not self.av_show[idx]:
                 continue
             highlighted = self.av_highlight[idx]
@@ -260,13 +273,29 @@ class ShpDisp():
         """change displayed color"""
         self.color = color
         self.refreshed = False
+        
+    def set_attr(self, attr):
+        """change dislayed attribute"""
+        self._init_data(False, attr)
+        self.refreshed = False        
+       
+    def set_show(self, i, value):
+        """change dislayed attribute value"""
+        self.av_show[i] = value
+        self.refreshed = False
+        
+    def set_highlight(self, i, value):
+        """change highlighted attribute value"""
+        self.av_highlight[i] = value
+        self.refreshed = False
+        
 
 class ShpFiles():
     """
     Shape files, that is displazed in background.
     """
     def __init__(self):
-        self.datas=[]
+        self.datas = []
         """Data for shp files"""
         self.boundrect = None
         """shape file bounding rect in QRectF variable or None"""
