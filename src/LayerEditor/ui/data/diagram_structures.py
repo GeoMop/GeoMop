@@ -192,7 +192,7 @@ class ShpDisp():
             highlighted = self.av_highlight[idx]
             shape = sf.shape(i)            
             # layer borders
-            if shape.shapeType==15:
+            if shape.shapeType==15 or shape.shapeType==5:
                 if self.shpdata.min is None:
                     self.shpdata.min = QtCore.QPointF(shape.bbox[0], shape.bbox[1])
                     self.shpdata.max = QtCore.QPointF(shape.bbox[2], shape.bbox[3])
@@ -230,6 +230,8 @@ class ShpDisp():
                     self.shpdata.lines.append(
                             ShpLine(point, firstpoint, highlighted)
                         )
+            else:
+                raise Exception("Shape file type {0} is not implemented".format(str(shape.shapeType)))
         return True
     
     def _read_shp_count(self, sf):
