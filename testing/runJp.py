@@ -17,5 +17,6 @@ sys.path.insert(4, __pexpect_dir__)
 __root_dir__ = os.getcwd()
 
 import pytest
-code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testJp.xml") + ' JobPanel')
+code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testJp.xml")
+                   + " --timeout=3600" + ' -k "not test_mc_"' + ' JobPanel')
 sys.exit(code)
