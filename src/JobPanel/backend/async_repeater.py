@@ -473,7 +473,7 @@ class AsyncRepeater():
         """
         Setup connection to a child repeater.
         1. Create a Dispatcher for connection to the child repeater, but do not connect.
-        2. Ask `connection` for romote port forwarding to the StarterServer port.
+        2. Ask `connection` for remote port forwarding to the StarterServer port.
         2. StarterServer wait for back connection from the child repeater, to get its listening port.
         3. Then StarterServer asks the Dispatcher to connect to the child repeater through the `connection`
          passed as parameter (local port forwarding).
@@ -485,12 +485,13 @@ class AsyncRepeater():
         :return: ( child_id, forwarded_remote_port)
             child_id: ID of the child repeater it must be passed to the repeater when its process is started
             (e.g. as command parameter)
-            forwarded_remote_port: a port on the remote machine the child repeater runs on to which it should connect
+            forwarded_remote_port: a port on the remote machine the child repeater runs on and  to which it should connect
             to send its listening_port to the parent.
 
         TODO: test and possibly finish support for the remote_port parameter.
         IDEA: to check that we get correct child we may generate child ids not incermentaly, but at random.
              Then it servers also as a unique token to check that the correct repeater is connecting to the StarterServer.
+             Must keep generating of ID atomic.
         """
         self.max_client_id += 1
         id = self.max_client_id

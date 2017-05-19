@@ -67,29 +67,35 @@ class ServiceProxy:
     def call(self, method_name, data, result):
         """
         Call 'method_name(data)' of the remote service returned result is appended
-        to the result.
+        to the result which has to be a list.
+
+        TODO: If necessary implement alternative method which calls a given answer processing once the  answer is received.
+        TODO: How we process errors. !!!!
+
+
         :param method_name: Name of method to call.
         :param data: Serializable (JSONData) passed to the method.
         :param result: List of results.
-        :return:
+        :return: None, error.
         """
+
+        # see: ServiceBase.save_result
+        self.repeater.send_request(..., {'action': 'save_result', 'data': result})
         pass
 
     def start_service(self):
         """
-        Process of starrting a Job
-        1. # have service configuration data (from constructor)
-        2. # get connection parameter - (in constructor)
-        3. upload job files (specified in service_data, using the connection, upload config file
-        4. get delegator proxy from connection
-        5. setup remote port forwarding for the starter port (get it from repeater)
+        Process of starting a Job:
+        0. # have repeater, connection, and service configuration data (from constructor)
+        1. upload job files (specified in service_data, using the connection, upload config file).
+           Have to upload config data serialized to a JSON file, so that the child service may start even if
+           the parent service is not running or is not accessible (e.g. MJ or Job started over PBS)
+        2. get delegator proxy from connection
+        3. repeater.add_child, store child_ID, ( it also returns remote forwarded local port, seems we doesn't need it.
+        4. delegator_proxy.call( "request_process_start", process_config, self.child_service_process_id )
+           Need to prepare process_config, self.child_service_process_id=[]
+        5. set  Job state as 'queued'
 
-        6. repeater.expected_answer ... Sort of implicit request, we expect that ClientDispatcher
-           form an answer when child service connection is accepted and we recieve its listenning port.
-           We set that connect_service should be called `on_answer`.
-
-        7. submit (or start) job through delegator
-        8. set  Job state as 'queued'
         ...
         Job process:
         - read Job configuration from cofig file (given as argument)
@@ -99,13 +105,16 @@ class ServiceProxy:
         - send port RYY, wait for OK
         - after OK, close starting connection
         """
-
-        # 4.
-        delegator = self.connection.get_delegator()
+        return self._child_id
 
 
-    def connect_service(self, child_id):
+    def get_status(self):
+    #def connect_service(self, child_id):
         """
+        Update service status according to state info in repeater,
+        and least received status info, and
+        send request to get new status.
+
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
 

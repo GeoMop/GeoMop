@@ -2,6 +2,7 @@ import subprocess
 from . import async_repeater as ar
 from .json_data import JsonData
 from .environment import Environment
+from .conncetion import ConnectionBase
 import logging
 import concurrent.futures
 import enum
@@ -94,6 +95,8 @@ class ServiceBase(JsonData):
         """
         JSONData initialization
         """
+        self.service_host_connection = ClassFactory( [ConnectionLocal, ConnectionSSH] )
+        # IP where the service should be executed.
         self.repeater_address = []
         # Repeater address  of the service (path from root). Default is root repeater.
         self.parent_address=("", 0)
@@ -129,6 +132,9 @@ class ServiceBase(JsonData):
         Call method with name given by 'action' with 'data' as its only argument.
         Used for processing requests and on_answer actions.
         If the action method is marked be the LongRequest delegator it is processed in separate thread.
+
+        TODO:
+        - catch exceptions return error answer, how to do it for exceptions in threads?
         :param action:
         :param data:
         :return:
@@ -141,6 +147,20 @@ class ServiceBase(JsonData):
         else:
             if action_method.run_in_thread:
                 future = self._thread_pool.submit(action_method, data)
+                # TODO:
+                # - How to get result after completion.
+                # First option:
+                #   keep list of processing threads
+                #   check complition in c and call repeater.send_answer for result
+                # Second option:
+                #   keep list of results, the thread append the result to this list,
+                #   list is processed and send_answer called in service_address
+                # Third option:
+                #   similar to previous. Result is not stored in the list, but send_answer
+                #   is called directly from the thread.
+                #
+                # - First try without pool.
+
             else:
                 result = action_method(data)
         return result
@@ -171,20 +191,6 @@ class ServiceBase(JsonData):
             self._do_work()
         self._repeater.close()
 
-    # Methods that implements a request but can also be called directly by the service.
-    #
-
-    def make_child_proxy(self, address):
-        """
-        TODO:
-        - Use ServiceProxyBase instead of
-
-        :return: Created child proxy.
-        """
-        child_id = self._repeater.add_child()
-        proxy = ChildServiceProxy(child_id, self)
-        self._child_services[child_id] = proxy
-        return proxy
 
 
     def _process_answers(self):
@@ -197,7 +203,8 @@ class ServiceBase(JsonData):
                 answer = answer_data.answer
                 if 'error' in answer.keys():
                     self._child_services[child_id].error_answer(answer_data)
-                self._child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
+                #self._child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
+                self.call_action(on_answer['action'], (on_answer['data'], answer['data']))
         return
 
     def _process_requests(self):
@@ -210,24 +217,57 @@ class ServiceBase(JsonData):
                 data = request['data']
             assert( 'action' in request.keys() )
             answer = self.call_action(request['action'], data)
+
+            # TODO:
+            # catch exceptions, use async_repeater._exception_answer(e) to return
+            # exception result. Use format_exception in _exception_answer instead of just traceback.
+            # For correct result introduce similar formater.
+
             self._repeater.send_answer(request_data.id, answer)
         return
 
-    """ Requests. """
-    def request_start_child(self, request_data):
-        """
-        Start a new child service with given data.
-        TODO:
-        - implemented only in: RootService, BackendService
+    def _do_work(self):
+        pass
 
-        proxy=self.make_child_proxy()
-        proxy.start_service() ... enqueue the seervice
-        :param request_data:
-        :return: `OK`
+
+    def save_result(self, answer_data):
+        (result_list, result_data) = answer_data
+        result_list.append(result_data)
+
+
+    #######################################################################################
+    # Methods that implements a request but can also be called directly by the service.
+    #
+
+
+    """ Requests. """
+
+    @LongRequest
+    def request_start_child(self, service_data):
         """
-        address = request_data['socket_address']
-        self.make_child_proxy(address)
-        return self.answer_ok
+        Start a new child service with config given by `service_data`.
+        - Marked as LongRequest so it runs in separated thread as it takes longer time to complete.
+
+        TODO:
+        - Root starts Backend in Docker either:
+          - docker have same IP as Root, then we can set connection in service_data
+          - docker have separate IP, then we must create container and get its IP before
+            executing backend in the container
+
+        :param service_data: Service configuration data.
+        :return: STATUS
+        """
+        connection = self.get_connection(service_data.connection)
+        # this method should keep active conncetions in a dict and reuse conncetion to same hosts
+        # use following to create new conncetion not in the dict.
+        # connection = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(service_data.connection)
+
+
+        proxy = ServiceProxy(repeater, service_data, connection) # Try change order of arguments.
+        child_id = proxy.start_service()
+        self._child_services[child_id] = proxy
+
+        return proxy.get_status()
 
 
     def request_stop_child(self, request_data):

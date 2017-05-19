@@ -42,6 +42,7 @@ class ConnectionBase(JsonData):
     hide difference between local and remote
     """
     def __init__(self, config={}):
+
         self.address=""
         """ IP or hostname"""
         self.uid=""
@@ -50,6 +51,8 @@ class ConnectionBase(JsonData):
         """ password for ssh connection """
         self.environment = Environment()
         """ Seems that only path to the installation is necesary, possibly path to python."""
+        self.name=""
+        """ Unique name used in GUI."""
         super().__init__(config)
 
 class ConnectionLocal(ConnectionBase):
