@@ -40,6 +40,7 @@ class Line(QtWidgets.QGraphicsLineItem):
             pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor(get_state_color(self.state))
             self.setPen(pen)
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         super(Line, self).paint(painter, option, widget)
         
     def mousePressEvent(self,event):

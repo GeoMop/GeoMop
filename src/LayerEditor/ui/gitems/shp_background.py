@@ -30,29 +30,35 @@ class ShpBackground(QtWidgets.QGraphicsItem):
         """Redefination of standart paint function, that paint object from shape file"""
         r = cfg.diagram.pen.widthF()
         if cfg.diagram.pen.widthF() != painter.pen().widthF():
-            painter.setPen(cfg.diagram.pen)
+            pen = QtGui.QPen(cfg.diagram.pen)
+            painter.setPen(pen)
+            bpen = QtGui.QPen(cfg.diagram.bpen)
         if painter.pen().color()!= self.color:
             pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor( self.color)
             painter.setPen(pen)
+            bpen = QtGui.QPen(cfg.diagram.bpen)
+            bpen.setColor( self.color)
+            
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         highlighted = False
-        painter.setOpacity(0.3)
         for line in self.shp.lines:
             if line.highlighted != highlighted:
                 highlighted = line.highlighted
                 if highlighted:
-                    painter.setOpacity(0.6)
+                    painter.setPen(bpen)
                 else:
-                    painter.setOpacity(0.3)
+                    painter.setPen(pen)
             painter.drawLine(line.p1, line.p2)
         for point in self.shp.points:
             if point.highlighted != highlighted:
                 highlighted = point.highlighted
                 if highlighted:
-                    painter.setOpacity(0.6)
+                    painter.setPen(bpen)
                 else:
-                    painter.setOpacity(0.3)
+                    painter.setPen(pen)
             painter.drawEllipse(point.p, r, r)
-            
+        painter.setPen(pen)
+         
     def release_point(self):
         self.shp.object = None        

@@ -7,6 +7,7 @@ Tree widget panel
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+from ui.data.shp_structures import ShpDisp
 
 class ShpFiles(QtWidgets.QTableWidget):
     """Widget displays the config file structure in table.
@@ -24,8 +25,8 @@ class ShpFiles(QtWidgets.QTableWidget):
         super(ShpFiles, self).__init__(parent)
         
         self.data = data
-        self.setMinimumSize(250, 400)
-        self.setMaximumWidth(450)
+        self.setMinimumSize(20, 400)
+        self.setMaximumWidth(250)
         self.setColumnCount(3)
         
         #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
@@ -57,11 +58,11 @@ class ShpFiles(QtWidgets.QTableWidget):
             self.setCellWidget(i_row, 0, label) 
             
             color_button = QtWidgets.QPushButton()
-            pixmap = QtGui.QPixmap(16, 16)
+            pixmap = QtGui.QPixmap(25, 25)
             pixmap.fill(shp.color)
             icon = QtGui.QIcon(pixmap)
             color_button.setIcon(icon)
-            color_button.setFixedSize( 16, 16 )
+            color_button.setFixedSize( 25, 25 )
             color_button.clicked.connect(lambda: self.color_set(i, color_button))
             self.setCellWidget(i_row, 1, color_button) 
 
@@ -91,8 +92,11 @@ class ShpFiles(QtWidgets.QTableWidget):
     def color_set(self, file_idx, color_button):
         """Shapefile color is changed, refresh diagram"""
         shp = self.data.datas[file_idx]
-        color_dia = QtWidgets.QColorDialog()
-        color_dia.setCustomColor(0,  shp.color)
+        color_dia = QtWidgets.QColorDialog(shp.color)
+        i = 0
+        for color in ShpDisp.BACKGROUND_COLORS:
+            color_dia.setCustomColor(i,  color)            
+            i += 1
         selected_color = color_dia.getColor()        
         
         pixmap = QtGui.QPixmap(16, 16)
@@ -108,16 +112,19 @@ class ShpFiles(QtWidgets.QTableWidget):
         shp = self.data.datas[file_idx]
         attr = attr_combo.currentIndex()
         shp.set_attr(attr)
-        self.reload()        
+        self.reload()
+        self.background_changed.emit()
 
     def show_set(self, file_idx, shp_idx):
         """Some dislayed attribute value is changed, refresh diagram"""
         checkbox = self.s_checkboxes[file_idx][shp_idx]
         shp = self.data.datas[file_idx]
         shp.set_show(shp_idx, checkbox.isChecked())
+        self.background_changed.emit()
          
-    def highlight_set(self, file_idx, shp_idx, checkbox):
+    def highlight_set(self, file_idx, shp_idx):
         """Some highlighted attribute value is changed, refresh diagram"""
         checkbox = self.h_checkboxes[file_idx][shp_idx]
         shp = self.data.datas[file_idx]
         shp.set_highlight(shp_idx, checkbox.isChecked()) 
+        self.background_changed.emit()
