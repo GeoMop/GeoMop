@@ -179,10 +179,11 @@ class ProcessExec(ProcessBase):
                                      self.executable.path,
                                      self.executable.name))
             args.extend(self.exec_args.args)
-            # ToDo: nastavit korektni cwd
-            cwd = os.getcwd()
+            cwd = os.path.join(self.environment.geomop_analysis_workspace,
+                               self.exec_args.work_dir)
             p = psutil.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=cwd)
             self.process_id = "{}@{}".format(p.pid, p.create_time())
+            return self.process_id
 
         def get_status(self, pid_list=None):
             """
@@ -281,8 +282,9 @@ class ProcessPBS(ProcessBase):
 
     def start(self):
         #self.installation.local_copy_path()
-        # Todo: upravit work_dir
-        hlp = Pbs(self.exec_args.work_dir, self.exec_args.pbs_args)
+        hlp = Pbs(os.path.join(self.environment.geomop_analysis_workspace,
+                               self.exec_args.work_dir),
+                  self.exec_args.pbs_args)
 
         if self.executable.script:
             interpreter = self.environment.python
@@ -306,35 +308,36 @@ class ProcessPBS(ProcessBase):
         job = re.match('(\S+)', str(out, 'utf-8'))
         if job is not None:
             try:
-                self.jobid = int(job.group(1))
+                self.process_id = int(job.group(1))
             except ValueError:
                 jobid = re.match('(\d+)\.', job.group(1))
                 if jobid is not None:
                     self.process_id = int(jobid.group(1))
             logging.debug("Job is queued (id:" + str(self.process_id) + ")")
-            if self.config.with_socket:
-                i = 0
-                while(i<1800):
-                    lines = hlp.get_outpup()
-                    time.sleep(1)
-                    if lines is not None and len(lines) >= 2:
-                        lines = hlp.get_outpup()
-                        break
-                    i += 1
-                self._set_node()
-                host = re.match( 'HOST:--(\S+)--',  lines[0])
-                if host is not None:
-                    logger.debug("Next communicator return socket host:" + host.group(1))
-                    self.host = host.group(1)
-                else:
-                    # try node
-                    if self.node is not None:
-                        self.host = self.node
-                port = re.match( 'PORT:--(\d+)--', lines[1])
-                if port is not None:
-                    logger.debug("Next communicator return socket port:" + port.group(1))
-                    self.port = int(port.group(1))
+            # if self.config.with_socket:
+            #     i = 0
+            #     while(i<1800):
+            #         lines = hlp.get_outpup()
+            #         time.sleep(1)
+            #         if lines is not None and len(lines) >= 2:
+            #             lines = hlp.get_outpup()
+            #             break
+            #         i += 1
+            #     self._set_node()
+            #     host = re.match( 'HOST:--(\S+)--',  lines[0])
+            #     if host is not None:
+            #         logger.debug("Next communicator return socket host:" + host.group(1))
+            #         self.host = host.group(1)
+            #     else:
+            #         # try node
+            #         if self.node is not None:
+            #             self.host = self.node
+            #     port = re.match( 'PORT:--(\d+)--', lines[1])
+            #     if port is not None:
+            #         logger.debug("Next communicator return socket port:" + port.group(1))
+            #         self.port = int(port.group(1))
         #self.initialized=True
+        return self.process_id
 
     def kill(self):
         pass
