@@ -1,8 +1,8 @@
 import subprocess
 from . import async_repeater as ar
-from .json_data import JsonData
+from .json_data import JsonData, ClassFactory
 from .environment import Environment
-from .conncetion import ConnectionBase
+from .connection import ConnectionLocal, ConnectionSSH
 import logging
 import concurrent.futures
 import enum
@@ -31,15 +31,13 @@ class ServiceStatus(enum.IntEnum):
 
 
 
-def LongRequest():
+def LongRequest(func):
     """
     Auxiliary decorator to mark requests that takes long time or
     perform its own communication and so must be processed in its own thread.
     """
-    def decorator(func):
-        func.run_in_thread = True
-        return func
-    return decorator
+    func.run_in_thread = True
+    return func
 
 
 class ServiceStarter:
@@ -127,6 +125,9 @@ class ServiceBase(JsonData):
 
         self._closing = False
 
+        self._connections = {}
+        """dict of active connections"""
+
     def call_action(self, action, data):
         """
         Call method with name given by 'action' with 'data' as its only argument.
@@ -145,7 +146,7 @@ class ServiceBase(JsonData):
         except  AttributeError:
             result = {'error': 'Invalid action: %s' % (action)}
         else:
-            if action_method.run_in_thread:
+            if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
                 future = self._thread_pool.submit(action_method, data)
                 # TODO:
                 # - How to get result after completion.
@@ -234,6 +235,9 @@ class ServiceBase(JsonData):
         (result_list, result_data) = answer_data
         result_list.append(result_data)
 
+    def get_connection(self, connection_data):
+        return ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+
 
     #######################################################################################
     # Methods that implements a request but can also be called directly by the service.
@@ -263,7 +267,8 @@ class ServiceBase(JsonData):
         # connection = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(service_data.connection)
 
 
-        proxy = ServiceProxy(repeater, service_data, connection) # Try change order of arguments.
+        from .service_proxy import ServiceProxy
+        proxy = ServiceProxy(service_data, self._repeater, connection)
         child_id = proxy.start_service()
         self._child_services[child_id] = proxy
 

@@ -37,7 +37,7 @@ class ServiceProxy:
 
 
     """
-    def __init__(self, repeater, service_data, connection):
+    def __init__(self, service_data, repeater, connection):
         self.repeater = repeater
         """ Object for communication with remote service."""
         self.service_data = service_data
@@ -55,6 +55,11 @@ class ServiceProxy:
         """ True if remote service is connected. Is it necessary?? """
         self.changing_status=False
         """ True if a status change action is processed: stopping"""
+
+        self._child_id = None
+        """Child id"""
+        self.child_service_process_id = []
+        """Child service process id"""
 
         #TODO:
         #  smazat
@@ -105,6 +110,23 @@ class ServiceProxy:
         - send port RYY, wait for OK
         - after OK, close starting connection
         """
+
+        # 1.
+        # todo:
+
+        # 2.
+        delegator_proxy = self.connection.get_delegator()
+
+        # 3.
+        self._child_id, remote_port = self.repeater.add_child(self.connection)
+
+        # 4.
+        process_config = {} # todo:
+        delegator_proxy.call("request_process_start", process_config, self.child_service_process_id)
+
+        # 5.
+        self.status = ServiceStatus.queued
+
         return self._child_id
 
 
@@ -125,6 +147,9 @@ class ServiceProxy:
            self.repeater._connect_child_repeater(socket_address)
         5. set Job state to running
         """
+
+        # 1.
+        self.repeater.clients[self._child_id]
 
 
     def get(self, variable_name):

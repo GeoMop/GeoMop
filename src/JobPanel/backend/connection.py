@@ -1,5 +1,4 @@
 from .json_data import JsonData
-from .service_proxy import ServiceProxy
 from .environment import Environment
 
 import paramiko
@@ -446,7 +445,8 @@ class ConnectionSSH(ConnectionBase):
                     connected = True
                     break
             if connected:
-                self._delegator_proxy = ServiceProxy(local_service._repeater, {}, self)
+                from .service_proxy import ServiceProxy
+                self._delegator_proxy = ServiceProxy({}, local_service._repeater, self)
                 self._delegator_proxy.on_answer_connect()
                 break
 
