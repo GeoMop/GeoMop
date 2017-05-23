@@ -87,6 +87,10 @@ class ShpDisp():
         """displaing color fir shapes"""
         self.attrs = []
         """File attributes"""
+        self._attrs_types = []
+        """File attributes type for parsing"""
+        self._attrs_dec = []
+        """File attributes dec length for parsing"""
         self.attr = None
         """Selected attribute"""
         self.av_names = []
@@ -97,15 +101,32 @@ class ShpDisp():
         """Highlight shape with this attribute"""
         self.shpdata = ShpData()
         """Datat for drawing"""
+        self.refreshed = False
+        """Data should be repainted"""
         self._init_data(True)
         
     @classmethod
-    def next_color(self):
+    def next_color(cls):
         """File name without path"""
-        self._last_color += 1
-        if self._last_color>=len(self.BACKGROUND_COLORS):
-            self._last_color = 0
-        return self.BACKGROUND_COLORS[self._last_color]
+        cls._last_color += 1
+        if cls._last_color>=len(cls.BACKGROUND_COLORS):
+            cls._last_color = 0
+        return cls.BACKGROUND_COLORS[cls._last_color]
+        
+    @staticmethod
+    def parse_attr(value, type, dec):
+        """Return string representation of attribute accoding to type"""
+        if type == "c":
+            return value
+        elif type == "N":
+            if dec==0:
+                return str(int(type))
+            return str(type)
+        elif type == "L":
+            return str(int(type))
+        elif type == "D":
+            return str(type)
+        return "???"
         
     @property
     def file_name(self):
@@ -128,6 +149,8 @@ class ShpDisp():
             for i in range(1, len(sf.fields)):
                 field = sf.fields[i]
                 self.attrs.append(field[0])
+                self._attrs_types.append(field[1]) 
+                self._attrs_dec.append(field[3])
                 if self.attr is None:
                     self.attr = i-1
         
@@ -165,7 +188,9 @@ class ShpDisp():
                 idx = self.av_names.index("???")
             highlighted = self.av_highlight[idx]
             shape = sf.shape(i)             
-            if shape.shapeType==15 or shape.shapeType==5:
+            if shape.shapeType==15 \
+                or shape.shapeType==5 \
+                or shape.shapeType==13:
                 # layer borders
                 if self.shpdata.min is None:
                     self.shpdata.min = QtCore.QPointF(shape.bbox[0], shape.bbox[1])
@@ -183,7 +208,7 @@ class ShpDisp():
                     continue
                 part = 0
                 point = None
-                firstpoint = None
+#                firstpoint = None
                 # transform to point and lines
                 for j in range(0, len(shape.points)):
                     lastPoint = point
@@ -192,21 +217,21 @@ class ShpDisp():
 #                            ShpPoint(point, highlighted)
 #                        )
                     if shape.parts[part]==j:
-                        if firstpoint is not None:
-                            self.shpdata.lines.append(
-                                    ShpLine(point, firstpoint, highlighted)
-                                )
-                        firstpoint=point
+#                        if firstpoint is not None:
+#                            self.shpdata.lines.append(
+#                                    ShpLine(point, firstpoint, highlighted)
+#                                )
+#                        firstpoint=point
                         if len(shape.parts)>(part+1):
                             part +=1
                     else:
                         self.shpdata.lines.append(
                                 ShpLine(lastPoint, point, highlighted)
                             )
-                if firstpoint is not None:
-                    self.shpdata.lines.append(
-                            ShpLine(point, firstpoint, highlighted)
-                        )
+#                if firstpoint is not None:
+#                    self.shpdata.lines.append(
+#                            ShpLine(point, firstpoint, highlighted)
+#                       )
             else:
                 raise Exception("Shape file type {0} is not implemented".format(str(shape.shapeType)))
         return True
@@ -229,7 +254,7 @@ class ShpDisp():
                     sf.record(i)
                     sf.shape(i)
                     i += 1
-                except IndexError:
+                except (IndexError, struct.error):
                     return i
         return 0
         

@@ -103,11 +103,11 @@ class Diagram(QtWidgets.QGraphicsScene):
                 s = ShpBackground(shp.shpdata, shp.color)
                 self.addItem(s) 
                # s.prepareGeometryChange()
-                shp.shpdata.refreshed = True
+                shp.refreshed = True
             elif not shp.refreshed:
                 shp.shpdata.object.color = shp.color
                 shp.shpdata.object.update()
-                shp.shpdata.refreshed = True
+                shp.refreshed = True
     
     def _add_point(self, gobject, p1, label='Add point'):
         """Add point to diagram and paint it."""

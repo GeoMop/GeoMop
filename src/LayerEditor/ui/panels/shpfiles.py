@@ -26,7 +26,7 @@ class ShpFiles(QtWidgets.QTableWidget):
         
         self.data = data
         self.setMinimumSize(20, 400)
-        self.setMaximumWidth(250)
+        self.setMaximumWidth(350)
         self.setColumnCount(3)
         
         #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
