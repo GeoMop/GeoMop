@@ -130,7 +130,7 @@ class Diagram():
     def rect(self):
         if self._rect is None:
             if self.shp.boundrect is None:
-                return QtCore.QRectF(0, 0, 450, 300)
+                return QtCore.QRectF(0, -300, 450, 300)
             else:
                 return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100
@@ -181,8 +181,9 @@ class Diagram():
         
     def add_file(self, file):
         """Add new shapefile"""
-        self.shp.add_file(file)
+        disp = self.shp.add_file(file)
         self.recount_canvas()
+        return disp
 
     def recount_canvas(self):
         """recount canvas size"""

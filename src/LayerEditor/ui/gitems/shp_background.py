@@ -60,5 +60,5 @@ class ShpBackground(QtWidgets.QGraphicsItem):
             painter.drawEllipse(point.p, r, r)
         painter.setPen(pen)
          
-    def release_point(self):
+    def release_background(self):
         self.shp.object = None        

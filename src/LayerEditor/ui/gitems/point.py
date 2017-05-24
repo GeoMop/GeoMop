@@ -61,8 +61,8 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         if pos is not None:
             self.point.x = pos.x()
             self.point.y = pos.y()
-        self.setRect(self.point.x-2*cfg.diagram.zoom, 
-            self.point.y-2*cfg.diagram.zoom, 4*cfg.diagram.zoom, 4*cfg.diagram.zoom) 
+        self.setRect(self.point.x-2/cfg.diagram.zoom, 
+            self.point.y-2/cfg.diagram.zoom, 4/cfg.diagram.zoom, 4/cfg.diagram.zoom) 
         for line in self.point.lines:
             line.object.move_line(new_state)
             

@@ -75,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
         self.shp.background_changed.connect(self.background_changed)
+        self.shp.item_removed.connect(self.del_background_item)
         
         # self.diagramView.scale(10, 10)
 #        self.data = None        
@@ -99,9 +100,9 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self._move()
         
-    def _cursor_changed(self, line, column):
+    def _cursor_changed(self, x, y):
         """Editor node change signal"""
-        self._column.setText("x: {:5f}  y: {:5f}".format(line, column))
+        self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
         
     def _move(self):
         """zooming and moving"""
@@ -137,4 +138,11 @@ class MainWindow(QtWidgets.QMainWindow):
         """Background display shapefile paramaters was changed and
         shp items should be repainted"""
         self.diagramScene.refresh_shp_backgrounds()
+        
+    def del_background_item(self,  idx_item):
+        """Remove backgroun item"""
+        obj = cfg.diagram.shp.datas[idx_item].shpdata.object
+        obj.release_background()        
+        self.diagramScene.removeItem(obj)
+        del cfg.diagram.shp.datas[idx_item]
     

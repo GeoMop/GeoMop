@@ -8,16 +8,22 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ui.data.shp_structures import ShpDisp
+from ui.menus.shpfiles import ShpFilesMenu
 
 class ShpFiles(QtWidgets.QTableWidget):
     """Widget displays the config file structure in table.
 
     pyqtSignals:
-        * :py:attr:`background_changed() <itemSelected>`
+        * :py:attr:`background_changed() <background_changed>`
+        * :py:attr:`item_removed(int) <item_removed>`
     """
-
+    
     background_changed = QtCore.pyqtSignal()
     """Signal is sent whenbackground settings was changes.
+    """
+
+    item_removed = QtCore.pyqtSignal(int)
+    """Signal is sent when item is deleted from background settings
     """
 
     def __init__(self, data, parent=None):
@@ -50,26 +56,33 @@ class ShpFiles(QtWidgets.QTableWidget):
         i_row = 0
         for i in range(0, len(self.data.datas)):
             self.s_checkboxes.append([])
-            self.h_checkboxes.append([])
+            self.h_checkboxes.append([])            
             shp = self.data.datas[i]
+            
             # description
             # splitter.setToolTip(shp. file)
+            pom_lamda = lambda ii, label: lambda pos: self.context_menu(pos, ii, label)
             label = QtWidgets.QLabel(shp.file_name)
+            label.setToolTip(shp. file) 
+            label.setContextMenuPolicy(QtCore.Qt.CustomContextMenu);    
+            label.customContextMenuRequested.connect(pom_lamda(i, label));
             self.setCellWidget(i_row, 0, label) 
             
+            pom_lamda = lambda ii, button: lambda: self.color_set(ii, button)
             color_button = QtWidgets.QPushButton()
             pixmap = QtGui.QPixmap(25, 25)
             pixmap.fill(shp.color)
             icon = QtGui.QIcon(pixmap)
             color_button.setIcon(icon)
             color_button.setFixedSize( 25, 25 )
-            color_button.clicked.connect(lambda: self.color_set(i, color_button))
+            color_button.clicked.connect(pom_lamda(i, color_button))
             self.setCellWidget(i_row, 1, color_button) 
 
+            pom_lamda = lambda ii, combo: lambda: self.attr_set(ii, combo)
             attr_combo = QtWidgets.QComboBox()
             attr_combo.addItems(shp.attrs)
             attr_combo.setCurrentText(shp.attrs[shp.attr])
-            attr_combo.currentIndexChanged.connect(lambda: self.attr_set(i, attr_combo))
+            attr_combo.currentIndexChanged.connect(pom_lamda(i, attr_combo))
             self.setCellWidget(i_row, 2, attr_combo) 
             i_row += 1
             
@@ -88,6 +101,16 @@ class ShpFiles(QtWidgets.QTableWidget):
                 i_row += 1
         
         self.resizeColumnsToContents()
+            
+    def context_menu(self, pos,  file_idx, label):
+        """Call context menu above clicked label"""
+        menu = ShpFilesMenu(label, self, file_idx)
+        menu.exec_(label.mapToGlobal(pos))
+        
+    def remove(self, file_idx):
+        """remove shape file context from panel"""
+        self.item_removed.emit(file_idx)
+        self.reload()
             
     def color_set(self, file_idx, color_button):
         """Shapefile color is changed, refresh diagram"""

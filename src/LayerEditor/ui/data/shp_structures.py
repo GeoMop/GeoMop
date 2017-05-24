@@ -103,7 +103,9 @@ class ShpDisp():
         """Datat for drawing"""
         self.refreshed = False
         """Data should be repainted"""
-        self._init_data(True)
+        self.errors = []
+        """Parse errors"""
+        self._init_data(True)        
         
     @classmethod
     def next_color(cls):
@@ -116,16 +118,26 @@ class ShpDisp():
     @staticmethod
     def parse_attr(value, type, dec):
         """Return string representation of attribute accoding to type"""
-        if type == "c":
-            return value
-        elif type == "N":
-            if dec==0:
-                return str(int(type))
-            return str(type)
-        elif type == "L":
-            return str(int(type))
-        elif type == "D":
-            return str(type)
+        if type == "c" or type == "C":
+            if isinstance(value, str):
+                return value
+            ret = str(value,  'utf-8')
+            if len(ret)>0 and not ret.isspace():
+                return ret
+            return "???"
+        elif type == "n" or type == "N" or \
+            type == "f" or type == "F":
+            try:
+                if dec==0:
+                    return str(int(value))
+                else:
+                    return str(float(value))
+            except:
+                return "???"
+        elif type == "l" or type == "L":
+            return str(int(value))
+        elif type == "d" or type == "D":
+            return str(value)
         return "???"
         
     @property
@@ -167,13 +179,9 @@ class ShpDisp():
                 (init_attr or load_attr!=self.attr):            
                 for i in range(0, count_shapes):            
                     fields = sf.record(i)
-                    if fields[load_attr] not in self.av_names:
-                        if isinstance(fields[load_attr], str):
-                            self.av_names.append(fields[load_attr])
-                        else:
-                            # TODO: better logic for bad type
-                            if "???" not in self.av_names:
-                                self.av_names.append("???")
+                    name = self.parse_attr(fields[load_attr], self._attrs_types[load_attr], self._attrs_dec[load_attr])                    
+                    if name not in self.av_names:
+                        self.av_names.append(name)
                         self.av_show.append(True)
                         self.av_highlight.append(False)
                 self.attr = load_attr     
@@ -181,57 +189,66 @@ class ShpDisp():
         self.shpdata.clear()
         for i in range(0, count_shapes):            
             fields = sf.record(i)
-            if isinstance(fields[load_attr], str):
-                idx = self.av_names.index(fields[self.attr])
-            else:
-                # TODO: better logic for bad type
-                idx = self.av_names.index("???")
+            name = self.parse_attr(fields[load_attr], self._attrs_types[load_attr], self._attrs_dec[load_attr])
+            idx = self.av_names.index(name)
             highlighted = self.av_highlight[idx]
-            shape = sf.shape(i)             
-            if shape.shapeType==15 \
-                or shape.shapeType==5 \
-                or shape.shapeType==13:
-                # layer borders
+            shape = sf.shape(i)    
+            # layer borders
+            if shape.shapeType == 0:
+                 continue
+            elif shape.shapeType in [5, 3, 8, 13, 15, 23, 25, 28, 31]:                
                 if self.shpdata.min is None:
-                    self.shpdata.min = QtCore.QPointF(shape.bbox[0], shape.bbox[1])
-                    self.shpdata.max = QtCore.QPointF(shape.bbox[2], shape.bbox[3])
+                    self.shpdata.min = QtCore.QPointF(shape.bbox[0], -shape.bbox[3])
+                    self.shpdata.max = QtCore.QPointF(shape.bbox[2], -shape.bbox[1])
                 else:
                     if self.shpdata.min.x()>shape.bbox[0]:
                         self.shpdata.min.setX(shape.bbox[0])
-                    if self.shpdata.min.y()>shape.bbox[1]:
-                        self.shpdata.min.setY(shape.bbox[1])
+                    if self.shpdata.min.y()>-shape.bbox[3]:
+                        self.shpdata.min.setY(-shape.bbox[3])
                     if self.shpdata.max.x()<shape.bbox[2]:
                         self.shpdata.max.setX(shape.bbox[2])
-                    if self.shpdata.max.y()<shape.bbox[3]:
-                        self.shpdata.max.setY(shape.bbox[3])
-                if not self.av_show[idx]:
-                    continue
+                    if self.shpdata.max.y()<-shape.bbox[1]:
+                        self.shpdata.max.setY(-shape.bbox[1])
+            elif shape.shapeType in [1, 21]:
+                if self.shpdata.min is None:
+                    self.shpdata.min = QtCore.QPointF(shape.points[0][0], -shape.points[0][1])
+                    self.shpdata.max = QtCore.QPointF(shape.points[0][0], -shape.points[0][1])
+                else:
+                    if self.shpdata.min.x()>shape.points[0][0]:
+                        self.shpdata.min.setX(shape.points[0][0])
+                    if self.shpdata.min.y()>-shape.points[0][1]:
+                        self.shpdata.min.setY(-shape.points[0][1])
+                    if self.shpdata.max.x()<shape.points[0][0]:
+                        self.shpdata.max.setX(shape.points[0][0])
+                    if self.shpdata.max.y()<-shape.points[0][1]:
+                        self.shpdata.max.setY(-shape.points[0][1])
+            if not self.av_show[idx]:
+                continue
+            # transform to point and lines
+            if shape.shapeType in [1, 21]:
+                point = QtCore.QPointF(shape.points[0][0],-shape.points[0][1])
+                self.shpdata.points.append(
+                        ShpPoint(point, highlighted)
+                    )
+            elif shape.shapeType in [8, 28]:
+                for j in range(0, len(shape.points)):
+                    point = QtCore.QPointF(shape.points[j][0],-shape.points[j][1])
+                    self.shpdata.points.append(
+                        ShpPoint(point, highlighted)
+                    )
+            elif shape.shapeType in [3, 5, 13, 15, 23, 25, 31]:                
                 part = 0
-                point = None
-#                firstpoint = None
-                # transform to point and lines
+                point = None                
                 for j in range(0, len(shape.points)):
                     lastPoint = point
-                    point = QtCore.QPointF(shape.points[j][0],shape.points[j][1])
-#                    self.shpdata.points.append(
-#                            ShpPoint(point, highlighted)
-#                        )
+                    point = QtCore.QPointF(shape.points[j][0],-shape.points[j][1])
                     if shape.parts[part]==j:
-#                        if firstpoint is not None:
-#                            self.shpdata.lines.append(
-#                                    ShpLine(point, firstpoint, highlighted)
-#                                )
-#                        firstpoint=point
                         if len(shape.parts)>(part+1):
                             part +=1
                     else:
                         self.shpdata.lines.append(
                                 ShpLine(lastPoint, point, highlighted)
                             )
-#                if firstpoint is not None:
-#                    self.shpdata.lines.append(
-#                            ShpLine(point, firstpoint, highlighted)
-#                       )
             else:
                 raise Exception("Shape file type {0} is not implemented".format(str(shape.shapeType)))
         return True
@@ -247,7 +264,7 @@ class ShpDisp():
         try:
             i=len(sf.shapes())
             return i
-        except struct.error:
+        except struct.error as err:            
             i = 0
             while True:            
                 try:
@@ -255,6 +272,8 @@ class ShpDisp():
                     sf.shape(i)
                     i += 1
                 except (IndexError, struct.error):
+                    self.errors.append("Error occured during shape count ({0}). Is read only first {1} shapes".format(
+                        str(err), str(i)))
                     return i
         return 0
         
@@ -317,11 +336,9 @@ class ShpFiles():
         disp = ShpDisp(file)         
         self.datas.append(disp) 
         self.boundrect = self._shp_rect()
+        return disp
 
     def del_file(self, idx):
         """Delete existing shapefile according to file index"""
-        self.boundrect = self._shp_rect()
-        
-    def set_attr(self, idx):
-        """Other attribute for idx file is selected and new data should be reloaded"""
+        del self.datas[idx]
         self.boundrect = self._shp_rect()

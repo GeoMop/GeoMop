@@ -19,6 +19,9 @@ class Diagram(QtWidgets.QGraphicsScene):
     """
     GeoMop design area
     
+    Y coordinetes is negativ for right map orientation. For displying or setting 
+    is need set opposite value.
+    
     pyqtSignals:
         * :py:attr:`cursorChanged(float, float) <cursorChanged>`
         * :py:attr:`possChanged() <possChanged>`
