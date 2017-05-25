@@ -3,12 +3,19 @@ from . import async_repeater as ar
 from .json_data import JsonData, ClassFactory
 from .environment import Environment
 from .connection import ConnectionLocal, ConnectionSSH
+
+# import in code
+#from .service_proxy import ServiceProxy
+
 import logging
 import concurrent.futures
 import enum
 import time
 import json
 import os
+import threading
+import sys
+import traceback
 
 
 class ServiceStatus(enum.IntEnum):
@@ -128,11 +135,23 @@ class ServiceBase(JsonData):
         self._connections = {}
         """dict of active connections"""
 
-    def call_action(self, action, data):
+        self.answers_to_send = []
+        """list of answers to send (id, [answer])"""
+
+        self._send_answers_event = threading.Event()
+        """event for trigger send answers"""
+
+        # thread for sending answers
+        t = threading.Thread(target=self._send_answers)
+        t.daemon = True
+        t.start()
+
+    def call_action(self, action, data, result=None):
         """
         Call method with name given by 'action' with 'data' as its only argument.
         Used for processing requests and on_answer actions.
         If the action method is marked be the LongRequest delegator it is processed in separate thread.
+        If list is given in 'result' parameter, result is save in it.
 
         TODO:
         - catch exceptions return error answer, how to do it for exceptions in threads?
@@ -140,31 +159,45 @@ class ServiceBase(JsonData):
         :param data:
         :return:
         """
+        def save_result(res):
+            if result is not None:
+                result.append(res)
+                self._send_answers_event.set()
+
         try:
             action_method = getattr(self, action)
+        except AttributeError:
+            save_result({'error': 'Invalid action: %s' % (action)})
+            return
 
-        except  AttributeError:
-            result = {'error': 'Invalid action: %s' % (action)}
+        def wrapper():
+            try:
+                res = action_method(data)
+            except:
+                res = {'error': "Exception in action:\n" + "".join(traceback.format_exception(*sys.exc_info()))}
+            save_result(res)
+
+        if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
+            #future = self._thread_pool.submit(action_method, data)
+            t = threading.Thread(target=wrapper)
+            t.daemon = True
+            t.start()
+            # TODO:
+            # - How to get result after completion.
+            # First option:
+            #   keep list of processing threads
+            #   check complition in c and call repeater.send_answer for result
+            # Second option:
+            #   keep list of results, the thread append the result to this list,
+            #   list is processed and send_answer called in service_address
+            # Third option:
+            #   similar to previous. Result is not stored in the list, but send_answer
+            #   is called directly from the thread.
+            #
+            # - First try without pool.
+
         else:
-            if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
-                future = self._thread_pool.submit(action_method, data)
-                # TODO:
-                # - How to get result after completion.
-                # First option:
-                #   keep list of processing threads
-                #   check complition in c and call repeater.send_answer for result
-                # Second option:
-                #   keep list of results, the thread append the result to this list,
-                #   list is processed and send_answer called in service_address
-                # Third option:
-                #   similar to previous. Result is not stored in the list, but send_answer
-                #   is called directly from the thread.
-                #
-                # - First try without pool.
-
-            else:
-                result = action_method(data)
-        return result
+            wrapper()
 
     def save_config(self):
         """
@@ -217,15 +250,30 @@ class ServiceBase(JsonData):
             if 'data' in request.keys():
                 data = request['data']
             assert( 'action' in request.keys() )
-            answer = self.call_action(request['action'], data)
+
+            answer = []
+            self.call_action(request['action'], data, answer)
+            self.answers_to_send.append((request_data.id, answer))
 
             # TODO:
             # catch exceptions, use async_repeater._exception_answer(e) to return
             # exception result. Use format_exception in _exception_answer instead of just traceback.
             # For correct result introduce similar formater.
 
-            self._repeater.send_answer(request_data.id, answer)
-        return
+
+    def _send_answers(self):
+        while True:
+            self._send_answers_event.wait()
+            self._send_answers_event.clear()
+
+            done = False
+            while not done:
+                for i in range(len(self.answers_to_send)):
+                    if len(self.answers_to_send[i][1]) > 0:
+                        item = self.answers_to_send[i].pop(i)
+                        self._repeater.send_answer(item[0], item[1][0])
+                        break
+                done = True
 
     def _do_work(self):
         pass
@@ -236,7 +284,18 @@ class ServiceBase(JsonData):
         result_list.append(result_data)
 
     def get_connection(self, connection_data):
-        return ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+        """
+        Keep active connections in a dict and reuse connection to same hosts.
+        :param connection_data:
+        :return:
+        """
+        addr = connection_data["address"]
+        if addr in self._connections:
+            return self._connections[addr]
+        else:
+            con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+            self._connections[addr] = con
+            return con
 
 
     #######################################################################################
@@ -262,9 +321,6 @@ class ServiceBase(JsonData):
         :return: STATUS
         """
         connection = self.get_connection(service_data.connection)
-        # this method should keep active conncetions in a dict and reuse conncetion to same hosts
-        # use following to create new conncetion not in the dict.
-        # connection = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(service_data.connection)
 
 
         from .service_proxy import ServiceProxy
