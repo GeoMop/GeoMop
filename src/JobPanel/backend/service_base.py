@@ -125,7 +125,6 @@ class ServiceBase(JsonData):
         # obtained from the global geomop setting not retrieved form the service configuration.
 
         self._child_services = {}
-        self._requests = []
 
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_port = self._repeater.listen_port
@@ -137,14 +136,6 @@ class ServiceBase(JsonData):
 
         self.answers_to_send = []
         """list of answers to send (id, [answer])"""
-
-        self._send_answers_event = threading.Event()
-        """event for trigger send answers"""
-
-        # thread for sending answers
-        t = threading.Thread(target=self._send_answers)
-        t.daemon = True
-        t.start()
 
     def call_action(self, action, data, result=None):
         """
@@ -159,10 +150,11 @@ class ServiceBase(JsonData):
         :param data:
         :return:
         """
+        logging.info("call_action(action: {}, data: {})".format(action, data))
+
         def save_result(res):
             if result is not None:
                 result.append(res)
-                self._send_answers_event.set()
 
         try:
             action_method = getattr(self, action)
@@ -175,6 +167,8 @@ class ServiceBase(JsonData):
                 res = action_method(data)
             except:
                 res = {'error': "Exception in action:\n" + "".join(traceback.format_exception(*sys.exc_info()))}
+                logging.info("call_action Exception: {})".format(res))
+            #logging.info("res: {})".format(res))
             save_result(res)
 
         if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
@@ -216,13 +210,21 @@ class ServiceBase(JsonData):
         self._repeater.run()
         logging.info("After run")
 
+        last_time = time.time()
+
         # Service processing loop.
         while not self._closing:
             logging.info("Loop")
-            time.sleep(1)
             self._process_answers()
             self._process_requests()
             self._do_work()
+
+            # sleep, not too much
+            remaining_time = 1.0 - (time.time() - last_time)
+            if remaining_time > 0:
+                time.sleep(remaining_time)
+            last_time = time.time()
+
         self._repeater.close()
 
 
@@ -242,8 +244,8 @@ class ServiceBase(JsonData):
         return
 
     def _process_requests(self):
-        self._requests.extend( self._repeater.get_requests() )
-        for request_data in self._requests:
+        requests = self._repeater.get_requests()
+        for request_data in requests:
             request = request_data.request
             logging.info("Process Request: " + str(request))
             data = None
@@ -254,6 +256,7 @@ class ServiceBase(JsonData):
             answer = []
             self.call_action(request['action'], data, answer)
             self.answers_to_send.append((request_data.id, answer))
+            self._send_answers()
 
             # TODO:
             # catch exceptions, use async_repeater._exception_answer(e) to return
@@ -262,18 +265,19 @@ class ServiceBase(JsonData):
 
 
     def _send_answers(self):
-        while True:
-            self._send_answers_event.wait()
-            self._send_answers_event.clear()
-
-            done = False
-            while not done:
-                for i in range(len(self.answers_to_send)):
-                    if len(self.answers_to_send[i][1]) > 0:
-                        item = self.answers_to_send[i].pop(i)
-                        self._repeater.send_answer(item[0], item[1][0])
-                        break
-                done = True
+        """
+        Send filled answers form self.answers_to_send.
+        Method is thread safe.
+        :return:
+        """
+        done = False
+        while not done:
+            for i in range(len(self.answers_to_send)):
+                if len(self.answers_to_send[i][1]) > 0:
+                    item = self.answers_to_send.pop(i)
+                    self._repeater.send_answer(item[0], item[1][0])
+                    break
+            done = True
 
     def _do_work(self):
         pass

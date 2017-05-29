@@ -172,6 +172,8 @@ class ProcessExec(ProcessBase):
             :param parameters: ProcessParameters
             :return: process_id - object that identify the process on the same machine
             """
+            logging.info("ProcessExec.start()".format())
+
             args = []
             if self.executable.script:
                 args.append(self.environment.python)
@@ -179,9 +181,10 @@ class ProcessExec(ProcessBase):
                                      self.executable.path,
                                      self.executable.name))
             args.extend(self.exec_args.args)
-            cwd = os.path.join(self.environment.geomop_analysis_workspace,
-                               self.exec_args.work_dir)
-            p = psutil.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=cwd)
+            # todo:
+            #cwd = os.path.join(self.environment.geomop_analysis_workspace,
+            #                   self.exec_args.work_dir)
+            p = psutil.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)#, cwd=cwd)
             self.process_id = "{}@{}".format(p.pid, p.create_time())
             return self.process_id
 

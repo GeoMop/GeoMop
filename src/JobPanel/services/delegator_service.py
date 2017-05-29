@@ -1,13 +1,17 @@
-
-import backend.async_repeater as ar
-from backend import service_base
 import sys
+import os
 import logging
 import time
 import json
 import traceback
+
+sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+
+import backend.async_repeater as ar
+from backend import service_base
 from backend.json_data import JsonData, ClassFactory
 from backend._executor import ProcessExec, ProcessPBS, ProcessDocker
+
 
 class Delegator(service_base.ServiceBase):
     """
@@ -20,6 +24,7 @@ class Delegator(service_base.ServiceBase):
     """ Delegator requests. """
 
     def request_process_start(self, process_config):
+        logging.info("request_process_start(process_config: {})".format(process_config))
         executor = self._process_class_factory.make_instance(process_config)
         return executor.start()
 

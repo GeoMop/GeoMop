@@ -5,6 +5,7 @@
 
 from backend.connection import *
 from backend.service_base import ServiceBase
+from backend.service_proxy import ServiceProxy
 
 import threading
 import socket
@@ -226,9 +227,10 @@ def test_get_delegator():
     # ConnectionSSH
     u, p = get_test_password()
     con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
+    con.set_local_service(local_service)
 
     # get_delegator
-    delegator_proxy = con.get_delegator(local_service)
+    delegator_proxy = con.get_delegator()
     assert isinstance(delegator_proxy, ServiceProxy)
 
     # stopping, closing
@@ -255,9 +257,10 @@ def test_mc_get_delegator():
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
+    con.set_local_service(local_service)
 
     # get_delegator
-    delegator_proxy = con.get_delegator(local_service)
+    delegator_proxy = con.get_delegator()
     assert isinstance(delegator_proxy, ServiceProxy)
 
     # stopping, closing

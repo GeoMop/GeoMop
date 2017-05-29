@@ -383,7 +383,7 @@ class StarterServer(asyncore.dispatcher):
         self.bind(("", 0))
         self.address=self.socket.getsockname()
         self.listen(5)
-        logging.info("Starter Server listening at address: {}", self.address)
+        logging.info("Starter Server listening at address: {}".format(self.address))
 
     def handle_accepted(self, sock, addr):
         StarterServerDispatcher(sock, self.async_repeater)

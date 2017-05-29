@@ -85,7 +85,7 @@ class ServiceProxy:
         """
 
         # see: ServiceBase.save_result
-        self.repeater.send_request(..., {'action': 'save_result', 'data': result})
+        self.repeater.send_request([self._child_id], {'action': method_name, 'data': data}, {'action': 'save_result', 'data': result})
         pass
 
     def start_service(self):
@@ -121,7 +121,8 @@ class ServiceProxy:
         self._child_id, remote_port = self.repeater.add_child(self.connection)
 
         # 4.
-        process_config = {} # todo:
+        process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
+                           "exec_args": {"__class__": "ExecArgs", "args": ["60"]}} # todo:
         delegator_proxy.call("request_process_start", process_config, self.child_service_process_id)
 
         # 5.
@@ -140,6 +141,7 @@ class ServiceProxy:
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
 
+        Nasledujici body jiz neplati.
         1. Check if repeater.client[child_id] have target port (ClientDispatcher exists)
         2. If No or child_id == None, download service config file and get port from there ( ... postpone)
         3. Open forward tunnel

@@ -3,9 +3,14 @@ Starting point of the job_service.
 Usage: python3 job_service.py [config.json]
 """
 import sys
-import service_base
+import os
 import logging
 import threading
+
+sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+
+from backend import service_base
+
 
 """
 Assuming ServiceBase.thread_pool
@@ -40,6 +45,9 @@ class Job(service_base.ServiceBase):
         self.requests.append( {'action': "execute" } )
         self.connect_parent()
 
+    def _do_work(self):
+        pass
+
     @LongRequest
     def execute(self):
         """
@@ -57,7 +65,7 @@ def job_main():
     with open(input_file, "r") as f:
         config = json.load(f)
     job = Job(config)
-    job.poll()
+    job.run()
 
 
 if __name__ == "__main__":

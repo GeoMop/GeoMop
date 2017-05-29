@@ -57,6 +57,13 @@ class ConnectionBase(JsonData):
         """ Unique name used in GUI."""
         super().__init__(config)
 
+        self._local_service = None
+        """local service"""
+
+    def set_local_service(self, local_service):
+        self._local_service = local_service
+
+
 class ConnectionLocal(ConnectionBase):
     def __init__(self, config={}):
         super().__init__(config)
@@ -109,14 +116,16 @@ class ConnectionLocal(ConnectionBase):
         """
         self._copy(paths, remote_prefix, local_prefix )
 
-    def get_delegator(self, local_service):
+    def get_delegator(self):
         """
         Start delegator and return its proxy.
 
         We assume that Service itself can behave as ServiceProxy but not vice versa.
         :return: service_proxy
         """
-        return local_service
+        assert self._local_service is not None
+
+        return self._local_service
 
     def close_connections(self):
         """
@@ -399,7 +408,7 @@ class ConnectionSSH(ConnectionBase):
             except socket.timeout:
                 raise SSHTimeoutError
 
-    def get_delegator(self, local_service):
+    def get_delegator(self):
         """
         Start delegator and return its proxy.
         MJ and Backand seeervices should be derived from Delegator service or have delegator instance
@@ -419,6 +428,8 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHTimeoutError:
         """
 
+        assert self._local_service is not None
+
         if self._delegator_proxy is not None:
             return self._delegator_proxy
 
@@ -426,11 +437,11 @@ class ConnectionSSH(ConnectionBase):
         # moved to repeater.add_child
 
         # 2.
-        child_id, remote_port = local_service._repeater.add_child(self)
+        child_id, remote_port = self._local_service._repeater.add_child(self)
 
         # 3.
         command = self.environment.python + " " \
-                  + os.path.join(self.environment.geomop_root, "JobPanel/delegator_service.py") \
+                  + os.path.join(self.environment.geomop_root, "JobPanel/services/delegator_service.py") \
                   + " {} {} {}".format(child_id, "localhost", remote_port)
         try:
             self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
@@ -442,14 +453,15 @@ class ConnectionSSH(ConnectionBase):
         connected = False
         for i in range(10):
             time.sleep(0.1)
-            answers = local_service._repeater.get_answers(child_id)
+            answers = self._local_service._repeater.get_answers(child_id)
             for answer in answers:
                 if answer.id == 0:
                     connected = True
                     break
             if connected:
                 from .service_proxy import ServiceProxy
-                self._delegator_proxy = ServiceProxy({}, local_service._repeater, self)
+                self._delegator_proxy = ServiceProxy({}, self._local_service._repeater, self)
+                self._delegator_proxy._child_id = child_id
                 self._delegator_proxy.on_answer_connect()
                 break
 
