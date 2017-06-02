@@ -13,7 +13,6 @@ Performed actions:
 """
 
 import json
-import re
 import argparse
 
 
