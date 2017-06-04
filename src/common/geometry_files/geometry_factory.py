@@ -21,12 +21,15 @@ class GeometryFactory:
         ns = NodeSet(topology_idx)
         self.geometry.node_sets.append(ns)
         return  len(self.geometry.node_sets)-1
+        
+    def reset_node_set(self, node_set_idx):
+        self.geometry.node_sets[node_set_idx].reset()
     
-    def add_point(self,node_set_idx, x, y):
+    def add_node(self,node_set_idx, x, y):
         self.geometry.node_sets[node_set_idx].nodes.append(Node(x, y))
         return len(self.geometry.node_sets[node_set_idx].nodes)-1
         
-    def get_points(self, node_set_idx):
+    def get_nodes(self, node_set_idx):
         return self.geometry.node_sets[node_set_idx].nodes
      
     def add_segment(self,topology_idx, n1_idx, n2_idx):

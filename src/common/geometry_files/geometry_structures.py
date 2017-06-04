@@ -129,7 +129,11 @@ class NodeSet(GeoObject):
         """Topology index"""
         self.nodes = []
         """list of Nodes"""
- 
+        
+    def reset(self):
+        """Reset node set"""
+        self.nodes = []
+        
 
 class LayerGeometry(GeoObject):
     """Geometry File Layer Data"""

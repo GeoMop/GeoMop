@@ -25,11 +25,11 @@ def test_local(request):
     ns21_idx = gf.add_node_set(tp2_idx)
     ns22_idx = gf.add_node_set(tp2_idx)
     for point in points1:
-        gf.add_point(ns11_idx, point[0], point[1])
-        gf.add_point(ns12_idx, point[0], point[1])
+        gf.add_node(ns11_idx, point[0], point[1])
+        gf.add_node(ns12_idx, point[0], point[1])
     for point in points2:
-        gf.add_point(ns21_idx, point[0], point[1])
-        gf.add_point(ns22_idx, point[0], point[1])
+        gf.add_node(ns21_idx, point[0], point[1])
+        gf.add_node(ns22_idx, point[0], point[1])
     for line in lines1:
         gf.add_segment( tp1_idx, line[0], line[1])
     for line in lines2:
