@@ -29,21 +29,21 @@ class DiagramSerializer():
             ns = geometry.node_sets[ns_idx]
             ns.reset()
         for point in self.diagram.points:
-            gf.add_node(ns_idx, point.x(), point.y())
+            gf.add_node(ns_idx, point.x, point.y)
         for line in self.diagram.lines:
-            gf.add_segment( ns.topology_idx, ns.nodes.index(line.p1), ns.nodes.index(line.p2))
+            gf.add_segment( ns.topology_idx, self.diagram.points.index(line.p1), self.diagram.points.index(line.p2))
         errors = gf.check_file_consistency()
         if len(errors)>0:
             raise DiagramSerializerException("Some file consistency errors occure", errors)
-        reader.save(gf.geometry)
+        reader.write(gf.geometry)
     
-    def load(self, ns_idx=0):
+    def load(self, path, ns_idx=0):
         """Load diagram data from set file"""
-        assert self.diagram.path is not None 
-        reader = GeometrySer(self.diagram.path)
+        self.diagram.path = path
+        reader = GeometrySer(path)
         geometry =  reader.read()
         gf = GeometryFactory(geometry)
-        errors = gf.check_file_consistency()
+        errors = gf.check_file_consistency()        
         if len(errors)>0:
             raise DiagramSerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)        
@@ -54,11 +54,11 @@ class DiagramSerializer():
             self.diagram.add_point(node.x, node.y, 'Import point', None, True)
         segments = gf.get_segments(ns_idx)
         for segment in segments:
-            self.diagram.join_line(self.diagram.points(segment.n1_idx), 
-                self.diagram.points(segment.n2_idx), "Import line", None, True)
+            self.diagram.join_line(self.diagram.points[segment.n1_idx], 
+                self.diagram.points[segment.n2_idx], "Import line", None, True)
 
     
-class DiagramSerializerException(PyperclipException):
+class DiagramSerializerException(Exception):
     def __init__(self, message, errors):
-        super(PyperclipWindowsException, self).__init__(message)
+        super(DiagramSerializerException, self).__init__(message)
         self.errors = errors
