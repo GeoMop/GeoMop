@@ -21,9 +21,12 @@ class LayerEditor:
         self._app = QtWidgets.QApplication(sys.argv)
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         self.mainwindow = MainWindow(self)
-        
+                
         # load config        
         cfg.init(self.mainwindow)
+        
+        # set default values
+        self._update_document_name()
 
         # show
         self.mainwindow.show()
@@ -120,6 +123,15 @@ class LayerEditor:
     def main(self):
         """go"""
         self._app.exec_()
+        
+    def _update_document_name(self):
+        """Update document title (add file name)"""
+        title = "GeoMop Layer Editor"
+        if cfg.diagram.path is None:
+            title += " - New File"
+        else:
+            title += " - " + cfg.curr_file
+        self.mainwindow.setWindowTitle(title)
 
 
 def main():

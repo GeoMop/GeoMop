@@ -106,6 +106,9 @@
         - me:
             test-file: runMe.py
             result-file: testMe.xml
+        - le:
+            test-file: runLe.py
+            result-file: testLe.xml
         - jp:
             test-file: runJp.py
             result-file: testJp.xml
@@ -121,7 +124,7 @@
     scm:
     - git:
         branches:
-        - *
+        - '*'
         url: https://github.com/GeoMop/GeoMop
     project-type: multijob
     triggers:
@@ -144,6 +147,12 @@
           name: 'Unit tests - Model Editor'
           projects:
             - name: test-me
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Layer Editor'
+          projects:
+            - name: test-le
               property-file: prop.file
       - multijob:
           condition: COMPLETED
