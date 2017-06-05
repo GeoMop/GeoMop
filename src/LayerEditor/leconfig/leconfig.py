@@ -56,6 +56,11 @@ class LEConfig:
     """Current diagram data"""
     main_window = None
     """parent of dialogs"""
+    curr_file_timestamp = None
+    """
+    Timestamp of opened file, if editor text is 
+    imported or new timestamp is None
+    """
     
     @classmethod
     def init(cls, main_window):
@@ -81,5 +86,50 @@ class LEConfig:
                 except Exception as err:
                     err_dialog = GMErrorDialog(cls.main_window)
                     err_dialog.open_error_dialog("Can't open shapefile", err)
+        return False
+        
+    @classmethod
+    def open_file(cls, file):
+        """
+        save file name and timestamp
+        """        
+        cls.curr_file = file
+        if file is None:
+            cls.curr_file_timestamp = None
+        else:
+            try:
+                cls.curr_file_timestamp = os.path.getmtime(file)
+            except OSError:
+                cls.curr_file_timestamp = None
+        
+    @classmethod
+    def confront_file_timestamp(cls):
+        """
+        Compare file timestamp with file time and if is diferent
+        show dialog, and reload file content.
+        :return: if file is reloaded 
+        """
+        if cls.curr_file_timestamp is not None and \
+            cls.curr_file is not None:
+            try:
+                timestamp = os.path.getmtime(cls.curr_file)
+                if timestamp!=cls.curr_file_timestamp:
+                    from PyQt5 import QtWidgets
+                    msg = QtWidgets.QMessageBox()
+                    msg.setText(
+                        "File has been modified outside of Layer editor. Do you want to reload it?")
+                    msg.setStandardButtons( QtWidgets.QMessageBox.Ignore | \
+                        QtWidgets.QMessageBox.Reset)
+                    msg.button(QtWidgets.QMessageBox.Reset).setText("Reload")
+                    msg.setDefaultButton(QtWidgets.QMessageBox.Ignore);
+                    ret = msg.exec_()
+                    if ret==QtWidgets.QMessageBox.Reset: 
+                        with open(cls.curr_file, 'r') as file_d:
+                            cls.document = file_d.read()
+                        cls.curr_file_timestamp = timestamp
+                        cls.update()                        
+                        return True
+            except OSError:
+                pass
         return False
         

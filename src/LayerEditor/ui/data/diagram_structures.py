@@ -112,7 +112,7 @@ class Diagram():
         """zoom"""
         self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
         """pen for object paintings"""        
-        self.bpen = QtGui.QPen(QtCore.Qt.black, 2.5)
+        self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5)
         """pen for highlighted object paintings"""
         self.pen_changed = True
         """pen need be changed"""
@@ -152,7 +152,7 @@ class Diagram():
         if ratio>1.2 or ratio<0.8:
             self.pen_changed = True
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
-            self.bpen = QtGui.QPen(QtCore.Qt.black, 2.5/value)
+            self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
             self._recount_zoom = value
             
     def first_shp_object(self):

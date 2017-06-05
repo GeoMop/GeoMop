@@ -124,7 +124,7 @@ class ShpDisp():
             ret = str(value,  'utf-8')
             if len(ret)>0 and not ret.isspace():
                 return ret
-            return "???"
+            return "NULL"
         elif type == "n" or type == "N" or \
             type == "f" or type == "F":
             try:
@@ -133,7 +133,7 @@ class ShpDisp():
                 else:
                     return str(float(value))
             except:
-                return "???"
+                return "NULL"
         elif type == "l" or type == "L":
             return str(int(value))
         elif type == "d" or type == "D":
