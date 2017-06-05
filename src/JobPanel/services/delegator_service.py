@@ -35,7 +35,7 @@ class Delegator(service_base.ServiceBase):
 
     def request_process_kill(self, process_config):
         executor = self._process_class_factory.make_instance(process_config)
-        executor.kill()
+        return executor.kill()
 
 
     def request_clean_workspace(self):

@@ -555,7 +555,10 @@ class AsyncRepeater():
         :return: [ RequestData, ... ]
         """
         #logging.info("GR")
-        return self._server_dispatcher.get_requests()
+        if self._server_dispatcher is not None:
+            return self._server_dispatcher.get_requests()
+        else:
+            return []
 
     def get_answers(self, child_id):
         """

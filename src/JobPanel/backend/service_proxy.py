@@ -1,6 +1,7 @@
-from .service_base import ServiceStatus
+from .service_base import ServiceBase, ServiceStatus, call_action
 
 import time
+import logging
 
 class ServiceProxy:
     """
@@ -87,6 +88,25 @@ class ServiceProxy:
         # see: ServiceBase.save_result
         self.repeater.send_request([self._child_id], {'action': method_name, 'data': data}, {'action': 'save_result', 'data': result})
         pass
+
+    def _process_answers(self):
+        for answer_data in self.repeater.get_answers(self._child_id):
+            logging.info("Processing: " + str(answer_data))
+            child_id = answer_data.sender[0]
+            on_answer = answer_data.on_answer
+            answer = answer_data.answer
+            if 'error' in answer.keys():
+                self.error_answer(answer_data)
+            call_action(self, on_answer['action'], (on_answer['data'], answer['data']))
+
+    def save_result(self, answer_data):
+        """
+        Method for saving answered data.
+        :param answer_data: must be in this format: (result_list, result_data)
+        :return:
+        """
+        (result_list, result_data) = answer_data
+        result_list.append(result_data)
 
     def start_service(self):
         """

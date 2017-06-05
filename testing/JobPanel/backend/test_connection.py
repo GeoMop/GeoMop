@@ -13,6 +13,7 @@ import socketserver
 import os
 import shutil
 import logging
+import time
 
 
 #logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
@@ -235,6 +236,59 @@ def test_get_delegator():
 
     # stopping, closing
     local_service._repeater.close()
+    con.close_connections()
+
+
+def test_delegator_exec():
+    # local service
+    local_service = ServiceBase({})
+    threading.Thread(target=local_service.run, daemon=True).start()
+
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "python": "python3"}
+
+    # ConnectionSSH
+    u, p = get_test_password()
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
+    con.set_local_service(local_service)
+
+    # get_delegator
+    delegator_proxy = con.get_delegator()
+    assert isinstance(delegator_proxy, ServiceProxy)
+
+    # start process
+    process_config = {"__class__": "ProcessExec",
+                      "executable": {"__class__": "Executable", "name": "sleep"},
+                      "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
+    answer = []
+    delegator_proxy.call("request_process_start", process_config, answer)
+
+    # wait for answer
+    time.sleep(5)
+    process_id = answer[-1]
+
+    # get status
+    process_config = {"__class__": "ProcessExec", "process_id": process_id}
+    answer = []
+    delegator_proxy.call("request_process_status", process_config, answer)
+
+    # wait for answer
+    time.sleep(5)
+    assert answer[-1] is True
+
+    # kill
+    process_config = {"__class__": "ProcessExec", "process_id": process_id}
+    answer = []
+    delegator_proxy.call("request_process_kill", process_config, answer)
+
+    # wait for answer
+    time.sleep(5)
+    assert answer[-1] is True
+
+    # stopping, closing
+    local_service._closing = True
     con.close_connections()
 
 

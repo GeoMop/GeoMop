@@ -463,6 +463,7 @@ class ConnectionSSH(ConnectionBase):
                 self._delegator_proxy = ServiceProxy({}, self._local_service._repeater, self)
                 self._delegator_proxy._child_id = child_id
                 self._delegator_proxy.on_answer_connect()
+                self._local_service._delegator_services[child_id] = self._delegator_proxy
                 break
 
         return self._delegator_proxy

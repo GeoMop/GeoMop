@@ -60,6 +60,64 @@ class ServiceStarter:
         pass
 
 
+def call_action(obj, action, data, result=None):
+    """
+    Call method of 'obj' with name given by 'action' with 'data' as its only argument.
+    Used for processing requests and on_answer actions.
+    If the action method is marked be the LongRequest delegator it is processed in separate thread.
+    If list is given in 'result' parameter, result is save in it.
+
+    TODO:
+    - catch exceptions return error answer, how to do it for exceptions in threads?
+    :param action:
+    :param data:
+    :param result:
+    :return:
+    """
+    logging.info("call_action(action: {}, data: {})".format(action, data))
+
+    def save_result(res):
+        if result is not None:
+            result.append(res)
+
+    try:
+        action_method = getattr(obj, action)
+    except AttributeError:
+        save_result({'error': 'Invalid action: %s' % (action)})
+        return
+
+    def wrapper():
+        try:
+            res = {"data": action_method(data)}
+        except:
+            res = {'error': "Exception in action:\n" + "".join(traceback.format_exception(*sys.exc_info()))}
+            logging.info("call_action Exception: {})".format(res))
+        # logging.info("res: {})".format(res))
+        save_result(res)
+
+    if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
+        # future = self._thread_pool.submit(action_method, data)
+        t = threading.Thread(target=wrapper)
+        t.daemon = True
+        t.start()
+        # TODO:
+        # - How to get result after completion.
+        # First option:
+        #   keep list of processing threads
+        #   check complition in c and call repeater.send_answer for result
+        # Second option:
+        #   keep list of results, the thread append the result to this list,
+        #   list is processed and send_answer called in service_address
+        # Third option:
+        #   similar to previous. Result is not stored in the list, but send_answer
+        #   is called directly from the thread.
+        #
+        # - First try without pool.
+
+    else:
+        wrapper()
+
+
 class ServiceBase(JsonData):
     """
     From ActionProcessor:
@@ -126,6 +184,8 @@ class ServiceBase(JsonData):
 
         self._child_services = {}
 
+        self._delegator_services = {}
+
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_port = self._repeater.listen_port
 
@@ -136,62 +196,6 @@ class ServiceBase(JsonData):
 
         self.answers_to_send = []
         """list of answers to send (id, [answer])"""
-
-    def call_action(self, action, data, result=None):
-        """
-        Call method with name given by 'action' with 'data' as its only argument.
-        Used for processing requests and on_answer actions.
-        If the action method is marked be the LongRequest delegator it is processed in separate thread.
-        If list is given in 'result' parameter, result is save in it.
-
-        TODO:
-        - catch exceptions return error answer, how to do it for exceptions in threads?
-        :param action:
-        :param data:
-        :return:
-        """
-        logging.info("call_action(action: {}, data: {})".format(action, data))
-
-        def save_result(res):
-            if result is not None:
-                result.append(res)
-
-        try:
-            action_method = getattr(self, action)
-        except AttributeError:
-            save_result({'error': 'Invalid action: %s' % (action)})
-            return
-
-        def wrapper():
-            try:
-                res = action_method(data)
-            except:
-                res = {'error': "Exception in action:\n" + "".join(traceback.format_exception(*sys.exc_info()))}
-                logging.info("call_action Exception: {})".format(res))
-            #logging.info("res: {})".format(res))
-            save_result(res)
-
-        if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
-            #future = self._thread_pool.submit(action_method, data)
-            t = threading.Thread(target=wrapper)
-            t.daemon = True
-            t.start()
-            # TODO:
-            # - How to get result after completion.
-            # First option:
-            #   keep list of processing threads
-            #   check complition in c and call repeater.send_answer for result
-            # Second option:
-            #   keep list of results, the thread append the result to this list,
-            #   list is processed and send_answer called in service_address
-            # Third option:
-            #   similar to previous. Result is not stored in the list, but send_answer
-            #   is called directly from the thread.
-            #
-            # - First try without pool.
-
-        else:
-            wrapper()
 
     def save_config(self):
         """
@@ -231,17 +235,10 @@ class ServiceBase(JsonData):
 
     def _process_answers(self):
         logging.info("Process answers ...")
-        for ch_id in self._child_services.keys():
-            for answer_data in self._repeater.get_answers(ch_id):
-                logging.info("Processing: " + str(answer_data))
-                child_id = answer_data.sender[0]
-                on_answer = answer_data.on_answer
-                answer = answer_data.answer
-                if 'error' in answer.keys():
-                    self._child_services[child_id].error_answer(answer_data)
-                #self._child_services[child_id].call_action(on_answer['action'], ( on_answer['data'],  answer['data'] ))
-                self.call_action(on_answer['action'], (on_answer['data'], answer['data']))
-        return
+        for ch_service in self._child_services.values():
+            ch_service._process_answers()
+        for d_service in self._delegator_services.values():
+            d_service._process_answers()
 
     def _process_requests(self):
         requests = self._repeater.get_requests()
@@ -254,7 +251,7 @@ class ServiceBase(JsonData):
             assert( 'action' in request.keys() )
 
             answer = []
-            self.call_action(request['action'], data, answer)
+            call_action(self, request['action'], data, answer)
             self.answers_to_send.append((request_data.id, answer))
             self._send_answers()
 
@@ -280,12 +277,11 @@ class ServiceBase(JsonData):
             done = True
 
     def _do_work(self):
+        """
+        Periodically called in service processing loop.
+        :return:
+        """
         pass
-
-
-    def save_result(self, answer_data):
-        (result_list, result_data) = answer_data
-        result_list.append(result_data)
 
     def get_connection(self, connection_data):
         """
