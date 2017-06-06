@@ -101,6 +101,9 @@ class Diagram():
         - Point is griater if is right or x coordinate is equol and point is below 
         - Line.p1<line.p2
     """
+    shp = ShpFiles()
+    """Current editing topology"""
+    
     def __init__(self):       
         self._rect = None
         """canvas Rect"""
@@ -124,12 +127,6 @@ class Diagram():
         """y viw possition"""
         self._history = History(self)
         """history"""
-        self.shp = ShpFiles()
-        """Current editing topology"""
-        self.path = None
-        """Current geometry data file path"""
-        self.node_set_idx = None
-        """Current editing node set, if is node, new node set is edited"""
         
     def reset_history(self):
         """Reset history"""

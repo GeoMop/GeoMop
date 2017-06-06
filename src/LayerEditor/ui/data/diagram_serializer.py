@@ -1,53 +1,64 @@
-from .diagram_structures import *
 from geometry_files.geometry_factory import  GeometryFactory
 from geometry_files.geometry import GeometrySer
+from leconfig import cfg
 
 class DiagramSerializer():
     """Class for diagram data serialization"""
   
-    def __init__(self, diagram):        
-        self.diagram = diagram
-        """Diagram data"""
+    def __init__(self):        
+        self.geometry = self._get_first_geometry()
+        """Geometry faktory"""
+        
+    def _get_first_geometry(self):
+        """Get emty geometry (new)"""
+        gf = GeometryFactory()            
+        tp_idx = gf.add_topology()
+        ns_idx = gf.add_node_set(tp_idx)
+        self.geometry = gf.geometry
+        self.geometry.supplement = ns_idx
+        cfg.node_set_idx = ns_idx
         
     def save(self, path=None):
         """Save diagram data to set file
         If path is not None, data is saved to new file from path"""
         assert path is not None or self.diagram.path is not None 
         if path is not None:
-            gf = GeometryFactory()
-            tp_idx = gf.add_topology()
-            ns_idx = gf.add_node_set(tp_idx)
-            ns = gf.geometry.node_sets[ns_idx]
-            self.diagram.path = path
-            self.node_set_idx = ns_idx
-            reader = GeometrySer(path)
-        else:
-            reader = GeometrySer(self.diagram.path)
-            geometry =  reader.read()
-            gf = GeometryFactory(geometry)
-            assert ns_idx<len(geometry.node_sets)
-            ns = geometry.node_sets[ns_idx]
-            ns.reset()
+            cfg.path = path
+        gf = GeometryFactory(self.geometry)            
+        reader = GeometrySer(cfg.path)
+        self._read_ns(ns_idx, gf)    
+            
+    def _read_ns(self, ns_idx, gf):
+        reader = GeometrySer(cfg.path)
+        assert ns_idx<len(self.geometry.node_sets)
+        ns = self.geometry.node_sets[ns_idx]
+        ns.reset()
         for point in self.diagram.points:
             gf.add_node(ns_idx, point.x, point.y)
         for line in self.diagram.lines:
             gf.add_segment( ns.topology_idx, self.diagram.points.index(line.p1), self.diagram.points.index(line.p2))
+        gf.geometry.supplement = ns_idx
         errors = gf.check_file_consistency()
         if len(errors)>0:
             raise DiagramSerializerException("Some file consistency errors occure", errors)
         reader.write(gf.geometry)
     
-    def load(self, path, ns_idx=0):
+    def load(self, ns_idx=None, path=None):
         """Load diagram data from set file"""
-        self.diagram.path = path
+        if path is None:
+            path = self.diagram.path
+        else:
+            self.diagram.path = path
         reader = GeometrySer(path)
         geometry =  reader.read()
         gf = GeometryFactory(geometry)
         errors = gf.check_file_consistency()        
         if len(errors)>0:
             raise DiagramSerializerException(
-                "Some file consistency errors occure in {0}".format(self.diagram.path), errors)        
-        assert ns_idx<len(geometry.node_sets)
+                "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
+        if ns_idx is None:
+            ns_idx = gf.geometry.supplement            
+        assert ns_idx<len(geometry.node_sets)        
         nodes = gf.get_nodes(ns_idx)
         self.diagram.reset_history()
         for node in nodes:
@@ -56,6 +67,7 @@ class DiagramSerializer():
         for segment in segments:
             self.diagram.join_line(self.diagram.points[segment.n1_idx], 
                 self.diagram.points[segment.n2_idx], "Import line", None, True)
+        self.diagram.node_set_idx = ns_idx
 
     
 class DiagramSerializerException(Exception):

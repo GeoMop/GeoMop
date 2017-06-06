@@ -9,6 +9,7 @@ import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
+from ui.data.shp_structures import ShpFiles
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -52,15 +53,24 @@ class LEConfig:
     """Serialized variables"""
     logger = logging.getLogger(LOGGER_PREFIX +  config.CONTEXT_NAME)
     """root context logger"""
-    diagram = data.Diagram()
+    diagrams = [data.Diagram()]
+    """List of diagram data"""
+    diagram = diagrams[0]
     """Current diagram data"""
     main_window = None
     """parent of dialogs"""
     curr_file_timestamp = None
-    """
+    """    
     Timestamp of opened file, if editor text is 
     imported or new timestamp is None
     """
+    self.shp = ShpFiles()
+    """Current editing topology"""
+    self.path = None
+    """Current geometry data file path"""
+    self.node_set_idx = None
+    """Current editing node set, if is node, new node set is edited"""
+
     
     @classmethod
     def init(cls, main_window):

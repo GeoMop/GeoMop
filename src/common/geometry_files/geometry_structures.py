@@ -134,6 +134,12 @@ class NodeSet(GeoObject):
         """Reset node set"""
         self.nodes = []
         
+        
+class UserSupplement(GeoObject):
+    def __init__(self):
+        self.last_node_set = 0
+        """Last edited node set"""
+        
 
 class LayerGeometry(GeoObject):
     """Geometry File Layer Data"""
@@ -142,7 +148,8 @@ class LayerGeometry(GeoObject):
             "surfaces":Surface, 
             "curves":Curve, 
             "plane_topologies":Topology, 
-            "node_sets": NodeSet
+            "node_sets": NodeSet, 
+            "suplement":UserSupplement
         }
     
     def __init__(self):
@@ -156,3 +163,5 @@ class LayerGeometry(GeoObject):
         """List of topologies"""
         self.node_sets = []
         """List of nodes"""
+        self.supplement = UserSupplement()
+        """Addition data that is used for displaying in layer editor"""

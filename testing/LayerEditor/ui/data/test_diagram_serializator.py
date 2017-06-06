@@ -26,7 +26,7 @@ def test_serialize_base(request):
     
     diagram2 = Diagram()
     ser = DiagramSerializer(diagram2)
-    ser.load(os.path.join(TEST_DIR, "test_geometry1.json"), 0)
+    ser.load(os.path.join(TEST_DIR, 0,  "test_geometry1.json"))
 
     assert len(diagram.points)==len(diagram2.points)
     for i in range(0, len(diagram2.points)):
