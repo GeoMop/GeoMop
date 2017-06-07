@@ -583,7 +583,7 @@ class AsyncRepeater():
         self.loop_thread.join()
 
     def _starter_client_run(self):
-        logging.info("Atempting for  back to parent initial connection to address: {}", self.parent_address)
+        logging.info("Attempting for back to parent initial connection to address: {}".format(self.parent_address))
         while self._starter_client_attempting:
             s = socket.socket()
             try:
