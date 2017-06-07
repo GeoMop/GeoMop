@@ -21,6 +21,7 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
+from .service_base import ServiceStatus
 
 import psutil
 import os
@@ -202,10 +203,19 @@ class ProcessExec(ProcessBase):
             TODO: Not implement until we know exactly the purpose. Possibly status of the service
             may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
             """
-            # ToDo: zatim vraci True, kdyz bezi
-            if self.process_id == "":
+            if pid_list is None:
+                pid_list = [self.process_id]
+
+            ret = {}
+            for pid in pid_list:
+                r = self._get_status_inner(pid)
+                ret[pid] = {"running": r}
+            return ret
+
+        def _get_status_inner(self, process_id):
+            if process_id == "":
                 return False
-            pid, create_time = self.process_id.split(sep="@", maxsplit=1)
+            pid, create_time = process_id.split(sep="@", maxsplit=1)
             try:
                 p = psutil.Process(int(pid))
                 if str(p.create_time()) != create_time:
@@ -226,7 +236,6 @@ class ProcessExec(ProcessBase):
             except psutil.AccessDenied:
                 # permission is denied
                 assert False
-
 
         def full_state_info(self, pid_list):
             """
@@ -298,7 +307,7 @@ class ProcessPBS(ProcessBase):
                                self.executable.path,
                                self.executable.name)
 
-        hlp.prepare_file(command, interpreter, self.exec_args.args)
+        hlp.prepare_file(command, interpreter, [], self.exec_args.args)
         logging.debug("Qsub params: " + str(hlp.get_qsub_args()))
         process = subprocess.Popen(hlp.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -342,8 +351,61 @@ class ProcessPBS(ProcessBase):
         #self.initialized=True
         return self.process_id
 
+    def get_status(self, pid_list=None):
+        if pid_list is None:
+            pid_list = [self.process_id]
+
+        ret = {}
+        args = ["qstat", "-fx"]
+        args.extend(pid_list)
+        try:
+            output = subprocess.check_output(args,
+                                             universal_newlines=True,
+                                             timeout=60)
+        except subprocess.TimeoutExpired:
+            return ret
+
+        # parse output
+        lines = output.splitlines()
+        for pid in pid_list:
+            # find start
+            for i in range(len(lines)):
+                if lines[i].startswith("Job Id: " + pid):
+                    ind_start = i
+                    break
+
+            # find end
+            ind_end = len(lines)
+            for i in range(ind_start + 1, len(lines)):
+                if len(lines[i].strip()) == 0:
+                    ind_end = i
+
+            # job state
+            status = None
+            for i in range(ind_start + 1, ind_end):
+                s = lines[i].strip()
+                if s.startswith("job_state = "):
+                    s = s[12:]
+                    if s == "Q":
+                        status = ServiceStatus.queued
+                    elif s == "R":
+                        status = ServiceStatus.running
+                    elif s == "F":
+                        status = ServiceStatus.done
+                    break
+
+            ret[pid] = {"status": status,
+                        "raw": "\n".join(lines[ind_start:ind_end])}
+        return ret
+
     def kill(self):
-        pass
+        try:
+            output = subprocess.check_output(["qdel", self.process_id],
+                                             universal_newlines=True,
+                                             timeout=60)
+            return True
+        except subprocess.TimeoutExpired:
+            return False
 
 
 class ProcessDocker(ProcessBase):

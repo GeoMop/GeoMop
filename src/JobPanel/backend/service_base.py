@@ -161,7 +161,7 @@ class ServiceBase(JsonData):
         self.service_host_connection = ClassFactory( [ConnectionLocal, ConnectionSSH] )
         # IP where the service should be executed.
         self.repeater_address = []
-        # Repeater address  of the service (path from root). Default is root repeater.
+        # Repeater address  of the service (path from root). Default ([]) is root repeater.
         self.parent_address=("", 0)
         # Socket address of the parent. Default is root service, no parent.
         self.environment=Environment()

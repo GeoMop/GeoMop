@@ -276,7 +276,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
-    assert answer[-1] is True
+    assert answer[-1][process_id]["running"] is True
 
     # kill
     process_config = {"__class__": "ProcessExec", "process_id": process_id}

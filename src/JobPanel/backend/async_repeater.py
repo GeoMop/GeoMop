@@ -428,7 +428,7 @@ class AsyncRepeater():
     def __init__(self, repeater_address, parent_address=("", 0)):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
-            last item is ID of self repeater.
+            last item is ID of self repeater. Empty list mean root repeater.
         :param listen_port: The port for permanent connection of the parent repeater to the self.
                None - means no listening port is open (i.e. root repeater)
                0 - get by kernel (usual case)

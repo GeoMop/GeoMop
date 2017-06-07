@@ -50,7 +50,7 @@ class Pbs():
         f.write('#!/bin/bash\n')
         f.write('#\n')
 
-        dirs = self.config.get_pbs_directives(self.mj_path, self.config)
+        dirs = self.config.dialect.get_pbs_directives(self.mj_path, self.config)
         for dl in dirs:
             f.write(dl + '\n')
 
