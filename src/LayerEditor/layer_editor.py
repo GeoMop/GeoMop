@@ -127,10 +127,10 @@ class LayerEditor:
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
-        if cfg.diagram.path is None:
+        if cfg.path is None:
             title += " - New File"
         else:
-            title += " - " + cfg.curr_file
+            title += " - " + cfg.path
         self.mainwindow.setWindowTitle(title)
 
 

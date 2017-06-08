@@ -31,7 +31,8 @@ class GeoObject:
                     setattr(self, k, list_)
                 else:
                     obj = self.class_def[k].__new__(self.class_def[k])
-                    setattr(self, k, obj.deserialize(v))
+                    obj.deserialize(v)
+                    setattr(self, k, obj)
             else:
                 setattr(self, k, v)
     
@@ -129,6 +130,12 @@ class NodeSet(GeoObject):
         """Topology index"""
         self.nodes = []
         """list of Nodes"""
+        self.linked_node_set = None
+        """node_set_idx of pair interface node set or None"""
+        self.linked_nodes = []
+        """If linked_node_set is not None there is list od pair indexes of nodes or none
+        if node has not pair"""
+
         
     def reset(self):
         """Reset node set"""
@@ -149,7 +156,7 @@ class LayerGeometry(GeoObject):
             "curves":Curve, 
             "plane_topologies":Topology, 
             "node_sets": NodeSet, 
-            "suplement":UserSupplement
+            "supplement":UserSupplement
         }
     
     def __init__(self):

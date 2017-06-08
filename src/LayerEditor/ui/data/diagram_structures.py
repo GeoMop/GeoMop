@@ -127,6 +127,8 @@ class Diagram():
         """y viw possition"""
         self._history = History(self)
         """history"""
+        self.topology_idx = None
+        """index of topology"""
         
     def reset_history(self):
         """Reset history"""
