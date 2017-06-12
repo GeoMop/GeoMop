@@ -320,11 +320,11 @@ class ProcessPBS(ProcessBase):
         job = re.match('(\S+)', str(out, 'utf-8'))
         if job is not None:
             try:
-                self.process_id = int(job.group(1))
+                self.process_id = job.group(1)
             except ValueError:
                 jobid = re.match('(\d+)\.', job.group(1))
                 if jobid is not None:
-                    self.process_id = int(jobid.group(1))
+                    self.process_id = jobid.group(1)
             logging.debug("Job is queued (id:" + str(self.process_id) + ")")
             # if self.config.with_socket:
             #     i = 0
@@ -388,7 +388,7 @@ class ProcessPBS(ProcessBase):
                     s = s[12:]
                     if s == "Q":
                         status = ServiceStatus.queued
-                    elif s == "R":
+                    elif s == "R" or s == "E":
                         status = ServiceStatus.running
                     elif s == "F":
                         status = ServiceStatus.done

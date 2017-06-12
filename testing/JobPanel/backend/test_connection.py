@@ -4,7 +4,7 @@
 
 
 from backend.connection import *
-from backend.service_base import ServiceBase
+from backend.service_base import ServiceBase, ServiceStatus
 from backend.service_proxy import ServiceProxy
 
 import threading
@@ -306,8 +306,8 @@ def test_mc_get_delegator():
 
     # environment
     env = {"__class__": "Environment",
-           "root": os.path.join(METACENTRUM_HOME, mc_u, "GeoMop/src"),
-           "python": "python3"}
+           "geomop_root": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/GeoMop/src"),
+           "python": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/geomop_python.sh")}
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
@@ -319,4 +319,69 @@ def test_mc_get_delegator():
 
     # stopping, closing
     local_service._repeater.stop()
+    con.close_connections()
+
+
+def test_mc_delegator_pbs():
+    # metacentrum credentials
+    mc_u, mc_p = get_passwords()["metacentrum"]
+
+    # local service
+    local_service = ServiceBase({})
+    threading.Thread(target=local_service.run, daemon=True).start()
+
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/GeoMop/src"),
+           "geomop_analysis_workspace": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/workspace"),
+           "python": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/geomop_python.sh")}
+
+    # ConnectionSSH
+    con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
+    con.set_local_service(local_service)
+
+    # get_delegator
+    delegator_proxy = con.get_delegator()
+    assert isinstance(delegator_proxy, ServiceProxy)
+
+    # start process
+    process_config = {"__class__": "ProcessPBS",
+                      "executable": {"__class__": "Executable", "name": "sleep"},
+                      "exec_args": {"__class__": "ExecArgs", "args": ["600"], "pbs_args": {"__class__": "PbsConfig", "dialect":{"__class__": "PbsDialectPBSPro"}}},
+                      "environment": env}
+    answer = []
+    delegator_proxy.call("request_process_start", process_config, answer)
+
+    # wait for answer
+    def wait_for_answer(ans, t):
+        for i in range(t):
+            time.sleep(1)
+            if len(ans) > 0:
+                break
+
+    wait_for_answer(answer, 60)
+    process_id = answer[-1]
+
+    # get status
+    time.sleep(10)
+    process_config = {"__class__": "ProcessPBS", "process_id": process_id}
+    answer = []
+    delegator_proxy.call("request_process_status", process_config, answer)
+
+    # wait for answer
+    wait_for_answer(answer, 60)
+    status = answer[-1][process_id]["status"]
+    assert status == ServiceStatus.queued or status == ServiceStatus.running
+
+    # kill
+    process_config = {"__class__": "ProcessPBS", "process_id": process_id}
+    answer = []
+    delegator_proxy.call("request_process_kill", process_config, answer)
+
+    # wait for answer
+    wait_for_answer(answer, 60)
+    assert answer[-1] is True
+
+    # stopping, closing
+    local_service._closing = True
     con.close_connections()

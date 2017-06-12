@@ -450,8 +450,11 @@ class ConnectionSSH(ConnectionBase):
         except socket.timeout:
             raise SSHTimeoutError
 
+        #time.sleep(10)
+        #print(self._delegator_std_in_out_err[1].readlines())
+
         connected = False
-        for i in range(10):
+        for i in range(100):
             time.sleep(0.1)
             answers = self._local_service._repeater.get_answers(child_id)
             for answer in answers:
