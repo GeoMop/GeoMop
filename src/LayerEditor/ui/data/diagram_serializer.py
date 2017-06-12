@@ -26,22 +26,23 @@ class DiagramSerializer():
             cfg.path = path
         gf = GeometryFactory(self.geometry)            
         reader = GeometrySer(cfg.path)
-        self._read_ns(ns_idx, gf)    
-            
-    def _read_ns(self, ns_idx, gf):
-        reader = GeometrySer(cfg.path)
-        assert ns_idx<len(self.geometry.node_sets)
-        ns = self.geometry.node_sets[ns_idx]
-        ns.reset()
-        for point in self.diagram.points:
-            gf.add_node(ns_idx, point.x, point.y)
-        for line in self.diagram.lines:
-            gf.add_segment( ns.topology_idx, self.diagram.points.index(line.p1), self.diagram.points.index(line.p2))
-        gf.geometry.supplement = ns_idx
+        for ns_idx in range(len(cfg.diagrams)): 
+            self._read_ns(ns_idx, gf)
         errors = gf.check_file_consistency()
         if len(errors)>0:
             raise DiagramSerializerException("Some file consistency errors occure", errors)
         reader.write(gf.geometry)
+            
+    def _read_ns(self, ns_idx, gf):
+        assert ns_idx<len(self.geometry.node_sets)
+        ns = self.geometry.node_sets[ns_idx]
+        ns.reset()
+        for point in cfg.diagrams[ns_idx].points:
+            gf.add_node(ns_idx, point.x, point.y)
+        for line in cfg.diagrams[ns_idx].lines:
+            gf.add_segment( ns.topology_idx, cfg.diagrams[ns_idx].points.index(line.p1), 
+                cfg.diagrams[ns_idx].points.index(line.p2))
+        gf.geometry.supplement = ns_idx        
     
     def load(self, ns_idx=None, path=None):
         """Load diagram data from set file"""
