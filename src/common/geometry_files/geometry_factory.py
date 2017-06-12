@@ -15,15 +15,26 @@ class GeometryFactory:
         """Add new topology and return its idx"""
         topology = Topology()
         self.geometry.plane_topologies.append( topology)
-        return len(self.geometry.plane_topologies)-1        
+        return len(self.geometry.plane_topologies)-1
+
+    def get_topology(self, node_set_idx):
+        """Get node set topology idx"""
+        ns = self.geometry.node_sets[node_set_idx].topology_idx
+        return ns.topology_idx  
+
+    def add_topologies_to_count(self, i):
+        """If need add topologes to end , end return needed topology"""
+        while len(self.geometry.plane_topologies)<=i:
+            self.add_topology()
+        return self.geometry.plane_topologies[i]
 
     def add_node_set(self, topology_idx):
         ns = NodeSet(topology_idx)
         self.geometry.node_sets.append(ns)
         return  len(self.geometry.node_sets)-1
         
-    def reset_node_set(self, node_set_idx):
-        self.geometry.node_sets[node_set_idx].reset()
+    def reset_ns(self):
+        self.geometry.node_sets = []
     
     def add_node(self,node_set_idx, x, y):
         self.geometry.node_sets[node_set_idx].nodes.append(Node(x, y))
