@@ -3,6 +3,7 @@ from . import async_repeater as ar
 from .json_data import JsonData, ClassFactory
 from .environment import Environment
 from .connection import ConnectionLocal, ConnectionSSH
+from ._executor import ProcessExec, ProcessPBS, ProcessDocker
 
 # import in code
 #from .service_proxy import ServiceProxy
@@ -197,6 +198,9 @@ class ServiceBase(JsonData):
         self.answers_to_send = []
         """list of answers to send (id, [answer])"""
 
+        self._process_class_factory = ClassFactory([ProcessExec, ProcessPBS, ProcessDocker])
+        """process class factory for process start/status/kill"""
+
     def save_config(self):
         """
         :return:
@@ -297,6 +301,18 @@ class ServiceBase(JsonData):
             self._connections[addr] = con
             return con
 
+    def call(self, method_name, data, result):
+        """
+        Call 'method_name(data)' of this service, returned result is appended
+        to the result which has to be a list.
+
+        :param method_name: Name of method to call.
+        :param data: Serializable (JSONData) passed to the method.
+        :param result: List of results.
+        :return: None, error.
+        """
+        call_action(self, method_name, data, result)
+
 
     #######################################################################################
     # Methods that implements a request but can also be called directly by the service.
@@ -352,6 +368,19 @@ class ServiceBase(JsonData):
         self._closing = True
         return {'data' : 'closing'}
 
+    def request_process_start(self, process_config):
+        logging.info("request_process_start(process_config: {})".format(process_config))
+        executor = self._process_class_factory.make_instance(process_config)
+        return executor.start()
+
+    def request_process_status(self, process_config):
+        executor = self._process_class_factory.make_instance(process_config)
+        return executor.get_status()
+
+
+    def request_process_kill(self, process_config):
+        executor = self._process_class_factory.make_instance(process_config)
+        return executor.kill()
 
 
 

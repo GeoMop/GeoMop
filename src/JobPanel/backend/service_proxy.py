@@ -84,10 +84,7 @@ class ServiceProxy:
         :param result: List of results.
         :return: None, error.
         """
-
-        # see: ServiceBase.save_result
         self.repeater.send_request([self._child_id], {'action': method_name, 'data': data}, {'action': 'save_result', 'data': result})
-        pass
 
     def _process_answers(self):
         for answer_data in self.repeater.get_answers(self._child_id):

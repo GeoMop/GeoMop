@@ -3,3 +3,5 @@ PyYAML==3.11
 six==1.10.0
 numpy==1.12.0
 scipy==0.18.1
+paramiko
+psutil

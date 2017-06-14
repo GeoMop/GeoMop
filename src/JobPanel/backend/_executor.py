@@ -21,7 +21,9 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
-from .service_base import ServiceStatus
+
+# import in code
+#from .service_base import ServiceStatus
 
 import psutil
 import os
@@ -386,6 +388,7 @@ class ProcessPBS(ProcessBase):
                 s = lines[i].strip()
                 if s.startswith("job_state = "):
                     s = s[12:]
+                    from .service_base import ServiceStatus
                     if s == "Q":
                         status = ServiceStatus.queued
                     elif s == "R" or s == "E":
@@ -422,11 +425,19 @@ class ProcessDocker(ProcessBase):
         See client_test_py for a docker starting process.
         :return: process_id - possibly hash of the running container.
         """
-        pass
+        home = os.environ["HOME"]
+        cwd = os.getcwd()
+        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel",
+                self.environment.python,
+                os.path.join(self.environment.geomop_root, "JobPanel/services/backend_service.py")]
+        output = subprocess.check_output(args, universal_newlines=True)
+        self.process_id = output.strip()
+        return self.process_id
 
     def kill(self):
         """
         See client_test.py, BackedProxy.__del__
         :return:
         """
-        pass
+        output = subprocess.check_output(['docker', 'rm', '-f', self.process_id])
+        return True
