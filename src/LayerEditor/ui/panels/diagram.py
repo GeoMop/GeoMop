@@ -211,7 +211,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         if self._last_line is not None: 
             self.remove_last()
         
-    def _update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
+    def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
             p = Point(point)
             self.addItem(p)
@@ -228,18 +228,6 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.removeItem(l)
         for point in moved_points:
             point.object.move_point()        
-    
-    def undo_to_label(self, label=None):
-        """undo to set label, if label is None, undo to previous operation"""
-        (added_points, removed_points, moved_points, added_lines, removed_lines) = \
-            cfg.diagram.undo_to_label(label)
-        self._update_changes(added_points, removed_points, moved_points, added_lines, removed_lines)
-        
-    def redo_to_label(self, label=None):
-        """redo to set label, if label is None, redo to next operation"""
-        (added_points, removed_points, moved_points, added_lines, removed_lines) = \
-            cfg.diagram.redo_to_label(label)
-        self._update_changes(added_points, removed_points, moved_points, added_lines, removed_lines)
         
     def set_data(self):        
         self.clear()
@@ -392,14 +380,14 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.addItem(l) 
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
-            self._update_changes([], [],  [], [], merged_lines)
+            self.update_changes([], [],  [], [], merged_lines)
         elif isinstance(below_item, Point):
             cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point, self._point_moving.point, None)
             self._point_moving.release_point()
             self.removeItem(self._point_moving)
-            self._update_changes([], [],  [], [], removed_lines)            
+            self.update_changes([], [],  [], [], removed_lines)            
             below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)

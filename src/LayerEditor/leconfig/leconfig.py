@@ -52,12 +52,16 @@ class LEConfig:
     """Serialized variables"""
     logger = logging.getLogger(LOGGER_PREFIX +  config.CONTEXT_NAME)
     """root context logger"""
-    diagrams = [data.Diagram()]
+    history = data.GlobalHistory()
+    """History for current geometry data"""
+    diagrams = [data.Diagram(history)]
     """List of diagram data"""
+    layers = data.Layers()
+    """Lauers structure"""
     diagram = diagrams[0]
     """Current diagram data"""
-    data = None
-    """Data from geometry file"""
+    data = None    
+    """Data from geometry file"""    
     main_window = None
     """parent of dialogs"""
     curr_file_timestamp = None

@@ -30,9 +30,7 @@ class ShpFiles(QtWidgets.QTableWidget):
         """Initialize the class."""
         super(ShpFiles, self).__init__(parent)
         
-        self.data = data
-        self.setMinimumSize(20, 400)
-        self.setMaximumWidth(350)
+        self.data = data       
         self.setColumnCount(3)
         
         #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
@@ -41,7 +39,7 @@ class ShpFiles(QtWidgets.QTableWidget):
         labels = ['File/Attr. value', 'Show',  'Set off']
         self.setHorizontalHeaderLabels(labels)
         self.reload()
-
+    
     def reload(self):
         """Start of reload data from config.""" 
         row_count = 0

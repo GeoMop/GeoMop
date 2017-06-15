@@ -105,7 +105,7 @@ class Diagram():
     shp = ShpFiles()
     """Current editing topology"""
     
-    def __init__(self):       
+    def __init__(self,  global_history):       
         self._rect = None
         """canvas Rect"""
         self.points = []
@@ -126,14 +126,10 @@ class Diagram():
         """x vew possition"""
         self.y = 0 
         """y viw possition"""
-        self._history = DiagramHistory(self)
+        self._history = DiagramHistory(self, global_history)
         """history"""
         self.topology_idx = None
         """index of topology"""
-        
-    def reset_history(self):
-        """Reset history"""
-        self._history = DiagramHistory(self)
       
     @property
     def rect(self):
@@ -424,14 +420,3 @@ class Diagram():
         if dx>dy:
             return px, line.p1.y + (px-line.p1.x)*dy/dx
         return line.p1.x + (py-line.p1.y)*dx/dy, py
-        
-    def undo_to_label(self, label=None):
-        """undo to set label, if label is None, undo to previous operation, 
-        that has not None label"""
-        return  self._history.undo_to_label(label)
-        
-    def redo_to_label(self, label=None):
-        """redo to set label, if label is None, redo to next operation, 
-        that has not None label"""
-        return  self._history.redo_to_label(label)
-        

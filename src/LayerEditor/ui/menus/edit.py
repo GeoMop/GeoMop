@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMenu, QAction
+from leconfig import cfg
 
 class EditMenu(QMenu):
     """Menu with file actions."""
@@ -39,11 +40,21 @@ class EditMenu(QMenu):
         
     def _undo(self):
         """Revert last diagram operation"""
-        self._diagram.undo_to_label() 
+        ops = cfg.history.undo_to_label() 
+        if ops["type"] is not None:
+            if ops["type"]=="Diagram":
+                self._diagram.update_changes(
+                    ops["added_points"], ops["removed_points"], 
+                    ops["moved_points"], ops["added_lines"], ops["removed_lines"])
 
     def _redo(self):
         """Put last diagram reverted operation back"""
-        self._diagram.redo_to_label()
+        ops = cfg.history.redo_to_label() 
+        if ops["type"] is not None:
+            if ops["type"]=="Diagram":
+                self._diagram.update_changes(
+                    ops["added_points"], ops["removed_points"], 
+                    ops["moved_points"], ops["added_lines"], ops["removed_lines"])
 
     def _delete(self):
         """delete selected items"""

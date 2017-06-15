@@ -18,33 +18,36 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, layer_editor):
         """Initialize the class."""
         super(MainWindow, self).__init__()
+        self._layer_editor = layer_editor
 
         self.setMinimumSize(960, 660)
 
+       # splitters
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
-        self._layer_editor = layer_editor
         self.setCentralWidget(self._hsplitter)
-        # splitters
         self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self.diagramScene = panels.Diagram(self._vsplitter)
-        self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._vsplitter)
+        self._vsplitter.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+
+        # left pannels
+        self.layers = panels.Layers(self._vsplitter)
+        self._vsplitter.addWidget(self.layers)        
+        self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
+        self._vsplitter.addWidget(self.shp)     
+        if cfg.diagram.shp.is_empty():
+            self.shp.hide()   
+        
+        # scene
+        self.diagramScene = panels.Diagram(self._hsplitter)
+        self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._hsplitter)
         self.diagramView.setResizeAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)                
+        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
+        self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
+        self._hsplitter.addWidget(self.diagramView) 
         
-        #self.diagramView.setSizePolicy(
-        #    QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
-        #    QtWidgets.QSizePolicy.Expanding))
-       # self.diagramView.setMinimumSize(QtCore.QSize(500, 500)) 
-
-        self.shp = panels.ShpFiles(cfg.diagram.shp, self._hsplitter)
-        self._hsplitter.insertWidget(0, self.shp)
-        if not cfg.diagram.shp.is_empty():            
-            self.shp.reload()
-        else:
-            self.shp.hide()
-            
+        self._hsplitter.setSizes([300, 760])
+        
         # Menu bar
         self._menu = self.menuBar()
         self._tools_menu = ToolsMenu(self, self.diagramScene)
@@ -76,9 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.possChanged.connect(self._move)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
-        
-        # self.diagramView.scale(10, 10)
-#        self.data = None        
 
     def refresh_diagram_data(self):
         """Propagate new diagram scene to canvas"""

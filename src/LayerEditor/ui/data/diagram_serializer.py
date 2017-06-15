@@ -15,10 +15,13 @@ class DiagramSerializer():
         tp_idx = gf.add_topology()        
         ns_idx = gf.add_node_set(tp_idx)        
         gf.geometry.supplement.last_node_set = ns_idx
-        cfg.diagrams = [Diagram()]
+        cfg.diagrams = [Diagram(cfg.history)]
         cfg.diagram = cfg.diagrams[0]
         cfg.node_set_idx = ns_idx        
         cfg.diagrams[0].topology_idx = tp_idx
+        cfg.layers.add_interface("0", None, ns_idx)
+        cfg.layers.add_interface("100")
+        cfg.layers.add_layer("New Layer")
         return gf.geometry
         
     def save(self, cfg, path=None):
