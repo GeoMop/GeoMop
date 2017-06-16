@@ -17,6 +17,9 @@ Tests:
 - Start 'mpi_testapp' in parallel, kill the process (?? master). Test that all processes stop.
 - Similar for PBS + test reporting 'queued' state.
 
+TODO:
+- rename to 'executor.py'
+
 """
 from .json_data import JsonData
 from .environment import Environment
@@ -85,49 +88,6 @@ class ExecArgs(JsonData):
 
 
 
-
-
-
-
-"""
-Backend life cycle
-
-# Assuming we have image
-# Starting
-1. listen at starting port
-2. start service in the docker
-
-starting_host = {
-    __class__ = Local
-    environment = {
-        install_path
-        ... optional, default
-        }
-    }
-
-exec_method = {
-    __class__ = docker
-    docker_image
-    }
-
-executable = "service.py" # name reference into environment
-exec_args = "-p <docker_host_address>:<port>"
-
-3. service open listening port
-4. service connects to the parent starting port,
-   send own addres:port,
-   wait for confirm, stop after timeout
-5. parent confirms, and close connection
-6. parent connects to listening port of child service
-7. parent sends service config data, or its actualization:
-
-
-"""
-
-
-
-
-
 ############################################################################################
 
 
@@ -140,7 +100,9 @@ class ProcessBase(JsonData):
     - status method: check state of a PBS or other process (queued, running, finished, error)
     - kill method: force terminate running process or delete enqueued process
 
-    A process is started either from the delegator when processing request_start_process
+    A process is started from the delegator when processing request_start_process.
+    Stdio and error output are redirected and not porcessed.
+
     or from a Job (or possibly also from MultiJob). The start method returns a process_id,
     if called from delegator this id is returned back to the parent service
     """
@@ -170,6 +132,9 @@ class ProcessExec(ProcessBase):
             """
             Start given executable in a new persistent process.
             Load correct modules, use mpiexec to start parallel processes.
+
+            TODO: At least for debugging purposes we may need redirection of stdout and stderr
+            to a file.
 
             :param executable: Executable
             :param parameters: ProcessParameters
@@ -296,6 +261,8 @@ class ProcessPBS(ProcessBase):
 
     def start(self):
         #self.installation.local_copy_path()
+
+        # TODO: better instance name then 'hlp'
         hlp = Pbs(os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir),
                   self.exec_args.pbs_args)

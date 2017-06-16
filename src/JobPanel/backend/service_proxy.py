@@ -126,10 +126,15 @@ class ServiceProxy:
         - connect back to the parent service
         - send port RYY, wait for OK
         - after OK, close starting connection
+
+
+        TODO:
+        -
         """
 
         # 1.
-        # todo:
+        # todo: upload config file and possible other files according to service configuration,
+        # see key 'input_files'
 
         # 2.
         delegator_proxy = self.connection.get_delegator()

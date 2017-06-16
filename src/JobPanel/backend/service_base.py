@@ -18,6 +18,39 @@ import threading
 import sys
 import traceback
 
+"""
+TODO:
+- Unit test for LongRequest?
+- Unit test to catch an error request (descendent of ServiceBase)
+- Zakomentovat vsechen zbyly nepouzivany kod.
+- Connection, can specify explicit SSH port (instaead of default 220)
+- Otestovat mechanismus emulace pripojeni pomoci tunelu a preruseni spojeni pomoci preruseni posilani v tunelu.
+- Connection: vytvoreni remote workspace a podadresare Delegators, v konstruktoru, nebo nova metoda prepare_workspace
+- JobPanel bude povolen bezet jen v jedne instanci na stejnym Workspace (jako Eclipse)
+
+Possible levels of error:
+
+- during starting child ... see ServiceProxy.start_service
+- error behem zpracovani requestu ...
+  Unit test, lokalni odchyceni chyby ktera nastane behem call_action, zapis do logu, (descendent of ServiceBase)
+  Unit test, vcetne vzdaleneho volani requastu a navratu chyby do fronty vysledku
+- every uncatched error in any Service is logged and written into config file.
+- check how to catch excetions in repeater.run thread
+- check how to catch excetions in tunnel threads ( possibly no problem)
+- no network connection:
+   - correct setting of timeouts of sockets in repeater, connection (tunnels)
+
+Questions:
+- specify workdirs for individual serivces:
+    - Delegator: workspace/Delegators, every execution of delegator have uique log filename given by date_time_process_id
+      delegator nema conf.
+    - Job: unique workspace, with name given by parent MJ and job ID within this MJ, job_service.log, .conf
+    - MJ: unique workspace, name given by analysis and number of run, mj_service.log, .conf
+    - Backend: main workspace, backend_service.log, .conf
+    - Frontend: main wokrspace, frontend_service.log, .conf
+
+"""
+
 
 class ServiceStatus(enum.IntEnum):
     """
@@ -175,6 +208,10 @@ class ServiceBase(JsonData):
         """process for starting service"""
         self.workspace = ""
         # service workspace relative to the geomop workspace
+        self.input_files = []
+        # List of file paths to upload befor service is started. Paths are relative to
+        # the service workspace, i.e. self.workspace.
+
         self.listen_port=None
         #
         super().__init__(config)
@@ -202,6 +239,7 @@ class ServiceBase(JsonData):
 
         self._process_class_factory = ClassFactory([ProcessExec, ProcessPBS, ProcessDocker])
         """process class factory for process start/status/kill"""
+
 
     def save_config(self):
         """

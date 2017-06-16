@@ -426,11 +426,18 @@ class ConnectionSSH(ConnectionBase):
         :param local_service: Instance of ServiceBase (or derived class)
         :raises SSHError:
         :raises SSHTimeoutError:
+
+        TODO:
+        - make directory Delegators on remote ifname
+        -
         """
 
         assert self._local_service is not None
 
         if self._delegator_proxy is not None:
+            """
+            TODO:
+            """
             return self._delegator_proxy
 
         # 1.
