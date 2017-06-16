@@ -135,7 +135,7 @@ class _ClientDispatcher(asynchat.async_chat):
         self.connection = connection
 
         # create request 0
-        self.sent_requests[0] = (None, None)
+        self.sent_requests[0] = (None, {"action": "on_answer_connect", "data": None})
 
         asynchat.async_chat.__init__(self)
 
@@ -190,7 +190,8 @@ class _ClientDispatcher(asynchat.async_chat):
         # forward tunnel
         local_port = self.connection.forward_local_port(self._remote_address[1])
 
-        self.connect_to_address(("localhost", local_port))
+        #self.connect_to_address(("localhost", local_port))
+        self.connect_to_address((self._remote_address[0], local_port))
 
 
     """
@@ -202,7 +203,7 @@ class _ClientDispatcher(asynchat.async_chat):
         self.set_terminator(_terminator)
 
         # create answer 0
-        self.answers.append((0, None, None, None))
+        self.answers.append((0, None, None, {"data": None}))
 
     def collect_incoming_data(self, data):
         """Read an incoming message from the client and put it into our outgoing queue."""
@@ -408,7 +409,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
                 #print(self.async_repeater.clients)
 
                 if child_id in self.async_repeater.clients:
-                    self.async_repeater.clients[child_id].set_remote_address((self.socket.getpeername(), port))
+                    self.async_repeater.clients[child_id].set_remote_address((self.socket.getpeername()[0], port))
                     logging.info("Initial back connection done.")
         self.close()
         # We close also if we get wrong data. As whole connection is from bad guy.

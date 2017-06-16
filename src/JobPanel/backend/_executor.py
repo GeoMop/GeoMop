@@ -427,9 +427,13 @@ class ProcessDocker(ProcessBase):
         """
         home = os.environ["HOME"]
         cwd = os.getcwd()
-        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel",
-                self.environment.python,
-                os.path.join(self.environment.geomop_root, "JobPanel/services/backend_service.py")]
+        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel"]
+        if self.executable.script:
+            args.append(self.environment.python)
+        args.append(os.path.join(self.environment.geomop_root,
+                                 self.executable.path,
+                                 self.executable.name))
+        args.extend(self.exec_args.args)
         output = subprocess.check_output(args, universal_newlines=True)
         self.process_id = output.strip()
         return self.process_id

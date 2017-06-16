@@ -165,12 +165,14 @@ class ServiceBase(JsonData):
         # Repeater address  of the service (path from root). Default ([]) is root repeater.
         self.parent_address=("", 0)
         # Socket address of the parent. Default is root service, no parent.
-        self.environment=Environment()
+        #self.environment=Environment()
         # environment of local installation
-        self.executable=""
+        #self.executable=""
         # executable (script) by which the service is started
-        self.exec_args=""
+        #self.exec_args=""
         # commandline parameters passed to the executable
+        self.process = ClassFactory([ProcessExec, ProcessPBS, ProcessDocker])
+        """process for starting service"""
         self.workspace = ""
         # service workspace relative to the geomop workspace
         self.listen_port=None
@@ -298,6 +300,7 @@ class ServiceBase(JsonData):
             return self._connections[addr]
         else:
             con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+            con.set_local_service(self)
             self._connections[addr] = con
             return con
 
@@ -336,7 +339,7 @@ class ServiceBase(JsonData):
         :param service_data: Service configuration data.
         :return: STATUS
         """
-        connection = self.get_connection(service_data.connection)
+        connection = self.get_connection(service_data["service_host_connection"])
 
 
         from .service_proxy import ServiceProxy

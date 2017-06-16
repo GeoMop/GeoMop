@@ -89,7 +89,7 @@ class ServiceProxy:
     def _process_answers(self):
         for answer_data in self.repeater.get_answers(self._child_id):
             logging.info("Processing: " + str(answer_data))
-            child_id = answer_data.sender[0]
+            #child_id = answer_data.sender[0]
             on_answer = answer_data.on_answer
             answer = answer_data.answer
             if 'error' in answer.keys():
@@ -138,8 +138,13 @@ class ServiceProxy:
         self._child_id, remote_port = self.repeater.add_child(self.connection)
 
         # 4.
-        process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
-                           "exec_args": {"__class__": "ExecArgs", "args": ["60"]}} # todo:
+        # process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
+        #                    "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
+        process_config = self.service_data["process"]
+
+        # todo: v budoucnu predavat konfiguraci v souboru
+        process_config["exec_args"] = {"__class__": "ExecArgs", "args": [str(self._child_id), "172.17.42.1", str(remote_port)]}
+
         delegator_proxy.call("request_process_start", process_config, self.child_service_process_id)
 
         # 5.
@@ -179,7 +184,7 @@ class ServiceProxy:
 
 
 
-    def on_answer_connect(self):
+    def on_answer_connect(self, data=None):
         self.status = ServiceStatus.running
 
 

@@ -27,8 +27,6 @@ logging.basicConfig(filename='backend.log', filemode="w",
                     level=logging.INFO)
 
 
-import time
-time.sleep(100)
 try:
     bs = Backend({"repeater_address": [int(sys.argv[1])],
                   "parent_address": [sys.argv[2], int(sys.argv[3])]})
