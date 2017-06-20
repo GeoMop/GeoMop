@@ -292,6 +292,44 @@ def test_delegator_exec():
     con.close_connections()
 
 
+def test_docker():
+    # local service
+    local_service = ServiceBase({})
+    threading.Thread(target=local_service.run, daemon=True).start()
+
+    # service data
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "python": "python3"}
+    pd = {"__class__": "ProcessDocker",
+          "executable": {"__class__": "Executable",
+                         "path": "JobPanel/services",
+                         "name": "backend_service.py",
+                         "script": True},
+          "environment": env}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost"}
+    service_data = {"service_host_connection": cl,
+                    "process": pd}
+
+    # start backend
+    local_service.request_start_child(service_data)
+    backend = local_service._child_services[1]
+
+    # wait for backend running
+    time.sleep(5)
+    assert backend.status == ServiceStatus.running
+
+    # stop backend
+    answer = []
+    backend.call("request_stop", None, answer)
+    time.sleep(5)
+    assert len(answer) > 0
+
+    # stopping, closing
+    local_service._closing = True
+
+
 METACENTRUM_FRONTEND = "skirit.metacentrum.cz"
 METACENTRUM_HOME = "/storage/brno2/home/"
 

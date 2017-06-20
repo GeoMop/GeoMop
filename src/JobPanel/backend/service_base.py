@@ -3,7 +3,7 @@ from . import async_repeater as ar
 from .json_data import JsonData, ClassFactory
 from .environment import Environment
 from .connection import ConnectionLocal, ConnectionSSH
-from ._executor import ProcessExec, ProcessPBS, ProcessDocker
+from .executor import ProcessExec, ProcessPBS, ProcessDocker
 
 # import in code
 #from .service_proxy import ServiceProxy
@@ -388,9 +388,9 @@ class ServiceBase(JsonData):
         return proxy.get_status()
 
 
-    def request_stop_child(self, request_data):
-        id = request_data['child_id']
-        self._repeater.send_request([id], {'action' :' stop'}, { 'action' : 'on_answer_stop_child', 'data' : id})
+    # def request_stop_child(self, request_data):
+    #     id = request_data['child_id']
+    #     self._repeater.send_request([id], {'action' :' stop'}, { 'action' : 'on_answer_stop_child', 'data' : id})
 
     #def on_answer_stop_child(self, ):
     #    self._repeater.close_child_repeater(id)

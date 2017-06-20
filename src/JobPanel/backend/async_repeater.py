@@ -581,7 +581,9 @@ class AsyncRepeater():
             if c is not None:
                 c.close()
         self._starter_server.close()
-        self.loop_thread.join()
+        self.loop_thread.join(timeout=10)
+        if self.loop_thread.is_alive():
+            logging.warning("Repeater loop closing timeout.")
 
     def _starter_client_run(self):
         logging.info("Attempting for back to parent initial connection to address: {}".format(self.parent_address))

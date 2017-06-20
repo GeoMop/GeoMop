@@ -148,7 +148,11 @@ class ServiceProxy:
         process_config = self.service_data["process"]
 
         # todo: v budoucnu predavat konfiguraci v souboru
-        process_config["exec_args"] = {"__class__": "ExecArgs", "args": [str(self._child_id), "172.17.42.1", str(remote_port)]}
+        # todo: vymyslet, jak ziskavat docker IP
+        if process_config["__class__"] == "ProcessDocker":
+            process_config = process_config.copy()
+            process_config["exec_args"] = {"__class__": "ExecArgs",
+                                           "args": [str(self._child_id), "172.17.42.1", str(remote_port)]}
 
         delegator_proxy.call("request_process_start", process_config, self.child_service_process_id)
 
