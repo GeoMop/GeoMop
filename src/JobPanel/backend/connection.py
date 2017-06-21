@@ -47,6 +47,8 @@ class ConnectionBase(JsonData):
 
         self.address=""
         """ IP or hostname"""
+        self.port=22
+        """port for ssh connection"""
         self.uid=""
         """ user id for ssh connection """
         self.password=""
@@ -174,13 +176,13 @@ class ConnectionSSH(ConnectionBase):
         self._ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
 
         try:
-            self._ssh.connect(self.address, 22, username=self.uid, password=self.password, timeout=self._timeout)
+            self._ssh.connect(self.address, self.port, username=self.uid, password=self.password, timeout=self._timeout)
         except paramiko.AuthenticationException:
             raise SSHAuthenticationError
         except (paramiko.SSHException, socket.error):
             raise SSHError
         except Exception as e:
-            logging.error('*** Failed to connect to %s:%d: %r' % (self.address, 22, e))
+            logging.error('*** Failed to connect to %s:%d: %r' % (self.address, self.port, e))
             raise
 
         # open an SFTP session
