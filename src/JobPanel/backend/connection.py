@@ -170,6 +170,9 @@ class ConnectionSSH(ConnectionBase):
         self._sftp = None
         """SFTP session"""
 
+        self._delegator_dir = ""
+        """directory where delegator is executed"""
+
         # open ssh connection
         self._ssh = paramiko.SSHClient()
         self._ssh.load_system_host_keys()
@@ -189,23 +192,36 @@ class ConnectionSSH(ConnectionBase):
         self._sftp = self._ssh.open_sftp()
         self._sftp.get_channel().settimeout(self._timeout)
 
+        # prepare workspace
+        workspace = self.environment.geomop_analysis_workspace
+        try:
+            self._sftp.chdir(workspace)
+        except IOError as e:
+            self._sftp.mkdir(workspace)
+        self._delegator_dir = os.path.join(workspace, "Delegators")
+        try:
+            self._sftp.chdir(self._delegator_dir)
+        except IOError as e:
+            self._sftp.mkdir(self._delegator_dir)
+        self._sftp.chdir()
+
     def __del__(self):
         # close all tunels, delagators, etc. immediately
         self.close_connections()
 
-    def is_alive(self):
-        """
-        Check if SSH connection is still alive.
-        :return:
-        """
-        transport = self._ssh.get_transport()
-        if transport.is_active():
-            try:
-                transport.send_ignore()
-                return True
-            except EOFError:
-                pass
-        return False
+    # def is_alive(self):
+    #     """
+    #     Check if SSH connection is still alive.
+    #     :return:
+    #     """
+    #     transport = self._ssh.get_transport()
+    #     if transport.is_active():
+    #         try:
+    #             transport.send_ignore()
+    #             return True
+    #         except EOFError:
+    #             pass
+    #     return False
 
     def forward_local_port(self, remote_port):
         """
@@ -429,9 +445,6 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHError:
         :raises SSHTimeoutError:
 
-        TODO:
-        - make directory Delegators on remote ifname
-        -
         """
 
         assert self._local_service is not None
@@ -449,7 +462,8 @@ class ConnectionSSH(ConnectionBase):
         child_id, remote_port = self._local_service._repeater.add_child(self)
 
         # 3.
-        command = self.environment.python + " " \
+        command = 'cd "' + self._delegator_dir + '";' \
+                  + self.environment.python + " " \
                   + os.path.join(self.environment.geomop_root, "JobPanel/services/delegator_service.py") \
                   + " {} {} {}".format(child_id, "localhost", remote_port)
         try:

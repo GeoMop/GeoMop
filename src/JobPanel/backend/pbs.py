@@ -80,33 +80,33 @@ class Pbs():
         args.append(os.path.join(self.mj_path, "com.qsub"))
         return args
 
-    def get_outpup(self):
-        """Get pbs output file contens"""
-        if self.config.dialect:
-            imp = DialectImporter.get_dialect_by_name(self.config.dialect)
-            file = imp.PbsDialect.get_outpup_file(self.mj_path + "/" + self.config.name)
-        if file is None:
-            file = self.mj_path + "/" + self.config.name + "/pbs_output"
-        if os.path.isfile(file):
-            f = open(file, 'r')
-            lines = f.read().splitlines(False)
-            f.close()
-            if len(lines) == 0 or (len(lines) == 1 and \
-                                           lines[0].isspace() or len(lines[0]) == 0):
-                return None
-            return lines
-        return None
-
-    def get_errors(self):
-        """Get pbs error file contens"""
-        if os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_error"):
-            f = open(self.mj_path + "/" + self.config.name + "/pbs_error", 'r')
-            error = f.read()
-            f.close()
-            if error.isspace() or len(error) == 0:
-                return None
-            return error
-        return None
+    # def get_outpup(self):
+    #     """Get pbs output file contens"""
+    #     if self.config.dialect:
+    #         imp = DialectImporter.get_dialect_by_name(self.config.dialect)
+    #         file = imp.PbsDialect.get_outpup_file(self.mj_path + "/" + self.config.name)
+    #     if file is None:
+    #         file = self.mj_path + "/" + self.config.name + "/pbs_output"
+    #     if os.path.isfile(file):
+    #         f = open(file, 'r')
+    #         lines = f.read().splitlines(False)
+    #         f.close()
+    #         if len(lines) == 0 or (len(lines) == 1 and \
+    #                                        lines[0].isspace() or len(lines[0]) == 0):
+    #             return None
+    #         return lines
+    #     return None
+    #
+    # def get_errors(self):
+    #     """Get pbs error file contens"""
+    #     if os.path.isfile(self.mj_path + "/" + self.config.name + "/pbs_error"):
+    #         f = open(self.mj_path + "/" + self.config.name + "/pbs_error", 'r')
+    #         error = f.read()
+    #         f.close()
+    #         if error.isspace() or len(error) == 0:
+    #             return None
+    #         return error
+    #     return None
 
 
 class PbsDialect(JsonData):

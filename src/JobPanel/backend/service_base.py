@@ -22,10 +22,7 @@ import traceback
 TODO:
 - Unit test for LongRequest?
 - Unit test to catch an error request (descendent of ServiceBase)
-- Zakomentovat vsechen zbyly nepouzivany kod.
-- Connection, can specify explicit SSH port (instaead of default 220)
 - Otestovat mechanismus emulace pripojeni pomoci tunelu a preruseni spojeni pomoci preruseni posilani v tunelu.
-- Connection: vytvoreni remote workspace a podadresare Delegators, v konstruktoru, nebo nova metoda prepare_workspace
 - JobPanel bude povolen bezet jen v jedne instanci na stejnym Workspace (jako Eclipse)
 
 Possible levels of error:
@@ -35,8 +32,8 @@ Possible levels of error:
   Unit test, lokalni odchyceni chyby ktera nastane behem call_action, zapis do logu, (descendent of ServiceBase)
   Unit test, vcetne vzdaleneho volani requastu a navratu chyby do fronty vysledku
 - every uncatched error in any Service is logged and written into config file.
-- check how to catch excetions in repeater.run thread
-- check how to catch excetions in tunnel threads ( possibly no problem)
+- check how to catch excetions in repeater.run thread - pomoci handle_error
+- check how to catch excetions in tunnel threads ( possibly no problem) - pokud dojde k chybe tunel se uzavre
 - no network connection:
    - correct setting of timeouts of sockets in repeater, connection (tunnels)
 
@@ -81,17 +78,17 @@ def LongRequest(func):
     return func
 
 
-class ServiceStarter:
-    """
-    Start a child service and return ChildServiceProxy object.
-
-
-    """
-    def __init__(self):
-        pass
-
-    def start_pbs(self):
-        pass
+# class ServiceStarter:
+#     """
+#     Start a child service and return ChildServiceProxy object.
+#
+#
+#     """
+#     def __init__(self):
+#         pass
+#
+#     def start_pbs(self):
+#         pass
 
 
 def call_action(obj, action, data, result=None):
@@ -182,7 +179,7 @@ class ServiceBase(JsonData):
     service.on_answer_method(self, child_id, request_data, answer_data, oa_data)
 
     """
-    answer_ok = { 'data' : 'ok' }
+    # answer_ok = { 'data' : 'ok' }
 
     def __init__(self, config):
         """

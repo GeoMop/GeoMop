@@ -2,6 +2,7 @@ from .service_base import ServiceBase, ServiceStatus, call_action
 
 import time
 import logging
+import os
 
 class ServiceProxy:
     """
@@ -135,6 +136,11 @@ class ServiceProxy:
         # 1.
         # todo: upload config file and possible other files according to service configuration,
         # see key 'input_files'
+        # self.connection.upload(self.service_data["input_files"],
+        #                        os.path.join(self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+        #                                     self.service_data["workspace"]),
+        #                        os.path.join(self.connection.environment.geomop_analysis_workspace,
+        #                                     self.service_data["workspace"]))
 
         # 2.
         delegator_proxy = self.connection.get_delegator()
@@ -185,8 +191,8 @@ class ServiceProxy:
         self.repeater.clients[self._child_id]
 
 
-    def get(self, variable_name):
-        self.call("request_get", variable_name, self.__dict__[variable_name])
+    # def get(self, variable_name):
+    #     self.call("request_get", variable_name, self.__dict__[variable_name])
 
     def stop(self):
         self.call("stop", None, )
@@ -198,20 +204,20 @@ class ServiceProxy:
 
 
 
-    def make_ping(self):
-        self.service.repeater.send_request(
-            target=[self.child_id],
-            data={'action': 'ping'},
-            on_answer={'action': 'on_answer_ok'})
-
-    def on_answer_no_error(self, data):
-        pass
-
-    def on_answer_ok(self, data):
-        answer_data=data[1]
-        logging.info(str(answer_data))
-        logging.info("answer: OK")
-        pass
+    # def make_ping(self):
+    #     self.service.repeater.send_request(
+    #         target=[self.child_id],
+    #         data={'action': 'ping'},
+    #         on_answer={'action': 'on_answer_ok'})
+    #
+    # def on_answer_no_error(self, data):
+    #     pass
+    #
+    # def on_answer_ok(self, data):
+    #     answer_data=data[1]
+    #     logging.info(str(answer_data))
+    #     logging.info("answer: OK")
+    #     pass
 
     def error_answer(self, data):
         """
@@ -223,25 +229,25 @@ class ServiceProxy:
         pass
 
 
-"""
-Use class factory to make proxy classes to Service classes.
-"""
-def class_factory(name, service=None):
-    """
-    service: class to which we creat a proxy
-    Function used for creating subclasses of class Shape
-    """
-
-    def __init__(self, service_data):
-        super(self.__class__, self).__init__(service_data)
-
-    class_dict = {"__init__": __init__}
-
-    # just scatch
-    for  (func_name, func) in service.__dict__.items():
-        if is_request_method(func_name):
-            def new_func(self, json_data, result_list):
-                self.call("%s"%(func_name), json_data, result_list)
-
-            class_dict[func_name] = new_func
-    return type(name, (ServiceProxy,), class_dict)
+# """
+# Use class factory to make proxy classes to Service classes.
+# """
+# def class_factory(name, service=None):
+#     """
+#     service: class to which we creat a proxy
+#     Function used for creating subclasses of class Shape
+#     """
+#
+#     def __init__(self, service_data):
+#         super(self.__class__, self).__init__(service_data)
+#
+#     class_dict = {"__init__": __init__}
+#
+#     # just scatch
+#     for  (func_name, func) in service.__dict__.items():
+#         if is_request_method(func_name):
+#             def new_func(self, json_data, result_list):
+#                 self.call("%s"%(func_name), json_data, result_list)
+#
+#             class_dict[func_name] = new_func
+#     return type(name, (ServiceProxy,), class_dict)

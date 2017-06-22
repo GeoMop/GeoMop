@@ -45,20 +45,20 @@ def _exception_answer(e):
     """
     return { 'error': 'Exception', 'exception': repr(e), 'traceback': traceback.format_tb() }
 
-def _close_request():
-    """
-    Auxiliary request to inform service about clossed server-side connection.
-    Action should return no answer.
-    :return:
-    """
-    return {'action': 'request_close'}
+# def _close_request():
+#     """
+#     Auxiliary request to inform service about clossed server-side connection.
+#     Action should return no answer.
+#     :return:
+#     """
+#     return {'action': 'request_close'}
 
-def _close_answer():
-    """
-    Auxiliary answer to inform service about clossed clinet-side connection.
-    :return:
-    """
-    return {'action': 'on_answer_close'}
+# def _close_answer():
+#     """
+#     Auxiliary answer to inform service about clossed clinet-side connection.
+#     :return:
+#     """
+#     return {'action': 'on_answer_close'}
 
 class RequestData:
     """
@@ -146,8 +146,8 @@ class _ClientDispatcher(asynchat.async_chat):
         logging.info("Connecting: %s\n" % (str(self.address)))
         self.connect(self.address)
 
-    def is_connected(self):
-        return self.connected
+    # def is_connected(self):
+    #     return self.connected
 
     def get_answers(self):
         """
@@ -204,6 +204,14 @@ class _ClientDispatcher(asynchat.async_chat):
 
         # create answer 0
         self.answers.append((0, None, None, {"data": None}))
+
+    def handle_error(self):
+        try:
+            raise
+        except ConnectionRefusedError:
+            print("ConnectionRefusedError")
+        except:
+            logging.error("Uncatch exception in repeater.run thread:\n" + "".join(traceback.format_exception(*sys.exc_info())))
 
     def collect_incoming_data(self, data):
         """Read an incoming message from the client and put it into our outgoing queue."""
@@ -509,17 +517,17 @@ class AsyncRepeater():
         return id, remote_port
 
 
-    def close_child_repeater(self, id):
-        """
-        Check that socket to child is closed. Delete the dispatcher.
-
-        TODO: thread safe?
-        :param id:
-        :return:
-        """
-        self.clients[id].close()
-        del self.clients[id]
-        return
+    # def close_child_repeater(self, id):
+    #     """
+    #     Check that socket to child is closed. Delete the dispatcher.
+    #
+    #     TODO: thread safe?
+    #     :param id:
+    #     :return:
+    #     """
+    #     self.clients[id].close()
+    #     del self.clients[id]
+    #     return
 
     def send_request(self, target, data, on_answer):
         """

@@ -17,9 +17,6 @@ Tests:
 - Start 'mpi_testapp' in parallel, kill the process (?? master). Test that all processes stop.
 - Similar for PBS + test reporting 'queued' state.
 
-TODO:
-- rename to 'executor.py'
-
 """
 from .json_data import JsonData
 from .environment import Environment
@@ -133,9 +130,6 @@ class ProcessExec(ProcessBase):
             Start given executable in a new persistent process.
             Load correct modules, use mpiexec to start parallel processes.
 
-            TODO: At least for debugging purposes we may need redirection of stdout and stderr
-            to a file.
-
             :param executable: Executable
             :param parameters: ProcessParameters
             :return: process_id - object that identify the process on the same machine
@@ -152,7 +146,8 @@ class ProcessExec(ProcessBase):
             # todo:
             #cwd = os.path.join(self.environment.geomop_analysis_workspace,
             #                   self.exec_args.work_dir)
-            p = psutil.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)#, cwd=cwd)
+            with open("out.txt", 'w') as fd_out:
+                p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)#, cwd=cwd)
             self.process_id = "{}@{}".format(p.pid, p.create_time())
             return self.process_id
 
@@ -204,20 +199,20 @@ class ProcessExec(ProcessBase):
                 # permission is denied
                 assert False
 
-        def full_state_info(self, pid_list):
-            """
-            Full information about the processes.
-
-            Currently only a string. Mainly to get further information about some error states in PBS.
-
-            :param process_id:
-            :return:
-
-            TODO: Not implement until we know exactly the purpose. Possibly status of the service
-            may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
-
-            """
-            pass
+        # def full_state_info(self, pid_list):
+        #     """
+        #     Full information about the processes.
+        #
+        #     Currently only a string. Mainly to get further information about some error states in PBS.
+        #
+        #     :param process_id:
+        #     :return:
+        #
+        #     TODO: Not implement until we know exactly the purpose. Possibly status of the service
+        #     may be sufficient, i.e. no qstat call necessary unless user want so or for detailed logging.
+        #
+        #     """
+        #     pass
 
         def kill(self):
             """
@@ -262,8 +257,7 @@ class ProcessPBS(ProcessBase):
     def start(self):
         #self.installation.local_copy_path()
 
-        # TODO: better instance name then 'hlp'
-        hlp = Pbs(os.path.join(self.environment.geomop_analysis_workspace,
+        pbs = Pbs(os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir),
                   self.exec_args.pbs_args)
 
@@ -276,9 +270,9 @@ class ProcessPBS(ProcessBase):
                                self.executable.path,
                                self.executable.name)
 
-        hlp.prepare_file(command, interpreter, [], self.exec_args.args)
-        logging.debug("Qsub params: " + str(hlp.get_qsub_args()))
-        process = subprocess.Popen(hlp.get_qsub_args(),
+        pbs.prepare_file(command, interpreter, [], self.exec_args.args)
+        logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
+        process = subprocess.Popen(pbs.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         return_code = process.poll()
         if return_code is not None:

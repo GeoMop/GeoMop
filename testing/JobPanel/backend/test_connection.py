@@ -46,6 +46,9 @@ def get_test_password():
     return u, p
 
 
+REMOTE_WORKSPACE = "/home/test/workspace"
+
+
 def test_port_forwarding():
     class Server(socketserver.ThreadingTCPServer):
         daemon_threads = True
@@ -88,9 +91,13 @@ def test_port_forwarding():
 
     con.close_connections()
 
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_analysis_workspace": REMOTE_WORKSPACE}
+
     # ConnectionSSH
     u, p = get_test_password()
-    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p})
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
 
     forwarded_port = con.forward_local_port(origin_port)
     assert connection_test("localhost", forwarded_port)
@@ -160,9 +167,13 @@ def test_upload_download(request):
 
     con.close_connections()
 
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_analysis_workspace": REMOTE_WORKSPACE}
+
     # ConnectionSSH
     u, p = get_test_password()
-    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p})
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
     rem = os.path.join(REMOTE_TEST_FILES, "rem")
@@ -223,6 +234,7 @@ def test_get_delegator():
     # environment
     env = {"__class__": "Environment",
            "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": REMOTE_WORKSPACE,
            "python": "python3"}
 
     # ConnectionSSH
@@ -247,6 +259,7 @@ def test_delegator_exec():
     # environment
     env = {"__class__": "Environment",
            "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": REMOTE_WORKSPACE,
            "python": "python3"}
 
     # ConnectionSSH

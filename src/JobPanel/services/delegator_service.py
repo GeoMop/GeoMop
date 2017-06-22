@@ -4,6 +4,7 @@ import logging
 import time
 import json
 import traceback
+import psutil
 
 sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
 
@@ -27,7 +28,9 @@ class Delegator(service_base.ServiceBase):
 
 
 
-logging.basicConfig(filename='delegator.log', filemode="w",
+p = psutil.Process()
+filename = "{}_{}.log".format(time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime(p.create_time())), p.pid)
+logging.basicConfig(filename=filename, filemode="w",
                     format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                     level=logging.INFO)
 
