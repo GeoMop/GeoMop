@@ -335,6 +335,7 @@ class ServiceBase(JsonData):
             return self._connections[addr]
         else:
             con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+            con.connect()
             con.set_local_service(self)
             self._connections[addr] = con
             return con

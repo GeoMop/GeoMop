@@ -82,6 +82,7 @@ def test_port_forwarding():
 
     # ConnectionLocal
     con = ConnectionLocal()
+    con.connect()
 
     forwarded_port = con.forward_local_port(origin_port)
     assert connection_test("localhost", forwarded_port)
@@ -98,6 +99,7 @@ def test_port_forwarding():
     # ConnectionSSH
     u, p = get_test_password()
     con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
+    con.connect()
 
     forwarded_port = con.forward_local_port(origin_port)
     assert connection_test("localhost", forwarded_port)
@@ -145,6 +147,7 @@ def test_upload_download(request):
 
     # ConnectionLocal
     con = ConnectionLocal()
+    con.connect()
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
     rem = os.path.join(LOCAL_TEST_FILES, "rem")
@@ -174,6 +177,7 @@ def test_upload_download(request):
     # ConnectionSSH
     u, p = get_test_password()
     con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
+    con.connect()
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
     rem = os.path.join(REMOTE_TEST_FILES, "rem")
@@ -211,14 +215,16 @@ def test_upload_download(request):
 
 
 def test_exceptions():
+    con = ConnectionSSH({"address": "localhost", "uid": "user_not_exist", "password": ""})
     try:
-        ConnectionSSH({"address": "localhost", "uid": "user_not_exist", "password": ""})
+        con.connect()
         assert False
     except SSHAuthenticationError:
         pass
 
+    con = ConnectionSSH({"address": "unknown_host", "uid": "user", "password": ""})
     try:
-        ConnectionSSH({"address": "unknown_host", "uid": "user", "password": ""})
+        con.connect()
         assert False
     except SSHAuthenticationError:
         assert False
@@ -241,6 +247,7 @@ def test_get_delegator():
     u, p = get_test_password()
     con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
     con.set_local_service(local_service)
+    con.connect()
 
     # get_delegator
     delegator_proxy = con.get_delegator()
@@ -266,6 +273,7 @@ def test_delegator_exec():
     u, p = get_test_password()
     con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
     con.set_local_service(local_service)
+    con.connect()
 
     # get_delegator
     delegator_proxy = con.get_delegator()
@@ -363,6 +371,7 @@ def test_mc_get_delegator():
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
     con.set_local_service(local_service)
+    con.connect()
 
     # get_delegator
     delegator_proxy = con.get_delegator()
@@ -390,6 +399,7 @@ def test_mc_delegator_pbs():
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
     con.set_local_service(local_service)
+    con.connect()
 
     # get_delegator
     delegator_proxy = con.get_delegator()

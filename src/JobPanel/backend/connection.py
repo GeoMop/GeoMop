@@ -70,6 +70,9 @@ class ConnectionLocal(ConnectionBase):
     def __init__(self, config={}):
         super().__init__(config)
 
+    def connect(self):
+        pass
+
     def forward_local_port(self, remote_port):
         """
         Get free local port and open SSH tunel for forwarding connection
@@ -141,7 +144,9 @@ class ConnectionLocal(ConnectionBase):
         if from_prefix == to_prefix:
             return
         for path in paths:
-            shutil.copyfile(os.path.join(from_prefix, path), os.path.join(to_prefix, path))
+            to_file = os.path.join(to_prefix, path)
+            os.makedirs(os.path.dirname(to_file), exist_ok=True)
+            shutil.copyfile(os.path.join(from_prefix, path), to_file)
 
 
 class ConnectionSSH(ConnectionBase):
@@ -150,8 +155,6 @@ class ConnectionSSH(ConnectionBase):
     def __init__(self, config={}):
         """
         :param config:
-        :raises SSHAuthenticationError:
-        :raises SSHError:
         """
         super().__init__(config)
 
@@ -173,6 +176,11 @@ class ConnectionSSH(ConnectionBase):
         self._delegator_dir = ""
         """directory where delegator is executed"""
 
+    def connect(self):
+        """
+        :raises SSHAuthenticationError:
+        :raises SSHError:
+        """
         # open ssh connection
         self._ssh = paramiko.SSHClient()
         self._ssh.load_system_host_keys()
@@ -378,7 +386,21 @@ class ConnectionSSH(ConnectionBase):
 
         Implementation: just copy
         """
+        cwd = self._sftp.getcwd()
         for path in paths:
+            # make dirs
+            dir = os.path.dirname(path)
+            dir_list = []
+            while len(dir) > 0:
+                dir_list.insert(0, dir)
+                dir = os.path.dirname(dir)
+            for dir in dir_list:
+                prefix_dir = os.path.join(remote_prefix, dir)
+                try:
+                    self._sftp.chdir(prefix_dir)
+                except IOError:
+                    self._sftp.mkdir(prefix_dir)
+
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
             try:
@@ -395,6 +417,7 @@ class ConnectionSSH(ConnectionBase):
                     raise
             except socket.timeout:
                 raise SSHTimeoutError
+        self._sftp.chdir(cwd)
 
     def download(self, paths, local_prefix, remote_prefix):
         """
@@ -411,6 +434,7 @@ class ConnectionSSH(ConnectionBase):
         for path in paths:
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
+            os.makedirs(os.path.dirname(loc), exist_ok=True)
             try:
                 self._sftp.get(rem, loc)
             except FileNotFoundError as e:
