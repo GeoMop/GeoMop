@@ -210,3 +210,25 @@ def test_json_data():
     assert h._v == 6
 
     assert json.dumps(h.serialize(), sort_keys=True) == '{"__class__": "H", "_u": 7, "a": 2, "b": "test"}'
+
+    # IntEnum
+    class MyEnum(IntEnum):
+        E1 = 1
+        E2 = 2
+        E3 = 3
+
+    class I(JsonData):
+        def __init__(self, config={}):
+            self.a = 1
+            self.b = "test"
+            self.c = MyEnum.E1
+
+            super().__init__(config)
+
+    i = I({"a": 2, "c": "E2"})
+
+    assert i.a == 2
+    assert i.b == "test"
+    assert i.c == MyEnum.E2
+
+    assert json.dumps(i.serialize(), sort_keys=True) == '{"__class__": "I", "a": 2, "b": "test", "c": "E2"}'

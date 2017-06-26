@@ -1,4 +1,5 @@
 #import json
+from enum import IntEnum
 
 
 class Error(Exception):
@@ -102,17 +103,24 @@ class JsonData:
         """
         # JsonData
         if isinstance(temp, JsonData):
+            assert data.__class__ is dict
             data = data.copy()
             del data["__class__"]
             return temp.__class__(data)
 
         # ClassFactory
         elif isinstance(temp, ClassFactory):
+            assert data.__class__ is dict
             return temp.make_instance(data)
+
+        # IntEnum
+        elif isinstance(temp, IntEnum):
+            assert data.__class__ is str
+            return temp.__class__[data]
 
         # dict
         elif isinstance(temp, dict):
-            assert temp.__class__ is dict
+            assert data.__class__ is dict
             d = {}
             for k, v in data.items():
                 if k not in temp:
@@ -122,7 +130,7 @@ class JsonData:
 
         # list
         elif isinstance(temp, list):
-            assert temp.__class__ is list
+            assert data.__class__ is list
             l = []
             if len(temp) == 0:
                 for v in data:
@@ -168,6 +176,8 @@ class JsonData:
         """Prepare object for serialization."""
         if isinstance(obj, JsonData):
             return obj._get_dict()
+        elif isinstance(obj, IntEnum):
+            return obj.name
         elif isinstance(obj, dict):
             d = {}
             for k, v in obj.items():
