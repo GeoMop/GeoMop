@@ -1,0 +1,112 @@
+{    
+    "main_layers" : [ 
+       {            
+            "layer_name" : "layer_one",
+            "layer_type" : "stratum",
+            "top_type"   : "given",
+            "top" : 
+                {
+                    "node_set" : 0,
+                    "interface" : 0
+                },
+             
+            "bottom_type" : "given",
+            "bottom" : 
+                {
+                    "node_set" : 0,
+                    "interface" : 1
+                }    
+        }
+
+        ],
+            
+    // Interfaces        
+    "surfaces" : [ 
+        {
+            // shift by +1 in Z direction
+            "transform": [[1,0,0,0], [0,1,0,0], [0,0,1,1], [0,0,0,1]],
+            // XY plane
+            "grid" : null
+        },
+        {
+            // shift by -1 in Z direction
+            "transform": [[1,0,0,0], [0,1,0,0], [0,0,1,-1], [0,0,0,1]],
+            // XY plane
+            "grid" : null
+        }
+    ],
+
+    "curves" : [],
+    "regions" : [
+        {
+            "name" : "3 vrstva",
+            "color" : "blue",
+            "dim" : 3,
+            "boundary" : false,
+            "not_used" : false,
+            "mesh_step" : 0.04
+        },    
+        {
+            "name" : "4 vrstva",
+            "color" : "red",
+            "dim" : 3,
+            "boundary" : false,
+            "not_used" : false,
+            // mesh step must be averaged in nodes from connected regions
+            "mesh_step" : 0.03
+        },    
+    ],
+
+    "plane_topologies" : [ 
+        {                      
+            "segments" : 
+                 [
+                    [0, 1],  # 0
+                    [1, 2],  # 1
+                    [2, 3],  # 2
+                    [3, 4],  # 3
+                    [4, 0],  # 4
+                    [1, 4]   # 5
+                 ],
+            "bulks" : [ 
+                [0, 5, 4], 
+                [1, 2, 3, -5]
+            ],
+            "fractures" : [],
+            "wells" : []
+        }                      
+    ],
+    "node_sets" : [
+        // top nodeset               
+        {
+            "topology_idx" : 0,            
+            "nodes" :
+                [         
+                     [0, 0], 
+                     [1, 0], 
+                     [2, 1], 
+                     [1, 2], 
+                     [0, 1]
+                 ],
+            "linked_node_set": null,
+            "linked_nodes" : []
+        },
+                
+        // bottom nodeset                
+        {
+            "topology_idx" : 0,            
+            "nodes" :
+                [         
+                     [0, 0], 
+                     [1, 0], 
+                     [2, 1], 
+                     [1, 2], 
+                     [0, 1]
+                 ],
+            "linked_node_set": null,
+            "linked_nodes" : []
+        }
+    ],
+
+}
+

@@ -9,78 +9,15 @@ min_z = 0
 max_z = 1
 
 
-def extrude_point(point_xy):
-    point_top = OCC.gp.gp_Pnt(point_xy[0], point_xy[1], max_z)
-    point_bot = OCC.gp.gp_Pnt(point_xy[0], point_xy[1], min_z)
+def extrude_point(point_pair):
+    pt,pb = point_pair
+    point_top = OCC.gp.gp_Pnt(pt[0], pt[1], max_z)
+    point_bot = OCC.gp.gp_Pnt(pb[0], pb[1], min_z)
     edge = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeEdge(point_top, point_bot)
     return (point_top, point_bot, edge)
 
-def create_prism(polygon):
-    """
-    Try to create volume from shape defined in area data file
-    :param extrude_diff: distance between upper and lower cap of volume
-    :return:
-    """
-
-
-    sewing = OCC.BRepBuilderAPI.BRepBuilderAPI_Sewing(0.01, True, True, True, False)
-    sewing.SetFloatingEdgesMode(True)
-
-
-    top_wire = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeWire()
-    bot_wire = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeWire()
-
-    p=polygon[-1]
-    prev_edge=extrude_point(p)
-    for pnt_id, p in enumerate(polygon):
-        p0_t,p0_b, e0 = prev_edge
-        edge = extrude_point(p)
-        p1_t,p1_b, e1 = edge
-
-        e_t = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeEdge(p0_t, p1_t)
-        e_b = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeEdge(p0_b, p1_b)
-
-        # Vertical face
-        wire = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeWire()
-        wire.Add(e0.Edge())
-        wire.Add(e_t.Edge())
-        wire.Add(e1.Edge())
-        wire.Add(e_b.Edge())
-        face = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeFace(wire.Wire())
-        sewing.Add(face.Shape())
-
-        # extend cup wires
-        top_wire.Add(e_t.Edge())
-        bot_wire.Add(e_b.Edge())
-
-        prev_edge = edge
-
-    top_face = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeFace(top_wire.Wire())
-    sewing.Add(top_face.Shape())
-    bot_face = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeFace(bot_wire.Wire())
-    sewing.Add(bot_face.Shape())
-
-    # Sew it all together
-    sewing.Perform()
-    sewing_shape = sewing.SewedShape()
-    # Create shell, solid and compound
-    shell = OCC.TopoDS.topods_Shell(sewing_shape)
-    make_solid = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeSolid()
-    make_solid.Add(shell)
-    solid = make_solid.Solid()
-
-    builder = OCC.BRep.BRep_Builder()
-    builder.MakeSolid(solid)
-    builder.Add(solid, shell)
-
-    # Try to fix orientation of solid volume
-    OCC.BRepLib.breplib().OrientClosedSolid(solid)
-
-    return solid
-
-
-def v_edges_from_points(points):
-    return [ extrude_point(p) for p in points ]
+def v_edges_from_points(points_top, points_bot):
+    return [ extrude_point(p) for p in zip(points_top, points_bot) ]
 
 def v_faces_from_edges(v_edges, lines):
     faces = []
@@ -119,13 +56,17 @@ def solids_from_poly(v_faces, poly):
             negative = (idx_face < 0)
             e_t, e_b, face = v_faces[i_face]
             face_shape = face.Shape()
+            et_shape = e_t.Edge()
+            eb_shape = e_b.Edge()
             if negative:
                 face_shape.Orientation(OCC.TopAbs.TopAbs_REVERSED)
+                et_shape.Orientation(OCC.TopAbs.TopAbs_REVERSED)
+                eb_shape.Orientation(OCC.TopAbs.TopAbs_REVERSED)
             sewing.Add(face_shape)
 
             # extend cup wires
-            top_wire.Add(e_t.Edge())
-            bot_wire.Add(e_b.Edge())
+            top_wire.Add(et_shape)
+            bot_wire.Add(eb_shape)
 
         top_face = OCC.BRepBuilderAPI.BRepBuilderAPI_MakeFace(top_wire.Wire())
         sewing.Add(top_face.Shape())
@@ -141,12 +82,12 @@ def solids_from_poly(v_faces, poly):
         make_solid.Add(shell)
         solid = make_solid.Solid()
 
-        builder = OCC.BRep.BRep_Builder()
-        builder.MakeSolid(solid)
-        builder.Add(solid, shell)
+        #builder = OCC.BRep.BRep_Builder()
+        #builder.MakeSolid(solid)
+        #builder.Add(solid, shell)
 
         # Try to fix orientation of solid volume
-        OCC.BRepLib.breplib().OrientClosedSolid(solid)
+        #OCC.BRepLib.breplib().OrientClosedSolid(solid)
 
         solids.append(solid)
 
@@ -154,30 +95,59 @@ def solids_from_poly(v_faces, poly):
 
 ################################################33333
 
+def internal_fracture():
 
-prism_points=[[0,0], [1, 0], [2, 1],  [1,2], [0,1]]
+    points_top=[
+        [0,0],      # 0
+        [1, 0],     # 1
+        [0,1],      # 2
+        [0.5,0.5]]      # 3
+    lines=[
+        [0,1],      # 0
+        [1,2],      # 1
+        [2,0],      # 2
+        [2,3]]      # 6
 
-points=[
-    [0,0],      # 0
-    [1, 0],     # 1
-    [2, 1],     # 2
-    [1,2],      # 3
-    [0,1]]      # 4
+    poly=[[0,1,3,-3,2]]
 
-lines=[
-    [0,1],      # 0
-    [1,2],      # 1
-    [2,3],      # 2
-    [3,4],      # 3
-    [4,0],      # 4
-    [1,4]]      # 5
+    return [points_top, points_top, lines, poly]
 
-poly=[ [0, 5, 4], [1,2,3,-5]]
 
+def two_prisms():
+    points_top = [
+        [0, 0],  # 0
+        [1, 0],  # 1
+        [2, 1],  # 2
+        [1, 2],  # 3
+        [0, 1]]  # 4
+
+    points_bot = [
+        [0, 0],  # 0
+        [1, 0],  # 1
+        [2, 1],  # 2
+        [1, 2],  # 3
+        [0, 1]]  # 4
+
+    lines = [
+        [0, 1],  # 0
+        [1, 2],  # 1
+        [2, 3],  # 2
+        [3, 4],  # 3
+        [4, 0],  # 4
+        [1, 4]]  # 5
+
+    poly = [[0, 5, 4], [1, 2, 3, -5]]
+
+    return [points_top, points_bot, lines, poly]
+
+
+#data = internal_fracture()
+data=two_prisms()
+points_top, points_bot, lines, poly = data
 #poly=[ [0, 5, 4] ]
 #poly=[ [1,2,3, -5]]
 
-v_edges=v_edges_from_points(points)
+v_edges=v_edges_from_points(points_top, points_bot)
 v_faces=v_faces_from_edges(v_edges, lines)
 solids=solids_from_poly(v_faces, poly)
 
