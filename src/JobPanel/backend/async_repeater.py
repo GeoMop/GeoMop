@@ -405,6 +405,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
         self.async_repeater = async_repeater
 
     def handle_read(self):
+        peername = self.socket.getpeername()
         data = self.recv(1024)
         #print(data)
         if data:
@@ -417,7 +418,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
                 #print(self.async_repeater.clients)
 
                 if child_id in self.async_repeater.clients:
-                    self.async_repeater.clients[child_id].set_remote_address((self.socket.getpeername()[0], port))
+                    self.async_repeater.clients[child_id].set_remote_address((peername[0], port))
                     logging.info("Initial back connection done.")
         self.close()
         # We close also if we get wrong data. As whole connection is from bad guy.

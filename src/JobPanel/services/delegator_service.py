@@ -6,7 +6,7 @@ import json
 import traceback
 import psutil
 
-sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from backend import service_base
 
@@ -14,6 +14,8 @@ from backend import service_base
 class Delegator(service_base.ServiceBase):
     """
     """
+    config_file_name = ""
+
     def __init__(self, config):
         service_base.ServiceBase.__init__(self, config)
 

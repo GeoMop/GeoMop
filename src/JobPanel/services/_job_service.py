@@ -12,7 +12,7 @@ import psutil
 import subprocess
 import time
 
-sys.path.append(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from backend import service_base
 from backend._executor import Executable, ExecArgs
@@ -34,6 +34,8 @@ return_val = async_result.get()  # get the return value from your function.
 """
 
 class Job(service_base.ServiceBase):
+    config_file_name = "job_service.conf"
+
     def __init__(self, config):
         #self.parent_port=9123
         #self.job_parameters = {}

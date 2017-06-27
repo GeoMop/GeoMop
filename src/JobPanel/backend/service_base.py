@@ -122,7 +122,7 @@ def call_action(obj, action, data, result=None):
             res = {"data": action_method(data)}
         except:
             res = {'error': "Exception in action:\n" + "".join(traceback.format_exception(*sys.exc_info()))}
-            logging.info("call_action Exception: {})".format(res))
+            logging.error("call_action Exception:\n{})".format(res))
         # logging.info("res: {})".format(res))
         save_result(res)
 
@@ -181,6 +181,9 @@ class ServiceBase(JsonData):
     """
     # answer_ok = { 'data' : 'ok' }
 
+    config_file_name = "service.conf"
+    """Name of service config file."""
+
     def __init__(self, config):
         """
         Create the service and its repeater.
@@ -211,6 +214,8 @@ class ServiceBase(JsonData):
 
         self.listen_port=None
         #
+        self.status = ServiceStatus.queued
+        """Service status"""
         super().__init__(config)
 
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -240,10 +245,15 @@ class ServiceBase(JsonData):
 
     def save_config(self):
         """
+        Save config to file.
         :return:
         """
-        # TODO: Nastavit spravne jmeno souboru vcetne cesty.
-        file = os.path.join(self.workspace, "service.conf")
+        if len(self.config_file_name) == 0:
+            return
+
+        file = os.path.join(self.get_analysis_workspace(),
+                            self.workspace,
+                            self.config_file_name)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
@@ -254,6 +264,9 @@ class ServiceBase(JsonData):
         # Start the repeater loop.
         self._repeater.run()
         logging.info("After run")
+
+        self.status = ServiceStatus.running
+        self.save_config()
 
         last_time = time.time()
 
@@ -339,6 +352,9 @@ class ServiceBase(JsonData):
             con.set_local_service(self)
             self._connections[addr] = con
             return con
+
+    def get_analysis_workspace(self):
+        return self.process.environment.geomop_analysis_workspace
 
     def call(self, method_name, data, result):
         """
