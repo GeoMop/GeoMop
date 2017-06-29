@@ -187,6 +187,18 @@ class ServiceProxy:
         5. set Job state to running
         """
 
+        #TODO:
+        # if status == queued:
+        #       check in repeater if child is connected, then set status to running, write the listenning port to the status file
+        #       otherwise run in separate thread downloading of the service status file through delegator
+        # if status == running:
+        #       send request get status
+
+        # if status == runnign and no answer for last request:
+        #       run in separate thread downloading of the service status file through delegator
+
+        # return current status
+
         # 1.
         self.repeater.clients[self._child_id]
 

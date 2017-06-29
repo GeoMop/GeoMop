@@ -145,6 +145,7 @@ class _ClientDispatcher(asynchat.async_chat):
         self.create_socket()
         logging.info("Connecting: %s\n" % (str(self.address)))
         self.connect(self.address)
+        #TODO: handle possible exceptions from connect
 
     # def is_connected(self):
     #     return self.connected
@@ -604,6 +605,7 @@ class AsyncRepeater():
                 s.sendall(data)
             except ConnectionRefusedError:
                 pass
+            #TODO: add except for all ather exections (e.g. in sendall)
             finally:
                 s.close()
             time.sleep(10)
