@@ -90,9 +90,8 @@ class Interface():
         """Clicable edit check box area"""
 
 class Layers():
-    """Layers data"""    
-    font = QtGui.QFont()
-    """Layer diagram font"""
+    """Layers data"""
+    
     __x_view__ = 10
     __x_edit__ = 30
     __dx__ = 10
@@ -102,28 +101,36 @@ class Layers():
     
     @property
     def x_ilabel(self):
+        """depth label x left coordinate"""
         return self.x_label +self.__dx__*3+self.x_label_width
         
     @property
     def x_label(self):
-        return self.__dx__*3+self.__dx_controls__*2 +self.__dx__*3+self.x_label_width
+        """layer label x left coordinate"""
+        return self.__dx__*4+self.__dx_controls__*2 +self.__dx__*3
         
     @property
     def x_view(self):
+        """view button x left coordinate"""
         return self.__dx__
     
     @property
     def x_edit(self):
-        return self.__dx__*2+self.__dx_controls__
+        """edit button x left coordinate"""
+        return self.__dx__*4+self.__dx_controls__
     
     
     def __init__(self):
+        self.font = QtGui.QFont("times", 12)
+        """Layer diagram font"""
         self.layers = []
         """List of layers"""
         self.interfaces = []
         """List of interfaces"""
         self.x_label_width = 0
         """Coordinate of the longest name end"""
+        self.y_font = 0
+        """Font height"""        
         
     def add_interface(self, depth, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_id=None):
         """add new interface"""
@@ -139,6 +146,7 @@ class Layers():
         """Compute coordinates for layers elements"""
         fm = QtGui.QFontMetrics(self.font)
         fontHeight = fm.height()
+        self.y_font = fontHeight
         y_pos = fontHeight*1.5+self.__dy_row__ # after label
         for i in range(0, len(self.interfaces)):
             #interface

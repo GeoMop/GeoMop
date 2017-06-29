@@ -22,6 +22,7 @@ class DiagramSerializer():
         cfg.layers.add_interface("0", None, ns_idx)
         cfg.layers.add_interface("100")
         cfg.layers.add_layer("New Layer")
+        cfg.layers.compute_composition()
         return gf.geometry
         
     def save(self, cfg, path=None):
