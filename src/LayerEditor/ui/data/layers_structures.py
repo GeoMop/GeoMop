@@ -44,9 +44,11 @@ class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
     is None"""
 
-    def __init__(self, depth, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_diagram_id=None):
+    def __init__(self, depth, splited, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_diagram_id=None):
         self.depth = depth
         """String depth description"""
+        self.splited = splited
+        """Interface have two independent surfaces"""
         self.fracture = None
         """Fracture object or None if fracture is not on interface"""
         if fracture_name is not None:
@@ -150,7 +152,7 @@ class Layers():
         y_pos = fontHeight*1.5+self.__dy_row__ # after label
         for i in range(0, len(self.interfaces)):
             #interface
-            if self.interfaces[i].diagram_id2 is None:
+            if not self.splited and i>0:
                 # interpolated
                 self.interfaces[i].y_top = None
                 self.interfaces[i].y_bottom = None

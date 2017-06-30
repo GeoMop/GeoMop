@@ -24,7 +24,7 @@ class Layers(QtWidgets.QWidget):
     def _paint_fracture(self, painter, y, x1, x2, dx, interface):
         """Paint layer with fracture name"""
         painter.drawLine(x1-2*dx, y, interface.fracture.rect.left()-dx, y)
-        painter.drawText(d.interface.fracture.rect.bottomLeft(), d.interface.fracture.name)
+        painter.drawText(interface.fracture.rect.bottomLeft(), interface.fracture.name)
         painter.drawLine(interface.fracture.rect.right()+dx, y, x2-2*dx, y)
 
     def paintEvent(self, event=None):
