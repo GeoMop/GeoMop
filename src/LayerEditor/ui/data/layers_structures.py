@@ -109,7 +109,7 @@ class Layers():
     @property
     def x_label(self):
         """layer label x left coordinate"""
-        return self.__dx__*4+self.__dx_controls__*2 +self.__dx__*3
+        return self.__dx__*5+self.__dx_controls__*2 +self.__dx__*3
         
     @property
     def x_view(self):
@@ -144,13 +144,23 @@ class Layers():
         self.layers.append(Layer(name))
         return len(self.layers)-1
         
+    def _compute_controls(self, y):
+        view_rect = QtCore.QRectF(self.x_view, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
+        edit_rect = QtCore.QRectF(self.x_edit, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
+        return view_rect, edit_rect 
+            
+        
     def compute_composition(self):
         """Compute coordinates for layers elements"""
         fm = QtGui.QFontMetrics(self.font)
         fontHeight = fm.height()
         self.y_font = fontHeight
-        y_pos = fontHeight*1.5+self.__dy_row__ # after label
+        y_pos = fontHeight*1.5+2*self.__dy_row__ # after label
         for i in range(0, len(self.interfaces)):
+            self.interfaces[i].view_rect1 = None
+            self.interfaces[i].edit_rect1 = None
+            self.interfaces[i].view_rect2 = None
+            self.interfaces[i].edit_rect2 = None
             #interface
             if not self.splited and i>0:
                 # interpolated
@@ -170,8 +180,10 @@ class Layers():
                     self.interfaces[i].fracture.view_rect = None
                     self.interfaces[i].fracture.edit_rect = None
                     y_pos += fontHeight+self.__dy_row__
+                if self.interfaces[i].diagram_id1 is not None:
+                    (self.interfaces[i].view_rect1, self.interfaces[i].fracture.edit_rect1) = self._compute_controls(self.interfaces[i].y)
             else:
-                # given
+                # two given or interpolated and given blok
                 if self.interfaces[i].fracture is None:   
                     #without fracture
                     self.interfaces[i].y_top = y_pos
@@ -192,17 +204,15 @@ class Layers():
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None
                     elif self.interfaces[i].fracture.type==FractureInterface.own:
-                        x_mid = (fontHeight+self.__dy_row__)/2+y_pos+self.__dy_row__
+                        y_mid = (fontHeight+self.__dy_row__)/2+y_pos+self.__dy_row__
                         self.interfaces[i].y_top = y_pos
-                        self.interfaces[i].y = x_mid
+                        self.interfaces[i].y = y_mid
                         self.interfaces[i].y_bottom = fontHeight+3*self.__dy_row__+y_pos
                         #fracture
                         self.interfaces[i].fracture.rect = QtCore.QRectF(
                             self.x_label-self.__dx__/2, 3*self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
-                        self.interfaces[i].fracture.view_rect = QtCore.QRectF(
-                            self.x_view, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
-                        self.interfaces[i].fracture.edit_rect = QtCore.QRectF(
-                            self.x_edit, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
+                            
+                        (self.interfaces[i].fracture.view_rect, self.interfaces[i].fracture.edit_rect) = self._compute_controls(y_mid)                        
                     else:
                         self.interfaces[i].y_top = y_pos
                         self.interfaces[i].y = y_pos+self.__dy_row__                    
@@ -213,6 +223,13 @@ class Layers():
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None                       
                     y_pos += fontHeight+4*self.__dy_row__
+            # view and edit control
+            
+#            if self.interfaces[i].diagram_id is not None:
+#                self.interfaces[i].view_rect1 = QtCore.QRectF(
+#                            self.x_view, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
+#                        self.interfaces[i].fracture.edit_rect = QtCore.QRectF(
+#                            self.x_edit, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
             #layers
             if i<len(self.layers):
                 width = fm.width(self.layers[i].name)

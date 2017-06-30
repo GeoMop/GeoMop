@@ -3,6 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
+from ui.data import FractureInterface
 
 class Layers(QtWidgets.QWidget):
     """GeoMop design area"""
@@ -26,6 +27,15 @@ class Layers(QtWidgets.QWidget):
         painter.drawLine(x1-2*dx, y, interface.fracture.rect.left()-dx, y)
         painter.drawText(interface.fracture.rect.bottomLeft(), interface.fracture.name)
         painter.drawLine(interface.fracture.rect.right()+dx, y, x2-2*dx, y)
+        
+    def _paint_checkbox(self, painter, rect, value):
+        """Paint layer with fracture name"""
+        painter.drawRect(rect)
+        if value:
+            painter.drawLine(rect.left(), rect.top()+rect.height()*2/3,rect.left()+rect.width()/3)
+            painter.drawLine(rect.left()+rect.width()/3, rect.right(), rect.top()+rect.height()/3)
+            
+        
 
     def paintEvent(self, event=None):
         """Overloadet QWidget paint function"""
@@ -47,11 +57,36 @@ class Layers(QtWidgets.QWidget):
                 else:
                     self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])
             else:
-                if d.interfaces[i].fracture is None:
-                    painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y, d.x_ilabel-2*d.__dx__, d.interfaces[i].y)
-                else:
-                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])
+                if d.interfaces[i].fracture is None or d.interfaces[i].fracture.type != FractureInterface.top :
+                    painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y_top, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_top)
+                else:    
+                    self._paint_fracture(painter, d.interfaces[i].y_top, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])
+                painter.drawLine(d.x_ilabel-2*d.__dx__, d.interfaces[i].y_top, d.x_ilabel-d.__dx__, d.interfaces[i].y)
+                if d.interfaces[i].fracture is not None and d.interfaces[i].fracture.type != FractureInterface.own :
+                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel+d.__dx__, d.__dx__,d.interfaces[i])
+                painter.drawLine(d.x_ilabel-d.__dx__, d.interfaces[i].y, d.x_ilabel-d.__dx__, d.interfaces[i].y_bottom)
+                if d.interfaces[i].fracture is None or d.interfaces[i].fracture.type != FractureInterface.bottom :
+                    painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y_bottom, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_bottom)
+                else:    
+                    self._paint_fracture(painter, d.interfaces[i].y_bottom, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])                
+                if self.view_rect1 is not None:
+                    self._paint_checkbox(self, painter, d.interfaces[i].view_rect1, d.interfaces[i].self.viewed1)
+                if self.view_rect2 is not None:
+                    self._paint_checkbox(self, painter, d.interfaces[i].view_rect2, d.interfaces[i].self.viewed2)
+                if self.edit_rect1 is not None:
+                    self._paint_checkbox(self, painter, d.interfaces[i].edit_rect1, d.interfaces[i].self.edited1)
+                if self.edit_rect2 is not None:
+                    self._paint_checkbox(self, painter, d.interfaces[i].edit_rect2, d.interfaces[i].self.edited2)
+            painter.drawText(d.interfaces[i].rect.bottomLeft(), d.interfaces[i].depth)        
             #layers
-            if i<len(self.layers):
-                painter.drawText(QtCore.QPointF(d.x_ilabel, d.__dy_row__+d.y_font), "Depth")
+            if i<len(d.layers):
+                painter.drawText(d.layers[i].rect, d.layers[i].name)
+                if i+1<len(d.interfaces):
+                    top = d.interfaces[i].y
+                    bottom = d.interfaces[i-1].y
+                    if d.interfaces[i].y_bottom is not None:
+                        top = d.interfaces[i].y_bottom
+                    if d.interfaces[i+1].y_top is not None:
+                        bottom = d.interfaces[i-1].y_top
+                    painter.drawLine(d.x_label-2*d.__dx__, top, d.x_label-2*d.__dx__, bottom)
             
