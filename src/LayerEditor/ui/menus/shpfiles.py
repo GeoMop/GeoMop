@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMenu, QAction
 
 class ShpFilesMenu(QMenu):
-    """Menu with file actions."""
+    """Menu with shape file panel context actions."""
 
     def __init__(self, parent, shape_file_panel, file_idx):
         """Initializes the class."""

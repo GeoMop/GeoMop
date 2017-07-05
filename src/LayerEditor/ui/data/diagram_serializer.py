@@ -19,8 +19,8 @@ class DiagramSerializer():
         cfg.diagram = cfg.diagrams[0]
         cfg.node_set_idx = ns_idx        
         cfg.diagrams[0].topology_idx = tp_idx
-        cfg.layers.add_interface("0", None, ns_idx)
-        cfg.layers.add_interface("100")
+        cfg.layers.add_interface("0", False, None, ns_idx)
+        cfg.layers.add_interface("100", False)
         cfg.layers.add_layer("New Layer")
         cfg.layers.compute_composition()
         return gf.geometry

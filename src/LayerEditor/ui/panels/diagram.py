@@ -17,7 +17,7 @@ class OperatinState(IntEnum):
     
 class Diagram(QtWidgets.QGraphicsScene):
     """
-    GeoMop design area
+    GeoMop Layer Editor design area
     
     Y coordinetes is negativ for right map orientation. For displying or setting 
     is need set opposite value.

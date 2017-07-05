@@ -20,7 +20,20 @@ class FractureInterface(IntEnum):
     bottom = 1
     top = 2
     own = 3
-       
+    
+class ClickedControlType(IntEnum):
+    """Type of control that is clicked"""
+    none = 0
+    view = 1
+    edit = 2
+    interface = 3
+    fracture = 4
+    layer = 5
+    view2 = 6
+    edit2 = 7
+    fracture_view = 8
+    fracture_edit = 9
+    
 class Fracture():
     """One fracture in panel"""
     
@@ -130,13 +143,15 @@ class Layers():
         self.interfaces = []
         """List of interfaces"""
         self.x_label_width = 0
-        """Coordinate of the longest name end"""
+        """Coordinate of the longest layer name end"""
+        self.x_ilabel_width = 0
+        """Coordinate of the longest interface name end"""
         self.y_font = 0
         """Font height"""        
         
-    def add_interface(self, depth, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_id=None):
+    def add_interface(self, depth, splited, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_id=None):
         """add new interface"""
-        self.interfaces.append(Interface(depth, fracture_name, diagram_id1, diagram_id2, fracture_id))
+        self.interfaces.append(Interface(depth, splited, fracture_name, diagram_id1, diagram_id2, fracture_id))
         return len(self.interfaces)-1
         
     def add_layer(self, name):
@@ -162,7 +177,7 @@ class Layers():
             self.interfaces[i].view_rect2 = None
             self.interfaces[i].edit_rect2 = None
             #interface
-            if not self.splited and i>0:
+            if not self.interfaces[i].splited:
                 # interpolated
                 self.interfaces[i].y_top = None
                 self.interfaces[i].y_bottom = None
@@ -181,7 +196,7 @@ class Layers():
                     self.interfaces[i].fracture.edit_rect = None
                     y_pos += fontHeight+self.__dy_row__
                 if self.interfaces[i].diagram_id1 is not None:
-                    (self.interfaces[i].view_rect1, self.interfaces[i].fracture.edit_rect1) = self._compute_controls(self.interfaces[i].y)
+                    (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y)
             else:
                 # two given or interpolated and given blok
                 if self.interfaces[i].fracture is None:   
@@ -222,14 +237,12 @@ class Layers():
                             self.x_label-self.__dx__/2, 5*self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None                       
-                    y_pos += fontHeight+4*self.__dy_row__
-            # view and edit control
-            
-#            if self.interfaces[i].diagram_id is not None:
-#                self.interfaces[i].view_rect1 = QtCore.QRectF(
-#                            self.x_view, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
-#                        self.interfaces[i].fracture.edit_rect = QtCore.QRectF(
-#                            self.x_edit, x_mid-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
+                    y_pos += fontHeight+4*self.__dy_row
+                    if self.interfaces[i].diagram_id1 is not None:
+                        (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y_top)
+                    if self.interfaces[i].diagram_id2 is not None:
+                        (self.interfaces[i].view_rect2, self.interfaces[i].edit_rect2) = self._compute_controls(self.interfaces[i].y_bottom)
+            # 
             #layers
             if i<len(self.layers):
                 width = fm.width(self.layers[i].name)
@@ -243,6 +256,85 @@ class Layers():
             # interface label
             for i in range(0, len(self.interfaces)):
                 width = fm.width(self.interfaces[i].depth)
+                if  width>self.x_ilabel_width:
+                        self.x_ilabel_width = width
                 self.interfaces[i].y
                 self.interfaces[i].rect = QtCore.QRectF(
                     self.x_ilabel-self.__dx__/2, self.interfaces[i].y - fontHeight/2, width+self.__dx__, fontHeight)
+
+    def get_clickable_type(self, x, y):
+        """Return control type of below point"""
+        if x<self.x_view or \
+            (x>self.x_view+self. __dx_controls__ and x< self.x_edit) or \
+            (x>self.x_edit+self. __dx_controls__ and x< self.x_label) or \
+            (x>self.x_label+self.x_label_width and x< self.x_ilabel) or \
+            x>self.x_ilabel+self.x_ilabel_width:
+            return ClickedControlType.none
+        p = QtCore.QPointF(x, y)
+        for i in range(0, len(self.interfaces)):
+            # interface            
+            if self.interfaces[i].rect.contains(p):
+                return ClickedControlType.interface
+            if self.interfaces[i].view_rect1 is not None:
+                if self.interfaces[i].view_rect1.contains(p):
+                    return ClickedControlType.view
+            if self.interfaces[i].edit_rect1 is not None:
+                if self.interfaces[i].edit_rect1.contains(p):
+                    return ClickedControlType.edit
+            if self.interfaces[i].view_rect2 is not None:
+                if self.interfaces[i].view_rect2.contains(p):
+                    return ClickedControlType.view2
+            if self.interfaces[i].edit_rect2 is not None:
+                if self.interfaces[i].edit_rect2.contains(p):
+                    return ClickedControlType.edit2
+            #fracture
+            if self.interfaces[i].fracture is not None:
+                if self.interfaces[i].fracture.rect.contains(p):
+                    return ClickedControlType.fracture
+                if self.interfaces[i].fracture.view_rect is not None:
+                    if self.interfaces[i].fracture.view_rect.contains(p):
+                        return ClickedControlType.fracture_view
+                if self.interfaces[i].fracture.edit_rect is not None:
+                    if self.interfaces[i].fracture.edit_rect.contains(p):
+                        return ClickedControlType.fracture_edit
+            if i<len(self.layers):
+                if self.layers[i].rect.contains(p):
+                    return ClickedControlType.layer
+        return ClickedControlType.none
+
+    def get_clickable_idx(self, x, y, type):
+        """Return number of control below point"""
+        if type is ClickedControlType.none:
+            return None
+        p = QtCore.QPointF(x, y)
+        for i in range(0, len(self.interfaces)):
+            # interface            
+            if type is ClickedControlType.interface and self.interfaces[i].rect.contains(p):
+                return i
+            if type is ClickedControlType.view and self.interfaces[i].view_rect1 is not None:
+                if self.interfaces[i].view_rect1.contains(p):
+                    return i
+            if type is ClickedControlType.edit and self.interfaces[i].edit_rect1 is not None:
+                if self.interfaces[i].edit_rect1.contains(p):
+                    return i
+            if type is ClickedControlType.view2 and self.interfaces[i].view_rect2 is not None:
+                if self.interfaces[i].view_rect2.contains(p):
+                    return i
+            if type is ClickedControlType.edit2 and self.interfaces[i].edit_rect2 is not None:
+                if self.interfaces[i].edit_rect2.contains(p):
+                    return i
+            #fracture
+            if self.interfaces[i].fracture is not None:
+                if type is ClickedControlType.interface and self.interfaces[i].fracture.rect.contains(p):
+                    return i
+                if type is ClickedControlType.interface and self.interfaces[i].fracture.view_rect is not None:
+                    if self.interfaces[i].fracture.view_rect.contains(p):
+                        return i
+                if type is ClickedControlType.fracture_edit and self.interfaces[i].fracture.edit_rect is not None:
+                    if self.interfaces[i].fracture.edit_rect.contains(p):
+                        return i
+            if type is ClickedControlType.layer and i<len(self.layers):
+                if self.layers[i].rect.contains(p):
+                    return i
+
+        return None
