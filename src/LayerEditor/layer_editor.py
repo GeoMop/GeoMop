@@ -11,6 +11,7 @@ import argparse
 from ui import MainWindow
 from leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
+import PyQt5.QtCore as QtCore
 import icon
 
 class LayerEditor:
@@ -142,6 +143,9 @@ def main():
 
     if args.debug:
         cfg.config.__class__.DEBUG_MODE = True
+        
+    #set locale    
+    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
     if not args.debug:

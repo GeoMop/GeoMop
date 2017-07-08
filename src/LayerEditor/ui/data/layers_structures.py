@@ -52,14 +52,22 @@ class Fracture():
         """Clicable view check box area (Only or own fracture interface type)"""
         self.edit_rect = None
         """Clicable edit check box area (Only or own fracture interface type)"""
+        self.viewed = False
+        """fracture diagram is viwed"""
+        self.edited = False
+        """fracture diagram is  edited"""
 
 class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
     is None"""
 
     def __init__(self, depth, splited, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_diagram_id=None):
-        self.depth = depth
-        """String depth description"""
+        self.depth = 0.0
+        """Float depth description"""
+        try:
+            self.depth = float(depth)            
+        except:
+            raise ValueError("Invalid depth type")
         self.splited = splited
         """Interface have two independent surfaces"""
         self.fracture = None
@@ -103,6 +111,16 @@ class Interface():
         """Clicable view check box area"""
         self.edit_rect2 = None
         """Clicable edit check box area"""
+        
+    @property
+    def str_depth(self):
+        return str(self.depth)
+    
+    def set_depth(self, depth):    
+        try:
+            self.depth = float(depth)            
+        except:
+            raise ValueError("Invalid depth type")
 
 class Layers():
     """Layers data"""
@@ -159,11 +177,97 @@ class Layers():
         self.layers.append(Layer(name))
         return len(self.layers)-1
         
+    def append_layer(self, name, depth):
+        """Append layer to the end"""
+        self.add_layer(name)
+        self.add_interface(depth, False)        
+        
+    def set_edited_interface(self, idx, second, fracture=False):
+        """If interface with set idx is set as edited return False, 
+        else change edited interface in data and return True"""
+        #check
+        if fracture:
+            if self.interfaces[idx].fracture is None:
+                raise Exception("Invalid interface operation: Interface {0} has not editable fracture".format(str(idx)))
+            if self.interfaces[idx].fracture.edit_rect is None:
+                raise Exception("Invalid interface operation: Fracture in interface {0} has not editable surface".format(str(idx)))
+        elif second:
+            if self.interfaces[idx].edit_rect2 is None:
+                raise Exception("Invalid interface operation: Interface {0} has not two editable surfaces".format(str(idx)))
+        else:
+            if self.interfaces[idx].edit_rect1 is None:
+                raise Exception("Invalid interface operation: Interface {0} has not editable  surface".format(str(idx)))
+        # settings                
+        for i in range(0, len(self.interfaces)):
+            if i==idx:
+                if fracture:
+                    if self.interfaces[idx].fracture.edited:
+                        return False
+                    self.interfaces[i].edited1 = False
+                    self.interfaces[i].edited2 = False
+                    self.interfaces[idx].fracture.edited = True # fracture existance is checked in the begining of this function
+                elif second:
+                    if self.interfaces[i].edited2:
+                        return False
+                    else:
+                        self.interfaces[i].edited2 = True
+                    self.interfaces[i].edited1 = False
+                    if self.interfaces[idx].fracture is not None:
+                        self.interfaces[idx].fracture.edited = False
+                else:                        
+                    if self.interfaces[i].edited1:
+                        return False
+                    else:
+                        self.interfaces[i].edited1 = True
+                    self.interfaces[i].edited2 = False
+                    if self.interfaces[idx].fracture is not None:
+                        self.interfaces[idx].fracture.edited = False
+            else:
+                self.interfaces[i].edited1 = False
+                self.interfaces[i].edited2 = False
+                if self.interfaces[idx].fracture is not None:
+                    self.interfaces[idx].fracture.edited = False
+        return True
+        
+    def get_diagram_idx(self, idx, second, fracture=False):
+        """Get diagram (surface) idx from interface idx or none if 
+        interface has not diagram"""
+        if fracture:
+            if self.interfaces[idx].fracture is None:
+                return None
+            return self.interfaces[idx].fracture.fracture_diagram_id
+        elif second:
+            return self.interfaces[idx].diagram_id1
+        return self.interfaces[idx].diagram_id2
+
+    def set_viewed_interface(self, idx, second, fracture=False):
+        """Invert set viewed value and return its value"""
+        #check
+        if fracture:
+            if self.interfaces[idx].fracture is None:
+                raise Exception("Invalid interface operation: Interface {0} has not viewable fracture".format(str(idx)))
+            if self.interfaces[idx].fracture.view_rect is None:
+                raise Exception("Invalid interface operation: Fracture in interface {0} has not viewable surface".format(str(idx)))
+        elif second:
+            if self.interfaces[idx].view_rect2 is None:
+                raise Exception("Invalid interface operation: Interface {0} has not two viewable surfaces".format(str(idx)))
+        else:
+            if self.interfaces[idx].view_rect1 is None:
+                raise Exception("Invalid interface operation: Interface {0} has not viewable surface".format(str(idx)))
+        # settings                
+        if fracture:
+            self.interfaces[idx].fracture.viewed = not self.interfaces[idx].fracture.viewed
+            return self.interfaces[idx].fracture.viewed
+        elif second:
+            self.interfaces[idx].viewed2 = not self.interfaces[idx].viewed2
+            return self.interfaces[idx].viewed2
+        self.interfaces[idx].viewed1 = not self.interfaces[idx].viewed1
+        return self.interfaces[idx].viewed1
+        
     def _compute_controls(self, y):
         view_rect = QtCore.QRectF(self.x_view, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
         edit_rect = QtCore.QRectF(self.x_edit, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
-        return view_rect, edit_rect 
-            
+        return view_rect, edit_rect             
         
     def compute_composition(self):
         """Compute coordinates for layers elements"""
@@ -255,7 +359,7 @@ class Layers():
             
             # interface label
             for i in range(0, len(self.interfaces)):
-                width = fm.width(self.interfaces[i].depth)
+                width = fm.width(self.interfaces[i].str_depth)
                 if  width>self.x_ilabel_width:
                         self.x_ilabel_width = width
                 self.interfaces[i].y

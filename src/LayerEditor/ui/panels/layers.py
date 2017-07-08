@@ -5,20 +5,25 @@ from leconfig import cfg
 import PyQt5.QtCore as QtCore
 from ui.data import FractureInterface, ClickedControlType
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu
+from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg
 
 class Layers(QtWidgets.QWidget):
     """
     GeoMop Layer editor layers panel
     
     pyqtSignals:
-        * :py:attr:`viewInterfacesChanged() <viewInterfacesChanged>`
-        * :py:attr:`editInterfaceChanged() <editInterfaceChanged>`
+        * :py:attr:`viewInterfacesChanged(int) <viewInterfacesChanged>`
+        * :py:attr:`editInterfaceChanged(int) <editInterfaceChanged>`
     """
     
-    viewInterfacesChanged = QtCore.pyqtSignal()
-    """Signal is sent when one or more interfaces is set or unset as viwed."""
-    editInterfaceChanged = QtCore.pyqtSignal()
-    """Signal is sent when edited interface is changed."""
+    viewInterfacesChanged = QtCore.pyqtSignal(int)
+    """Signal is sent when one or more interfaces is set or unset as viwed.
+    
+    :param int idx: changed diagram index"""
+    editInterfaceChanged = QtCore.pyqtSignal(int)
+    """Signal is sent when edited interface is changed.
+    
+    :param int idx: new edited diagram index"""
 
     def __init__(self, parent=None):
         """
@@ -70,8 +75,8 @@ class Layers(QtWidgets.QWidget):
         """Paint view checkbox"""
         painter.drawRect(rect)        
         if value:
-            painter.drawLine(rect.left(), rect.top()+rect.height()*2/3,rect.left()+rect.width()/3)
-            painter.drawLine(rect.left()+rect.width()/3, rect.right(), rect.top()+rect.height()/3)
+            painter.drawLine(rect.left()+1, rect.top()+rect.height()*2/3-1,rect.left()+rect.width()/3, rect.bottom()-1)
+            painter.drawLine(rect.left()+rect.width()/3+1, rect.bottom()-1, rect.right()-1, rect.top()+rect.height()/3)
 
     def _paint_radiobutton(self, painter, rect, value, x2):
         """Paint edit radio button width line to x2"""
@@ -128,7 +133,7 @@ class Layers(QtWidgets.QWidget):
                     self._paint_checkbox(painter, d.interfaces[i].fracture.view_rect, d.interfaces[i].fracture.viewed)
                 if d.interfaces[i].fracture.edit_rect is not None:
                     self._paint_radiobutton(painter, d.interfaces[i].fracture.edit_rect, d.interfaces[i].fracture.editedd.x_label-2*d.__dx__)                
-            painter.drawText(d.interfaces[i].rect.bottomLeft(), d.interfaces[i].depth)        
+            painter.drawText(d.interfaces[i].rect.bottomLeft(), d.interfaces[i].str_depth)        
             #layers
             if i<len(d.layers):
                 painter.drawText(d.layers[i].rect, d.layers[i].name)
@@ -141,14 +146,48 @@ class Layers(QtWidgets.QWidget):
                         bottom = d.interfaces[i-1].y_top
                     painter.drawLine(d.x_label-2*d.__dx__, top, d.x_label-2*d.__dx__, bottom)
             
-    # data functions    
+    # data functions
+
+    def append_layer(self):
+        """Append layer to the end"""
+        dlg = AppendLayerDlg(cfg.layers.interfaces[-1].depth, cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.layer_name.text()
+            depth = dlg.depth.text()
+            cfg.layers.append_layer(name, depth)
+            cfg.layers.compute_composition()
+            self.update()
+    
     def change_viewed(self, i, type):
         """Change viewed interface"""
-        pass
+        fracture = False
+        second = False        
+        if type is ClickedControlType.fracture_view:
+            fracture = True
+        elif type is ClickedControlType.view2:
+            second = True
+        else:
+            assert(type is ClickedControlType.view)
+        cfg.layers.set_viewed_interface(i, second, fracture)
+        diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
+        self.update()
+        self.viewInterfacesChanged.emit(diagram_idx)
         
     def change_edited(self, i, type):
-        """Changeedited interface"""
-        pass
+        """Change edited interface"""
+        fracture = False
+        second = False        
+        if type is ClickedControlType.fracture_edit:
+            fracture = True
+        elif type is ClickedControlType.edit2:
+            second = True
+        else:
+            assert(type is ClickedControlType.edit)
+        cfg.layers.set_edited_interface(i, second, fracture)
+        diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
+        self.update()
+        self. editInterfaceChanged.emit(diagram_idx)
     
     def add_interface(self, i):
         """Split layer by new interface"""
@@ -156,7 +195,13 @@ class Layers(QtWidgets.QWidget):
 
     def rename_layer(self, i):
         """Rename layer"""
-        pass
+        dlg = SetNameDlg(cfg.layers.layers[i].name, "Layer", cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.name.text()
+            cfg.layers.layers[i].name = name
+            cfg.layers.compute_composition()
+            self.update()
 
     def remove_layer(self, i):
         """Remove layer and add shadow block instead"""
@@ -172,7 +217,20 @@ class Layers(QtWidgets.QWidget):
         
     def set_interface_depth(self, i):
         """Set interface depth"""
-        pass
+        min = None
+        max = None
+        if i>0:
+            min = cfg.layers.interfaces[i-1].depth
+        if i<len(cfg.layers.interfaces)-1:
+            max = cfg.layers.interfaces[i+1].depth
+
+        dlg = SetDepthDlg(cfg.layers.interfaces[i].depth,  cfg.main_window, min, max)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            depth = dlg.depth.text()
+            cfg.layers.interfaces[i].set_depth(depth)
+            cfg.layers.compute_composition()
+            self.update()
         
     def remove_interface(self, i):
         """Remove interface"""
@@ -184,4 +242,10 @@ class Layers(QtWidgets.QWidget):
         
     def rename_fracture(self, i):
         """Rename fracture"""
-        pass
+        dlg = SetNameDlg(cfg.layers.interfaces[i].fracture.name, "Fracture", cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.name.text()
+            cfg.layers.interfaces[i].fracture.name = name
+            cfg.layers.compute_composition()
+            self.update()

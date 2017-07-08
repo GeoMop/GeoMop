@@ -1,6 +1,7 @@
 """Layers panel contex menus"""
 
 from PyQt5.QtWidgets import QMenu, QAction
+from leconfig import cfg
 
 class LayersLayerMenu(QMenu):
     """
@@ -55,6 +56,8 @@ class LayersInterfaceMenu(QMenu):
         self.interface_idx = interface_idx
         """Selected interface index"""
         
+        d = cfg.layers
+        
         self._add_fracture_action = QAction('Add Fracture ...', self)
         self._add_fracture_action.setStatusTip('Add fracture to this interface')
         self._add_fracture_action.triggered.connect(self._add_fracture)
@@ -69,6 +72,12 @@ class LayersInterfaceMenu(QMenu):
         self._set_depth_action.setStatusTip('Set interface depth')
         self._set_depth_action.triggered.connect(self._set_depth)
         self.addAction(self._set_depth_action)
+        
+        if interface_idx==len(d.interfaces)-1:
+            self._append_layer_action = QAction('Append Layer ...', self)
+            self._append_layer_action.setStatusTip('Append lyaer to the end')
+            self._append_layer_action.triggered.connect(self._append_layer)
+            self.addAction(self._append_layer_action)
         
         self._remove_interface_action = QAction('Remove Interface', self)
         self._remove_interface_action.setStatusTip('Remove this interface')
@@ -91,6 +100,10 @@ class LayersInterfaceMenu(QMenu):
     def _set_depth(self):
         """Change interface type"""
         self.layers_panel.set_interface_depth(self.interface_idx)
+        
+    def _append_layer(self):
+        """Append layer to the end"""
+        self.layers_panel.append_layer()    
         
     def _remove_interface(self):
         """Remove interface and merge layers"""
