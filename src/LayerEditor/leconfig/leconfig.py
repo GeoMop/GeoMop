@@ -9,6 +9,7 @@ import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
+import copy
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -74,6 +75,11 @@ class LEConfig:
     node_set_idx = None
     """Current editing node set, if is node, new node set is edited"""
 
+    @classmethod
+    def insert_diagrams_copies(cls, idx, count):
+        """Init class wit static method"""
+        for i in range(0, count):
+            cls.diagrams.insert(idx+1, copy.deepcopy(cls.diagrams[idx]))        
     
     @classmethod
     def init(cls, main_window):

@@ -4,7 +4,7 @@ Dialogs for settings text name property or depth
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from .validator_helpers import ValidatorHelpers
+from .layers_helpers import LayersHelpers
 
 class SetNameDlg(QtWidgets.QDialog):
 
@@ -73,5 +73,5 @@ class SetDepthDlg(QtWidgets.QDialog):
         Accepts the form if depth data fields are valid.
         :return: None
         """
-        if ValidatorHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.depth, self.validator, self):
              super(SetDepthDlg, self).accept()

@@ -21,6 +21,13 @@ class FractureInterface(IntEnum):
     top = 2
     own = 3
     
+class LayerSplitType(IntEnum):
+    """Fracture interface type"""
+    interpolated = 0
+    editable = 1
+    split_interpolated = 2
+    split_editable = 3
+    
 class ClickedControlType(IntEnum):
     """Type of control that is clicked"""
     none = 0
@@ -180,7 +187,58 @@ class Layers():
     def append_layer(self, name, depth):
         """Append layer to the end"""
         self.add_layer(name)
-        self.add_interface(depth, False)        
+        self.add_interface(depth, False)     
+        
+    def get_last_diagram_id(self, idx):
+        """Return first diagram index in and before interface  with set idx"""
+        for i in range(idx, -1, -1):
+            if self.interfaces[i].diagram_id2 is not None:
+                return self.interfaces[i].diagram_id2
+            if self.interfaces[i].fracture is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id is not None:
+                return self.interfaces[i].fracture.fracture_diagram_id
+            if self.interfaces[i].diagram_id1 is not None:
+                return self.interfaces[i].diagram_id1            
+        return None
+      
+    def _move_diagram_idx(self, idx, incr):
+        """Increase diagram indexes increment in interfaces bigger than idx"""
+        for i in range(idx+1, len( self.interfaces)):
+            if self.interfaces[i].diagram_id1 is not None:
+                self.interfaces[idx].diagram_id1 += incr
+            if self.interfaces[i].diagram_id2 is not None:
+                self.interfaces[idx].diagram_id2 += incr
+            if self.interfaces[i].fracture is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id is not None:
+                self.interfaces[i].fracture.fracture_diagram_id += incr
+        
+    def split_layer(self, idx, name, depth, split_type):
+        """Split set layer by interface with split_type type in set depth
+        return how many copies of idx diagram  should be added insert
+        after idx diagram"""
+        new_layer = Layer(name)
+        new_diagrams = 0
+        if split_type is LayerSplitType.interpolated:
+            new_interface = Interface(depth, False)
+        elif split_type is LayerSplitType.editable:
+            last_id = self.get_last_diagram_id(idx)
+            new_interface = Interface(depth, False, None, last_id+1)
+            new_diagrams = 1
+        elif split_type is LayerSplitType.split_interpolated:
+            last_id = self.get_last_diagram_id(idx)
+            new_interface = Interface(depth, True, None, None, last_id+1)
+            new_diagrams = 1
+        elif split_type is LayerSplitType.split_editable:
+            last_id = self.get_last_diagram_id(idx)
+            new_interface = Interface(depth, True, None, last_id+1, last_id+2)
+            new_diagrams = 2
+        else:
+            raise Exception("Invalid split operation in interface {0}".format(str(idx)))
+        if new_diagrams>0:
+            self._move_diagram_idx(idx, new_diagrams)
+        self.layers.insert(idx+1, new_layer)
+        self.interfaces.insert(idx+1, new_interface)        
+        return new_diagrams
         
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 
@@ -267,7 +325,7 @@ class Layers():
     def _compute_controls(self, y):
         view_rect = QtCore.QRectF(self.x_view, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
         edit_rect = QtCore.QRectF(self.x_edit, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
-        return view_rect, edit_rect             
+        return view_rect, edit_rect   
         
     def compute_composition(self):
         """Compute coordinates for layers elements"""
@@ -306,9 +364,9 @@ class Layers():
                 if self.interfaces[i].fracture is None:   
                     #without fracture
                     self.interfaces[i].y_top = y_pos
-                    self.interfaces[i].y = y_pos+self.__dy_row__                    
-                    self.interfaces[i].y_bottom = 2*self.__dy_row__
-                    y_pos += 3*self.__dy_row__                    
+                    self.interfaces[i].y = y_pos+2*self.__dy_row__                    
+                    self.interfaces[i].y_bottom = y_pos+4*self.__dy_row__
+                    y_pos += 5*self.__dy_row__                    
                 else:
                     width = fm.width(self.interfaces[i].fracture.name)
                     if  width>self.x_label_width:
@@ -342,10 +400,10 @@ class Layers():
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None                       
                     y_pos += fontHeight+4*self.__dy_row
-                    if self.interfaces[i].diagram_id1 is not None:
-                        (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y_top)
-                    if self.interfaces[i].diagram_id2 is not None:
-                        (self.interfaces[i].view_rect2, self.interfaces[i].edit_rect2) = self._compute_controls(self.interfaces[i].y_bottom)
+                if self.interfaces[i].diagram_id1 is not None:
+                    (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y_top)
+                if self.interfaces[i].diagram_id2 is not None:
+                    (self.interfaces[i].view_rect2, self.interfaces[i].edit_rect2) = self._compute_controls(self.interfaces[i].y_bottom)
             # 
             #layers
             if i<len(self.layers):

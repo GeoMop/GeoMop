@@ -5,7 +5,7 @@ from leconfig import cfg
 import PyQt5.QtCore as QtCore
 from ui.data import FractureInterface, ClickedControlType
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu
-from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg
+from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg
 
 class Layers(QtWidgets.QWidget):
     """
@@ -115,7 +115,7 @@ class Layers(QtWidgets.QWidget):
                 painter.drawLine(d.x_ilabel-2*d.__dx__, d.interfaces[i].y_top, d.x_ilabel-d.__dx__, d.interfaces[i].y)
                 if d.interfaces[i].fracture is not None and d.interfaces[i].fracture.type != FractureInterface.own :
                     self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel+d.__dx__, d.__dx__,d.interfaces[i])
-                painter.drawLine(d.x_ilabel-d.__dx__, d.interfaces[i].y, d.x_ilabel-d.__dx__, d.interfaces[i].y_bottom)
+                painter.drawLine(d.x_ilabel-d.__dx__, d.interfaces[i].y, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_bottom)
                 if d.interfaces[i].fracture is None or d.interfaces[i].fracture.type != FractureInterface.bottom :
                     painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y_bottom, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_bottom)
                 else:    
@@ -139,11 +139,11 @@ class Layers(QtWidgets.QWidget):
                 painter.drawText(d.layers[i].rect, d.layers[i].name)
                 if i+1<len(d.interfaces):
                     top = d.interfaces[i].y
-                    bottom = d.interfaces[i-1].y
+                    bottom = d.interfaces[i+1].y
                     if d.interfaces[i].y_bottom is not None:
                         top = d.interfaces[i].y_bottom
                     if d.interfaces[i+1].y_top is not None:
-                        bottom = d.interfaces[i-1].y_top
+                        bottom = d.interfaces[i+1].y_top
                     painter.drawLine(d.x_label-2*d.__dx__, top, d.x_label-2*d.__dx__, bottom)
             
     # data functions
@@ -191,7 +191,22 @@ class Layers(QtWidgets.QWidget):
     
     def add_interface(self, i):
         """Split layer by new interface"""
-        pass
+        min = cfg.layers.interfaces[i].depth
+        max = None
+        if i<len(cfg.layers.interfaces)-1:
+            max = cfg.layers.interfaces[i+1].depth
+            
+        dlg = SplitLayerDlg(min, max, cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.layer_name.text()
+            depth = dlg.depth.text()
+            split_type = dlg.split_type.currentData()
+            new_diagrams_count = cfg.layers.split_layer(i, name, depth, split_type)
+            if new_diagrams_count>0:
+                cfg. insert_diagrams_copies(cfg.layers.get_last_diagram_id(i), new_diagrams_count)
+            cfg.layers.compute_composition()
+            self.update()
 
     def rename_layer(self, i):
         """Rename layer"""
