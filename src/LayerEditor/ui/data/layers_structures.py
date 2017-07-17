@@ -2,12 +2,32 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from enum import IntEnum
 
+class DupDiagramData():
+    """Data for duplicating didram description"""
+    def __init__(self, insert_id, copy=True, dup1_id=None, dup2_id=None):
+        self.insert_id = insert_id
+        """Where will be diagram inserted"""
+        self.copy = copy
+        """make only copy"""
+        self.dup1_id = dup1_id
+        """First diagram id for duplicating"""
+        self.dup1_id = dup1_id
+        """Second diagram id for duplicating"""
+        self.count = 1
+        """Amout of new diagrams"""
+
 class Layer():
     """One layer in panel"""
     
-    def __init__(self, name):
+    def __init__(self, name, shadow=False):
+        self.shadow = shadow
+        """Laier is shadow"""
         self.name = name
-        """Layer name"""
+        """Layer name, if name is """
+        self.shadow = shadow
+        """Laier is shadow"""
+        if shadow:
+            name = "shadow"
         self.rect = QtCore.QRectF(0, 0, 0, 0)
         """Clicable name area"""
         self.y = 0
@@ -25,9 +45,18 @@ class LayerSplitType(IntEnum):
     """Fracture interface type"""
     interpolated = 0
     editable = 1
-    split_interpolated = 2
-    split_editable = 3
+    split = 2
     
+class ChangeInterfaceActions(IntEnum):
+    """Interface possible actions"""
+    interpolated = 0
+    top_interpolated = 1
+    bottom_interpolated = 2
+    editable = 3
+    top_editable = 4
+    bottom_editable = 5
+    split = 6
+
 class ClickedControlType(IntEnum):
     """Type of control that is clicked"""
     none = 0
@@ -44,7 +73,7 @@ class ClickedControlType(IntEnum):
 class Fracture():
     """One fracture in panel"""
     
-    def __init__(self, name, type, fracture_diagram_id):
+    def __init__(self, name, type=FractureInterface.none, fracture_diagram_id=None):
         self.name = name
         """Fracture name"""
         self.type = type
@@ -121,13 +150,24 @@ class Interface():
         
     @property
     def str_depth(self):
+        """Retuen depth in string format"""
         return str(self.depth)
     
-    def set_depth(self, depth):    
+    def set_depth(self, depth): 
+        """Check and aave depth in right format"""
         try:
             self.depth = float(depth)            
         except:
             raise ValueError("Invalid depth type")
+            
+    def get_fracture_position(self):
+        """Return dictionry with string description of fracture possitions -> FractureInterface enum
+        if is only one possibility, return None"""
+        if not self.splited:
+            return None
+        return {"Top surface":FractureInterface.top, 
+            "Own surface":FractureInterface.own, 
+            "Bottom surface":FractureInterface.bottom}
 
 class Layers():
     """Layers data"""
@@ -187,58 +227,194 @@ class Layers():
     def append_layer(self, name, depth):
         """Append layer to the end"""
         self.add_layer(name)
-        self.add_interface(depth, False)     
+        self.add_interface(depth, False)    
+       
+    def add_fracture(self, idx, name, position, dup):
+        """add fracture to interface"""
+        if self.interfaces[idx].fracture is not None:
+            raise Exception("Interface {0} has already fracture.".format(str(idx)))
+        if position is None:
+            self.interfaces[idx].fracture = Fracture(name)
+        else:
+            if position is FractureInterface.own:
+                self.interfaces[idx].diagram_id2 += 1    
+                self._move_diagram_idx(idx, 1)                
+            self.interfaces[idx].fracture = Fracture(name, position, dup.insert_id)
         
-    def get_last_diagram_id(self, idx):
-        """Return first diagram index in and before interface  with set idx"""
+    def get_diagram_dup(self, idx):
+        """Return first idx for division and if is possible division make
+        """
+        id = None
+        id_pred = None
+        id2 = None
+        id_po = None
         for i in range(idx, -1, -1):
             if self.interfaces[i].diagram_id2 is not None:
-                return self.interfaces[i].diagram_id2
-            if self.interfaces[i].fracture is not None and \
-                self.interfaces[i].fracture.fracture_diagram_id is not None:
-                return self.interfaces[i].fracture.fracture_diagram_id
+                if id is None:
+                    id = self.interfaces[i].diagram_id2
+                elif id_pred is None:
+                    id_pred = self.interfaces[i].diagram_id2
+            if self.interfaces[i].splited:
+                break
             if self.interfaces[i].diagram_id1 is not None:
-                return self.interfaces[i].diagram_id1            
-        return None
+                if id is None:
+                    id = self.interfaces[i].diagram_id1
+                elif id_pred is None:
+                    id_pred = self.interfaces[i].diagram_id1
+                else:
+                    break
+        for i in range(idx, len(self.interfaces)):
+            if self.interfaces[i].diagram_id1 is not None:
+                if id2 is None:
+                    id2 = self.interfaces[i].diagram_id1
+                elif id_po is None:
+                    id_po = self.interfaces[i].diagram_id1
+                else:
+                    break
+            if self.interfaces[i].splited:
+                break  
+        if id is not None and id2 is not None:
+            return DupDiagramData(id+1, False, id, id2)
+        if id2 is None and id is not None and id_pred is None:
+            return DupDiagramData(id+1)              
+        if id2 is not None and id is None and id_po is None:
+            return DupDiagramData(id2)              
+        if id2 is None and id is not None and id_pred is not None:
+            return DupDiagramData(id+1, False, id_pred, id)              
+        if id2 is not None and id is None and id_po is not None:
+            return DupDiagramData(id2, False, id2, id_po)
+        raise Exception("Block with interface {0} has not diagram.".format(str(idx)))
       
     def _move_diagram_idx(self, idx, incr):
         """Increase diagram indexes increment in interfaces bigger than idx"""
         for i in range(idx+1, len( self.interfaces)):
             if self.interfaces[i].diagram_id1 is not None:
-                self.interfaces[idx].diagram_id1 += incr
+                self.interfaces[i].diagram_id1 += incr
             if self.interfaces[i].diagram_id2 is not None:
-                self.interfaces[idx].diagram_id2 += incr
+                self.interfaces[i].diagram_id2 += incr
             if self.interfaces[i].fracture is not None and \
                 self.interfaces[i].fracture.fracture_diagram_id is not None:
                 self.interfaces[i].fracture.fracture_diagram_id += incr
+                
+    def _count_of_editable(self, idx):
+        """Return count of editable surfaces in block"""
+        count = 0
+        i = idx
+        while i<len(self.interfaces):
+            if self.interfaces[idx].diagram_id1 is not None:
+                    count += 1
+            if self.interfaces[idx].splited:                
+                break
+            i += 1
+        i = idx
+        while i>=0:
+            if self.interfaces[idx].splited:
+                if self.interfaces[idx].diagram_id2 is not None:
+                    count += 1
+                break                
+            if self.interfaces[idx].diagram_id1 is not None:
+                count += 1            
+            i -= 1
+        return count
+                
+    def get_change_interface_actions(self, idx):
+        """Get list of interface possible actions"""
+        ret = []
+        count = self._count_of_editable(idx)
+        if self.interfaces[idx].splited:
+            count2 = self._count_of_editable(idx+1)
+            if self.interfaces[idx].diagram_id1 is not None and count>1:
+                ret.append(ChangeInterfaceActions.top_interpolated)
+            if self.interfaces[idx].diagram_id1 is None:
+                ret.append(ChangeInterfaceActions.top_editable)           
+            if self.interfaces[idx].diagram_id2 is not None and count2>1:
+                ret.append(ChangeInterfaceActions.bottom_interpolated)
+            if self.interfaces[idx].diagram_id2 is None:
+                ret.append(ChangeInterfaceActions.bottom_editable)           
+        else:
+            if self.interfaces[idx].diagram_id1 is not None and count>1:
+                ret.append(ChangeInterfaceActions.interpolated)
+            if self.interfaces[idx].diagram_id1 is None:
+                ret.append(ChangeInterfaceActions.editable)
+            ret.append(ChangeInterfaceActions.split)
+        return ret
+                
+    def remove_fracture(self, idx):
+        """Remove fracture from idx interface. If fracture has surface,
+        return surface idx end move all surfaces idx else return None"""
+        ret = None
+        if self.interfaces[idx].fracture.type==FractureInterface.own:
+            ret = self.interfaces[idx].fracture.fracture_diagram_id
+            if self.interfaces[idx].diagram_id2 is not None:
+                self.interfaces[idx].diagram_id2 -= 1
+            self._move_diagram_idx(idx, -1)
+        self.interfaces[idx].fracture = None
+        return ret
         
-    def split_layer(self, idx, name, depth, split_type):
+    def change_to_interpolated(self, idx, type):
+        """Change interface type to interpolated"""
+        diagram = None
+        if type is ChangeInterfaceActions.interpolated:
+            diagram = self.interfaces[idx].diagram_id1
+            self.interfaces[idx].diagram_id1 = None
+            self._move_diagram_idx(idx, -1)
+        elif type is ChangeInterfaceActions.bottom_interpolated:
+            diagram = self.interfaces[idx].diagram_id1
+            self.interfaces[idx].diagram_id1 = None
+            if self.interfaces[idx].diagram_id2 is not None:
+                self.interfaces[idx].diagram_id2 -= 1
+            if self.interfaces[idx].fracture is not None and \
+                self.interfaces[idx].fracture.fracture_diagram_id is not None:
+                self.interfaces[idx].fracture.fracture_diagram_id -= 1                
+            self._move_diagram_idx(idx, -1)
+        elif type is ChangeInterfaceActions.top_interpolated:
+            diagram = self.interfaces[idx].diagram_id2
+            self.interfaces[idx].diagram_id2 = None
+            self._move_diagram_idx(idx, -1)
+        return diagram
+        
+    def change_to_editable(self, idx, type):
+        """Change interface type to editable"""    
+#        if type is ChangeInterfaceActions.editable:
+#            last_id = self.get_last_diagram_id(idx)
+#            self.interfaces[idx].diagram_id2 = last_id
+#            self._move_diagram_idx(idx, 1)
+#        elif type is ChangeInterfaceActions.bottom_editable:
+#            pass
+#        elif type is ChangeInterfaceActions.top_editable:
+#            pass
+#        elif type is ChangeInterfaceActions.split:
+        pass
+        
+    def split_interface(self, idx):
+        """Split interface with and return how many copies of idx diagram 
+        should be added insert after idx interface"""
+#        self.interfaces[idx].splitted = True
+#        if self.interfaces[idx].fracture is not None:
+#            self.interfaces[idx].fracture.type = FractureInterface.top
+#        last_id = self.get_last_diagram_id(idx)
+#        self.interfaces[idx].diagram_id2 = last_id
+#        self._move_diagram_idx(idx, 1)
+        return 1 
+        
+    def split_layer(self, idx, name, depth, split_type, dup):
         """Split set layer by interface with split_type type in set depth
         return how many copies of idx diagram  should be added insert
-        after idx diagram"""
+        after idx interface"""
         new_layer = Layer(name)
-        new_diagrams = 0
         if split_type is LayerSplitType.interpolated:
             new_interface = Interface(depth, False)
         elif split_type is LayerSplitType.editable:
-            last_id = self.get_last_diagram_id(idx)
-            new_interface = Interface(depth, False, None, last_id+1)
-            new_diagrams = 1
-        elif split_type is LayerSplitType.split_interpolated:
-            last_id = self.get_last_diagram_id(idx)
-            new_interface = Interface(depth, True, None, None, last_id+1)
-            new_diagrams = 1
-        elif split_type is LayerSplitType.split_editable:
-            last_id = self.get_last_diagram_id(idx)
-            new_interface = Interface(depth, True, None, last_id+1, last_id+2)
-            new_diagrams = 2
+            new_interface = Interface(depth, False, None, dup.insert_id)
+        elif split_type is LayerSplitType.split:
+            new_interface = Interface(depth, True, None, dup.insert_id, dup.insert_id+1)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
-        if new_diagrams>0:
-            self._move_diagram_idx(idx, new_diagrams)
+        if dup is not None:
+            self._move_diagram_idx(idx, dup.count)
         self.layers.insert(idx+1, new_layer)
         self.interfaces.insert(idx+1, new_interface)        
-        return new_diagrams
+        
         
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 
@@ -323,6 +499,7 @@ class Layers():
         return self.interfaces[idx].viewed1
         
     def _compute_controls(self, y):
+        """Compute view and edit controls possition"""
         view_rect = QtCore.QRectF(self.x_view, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
         edit_rect = QtCore.QRectF(self.x_edit, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
         return view_rect, edit_rect   
@@ -347,13 +524,13 @@ class Layers():
                     #without fracture
                     self.interfaces[i].y = y_pos                    
                 else:
-                    width = fm.width(self.interfaces[i].fracture.name)
-                    if  width>self.x_label_width:
-                        self.x_label_width = width
+                    width = fm.width(self.interfaces[i].fracture.name) 
+                    if  width+self.__dx__>self.x_label_width:
+                        self.x_label_width = width+self.__dx__
                     self.interfaces[i].y = (fontHeight+self.__dy_row__)/2+y_pos 
                     #fracture                   
                     self.interfaces[i].fracture.rect = QtCore.QRectF(
-                        self.x_label-self.__dx__/2, self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
+                        self.x_label, self.__dy_row__/2+y_pos, width, fontHeight) 
                     self.interfaces[i].fracture.view_rect = None
                     self.interfaces[i].fracture.edit_rect = None
                     y_pos += fontHeight+self.__dy_row__
@@ -369,15 +546,15 @@ class Layers():
                     y_pos += 5*self.__dy_row__                    
                 else:
                     width = fm.width(self.interfaces[i].fracture.name)
-                    if  width>self.x_label_width:
-                        self.x_label_width = width
+                    if  width+self.__dx__>self.x_label_width:
+                        self.x_label_width = width+self.__dx__
                     if self.interfaces[i].fracture.type==FractureInterface.top:
                         self.interfaces[i].y_top = (fontHeight+self.__dy_row__)/2+y_pos
-                        self.interfaces[i].y = fontHeight+ 2*self.__dy_row__+y_pos
+                        self.interfaces[i].y = fontHeight*3/4+self.__dy_row__*9/4+y_pos
                         self.interfaces[i].y_bottom = fontHeight+3*self.__dy_row__+y_pos
                         #fracture
                         self.interfaces[i].fracture.rect = QtCore.QRectF(
-                            self.x_label-self.__dx__/2, self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
+                            self.x_label, self.__dy_row__/2+y_pos, width, fontHeight) 
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None
                     elif self.interfaces[i].fracture.type==FractureInterface.own:
@@ -387,19 +564,19 @@ class Layers():
                         self.interfaces[i].y_bottom = fontHeight+3*self.__dy_row__+y_pos
                         #fracture
                         self.interfaces[i].fracture.rect = QtCore.QRectF(
-                            self.x_label-self.__dx__/2, 3*self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
+                            self.x_label, 3*self.__dy_row__/2+y_pos, width, fontHeight) 
                             
                         (self.interfaces[i].fracture.view_rect, self.interfaces[i].fracture.edit_rect) = self._compute_controls(y_mid)                        
                     else:
                         self.interfaces[i].y_top = y_pos
-                        self.interfaces[i].y = y_pos+self.__dy_row__                    
+                        self.interfaces[i].y = fontHeight/4+self.__dy_row__*5/4+y_pos
                         self.interfaces[i].y_bottom = (fontHeight+self.__dy_row__)/2+y_pos+2*self.__dy_row__ 
                         #fracture
                         self.interfaces[i].fracture.rect = QtCore.QRectF(
-                            self.x_label-self.__dx__/2, 5*self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight) 
+                            self.x_label, 5*self.__dy_row__/2+y_pos, width, fontHeight) 
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None                       
-                    y_pos += fontHeight+4*self.__dy_row
+                    y_pos += fontHeight+4*self.__dy_row__
                 if self.interfaces[i].diagram_id1 is not None:
                     (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y_top)
                 if self.interfaces[i].diagram_id2 is not None:
@@ -412,7 +589,7 @@ class Layers():
                     self.x_label_width = width
                 self.layers[i].y =  y_pos+self.__dy_row__
                 self.layers[i].rect = QtCore.QRectF(
-                    self.x_label-self.__dx__/2, self.__dy_row__/2+y_pos, width+self.__dx__, fontHeight)
+                    self.x_label, self.__dy_row__/2+y_pos, width, fontHeight)
                 y_pos += fontHeight+self.__dy_row__
             
             # interface label
@@ -422,7 +599,7 @@ class Layers():
                         self.x_ilabel_width = width
                 self.interfaces[i].y
                 self.interfaces[i].rect = QtCore.QRectF(
-                    self.x_ilabel-self.__dx__/2, self.interfaces[i].y - fontHeight/2, width+self.__dx__, fontHeight)
+                    self.x_ilabel, self.interfaces[i].y - fontHeight/2, width, fontHeight)
 
     def get_clickable_type(self, x, y):
         """Return control type of below point"""

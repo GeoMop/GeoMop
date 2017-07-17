@@ -3,9 +3,9 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
-from ui.data import FractureInterface, ClickedControlType
+from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu
-from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg
+from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
 class Layers(QtWidgets.QWidget):
     """
@@ -65,10 +65,15 @@ class Layers(QtWidgets.QWidget):
 
   #  def keyPressEvent(self, event):
 
-    def _paint_fracture(self, painter, y, x1, x2, dx, interface):
+    def _paint_fracture(self, painter, y, x1, x2, dx, interface, font_dist):
         """Paint layer with fracture name"""
         painter.drawLine(x1-2*dx, y, interface.fracture.rect.left()-dx, y)
-        painter.drawText(interface.fracture.rect.bottomLeft(), interface.fracture.name)
+        old_pen = painter.pen()
+        pen = QtGui.QPen(QtGui.QColor("#802020"))
+        painter.setPen(pen)
+        painter.drawText(interface.fracture.rect.left(), interface.fracture.rect.bottom()-font_dist, 
+            interface.fracture.name)
+        painter.setPen(old_pen)
         painter.drawLine(interface.fracture.rect.right()+dx, y, x2-2*dx, y)
         
     def _paint_checkbox(self, painter, rect, value):
@@ -106,20 +111,24 @@ class Layers(QtWidgets.QWidget):
                 if d.interfaces[i].fracture is None:
                     painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y, d.x_ilabel-2*d.__dx__, d.interfaces[i].y)
                 else:
-                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])               
+                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, 
+                        d.x_ilabel, d.__dx__,d.interfaces[i], d.y_font/4)               
             else:
                 if d.interfaces[i].fracture is None or d.interfaces[i].fracture.type != FractureInterface.top :
                     painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y_top, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_top)
                 else:    
-                    self._paint_fracture(painter, d.interfaces[i].y_top, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])
+                    self._paint_fracture(painter, d.interfaces[i].y_top, d.x_label, 
+                        d.x_ilabel, d.__dx__,d.interfaces[i], d.y_font/4)
                 painter.drawLine(d.x_ilabel-2*d.__dx__, d.interfaces[i].y_top, d.x_ilabel-d.__dx__, d.interfaces[i].y)
-                if d.interfaces[i].fracture is not None and d.interfaces[i].fracture.type != FractureInterface.own :
-                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, d.x_ilabel+d.__dx__, d.__dx__,d.interfaces[i])
+                if d.interfaces[i].fracture is not None and d.interfaces[i].fracture.type == FractureInterface.own :
+                    self._paint_fracture(painter, d.interfaces[i].y, d.x_label, 
+                        d.x_ilabel+d.__dx__, d.__dx__,d.interfaces[i], d.y_font/4)
                 painter.drawLine(d.x_ilabel-d.__dx__, d.interfaces[i].y, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_bottom)
                 if d.interfaces[i].fracture is None or d.interfaces[i].fracture.type != FractureInterface.bottom :
                     painter.drawLine(d.x_label-2*d.__dx__, d.interfaces[i].y_bottom, d.x_ilabel-2*d.__dx__, d.interfaces[i].y_bottom)
                 else:    
-                    self._paint_fracture(painter, d.interfaces[i].y_bottom, d.x_label, d.x_ilabel, d.__dx__,d.interfaces[i])                            
+                    self._paint_fracture(painter, d.interfaces[i].y_bottom, d.x_label,
+                        d.x_ilabel, d.__dx__,d.interfaces[i], d.y_font/4)                            
             if d.interfaces[i].view_rect1 is not None:
                 self._paint_checkbox( painter, d.interfaces[i].view_rect1, d.interfaces[i].viewed1)
             if d.interfaces[i].view_rect2 is not None:
@@ -132,11 +141,14 @@ class Layers(QtWidgets.QWidget):
                 if d.interfaces[i].fracture.view_rect is not None:
                     self._paint_checkbox(painter, d.interfaces[i].fracture.view_rect, d.interfaces[i].fracture.viewed)
                 if d.interfaces[i].fracture.edit_rect is not None:
-                    self._paint_radiobutton(painter, d.interfaces[i].fracture.edit_rect, d.interfaces[i].fracture.editedd.x_label-2*d.__dx__)                
-            painter.drawText(d.interfaces[i].rect.bottomLeft(), d.interfaces[i].str_depth)        
+                    self._paint_radiobutton(painter, d.interfaces[i].fracture.edit_rect, 
+                        d.interfaces[i].fracture.edited, d.x_label-2*d.__dx__)                
+            painter.drawText(d.interfaces[i].rect.left(), d.interfaces[i].rect.bottom()-d.y_font/4, 
+                d.interfaces[i].str_depth)        
             #layers
             if i<len(d.layers):
-                painter.drawText(d.layers[i].rect, d.layers[i].name)
+                painter.drawText(d.layers[i].rect.left(), d.layers[i].rect.bottom()-d.y_font/4
+                    , d.layers[i].name)
                 if i+1<len(d.interfaces):
                     top = d.interfaces[i].y
                     bottom = d.interfaces[i+1].y
@@ -202,9 +214,15 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             split_type = dlg.split_type.currentData()
-            new_diagrams_count = cfg.layers.split_layer(i, name, depth, split_type)
-            if new_diagrams_count>0:
-                cfg. insert_diagrams_copies(cfg.layers.get_last_diagram_id(i), new_diagrams_count)
+            dup = None
+            
+            if split_type is LayerSplitType.editable or \
+                split_type is LayerSplitType.split:
+                dup = cfg.layers.get_diagram_dup(i)
+                if split_type is LayerSplitType.split:
+                    dup.count = 2
+                cfg.insert_diagrams_copies(dup)
+            cfg.layers.split_layer(i, name, depth, split_type, dup)       
             cfg.layers.compute_composition()
             self.update()
 
@@ -224,11 +242,49 @@ class Layers(QtWidgets.QWidget):
         
     def add_fracture(self, i):
         """Add fracture to interface"""
-        pass
+        dlg = AddFractureDlg(cfg.layers.interfaces[i].get_fracture_position(), cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.fracture_name.text()
+            position = None
+            dup = None
+            if dlg.fracture_position is not None:
+                position = dlg.fracture_position.currentData()
+            if position is FractureInterface.own:
+                dup = cfg.layers.get_diagram_dup(i)
+                cfg.insert_diagrams_copies(dup)
+            cfg.layers.add_fracture(i, name, position, dup)
+            cfg.layers.compute_composition()
+            self.update()    
         
-    def change_interface_type(self, i):
+    def change_interface_type(self, i, to_type):
         """Change interface type"""
-        pass
+        if type is ChangeInterfaceActions.interpolated or \
+            type is ChangeInterfaceActions.bottom_interpolated or \
+            type is ChangeInterfaceActions.top_interpolated:
+            dlg = ReportOperationsDlg("Change to interpolated", 
+                ["One surface will be removed from structure and save as removed"], 
+                cfg.main_window)
+            ret = dlg.exec_()
+            if ret!=QtWidgets.QDialog.Ok:                
+                return
+        if type is ChangeInterfaceActions.split:
+            new_diagrams_count = cfg.layers.split_interface(i)
+            if new_diagrams_count>0:
+                depth = cfg.layers.interfaces[i].depth
+                cfg. insert_diagrams_copies(cfg.layers.get_last_diagram_id(i), new_diagrams_count, depth)
+        elif type is ChangeInterfaceActions.interpolated or \
+            type is ChangeInterfaceActions.bottom_interpolated or \
+            type is ChangeInterfaceActions.top_interpolated:
+            diagram = cfg.layers.change_to_interpolated(i,type)
+            if diagram is not None:
+                cfg.remove_and_save_surface(diagram)
+        else: 
+            diagram_id = cfg.layers.change_to_editable(i,type)
+            depth = cfg.layers.interfaces[i].depth
+            cfg. insert_diagrams_copies(diagram_id, 1, depth)
+        cfg.layers.compute_composition()
+        self.update()
         
     def set_interface_depth(self, i):
         """Set interface depth"""
@@ -251,9 +307,32 @@ class Layers(QtWidgets.QWidget):
         """Remove interface"""
         pass
         
+    def remove_block(self, i):
+        """Remove all block"""
+        pass
+
+    def save_surface(self, i, type):
+        """Remove all block"""
+        pass
+
+    def load_surface(self, i, type):
+        """Remove all block"""
+        pass
+        
     def remove_fracture(self, i):
         """Remove fracture from interface"""
-        pass
+        if cfg.layers.interfaces[i].fracture.type==FractureInterface.own:
+            dlg = ReportOperationsDlg("Remove Fracture", 
+                ["One surface will be removed from structure and save as removed"], 
+                cfg.main_window)
+            ret = dlg.exec_()
+            if ret!=QtWidgets.QDialog.Ok:                
+                return            
+        diagram = cfg.layers.remove_fracture(i)
+        if diagram is not None:
+            cfg.remove_and_save_surface(diagram)
+        cfg.layers.compute_composition()
+        self.update()     
         
     def rename_fracture(self, i):
         """Rename fracture"""

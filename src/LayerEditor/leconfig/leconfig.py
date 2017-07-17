@@ -10,6 +10,7 @@ from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
 import copy
+from ui.dialogs.surface import Surface
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -76,10 +77,19 @@ class LEConfig:
     """Current editing node set, if is node, new node set is edited"""
 
     @classmethod
-    def insert_diagrams_copies(cls, idx, count):
-        """Init class wit static method"""
-        for i in range(0, count):
-            cls.diagrams.insert(idx+1, copy.deepcopy(cls.diagrams[idx]))        
+    def insert_diagrams_copies(cls, dup):
+        """Insert diagrams after set diagram"""
+        if dup.copy:
+            cls.diagrams.insert(dup.insert_id, copy.deepcopy(cls.diagrams[dup.insert_id]))
+            return
+        for i in range(0, dup.count):
+            cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))        
+        
+    @classmethod
+    def make_middle_diagram(cls, dup):
+        """return interpolated new diagram in set depth"""
+        # TODO: instead copy compute middle diagram
+        return copy.deepcopy(cls.diagrams[dup.dup1_id])
     
     @classmethod
     def init(cls, main_window):
@@ -91,6 +101,12 @@ class LEConfig:
     def save(cls):
         """save persistent data"""
         cls.config.save()
+    
+    @classmethod
+    def remove_and_save_surface(cls, idx): 
+        """Remove diagram from list and save it in file""" 
+        Surface.save_removed_surface(cls.diagrams[idx])
+        del cls.diagrams[idx]
         
     @classmethod
     def open_shape_file(cls, file):

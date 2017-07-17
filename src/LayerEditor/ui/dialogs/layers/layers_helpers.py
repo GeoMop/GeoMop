@@ -33,7 +33,6 @@ class LayersHelpers():
         combo = QtWidgets.QComboBox()
         combo.addItem("interpolated", LayerSplitType.interpolated)
         combo.addItem("editable", LayerSplitType.editable)
-        combo.addItem("split interpolated", LayerSplitType.split_interpolated)
-        combo.addItem("split editable", LayerSplitType.split_editable)
+        combo.addItem("split", LayerSplitType.split)
         combo.setCurrentIndex(0)
         return combo
