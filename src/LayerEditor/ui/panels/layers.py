@@ -257,7 +257,7 @@ class Layers(QtWidgets.QWidget):
             cfg.layers.compute_composition()
             self.update()    
         
-    def change_interface_type(self, i, to_type):
+    def change_interface_type(self, i, type):
         """Change interface type"""
         if type is ChangeInterfaceActions.interpolated or \
             type is ChangeInterfaceActions.bottom_interpolated or \
@@ -266,7 +266,7 @@ class Layers(QtWidgets.QWidget):
                 ["One surface will be removed from structure and save as removed"], 
                 cfg.main_window)
             ret = dlg.exec_()
-            if ret!=QtWidgets.QDialog.Ok:                
+            if ret!=QtWidgets.QDialog.Accepted:                
                 return
         if type is ChangeInterfaceActions.split:
             new_diagrams_count = cfg.layers.split_interface(i)
@@ -279,10 +279,14 @@ class Layers(QtWidgets.QWidget):
             diagram = cfg.layers.change_to_interpolated(i,type)
             if diagram is not None:
                 cfg.remove_and_save_surface(diagram)
+        elif ChangeInterfaceActions.top_editable:
+            dup = cfg.layers.get_diagram_dup(i-1)
+            cfg.insert_diagrams_copies(dup)
+            cfg.layers.change_to_editable(i,type, dup)
         else: 
-            diagram_id = cfg.layers.change_to_editable(i,type)
-            depth = cfg.layers.interfaces[i].depth
-            cfg. insert_diagrams_copies(diagram_id, 1, depth)
+            dup = cfg.layers.get_diagram_dup(i)
+            cfg.insert_diagrams_copies(dup)
+            cfg.layers.change_to_editable(i,type, dup)            
         cfg.layers.compute_composition()
         self.update()
         

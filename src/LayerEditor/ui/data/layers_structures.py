@@ -15,6 +15,8 @@ class DupDiagramData():
         """Second diagram id for duplicating"""
         self.count = 1
         """Amout of new diagrams"""
+        self.idx = None
+        """Interface where is created new surface"""
 
 class Layer():
     """One layer in panel"""
@@ -239,11 +241,12 @@ class Layers():
             if position is FractureInterface.own:
                 self.interfaces[idx].diagram_id2 += 1    
                 self._move_diagram_idx(idx, 1)                
-            self.interfaces[idx].fracture = Fracture(name, position, dup.insert_id)
+            self.interfaces[idx].fracture = Fracture(name, position, dup.insert_id-1)
         
     def get_diagram_dup(self, idx):
         """Return first idx for division and if is possible division make
         """
+        dup = None
         id = None
         id_pred = None
         id2 = None
@@ -263,7 +266,7 @@ class Layers():
                     id_pred = self.interfaces[i].diagram_id1
                 else:
                     break
-        for i in range(idx, len(self.interfaces)):
+        for i in range(idx+1, len(self.interfaces)):
             if self.interfaces[i].diagram_id1 is not None:
                 if id2 is None:
                     id2 = self.interfaces[i].diagram_id1
@@ -274,15 +277,18 @@ class Layers():
             if self.interfaces[i].splited:
                 break  
         if id is not None and id2 is not None:
-            return DupDiagramData(id+1, False, id, id2)
-        if id2 is None and id is not None and id_pred is None:
-            return DupDiagramData(id+1)              
-        if id2 is not None and id is None and id_po is None:
-            return DupDiagramData(id2)              
-        if id2 is None and id is not None and id_pred is not None:
-            return DupDiagramData(id+1, False, id_pred, id)              
-        if id2 is not None and id is None and id_po is not None:
-            return DupDiagramData(id2, False, id2, id_po)
+            dup = DupDiagramData(id+1, False, id, id2)
+        elif id2 is None and id is not None and id_pred is None:
+            dup = DupDiagramData(id+1)              
+        elif id2 is not None and id is None and id_po is None:
+            dup = DupDiagramData(id2)              
+        elif id2 is None and id is not None and id_pred is not None:
+            dup =  DupDiagramData(id+1, False, id_pred, id)              
+        elif id2 is not None and id is None and id_po is not None:
+            dup =  DupDiagramData(id2, False, id2, id_po)
+        if dup is not None:
+            dup.idx = idx
+            return dup
         raise Exception("Block with interface {0} has not diagram.".format(str(idx)))
       
     def _move_diagram_idx(self, idx, incr):
@@ -336,7 +342,8 @@ class Layers():
                 ret.append(ChangeInterfaceActions.interpolated)
             if self.interfaces[idx].diagram_id1 is None:
                 ret.append(ChangeInterfaceActions.editable)
-            ret.append(ChangeInterfaceActions.split)
+            if idx>0 and idx<len(self.interfaces)-1:
+                ret.append(ChangeInterfaceActions.split)
         return ret
                 
     def remove_fracture(self, idx):
@@ -373,18 +380,18 @@ class Layers():
             self._move_diagram_idx(idx, -1)
         return diagram
         
-    def change_to_editable(self, idx, type):
+    def change_to_editable(self, idx, type, dup):
         """Change interface type to editable"""    
-#        if type is ChangeInterfaceActions.editable:
-#            last_id = self.get_last_diagram_id(idx)
-#            self.interfaces[idx].diagram_id2 = last_id
-#            self._move_diagram_idx(idx, 1)
-#        elif type is ChangeInterfaceActions.bottom_editable:
-#            pass
-#        elif type is ChangeInterfaceActions.top_editable:
-#            pass
-#        elif type is ChangeInterfaceActions.split:
-        pass
+        if type is ChangeInterfaceActions.editable:
+            self.interfaces[idx].diagram_id1 = dup.insert_id
+            self._move_diagram_idx(idx, 1)
+        elif type is ChangeInterfaceActions.bottom_editable:
+            self.interfaces[idx].diagram_id2 = dup.insert_id
+            self._move_diagram_idx(idx, 1)
+        elif type is ChangeInterfaceActions.top_editable:
+            self.interfaces[idx].diagram_id1 = dup.insert_id
+            self._move_diagram_idx(idx, 1)
+ 
         
     def split_interface(self, idx):
         """Split interface with and return how many copies of idx diagram 
@@ -407,7 +414,7 @@ class Layers():
         elif split_type is LayerSplitType.editable:
             new_interface = Interface(depth, False, None, dup.insert_id)
         elif split_type is LayerSplitType.split:
-            new_interface = Interface(depth, True, None, dup.insert_id, dup.insert_id+1)
+            new_interface = Interface(depth, True, None, dup.insert_id, dup.insert_id)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
         if dup is not None:

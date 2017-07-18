@@ -79,11 +79,11 @@ class LEConfig:
     @classmethod
     def insert_diagrams_copies(cls, dup):
         """Insert diagrams after set diagram"""
-        if dup.copy:
-            cls.diagrams.insert(dup.insert_id, copy.deepcopy(cls.diagrams[dup.insert_id]))
-            return
         for i in range(0, dup.count):
-            cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))        
+            if dup.copy:
+                cls.diagrams.insert(dup.insert_id, copy.deepcopy(cls.diagrams[dup.insert_id-1]))
+            else:
+                cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))        
         
     @classmethod
     def make_middle_diagram(cls, dup):
