@@ -10,7 +10,6 @@ from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
 import copy
-from ui.dialogs.surface import Surface
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -103,9 +102,8 @@ class LEConfig:
         cls.config.save()
     
     @classmethod
-    def remove_and_save_surface(cls, idx): 
-        """Remove diagram from list and save it in file""" 
-        Surface.save_removed_surface(cls.diagrams[idx])
+    def remove_and_save_slice(cls, idx): 
+        """Remove diagram from list and save it in file"""         
         del cls.diagrams[idx]
         
     @classmethod

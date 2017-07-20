@@ -147,8 +147,16 @@ class Layers(QtWidgets.QWidget):
                 d.interfaces[i].str_depth)        
             #layers
             if i<len(d.layers):
-                painter.drawText(d.layers[i].rect.left(), d.layers[i].rect.bottom()-d.y_font/4
-                    , d.layers[i].name)
+                if d.layers[i].shadow:
+                    old_pen = painter.pen()
+                    pen = QtGui.QPen(QtGui.QColor("#808080"))
+                    painter.setPen(pen)
+                    painter.drawText(d.layers[i].rect.left(), d.layers[i].rect.bottom()-d.y_font/4
+                        , "shadow")
+                    painter.setPen(old_pen)
+                else:
+                    painter.drawText(d.layers[i].rect.left(), d.layers[i].rect.bottom()-d.y_font/4
+                        , d.layers[i].name)
                 if i+1<len(d.interfaces):
                     top = d.interfaces[i].y
                     bottom = d.interfaces[i+1].y
@@ -168,6 +176,17 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.append_layer(name, depth)
+            cfg.layers.compute_composition()
+            self.update()
+
+    def prepend_layer(self):
+        """Prepend layer to the start"""
+        dlg = AppendLayerDlg(cfg.layers.interfaces[0].depth, cfg.main_window, True)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.layer_name.text()
+            depth = dlg.depth.text()
+            cfg.layers.prepend_layer(name, depth)
             cfg.layers.compute_composition()
             self.update()
     
@@ -238,8 +257,64 @@ class Layers(QtWidgets.QWidget):
 
     def remove_layer(self, i):
         """Remove layer and add shadow block instead"""
-        pass
-        
+        if not cfg.layers.is_layer_removable(i):
+            return
+        removed_res = cfg.layers.remove_layer_changes(i)
+        if removed_res[0]+removed_res[1]+removed_res[2]>0:
+            messages = []
+            if removed_res[0]>0:
+                if removed_res[0]==1:
+                    messages.append("One slice will be removed from structure")
+                else:
+                    messages.append("Two slices will be removed from structure")
+            if removed_res[2]>0:
+                if removed_res[2]==1:
+                    messages.append("One fracture will be removed from structure")
+                else:
+                    messages.append("Two fractures will be removed from structure")
+            if removed_res[1]>0:
+                messages.append("One new interpolated slice will be added to structure") 
+            dlg = ReportOperationsDlg("Remove Layer",messages,cfg.main_window) 
+            ret = dlg.exec_()
+            if ret!=QtWidgets.QMessageBox.Ok:                
+                return 
+        dup=None
+        if removed_res[1]==1:
+            dup = cfg.layers.get_diagram_dup(i-1)
+        diagrams = cfg.layers.remove_layer(i, removed_res, dup)
+        for diagram in diagrams:
+            cfg.remove_and_save_slice(diagram)            
+        cfg.layers.compute_composition()
+        self.update()    
+                
+    def remove_block(self, i):
+        """Remove all block"""
+        if not cfg.layers.is_block_removable(i):
+            return
+        removed_res = cfg.layers.remove_block_changes(i)
+        (first_idx, first_slice_id, layers, fractures, slices) = removed_res
+        if layers+fractures+slices:
+            messages = []
+            if slices>0:
+                if slices==1:
+                    messages.append("One slice will be removed from structure")
+                else:
+                    messages.append("{0} slices will be removed from structure".format(str(slices)))
+            if fractures>0:
+                if fractures==1:
+                    messages.append("One fracture will be removed from structure")
+                else:
+                    messages.append("{0} fractures will be removed from structure".format(str(fractures)))
+            dlg = ReportOperationsDlg("Remove Block",messages,cfg.main_window) 
+            ret = dlg.exec_()
+            if ret!=QtWidgets.QMessageBox.Ok:                
+                return 
+        diagrams = cfg.layers.remove_block(i, removed_res)
+        for diagram in diagrams:
+            cfg.remove_and_save_slice(diagram)            
+        cfg.layers.compute_composition()
+        self.update()
+     
     def add_fracture(self, i):
         """Add fracture to interface"""
         dlg = AddFractureDlg(cfg.layers.interfaces[i].get_fracture_position(), cfg.main_window)
@@ -255,7 +330,7 @@ class Layers(QtWidgets.QWidget):
                 cfg.insert_diagrams_copies(dup)
             cfg.layers.add_fracture(i, name, position, dup)
             cfg.layers.compute_composition()
-            self.update()    
+            self.update() 
         
     def change_interface_type(self, i, type):
         """Change interface type"""
@@ -263,22 +338,21 @@ class Layers(QtWidgets.QWidget):
             type is ChangeInterfaceActions.bottom_interpolated or \
             type is ChangeInterfaceActions.top_interpolated:
             dlg = ReportOperationsDlg("Change to interpolated", 
-                ["One surface will be removed from structure and save as removed"], 
+                ["One slice will be removed from structure"], 
                 cfg.main_window)
             ret = dlg.exec_()
-            if ret!=QtWidgets.QDialog.Accepted:                
+            if ret!=QtWidgets.QMessageBox.Ok:                
                 return
         if type is ChangeInterfaceActions.split:
-            new_diagrams_count = cfg.layers.split_interface(i)
-            if new_diagrams_count>0:
-                depth = cfg.layers.interfaces[i].depth
-                cfg. insert_diagrams_copies(cfg.layers.get_last_diagram_id(i), new_diagrams_count, depth)
+            dup = cfg.layers.get_diagram_dup(i)
+            cfg.insert_diagrams_copies(dup)
+            cfg.layers.split_interface(i, dup)
         elif type is ChangeInterfaceActions.interpolated or \
             type is ChangeInterfaceActions.bottom_interpolated or \
             type is ChangeInterfaceActions.top_interpolated:
             diagram = cfg.layers.change_to_interpolated(i,type)
             if diagram is not None:
-                cfg.remove_and_save_surface(diagram)
+                cfg.remove_and_save_slice(diagram)
         elif ChangeInterfaceActions.top_editable:
             dup = cfg.layers.get_diagram_dup(i-1)
             cfg.insert_diagrams_copies(dup)
@@ -308,33 +382,38 @@ class Layers(QtWidgets.QWidget):
             self.update()
         
     def remove_interface(self, i):
-        """Remove interface"""
-        pass
-        
-    def remove_block(self, i):
-        """Remove all block"""
-        pass
+        """Remove interface"""        
+        if not cfg.layers.is_interface_removable(i):
+            return
+        removed_res = cfg.layers.remove_layer_changes(i)
+        if removed_res[0]+removed_res[1]>0:
+            messages = []
+            if removed_res[0]==1:
+                messages.append("One slice will be removed from structure")
+            if removed_res[1]==1:
+                messages.append("One fracture will be removed from structure")
+            dlg = ReportOperationsDlg("Remove Layer",messages,cfg.main_window) 
+            ret = dlg.exec_()
+            if ret!=QtWidgets.QMessageBox.Ok:                
+                return 
+        diagrams = cfg.layers.remove_interface(i, removed_res)
+        for diagram in diagrams:
+            cfg.remove_and_save_slice(diagram)            
+        cfg.layers.compute_composition()
+        self.update()    
 
-    def save_surface(self, i, type):
-        """Remove all block"""
-        pass
-
-    def load_surface(self, i, type):
-        """Remove all block"""
-        pass
-        
     def remove_fracture(self, i):
         """Remove fracture from interface"""
         if cfg.layers.interfaces[i].fracture.type==FractureInterface.own:
             dlg = ReportOperationsDlg("Remove Fracture", 
-                ["One surface will be removed from structure and save as removed"], 
+                ["One slice will be removed from structure"], 
                 cfg.main_window)
             ret = dlg.exec_()
-            if ret!=QtWidgets.QDialog.Ok:                
+            if ret!=QtWidgets.QMessageBox.Ok:                
                 return            
         diagram = cfg.layers.remove_fracture(i)
         if diagram is not None:
-            cfg.remove_and_save_surface(diagram)
+            cfg.remove_and_save_slice(diagram)
         cfg.layers.compute_composition()
         self.update()     
         

@@ -8,10 +8,12 @@ from .layers_helpers import LayersHelpers
 
 class AppendLayerDlg(QtWidgets.QDialog):
 
-    def __init__(self, min_depth, parent=None):
+    def __init__(self, min_depth, parent, prepend=False):
         super(AppendLayerDlg, self).__init__(parent)
-        self.setWindowTitle("Append Layer")
-
+        if prepend:
+            self.setWindowTitle("Append Layer")
+        else:
+            self.setWindowTitle("Prepend Layer")
         grid = QtWidgets.QGridLayout(self)
         
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
@@ -23,15 +25,22 @@ class AppendLayerDlg(QtWidgets.QDialog):
         d_depth = QtWidgets.QLabel("Bottom Interface Depth:", self)
         self.depth = QtWidgets.QLineEdit()
         self.validator = QtGui.QDoubleValidator()
-        self.validator.setBottom( min_depth)
+        if prepend:
+            self.validator.setTop( min_depth)
+             self.depth.setText(str(min_depth-100))
+        else:
+            self.validator.setBottom( min_depth)
+             self.depth.setText(str(min_depth+100))
         self.depth.setValidator(self.validator)
-        self.depth.setText(str(min_depth+100))
+       
         
         grid.addWidget(d_depth, 1, 0)
         grid.addWidget(self.depth, 1, 1)
 
-
-        self._tranform_button = QtWidgets.QPushButton("Append", self)
+        if prepend:
+            self._tranform_button = QtWidgets.QPushButton("Prepend", self)
+        else:
+            self._tranform_button = QtWidgets.QPushButton("Append", self)
         self._tranform_button.clicked.connect(self.accept)
         self._cancel_button = QtWidgets.QPushButton("Cancel", self)
         self._cancel_button.clicked.connect(self.reject)
