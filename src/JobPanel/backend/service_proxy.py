@@ -60,8 +60,8 @@ class ServiceProxy:
 
         self._child_id = None
         """Child id"""
-        self.child_service_process_id = []
-        """Child service process id"""
+        self.results_process_start = []
+        """Child service process id save as result list"""
 
         #TODO:
         #  smazat
@@ -93,9 +93,9 @@ class ServiceProxy:
             #child_id = answer_data.sender[0]
             on_answer = answer_data.on_answer
             answer = answer_data.answer
-            if 'error' in answer.keys():
-                self.error_answer(answer_data)
-            call_action(self, on_answer['action'], (on_answer['data'], answer['data']))
+            # if 'error' in answer.keys():
+            #     self.error_answer(answer_data)
+            call_action(self, on_answer['action'], (on_answer['data'], answer))
 
     def save_result(self, answer_data):
         """
@@ -160,7 +160,7 @@ class ServiceProxy:
             process_config["exec_args"] = {"__class__": "ExecArgs",
                                            "args": [str(self._child_id), "172.17.42.1", str(remote_port)]}
 
-        delegator_proxy.call("request_process_start", process_config, self.child_service_process_id)
+        delegator_proxy.call("request_process_start", process_config, self.results_process_start)
 
         # 5.
         self.status = ServiceStatus.queued

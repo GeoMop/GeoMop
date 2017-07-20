@@ -181,7 +181,7 @@ class ServiceBase(JsonData):
     """
     # answer_ok = { 'data' : 'ok' }
 
-    config_file_name = "service.conf"
+    config_file_name = ""
     """Name of service config file."""
 
     def __init__(self, config):
@@ -236,7 +236,7 @@ class ServiceBase(JsonData):
         self._connections = {}
         """dict of active connections"""
 
-        self.answers_to_send = []
+        self._answers_to_send = []
         """list of answers to send (id, [answer])"""
 
         self._process_class_factory = ClassFactory([ProcessExec, ProcessPBS, ProcessDocker])
@@ -266,7 +266,7 @@ class ServiceBase(JsonData):
         logging.info("After run")
 
         self.status = ServiceStatus.running
-        self.save_config()
+        #self.save_config()
 
         last_time = time.time()
 
@@ -275,6 +275,7 @@ class ServiceBase(JsonData):
             logging.info("Loop")
             self._process_answers()
             self._process_requests()
+            self._send_answers()
             self._do_work()
 
             # sleep, not too much
@@ -306,8 +307,7 @@ class ServiceBase(JsonData):
 
             answer = []
             call_action(self, request['action'], data, answer)
-            self.answers_to_send.append((request_data.id, answer))
-            self._send_answers()
+            self._answers_to_send.append((request_data.id, answer))
 
             # TODO:
             # catch exceptions, use async_repeater._exception_answer(e) to return
@@ -317,15 +317,15 @@ class ServiceBase(JsonData):
 
     def _send_answers(self):
         """
-        Send filled answers form self.answers_to_send.
+        Send filled answers form self._answers_to_send.
         Method is thread safe.
         :return:
         """
         done = False
         while not done:
-            for i in range(len(self.answers_to_send)):
-                if len(self.answers_to_send[i][1]) > 0:
-                    item = self.answers_to_send.pop(i)
+            for i in range(len(self._answers_to_send)):
+                if len(self._answers_to_send[i][1]) > 0:
+                    item = self._answers_to_send.pop(i)
                     self._repeater.send_answer(item[0], item[1][0])
                     break
             done = True

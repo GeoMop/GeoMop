@@ -288,7 +288,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
-    process_id = answer[-1]
+    process_id = answer[-1]["data"]
 
     # get status
     process_config = {"__class__": "ProcessExec", "process_id": process_id}
@@ -297,7 +297,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
-    assert answer[-1][process_id]["running"] is True
+    assert answer[-1]["data"][process_id]["running"] is True
 
     # kill
     process_config = {"__class__": "ProcessExec", "process_id": process_id}
@@ -306,7 +306,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
-    assert answer[-1] is True
+    assert answer[-1]["data"] is True
 
     # stopping, closing
     local_service._closing = True

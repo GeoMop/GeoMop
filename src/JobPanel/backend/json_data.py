@@ -167,7 +167,7 @@ class JsonData:
         """Return dict for serialization."""
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
-            if self._is_attr_serialized(k):
+            if self._is_attr_serialized(k) and not isinstance(v, ClassFactory):
                 d[k] = JsonData._serialize_object(v)
         return d
 
