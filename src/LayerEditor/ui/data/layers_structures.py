@@ -234,7 +234,19 @@ class Layers():
     def prepend_layer(self, name, depth):
         """Prepend layer to the start"""
         self.layers.insert(0, Layer(name))
-        self.interfaces.insert(0, Interface(depth, False))        
+        self.interfaces.insert(0, Interface(depth, False)) 
+ 
+    def add_layer_to_shadow(self, idx, name, depth, dup):
+        """Append new layer to shadow block"""
+        self.interfaces[idx].diagram_id2 = dup.insert_id
+        self._move_diagram_idx(idx+1, 1)  
+        if float(depth)==self.interfaces[idx+1].depth:
+            self.layers[idx].shadow=False
+            self.layers[idx].name=name
+        else:
+            self.layers.insert(idx, Layer(name))
+            self.interfaces.insert(idx+1, Interface(depth, True)) 
+       
        
     def add_fracture(self, idx, name, position, dup):
         """add fracture to interface
@@ -250,6 +262,41 @@ class Layers():
                 self.interfaces[idx].diagram_id2 += 1    
                 self._move_diagram_idx(idx, 1)                
             self.interfaces[idx].fracture = Fracture(name, position, dup.insert_id-1)
+        
+    def get_diagram_dup_before(self, idx):
+        """Return first idx for division and if is possible division make
+        """
+        dup = None
+        id = None
+        id_pred = None
+        for i in range(idx, -1, -1):
+            if i<idx:
+                if self.interfaces[i].diagram_id2 is not None:
+                    if id is None:
+                        id = self.interfaces[i].diagram_id2
+                    elif id_pred is None:
+                        id_pred = self.interfaces[i].diagram_id2
+                if self.interfaces[i].splited:
+                    break
+            if self.interfaces[i].diagram_id1 is not None:
+                if i==idx:
+                    id = self.interfaces[i].diagram_id1
+                    # copy is maked
+                    break
+                if id is None:
+                    id = self.interfaces[i].diagram_id1
+                elif id_pred is None:
+                    id_pred = self.interfaces[i].diagram_id1
+                else:
+                    break
+        if id is not None and id_pred is None:
+            dup = DupDiagramData(id+1)              
+        else:
+            dup =  DupDiagramData(id+1, False, id_pred, id)              
+        if dup is not None:
+            dup.idx = idx
+            return dup
+        raise Exception("Block with interface {0} has not diagram.".format(str(idx)))
         
     def get_diagram_dup(self, idx):
         """Return first idx for division and if is possible division make
@@ -451,7 +498,7 @@ class Layers():
             assert removed_res[0]==1
             self.interfaces[idx].diagram_id1=self.interfaces[idx+1].diagram_id1
             self._add_shadow(idx)
-            return [self.interfaces[idx+1].diagram_id1+1]
+            return [self.interfaces[idx].diagram_id1+1]
         self._add_shadow(idx)
         if removed_res[0]==0:
             return []
@@ -483,7 +530,7 @@ class Layers():
         (first_idx, first_slice_id, layers, fractures, slices) = removed_res        
         for i in range(0, layers-1):
             del self.interfaces[first_idx+1]
-            del self.layer[first_idx+1]
+            del self.layers[first_idx+1]
         self._add_shadow(first_idx)
         res = []
         for i in range(0, slices):

@@ -2,7 +2,7 @@ from geometry_files.geometry_factory import  GeometryFactory
 from geometry_files.geometry import GeometrySer
 from .diagram_structures import Diagram
 
-class DiagramSerializer():
+class LESerializer():
     """Class for diagram data serialization"""
   
     def __init__(self, cfg):        
@@ -42,7 +42,7 @@ class DiagramSerializer():
         gf.geometry.supplement.last_node_set = cfg.node_set_idx
         errors = gf.check_file_consistency()
         if len(errors)>0:
-            raise DiagramSerializerException("Some file consistency errors occure", errors)
+            raise LESerializerException("Some file consistency errors occure", errors)
             
         reader = GeometrySer(cfg.path)
         reader.write(gf.geometry)
@@ -69,7 +69,7 @@ class DiagramSerializer():
         gf = GeometryFactory(self.geometry)
         errors = gf.check_file_consistency()        
         if len(errors)>0:
-            raise DiagramSerializerException(
+            raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
         self.diagrams = []    
         for i in range(0, len(gf.geometry.node_sets)):
@@ -93,7 +93,7 @@ class DiagramSerializer():
         cfg.diagrams[ns_idx].topology_idx
 
     
-class DiagramSerializerException(Exception):
+class LESerializerException(Exception):
     def __init__(self, message, errors):
-        super(DiagramSerializerException, self).__init__(message)
+        super(LESerializerException, self).__init__(message)
         self.errors = errors

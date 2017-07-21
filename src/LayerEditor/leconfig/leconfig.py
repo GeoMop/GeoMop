@@ -94,7 +94,7 @@ class LEConfig:
     def init(cls, main_window):
         """Init class wit static method"""
         cls.main_window = main_window
-        cls.data = data.DiagramSerializer(cls)
+        cls.data = data.LESerializer(cls)
      
     @classmethod
     def save(cls):

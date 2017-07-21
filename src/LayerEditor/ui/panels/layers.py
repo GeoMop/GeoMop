@@ -4,7 +4,7 @@ import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
 from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType
-from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu
+from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
 from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
 class Layers(QtWidgets.QWidget):
@@ -54,7 +54,10 @@ class Layers(QtWidgets.QWidget):
             type is ClickedControlType.fracture_edit:
             self.change_edited(i, type)
         elif type is ClickedControlType.layer:
-            menu = LayersLayerMenu(self, i)
+            if cfg.layers.layers[i].shadow:
+                menu = LayersShadowMenu(self, i)
+            else:
+                menu = LayersLayerMenu(self, i)
             menu.exec_(self.mapToGlobal(event.pos()))
         elif type is ClickedControlType.interface:
             menu = LayersInterfaceMenu(self, i)
@@ -170,7 +173,7 @@ class Layers(QtWidgets.QWidget):
 
     def append_layer(self):
         """Append layer to the end"""
-        dlg = AppendLayerDlg(cfg.layers.interfaces[-1].depth, cfg.main_window)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].depth)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -181,12 +184,25 @@ class Layers(QtWidgets.QWidget):
 
     def prepend_layer(self):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.layers.interfaces[0].depth, cfg.main_window, True)
+        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].depth, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.prepend_layer(name, depth)
+            cfg.layers.compute_composition()
+            self.update()
+            
+    def add_layer_to_shadow(self, idx):
+        """Prepend layer to the start"""
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].depth,cfg.layers.interfaces[idx+1].depth, False, True)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.layer_name.text()
+            depth = dlg.depth.text()
+            dup = cfg.layers.get_diagram_dup_before(idx)
+            cfg.insert_diagrams_copies(dup)
+            cfg.layers.add_layer_to_shadow(idx, name, depth, dup)
             cfg.layers.compute_composition()
             self.update()
     

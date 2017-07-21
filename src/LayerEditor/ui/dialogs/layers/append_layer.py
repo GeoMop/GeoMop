@@ -8,10 +8,12 @@ from .layers_helpers import LayersHelpers
 
 class AppendLayerDlg(QtWidgets.QDialog):
 
-    def __init__(self, min_depth, parent, prepend=False):
+    def __init__(self, parent, min_depth=None ,max_depth=None, prepend=False, add=False):
         super(AppendLayerDlg, self).__init__(parent)
-        if prepend:
-            self.setWindowTitle("Append Layer")
+        if add:
+            self.setWindowTitle("Add Layer to Shadow Block")
+        elif prepend:
+            self.setWindowTitle("Add Layer")
         else:
             self.setWindowTitle("Prepend Layer")
         grid = QtWidgets.QGridLayout(self)
@@ -25,19 +27,25 @@ class AppendLayerDlg(QtWidgets.QDialog):
         d_depth = QtWidgets.QLabel("Bottom Interface Depth:", self)
         self.depth = QtWidgets.QLineEdit()
         self.validator = QtGui.QDoubleValidator()
-        if prepend:
-            self.validator.setTop( min_depth)
-             self.depth.setText(str(min_depth-100))
+        if add:
+            self.validator.setBottom(min_depth)
+            self.validator.setTop( max_depth)
+            self.depth.setText(str(max_depth))
+        elif prepend:
+            self.validator.setTop( max_depth)
+            self.depth.setText(str(max_depth-100))
         else:
             self.validator.setBottom( min_depth)
-             self.depth.setText(str(min_depth+100))
+            self.depth.setText(str(min_depth+100))
         self.depth.setValidator(self.validator)
        
         
         grid.addWidget(d_depth, 1, 0)
         grid.addWidget(self.depth, 1, 1)
 
-        if prepend:
+        if add:
+            self._tranform_button = QtWidgets.QPushButton("Add", self)
+        elif prepend:
             self._tranform_button = QtWidgets.QPushButton("Prepend", self)
         else:
             self._tranform_button = QtWidgets.QPushButton("Append", self)
