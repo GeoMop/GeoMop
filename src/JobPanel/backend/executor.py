@@ -108,7 +108,28 @@ class ProcessBase(JsonData):
         self.executable = Executable()
         self.exec_args = ExecArgs()
         self.process_id = ""
+        self.time_limit = -1.0
+        """Limit execution time in seconds, negative value means no limit."""
+        self.memory_limit = -1.0
+        """Memory limit in MB, negative value means no limit."""
         super().__init__(process_config)
+
+    def _get_limit_args(self):
+        """
+        Return arguments for limit time and memory.
+        :return:
+        """
+        args = []
+        if self.time_limit > 0 or self.memory_limit > 0:
+            args.append(self.environment.python)
+            args.append(os.path.join(self.environment.geomop_root, "common/exec_with_limit.py"))
+            if self.time_limit > 0:
+                args.append("-t")
+                args.append(str(self.time_limit))
+            if self.memory_limit > 0:
+                args.append("-m")
+                args.append(str(self.memory_limit))
+        return args
 
 
 class ProcessExec(ProcessBase):
@@ -136,7 +157,7 @@ class ProcessExec(ProcessBase):
             """
             logging.info("ProcessExec.start()".format())
 
-            args = []
+            args = self._get_limit_args()
             if self.executable.script:
                 args.append(self.environment.python)
             args.append(os.path.join(self.environment.geomop_root,
@@ -270,7 +291,7 @@ class ProcessPBS(ProcessBase):
                                self.executable.path,
                                self.executable.name)
 
-        pbs.prepare_file(command, interpreter, [], self.exec_args.args)
+        pbs.prepare_file(command, interpreter, [], self.exec_args.args, self._get_limit_args())
         logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
         process = subprocess.Popen(pbs.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -389,6 +410,7 @@ class ProcessDocker(ProcessBase):
         home = os.environ["HOME"]
         cwd = os.getcwd()
         args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel"]
+        args.extend(self._get_limit_args())
         if self.executable.script:
             args.append(self.environment.python)
         args.append(os.path.join(self.environment.geomop_root,

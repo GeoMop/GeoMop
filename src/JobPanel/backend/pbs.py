@@ -41,7 +41,7 @@ class Pbs():
         self.mj_path = mj_path
         """folder name for multijob data"""
 
-    def prepare_file(self, command, interpreter=None, load_commands=[], args=[]):
+    def prepare_file(self, command, interpreter=None, load_commands=[], args=[], limit_args=[]):
         """Open and construct shell file for pbs starting"""
         if not os.path.isdir(self.mj_path):
             os.makedirs(self.mj_path)
@@ -63,10 +63,12 @@ class Pbs():
         if len(load_commands) > 0:
             f.write('\n')
         line = ""
+        for arg in limit_args:
+            line += arg + " "
         if interpreter is not None:
-            line = interpreter + ' ' + command
+            line += interpreter + ' ' + command
         else:
-            line = command
+            line += command
         for arg in args:
             line += " " + arg
         line += '\n'
