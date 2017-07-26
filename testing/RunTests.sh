@@ -3,7 +3,7 @@
 CURR_PATH=$(pwd)
 
 cd LayerEditor
-export PYTHONPATH=../../src/LayerEditor:../../src/common:../../src/common:./mock
+export PYTHONPATH=../../src/LayerEditor:../../src/common:./mock
 py.test-3
 
 cd ../common

@@ -1,5 +1,19 @@
 """Structures for Layer Geometry File"""
 
+from enum import IntEnum
+
+class LayerType(IntEnum):
+    """Layer type"""
+    stratum = 0
+    fracture = 1
+    shadow = 2
+    
+
+class TopologyType(IntEnum):
+    given = 0
+    interpolated = 1
+
+
 class GeoObject:
     class_def = {}
     
@@ -38,8 +52,18 @@ class GeoObject:
     
 
 class Surface(GeoObject):
-    def __init__():
-        pass
+    
+    def __init__(self, depth):
+        self.transform = [0, 0, depth, 1] 
+        """Transform4x4Matrix"""
+        self.grid = None
+        """List of input grid 3DPoints. None for plane"""
+        self.b_spline = None
+        """B-spline,None for plane"""
+        
+    def get_depth(self):
+        """Return surface depth in 0"""
+        return self.transform[2]
 
 
 class Curve(GeoObject):
@@ -55,16 +79,7 @@ class Bulk(GeoObject):
 class Well(GeoObject):
     def __init__():
         pass
-
-class GL(GeoObject):
-    """Geological layers"""
-    
-    def __init__(self, top_idx, bottom_idx):
-        self.top_idx =  top_idx
-        """Top topology index"""
-        self.bottom_idx = bottom_idx
-        """Bootom topology index"""
-
+        
     
 class Fracture(GeoObject):
     """Fracture object"""
@@ -140,7 +155,89 @@ class NodeSet(GeoObject):
     def reset(self):
         """Reset node set"""
         self.nodes = []
+
+    
+class SurfaceNodeSet(GeoObject):
+    """Node set in space for transformation(x,y) ->(u,v). 
+    Only for GL"""
+    
+    class_def={
+            "ns_idx": NodeSet, 
+            "surface_idx":Surface
+        }
+
+    def __init__(self, ns_idx, surface_idx):
+        self.ns_idx = ns_idx,
+        """Node set index"""
+        self.surface_idx = surface_idx
+        """Surface index"""
+
+
+class InterpolatedNodeSet(GeoObject):
+    """Two node set with same Topology in space for transformation(x,y) ->(u,v).
+    If both node sets is same, topology is vertical    
+    Only for GL"""
+    
+    class_def={
+        "source_ns": NodeSet, 
+        "surface_idx":Surface
+    }
+
+    def __init__(self, ns1_idx, ns2_idx, surface_idx):
+        self.source_ns = [ns1_idx, ns2_idx]
+        """Top and bottom node set index"""
+        self.surface_idx = surface_idx
+        """Surface index"""    
+
+
+class GL(GeoObject):
+    """Geological layers"""
+    
+    def __init__(self, name, type, top_type, top, bottom_type=None, bottom=None):
+        self.name =  name
+        """Layer Name"""
+        self.layer_type
+        """Layer type :class:`geometry_files.geometry_structures.LayerType`"""
+        self.top_type
+        """Topology type :class:`geometry_files.geometry_structures.TopologyType`"""
+        self.top =  top
+        """Accoding topology type surface node set or interpolated node set"""
         
+        self.bottom_type
+        """ optional, only for stratum type, bottom topology type 
+        :class:`geometry_files.geometry_structures.TopologyType`"""
+        self.bottom = bottom
+        """ optional, only for stratum type, accoding bottom topology 
+        type surface node set or interpolated node set"""
+        
+    def serialize(self):
+        d = {}
+        d["name"] = self.name
+        d["layer_type"] = self.layer_type.value()
+        d["top_type"] = self.top_type.value()
+        d["top"] = self.top
+        if self.layer_type is LayerType.stratum:
+            d["bottom_type"] = self.bottom_type.value()
+            d["bottom"] = self.bottom
+        return d
+                
+    def deserialize(self, data):
+        self.name = data["name"]
+        self.layer_type = LayerType(data["layer_type"])
+        self.top_type = TopologyType(data["top_type"])
+        if self.top_type is TopologyType.given:
+            self.top = SurfaceNodeSet.__new__(SurfaceNodeSet)
+        else:
+            self.top = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
+        self.top.deserialize(data["top"])
+        if self.layer_type is LayerType.stratum:
+            self.bottom_type = TopologyType(data["bottom_type"])
+            if self.bottom_type is TopologyType.given:
+                self.bottom = SurfaceNodeSet.__new__(SurfaceNodeSet)
+            else:
+                self.bottom = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
+            self.bottom.deserialize(data["bottom"])
+            
         
 class UserSupplement(GeoObject):
     def __init__(self):

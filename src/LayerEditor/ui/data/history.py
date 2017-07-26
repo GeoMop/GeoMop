@@ -342,7 +342,7 @@ class DiagramHistory(History):
         """
         if label is not None:
             self.global_history.add_label(self._id, label)
-        self.steps.append(self.Step(self._add_line, [id, p1_id, p2_id],label))
+        self.steps.append(HistoryStep(self._add_line, [id, p1_id, p2_id],label))
         
     def _add_line(self, id, p1_id, p2_id):
         """

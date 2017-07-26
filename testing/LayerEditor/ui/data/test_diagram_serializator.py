@@ -1,5 +1,5 @@
 from ui.data.diagram_structures import Diagram
-from ui.data.diagram_serializer import DiagramSerializer
+from ui.data.le_serializer import LESerializer
 import mock_config as mockcfg
 from leconfig import cfg
 import shutil
@@ -15,7 +15,7 @@ def test_serialize_base(request):
         shutil.rmtree(TEST_DIR, ignore_errors=True)
     request.addfinalizer(fin_remove_test_dir)
     
-    ser = DiagramSerializer(cfg)
+    ser = LESerializer(cfg)
     points = [[100, 100], [200, 200], [300, 100], [100, 200]]
     lines = [[0, 1], [1, 2], [2, 3], [3, 0]]
     diagram = cfg.diagram
@@ -30,7 +30,7 @@ def test_serialize_base(request):
     cfg.diagrams = [Diagram()]
     cfg.diagram = cfg.diagrams[0]
     
-    ser = DiagramSerializer(cfg)
+    ser = LESerializer(cfg)
     ser.load(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
     diagram2 = cfg.diagram 
  

@@ -40,7 +40,7 @@ class LayersLayerMenu(QMenu):
             self.addAction(self._remove_action)
             
         if d.is_block_removable(layer_idx):
-            self._remove_b_action = QAction('Remove Block', self)
+            self._remove_b_action = QAction('Remove Block ...', self)
             self._remove_b_action.setStatusTip('Remove all block with this lyaer and add shadow block instead')
             self._remove_b_action.triggered.connect(self._remove_block)
             self.addAction(self._remove_b_action)
@@ -60,6 +60,29 @@ class LayersLayerMenu(QMenu):
     def _remove_block(self):
         """Remove all block and add shadow block instead"""
         self.layers_panel.remove_block(self.layer_idx)
+
+class LayersShadowMenu(QMenu):
+    """
+    Contex Menu with layer actions
+    """
+
+    def __init__(self, layers_panel, layer_idx):
+        """Initializes the class."""
+        super(LayersShadowMenu, self).__init__(layers_panel)
+        self.layers_panel = layers_panel
+        """Layers panel"""
+        self.layer_idx = layer_idx
+        """Selected layer index"""
+        
+        self._add_layer_action = QAction('Add Layer ...', self)
+        self._add_layer_action.setStatusTip('Add layer to shadow block')
+        self._add_layer_action.triggered.connect(self._add_layer)
+        self.addAction(self._add_layer_action)
+
+    def _add_layer(self):
+        """Remove all block and add shadow block instead"""
+        self.layers_panel.add_layer_to_shadow(self.layer_idx)
+
         
 class LayersInterfaceMenu(QMenu):
     """

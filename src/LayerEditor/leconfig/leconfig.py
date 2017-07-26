@@ -63,8 +63,10 @@ class LEConfig:
     """Current diagram data"""
     data = None    
     """Data from geometry file"""    
-    main_window = None
+    main_window = None    
     """parent of dialogs"""
+    curr_file = None
+    """Name of open file"""
     curr_file_timestamp = None
     """    
     Timestamp of opened file, if editor text is 
@@ -94,7 +96,7 @@ class LEConfig:
     def init(cls, main_window):
         """Init class wit static method"""
         cls.main_window = main_window
-        cls.data = data.DiagramSerializer(cls)
+        cls.data = data.LESerializer(cls)
      
     @classmethod
     def save(cls):
@@ -121,6 +123,11 @@ class LEConfig:
                     err_dialog = GMErrorDialog(cls.main_window)
                     err_dialog.open_error_dialog("Can't open shapefile", err)
         return False
+        
+    @classmethod
+    def save_file(cls, file):
+        """save to json file"""
+        cls.data.save(cls, file)
         
     @classmethod
     def open_file(cls, file):

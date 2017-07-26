@@ -86,15 +86,32 @@ class LayerEditor:
             return self.save_as()
         if cfg.confront_file_timestamp():
             return
-#        cfg.update_yaml_file(self.mainwindow.editor.text())
-#        cfg.save_file()
-#        self.mainwindow.show_status_message("File is saved")
+        cfg.save_file()
+        self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
         if cfg.confront_file_timestamp():
             return
-        cfg.update_yaml_file(self.mainwindow.editor.text())
+        if cfg.curr_file is None:
+            new_file = cfg.config.data_dir + os.path.sep + "NewFile.yaml"
+        else:
+            new_file = cfg.curr_file
+        dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as JSON Geometry File', new_file,
+                                       "JSON Files (*.json)")
+        dialog.setDefaultSuffix('.json')
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
+        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
+        if dialog.exec_():
+            file_name = dialog.selectedFiles()[0]
+            cfg.save_file(file_name)
+            self.mainwindow.update_recent_files()
+            self._update_document_name()
+            self.mainwindow.show_status_message("File is saved")
+            return True
+        return False
 
     def save_old_file(self):
         """

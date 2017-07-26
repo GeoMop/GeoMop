@@ -87,7 +87,7 @@ class Line():
             
     def qrectf(self):
         """return QRectF coordinates"""
-        return QtCore.QRectF(self.p1, self.p2)
+        return QtCore.QRectF(self.p1.qpointf(), self.p2.qpointf())
 
 
 class Diagram():
