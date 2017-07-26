@@ -196,14 +196,14 @@ class GL(GeoObject):
     def __init__(self, name, type, top_type, top, bottom_type=None, bottom=None):
         self.name =  name
         """Layer Name"""
-        self.layer_type
+        self.layer_type = type
         """Layer type :class:`geometry_files.geometry_structures.LayerType`"""
-        self.top_type
+        self.top_type = top_type
         """Topology type :class:`geometry_files.geometry_structures.TopologyType`"""
         self.top =  top
         """Accoding topology type surface node set or interpolated node set"""
         
-        self.bottom_type
+        self.bottom_type = bottom_type
         """ optional, only for stratum type, bottom topology type 
         :class:`geometry_files.geometry_structures.TopologyType`"""
         self.bottom = bottom
@@ -213,12 +213,12 @@ class GL(GeoObject):
     def serialize(self):
         d = {}
         d["name"] = self.name
-        d["layer_type"] = self.layer_type.value()
-        d["top_type"] = self.top_type.value()
-        d["top"] = self.top
+        d["layer_type"] = self.layer_type.value
+        d["top_type"] = self.top_type.value
+        d["top"] = self.top.serialize()
         if self.layer_type is LayerType.stratum:
-            d["bottom_type"] = self.bottom_type.value()
-            d["bottom"] = self.bottom
+            d["bottom_type"] = self.bottom_type.value
+            d["bottom"] = self.bottom.serialize()
         return d
                 
     def deserialize(self, data):

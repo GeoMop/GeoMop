@@ -37,7 +37,7 @@ class LESerializer():
         layers_info = cfg.layers.get_first_layer_info()
         tp_idx = gf.add_topology()
         last_ns_idx = -1
-        while layers_info.end:
+        while not layers_info.end:
             if layers_info.block_idx > tp_idx:
                 gf.add_topologies_to_count(layers_info.block_idx)
                 tp_idx = layers_info.block_idx
@@ -58,7 +58,7 @@ class LESerializer():
                     ns1_type = TopologyType.interpolated
                 else:
                     surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx].depth)
-                    ns1 = gf.get_get_surface_ns(layers_info.diagram_id1, surface_idx)
+                    ns1 = gf.get_surface_ns(layers_info.diagram_id1, surface_idx)
                     ns1_type = TopologyType.given
                 if layers_info.stype2 is TopologyType.interpolated:
                     surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx+1].depth)
@@ -66,7 +66,7 @@ class LESerializer():
                     ns2_type = TopologyType.interpolated
                 else:
                     surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx+1].depth)
-                    ns2 = gf.get_get_surface_ns(layers_info.diagram_id2, surface_idx)
+                    ns2 = gf.get_surface_ns(layers_info.diagram_id2, surface_idx)
                     ns2_type = TopologyType.given         
                 if layers_info.fracture_before:
                     gf.add_GL(layers_info.fracture_before.name, LayerType.fracture, ns1_type, ns1)
@@ -79,7 +79,7 @@ class LESerializer():
                         ns_idx = gf.add_node_set(tp_idx+1)
                         self._write_ns(cfg, ns_idx, gf)
                     surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx+1].depth)
-                    ns = gf.get_get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
+                    ns = gf.get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
                     gf.add_GL(layers_info.fracture_own.name, LayerType.fracture, TopologyType.given, ns)
                     layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
@@ -88,7 +88,7 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException("Some file consistency errors occure", errors)
             
-        reader = GeometrySer(cfg.path)
+        reader = GeometrySer(path)
         reader.write(gf.geometry)
             
     def _write_ns(self, cfg, ns_idx, gf):

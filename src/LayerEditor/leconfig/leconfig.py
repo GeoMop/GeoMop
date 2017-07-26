@@ -10,6 +10,7 @@ from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
 import copy
+from geomop_analysis import Analysis, InvalidAnalysis
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -24,32 +25,113 @@ class _Config:
     
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'LayerEditor')
 
-    def __init__(self, readfromconfig=True):
+    def __init__(self, **kwargs):
+        
+        def kw_or_def(key, default=None):
+            """Get keyword arg or default value."""
+            return kwargs[key] if key in kwargs else default
 
+        from os.path import expanduser
         self._analysis = None
         self._workspace = None
 
-        if readfromconfig:
-            data = cfg.get_config_file(self.__class__.SERIAL_FILE, self.CONFIG_DIR)
-            self.workspace = getattr(data, '_workspace', self._workspace)
-            self.analysis = getattr(data, '_analysis', self._analysis)
+        self._analysis = kw_or_def('_analysis')
+        self._workspace = kw_or_def('_workspace')
+            
+        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        """directory of the most recently opened data file"""
+
  
     def save(self):
         """Save config data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
         
+    @staticmethod
+    def open():
+        """Open config from saved file (if exists)."""
+        config = cfg.get_config_file(_Config.SERIAL_FILE,
+                                     _Config.CONFIG_DIR, cls=_Config)
+        if config is None:
+            config = _Config()
+        return config
+        
+    def add_recent_file(self, file_name):
+        """
+        If file is in array, move it top, else add file to top and delete last
+        file if is needed. Relevant format files is keep
+        """
+        # 0 files
+        if len(self.recent_files) == 0:
+            self.recent_files.append(file_name)
+            self.save()
+            return
+        # init for
+        last_file = self.recent_files[0]
+        self.recent_files[0] = file_name
+
+        for i in range(1, len(self.recent_files)):
+            if file_name == self.recent_files[i]:
+                # added file is in list
+                self.recent_files[i] = last_file
+                self.save()
+                return
+            last_file_pom = self.recent_files[i]
+            self.recent_files[i] = last_file
+            last_file = last_file_pom
+            # recent files is max+1, but first is not displayed
+            if self.__class__.COUNT_RECENT_FILES < i+1:
+                self.save()
+                return
+        # add last file
+        self.recent_files.append(last_file)
+        self.save()
+
     @property
     def data_dir(self):
         """Data directory - either an analysis dir or the last used dir."""
-        return os.getcwd()
-#        if self.workspace and self.analysis:
-#            return os.path.join(self.workspace, self.analysis)
-#        else:
-#            return self.last_data_dir
+        if self.workspace and self.analysis:
+            return os.path.join(self.workspace, self.analysis)
+        else:
+            return self.last_data_dir
+
+    @property
+    def workspace(self):
+        """path to workspace"""
+        return self._workspace
+
+    @workspace.setter
+    def workspace(self, value):
+        if value == '' or value is None:
+            self._workspace = None
+        if value != self._workspace:
+            # close analysis if workspace is changed
+            self.analysis = None
+        self._workspace = value
+
+    @property
+    def analysis(self):
+        """name of the analysis in the workspace"""
+        return self._analysis
+
+    @analysis.setter
+    def analysis(self, value):
+        if value == '' or value is None:
+            self._analysis = None
+            Analysis.current = None
+        else:
+            self._analysis = value
+            try:
+                analysis = Analysis.open(self._workspace, self._analysis)
+            except InvalidAnalysis:
+                self._analysis = None
+            else:
+                Analysis.current = analysis
+        self.notify_all()
+    
         
 class LEConfig:
     """Static data class"""
-    config = _Config()
+    config = _Config.open()
     """Serialized variables"""
     logger = logging.getLogger(LOGGER_PREFIX +  config.CONTEXT_NAME)
     """root context logger"""
@@ -98,11 +180,6 @@ class LEConfig:
         cls.main_window = main_window
         cls.data = data.LESerializer(cls)
      
-    @classmethod
-    def save(cls):
-        """save persistent data"""
-        cls.config.save()
-    
     @classmethod
     def remove_and_save_slice(cls, idx): 
         """Remove diagram from list and save it in file"""         
@@ -168,9 +245,30 @@ class LEConfig:
                         with open(cls.curr_file, 'r') as file_d:
                             cls.document = file_d.read()
                         cls.curr_file_timestamp = timestamp
-                        cls.update()                        
                         return True
             except OSError:
                 pass
         return False
+        
+    @classmethod
+    def open_recent_file(cls, file_name):
+        """
+        read file from recent files
+
+        return: if file have good format (boolean)
+        """
+        try:
+            with open(file_name, 'r') as file_d:
+                cls.document = file_d.read()
+            cls.config.update_last_data_dir(file_name)
+            cls._set_file(file_name)
+            cls.config.add_recent_file(file_name)
+            return True
+        except (RuntimeError, IOError) as err:
+            if cls.main_window is not None:
+                cls._report_error("Can't open file", err)
+            else:
+                raise err
+        return False
+
         

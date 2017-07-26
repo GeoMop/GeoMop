@@ -248,36 +248,37 @@ class Layers():
             i=1
             while self.interfaces[i].diagram_id1 is None:
                 i += 1
-            self.diagram_id1 = self.interfaces[i].diagram_id1
-            self.stype1 = TopologyType.interpolated
-            self.diagram_id2 = None
+            data.diagram_id1 = self.interfaces[i].diagram_id1
+            data.stype1 = TopologyType.interpolated
+            data.diagram_id2 = None
             if i==1:
-                self.stype2 = TopologyType.given
+                data.stype2 = TopologyType.given
             else:
-                self.stype2 = TopologyType.interpolated
+                data.stype2 = TopologyType.interpolated
         else:
-            self.diagram_id1 = self.interfaces[0].diagram_id1
-            self.stype1 = TopologyType.given
+            data.diagram_id1 = self.interfaces[0].diagram_id1
+            data.stype1 = TopologyType.given
             i=1
             if self.interfaces[1].diagram_id1 is None:
-                self.stype2 = TopologyType.interpolated
-                while self.interfaces[i].diagram_id1 is None:
+                data.stype2 = TopologyType.interpolated
+                while len(self.interfaces)>i and self.interfaces[i].diagram_id1 is None:
                     if self.interfaces[i].splited:                        
-                        self.diagram_id2 = None
                         break
                     i += 1
-                if self.interfaces[i].diagram_id1 is not None:
-                    self.diagram_id2 = self.interfaces[i].diagram_id1
+                if len(self.interfaces)<i and self.interfaces[i].diagram_id1 is not None:
+                    data.diagram_id2 = self.interfaces[i].diagram_id1
+                else:
+                    data.diagram_id2 = None
             else:
-                self.diagram_id2 = self.interfaces[1].diagram_id1
-                self.stype2 = TopologyType.given
+                data.diagram_id2 = self.interfaces[1].diagram_id1
+                data.stype2 = TopologyType.given
         if self.interfaces[0].fracture:
-            self.fracture_before = self.interfaces[0].fracture
+            data.fracture_before = self.interfaces[0].fracture
         if self.interfaces[1].fracture:
             if self.interfaces[1].fracture.type is FractureInterface.top:
-                self.fracture_after = self.interfaces[1].fracture
+                data.fracture_after = self.interfaces[1].fracture
             elif self.interfaces[1].fracture.type is FractureInterface.own:
-                self.fracture_own = self.interfaces[1].fracture 
+                data.fracture_own = self.interfaces[1].fracture 
         return data        
         
     def get_next_layer_info(self, data):
@@ -285,79 +286,79 @@ class Layers():
         save to returned variable This variable can be pass on get_next_layer_info
         function or used for data serialization. This function is use for 
         all layers iteration"""
-        i = self.layer_idx+1
-        self.layer_idx = i
+        i = data.layer_idx+1
+        data.layer_idx = i
         if len(self.layers)==i:
             data.end = True  
             return data
         if self.layers[i].shadow:
-            self.is_shadow = True
+            data.is_shadow = True
         else:
-            self.is_shadow = False
+            data.is_shadow = False
             if self.interfaces[i].splited:
-                self.block_idx += 1
+                data.block_idx += 1
                 if self.interfaces[i].diagram_id2 is None:
                     j=i+1
                     while self.interfaces[j].diagram_id1 is None:
                         j += 1
-                    self.diagram_id1 = self.interfaces[j].diagram_id1
-                    self.stype1 = TopologyType.interpolated
-                    self.diagram_id2 = None
+                    data.diagram_id1 = self.interfaces[j].diagram_id1
+                    data.stype1 = TopologyType.interpolated
+                    data.diagram_id2 = None
                     if i==1:
-                        self.stype2 = TopologyType.given
+                        data.stype2 = TopologyType.given
                     else:
-                        self.stype2 = TopologyType.interpolated
+                        data.stype2 = TopologyType.interpolated
                 else:
-                    self.diagram_id1 = self.interfaces[i].diagram_id2
-                    self.stype1 = TopologyType.given
+                    data.diagram_id1 = self.interfaces[i].diagram_id2
+                    data.stype1 = TopologyType.given
                     j=i
                     if self.interfaces[j].diagram_id1 is None:
-                        self.stype2 = TopologyType.interpolated
+                        data.stype2 = TopologyType.interpolated
                         while self.interfaces[j].diagram_id1 is None:
                             if self.interfaces[j].splited:                        
-                                self.diagram_id2 = None
+                                data.diagram_id2 = None
                                 break
                             j += 1
                         if self.interfaces[j].diagram_id1 is not None:
-                            self.diagram_id2 = self.interfaces[j].diagram_id1
+                            data.diagram_id2 = self.interfaces[j].diagram_id1
                     else:
-                        self.diagram_id2 = self.interfaces[i+1].diagram_id1
-                        self.stype2 = TopologyType.given
+                        data.diagram_id2 = self.interfaces[i+1].diagram_id1
+                        data.stype2 = TopologyType.given
             else:
                 if self.interfaces[i].diagram_id1 is not None:                    
-                    self.stype1 = TopologyType.given
+                    data.stype1 = TopologyType.given
                 else:
-                    self.stype1 = TopologyType.interpolated
+                    data.stype1 = TopologyType.interpolated
                 j = i+1
                 next = True
                 while self.interfaces[j].diagram_id1 is None:
                     if self.interfaces[j].splited:                        
                         next = False
-                        self.stype2 = TopologyType.interpolated
+                        data.stype2 = TopologyType.interpolated
                         break
                     j += 1
                 if next:
                     if self.interfaces[i].diagram_id1 is not None:
-                        self.diagram_id1 = self.interfaces[i].diagram_id1
-                        self.diagram_id2 = self.interfaces[i].diagram_id2
+                        data.diagram_id1 = self.interfaces[i].diagram_id1
+                        data.diagram_id2 = self.interfaces[i].diagram_id2
                     if j==i+1:
-                        self.stype2 = TopologyType.given
+                        data.stype2 = TopologyType.given
                     else:
-                        self.stype2 = TopologyType.interpolated
-        self.fracture_before = None
-        self.fracture_after = None
-        self.fracture_own = None
+                        data.stype2 = TopologyType.interpolated
+        data.fracture_before = None
+        data.fracture_after = None
+        data.fracture_own = None
         if self.interfaces[i].fracture:
             if self.interfaces[i].splited: 
                 if self.interfaces[i].fracture.type is FractureInterface.bottom:
-                    self.fracture_before = self.interfaces[i].fracture
+                    data.fracture_before = self.interfaces[i].fracture
             else:
-                self.fracture_before = self.interfaces[i].fracture
+                data.fracture_before = self.interfaces[i].fracture
         if self.interfaces[i+1].fracture:
             if self.interfaces[i+1].fracture.type is FractureInterface.top:
-                self.fracture_after = self.interfaces[i+1].fracture
+                data.fracture_after = self.interfaces[i+1].fracture
             elif self.interfaces[i+1].fracture.type is FractureInterface.own:
-                self.fracture_own = self.interfaces[i+1].fracture             
+                data.fracture_own = self.interfaces[i+1].fracture             
         return data
         
     def add_interface(self, depth, splited, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):

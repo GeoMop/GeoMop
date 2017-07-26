@@ -53,11 +53,11 @@ class LayerEditor:
         """open file menu action"""
         if not self.save_old_file():
             return
-#        yaml_file = QtWidgets.QFileDialog.getOpenFileName(
-#            self.mainwindow, "Choose Yaml Model File",
-#            cfg.config.data_dir, "Yaml Files (*.yaml)")
-#        if yaml_file[0]:
-#            cfg.open_file(yaml_file[0])
+        yaml_file = QtWidgets.QFileDialog.getOpenFileName(
+            self.mainwindow, "Choose Yaml Model File",
+            cfg.config.data_dir, "Yaml Files (*.yaml)")
+        if yaml_file[0]:
+            cfg.open_file(yaml_file[0])
             
     def add_shape_file(self):
         """open set file"""
@@ -107,9 +107,9 @@ class LayerEditor:
         if dialog.exec_():
             file_name = dialog.selectedFiles()[0]
             cfg.save_file(file_name)
-            self.mainwindow.update_recent_files()
-            self._update_document_name()
-            self.mainwindow.show_status_message("File is saved")
+#            self.mainwindow.update_recent_files()
+#            self._update_document_name()
+#            self.mainwindow.show_status_message("File is saved")
             return True
         return False
 
@@ -199,7 +199,6 @@ def main():
     # launch the application
     layer_editor = LayerEditor()
     layer_editor.main()
-    cfg.save()
     sys.exit(0)
 
 
