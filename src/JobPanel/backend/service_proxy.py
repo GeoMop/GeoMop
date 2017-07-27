@@ -3,6 +3,8 @@ from .service_base import ServiceBase, ServiceStatus, call_action
 import time
 import logging
 import os
+import json
+
 
 class ServiceProxy:
     """
@@ -60,8 +62,12 @@ class ServiceProxy:
 
         self._child_id = None
         """Child id"""
+
+        # Result lists
         self.results_process_start = []
         """Child service process id save as result list"""
+        self.results_get_status = []
+        """Result list of get status requests"""
 
         #TODO:
         #  smazat
@@ -149,6 +155,19 @@ class ServiceProxy:
         self._child_id, remote_port = self.repeater.add_child(self.connection)
 
         # 4.
+        # update service data
+        self.service_data = self.service_data.copy()
+        self.service_data["repeater_address"] = [self._child_id]
+        self.service_data["parent_address"] = [self.service_data["service_host_connection"]["address"], remote_port]
+
+        # save config file
+        file = os.path.join(
+            self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self.service_data["workspace"],
+            "job_service.conf")
+        with open(file, 'w') as fd:
+            json.dump(self.service_data, fd, indent=4, sort_keys=True)
+
         # process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
         #                    "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
         process_config = self.service_data["process"]
@@ -200,7 +219,13 @@ class ServiceProxy:
         # return current status
 
         # 1.
-        self.repeater.clients[self._child_id]
+        #self.repeater.clients[self._child_id]
+
+        if self.status == ServiceStatus.queued:
+            pass
+        elif self.status == ServiceStatus.running:
+            self.call("request_get_status", None, self.results_get_status)
+        return self.status
 
 
     # def get(self, variable_name):

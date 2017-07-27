@@ -15,7 +15,7 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from backend import service_base
-from backend._executor import Executable, ExecArgs
+from backend.executor import Executable, ExecArgs
 
 
 """
@@ -53,31 +53,35 @@ class Job(service_base.ServiceBase):
         #self.requests.append( {'action': "execute" } )
         #self.connect_parent()
 
-        threading.Thread(target=self._job_run(), daemon=True).start()
+        self._job_thread = None
 
     def _job_run(self):
         args = []
         if self.job_executable.script:
-            args.append(self.environment.python)
-        args.append(os.path.join(self.environment.geomop_root,
+            args.append(self.process.environment.python)
+        args.append(os.path.join(self.process.environment.geomop_root,
                                  self.job_executable.path,
                                  self.job_executable.name))
         args.extend(self.job_exec_args.args)
         # todo:
-        # cwd = os.path.join(self.environment.geomop_analysis_workspace,
-        #                   self.exec_args.work_dir)
+        cwd = os.path.join(self.process.environment.geomop_analysis_workspace,
+                           self.job_exec_args.work_dir)
         with open("out.txt", 'w') as fd_out:
-            p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)  # , cwd=cwd)
+            p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)#, cwd=cwd)
+            p.wait()
 
     def _do_work(self):
-        pass
-
-
-
+        if self._job_thread is None:
+            self._job_thread = threading.Thread(target=self._job_run, daemon=True)
+            self._job_thread.start()
+        elif not self._job_thread.is_alive():
+            self.status = service_base.ServiceStatus.done
+            self.save_config()
+            self._closing = True
 
 
 def job_main():
-    input_file = "job_config.json"
+    input_file = "job_service.conf"
     if len(sys.argv) >  1:
         input_file = sys.argv[1]
     with open(input_file, "r") as f:
@@ -96,7 +100,7 @@ if __name__ == "__main__":
     #     logger.error(err))
     #     sys.exit(ServiceExit.1)
 
-    logging.basicConfig(filename='job.log', filemode="w",
+    logging.basicConfig(filename='job_service.log', filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 

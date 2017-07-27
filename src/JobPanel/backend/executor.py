@@ -165,10 +165,10 @@ class ProcessExec(ProcessBase):
                                      self.executable.name))
             args.extend(self.exec_args.args)
             # todo:
-            #cwd = os.path.join(self.environment.geomop_analysis_workspace,
-            #                   self.exec_args.work_dir)
+            cwd = os.path.join(self.environment.geomop_analysis_workspace,
+                               self.exec_args.work_dir)
             with open("out.txt", 'w') as fd_out:
-                p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)#, cwd=cwd)
+                p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
             self.process_id = "{}@{}".format(p.pid, p.create_time())
             return self.process_id
 

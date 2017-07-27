@@ -24,7 +24,7 @@ class Backend(service_base.ServiceBase):
 ##########
 
 
-logging.basicConfig(filename='backend.log', filemode="w",
+logging.basicConfig(filename='backend_service.log', filemode="w",
                     format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                     level=logging.INFO)
 

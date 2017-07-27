@@ -216,6 +216,8 @@ class ServiceBase(JsonData):
         #
         self.status = ServiceStatus.queued
         """Service status"""
+        self.wait_before_run = 0.0
+        """Wait before run service, used for testing purposes."""
         super().__init__(config)
 
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -261,12 +263,14 @@ class ServiceBase(JsonData):
         """
         :return:
         """
+        time.sleep(self.wait_before_run)
+
         # Start the repeater loop.
         self._repeater.run()
         logging.info("After run")
 
         self.status = ServiceStatus.running
-        #self.save_config()
+        self.save_config()
 
         last_time = time.time()
 

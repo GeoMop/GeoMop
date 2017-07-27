@@ -462,9 +462,6 @@ class AsyncRepeater():
             self._server_dispatcher = self._server.get_dispatcher()
 
             self._starter_client_attempting = True
-            self._starter_client_thread = threading.Thread(target=self._starter_client_run)
-            self._starter_client_thread.daemon = True
-            self._starter_client_thread.start()
 
         self._starter_server = StarterServer(self)
 
@@ -472,12 +469,18 @@ class AsyncRepeater():
     def run(self):
         """
         Start the repeater loop in separate thread.
+        Start starter client.
         :return: None
         """
         self.loop_thread = threading.Thread(target=asyncore.loop, kwargs = {'timeout':0.1})
         self.loop_thread.daemon = True
         self.loop_thread.start()
         logging.info("Repeater loop started.")
+
+        if self._starter_client_attempting:
+            self._starter_client_thread = threading.Thread(target=self._starter_client_run, daemon=True)
+            self._starter_client_thread.start()
+            logging.info("Starter client started.")
 
 
     def add_child(self, connection, remote_address=None):
