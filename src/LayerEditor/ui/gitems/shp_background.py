@@ -5,7 +5,7 @@ from leconfig import cfg
 
 class ShpBackground(QtWidgets.QGraphicsItem):
     """ 
-        Represents a join of nodes in the diagram
+        Represents a shp file diagram background
     """
     
     ZVALUE = -10
@@ -29,16 +29,12 @@ class ShpBackground(QtWidgets.QGraphicsItem):
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that paint object from shape file"""
         r = cfg.diagram.pen.widthF()
-        if cfg.diagram.pen.widthF() != painter.pen().widthF():
-            pen = QtGui.QPen(cfg.diagram.pen)
-            painter.setPen(pen)
-            bpen = QtGui.QPen(cfg.diagram.bpen)
-        if painter.pen().color()!= self.color:
-            pen = QtGui.QPen(cfg.diagram.pen)
-            pen.setColor( self.color)
-            painter.setPen(pen)
-            bpen = QtGui.QPen(cfg.diagram.bpen)
-            bpen.setColor( self.color)
+        
+        pen = QtGui.QPen(cfg.diagram.pen)
+        pen.setColor(self.color)
+        painter.setPen(pen)
+        bpen = QtGui.QPen(cfg.diagram.bpen)
+        bpen.setColor( self.color)
             
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         highlighted = False

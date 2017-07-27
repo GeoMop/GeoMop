@@ -1,4 +1,5 @@
 from ui.data.diagram_structures import Diagram
+from ui.data.history import GlobalHistory
 from ui.data.le_serializer import LESerializer
 import mock_config as mockcfg
 from leconfig import cfg
@@ -26,8 +27,9 @@ def test_serialize_base(request):
         diagram.join_line(diagram.points[line[0]], diagram.points[line[1]], "Add test line", None, True)   
         
     ser.save(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
+    history = GlobalHistory()
     
-    cfg.diagrams = [Diagram()]
+    cfg.diagrams = [Diagram(history)]
     cfg.diagram = cfg.diagrams[0]
     
     ser = LESerializer(cfg)
@@ -42,6 +44,5 @@ def test_serialize_base(request):
     assert len(diagram.lines)==len(diagram2.lines)
     for i in range(0, len(diagram2.lines)):
         assert diagram.points.index(diagram.lines[i].p1)==diagram2.points.index(diagram2.lines[i].p1)
-        assert diagram.points.index(diagram.lines[i].p2)==diagram2.points.index(diagram2.lines[i].p2)
-        
-    assert os.path.join(TEST_DIR, "test_geometry1.json")==cfg.path
+        assert diagram.points.index(diagram.lines[i].p2)==diagram2.points.index(diagram2.lines[i].p2)       
+

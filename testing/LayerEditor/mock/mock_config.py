@@ -4,8 +4,6 @@ from leconfig.leconfig import _Config as Config
 def set_empty_config():
     Config.SERIAL_FILE = "LayerEditorData_test"
     cfg.config = Config()
-    cfg.init(None)
-
 
 def clean_config():
     import config

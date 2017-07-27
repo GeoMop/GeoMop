@@ -34,6 +34,16 @@ class GlobalHistory():
         self.last_undo_labels = 0
         """Len of steps list during last undo operation"""
     
+    def is_changes(self):
+        """Return if changes is made after saving"""
+        # TODO:
+        return False
+        
+    def saved(self):
+        """Save point, where is data saved"""
+        # TODO:
+        pass
+    
     def add_history(self, history):
         """Add history to histories variable, end return its id"""
         self.histories.append(history)

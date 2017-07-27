@@ -13,17 +13,18 @@ class Layers(QtWidgets.QWidget):
     
     pyqtSignals:
         * :py:attr:`viewInterfacesChanged(int) <viewInterfacesChanged>`
-        * :py:attr:`editInterfaceChanged(int) <editInterfaceChanged>`
+        * :py:attr:`editInterfaceChanged(int,int) <editInterfaceChanged>`
     """
     
     viewInterfacesChanged = QtCore.pyqtSignal(int)
     """Signal is sent when one or more interfaces is set or unset as viwed.
     
     :param int idx: changed diagram index"""
-    editInterfaceChanged = QtCore.pyqtSignal(int)
+    editInterfaceChanged = QtCore.pyqtSignal(int, int)
     """Signal is sent when edited interface is changed.
     
-    :param int idx: new edited diagram index"""
+    :param int idx_old: old edited diagram index
+    :param int idx_new: new edited diagram index"""
 
     def __init__(self, parent=None):
         """
@@ -216,8 +217,12 @@ class Layers(QtWidgets.QWidget):
             second = True
         else:
             assert(type is ClickedControlType.view)
-        cfg.layers.set_viewed_interface(i, second, fracture)
+        viewed = cfg.layers.set_viewed_interface(i, second, fracture)
         diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
+        if viewed:
+            cfg.diagram.views.append(diagram_idx)
+        else:
+            cfg.diagram.views.remove(diagram_idx)
         self.update()
         self.viewInterfacesChanged.emit(diagram_idx)
         
@@ -233,8 +238,9 @@ class Layers(QtWidgets.QWidget):
             assert(type is ClickedControlType.edit)
         cfg.layers.set_edited_interface(i, second, fracture)
         diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
+        old = cfg.set_curr_diagram(diagram_idx)
         self.update()
-        self. editInterfaceChanged.emit(diagram_idx)
+        self. editInterfaceChanged.emit(old, diagram_idx)
     
     def add_interface(self, i):
         """Split layer by new interface"""

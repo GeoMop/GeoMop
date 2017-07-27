@@ -104,6 +104,9 @@ class Diagram():
     """
     shp = ShpFiles()
     """Current editing topology"""
+    views = []    
+    """Next not edited diagrams"""
+    views_object = {}
     
     def __init__(self,  global_history):       
         self._rect = None
@@ -128,8 +131,21 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
-        self.topology_idx = None
-        """index of topology"""
+        
+    def dcopy(self):
+        """My deep copy implementation"""
+        ret = Diagram(self._history.global_history)
+        
+        for point in self.points:
+            ret.add_point(point.x, point.y, 'Copy point', None, True)
+        for line in self.lines:
+            ret.join_line(ret.points[self.points.index(line.p1)],
+                ret.points[self.points.index(line.p2)],
+                "Copy line", None, True)
+        if ret._rect is not None:
+            ret.x = ret._rect.left()
+            ret.y = ret._rect.top() 
+        return ret
       
     @property
     def rect(self):
@@ -139,6 +155,8 @@ class Diagram():
             else:
                 return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100
+        if margin==0:
+            margin = 1
         return QtCore.QRectF(
             self._rect.left()-margin, 
             self._rect.top()-margin,

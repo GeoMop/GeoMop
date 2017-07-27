@@ -41,7 +41,7 @@ class LayerEditor:
 #                y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
 #                p1 = cfg.diagram.add_point(x1, y1, None, None, True)
 #                cfg.diagram.add_line(p1, x2, y2, None, True)
-        self.mainwindow.refresh_diagram_data()
+        self.mainwindow.paint_new_data()
         
     def new_file(self):
         """new file menu action"""
@@ -53,11 +53,11 @@ class LayerEditor:
         """open file menu action"""
         if not self.save_old_file():
             return
-        yaml_file = QtWidgets.QFileDialog.getOpenFileName(
-            self.mainwindow, "Choose Yaml Model File",
-            cfg.config.data_dir, "Yaml Files (*.yaml)")
-        if yaml_file[0]:
-            cfg.open_file(yaml_file[0])
+        file = QtWidgets.QFileDialog.getOpenFileName(
+            self.mainwindow, "Choose Json Geometry File",
+            cfg.config.data_dir, "Json Files (*.json)")
+        if file[0]:
+            cfg.open_file(file[0])
             
     def add_shape_file(self):
         """open set file"""
@@ -94,7 +94,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         if cfg.curr_file is None:
-            new_file = cfg.config.data_dir + os.path.sep + "NewFile.yaml"
+            new_file = cfg.config.data_dir + os.path.sep + "NewFile.json"
         else:
             new_file = cfg.curr_file
         dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as JSON Geometry File', new_file,
@@ -119,8 +119,7 @@ class LayerEditor:
 
         return: False if action have to be aborted
         """
-        cfg.update_yaml_file(self.mainwindow.editor.text())
-        if cfg.changed:
+        if cfg.changed():
             msg_box = QtWidgets.QMessageBox()
             msg_box.setWindowTitle("Confirmation")
             msg_box.setIcon(QtWidgets.QMessageBox.Question)

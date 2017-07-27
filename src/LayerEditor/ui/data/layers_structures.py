@@ -192,8 +192,7 @@ class Layers():
     @property
     def x_edit(self):
         """edit button x left coordinate"""
-        return self.__dx__*4+self.__dx_controls__
-    
+        return self.__dx__*4+self.__dx_controls__    
     
     def __init__(self):
         self.font = QtGui.QFont("times", 12)
@@ -208,6 +207,11 @@ class Layers():
         """Coordinate of the longest interface name end"""
         self.y_font = 0
         """Font height"""
+        
+    def delete(self):
+        """delete all data structure"""
+        self.layers = []
+        self.interfaces = []
      
     class LayersIterData():
         """Data clas for passing between itarion functions 
@@ -784,7 +788,6 @@ class Layers():
         if self.interfaces[idx].fracture is not None:
             fractures += 1              
         return (slices, fractures)
-
                 
     def remove_fracture(self, idx):
         """Remove fracture from idx interface. If fracture has surface,
@@ -833,8 +836,7 @@ class Layers():
             self._move_diagram_idx(idx, 1)
         elif type is ChangeInterfaceActions.top_editable:
             self.interfaces[idx].diagram_id1 = dup.insert_id
-            self._move_diagram_idx(idx, 1)
- 
+            self._move_diagram_idx(idx, 1) 
         
     def split_interface(self, idx, dup):
         """Split interface.
@@ -864,7 +866,22 @@ class Layers():
             self._move_diagram_idx(idx, dup.count)
         self.layers.insert(idx+1, new_layer)
         self.interfaces.insert(idx+1, new_interface)        
-        
+
+    def set_edited_diagram(self, diagram_id):
+        """Find interface accoding to diagram id, and set id as
+        edited"""
+        for i in range(0, len(self.interfaces)):
+            if self.interfaces[i].diagram_id1 is not None and \
+                self.interfaces[i].diagram_id1 == diagram_id:
+                return self.set_edited_interface(i, False)
+            if self.interfaces[i].fracture is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id == diagram_id:
+                return self.set_edited_interface(i, False, True)
+            if self.interfaces[i].diagram_id2 is not None and \
+                self.interfaces[i].diagram_id2 == diagram_id:
+                return self.set_edited_interface(i, True)
+        return True 
         
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 
@@ -921,8 +938,8 @@ class Layers():
                 return None
             return self.interfaces[idx].fracture.fracture_diagram_id
         elif second:
-            return self.interfaces[idx].diagram_id1
-        return self.interfaces[idx].diagram_id2
+            return self.interfaces[idx].diagram_id2
+        return self.interfaces[idx].diagram_id1
 
     def set_viewed_interface(self, idx, second, fracture=False):
         """Invert set viewed value and return its value"""

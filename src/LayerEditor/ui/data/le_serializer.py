@@ -13,18 +13,19 @@ class LESerializer():
         
     def _get_first_geometry(self, cfg):
         """Get emty geometry (new)"""
+        cfg.diagrams = []
+        cfg.layers.delete()
         gf = GeometryFactory()            
         tp_idx = gf.add_topology()        
         ns_idx = gf.add_node_set(tp_idx)        
         gf.geometry.supplement.last_node_set = ns_idx
         cfg.diagrams = [Diagram(cfg.history)]
         cfg.diagram = cfg.diagrams[0]
-        cfg.node_set_idx = ns_idx        
-        cfg.diagrams[0].topology_idx = tp_idx
         cfg.layers.add_interface("0", False, None, ns_idx)
         cfg.layers.add_interface("100", False)
         cfg.layers.add_layer("New Layer")
         cfg.layers.compute_composition()
+        cfg.layers.set_edited_diagram(0)
         return gf.geometry
         
     def save(self, cfg, path):
@@ -83,7 +84,7 @@ class LESerializer():
                     gf.add_GL(layers_info.fracture_own.name, LayerType.fracture, TopologyType.given, ns)
                     layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
-        gf.geometry.supplement.last_node_set = cfg.node_set_idx
+        gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
         errors = gf.check_file_consistency()
         if len(errors)>0:
             raise LESerializerException("Some file consistency errors occure", errors)
@@ -103,11 +104,6 @@ class LESerializer():
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
-        assert path is not None or self.diagram.path is not None 
-        if path is None:
-            path = self.path
-        else:
-            self.path = path
         reader = GeometrySer(path)
         self.geometry =  reader.read()
         gf = GeometryFactory(self.geometry)
@@ -115,21 +111,34 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
-        self.diagrams = []    
+        cfg.diagrams = []
+        cfg.layers.delete()
         for i in range(0, len(gf.geometry.node_sets)):
-            cfg.diagrams.append(Diagram())
+            cfg.diagrams.append(Diagram(cfg.history))
             self._read_ns(cfg, i, gf)        
-        ns_idx = 0    
-        last_stratum = None
+        ns_idx = 0   
         last_fracture = None
+        last_stratum = None
         for i in range(0, len(gf.geometry.main_layers)):
             layer = gf.geometry.main_layers[i]
+            if layer.layer_type == LayerType.fracture:
+                last_fracture.append(layer)
+                continue
             # add interface
             depth = gf.geometry.surfaces[layer.top.surface_idx].get_depth()
-            if last_stratum.bottom_type is TopologyType.interpolated and \
+            if last_stratum is None:
+                name = None
+                id1 = None
+                if last_fracture is not None:
+                    name = last_fracture.name
+                    last_fracture = None
+                if layer.top_type is TopologyType.given:                
+                    id1 = layer.top.ns_idx
+                cfg.layers.add_interface(depth, False, name, id1)
+            elif last_stratum.bottom_type is TopologyType.interpolated and \
                 layer.top_type is TopologyType.interpolated:                
                 if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(layer):                    
-                    if last_fracture is not None:
+                    if len(last_fracture) is not None:
                         cfg.layers.add_interface(depth, False, last_fracture.name)
                         last_fracture = None
                     else:
@@ -178,11 +187,8 @@ class LESerializer():
                     id2 = layer.top.ns_idx
                 cfg.layers.add_interface(depth, True, fracture_name, id1, id2, fracture_type, fracture_id)
             # add layer
-            if layer.layer_type == LayerType.fracture:
-                last_fracture = layer
-            else:
-                cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
-                last_stratum = layer
+            cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
+            last_stratum = layer
         #last interface
         depth = gf.geometry.surfaces[last_stratum.bottom.surface_idx].get_depth()
         id1 = None
@@ -195,7 +201,8 @@ class LESerializer():
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set
         cfg.diagram = cfg.diagrams[ns_idx]
-        cfg.node_set_idx = ns_idx        
+        cfg.layers.set_edited_diagram(ns_idx)
+        cfg.layers.compute_composition()
                 
     def _read_ns(self, cfg, ns_idx, gf):
         """read  one node set from geometry file structure to diagram structure""" 
@@ -206,7 +213,6 @@ class LESerializer():
         for segment in segments:
             cfg.diagrams[ns_idx].join_line(cfg.diagrams[ns_idx].points[segment.n1_idx], 
                 cfg.diagrams[ns_idx].points[segment.n2_idx], "Import line", None, True)   
-        cfg.diagrams[ns_idx].topology_idx
 
     
 class LESerializerException(Exception):

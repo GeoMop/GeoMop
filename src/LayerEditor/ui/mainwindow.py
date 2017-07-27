@@ -79,11 +79,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.possChanged.connect(self._move)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
+        self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
+        self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
 
-    def refresh_diagram_data(self):
+    def refresh_all(self):
+        """For new data"""
+        self.diagramScene.set_data()
+        self.refresh_view_data()
+
+    def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
         self.diagramScene.set_data()
         self.display_all()
+        
+    def refresh_curr_data(self, old_i, new_i):
+        """Propagate new diagram scene to canvas"""
+        if old_i == new_i:
+            return        
+        self.refresh_view_data(old_i)
+        self.refresh_view_data(new_i)
+        self.diagramScene.release_data(old_i)
+        self.diagramScene.set_data()        
+        
+    def refresh_view_data(self, i):
+        """Propagate new views (static, not edited diagrams) 
+        scene to canvas. i is changed view."""
+        self.diagramScene.update_view(i)
         
     def refresh_diagram_shp(self):
         """refresh diagrams shape files background layer"""

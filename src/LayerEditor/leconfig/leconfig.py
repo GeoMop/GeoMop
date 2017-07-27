@@ -9,7 +9,6 @@ import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 import ui.data as data
-import copy
 from geomop_analysis import Analysis, InvalidAnalysis
 
 class _Config:
@@ -93,6 +92,15 @@ class _Config:
             return os.path.join(self.workspace, self.analysis)
         else:
             return self.last_data_dir
+            
+    def update_last_data_dir(self, file_name):
+        """Save dir from last used file"""
+        analysis_directory = None
+        directory = os.path.dirname(os.path.realpath(file_name))
+        if self.workspace is not None and self.analysis is not None:
+            analysis_dir = os.path.join(self.workspace, self.analysis)
+        if analysis_directory is None or directory != analysis_dir:
+            self.last_data_dir = directory
 
     @property
     def workspace(self):
@@ -156,15 +164,30 @@ class LEConfig:
     """
     path = None
     """Current geometry data file path"""
-    node_set_idx = None
-    """Current editing node set, if is node, new node set is edited"""
+
+    @classmethod
+    def changed(cls):
+        """is file changed"""
+        return cls.history.is_changes()
+        
+    @classmethod
+    def set_curr_diagram(cls, i):
+        """Set i diagram as edited. Return old diagram id"""
+        ret = cls.diagrams.index(cls.diagram)
+        cls.diagram = cls.diagrams[i]
+        return ret
+    
+    @classmethod
+    def get_curr_diagram(cls):
+        """Get id of diagram that is edited."""
+        return cls.diagrams.index(cls.diagram)        
 
     @classmethod
     def insert_diagrams_copies(cls, dup):
         """Insert diagrams after set diagram"""
         for i in range(0, dup.count):
             if dup.copy:
-                cls.diagrams.insert(dup.insert_id, copy.deepcopy(cls.diagrams[dup.insert_id-1]))
+                cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
                 cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))        
         
@@ -172,7 +195,7 @@ class LEConfig:
     def make_middle_diagram(cls, dup):
         """return interpolated new diagram in set depth"""
         # TODO: instead copy compute middle diagram
-        return copy.deepcopy(cls.diagrams[dup.dup1_id])
+        return cls.diagrams[dup.dup1_id].dcopy()
     
     @classmethod
     def init(cls, main_window):
@@ -205,6 +228,8 @@ class LEConfig:
     def save_file(cls, file):
         """save to json file"""
         cls.data.save(cls, file)
+        cls.history.saved()
+        cls.config.update_last_data_dir(file)
         
     @classmethod
     def open_file(cls, file):
@@ -212,6 +237,7 @@ class LEConfig:
         save file name and timestamp
         """        
         cls.curr_file = file
+        cls.config.update_last_data_dir(file)
         if file is None:
             cls.curr_file_timestamp = None
         else:
@@ -219,6 +245,8 @@ class LEConfig:
                 cls.curr_file_timestamp = os.path.getmtime(file)
             except OSError:
                 cls.curr_file_timestamp = None
+        cls.history.remove_all()
+        cls.data.load(cls, file)
         
     @classmethod
     def confront_file_timestamp(cls):

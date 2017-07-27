@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
-from ui.gitems import Line, Point, ShpBackground
+from ui.gitems import Line, Point, ShpBackground, DiagramView
 from ui.gitems import ItemStates
 from enum import IntEnum
 from leconfig import cfg
@@ -229,8 +229,40 @@ class Diagram(QtWidgets.QGraphicsScene):
         for point in moved_points:
             point.object.move_point()        
         
+    def release_views(self):
+        """release all diagram views"""
+        deleted = []
+        for id, view in cfg.diagram.views_object.items():
+            deleted.append(view)
+        cfg.diagram.views_object = {}
+        while len(deleted)>0:
+            self.removeItem(deleted.pop())            
+        
+    def update_view(self, diagram_id):
+        """release all diagram views"""
+        curr_id = cfg.diagrams.index(cfg.diagram)
+        if curr_id==diagram_id or diagram_id not in cfg.diagram.views:
+            if diagram_id in cfg.diagram.views_object:
+                obj = cfg.diagram.views_object[diagram_id]
+                obj.release_view()
+                self.removeItem(obj)            
+        else: 
+            view = DiagramView(diagram_id)
+            self.addItem(view) 
+        
+    def release_data(self, old_diagram):
+        """release all shapes data"""
+        for line in cfg.diagrams[old_diagram].lines:
+            obj = line.object
+            obj.release_line()
+            self.removeItem(obj)
+        for point in cfg.diagrams[old_diagram].points:
+            obj = point.object
+            obj.release_point()
+            self.removeItem(obj)
+        
     def set_data(self):        
-        self.clear()
+        """set new shapes data"""
         for line in cfg.diagram.lines:
             l = Line(line)
             self.addItem(l) 

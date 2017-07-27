@@ -160,11 +160,6 @@ class NodeSet(GeoObject):
 class SurfaceNodeSet(GeoObject):
     """Node set in space for transformation(x,y) ->(u,v). 
     Only for GL"""
-    
-    class_def={
-            "ns_idx": NodeSet, 
-            "surface_idx":Surface
-        }
 
     def __init__(self, ns_idx, surface_idx):
         self.ns_idx = ns_idx,
@@ -177,11 +172,6 @@ class InterpolatedNodeSet(GeoObject):
     """Two node set with same Topology in space for transformation(x,y) ->(u,v).
     If both node sets is same, topology is vertical    
     Only for GL"""
-    
-    class_def={
-        "source_ns": NodeSet, 
-        "surface_idx":Surface
-    }
 
     def __init__(self, ns1_idx, ns2_idx, surface_idx):
         self.source_ns = [ns1_idx, ns2_idx]
