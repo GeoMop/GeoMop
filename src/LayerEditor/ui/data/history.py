@@ -1,3 +1,5 @@
+from ui.helpers import EventLocation, CurrentView
+
 class LocalLabel():
     """
     Class with base history state variables
@@ -29,20 +31,19 @@ class GlobalHistory():
         """List of local labels"""
         self.undo_labels = []
         """List of local undo labels"""
-        self._current_view = 1
-        """Currently set view"""
         self.last_undo_labels = 0
         """Len of steps list during last undo operation"""
+        self.last_save_labels = 0
+        """Len of steps list during saving undo operation"""
     
     def is_changes(self):
         """Return if changes is made after saving"""
-        # TODO:
-        return False
+        return self.last_save_labels != len(self.labels)
+
         
     def saved(self):
         """Save point, where is data saved"""
-        # TODO:
-        pass
+        self.last_save_labels = len(self.labels)
     
     def add_history(self, history):
         """Add history to histories variable, end return its id"""
@@ -51,7 +52,8 @@ class GlobalHistory():
 
     def add_label(self, history_id, label):
         """Add label to global history"""
-        self.labels.append(LocalLabel(history_id, label, self._current_view))
+        self.labels.append(LocalLabel(history_id, label, CurrentView(self.histories[history_id].__location__)))
+        pass
         
     def remove_all(self):
         """Releas all histories"""
@@ -64,46 +66,47 @@ class GlobalHistory():
         
     def get_undo_view(self):
         """If current view is different from view that is need for next undo opperation
-       return it, else return None"""
+        return it, else return None"""
+        if len(self.labels)<1:
+            return None
+        if not self.labels[-1].view.cmp():
+            return self.labels[-1].view 
         return None
         
     def get_redo_view(self):
         """If current view is different from view that is need for next redo opperation
-       return it, else return None"""
+        return it, else return None"""
+        if len(self.undo_labels)<1:
+            return None
+        if not self.undo_labels[-1].view.cmp():
+            return self.undo_labels[-1].view 
+
         return None
-        
-    def set_current_view(self, view):
-        """set current view for history"""
-        self._current_view = view
-        
-    def get_current_view(self):
-        """Get view that is set in history as current"""
-        return self._current_view
-        
-    def try_undo_to_label(self, count=1):
+
+    def try_undo_to_label(self):
         """Make all undo opperations, that was done in current view,
         if is label operation done, return True and ops list. If not, new current view 
         is set and return False"""
         id = None
-        while count>0:
-            if len(self.labels)==0:
+        while len(self.labels)>0:
+            if not self.labels[-1].view.cmp():
+                # view is changes
                 if id is not None:
-                    return self.histories[id].return_op()
-                return self.return_op()
-            if self.labels[-1].view != self._current_view or  \
-                (id is not None and id!=self.labels[-1].history_id) :
-                if id is not None:
-                    return self.histories[id].return_op()
-                return self.return_op()
+                    return False, self.histories[id].return_op()
+                return False, self.return_op()
             label = self.labels.pop()
             id = label.history_id            
-            self.histories[id].undo_to_label()
+            self.histories[id].undo()
             self.undo_labels.append(label)
             self.last_undo_labels = len(self.steps)
-            count -= 1
+            if label.label is not None:
+                # to label
+                if id is not None:
+                    return True, self.histories[id].return_op()
+                return True, self.return_op()
         if id is not None:
-            return self.histories[id].return_op()
-        return self.return_op()
+            return True, self.histories[id].return_op()
+        return True, self.return_op()
         
     def try_redo_to_label(self, count=1):
         """Make all redo opperations, that was done in current view,
@@ -112,22 +115,28 @@ class GlobalHistory():
         if self.last_undo_labels!=len(self.labels):
             # new history step was added after undo operation
             self.undo_labels = []
-            return False, self._return_op( )
-        id = None 
-        while len(self.undo_labels)>0:
-            # finish if not undo steps or end is set to True and next step has label
-            if  count<1:
+            for history in self.histories:
+                history.undo_steps = []            
+            return True, self._return_op( )
+        end = False
+        while len(self.undo_labels)>0 and \
+            (self.undo_labels[-1].label is None or not end):
+            # label if is first and all None labels (if first label is not 
+            # is none, view was changed)
+            end = True
+            if not self.undo_labels[-1].view.cmp():
+                self.last_undo_labels=len(self.labels)
                 if id is not None:
-                    return self.histories[id].return_op()
-                return self.return_op()
+                    return False, self.histories[id].return_op()
+                return False, self.return_op()
             label = self.undo_labels.pop()
             id = label.history_id            
-            self.histories[id].redo_to_label()
+            self.histories[id].redo()
             self.labels.append(label)
-            count -= 1
+        self.last_undo_labels=len(self.labels)
         if id is not None:
-            return self.histories[id].return_op()
-        return self.return_op()
+            return True, self.histories[id].return_op()
+        return True, self.return_op()
         
     def return_op(self):
         """Return changes maked after last history operation calling and
@@ -177,40 +186,23 @@ class History():
         class implementation."""
         return {"type":None}
         
-    def undo_to_label(self):
-        """undo to set label, if label is None, undo to previous operation, 
-        that has not None label"""
-        while True:
-            if len(self.steps)==0:
-                return False
-            step = self.steps.pop()
-            revert = step.process()
-            if step.label is not None:
-                revert.label=step.label
-            self.undo_steps.append(revert)
-            if step.label is not None:
-                break
-        return  True
+    def undo(self):
+        """undo make one undo operation"""
+        assert len(self.steps)>0
+        step = self.steps.pop()
+        revert = step.process()
+        if step.label is not None:
+            revert.label=step.label
+        self.undo_steps.append(revert)
         
-    def redo_to_label(self):
-        """redo to set label, if label is None, redo to next operation, 
-        that has not None label"""
-        if self.last_undo_steps!=len(self.steps):
-            self.undo_steps = []
-            return False
-        end = False
-        while len(self.undo_steps)>0 and \
-            (self.undo_steps[-1].label is None or not end):
-            # finish if not undo steps or end is set to True and next step has label
-            step = self.undo_steps.pop()
-            revert = step.process()
-            if step.label is not None:
-                revert.label=step.label
-            self.steps.append(revert)
-            if step.label is not None:
-                end = True
+    def redo(self):
+        """make one redo operation"""
+        step = self.undo_steps.pop()
+        revert = step.process()
+        if step.label is not None:
+            revert.label=step.label
+        self.steps.append(revert)
         self.last_undo_steps=len(self.steps)
-        return True
         
     def release(self):
         """Set or lins to none"""
@@ -223,6 +215,8 @@ class DiagramHistory(History):
     
     Basic diagram operation for history purpose
     """
+
+    __location__ = EventLocation.diagram
             
     def __init__(self, diagram,  global_history): 
         super(DiagramHistory, self).__init__(global_history)       
@@ -378,4 +372,3 @@ class DiagramHistory(History):
         self._added_lines = []
         self._removed_lines = []
         self._diagram = None
-    

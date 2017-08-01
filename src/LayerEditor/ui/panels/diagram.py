@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
-from ui.gitems import Line, Point, ShpBackground, DiagramView
+from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink
 from ui.gitems import ItemStates
 from enum import IntEnum
 from leconfig import cfg
@@ -38,6 +38,8 @@ class Diagram(QtWidgets.QGraphicsScene):
     New coordinates is set in _data variable and parent view should connect
     to signal and change visualisation.
     """
+    BLINK_INTERVAL = 500
+    """blink interval in ms"""
 
     def __init__(self, parent=None):
         """
@@ -52,7 +54,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         self._point_moving_counter = 0
         """counter for moving"""
         self._point_moving_old = None
-        """Old point position"""
+        """Old point position"""        
         # move line variables
         self._line_moving = None
         """point is drawn"""
@@ -76,8 +78,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         """zoom affected displayed items"""        
         self._selection_mode = False        
         """Diagram is in selection mode"""
-        self.operation_state = OperatinState.point
-        """Operatoin mode"""
         # added operation        
         self._last_line = None
         """last added shapes"""
@@ -95,7 +95,17 @@ class Diagram(QtWidgets.QGraphicsScene):
         # control object
         self._control_object = None
         """object, that is below cursor, if button press event is emited"""
-        super(Diagram, self).__init__(parent)        
+        #blink
+        self.blink = None
+        """blink object"""
+        self.blink_timer = QtCore.QTimer()
+        """Blink timer"""
+        self.blink_timer.setSingleShot(True) 
+        
+        super(Diagram, self).__init__(parent)
+        self.blink_timer.timeout.connect(self.blink_end)
+        self.blink_timer.start(self.BLINK_INTERVAL) 
+  
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
         
@@ -205,12 +215,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         if self._last_line is not None: 
             self.remove_last()
     
-    def set_operation_state(self, selected):
-        """Set operation state"""
-        self.operation_state = selected
-        if self._last_line is not None: 
-            self.remove_last()
-        
     def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
             p = Point(point)
@@ -240,8 +244,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         
     def update_view(self, diagram_id):
         """release all diagram views"""
-        curr_id = cfg.diagrams.index(cfg.diagram)
-        if curr_id==diagram_id or diagram_id not in cfg.diagram.views:
+        if cfg.diagram_id()==diagram_id or diagram_id not in cfg.diagram.views:
             if diagram_id in cfg.diagram.views_object:
                 obj = cfg.diagram.views_object[diagram_id]
                 obj.release_view()
@@ -268,8 +271,20 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.addItem(l) 
         for point in cfg.diagram.points:
             p = Point(point)
-            self.addItem(p)
+            self.removeItem(p)
         self._recount_zoom = cfg.diagram.zoom
+        
+    def blink_start(self, rect):
+        """Start blink window"""
+        self.blink = Blink(rect)
+        self.addItem(self.blink)
+        self.blink_timer.start(self.BLINK_INTERVAL)
+        
+    def blink_end(self):
+        """Finish blink window"""
+        if self.blink is not None:
+            self.removeItem(self.blink)        
+        self.blink = None
             
     def mouseMoveEvent(self, event):
         """Standart mouse event"""
@@ -313,14 +328,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
     
-    def _next_point(self, event):
-        """next point in line or point mode is clicked"""
-        if self.operation_state is OperatinState.line:
-            self._add_line(event.gobject, event.scenePos())            
-        elif self.operation_state is OperatinState.point:
-            if event.gobject is None or not isinstance(event.gobject, Point):
-                self._add_point(event.gobject, event.scenePos())
-
     def _select_point(self, point):
         """set point as selected"""
         if not point in self._selected_points:
@@ -436,14 +443,14 @@ class Diagram(QtWidgets.QGraphicsScene):
                     cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                     self.possChanged.emit()
                 else:
-                    if not self._selection_mode:
-                        self._next_point(event)                       
+                    if not self._selection_mode:                        
+                        self._add_line(event.gobject, event.scenePos())                      
             elif self._point_moving is not None:
                 if  self._point_moving_counter>1:
                     self._anchor_moved_point(event)                    
                 else:
                     if not self._selection_mode:
-                        self._next_point(event)
+                        self._add_line(event.gobject, event.scenePos())
                     else:
                         self._select_point(event.gobject)
                 self._point_moving = None
@@ -452,7 +459,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
                 else:
                     if not self._selection_mode:
-                        self._next_point(event)
+                        self._add_line(event.gobject, event.scenePos())
                     else:
                         self._select_line(event.gobject, 
                             (event.modifiers() & QtCore.Qt.ControlModifier)==QtCore.Qt.ControlModifier)

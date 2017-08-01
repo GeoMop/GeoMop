@@ -89,6 +89,22 @@ class Line():
         """return QRectF coordinates"""
         return QtCore.QRectF(self.p1.qpointf(), self.p2.qpointf())
 
+class Polygon():
+    """
+    Class for graphic presentation of line
+    """
+    def __init__(self, lines, id=None):
+        global __next_id__
+        self.lines = lines
+        """Lines"""
+        self.object = None
+        """Graphic object"""
+        self.id = id
+        """Poligon history id"""
+        if id is None:            
+            self.id = __next_id__
+            __next_id__ += 1
+
 
 class Diagram():
     """
@@ -103,18 +119,39 @@ class Diagram():
         - Line.p1<line.p2
     """
     shp = ShpFiles()
-    """Current editing topology"""
+    """Displayed shape files"""
     views = []    
-    """Next not edited diagrams"""
+    """Not edited diagrams"""
     views_object = {}
+    """Object of not edited diagrams"""
+    topologies = {}
+    """List of all diagrams, divided by topologies"""
     
-    def __init__(self,  global_history):       
+    @classmethod
+    def release_all(cls):
+        """Discard all links"""
+        cls.views = []    
+        cls.views_object = {}
+        cls.topologies = {}
+
+    def __init__(self, topology_idx, global_history):  
+        self.topology_idx = topology_idx
+        """Topology index"""
         self._rect = None
         """canvas Rect"""
         self.points = []
         """list of points"""
+        self.topology_owner = False
+        """First diagram in topology is topology owner, and is 
+        responsible for its saving"""
+        if not topology_idx in self.topologies:
+            self.topology_owner = True
+            self.topologies[topology_idx] = []
+        self.topologies[topology_idx].append(self)
         self.lines = []
         """list of lines"""
+        self.polygons= []
+        """list of polygons"""
         self._zoom = 1.0
         """zoom"""
         self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
@@ -131,6 +168,14 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
+        
+    def release(self, index):
+        """Discard this object from global links"""
+        self.topologies[self.topology_idx].release(self)
+        if len(self.topologies[self.topology_idx])>1:
+            del self.topologies[self.topology_idx]
+        else:
+            self.topologies[self.topology_idx].topology_owner = True
         
     def dcopy(self):
         """My deep copy implementation"""
@@ -291,7 +336,7 @@ class Diagram():
         for line in p1.lines:
             if line.p2 == p2:
                 return line
-        line = Line(p1,p2, id)
+        line = Line(p1, p2, id)
         p1.lines.append(line)
         p2.lines.append(line)
         self.lines.append(line)

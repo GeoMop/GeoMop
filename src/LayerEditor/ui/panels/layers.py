@@ -35,6 +35,7 @@ class Layers(QtWidgets.QWidget):
         """
         super(Layers, self).__init__(parent)
         self.setMouseTracking(True)
+        self.size = self.sizeHint()
 
     def mouseMoveEvent(self, event):
         """standart mouse move widget event"""
@@ -68,6 +69,16 @@ class Layers(QtWidgets.QWidget):
             menu.exec_(self.mapToGlobal(event.pos()))
 
   #  def keyPressEvent(self, event):
+  
+    def change_size(self):
+        """Call this function after resize layers panel.
+        This function send signal to scroll"""
+        cfg.layers.compute_composition()
+        self.update()
+        new_size = self.sizeHint()
+        if new_size!=self.size:            
+            self.resize(new_size)
+            self.size = new_size
 
     def _paint_fracture(self, painter, y, x1, x2, dx, interface, font_dist):
         """Paint layer with fracture name"""
@@ -97,6 +108,15 @@ class Layers(QtWidgets.QWidget):
             rect2 = QtCore.QRectF(rect.left()+d,  rect.top()+d, rect.width()-2*d, rect.height()-2*d)
             painter.drawEllipse(rect2)
 
+    def sizeHint(self):
+        """Overloadet QWidget sizeHint function"""
+        dx = cfg.layers.x_ilabel+cfg.layers.x_ilabel_width+cfg.layers.__dx__
+        if len(cfg.layers.interfaces)==0: 
+            dy = cfg.layers.y_font + 2*cfg.layers.__dy_row__
+        else:
+            dy = cfg.layers.interfaces[-1].rect.bottom()+cfg.layers.__dy_row__
+        return QtCore.QSize(dx, int(dy))
+         
     def paintEvent(self, event=None):
         """Overloadet QWidget paint function"""
         painter = QtGui.QPainter(self)
@@ -180,8 +200,7 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.append_layer(name, depth)
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
 
     def prepend_layer(self):
         """Prepend layer to the start"""
@@ -191,8 +210,7 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.prepend_layer(name, depth)
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
             
     def add_layer_to_shadow(self, idx):
         """Prepend layer to the start"""
@@ -204,8 +222,7 @@ class Layers(QtWidgets.QWidget):
             dup = cfg.layers.get_diagram_dup_before(idx)
             cfg.insert_diagrams_copies(dup)
             cfg.layers.add_layer_to_shadow(idx, name, depth, dup)
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
     
     def change_viewed(self, i, type):
         """Change viewed interface"""
@@ -264,8 +281,7 @@ class Layers(QtWidgets.QWidget):
                     dup.count = 2
                 cfg.insert_diagrams_copies(dup)
             cfg.layers.split_layer(i, name, depth, split_type, dup)       
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
 
     def rename_layer(self, i):
         """Rename layer"""
@@ -274,8 +290,7 @@ class Layers(QtWidgets.QWidget):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.name.text()
             cfg.layers.layers[i].name = name
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
 
     def remove_layer(self, i):
         """Remove layer and add shadow block instead"""
@@ -306,8 +321,7 @@ class Layers(QtWidgets.QWidget):
         diagrams = cfg.layers.remove_layer(i, removed_res, dup)
         for diagram in diagrams:
             cfg.remove_and_save_slice(diagram)            
-        cfg.layers.compute_composition()
-        self.update()    
+        self.change_size() 
                 
     def remove_block(self, i):
         """Remove all block"""
@@ -334,8 +348,7 @@ class Layers(QtWidgets.QWidget):
         diagrams = cfg.layers.remove_block(i, removed_res)
         for diagram in diagrams:
             cfg.remove_and_save_slice(diagram)            
-        cfg.layers.compute_composition()
-        self.update()
+        self.change_size()
      
     def add_fracture(self, i):
         """Add fracture to interface"""
@@ -351,8 +364,7 @@ class Layers(QtWidgets.QWidget):
                 dup = cfg.layers.get_diagram_dup(i)
                 cfg.insert_diagrams_copies(dup)
             cfg.layers.add_fracture(i, name, position, dup)
-            cfg.layers.compute_composition()
-            self.update() 
+            self.change_size()
         
     def change_interface_type(self, i, type):
         """Change interface type"""
@@ -383,8 +395,7 @@ class Layers(QtWidgets.QWidget):
             dup = cfg.layers.get_diagram_dup(i)
             cfg.insert_diagrams_copies(dup)
             cfg.layers.change_to_editable(i,type, dup)            
-        cfg.layers.compute_composition()
-        self.update()
+        self.change_size()
         
     def set_interface_depth(self, i):
         """Set interface depth"""
@@ -400,8 +411,7 @@ class Layers(QtWidgets.QWidget):
         if ret==QtWidgets.QDialog.Accepted:
             depth = dlg.depth.text()
             cfg.layers.interfaces[i].set_depth(depth)
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()
         
     def remove_interface(self, i):
         """Remove interface"""        
@@ -421,8 +431,7 @@ class Layers(QtWidgets.QWidget):
         diagrams = cfg.layers.remove_interface(i, removed_res)
         for diagram in diagrams:
             cfg.remove_and_save_slice(diagram)            
-        cfg.layers.compute_composition()
-        self.update()    
+        self.change_size()
 
     def remove_fracture(self, i):
         """Remove fracture from interface"""
@@ -436,8 +445,7 @@ class Layers(QtWidgets.QWidget):
         diagram = cfg.layers.remove_fracture(i)
         if diagram is not None:
             cfg.remove_and_save_slice(diagram)
-        cfg.layers.compute_composition()
-        self.update()     
+        self.change_size()
         
     def rename_fracture(self, i):
         """Rename fracture"""
@@ -446,5 +454,4 @@ class Layers(QtWidgets.QWidget):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.name.text()
             cfg.layers.interfaces[i].fracture.name = name
-            cfg.layers.compute_composition()
-            self.update()
+            self.change_size()

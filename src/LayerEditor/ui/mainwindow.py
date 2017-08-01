@@ -7,7 +7,6 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ui import panels
 from leconfig import cfg
-from ui.menus.tools import ToolsMenu
 from ui.menus.edit import EditMenu
 from ui.menus.file import MainFileMenu
 import icon
@@ -29,8 +28,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
 
         # left pannels
-        self.layers = panels.Layers(self._vsplitter)
-        self._vsplitter.addWidget(self.layers)        
+        self.scroll_area = QtWidgets.QScrollArea()
+        # self._scroll_area.setWidgetResizable(True)  
+        self.layers = panels.Layers(self.scroll_area)
+        self.scroll_area.setWidget(self.layers)
+        
+        self._vsplitter.addWidget(self.scroll_area)        
         self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
         self._vsplitter.addWidget(self.shp)     
         if cfg.diagram.shp.is_empty():
@@ -50,12 +53,10 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Menu bar
         self._menu = self.menuBar()
-        self._tools_menu = ToolsMenu(self, self.diagramScene)
         self._edit_menu = EditMenu(self, self.diagramScene)
         self._file_menu = MainFileMenu(self,  layer_editor)
         
         self._menu.addMenu(self._file_menu)
-        self._menu.addMenu(self._tools_menu)
         self._menu.addMenu(self._edit_menu)
         
         # status bar
@@ -91,6 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Propagate new diagram scene to canvas"""
         self.diagramScene.set_data()
         self.display_all()
+        self.layers.change_size()
         
     def refresh_curr_data(self, old_i, new_i):
         """Propagate new diagram scene to canvas"""
@@ -99,12 +101,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_view_data(old_i)
         self.refresh_view_data(new_i)
         self.diagramScene.release_data(old_i)
-        self.diagramScene.set_data()        
+        self.diagramScene.set_data()
+        
+        view_rect = self.diagramView.rect()
+        rect = QtCore.QRectF(cfg.diagram.x-100, 
+            cfg.diagram.y-100, 
+            view_rect.width()/cfg.diagram.zoom+200, 
+            view_rect.height()/cfg.diagram.zoom+200)
+            
+        self.diagramScene.blink_start(rect)
         
     def refresh_view_data(self, i):
         """Propagate new views (static, not edited diagrams) 
         scene to canvas. i is changed view."""
         self.diagramScene.update_view(i)
+        self._move()
         
     def refresh_diagram_shp(self):
         """refresh diagrams shape files background layer"""

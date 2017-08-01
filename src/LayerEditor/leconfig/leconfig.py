@@ -8,8 +8,10 @@ import os
 import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
-import ui.data as data
 from geomop_analysis import Analysis, InvalidAnalysis
+import ui.data as data
+from ui.helpers import CurrentView
+
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -39,7 +41,6 @@ class _Config:
             
         self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
         """directory of the most recently opened data file"""
-
  
     def save(self):
         """Save config data"""
@@ -173,9 +174,14 @@ class LEConfig:
     @classmethod
     def set_curr_diagram(cls, i):
         """Set i diagram as edited. Return old diagram id"""
-        ret = cls.diagrams.index(cls.diagram)
+        ret = cls.diagram_id()
         cls.diagram = cls.diagrams[i]
         return ret
+    
+    @classmethod
+    def diagram_id(cls):
+        """Return current diagram id"""
+        return cls.diagrams.index(cls.diagram)
     
     @classmethod
     def get_curr_diagram(cls):
@@ -202,10 +208,12 @@ class LEConfig:
         """Init class wit static method"""
         cls.main_window = main_window
         cls.data = data.LESerializer(cls)
+        CurrentView.set_cfg(cls)
      
     @classmethod
     def remove_and_save_slice(cls, idx): 
-        """Remove diagram from list and save it in file"""         
+        """Remove diagram from list and save it in file"""
+        cls.diagrams[idx].release()
         del cls.diagrams[idx]
         
     @classmethod
