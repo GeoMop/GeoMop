@@ -19,7 +19,7 @@ class LESerializer():
         tp_idx = gf.add_topology()        
         ns_idx = gf.add_node_set(tp_idx)        
         gf.geometry.supplement.last_node_set = ns_idx
-        cfg.diagrams = [Diagram(cfg.history)]
+        cfg.diagrams = [tp_idx, Diagram(cfg.history)]
         cfg.diagram = cfg.diagrams[0]
         cfg.layers.add_interface("0", False, None, ns_idx)
         cfg.layers.add_interface("100", False)
@@ -98,9 +98,10 @@ class LESerializer():
         ns = self.geometry.node_sets[ns_idx]        
         for point in cfg.diagrams[ns_idx].points:            
             gf.add_node(ns_idx, point.x, point.y)
-        for line in cfg.diagrams[ns_idx].lines:
-            gf.add_segment( ns.topology_idx, cfg.diagrams[ns_idx].points.index(line.p1), 
-                cfg.diagrams[ns_idx].points.index(line.p2))                
+        if cfg.diagrams[ns_idx].topology_owner:
+            for line in cfg.diagrams[ns_idx].lines:
+                gf.add_segment( ns.topology_idx, cfg.diagrams[ns_idx].points.index(line.p1), 
+                    cfg.diagrams[ns_idx].points.index(line.p2))                
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
@@ -114,7 +115,7 @@ class LESerializer():
         cfg.diagrams = []
         cfg.layers.delete()
         for i in range(0, len(gf.geometry.node_sets)):
-            cfg.diagrams.append(Diagram(cfg.history))
+            cfg.diagrams.append(Diagram(gf.geometry.node_sets[i] .topology_idx, cfg.history))
             self._read_ns(cfg, i, gf)        
         ns_idx = 0   
         last_fracture = None

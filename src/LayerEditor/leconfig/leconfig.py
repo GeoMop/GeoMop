@@ -146,11 +146,11 @@ class LEConfig:
     """root context logger"""
     history = data.GlobalHistory()
     """History for current geometry data"""
-    diagrams = [data.Diagram(history)]
+    diagrams = []
     """List of diagram data"""
     layers = data.Layers()
     """Lauers structure"""
-    diagram = diagrams[0]
+    diagram =  None
     """Current diagram data"""
     data = None    
     """Data from geometry file"""    

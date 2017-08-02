@@ -179,7 +179,7 @@ class Diagram():
         
     def dcopy(self):
         """My deep copy implementation"""
-        ret = Diagram(self._history.global_history)
+        ret = Diagram(self.topology_idx, self._history.global_history)
         
         for point in self.points:
             ret.add_point(point.x, point.y, 'Copy point', None, True)
