@@ -34,8 +34,6 @@ return_val = async_result.get()  # get the return value from your function.
 """
 
 class Job(service_base.ServiceBase):
-    config_file_name = "job_service.conf"
-
     def __init__(self, config):
         #self.parent_port=9123
         #self.job_parameters = {}
@@ -53,6 +51,9 @@ class Job(service_base.ServiceBase):
         #self.requests.append( {'action': "execute" } )
         #self.connect_parent()
 
+        if self.job_exec_args.work_dir == "":
+            self.job_exec_args.work_dir = self.workspace
+
         self._job_thread = None
 
     def _job_run(self):
@@ -63,11 +64,10 @@ class Job(service_base.ServiceBase):
                                  self.job_executable.path,
                                  self.job_executable.name))
         args.extend(self.job_exec_args.args)
-        # todo:
         cwd = os.path.join(self.process.environment.geomop_analysis_workspace,
                            self.job_exec_args.work_dir)
-        with open("out.txt", 'w') as fd_out:
-            p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)#, cwd=cwd)
+        with open(os.path.join(cwd, "job_out.txt"), 'w') as fd_out:
+            p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
             p.wait()
 
     def _do_work(self):

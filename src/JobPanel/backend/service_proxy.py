@@ -139,41 +139,58 @@ class ServiceProxy:
         -
         """
 
-        # 1.
-        # todo: upload config file and possible other files according to service configuration,
-        # see key 'input_files'
-        # self.connection.upload(self.service_data["input_files"],
-        #                        os.path.join(self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-        #                                     self.service_data["workspace"]),
-        #                        os.path.join(self.connection.environment.geomop_analysis_workspace,
-        #                                     self.service_data["workspace"]))
-
         # 2.
         delegator_proxy = self.connection.get_delegator()
 
         # 3.
         self._child_id, remote_port = self.repeater.add_child(self.connection)
 
-        # 4.
-        # update service data
+        # update service data, remove password
         self.service_data = self.service_data.copy()
         self.service_data["repeater_address"] = [self._child_id]
         self.service_data["parent_address"] = [self.service_data["service_host_connection"]["address"], remote_port]
+
+        self.service_data["service_host_connection"] = self.service_data["service_host_connection"].copy()
+        self.service_data["service_host_connection"]["password"] = ""
+
+        self.service_data["process"] = self.service_data["process"].copy()
+        if "exec_args" in self.service_data["process"]:
+            self.service_data["process"]["exec_args"] = self.service_data["process"]["exec_args"].copy()
+        else:
+            self.service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
+        self.service_data["process"]["exec_args"]["work_dir"] = self.service_data["workspace"]
+
+        if "environment" in self.service_data["process"]:
+            logging.warning("Start service: Overwriting environment in service_data['process'].")
+        self.service_data["process"]["environment"] = self.service_data["service_host_connection"]["environment"]
 
         # save config file
         file = os.path.join(
             self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
             self.service_data["workspace"],
-            "job_service.conf")
+            self.service_data["config_file_name"])
         with open(file, 'w') as fd:
             json.dump(self.service_data, fd, indent=4, sort_keys=True)
 
+        # 1.
+        files = []
+        if "input_files" in self.service_data:
+            for file in self.service_data["input_files"]:
+                files.append(os.path.join(self.service_data["workspace"], file))
+        files.append(os.path.join(self.service_data["workspace"], self.service_data["config_file_name"]))
+        self.connection.upload(files,
+                               self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                               self.connection.environment.geomop_analysis_workspace)
+
+        # 4.
         # process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
         #                    "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
         process_config = self.service_data["process"]
 
         # todo: v budoucnu predavat konfiguraci v souboru
         # todo: vymyslet, jak ziskavat docker IP
+        # predchoyi kod bz mel fungovat pokud service_host_conncetion.address bude adresa pod kterou
+        # kontejner vidi hostujici pocitac
         if process_config["__class__"] == "ProcessDocker":
             process_config = process_config.copy()
             process_config["exec_args"] = {"__class__": "ExecArgs",
@@ -221,9 +238,29 @@ class ServiceProxy:
         # 1.
         #self.repeater.clients[self._child_id]
 
+        return self.status
         if self.status == ServiceStatus.queued:
-            pass
+            self.connection.download([os.path.join(self.service_data["workspace"], self.service_data["config_file_name"])],
+                                     self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                                     self.connection.environment.geomop_analysis_workspace)
+            file = os.path.join(
+                self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                self.service_data["workspace"],
+                self.service_data["config_file_name"])
+            with open(file, 'r') as fd:
+                service_conf = json.load(fd)
+                self.status = ServiceStatus[service_conf["status"]]
+                if self.status == ServiceStatus.running:
+                    pass
+                    # pripojit se
         elif self.status == ServiceStatus.running:
+            if len(self.results_get_status) > 0:
+                s = self.results_get_status[-1]
+                if "error" in s:
+                    pass
+                    # neco spatne
+                else:
+                    self.status = s["data"]
             self.call("request_get_status", None, self.results_get_status)
         return self.status
 

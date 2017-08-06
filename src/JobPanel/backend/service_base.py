@@ -17,6 +17,10 @@ import os
 import threading
 import sys
 import traceback
+import socket
+import fcntl
+import struct
+
 
 """
 TODO:
@@ -181,9 +185,6 @@ class ServiceBase(JsonData):
     """
     # answer_ok = { 'data' : 'ok' }
 
-    config_file_name = ""
-    """Name of service config file."""
-
     def __init__(self, config):
         """
         Create the service and its repeater.
@@ -212,12 +213,15 @@ class ServiceBase(JsonData):
         # List of file paths to upload befor service is started. Paths are relative to
         # the service workspace, i.e. self.workspace.
 
-        self.listen_port=None
-        #
+        self.listen_address = ("", 0)
+        """Socket address where service listening."""
         self.status = ServiceStatus.queued
         """Service status"""
         self.wait_before_run = 0.0
         """Wait before run service, used for testing purposes."""
+        self.config_file_name = ""
+        """Name of service config file."""
+
         super().__init__(config)
 
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -231,7 +235,7 @@ class ServiceBase(JsonData):
         self._delegator_services = {}
 
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
-        self.listen_port = self._repeater.listen_port
+        self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
 
         self._closing = False
 
@@ -289,6 +293,7 @@ class ServiceBase(JsonData):
             last_time = time.time()
 
         self._repeater.close()
+        self.close_connections()
 
 
 
@@ -357,8 +362,49 @@ class ServiceBase(JsonData):
             self._connections[addr] = con
             return con
 
+    def close_connections(self):
+        """
+        Close connections and remove it from dict.
+        :return:
+        """
+        for con in self._connections.values():
+            con.close_connections()
+        self._connections.clear()
+
     def get_analysis_workspace(self):
         return self.process.environment.geomop_analysis_workspace
+
+    def get_ip_address(self):
+        """
+        Return IP address of eth0.
+        If fails return 127.0.0.1.
+        :return:
+        """
+        ifname = 'eth0'
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            return socket.inet_ntoa(fcntl.ioctl(
+                s.fileno(),
+                0x8915,  # SIOCGIFADDR
+                struct.pack('256s', ifname[:15].encode())
+            )[20:24])
+        except OSError:
+            return "127.0.0.1"
+
+    def get_ip_address2(self):
+        """
+        Return IP address of interface connected to internet.
+        If fails return 127.0.0.1.
+        :return:
+        """
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+        finally:
+            s.close()
 
     def call(self, method_name, data, result):
         """

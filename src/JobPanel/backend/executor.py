@@ -27,6 +27,7 @@ from .pbs import PbsConfig, Pbs
 
 import psutil
 import os
+import sys
 import subprocess
 import logging
 import re
@@ -164,12 +165,28 @@ class ProcessExec(ProcessBase):
                                      self.executable.path,
                                      self.executable.name))
             args.extend(self.exec_args.args)
-            # todo:
             cwd = os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir)
-            with open("out.txt", 'w') as fd_out:
-                p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
-            self.process_id = "{}@{}".format(p.pid, p.create_time())
+            r, w = os.pipe()
+            pid = os.fork()
+            if pid == 0:
+                os.close(r)
+                os.setsid()
+                with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
+                    p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
+                os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
+                os.close(w)
+                os._exit(0)
+            os.close(w)
+            buf = b""
+            while True:
+                b = os.read(r, 1024)
+                if len(b) == 0:
+                    break
+                buf += b
+            os.close(r)
+            self.process_id = buf.decode()
+            os.waitpid(pid, 0)
             return self.process_id
 
         def get_status(self, pid_list=None):

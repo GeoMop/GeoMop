@@ -11,7 +11,6 @@ from backend import service_base
 class Backend(service_base.ServiceBase):
     """
     """
-    config_file_name = "backend_service.conf"
 
     def __init__(self, config):
         service_base.ServiceBase.__init__(self, config)
@@ -31,7 +30,8 @@ logging.basicConfig(filename='backend_service.log', filemode="w",
 
 try:
     bs = Backend({"repeater_address": [int(sys.argv[1])],
-                  "parent_address": [sys.argv[2], int(sys.argv[3])]})
+                  "parent_address": [sys.argv[2], int(sys.argv[3])],
+                  "config_file_name": "backend_service.conf"})
     bs.run()
 except:
     logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))

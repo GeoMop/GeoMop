@@ -46,7 +46,7 @@ class ConnectionBase(JsonData):
     def __init__(self, config={}):
 
         self.address=""
-        """ IP or hostname"""
+        """ IP or hostname of SSH server ( localhost for LocalConnection)"""
         self.port=22
         """port for ssh connection"""
         self.uid=""

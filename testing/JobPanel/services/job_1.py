@@ -1,7 +1,7 @@
 import time
 
 
-for i in range(10):
+for i in range(100):
     time.sleep(1)
     print("running {} s".format(i+1))
 print("end")

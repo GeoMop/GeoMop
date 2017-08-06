@@ -14,7 +14,6 @@ from backend import service_base
 class Delegator(service_base.ServiceBase):
     """
     """
-    config_file_name = ""
 
     def __init__(self, config):
         service_base.ServiceBase.__init__(self, config)
