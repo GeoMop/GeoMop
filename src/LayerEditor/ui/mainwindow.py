@@ -114,7 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh_view_data(self, i):
         """Propagate new views (static, not edited diagrams) 
         scene to canvas. i is changed view."""
-        self.diagramScene.update_view(i)
+        self.diagramScene.update_views()
         self._move()
         
     def refresh_diagram_shp(self):
@@ -177,4 +177,8 @@ class MainWindow(QtWidgets.QMainWindow):
         obj.release_background()        
         self.diagramScene.removeItem(obj)
         del cfg.diagram.shp.datas[idx_item]
+        
+    def update_panel(self):
+        """Update layers panel"""
+        self.layers.change_size()
     

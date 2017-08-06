@@ -21,10 +21,12 @@ class LayerEditor:
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
-        self.mainwindow = MainWindow(self)
-                
+        
         # load config        
-        cfg.init(self.mainwindow)
+        cfg.init()
+        
+        self.mainwindow = MainWindow(self)
+        cfg.set_main(self.mainwindow)
         
         # set default values
         self._update_document_name()

@@ -19,7 +19,7 @@ class LESerializer():
         tp_idx = gf.add_topology()        
         ns_idx = gf.add_node_set(tp_idx)        
         gf.geometry.supplement.last_node_set = ns_idx
-        cfg.diagrams = [tp_idx, Diagram(cfg.history)]
+        cfg.diagrams = [Diagram(tp_idx, cfg.history)]
         cfg.diagram = cfg.diagrams[0]
         cfg.layers.add_interface("0", False, None, ns_idx)
         cfg.layers.add_interface("100", False)
@@ -105,6 +105,9 @@ class LESerializer():
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
+        curr_topology = 0
+        curr_block = 0
+        # curr_topology and curr_block is for mapping topology to consistent line
         reader = GeometrySer(path)
         self.geometry =  reader.read()
         gf = GeometryFactory(self.geometry)
@@ -115,7 +118,11 @@ class LESerializer():
         cfg.diagrams = []
         cfg.layers.delete()
         for i in range(0, len(gf.geometry.node_sets)):
-            cfg.diagrams.append(Diagram(gf.geometry.node_sets[i] .topology_idx, cfg.history))
+            new_top = gf.geometry.node_sets[i].topology_idx
+            if new_top != curr_topology:
+                new_top == curr_topology
+                curr_block += 1                
+            cfg.diagrams.append(Diagram(curr_block, cfg.history))
             self._read_ns(cfg, i, gf)        
         ns_idx = 0   
         last_fracture = None

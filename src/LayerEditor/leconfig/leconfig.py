@@ -143,13 +143,13 @@ class LEConfig:
     config = _Config.open()
     """Serialized variables"""
     logger = logging.getLogger(LOGGER_PREFIX +  config.CONTEXT_NAME)
-    """root context logger"""
-    history = data.GlobalHistory()
-    """History for current geometry data"""
+    """root context logger"""    
     diagrams = []
     """List of diagram data"""
+    history = None
+    """History for current geometry data"""
     layers = data.Layers()
-    """Lauers structure"""
+    """Layers structure"""
     diagram =  None
     """Current diagram data"""
     data = None    
@@ -189,13 +189,18 @@ class LEConfig:
         return cls.diagrams.index(cls.diagram)        
 
     @classmethod
-    def insert_diagrams_copies(cls, dup):
-        """Insert diagrams after set diagram"""
+    def insert_diagrams_copies(cls, dup, oper):
+        """Insert diagrams after set diagram and
+        move topologies accoding oper"""
         for i in range(0, dup.count):
             if dup.copy:
                 cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
-                cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))        
+                cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))
+        if oper is data.TopologyOperations.insert:
+            cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
+        elif oper is data.TopologyOperations.insert_next:
+            cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
         
     @classmethod
     def make_middle_diagram(cls, dup):
@@ -204,17 +209,30 @@ class LEConfig:
         return cls.diagrams[dup.dup1_id].dcopy()
     
     @classmethod
-    def init(cls, main_window):
+    def init(cls):
+        """Init class wit static method"""
+        cls.history = data.GlobalHistory(cls)
+        cls.data = data.LESerializer(cls)
+        
+    @staticmethod
+    def get_current_view(location):
+        """Return current view"""
+        return CurrentView(location)
+        
+    @classmethod
+    def set_main(cls, main_window):
         """Init class wit static method"""
         cls.main_window = main_window
-        cls.data = data.LESerializer(cls)
         CurrentView.set_cfg(cls)
      
     @classmethod
     def remove_and_save_slice(cls, idx): 
         """Remove diagram from list and save it in file"""
         cls.diagrams[idx].release()
+        curr_id = cls.diagram_id()
         del cls.diagrams[idx]
+        data.Diagram.fix_topologies(cls.diagrams)
+        return curr_id == idx
         
     @classmethod
     def open_shape_file(cls, file):

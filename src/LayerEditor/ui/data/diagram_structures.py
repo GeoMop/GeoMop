@@ -2,8 +2,22 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
+from enum import IntEnum
+
+class TopologyOperations(IntEnum):
+    """Type of topology operation"""
+    none = 0
+    """Added diagrams have topology index copy_top_id"""
+    insert = 1
+    """Added diagrams have topology index 
+    copy_top_id+1 and next is move about 1"""
+    insert_next = 2
+    """First added diagram have topology index
+    copy_top_id, next added diagrams have topology 
+    index copy_top_id+1 and next is move about 1"""
 
 __next_id__ = 1
+__next_diagram_uid__ = 1
 
 class Point():
     """
@@ -122,6 +136,8 @@ class Diagram():
     """Displayed shape files"""
     views = []    
     """Not edited diagrams"""
+    map_id = {}
+    """uid, id map"""
     views_object = {}
     """Object of not edited diagrams"""
     topologies = {}
@@ -133,8 +149,60 @@ class Diagram():
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
+        
+    @classmethod
+    def move_diagram_topologies(cls, id, diagrams):
+        """Increase topology index from id,
+        and fix topologies dictionary"""
+        max_top = diagrams[-1].topology_idx+1
+        if max_top not in cls.topologies:
+            raise Exception("Invalid max topology index")
+        cls.topologies[max_top]=[]
+        for i in range(len(diagrams), id-1, -1):
+            cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
+            diagrams[i].topology_idx += 1
+            cls.topologies[diagrams[i].topology_idx].append(diagrams[i])
+        if not cls.topologies[diagrams[id].topology_idx][0].topology_owner:
+            cls.topologies[diagrams[id].topology_idx][0].topology_owner = True
+        cls.map_id = {}
+        for i in range(0, len(diagrams)):        
+            cls.map_id[diagrams[i].uid]=i
 
-    def __init__(self, topology_idx, global_history):  
+    @classmethod
+    def fix_topologies(cls, diagrams):
+        """check and fix topologies ordering"""
+        max_top=0
+        copy_to=0
+        for i in range(0, len(diagrams)):
+            if diagrams[i].topology_idx!=max_top:
+                if len(cls.topologies[max_top])>0:
+                    copy_to += 1
+                    max_top = diagrams[i].topology_idx
+                if copy_to != max_top:
+                    cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
+                    diagrams[i].topology_idx = copy_to
+                    cls.topologies[diagrams[i].topology_idx].append(diagrams[i])
+        cls.map_id = {}
+        for i in range(0, len(diagrams)):
+            if cls.topologies[diagrams[i].topology_idx].index()==0:
+                diagrams[i].topology_owner = True
+            else:
+                diagrams[i].topology_owner = False            
+            cls.map_id[diagrams[i].uid]=i
+        del_keys = []
+        for key in cls.topologies:
+            if len(cls.topologies[key])==0:
+                del_keys.append(key)
+        for key in del_keys:
+            if key<=copy_to:
+                raise Exception("Empty topology inside structure")
+            del cls.topologies[key]
+
+    def __init__(self, topology_idx, global_history): 
+        global __next_diagram_uid__
+        self.uid = __next_diagram_uid__
+        """Unique diagram id"""
+        __next_diagram_uid__ += 1  
         self.topology_idx = topology_idx
         """Topology index"""
         self._rect = None

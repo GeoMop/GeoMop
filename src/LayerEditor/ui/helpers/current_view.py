@@ -1,9 +1,4 @@
-from enum import IntEnum
-
-class EventLocation(IntEnum):
-    """Location where event happen"""
-    diagram = 0
-    layer = 1
+from ui.data import EventLocation
 
 class CurrentView():
     """State class for description current view. This class helps

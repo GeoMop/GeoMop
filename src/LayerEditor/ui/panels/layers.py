@@ -3,7 +3,8 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
-from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType
+from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations
+from ui.data import LayersHistory
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
 from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
@@ -36,6 +37,8 @@ class Layers(QtWidgets.QWidget):
         super(Layers, self).__init__(parent)
         self.setMouseTracking(True)
         self.size = self.sizeHint()
+        self._history = LayersHistory(self, cfg.history)
+        """history"""
 
     def mouseMoveEvent(self, event):
         """standart mouse move widget event"""
@@ -200,6 +203,8 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.append_layer(name, depth)
+            self._history.delete_layer(len(cfg.layers.layers)-1,"Append layer")
+            self._history.delete_interface(len(cfg.layers.interfaces)-1)
             self.change_size()
 
     def prepend_layer(self):
@@ -210,6 +215,8 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.prepend_layer(name, depth)
+            self._history.delete_layer(0,"Prepend layer")
+            self._history.delete_interface(0)
             self.change_size()
             
     def add_layer_to_shadow(self, idx):
@@ -220,7 +227,7 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             dup = cfg.layers.get_diagram_dup_before(idx)
-            cfg.insert_diagrams_copies(dup)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             cfg.layers.add_layer_to_shadow(idx, name, depth, dup)
             self.change_size()
     
@@ -237,9 +244,11 @@ class Layers(QtWidgets.QWidget):
         viewed = cfg.layers.set_viewed_interface(i, second, fracture)
         diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
         if viewed:
-            cfg.diagram.views.append(diagram_idx)
+            cfg.diagram.views.append(cfg.diagrams[diagram_idx].uid)
+            if cfg.diagrams[diagram_idx].uid not in cfg.diagram.map_id:
+                cfg.diagram.map_id[cfg.diagrams[diagram_idx].uid] = diagram_idx  
         else:
-            cfg.diagram.views.remove(diagram_idx)
+            cfg.diagram.views.remove(cfg.diagrams[diagram_idx].uid)
         self.update()
         self.viewInterfacesChanged.emit(diagram_idx)
         
@@ -279,7 +288,7 @@ class Layers(QtWidgets.QWidget):
                 dup = cfg.layers.get_diagram_dup(i)
                 if split_type is LayerSplitType.split:
                     dup.count = 2
-                cfg.insert_diagrams_copies(dup)
+                cfg.insert_diagrams_copies(dup, TopologyOperations.insert_next)
             cfg.layers.split_layer(i, name, depth, split_type, dup)       
             self.change_size()
 
@@ -320,7 +329,8 @@ class Layers(QtWidgets.QWidget):
             dup = cfg.layers.get_diagram_dup(i-1)
         diagrams = cfg.layers.remove_layer(i, removed_res, dup)
         for diagram in diagrams:
-            cfg.remove_and_save_slice(diagram)            
+            if cfg.remove_and_save_slice(diagram):
+                cfg.layers.set_edited_diagram(0)
         self.change_size() 
                 
     def remove_block(self, i):
@@ -347,7 +357,8 @@ class Layers(QtWidgets.QWidget):
                 return 
         diagrams = cfg.layers.remove_block(i, removed_res)
         for diagram in diagrams:
-            cfg.remove_and_save_slice(diagram)            
+            if cfg.remove_and_save_slice(diagram):
+                cfg.layers.set_edited_diagram(0)
         self.change_size()
      
     def add_fracture(self, i):
@@ -362,7 +373,7 @@ class Layers(QtWidgets.QWidget):
                 position = dlg.fracture_position.currentData()
             if position is FractureInterface.own:
                 dup = cfg.layers.get_diagram_dup(i)
-                cfg.insert_diagrams_copies(dup)
+                cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             cfg.layers.add_fracture(i, name, position, dup)
             self.change_size()
         
@@ -379,21 +390,22 @@ class Layers(QtWidgets.QWidget):
                 return
         if type is ChangeInterfaceActions.split:
             dup = cfg.layers.get_diagram_dup(i)
-            cfg.insert_diagrams_copies(dup)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             cfg.layers.split_interface(i, dup)
         elif type is ChangeInterfaceActions.interpolated or \
             type is ChangeInterfaceActions.bottom_interpolated or \
             type is ChangeInterfaceActions.top_interpolated:
             diagram = cfg.layers.change_to_interpolated(i,type)
             if diagram is not None:
-                cfg.remove_and_save_slice(diagram)
+                if cfg.remove_and_save_slice(diagram):
+                    cfg.layers.set_edited_diagram(0)
         elif ChangeInterfaceActions.top_editable:
             dup = cfg.layers.get_diagram_dup(i-1)
-            cfg.insert_diagrams_copies(dup)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.none)
             cfg.layers.change_to_editable(i,type, dup)
         else: 
             dup = cfg.layers.get_diagram_dup(i)
-            cfg.insert_diagrams_copies(dup)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.none)
             cfg.layers.change_to_editable(i,type, dup)            
         self.change_size()
         
@@ -430,7 +442,8 @@ class Layers(QtWidgets.QWidget):
                 return 
         diagrams = cfg.layers.remove_interface(i, removed_res)
         for diagram in diagrams:
-            cfg.remove_and_save_slice(diagram)            
+            if cfg.remove_and_save_slice(diagram):
+                cfg.layers.set_edited_diagram(0)            
         self.change_size()
 
     def remove_fracture(self, i):
@@ -444,7 +457,8 @@ class Layers(QtWidgets.QWidget):
                 return            
         diagram = cfg.layers.remove_fracture(i)
         if diagram is not None:
-            cfg.remove_and_save_slice(diagram)
+            if cfg.remove_and_save_slice(diagram):
+                cfg.layers.set_edited_diagram(0)
         self.change_size()
         
     def rename_fracture(self, i):

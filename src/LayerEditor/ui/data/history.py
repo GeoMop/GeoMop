@@ -1,4 +1,9 @@
-from ui.helpers import EventLocation, CurrentView
+from enum import IntEnum
+
+class EventLocation(IntEnum):
+    """Location where event happen"""
+    diagram = 0
+    layer = 1
 
 class LocalLabel():
     """
@@ -24,7 +29,9 @@ class GlobalHistory():
     get_undo_view and  get_redo_view get expected view,    
     """
     
-    def __init__(self):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        """dara structures"""
         self.histories = []
         """List of local histories"""
         self.labels = []
@@ -39,7 +46,6 @@ class GlobalHistory():
     def is_changes(self):
         """Return if changes is made after saving"""
         return self.last_save_labels != len(self.labels)
-
         
     def saved(self):
         """Save point, where is data saved"""
@@ -48,12 +54,12 @@ class GlobalHistory():
     def add_history(self, history):
         """Add history to histories variable, end return its id"""
         self.histories.append(history)
-        return len(self.histories)
+        return len(self.histories)-1
 
     def add_label(self, history_id, label):
         """Add label to global history"""
-        self.labels.append(LocalLabel(history_id, label, CurrentView(self.histories[history_id].__location__)))
-        pass
+        self.labels.append(LocalLabel(history_id, label, 
+            self.cfg.get_current_view(self.histories[history_id].__location__)))
         
     def remove_all(self):
         """Releas all histories"""
@@ -69,7 +75,7 @@ class GlobalHistory():
         return it, else return None"""
         if len(self.labels)<1:
             return None
-        if not self.labels[-1].view.cmp():
+        if not self.labels[-1].view.is_compatible():
             return self.labels[-1].view 
         return None
         
@@ -78,7 +84,7 @@ class GlobalHistory():
         return it, else return None"""
         if len(self.undo_labels)<1:
             return None
-        if not self.undo_labels[-1].view.cmp():
+        if not self.undo_labels[-1].view.is_compatible():
             return self.undo_labels[-1].view 
 
         return None
@@ -89,7 +95,8 @@ class GlobalHistory():
         is set and return False"""
         id = None
         while len(self.labels)>0:
-            if not self.labels[-1].view.cmp():
+            if not self.labels[-1].view.cmp(
+                self.histories[self.labels[-1].history_id].__location__):
                 # view is changes
                 if id is not None:
                     return False, self.histories[id].return_op()
@@ -98,7 +105,7 @@ class GlobalHistory():
             id = label.history_id            
             self.histories[id].undo()
             self.undo_labels.append(label)
-            self.last_undo_labels = len(self.steps)
+            self.last_undo_labels = len(self.labels)
             if label.label is not None:
                 # to label
                 if id is not None:
@@ -108,7 +115,7 @@ class GlobalHistory():
             return True, self.histories[id].return_op()
         return True, self.return_op()
         
-    def try_redo_to_label(self, count=1):
+    def try_redo_to_label(self):
         """Make all redo opperations, that was done in current view,
         if is label operation done, return True and ops list. If not, new current view 
         is set and return False"""
@@ -119,12 +126,14 @@ class GlobalHistory():
                 history.undo_steps = []            
             return True, self._return_op( )
         end = False
+        id = None
         while len(self.undo_labels)>0 and \
             (self.undo_labels[-1].label is None or not end):
             # label if is first and all None labels (if first label is not 
             # is none, view was changed)
             end = True
-            if not self.undo_labels[-1].view.cmp():
+            if not self.undo_labels[-1].view.cmp(
+                self.histories[self.undo_labels[-1].history_id].__location__):
                 self.last_undo_labels=len(self.labels)
                 if id is not None:
                     return False, self.histories[id].return_op()
@@ -222,8 +231,6 @@ class DiagramHistory(History):
         super(DiagramHistory, self).__init__(global_history)       
         self._diagram = diagram
         """Diagram object""" 
-        self._id = diagram
-        """Diagram object"""     
         self._added_points = []
         """added points after last history operation calling"""
         self._removed_points = []
@@ -239,7 +246,7 @@ class DiagramHistory(History):
         """return changes maked after last history operation calling and
         remove old"""
         ret = {"type":"Diagram", "added_points":self._added_points, 
-            "removed_points":self._removed_points, "added_points":self._moved_points, 
+            "removed_points":self._removed_points, "moved_points":self._moved_points, 
             "added_lines":self._added_lines, "removed_lines":self._removed_lines}
         self._added_points = []
         self._removed_points = []
@@ -255,8 +262,7 @@ class DiagramHistory(History):
         Calling function must ensure, that any line using this poin is not exist .
         Return invert operation
         """
-        if label is not None:
-            self.global_history.add_label(self._id, label)
+        self.global_history.add_label(self.id, label)
         self.steps.append( HistoryStep(self._delete_point, [id],label))
         
     def _delete_point(self, id):
@@ -277,8 +283,7 @@ class DiagramHistory(History):
         """
         Add add point to history operation.        
         """
-        if label is not None:
-            self.global_history.add_label(self._id, label)
+        self.global_history.add_label(self.id, label)
         self.steps.append( HistoryStep(self._add_point, [id,  x,  y],label))
         
     def _add_point(self, id, x, y):
@@ -298,8 +303,7 @@ class DiagramHistory(History):
  
         Return invert operation 
         """
-        if label is not None:
-            self.global_history.add_label(self._id, label)
+        self.global_history.add_label(self.id, label)
         self.steps.append( HistoryStep(self._move_point, [id,  x,  y],label))
         
     def _move_point(self, id,  x,  y):
@@ -322,8 +326,7 @@ class DiagramHistory(History):
         If outer points contain this line, is removed from list.
         Return invert operation
         """
-        if label is not None:
-            self.global_history.add_label(self._id, label)
+        self.global_history.add_label(self.id, label)
         self.steps.append(HistoryStep(self._delete_line, [id],label))
         
     def _delete_line(self, id):
@@ -344,8 +347,7 @@ class DiagramHistory(History):
         Calling function must ensure, that both points exist.
         Return invert operation 
         """
-        if label is not None:
-            self.global_history.add_label(self._id, label)
+        self.global_history.add_label(self.id, label)
         self.steps.append(HistoryStep(self._add_line, [id, p1_id, p2_id],label))
         
     def _add_line(self, id, p1_id, p2_id):
@@ -372,3 +374,130 @@ class DiagramHistory(History):
         self._added_lines = []
         self._removed_lines = []
         self._diagram = None
+        
+class LayersHistory(History):
+    """
+    Layer history
+    
+    Basic layer operation for history purpose
+    """
+
+    __location__ = EventLocation.layer
+            
+    def __init__(self, layer,  global_history): 
+        super(LayersHistory, self).__init__(global_history)       
+        self._layer = layer
+        """Layer panel object""" 
+        self._refresh_panel = True
+        """Refresh layer panel"""
+        self._check_viewed = False
+        """Check interfaces set as viewed for existance"""
+        self._edit_first = False
+        """Edit first interface"""
+        
+    def insert_layer(self, layer, id, label=None):
+        """
+        Add insert layer to history operation. 
+ 
+        Calling function must ensure that interface sequence related
+        to new layer
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._insert_layer, [layer, id],label))
+        
+    def _insert_layer(self, layer, id):
+        """
+        Insert layer to layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        layers.insert_layer(layer, id)
+        
+        revert =  HistoryStep(self._delete_layer, [id])
+        self._refresh_panel = True
+        return revert
+
+    def delete_layer(self, id, label=None):
+        """
+        Add delete layer to history operation. 
+ 
+        Calling function must ensure that interface sequence related
+        to rest layers
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_layer, [id],label))
+        
+    def _delete_layer(self, id):
+        """
+        Delete layer from layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        del_layer = layers.delete_layer(id)
+        
+        revert =  HistoryStep(self._insert_layer, [del_layer, id])
+        self._refresh_panel = True
+        self._check_viewed = True
+        return revert
+
+        
+    def insert_interface(self, interface, label=None):
+        """
+        Add insert layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new interface
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._insert_interface, [interface, id],label))
+        
+    def _insert_interface(self, interface, id):
+        """
+        Insert interface to layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        layers.insert_interface(interface, id)
+        
+        revert =  HistoryStep(self._delete_interface, [id])
+        self._refresh_panel = True        
+        return revert
+
+    def delete_interface(self, id, label=None):
+        """
+        Add delete layer to history operation. 
+ 
+        Calling function must ensure that interface sequence related
+        to rest layers
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_interface, [id],label))
+        
+    def _delete_interface(self, id):
+        """
+        Delete layer from layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        del_interface = layers.delete_interface(id)
+        
+        revert =  HistoryStep(self._insert_interface, [del_interface, id])
+        self._refresh_panel = True
+        self._check_viewed = True
+
+        return revert
+
+    def return_op(self):
+        """return nedded check """
+        ret = {"type":"Layers", "refresh_panel":self._refresh_panel, 
+            "check_viewed":self._check_viewed, "edit_first":self._edit_first}
+        self._refresh_panel = False
+        self._check_viewed = False
+        self._edit_first = False
+        return ret
+
+

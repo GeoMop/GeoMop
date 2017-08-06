@@ -1,1 +1,1 @@
-from .current_view import EventLocation, CurrentView
+from .current_view import CurrentView

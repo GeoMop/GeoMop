@@ -236,22 +236,25 @@ class Diagram(QtWidgets.QGraphicsScene):
     def release_views(self):
         """release all diagram views"""
         deleted = []
-        for id, view in cfg.diagram.views_object.items():
+        for uid, view in cfg.diagram.views_object.items():
             deleted.append(view)
         cfg.diagram.views_object = {}
         while len(deleted)>0:
             self.removeItem(deleted.pop())            
         
-    def update_view(self, diagram_id):
-        """release all diagram views"""
-        if cfg.diagram_id()==diagram_id or diagram_id not in cfg.diagram.views:
-            if diagram_id in cfg.diagram.views_object:
-                obj = cfg.diagram.views_object[diagram_id]
-                obj.release_view()
-                self.removeItem(obj)            
-        else: 
-            view = DiagramView(diagram_id)
-            self.addItem(view) 
+    def update_views(self):
+        """update all diagram views"""
+        curr_uid = cfg.diagram.uid
+        for uid, view in cfg.diagram.views_object.items():            
+            if curr_uid==uid or uid not in cfg.diagram.views:
+                if uid in cfg.diagram.views_object:
+                    obj = cfg.diagram.views_object[uid]
+                    obj.release_view()
+                    self.removeItem(obj)            
+            else:
+                if uid not in cfg.diagram.views_object: 
+                    view = DiagramView(uid)
+                    self.addItem(view)
         
     def release_data(self, old_diagram):
         """release all shapes data"""

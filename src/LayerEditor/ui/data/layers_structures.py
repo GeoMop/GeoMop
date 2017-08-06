@@ -865,7 +865,7 @@ class Layers():
         if dup is not None:
             self._move_diagram_idx(idx, dup.count)
         self.layers.insert(idx+1, new_layer)
-        self.interfaces.insert(idx+1, new_interface)        
+        self.interfaces.insert(idx+1, new_interface)
 
     def set_edited_diagram(self, diagram_id):
         """Find interface accoding to diagram id, and set id as
@@ -965,6 +965,50 @@ class Layers():
         self.interfaces[idx].viewed1 = not self.interfaces[idx].viewed1
         return self.interfaces[idx].viewed1
         
+# history specific operation
+
+    def insert_layer(self, layer, idx):
+        """insert set layer"""
+        self.layers.insert(idx, layer)
+        
+    def delete_layer(self, idx):
+        """delete layer and return object"""
+        ret = self.layers[idx]
+        del self.layers[idx]
+        return ret
+        
+    def insert_interface(self, interface, idx):
+        """insert set layer and move diagram indexes, if is needed"""
+        self.interfaces.insert(idx, interface)
+        move = 0
+        if interface.diagram_id1 is not None:
+            move +=1
+        if interface.diagram_id2 is not None:
+            move +=1
+        if interface.fracture is not None and \
+            interface.fracture.fracture_diagram_id is not None:
+            move +=1
+        if move>0:
+            self._move_diagram_idx(idx+1, move)
+            
+    def delete_interface(self, idx):
+        """delete set interface and move diagram indexes, if is 
+        needed. Return deleted interface"""
+        ret = self.interfaces[idx]
+        del self.interfaces[idx]
+        move = 0
+        if ret.diagram_id1 is not None:
+            move +=1
+        if ret.diagram_id2 is not None:
+            move +=1
+        if ret.fracture is not None and \
+            ret.fracture.fracture_diagram_id is not None:
+            move +=1
+        if move>0:
+            self._move_diagram_idx(idx, -move)
+        return ret            
+        
+# display operations   
     def _compute_controls(self, y):
         """Compute view and edit controls possition"""
         view_rect = QtCore.QRectF(self.x_view, y-self.__dx_controls__/2, self.__dx_controls__, self.__dx_controls__)
