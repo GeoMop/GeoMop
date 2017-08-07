@@ -101,4 +101,14 @@ class GeometryFactory:
                     errors.append(
                         "Second point {0} is out of node_set {1} nodes range 0..{2}".format(
                         str(segment.n2_idx), str(ns_idx), str(ns.nodes)))
-        return errors
+        # topology test
+        curr_top = self.geometry.node_sets[0].topology_idx
+        used_top = [curr_top]
+        for ns_idx in range(1, len(self.geometry.node_sets)):
+            if curr_top != self.geometry.node_sets[ns_idx].topology_idx:
+                curr_top = self.geometry.node_sets[ns_idx].topology_idx
+                if curr_top in used_top:
+                    errors.append("Topology {0} is in more that one block.".format(str(curr_top)))
+                else:
+                    used_top.append(curr_top)
+        
