@@ -31,5 +31,11 @@ s1=bw.Solid([ shell ])
 
 c1=bw.Compound([s1])
 
+loc1=bw.Location([[0,0,1,0],[1,0,0,0],[0,1,0,0]])
+loc2=bw.Location([[0,0,1,0],[1,0,0,0],[0,1,0,0]]) #dej tam tu druhou z prikladu
+cloc=bw.ComposedLocation([(loc1,1),(loc2,1)])
+
 with open("test_prism.brep", "w") as f:
     bw.write_model(f, c1, bw.Location())
+
+#pridej test s vice locations

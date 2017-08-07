@@ -1,5 +1,5 @@
 import enum
-
+import itertools
 
 
 
@@ -18,7 +18,18 @@ class Location:
         """
         self.matrix=matrix
 
-class ComposedLocation:
+    def _dfs(self, groups):
+        """
+        Deep first search that assign numbers to shapes
+        :param groups: dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
+        :return: None
+        """
+        if not hasattr(self, 'id'):
+            id=len(groups['locations'])+1
+            self.id=id
+            groups['locations'].append(self)
+
+class ComposedLocation(Location):
     """
     Defines an affine transformation as a composition of othr transformations. Corresponds to the <location data 2> in the BREP file.
     BREP format allows to use different transformations for individual shapes.
@@ -29,6 +40,12 @@ class ComposedLocation:
         :param location_powers: List of pairs (location, power)  where location is instance of Location and power is float.
         """
         self.location_powers=location_powers
+
+    def _dfs(self, groups):
+
+        for location,power in self.location_powers:
+            location._dfs(groups)
+        Location._dfs(self, groups)
 
 class Curve3D:
     """
@@ -51,6 +68,13 @@ class Curve3D:
         self.rational=rational
         self.degree=degree
 
+    def _dfs(self, groups):
+        if not hasattr(self, 'id'):
+            id = len(groups['curves_3d']) + 1
+            self.id = id
+            groups['curves_3d'].append(self)
+
+
 class Curve2D:
     """
     Defines a 2D curve as B-spline. We shall work only with B-splines of degree 2.
@@ -72,6 +96,11 @@ class Curve2D:
         self.rational=rational
         self.degree=degree
 
+    def _dfs(self, groups):
+        if not hasattr(self, 'id'):
+            id = len(groups['curves_2d']) + 1
+            self.id = id
+            groups['curves_2d'].append(self)
 
 class Surface:
     """
@@ -97,8 +126,11 @@ class Surface:
         self.rational=rational
         self.degree=degree
 
-
-
+    def _dfs(self, groups):
+        if not hasattr(self, 'id'):
+            id = len(groups['surfaces']) + 1
+            self.id = id
+            groups['surfaces'].append(self)
 
 orient_chars=['+', '-', 'i', 'e']
 
@@ -207,9 +239,9 @@ class Shape:
         :param groups: dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
         :return: None
         """
-        if not self.brep_id:
+        if not hasattr(self, 'id'):
             id=len(groups['shapes'])+1
-            self.brep_id=id
+            self.id=id
             groups['shapes'].append(self)
         for sub_ref in self.childs:
             sub_ref.location._dfs(groups)
@@ -223,7 +255,6 @@ Writer can be generic implemented in bas class Shape.
 class Compound(Shape):
     def __init__(self, shapes=[]):
         super().__init__(shapes)
-
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
@@ -265,11 +296,19 @@ class Face(Shape):
         if type(wires[0]) == Edge or type(wires[0][0]) == Edge:
             wires = [ Wire( wires ) ]
         super().__init__(wires)
-        self.repr=[(surface, location)]
+        if surface is None:
+            self.repr=[]
+        else:
+            self.repr=[(surface, location)]
         self.tol=tolerance
         self.restriction_flag =0
 
-
+    def _dfs(self, groups):
+        Shape._dfs(self,groups)
+        assert len(self.repr) <= 1
+        for repr,loc in self.repr:
+            repr._dfs(groups)
+            loc._dfs(groups)
 
 
 
@@ -328,7 +367,16 @@ class Edge(Shape):
 
     #def attach_continuity(self):
 
-
+    def _dfs(self, groups):
+        Shape._dfs(self,groups)
+        for repr in self.repr:
+            if repr[0]==self.Repr.Curve2d:
+                repr[2]._dfs(groups) #curve
+                repr[3]._dfs(groups) #surface
+                repr[4]._dfs(groups) #location
+            elif repr[0]==self.Repr.Curve3d:
+                repr[2]._dfs(groups) #curve
+                repr[3]._dfs(groups) #location
 
 
 class Vertex(Shape):
@@ -385,12 +433,39 @@ class Vertex(Shape):
         """
         self.repr.append( (self.Repr.Surface, u,v, surface, location) )
 
+    def _dfs(self, groups):
+        Shape._dfs(self,groups)
+        for repr in self.repr:
+            if repr[0]==self.Repr.Curve2d:
+                repr[2]._dfs(groups) #curve
+                repr[3]._dfs(groups) #surface
+                repr[4]._dfs(groups) #location
+            elif repr[0]==self.Repr.Curve3d:
+                repr[2]._dfs(groups) #curve
+                repr[3]._dfs(groups) #location
 
 
+def index_all(compound):
+    print("Index")
+    print(compound.__class__.__name__) #prints class name
 
+    groups=dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
+    compound._dfs(groups)#pridej jako parametr dictionary listu jednotlivych grup. v listech primo objekty
+    print(groups)
+    return groups
 
 
 def write_model(stream, compound, location):
+
+    groups = index_all(compound=compound)
+
+    #vygeneruje hlavicku... stream write
+    # vytvori hlavicku pro locations
+    # for all locations (for loc in groups['locations']:
+    #   loc._brep_output(stream) -> tuhle metodu implemntuj v tride pro loc, at si to genetuje sama
+    #pak for cyklus pro  to same pro curves_2d, curves 3d atd.
+    #pro shapes je potreba zapisovat pozpatku (protoze nejdriv mam naindexovane nejvyssi shapy)
+
     """
     Write the counpound into the stream.
     :param stream: Output stream.
@@ -408,6 +483,5 @@ def write_model(stream, compound, location):
     2. Write down individual groups, shapes in reversed order.
     """
     pass
-
 
 
