@@ -226,9 +226,14 @@ class Layers(QtWidgets.QWidget):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
-            dup = cfg.layers.get_diagram_dup_before(idx)
+            dup = cfg.layers.get_diagram_dup_before(idx)            
             cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
-            cfg.layers.add_layer_to_shadow(idx, name, depth, dup)
+            self._history.delete_diagrams(dup.insert_id, dup.dup.count, TopologyOperations.insert)
+            layers, interfaces = cfg.layers.get_group_copy(idx, 1)
+            if cfg.layers.add_layer_to_shadow(idx, name, depth, dup):
+                self._history.change_group(self, layers, interfaces, idx, 1)
+            else:
+                self._history.change_group(self, layers, interfaces, idx, 2)
             self.change_size()
     
     def change_viewed(self, i, type):
@@ -329,7 +334,7 @@ class Layers(QtWidgets.QWidget):
             dup = cfg.layers.get_diagram_dup(i-1)
         diagrams = cfg.layers.remove_layer(i, removed_res, dup)
         for diagram in diagrams:
-            if cfg.remove_and_save_slice(diagram):
+            if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
         self.change_size() 
                 
@@ -357,7 +362,7 @@ class Layers(QtWidgets.QWidget):
                 return 
         diagrams = cfg.layers.remove_block(i, removed_res)
         for diagram in diagrams:
-            if cfg.remove_and_save_slice(diagram):
+            if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
         self.change_size()
      
@@ -397,7 +402,7 @@ class Layers(QtWidgets.QWidget):
             type is ChangeInterfaceActions.top_interpolated:
             diagram = cfg.layers.change_to_interpolated(i,type)
             if diagram is not None:
-                if cfg.remove_and_save_slice(diagram):
+                if cfg.remove_and_save_diagram(diagram):
                     cfg.layers.set_edited_diagram(0)
         elif ChangeInterfaceActions.top_editable:
             dup = cfg.layers.get_diagram_dup(i-1)
@@ -442,7 +447,7 @@ class Layers(QtWidgets.QWidget):
                 return 
         diagrams = cfg.layers.remove_interface(i, removed_res)
         for diagram in diagrams:
-            if cfg.remove_and_save_slice(diagram):
+            if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)            
         self.change_size()
 
@@ -457,7 +462,7 @@ class Layers(QtWidgets.QWidget):
                 return            
         diagram = cfg.layers.remove_fracture(i)
         if diagram is not None:
-            if cfg.remove_and_save_slice(diagram):
+            if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
         self.change_size()
         

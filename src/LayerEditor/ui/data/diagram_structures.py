@@ -155,10 +155,10 @@ class Diagram():
         """Increase topology index from id,
         and fix topologies dictionary"""
         max_top = diagrams[-1].topology_idx+1
-        if max_top not in cls.topologies:
+        if max_top in cls.topologies:
             raise Exception("Invalid max topology index")
         cls.topologies[max_top]=[]
-        for i in range(len(diagrams), id-1, -1):
+        for i in range(len(diagrams)-1, id-1, -1):
             cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
             diagrams[i].topology_idx += 1
             cls.topologies[diagrams[i].topology_idx].append(diagrams[i])
@@ -236,6 +236,14 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
+        
+    def join(self, index):
+        """Add diagram to topologies"""
+        self.topology_owner = False
+        if not self.topology_idx in self.topologies:
+            self.topology_owner = True
+            self.topologies[self.topology_idx] = []
+            self.topologies[self.topology_idx].append(self)
         
     def release(self, index):
         """Discard this object from global links"""

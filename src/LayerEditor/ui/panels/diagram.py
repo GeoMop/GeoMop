@@ -245,16 +245,19 @@ class Diagram(QtWidgets.QGraphicsScene):
     def update_views(self):
         """update all diagram views"""
         curr_uid = cfg.diagram.uid
+        del_uid = []
         for uid, view in cfg.diagram.views_object.items():            
             if curr_uid==uid or uid not in cfg.diagram.views:
                 if uid in cfg.diagram.views_object:
-                    obj = cfg.diagram.views_object[uid]
-                    obj.release_view()
-                    self.removeItem(obj)            
-            else:
-                if uid not in cfg.diagram.views_object: 
-                    view = DiagramView(uid)
-                    self.addItem(view)
+                    del_uid.append(uid)
+        for uid in del_uid:
+            obj = cfg.diagram.views_object[uid]
+            obj.release_view()
+            self.removeItem(obj)   
+        for uid in cfg.diagram.views:
+            if curr_uid!=uid and uid not in cfg.diagram.views_object:    
+                view = DiagramView(uid)
+                self.addItem(view)
         
     def release_data(self, old_diagram):
         """release all shapes data"""
@@ -274,7 +277,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.addItem(l) 
         for point in cfg.diagram.points:
             p = Point(point)
-            self.removeItem(p)
+            self.addItem(p)
         self._recount_zoom = cfg.diagram.zoom
         
     def blink_start(self, rect):

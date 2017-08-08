@@ -48,4 +48,4 @@ class DiagramView(QtWidgets.QGraphicsItem):
             painter.setPen(pen)
          
     def release_view(self):
-        del cfg.diagram.views_object[self.id]    
+        del cfg.diagram.views_object[self.uid]    

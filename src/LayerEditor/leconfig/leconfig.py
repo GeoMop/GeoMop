@@ -201,6 +201,27 @@ class LEConfig:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
         elif oper is data.TopologyOperations.insert_next:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
+            
+    @classmethod
+    def insert_diagrams(cls, diagrams, id, oper):
+        """Insert diagrams after set diagram and
+        move topologies accoding oper"""
+        for i in range(0, len(diagrams)):
+            cls.diagrams.insert(id+i, diagrams[i])
+            cls.diagrams[id+i].join()
+        if oper is data.TopologyOperations.insert or \
+            oper is data.TopologyOperations.insert_next:
+            cls.diagrams[id].move_diagram_topologies(id+len(diagrams), cls.diagrams)
+            
+    @classmethod
+    def remove_and_save_diagram(cls, idx): 
+        """Remove diagram from list and save it in history variable"""
+        cls.diagrams[idx].release()
+        cls.history.removed_diagrams(cls.diagrams[idx])
+        curr_id = cls.diagram_id()
+        del cls.diagrams[idx]
+        data.Diagram.fix_topologies(cls.diagrams)
+        return curr_id == idx
         
     @classmethod
     def make_middle_diagram(cls, dup):
@@ -225,15 +246,6 @@ class LEConfig:
         cls.main_window = main_window
         CurrentView.set_cfg(cls)
      
-    @classmethod
-    def remove_and_save_slice(cls, idx): 
-        """Remove diagram from list and save it in file"""
-        cls.diagrams[idx].release()
-        curr_id = cls.diagram_id()
-        del cls.diagrams[idx]
-        data.Diagram.fix_topologies(cls.diagrams)
-        return curr_id == idx
-        
     @classmethod
     def open_shape_file(cls, file):
         """Open and add shape file"""

@@ -42,6 +42,8 @@ class GlobalHistory():
         """Len of steps list during last undo operation"""
         self.last_save_labels = 0
         """Len of steps list during saving undo operation"""
+        self.removed_diagrams = []
+        """Diagram that is removed from history"""
     
     def is_changes(self):
         """Return if changes is made after saving"""
@@ -441,6 +443,30 @@ class LayersHistory(History):
         self._refresh_panel = True
         self._check_viewed = True
         return revert
+        
+    def change_layer(self, layer, id, label=None):
+        """
+        Add change layer to history operation. 
+ 
+        Calling function must ensure that interface sequence related
+        to rest layers
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_layer, [id, layer],label))
+        
+    def _change_layer(self, layer, id):
+        """
+        Switch layer id to set layer in layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        old_layer = layers.change_layer(id, layer)
+        
+        revert =  HistoryStep(self._change_layer, [id, old_layer])
+        self._refresh_panel = True
+        self._check_viewed = True
+        return revert
 
         
     def insert_interface(self, interface, label=None):
@@ -470,8 +496,8 @@ class LayersHistory(History):
         """
         Add delete layer to history operation. 
  
-        Calling function must ensure that interface sequence related
-        to rest layers
+        Calling function must ensure that diagram sequence related
+        to rest interfaces
         """
         self.global_history.add_label(self.id, label)
         self.steps.append(HistoryStep(self._delete_interface, [id],label))
@@ -484,12 +510,120 @@ class LayersHistory(History):
         """
         layers = self.global_history.cfg.layers
         del_interface = layers.delete_interface(id)
+        layers.strip_edited(del_interface)
         
         revert =  HistoryStep(self._insert_interface, [del_interface, id])
         self._refresh_panel = True
         self._check_viewed = True
-
+        
         return revert
+
+    def change_interface(self, interface, id, label=None):
+        """
+        Add change layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new interfaces
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_interface, [id],label))
+        
+    def _change_interface(self, id):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        old_interface = layers.change_interface(id)
+        layers.strip_edited(old_interface)
+        
+        revert =  HistoryStep(self._change_interface, [old_interface, id])
+        self._refresh_panel = True
+        self._check_viewed = True
+        
+        return revert
+        
+    def change_group(self, layers, interfaces, id, old_count, label=None):
+        """
+        Add switching two groups to history  
+        
+        Calling function must ensure that diagram sequence related
+        to new group.
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_group, [layers, interfaces, id, old_count],label))
+ 
+    def _change_group(self, new_layers, new_interfaces, id, old_count):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        old_layers, old_interfaces = layers.change_interface(id)
+        for interface in old_interfaces:
+            layers.strip_edited(interface)
+            
+        revert =  HistoryStep(self._change_group, [old_layers, old_interfaces, id, len(new_layers)])
+        self._refresh_panel = True
+        self._check_viewed = True
+        
+        return revert 
+
+    def delete_diagrams(self, id, count, oper, label=None):
+        """
+        Add diagram deleting to history  
+        
+        Calling function must ensure that interface sequence related
+        to rest diagrams.
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_diagrams, [id, count, oper],label))
+ 
+    def _delete_diagrams(self, id, count, oper):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        cfg = self.global_history
+        for i in range(0, count):
+            if cfg.remove_and_save_diagram(id):
+                self._edit_first = True
+        diagrams = self.global_history.removed_diagrams
+        self.global_history.removed_diagrams = []
+        
+        revert =  HistoryStep(self._insert_diagrams, [diagrams, id, count, oper])
+        
+        return revert 
+
+    def insert_diagrams(self, id, oper, label=None):
+        """
+        Add diagram inserting to history  
+        
+        Calling function must ensure that interface sequence related
+        to inserted diagrams.
+        """
+        self.global_history.add_label(self.id, label)
+        
+        diagrams = self.global_history.removed_diagrams
+        self.global_history.removed_diagrams = []
+        
+        self.steps.append(HistoryStep(self._insert_diagrams, [diagrams, id, oper], label))
+ 
+    def _insert_diagrams(self, diagrams, id, oper):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        cfg = self.global_history
+        cfg.insert_diagrams(diagrams, id, oper)
+        
+        revert =  HistoryStep(self._delete_diagrams, [id, len(diagrams), oper])
+        
+        return revert 
 
     def return_op(self):
         """return nedded check """
@@ -499,5 +633,7 @@ class LayersHistory(History):
         self._check_viewed = False
         self._edit_first = False
         return ret
+        
+
 
 

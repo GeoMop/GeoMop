@@ -2,6 +2,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from geometry_files import TopologyType
 from enum import IntEnum
+import copy
 
 class DupDiagramData():
     """Data for duplicating didram description"""
@@ -386,15 +387,18 @@ class Layers():
         self.interfaces.insert(0, Interface(depth, False)) 
  
     def add_layer_to_shadow(self, idx, name, depth, dup):
-        """Append new layer to shadow block"""
+        """Append new layer to shadow block, return True if 
+        shadow block is replaces"""
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx+1, 1)  
         if float(depth)==self.interfaces[idx+1].depth:
             self.layers[idx].shadow=False
             self.layers[idx].name=name
+            return True
         else:
             self.layers.insert(idx, Layer(name))
-            self.interfaces.insert(idx+1, Interface(depth, True)) 
+            self.interfaces.insert(idx+1, Interface(depth, True))
+        return False
        
        
     def add_fracture(self, idx, name, position, dup):
@@ -977,17 +981,38 @@ class Layers():
         del self.layers[idx]
         return ret
         
+    def change_layer(self, layer, idx):
+        """Switch idx layer to set layer"""
+        old = self.layers[idx]
+        self.layers[idx] = layer
+        return old
+        
+    def strip_edited(self, interface):
+        """If some of interface diagram editing is set to true, 
+        is set to false and return true, else false"""
+        if interface.edited1:
+            interface.edited1 = False
+            return True
+        if interface.edited2:
+            interface.edited2 = False
+            return True
+        if interface.fracture is not None and \
+            interface.fracture.edited:
+            interface.fracture.edited = False
+            return True
+        return False
+        
     def insert_interface(self, interface, idx):
         """insert set layer and move diagram indexes, if is needed"""
         self.interfaces.insert(idx, interface)
         move = 0
         if interface.diagram_id1 is not None:
-            move +=1
+            move += 1
         if interface.diagram_id2 is not None:
-            move +=1
+            move += 1
         if interface.fracture is not None and \
             interface.fracture.fracture_diagram_id is not None:
-            move +=1
+            move += 1
         if move>0:
             self._move_diagram_idx(idx+1, move)
             
@@ -995,18 +1020,98 @@ class Layers():
         """delete set interface and move diagram indexes, if is 
         needed. Return deleted interface"""
         ret = self.interfaces[idx]
+
         del self.interfaces[idx]
         move = 0
         if ret.diagram_id1 is not None:
-            move +=1
+            move += 1
         if ret.diagram_id2 is not None:
-            move +=1
+            move += 1
         if ret.fracture is not None and \
             ret.fracture.fracture_diagram_id is not None:
-            move +=1
+            move += 1
         if move>0:
             self._move_diagram_idx(idx, -move)
-        return ret            
+        return ret 
+
+    def change_interface(self, interface, idx):
+        """Switch idx layer to set layer"""
+        old = self.interfaces[idx]
+        self.interfaces[idx] = interface
+        
+        move = 0
+        if interface.diagram_id1 is not None:
+            move += 1
+        if interface.diagram_id2 is not None:
+            move += 1
+        if interface.fracture is not None and \
+            interface.fracture.fracture_diagram_id is not None:
+            move += 1
+        if old.diagram_id1 is not None:
+            move -= 1
+        if old.diagram_id2 is not None:
+            move -= 1
+        if old.fracture is not None and \
+            old.fracture.fracture_diagram_id is not None:
+            move -= 1
+        if move!=0:
+            self._move_diagram_idx(idx+1, move)        
+        return old
+
+    def get_group_copy(self, idx, count):
+        """Return copy of set interfaces and layers.
+        """
+        interfaces = [copy.deepcopy(self.interfaces[idx])]
+        layers = []
+        for i in range(idx, idx+count):
+            interfaces.append(copy.deepcopy(self.interfaces[i+1]))
+            layers.append(copy.deepcopy(self.layers[i]))
+        return layers, interfaces
+        
+    def switch_group_copy(self, idx, old_count, new_layers, new_interfaces):
+        """Switch count of old interfaces and layers to new set
+        and return old interfaces and layers.
+        """
+        interfaces = [self.interfaces.pop(idx)]
+        layers = []
+        for i in range(idx, idx+old_count):
+            interfaces.append(self.interfaces.pop(idx))
+            layers.append(self.layers.pop(idx))
+        for i in range(len(new_layers)-1, -1, -1):
+            self.layers.insert(idx, new_layers[i])
+        for i in range(len(new_interfaces)-1, -1, -1):
+            self.interfaces.insert(idx, new_interfaces[i])
+            
+        move = 0
+        for interface in new_interfaces: 
+            if interface.diagram_id1 is not None:
+                move += 1
+            if interface.diagram_id2 is not None:
+                move += 1
+            if interface.fracture is not None and \
+                interface.fracture.fracture_diagram_id is not None:
+                move += 1
+        for interface in interfaces:
+            if interface.diagram_id1 is not None:
+                move -= 1
+            if interface.diagram_id2 is not None:
+                move -= 1
+            if interface.fracture is not None and \
+                interface.fracture.fracture_diagram_id is not None:
+                move -= 1                
+        if move!=0:
+            self._move_diagram_idx(idx+len(new_interfaces), move) 
+        return layers, interfaces    
+        
+    def get_orig_copy(self, idx, count):
+        """Return copy of set interfaces and layers.
+        """
+        interfaces = [copy.deepcopy(self.interfaces[idx])]
+        layers = []
+        for i in range(idx, idx+count):
+            interfaces.append(copy.deepcopy(self.interfaces[i+1]))
+            layers.append(copy.deepcopy(self.layers[idx]))
+        return layers, interfaces
         
 # display operations   
     def _compute_controls(self, y):
