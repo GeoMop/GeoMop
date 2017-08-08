@@ -1,5 +1,6 @@
 import enum
 import itertools
+import numpy as np
 
 class ParamError(Exception):
     pass
@@ -108,6 +109,8 @@ class Curve3D:
         self.rational=rational
         self.degree=degree
 
+
+
 class Curve2D:
     """
     Defines a 2D curve as B-spline. We shall work only with B-splines of degree 2.
@@ -185,10 +188,73 @@ class Surface:
 
 
 
+class Approx:
+    """
+    Approximation methods for B/splines of degree 2.
+    """
+
+    @classmethod
+    def approx_plane(cls, vtxs):
+        """
+        Returns B-spline surface of a plane given by 3 points.
+        We retun also list of UV coordinates of the given points.
+        :param vtxs: List of tuples (X,Y,Z)
+        :return: ( Surface, vtxs_uv )
+        """
+        assert len(vtxs) == 4
+        vtxs = np.array(vtxs)
+        vtxs.append( vtxs[1] + vtxs[2] - vtxs[0] )
+        (surf, vtxs_uv) = cls.approx_bilinear(cls, vtxs)
+        return (surf, vtxs_uv[0:2])
+
+    @classmethod
+    def approx_bilinear(cls, vtxs):
+        """
+        Returns B-spline surface of a bilinear surface given by 4 corner points.
+        We retun also list of UV coordinates of the given points.
+        :param vtxs: List of tuples (X,Y,Z)
+        :return: ( Surface, vtxs_uv )
+        """
+        assert len(vtxs) == 4
+        vtxs = np.array(vtxs)
+        def mid(*idx):
+            return np.mean( vtxs[idx], axis=0)
+
+        poles = [ vtxs[0],  mid(0, 1), vtxs[1], mid(0,2), mid(0,1,2,3), mid(1,3), vtxs[2], mid(2,3), vtxs[3] ]
+        knots = [(0.0, 3), (1.0, 3)]
+        surface = Surface(poles, (knots, knots))
+        vtxs_uv = [ (0, 0), (1, 0), (0, 1), (1,1) ]
+        return (surface, vtxs_uv)
 
 
 
 
+    @classmethod
+    def _line(cls, vtxs):
+        assert len(vtxs) == 2
+        vtxs = np.array(vtxs)
+        mid = np.mean(vtxs, axis=0)
+        poles = [ vtxs[0],  mid, vtxs[1] ]
+        knots = [(0.0, 3), (1.0, 3)]
+        return (poles, knots)
+
+    @classmethod
+    def line_2d(cls, vtxs):
+        """
+        Return B-spline approximation of line from two 2d points
+        :param vtxs: [ (X0, Y0), (X1, Y1) ]
+        :return: Curve2D
+        """
+        return Curve2D( *cls._line(vtxs) )
+
+
+    def line_3d(cls,  vtxs):
+        """
+        Return B-spline approximation of line from two 3d points
+        :param vtxs: [ (X0, Y0, Z0), (X1, Y1, Z0) ]
+        :return: Curve2D
+        """
+        return Curve3D(*cls._line(vtxs))
 
 orient_chars=['+', '-', 'i', 'e']
 
@@ -275,6 +341,9 @@ class Shape:
     def e(self):
         return (self, Orient.External)
 
+    def subshapes(self):
+        # Return list of subshapes stored in child ShapeRefs.
+        return [chld.shape for chld in self.childs]
 
 
     def append(self, shape_ref):
@@ -373,8 +442,36 @@ class Face(Shape):
         self.tol=tolerance
         self.restriction_flag =0
 
+    def implicit_surface(self):
+        """
+        Construct a surface if surface is None. Works only for
+        3 and 4 vertices (plane or bilinear surface)
+        Should be called in _dfs just after all child shapes are passed.
+        :return: None
+        """
+        edges = {}
+        vtxs = {}
+        for wire in self.subshapes():
+            for edge in wire.subshapes():
+                edges[edge.id] =  edge
+                for vtx in edge.subshapes():
+                    vtxs[vtx.id] = vtx.point
+        if len(vtxs) == 3:
+            constructor = Approx.plane
+        elif len(vtxs) == 4:
+            constructor = Approx.bilinear
 
+        (ids, points) = zip(*vtxs.items())
+        (surface, vtxs_uv) =  constructor(points)
+        self.repr = [(surface, Location())]
 
+        # set representation of edges
+        id_to_uv = dict(zip(ids, vtxs_uv))
+        for edge in edges.values():
+            vtxs = edge.subshapes()
+            v0_uv = id_to_uv[vtxs[0].id]
+            v1_uv = id_to_uv[vtxs[1].id]
+            edge.attach_to_surface( surface, v0_uv, v1_uv )
 
 
 class Edge(Shape):
@@ -434,6 +531,25 @@ class Edge(Shape):
         :return: None
         """
         self.repr.append( (self.Repr.Curve2d, t_range, curve, surface, location) )
+
+    def attach_to_plane(self, surface, v0, v1):
+        """
+        Construct and attach 2D line in UV space of the 'surface'
+        :param surface: A Surface object.
+        :param v0: UV coordinate of the first edge point
+        :param v1: UV coordinate of the second edge point
+        :return:
+        """
+        self.attach_to_2d_curve((0.0, 1.0), Approx.line_2d([v0, v1]), surface)
+
+    def implicit_curve(self):
+        """
+        Construct a line 3d curve if there is no 3D representation.
+        Should be called in _dfs.
+        :return:
+        """
+        self.attach_to_3d_curve((0.0,1.0), Approx.line_3d( self.subshapes()))
+
 
     #def attach_continuity(self):
 
