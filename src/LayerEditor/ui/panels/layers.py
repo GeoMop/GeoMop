@@ -228,7 +228,7 @@ class Layers(QtWidgets.QWidget):
             depth = dlg.depth.text()
             dup = cfg.layers.get_diagram_dup_before(idx)            
             cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
-            self._history.delete_diagrams(dup.insert_id, dup.dup.count, TopologyOperations.insert)
+            self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, "Add layer to shadow")
             layers, interfaces = cfg.layers.get_group_copy(idx, 1)
             if cfg.layers.add_layer_to_shadow(idx, name, depth, dup):
                 self._history.change_group(self, layers, interfaces, idx, 1)

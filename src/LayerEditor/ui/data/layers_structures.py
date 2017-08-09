@@ -863,7 +863,7 @@ class Layers():
         elif split_type is LayerSplitType.editable:
             new_interface = Interface(depth, False, None, dup.insert_id)
         elif split_type is LayerSplitType.split:
-            new_interface = Interface(depth, True, None, dup.insert_id, dup.insert_id)
+            new_interface = Interface(depth, True, None, dup.insert_id, dup.insert_id+1)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
         if dup is not None:
