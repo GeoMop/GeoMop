@@ -561,7 +561,7 @@ class LayersHistory(History):
         Return invert operation
         """
         layers = self.global_history.cfg.layers
-        old_layers, old_interfaces = layers.change_interface(id)
+        old_layers, old_interfaces = layers.switch_group_copy(id, old_count, new_layers, new_interfaces)
         for interface in old_interfaces:
             layers.strip_edited(interface)
             
