@@ -54,7 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Menu bar
         self._menu = self.menuBar()
         self._edit_menu = EditMenu(self, self.diagramScene)
-        self._file_menu = MainFileMenu(self,  layer_editor)
+        self._file_menu = MainFileMenu(self, layer_editor)
         
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
@@ -110,6 +110,10 @@ class MainWindow(QtWidgets.QMainWindow):
             view_rect.height()/cfg.diagram.zoom+200)
             
         self.diagramScene.blink_start(rect)
+        
+    def update_recent_files(self, from_row=1):
+        """Update recently opened files."""
+        self._file_menu.update_recent_files(from_row)
         
     def refresh_view_data(self, i):
         """Propagate new views (static, not edited diagrams) 

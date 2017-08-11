@@ -20,7 +20,7 @@ class GeometryFactory:
 
     def get_topology(self, node_set_idx):
         """Get node set topology idx"""
-        ns = self.geometry.node_sets[node_set_idx].topology_idx
+        ns = self.geometry.node_sets[node_set_idx]
         return ns.topology_idx
       
     def get_gl_topology(self, gl):
@@ -111,4 +111,5 @@ class GeometryFactory:
                     errors.append("Topology {0} is in more that one block.".format(str(curr_top)))
                 else:
                     used_top.append(curr_top)
+        return errors
         

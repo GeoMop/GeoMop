@@ -268,7 +268,7 @@ class Layers(QtWidgets.QWidget):
         else:
             assert(type is ClickedControlType.edit)
         cfg.layers.set_edited_interface(i, second, fracture)
-        diagram_idx =  cfg.layers.get_diagram_idx(i, second, fracture)
+        diagram_idx = cfg.layers.get_diagram_idx(i, second, fracture)
         old = cfg.set_curr_diagram(diagram_idx)
         self.update()
         self. editInterfaceChanged.emit(old, diagram_idx)

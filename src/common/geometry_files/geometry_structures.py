@@ -162,7 +162,7 @@ class SurfaceNodeSet(GeoObject):
     Only for GL"""
 
     def __init__(self, ns_idx, surface_idx):
-        self.ns_idx = ns_idx,
+        self.ns_idx = ns_idx
         """Node set index"""
         self.surface_idx = surface_idx
         """Surface index"""

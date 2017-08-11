@@ -337,7 +337,8 @@ class Layers():
                 j = i+1
                 next = True
                 while self.interfaces[j].diagram_id1 is None:
-                    if self.interfaces[j].splited:                        
+                    if j==len(self.interfaces) or \
+                        self.interfaces[j].splited:                        
                         next = False
                         data.stype2 = TopologyType.interpolated
                         break

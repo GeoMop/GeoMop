@@ -41,6 +41,8 @@ class _Config:
             
         self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
         """directory of the most recently opened data file"""
+        self.recent_files = kw_or_def('recent_files', [])
+        """a list of recently opened files"""
  
     def save(self):
         """Save config data"""

@@ -44,10 +44,12 @@ class LESerializer():
                 tp_idx = layers_info.block_idx
             if layers_info.diagram_id1 is not None and \
                 layers_info.diagram_id1>last_ns_idx:
+                last_ns_idx += 1
                 ns_idx = gf.add_node_set(tp_idx)
                 self._write_ns(cfg, ns_idx, gf)
             if layers_info.diagram_id2 is not None and \
                 layers_info.diagram_id2>last_ns_idx:
+                last_ns_idx += 1
                 ns_idx = gf.add_node_set(tp_idx)
                 self._write_ns(cfg, ns_idx, gf)
             if layers_info.is_shadow:
@@ -77,6 +79,7 @@ class LESerializer():
                 if layers_info.fracture_own is not None:
                     gf.add_topologies_to_count(layers_info.block_idx+1)
                     if layers_info.fracture_own.fracture_diagram_id>last_ns_idx:
+                        last_ns_idx += 1
                         ns_idx = gf.add_node_set(tp_idx+1)
                         self._write_ns(cfg, ns_idx, gf)
                     surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx+1].depth)
@@ -146,7 +149,7 @@ class LESerializer():
             elif last_stratum.bottom_type is TopologyType.interpolated and \
                 layer.top_type is TopologyType.interpolated:                
                 if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(layer):                    
-                    if len(last_fracture) is not None:
+                    if last_fracture is not None:
                         cfg.layers.add_interface(depth, False, last_fracture.name)
                         last_fracture = None
                     else:
