@@ -1,6 +1,33 @@
 import enum
 import itertools
 
+class ParamError(Exception):
+    pass
+
+def check_matrix(mat, shape, values, idx=[]):
+    try:
+
+        if len(shape) == 0:
+            if not isinstance(mat, values):
+                raise ParamError("Element at index {} of type {}, expected instance of {}.".format(idx, type(mat), values))
+        else:
+            if shape[0] is None:
+                shape[0] = len(mat)
+            l=None
+            if not hasattr(mat, '__len__'):
+                l=0
+            elif len(mat) != shape[0]:
+                l=len(mat)
+            if not l is None:
+                raise ParamError("Wrong len {} of element {}, should be  {}.".format(l, idx, shape[0]))
+            for item in mat:
+                sub_shape = shape[1:]
+                check_matrix(item, sub_shape, values)
+                shape[1:] = sub_shape
+    except ParamError:
+        raise
+    except Exception as e:
+        raise ParamError(e)
 
 
 class Location:
@@ -14,8 +41,15 @@ class Location:
         Constructor for elementary afine transformation.
         :param matrix: Transformation matrix 3x4. First three columns forms the linear transformation matrix.
         Last column is the translation vector.
-        matrix==None meands identity location (ID=0).
+        matrix==None means identity location (ID=0).
         """
+        if matrix is None:
+            self.matrix = None
+            self.id = 0
+            return
+
+        # checks
+        check_matrix(matrix, [3, 4], (int, float))
         self.matrix=matrix
 
     def _dfs(self, groups):
@@ -39,6 +73,11 @@ class ComposedLocation(Location):
 
         :param location_powers: List of pairs (location, power)  where location is instance of Location and power is float.
         """
+        locs, pows =  zip(*location_powers)
+        l = len(locs)
+        check_matrix(locs, [ l ], (Location, ComposedLocation) )
+        check_matrix(pows, [ l ], int)
+
         self.location_powers=location_powers
 
     def _dfs(self, groups):
@@ -46,6 +85,14 @@ class ComposedLocation(Location):
         for location,power in self.location_powers:
             location._dfs(groups)
         Location._dfs(self, groups)
+
+def check_knots(deg, knots, N):
+    total_multiplicity = 0
+    for knot, mult in knots:
+        assert float(knot) > 0
+        total_multiplicity += mult
+    assert total_multiplicity == deg + N + 1
+
 
 class Curve3D:
     """
@@ -63,6 +110,13 @@ class Curve3D:
         :param rational: True for rational B-spline, i.e. NURB. Use weighted poles.
         :param degree: Positive int.
         """
+
+        if rational:
+            check_matrix(poles, (None, 4), [int, float] )
+        else:
+            check_matrix(poles, (None, 3), [int, float])
+        check_knots(degree, knots, N)
+
         self.poles=poles
         self.knots=knots
         self.rational=rational
@@ -91,6 +145,14 @@ class Curve2D:
         :param rational: True for rational B-spline, i.e. NURB. Use weighted poles.
         :param degree: Positive int.
         """
+
+        N = len(poles)
+        if rational:
+            check_matrix(poles, (N, 2), [int, float] )
+        else:
+            check_matrix(poles, (N, 3), [int, float])
+        check_knots(degree, knots, N)
+
         self.poles=poles
         self.knots=knots
         self.rational=rational
@@ -121,6 +183,27 @@ class Surface:
                       for U and V parametr, but only choices 0,0 and 1,1 have sense.
         :param degree: (u_degree, v_degree) Both positive ints.
         """
+
+        N = len(poles)
+        if rational:
+            check_matrix(poles, (None, None, 4), [int, float] )
+        else:
+            check_matrix(poles, (None, None, 3), [int, float])
+        check_knots(degree, knots, N)
+
+        assert len(poles) > 0
+        assert len(poles[0]) > 0
+        Nu = len(poles)
+        Nv = len(poles[0])
+        for row in poles:
+            assert len(row) == Nv
+
+        assert (not rational and len(poles[0][0]) == 3) or (rational and len(poles[0][0]) == 4)
+
+        (u_knots, v_knots) = knots
+        check_knots(degree, u_knots, Nu)
+        check_knots(degree, v_knots, Nv)
+
         self.poles=poles
         self.knots=knots
         self.rational=rational
@@ -131,6 +214,10 @@ class Surface:
             id = len(groups['surfaces']) + 1
             self.id = id
             groups['surfaces'].append(self)
+
+
+
+
 
 orient_chars=['+', '-', 'i', 'e']
 
@@ -159,6 +246,10 @@ class ShapeRef:
         :param orient: orientation of the shape, value is enum Orient
         :param location: A Location object. Default is None = identity location.
         """
+        assert issubclass(type(shape), Shape)
+        assert isinstance(orient, Orient)
+        assert issubclass(type(location), Location)
+
         self.shape=shape
         self.orient=orient
         self.location=location
@@ -169,12 +260,10 @@ class ShapeFlag:
     All methods set the flags automatically, but it can be overwritten.
     """
     def __init__(self, free, modified, IGNORED, orientable, closed, infinite, convex):
-        self.free=free
-        self.modified=modified
-        self.orientable=orientable
-        self.closed=closed
-        self.infinite=infinite
-        self.convex=convex
+
+        self.flags = (free, modified, IGNORED, orientable, closed, infinite, convex)
+        for i in self.flags:
+            assert i in [0, 1]
 
 
 class Shape:
@@ -193,6 +282,8 @@ class Shape:
                 args=child
             else:
                 args=(child,)
+            if not isinstance(args[0], tuple(self.sub_types)):
+                raise ParamError("{} is not instance of {}".format(type(args[0]), self.sub_types) )
             self.childs.append(ShapeRef(*args))
 
         # Thes flags are produced by OCC for all other shapes safe vertices.
@@ -218,7 +309,7 @@ class Shape:
     def append(self, shape_ref):
         """
         Append a reference to shild
-        :param shape_ref: Either ShapeRef object or tuple passed to constructor.
+        :param shape_ref: Either ShapeRef object or tuple passed to its constructor.
         :return: None
         """
         if type(shape_ref) != ShapeRef:
@@ -254,23 +345,28 @@ Writer can be generic implemented in bas class Shape.
 
 class Compound(Shape):
     def __init__(self, shapes=[]):
+        self.sub_types =  [CompoundSolid, Solid, Shell, Wire, Face, Edge, Vertex]
         super().__init__(shapes)
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
+        self.sub_types = [Solid]
         super().__init__(solids)
 
 class Solid(Shape):
-    def __init__(self, shalls=[]):
-        super().__init__(shalls)
+    def __init__(self, shells=[]):
+        self.sub_types = [Shell]
+        super().__init__(shells)
 
 class Shell(Shape):
     def __init__(self, faces=[]):
+        self.sub_types = [Face]
         super().__init__(faces)
 
 
 class Wire(Shape):
     def __init__(self, edges=[]):
+        self.sub_types = [Edge]
         super().__init__(edges)
 
 """
@@ -286,15 +382,20 @@ class Face(Shape):
 
     def __init__(self, wires, surface=None, location=Location(), tolerance=0.0):
         """
-        :param wires: List of ShapeRef tuples, references to wires.
+        :param wires: List of wires, or list of edges, or list of ShapeRef tuples of Edges to construct a Wire.
         :param surface: Representation of the face, surface on which face lies.
         :param location: Location of the surface.
         :param tolerance: Tolerance of the representation.
         """
         assert(len(wires) > 0)
         # auto convert list of edges into wire
-        if type(wires[0]) == Edge or type(wires[0][0]) == Edge:
-            wires = [ Wire( wires ) ]
+        if type(wires[0]) == Edge:
+            wires = [ Wire(wires) ]
+        elif type(wires[0]) == tuple:
+            assert type(wires[0][0]) == Edge
+            wires = [ Wire(wires) ]
+
+        self.sub_types = [Wire]
         super().__init__(wires)
         if surface is None:
             self.repr=[]
@@ -330,11 +431,16 @@ class Edge(Shape):
         :param tolerance: Tolerance of the representation.
         """
         assert(len(vertices) == 2)
+
+        # automaticaly convert vertices to their ShapeRefs
         if type(vertices[0]) == Vertex:
             vertices[0]=(vertices[0], Orient.Forward)
         if type(vertices[1]) == Vertex:
             vertices[1]=(vertices[1], Orient.Reversed)
 
+        assert vertices[0]
+
+        self.sub_types = [Vertex]
         super().__init__(vertices)
         self.tol = tolerance
         self.repr = []
@@ -395,6 +501,8 @@ class Vertex(Shape):
         :param point: 3d point (X,Y,Z)
         :param tolerance: Tolerance of the representation.
         """
+        check_matrix(point, [3], (int, float))
+
         super().__init__(childs=[])
         # These flags are produced by OCC for vertices.
         self.flags = ShapeFlag(0, 1, 0, 1, 1, 0, 1)
