@@ -64,6 +64,13 @@ class Location:
             self.id=id
             groups['locations'].append(self)
 
+    def _brep_output(self,stream):
+        stream.write("1\n")
+        for row in self.matrix:
+            for number in row:
+                stream.write(" {}".format(number))
+            stream.write("\n")
+
 class ComposedLocation(Location):
     """
     Defines an affine transformation as a composition of othr transformations. Corresponds to the <location data 2> in the BREP file.
@@ -86,6 +93,10 @@ class ComposedLocation(Location):
         for location,power in self.location_powers:
             location._dfs(groups)
         Location._dfs(self, groups)
+
+    def _brep_output(self,stream):
+        locs, pows =  zip(*self.location_powers)
+        stream.write("2  {} {} 0\n".format(self.id, pows)) #TODO: proc je pows list? pows[0]
 
 def check_knots(deg, knots, N):
     total_multiplicity = 0
@@ -112,6 +123,9 @@ class Curve3D:
         :param degree: Positive int.
         """
 
+        #pole count = len(poles)
+        #multiplicity knot count = len(knots)
+
         if rational:
             check_matrix(poles, (None, 4), [int, float] )
         else:
@@ -129,6 +143,9 @@ class Curve3D:
             self.id = id
             groups['curves_3d'].append(self)
 
+
+    def _brep_output(self,stream):
+        stream.write("Curves {}".format())
 
 class Curve2D:
     """
@@ -669,20 +686,31 @@ class Vertex(Shape):
                 repr[3]._dfs(groups) #location
 
 
-def index_all(compound):
+def index_all(compound,location):
     print("Index")
     print(compound.__class__.__name__) #prints class name
 
     groups=dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
     compound._dfs(groups)#pridej jako parametr dictionary listu jednotlivych grup. v listech primo objekty
+    location._dfs(groups)
     print(groups)
     return groups
 
 
 def write_model(stream, compound, location):
 
-    groups = index_all(compound=compound)
+    groups = index_all(compound=compound,location=location)
 
+    stream.write("DBRep_DrawableShape\n")
+    stream.write("CASCADE Topology V1, (c) Matra-Datavision\n")
+    stream.write("Locations {}\n".format(len(groups['locations'])))
+    for loc in groups['locations']:
+        loc._brep_output(stream)
+
+    stream.write("Curves {}\n".format(len(groups['curves_3d'])))
+
+    stream.write("Curve2ds {}\n".format(len(groups['curves_2d'])))
+    
     #vygeneruje hlavicku... stream write
     # vytvori hlavicku pro locations
     # for all locations (for loc in groups['locations']:
