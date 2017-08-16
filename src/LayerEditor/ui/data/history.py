@@ -452,7 +452,7 @@ class LayersHistory(History):
         to rest layers
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_layer, [id, layer],label))
+        self.steps.append(HistoryStep(self._change_layer, [layer, id],label))
         
     def _change_layer(self, layer, id):
         """
@@ -461,13 +461,75 @@ class LayersHistory(History):
         Return invert operation
         """
         layers = self.global_history.cfg.layers
-        old_layer = layers.change_layer(id, layer)
+        old_layer = layers.change_layer(layer, id)
         
         revert =  HistoryStep(self._change_layer, [id, old_layer])
         self._refresh_panel = True
         self._check_viewed = True
         return revert
 
+    def change_layer_name(self, name, id, label=None):
+        """
+        Add change layer name to history operation. 
+ 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_layer_name, [name, id],label))
+        
+    def _change_layer_name(self, name, id):
+        """
+        Switch layer name
+        
+        Return invert operation
+        """
+        old_name = self.global_history.cfg.layers.layers[id].name
+        self.global_history.cfg.layers.layers[id].name = name
+        
+        revert =  HistoryStep(self._change_layer_name, [old_name, id])
+        self._refresh_panel = True
+        return revert
+
+    def change_fracture_name(self, name, id, label=None):
+        """
+        Add change fracture name to history operation. 
+ 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_fracture_name, [name, id],label))
+        
+    def _change_fracture_name(self, name, id):
+        """
+        Switch fracture name
+        
+        Return invert operation
+        """
+        old_name = self.global_history.cfg.layers.interfaces[id].fracture.name
+        self.global_history.cfg.layers.interfaces[id].fracture.name = name
+        
+        revert =  HistoryStep(self._change_fracture_name, [old_name, id])
+        self._refresh_panel = True
+        return revert
+
+    def change_interface_depth(self, depth, id, label=None):
+        """
+        Add change interface depth to history operation. 
+ 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_interface_depth, [depth, id],label))
+        
+    def _change_interface_depth(self, depth, id):
+        """
+        Switch fracture name
+        
+        Return invert operation
+        """
+        old_depth = self.global_history.cfg.interfaces[id].depth
+        self.global_history.cfg.layers.interfaces[id].depth = depth
+        
+        revert =  HistoryStep(self._change_interface_depth, [old_depth, id])
+        self._refresh_panel = True
+        return revert
         
     def insert_interface(self, interface, label=None):
         """
@@ -526,16 +588,16 @@ class LayersHistory(History):
         to new interfaces
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_interface, [id],label))
+        self.steps.append(HistoryStep(self._change_interface, [interface, id],label))
         
-    def _change_interface(self, id):
+    def _change_interface(self, interface, id):
         """
         Switch id layer to set layers
         
         Return invert operation
         """
         layers = self.global_history.cfg.layers
-        old_interface = layers.change_interface(id)
+        old_interface = layers.change_interface(interface, id)
         layers.strip_edited(old_interface)
         
         revert =  HistoryStep(self._change_interface, [old_interface, id])
@@ -570,6 +632,48 @@ class LayersHistory(History):
         self._check_viewed = True
         
         return revert 
+        
+    def add_fracture(self, fracture, id, position, label=None):
+        """
+        Add add fracture to history operation.
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._add_fracture, [fracture, id, position],label))
+        
+    def _add_fracture(self, fracture, id, position):
+        """
+        Add fracture to interface 
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        layers.add_fracture_history(fracture, id, position)
+        
+        revert =  HistoryStep(self._delete_fracture, [id, position])
+        self._refresh_panel = True
+        self._check_viewed = True
+        return revert
+
+    def delete_fracture(self, id, position, label=None):
+        """
+        Add delete fracture to history operation.
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_fracture, [id, position],label))
+        
+    def _delete_fracture(self, id, position):
+        """
+        Delete layer from layers
+        
+        Return invert operation
+        """
+        layers = self.global_history.cfg.layers
+        del_fracture = layers.remove_fracture_history(id)
+        
+        revert =  HistoryStep(self._add_fracture, [del_fracture, id, position])
+        self._refresh_panel = True
+        self._check_viewed = True
+        return revert
 
     def delete_diagrams(self, id, count, oper, label=None):
         """
@@ -587,14 +691,14 @@ class LayersHistory(History):
         
         Return invert operation
         """
-        cfg = self.global_history
+        cfg = self.global_history.cfg
         for i in range(0, count):
             if cfg.remove_and_save_diagram(id):
                 self._edit_first = True
         diagrams = self.global_history.removed_diagrams
         self.global_history.removed_diagrams = []
         
-        revert =  HistoryStep(self._insert_diagrams, [diagrams, id, count, oper])
+        revert =  HistoryStep(self._insert_diagrams, [diagrams, id, oper])
         
         return revert 
 
@@ -618,7 +722,7 @@ class LayersHistory(History):
         
         Return invert operation
         """
-        cfg = self.global_history
+        cfg = self.global_history.cfg
         cfg.insert_diagrams(diagrams, id, oper)
         
         revert =  HistoryStep(self._delete_diagrams, [id, len(diagrams), oper])

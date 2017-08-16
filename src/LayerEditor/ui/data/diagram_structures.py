@@ -154,6 +154,10 @@ class Diagram():
     def move_diagram_topologies(cls, id, diagrams):
         """Increase topology index from id,
         and fix topologies dictionary"""
+        if not id < len(diagrams):
+            # not fix after last diagram
+            assert id == len(diagrams)
+            return
         max_top = diagrams[-1].topology_idx+1
         if max_top in cls.topologies:
             raise Exception("Invalid max topology index")
@@ -180,11 +184,13 @@ class Diagram():
                     max_top = diagrams[i].topology_idx
                 if copy_to != max_top:
                     cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
+                    if not copy_to in cls.topologies:
+                        cls.topologies[copy_to] = []
                     diagrams[i].topology_idx = copy_to
-                    cls.topologies[diagrams[i].topology_idx].append(diagrams[i])
+                    cls.topologies[copy_to].append(diagrams[i])
         cls.map_id = {}
         for i in range(0, len(diagrams)):
-            if cls.topologies[diagrams[i].topology_idx].index()==0:
+            if cls.topologies[diagrams[i].topology_idx].index(diagrams[i])==0:
                 diagrams[i].topology_owner = True
             else:
                 diagrams[i].topology_owner = False            
@@ -237,21 +243,21 @@ class Diagram():
         self._history = DiagramHistory(self, global_history)
         """history"""
         
-    def join(self, index):
+    def join(self):
         """Add diagram to topologies"""
         self.topology_owner = False
         if not self.topology_idx in self.topologies:
             self.topology_owner = True
             self.topologies[self.topology_idx] = []
-            self.topologies[self.topology_idx].append(self)
+        self.topologies[self.topology_idx].append(self)
         
-    def release(self, index):
+    def release(self):
         """Discard this object from global links"""
-        self.topologies[self.topology_idx].release(self)
-        if len(self.topologies[self.topology_idx])>1:
+        self.topologies[self.topology_idx].remove(self)
+        if len(self.topologies[self.topology_idx])<1:
             del self.topologies[self.topology_idx]
         else:
-            self.topologies[self.topology_idx].topology_owner = True
+            self.topologies[self.topology_idx][0].topology_owner = True
         
     def dcopy(self):
         """My deep copy implementation"""

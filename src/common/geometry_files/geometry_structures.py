@@ -179,6 +179,15 @@ class InterpolatedNodeSet(GeoObject):
         self.surface_idx = surface_idx
         """Surface index"""    
 
+class Region(GeoObject):
+    name: string,
+    color: [r,b,g], # nebo jiná reprezentace barev, pojmenováním, …
+    dim: int,
+    boundary: bool,
+    not_used: bool,     
+    mesh_step: double,
+    shapes_ids: list of ints
+
 
 class GL(GeoObject):
     """Geological layers"""

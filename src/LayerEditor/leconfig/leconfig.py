@@ -219,7 +219,7 @@ class LEConfig:
     def remove_and_save_diagram(cls, idx): 
         """Remove diagram from list and save it in history variable"""
         cls.diagrams[idx].release()
-        cls.history.removed_diagrams(cls.diagrams[idx])
+        cls.history.removed_diagrams.append(cls.diagrams[idx])
         curr_id = cls.diagram_id()
         del cls.diagrams[idx]
         data.Diagram.fix_topologies(cls.diagrams)

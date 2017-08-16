@@ -251,7 +251,7 @@ class LayersFractuceMenu(QMenu):
         
     def _rename_fracture(self):
         """Rename fracture to interface"""
-        self.layers_panel.remove_interface(self.interface_idx)
+        self.layers_panel.rename_fracture(self.interface_idx)
         
     def _remove_fracture(self):
         """Remove layer and add shadow block instead"""

@@ -688,7 +688,7 @@ class Layers():
         self._add_shadow(first_idx)
         res = []
         for i in range(0, slices):
-            res.append(first_slice_id+i)            
+            res.append(first_slice_id+slices-1-i)            
         self._move_diagram_idx(idx, -slices)
         return res
         
@@ -1069,6 +1069,11 @@ class Layers():
             layers.append(copy.deepcopy(self.layers[i]))
         return layers, interfaces
         
+    def get_interface_copy(self, idx):
+        """Return copy of set interface
+        """
+        return copy.deepcopy(self.interfaces[idx])
+        
     def switch_group_copy(self, idx, old_count, new_layers, new_interfaces):
         """Switch count of old interfaces and layers to new set
         and return old interfaces and layers.
@@ -1113,6 +1118,26 @@ class Layers():
             interfaces.append(copy.deepcopy(self.interfaces[i+1]))
             layers.append(copy.deepcopy(self.layers[idx]))
         return layers, interfaces
+        
+    def add_fracture_history(self, fracture, idx, position):
+        """add fracture to interface
+        """
+        if self.interfaces[idx].fracture is not None:
+            raise Exception("Interface {0} has already fracture.".format(str(idx)))
+        if position is FractureInterface.own:
+            self.interfaces[idx].diagram_id2 += 1    
+            self._move_diagram_idx(idx, 1)                
+        self.interfaces[idx].fracture = fracture 
+        
+    def remove_fracture_history(self, idx):
+        """Remove fracture from idx interface and return it"""
+        if self.interfaces[idx].fracture.type==FractureInterface.own:
+            if self.interfaces[idx].diagram_id2 is not None:
+                self.interfaces[idx].diagram_id2 -= 1
+            self._move_diagram_idx(idx, -1)
+        ret = self.interfaces[idx].fracture
+        self.interfaces[idx].fracture = None
+        return ret
         
 # display operations   
     def _compute_controls(self, y):
@@ -1284,9 +1309,9 @@ class Layers():
                     return i
             #fracture
             if self.interfaces[i].fracture is not None:
-                if type is ClickedControlType.interface and self.interfaces[i].fracture.rect.contains(p):
+                if type is ClickedControlType.fracture and self.interfaces[i].fracture.rect.contains(p):
                     return i
-                if type is ClickedControlType.interface and self.interfaces[i].fracture.view_rect is not None:
+                if type is ClickedControlType.fracture_view and self.interfaces[i].fracture.view_rect is not None:
                     if self.interfaces[i].fracture.view_rect.contains(p):
                         return i
                 if type is ClickedControlType.fracture_edit and self.interfaces[i].fracture.edit_rect is not None:
@@ -1295,5 +1320,4 @@ class Layers():
             if type is ClickedControlType.layer and i<len(self.layers):
                 if self.layers[i].rect.contains(p):
                     return i
-
         return None

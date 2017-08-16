@@ -50,7 +50,7 @@ class CurrentView():
         self.cfg.diagrams[self.diagram_id].zoom = self.diagram_zoom
         self.cfg.diagrams[self.diagram_id].x = self.diagram_pos_x
         self.cfg.diagrams[self.diagram_id].y = self.diagram_pos_y
-        self.cfg.layer.set_edited_diagram(self.diagram_id)
+        self.cfg.layers.set_edited_diagram(self.diagram_id)
         self.cfg.set_curr_diagram(self.diagram_id)
         self.cfg.main_window.layers.update()
         self.cfg.main_window.refresh_curr_data(old_id, self.diagram_id)
