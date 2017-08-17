@@ -3,6 +3,7 @@ import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from enum import IntEnum
+from .region_structures import Regions
 
 class TopologyOperations(IntEnum):
     """Type of topology operation"""
@@ -19,6 +20,7 @@ class TopologyOperations(IntEnum):
 __next_id__ = 1
 __next_diagram_uid__ = 1
 
+
 class Point():
     """
     Class for graphic presentation of point
@@ -34,7 +36,10 @@ class Point():
         self.object = None
         """Graphic object""" 
         self.id = id
-        """Line history id"""
+        """Point history id"""
+        self.region_id = 1
+        """Point region id"""
+        
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -81,6 +86,7 @@ class Point():
             return True
         return False        
 
+
 class Line():
     """
     Class for graphic presentation of line
@@ -95,6 +101,9 @@ class Line():
         """Graphic object"""
         self.id = id
         """Line history id"""
+        self.region_id = 1
+        """Line region id"""
+ 
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -114,7 +123,9 @@ class Polygon():
         self.object = None
         """Graphic object"""
         self.id = id
-        """Poligon history id"""
+        """Polygon history id"""
+        self.region_id = 2
+        """Polygon region id"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -142,6 +153,23 @@ class Diagram():
     """Object of not edited diagrams"""
     topologies = {}
     """List of all diagrams, divided by topologies"""
+    regions = Regions()
+    """List of regions"""
+    
+    @classmethod
+    def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
+        """Add region"""
+        cls.regions.add_region(color, name, dim, step, boundary, not_used)    
+        
+    @classmethod
+    def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
+        """Add shape to region"""
+        cls.regions.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+
+    @classmethod
+    def get_shapes_from_region(cls, is_fracture, layer_id):
+        """Get shapes from region""" 
+        return cls.regions.get_shapes_from_region(is_fracture, layer_id)
     
     @classmethod
     def release_all(cls):

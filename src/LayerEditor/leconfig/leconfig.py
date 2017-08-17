@@ -172,6 +172,21 @@ class LEConfig:
     def changed(cls):
         """is file changed"""
         return cls.history.is_changes()
+    
+    @classmethod
+    def add_region(cls, color, name, dim, step,  boundary, not_used):
+        """Add region"""
+        data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
+        
+    @classmethod
+    def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
+        """Add shape to region"""
+        data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+    
+    @classmethod
+    def get_shapes_from_region(cls, is_fracture, layer_id):
+        """Get shapes from region""" 
+        return data.Diagram.get_shapes_from_region(is_fracture, layer_id)
         
     @classmethod
     def set_curr_diagram(cls, i):

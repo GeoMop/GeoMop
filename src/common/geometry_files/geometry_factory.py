@@ -2,6 +2,7 @@
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment, Node, GL
 from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface, TopologyType
+from .geometry_structures import Region
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -17,6 +18,14 @@ class GeometryFactory:
         topology = Topology()
         self.geometry.plane_topologies.append( topology)
         return len(self.geometry.plane_topologies)-1
+        
+    def get_regions(self):
+        """Get list of regions"""
+        return self.geometry.regions
+        
+    def add_region(self, color, name, dim, step,  boundary, not_used):
+        """Get list of regions"""
+        return self.geometry.regions.append(Region(color, name, dim, step,  boundary, not_used))
 
     def get_topology(self, node_set_idx):
         """Get node set topology idx"""
@@ -51,10 +60,14 @@ class GeometryFactory:
         self.geometry.surfaces.append(surface)
         return len(self.geometry.surfaces)-1        
     
-    def add_GL(self, name, type, top_type, top, bottom_type=None, bottom=None):
+    def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
         gl = GL(name, type, top_type, top, bottom_type, bottom)
+        gl.node_regions = regions_idx[0]
+        gl.segment_regions = regions_idx[1]
+        gl.segment_polygons = regions_idx[2]
         self.geometry.main_layers.append(gl)
+        
         return  len(self.geometry.main_layers)-1
 
     def add_node_set(self, topology_idx):
@@ -65,8 +78,9 @@ class GeometryFactory:
     def reset(self):
         self.geometry.node_sets = []
         self.geometry.plane_topologies = []
-        self.geometry.surfaces = []        
-    
+        self.geometry.surfaces = []
+        self.geometry.regions = []
+        
     def add_node(self,node_set_idx, x, y):
         self.geometry.node_sets[node_set_idx].nodes.append(Node(x, y))
         return len(self.geometry.node_sets[node_set_idx].nodes)-1
@@ -82,7 +96,15 @@ class GeometryFactory:
     def get_segments(self, node_set_idx):
         ns =  self.geometry.node_sets[node_set_idx]
         return self.geometry.plane_topologies[ns.topology_idx].segments
-
+        
+    def get_GL_regions(self, gl_idx):
+        """Return lis of gl regions"""
+        return [
+                self.geometry.main_layers[gl_idx].node_regions, 
+                self.geometry.main_layers[gl_idx].segment_regions, 
+                self.geometry.main_layers[gl_idx].polygon_regions
+            ]
+        
     def check_file_consistency(self):
         """check created file consistency"""
         errors =  []

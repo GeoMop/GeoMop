@@ -270,7 +270,7 @@ class Layers():
                     if self.interfaces[i].splited:                        
                         break
                     i += 1
-                if len(self.interfaces)<i and self.interfaces[i].diagram_id1 is not None:
+                if len(self.interfaces)>i and self.interfaces[i].diagram_id1 is not None:
                     data.diagram_id2 = self.interfaces[i].diagram_id1
                 else:
                     data.diagram_id2 = None
@@ -316,16 +316,18 @@ class Layers():
                 else:
                     data.diagram_id1 = self.interfaces[i].diagram_id2
                     data.stype1 = TopologyType.given
-                    j=i
+                    j=i+1
                     if self.interfaces[j].diagram_id1 is None:
                         data.stype2 = TopologyType.interpolated
-                        while self.interfaces[j].diagram_id1 is None:
+                        while len(self.interfaces)>j and self.interfaces[j].diagram_id1 is None:
                             if self.interfaces[j].splited:                        
                                 data.diagram_id2 = None
                                 break
                             j += 1
-                        if self.interfaces[j].diagram_id1 is not None:
+                        if len(self.interfaces)>j and self.interfaces[j].diagram_id1 is not None:
                             data.diagram_id2 = self.interfaces[j].diagram_id1
+                        else:
+                            data.diagram_id2 = None
                     else:
                         data.diagram_id2 = self.interfaces[i+1].diagram_id1
                         data.stype2 = TopologyType.given

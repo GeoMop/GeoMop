@@ -49,7 +49,10 @@ class GeoObject:
                     setattr(self, k, obj)
             else:
                 setattr(self, k, v)
-    
+
+class Curve(GeoObject):
+    def __init__():
+        pass    
 
 class Surface(GeoObject):
     
@@ -66,21 +69,6 @@ class Surface(GeoObject):
         return self.transform[2]
 
 
-class Curve(GeoObject):
-    def __init__():
-        pass
-        
-        
-class Bulk(GeoObject):
-    def __init__():
-        pass
-        
-        
-class Well(GeoObject):
-    def __init__():
-        pass
-        
-    
 class Fracture(GeoObject):
     """Fracture object"""
 
@@ -88,11 +76,11 @@ class Fracture(GeoObject):
         self.region_idx = region_idx
         """region index"""
         self.poly_lines = []
-        """Lis of Faces (polygon lines]"""
+        """List of Faces (polygon lines]"""
 
 
 class Segment(GeoObject):
-    """Face object"""
+    """Line object"""
     def __init__(self, n1_idx, n2_idx):
         self.n1_idx = n1_idx
         """First point index"""
@@ -101,6 +89,13 @@ class Segment(GeoObject):
         self.surface_idx = None
         """Surface index"""
 
+class Polygon(GeoObject):
+    """Polygon object"""
+    def __init__(self, segments=[]):
+        self.segments_idx = segments
+        """List of segments index"""
+        self.surface_idx = None
+        """Surface index"""
 
 class Node(GeoObject):
     """Node coordinates"""
@@ -113,24 +108,19 @@ class Node(GeoObject):
         
         
 class Topology(GeoObject):
-    """Topological 2D presentation of bulks,fracture and well"""
+    """Topological presentation of geometry objects"""
     
     class_def={
-            "segments":Segment, 
-            "bulks":Bulk, 
-            "fractures":Fracture, 
-            "wells":Well
+            "segments":Segment,
+            "polygons":Polygon 
+
         }
 
     def __init__(self):
         self.segments = []
         """List of topology segments (line)"""
-        self.bulks = []
-        """List of bulk objects"""
-        self.fractures = []
-        """List of fracture objects"""
-        self.wells = []
-        """List of well objects"""
+        self.polygons = []
+        """List of topology polygons"""
  
 
 class NodeSet(GeoObject):
@@ -180,14 +170,23 @@ class InterpolatedNodeSet(GeoObject):
         """Surface index"""    
 
 class Region(GeoObject):
-    name: string,
-    color: [r,b,g], # nebo jiná reprezentace barev, pojmenováním, …
-    dim: int,
-    boundary: bool,
-    not_used: bool,     
-    mesh_step: double,
-    shapes_ids: list of ints
-
+    """Description of disjunct geometri area sorte by dimension (dim=1 well, dim=2 fracture, dim=3 bulk). """
+    
+    def __init__(self, color, name, dim=3, step=0.01,  boundary=False, not_used=False):
+        self.color = color
+        """8-bite region color"""
+        self.name = name
+        """region name"""
+        self.dim = dim
+        """dimension (dim=1 well, dim=2 fracture, dim=3 bulk)"""
+        self.boundary = boundary
+        """Is boundary region"""
+        self.not_used = not_used     
+        """is used"""
+        self.mesh_step = step
+        """mesh step"""
+        self.shapes_idx = []
+        """List of shapes indexes"""
 
 class GL(GeoObject):
     """Geological layers"""
@@ -209,6 +208,13 @@ class GL(GeoObject):
         """ optional, only for stratum type, accoding bottom topology 
         type surface node set or interpolated node set"""
         
+        self.polygon_regions = []
+        """List of indexes of 3D shapes"""
+        self.segment_regions = []
+        """List of indexes of 2D shapes"""
+        self.node_regions = []
+        """List of indexes of 1D shapes"""
+        
     def serialize(self):
         d = {}
         d["name"] = self.name
@@ -218,6 +224,9 @@ class GL(GeoObject):
         if self.layer_type is LayerType.stratum:
             d["bottom_type"] = self.bottom_type.value
             d["bottom"] = self.bottom.serialize()
+        d["node_regions"] = self.node_regions
+        d["polygon_regions"] = self.polygon_regions
+        d["segment_regions"] = self.segment_regions
         return d
                 
     def deserialize(self, data):
@@ -236,7 +245,9 @@ class GL(GeoObject):
             else:
                 self.bottom = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
             self.bottom.deserialize(data["bottom"])
-            
+        self.node_regions = data["node_regions"] 
+        self.polygon_regions = data["polygon_regions"]
+        self.segment_regions = data["segment_regions"] 
         
 class UserSupplement(GeoObject):
     def __init__(self):
@@ -252,10 +263,13 @@ class LayerGeometry(GeoObject):
             "curves":Curve, 
             "plane_topologies":Topology, 
             "node_sets": NodeSet, 
-            "supplement":UserSupplement
+            "supplement":UserSupplement, 
+            "regions":Region
         }
     
     def __init__(self):
+        self.regions = [Region("#000000", "NONE_1D", 1), Region("#000000", "NONE_2D", 2), Region("#000000", "NONE_3D", 3)]
+        """List of regions"""
         self.main_layers = []
         """List of geological layers"""
         self.surfaces = []
