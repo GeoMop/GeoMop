@@ -6,12 +6,23 @@ class ParamError(Exception):
     pass
 
 def check_matrix(mat, shape, values, idx=[]):
+    '''
+    Check shape and type of scalar, vector or matrix.
+    :param mat: Scalar, vector, or vector of vectors (i.e. matrix). Vector may be list or other iterable.
+    :param shape: List of dimensions: [] for scalar, [ n ] for vector, [n_rows, n_cols] for matrix.
+    If a value in this list is None, the dimension can be arbitrary. The shape list is set fo actual dimensions
+    of the matrix.
+    :param values: Type or tuple of  allowed types of elements of the matrix. E.g. ( int, float )
+    :param idx: Internal. Used to pass actual index in the matrix for possible error messages.
+    :return:
+    '''
     try:
 
         if len(shape) == 0:
             if not isinstance(mat, values):
                 raise ParamError("Element at index {} of type {}, expected instance of {}.".format(idx, type(mat), values))
         else:
+
             if shape[0] is None:
                 shape[0] = len(mat)
             l=None
@@ -21,10 +32,11 @@ def check_matrix(mat, shape, values, idx=[]):
                 l=len(mat)
             if not l is None:
                 raise ParamError("Wrong len {} of element {}, should be  {}.".format(l, idx, shape[0]))
-            for item in mat:
+            for i, item in enumerate(mat):
                 sub_shape = shape[1:]
-                check_matrix(item, sub_shape, values)
+                check_matrix(item, sub_shape, values, idx = [i] + idx)
                 shape[1:] = sub_shape
+        return shape
     except ParamError:
         raise
     except Exception as e:
@@ -88,6 +100,9 @@ class ComposedLocation(Location):
 
         self.location_powers=location_powers
 
+        #for loc, pow in location_powers:
+        #    stream.write(.format(loc.id, pow))
+
     def _dfs(self, groups):
 
         for location,power in self.location_powers:
@@ -101,10 +116,14 @@ class ComposedLocation(Location):
 def check_knots(deg, knots, N):
     total_multiplicity = 0
     for knot, mult in knots:
-        assert float(knot) > 0
+        # This condition must hold if we assume only (0,1) interval of curve or surface parameters.
+        #assert float(knot) >= 0.0 and float(knot) <= 1.0
         total_multiplicity += mult
     assert total_multiplicity == deg + N + 1
 
+
+
+scalar_types = (int, float, np.int64)
 
 class Curve3D:
     """
@@ -127,9 +146,10 @@ class Curve3D:
         #multiplicity knot count = len(knots)
 
         if rational:
-            check_matrix(poles, (None, 4), [int, float] )
+            check_matrix(poles, [None, 4], scalar_types )
         else:
-            check_matrix(poles, (None, 3), [int, float])
+            check_matrix(poles, [None, 3], scalar_types)
+        N = len(poles)
         check_knots(degree, knots, N)
 
         self.poles=poles
@@ -166,9 +186,9 @@ class Curve2D:
 
         N = len(poles)
         if rational:
-            check_matrix(poles, (N, 2), [int, float] )
+            check_matrix(poles, [N, 3], scalar_types )
         else:
-            check_matrix(poles, (N, 3), [int, float])
+            check_matrix(poles, [N, 2], scalar_types)
         check_knots(degree, knots, N)
 
         self.poles=poles
@@ -202,12 +222,10 @@ class Surface:
         :param degree: (u_degree, v_degree) Both positive ints.
         """
 
-        N = len(poles)
         if rational:
-            check_matrix(poles, (None, None, 4), [int, float] )
+            check_matrix(poles, [None, None, 4], scalar_types )
         else:
-            check_matrix(poles, (None, None, 3), [int, float])
-        check_knots(degree, knots, N)
+            check_matrix(poles, [None, None, 3], scalar_types)
 
         assert len(poles) > 0
         assert len(poles[0]) > 0
@@ -219,8 +237,8 @@ class Surface:
         assert (not rational and len(poles[0][0]) == 3) or (rational and len(poles[0][0]) == 4)
 
         (u_knots, v_knots) = knots
-        check_knots(degree, u_knots, Nu)
-        check_knots(degree, v_knots, Nv)
+        check_knots(degree[0], u_knots, Nu)
+        check_knots(degree[1], v_knots, Nv)
 
         self.poles=poles
         self.knots=knots
@@ -239,33 +257,37 @@ class Approx:
     
     """
     @classmethod
-    def approx_plane(cls, vtxs):
+    def plane(cls, vtxs):
         """
         Returns B-spline surface of a plane given by 3 points.
         We retun also list of UV coordinates of the given points.
         :param vtxs: List of tuples (X,Y,Z)
         :return: ( Surface, vtxs_uv )
         """
-        assert len(vtxs) == 4
+        assert len(vtxs) == 3, "n vtx: {}".format(len(vtxs))
+        vtxs.append( (0,0,0) )
         vtxs = np.array(vtxs)
-        vtxs.append( vtxs[1] + vtxs[2] - vtxs[0] )
-        (surf, vtxs_uv) = cls.approx_bilinear(cls, vtxs)
-        return (surf, vtxs_uv[0:2])
+        vtxs[3] = vtxs[1] + vtxs[2] - vtxs[0]
+        (surf, vtxs_uv) = cls.bilinear(vtxs)
+        return (surf, vtxs_uv[0:3])
 
     @classmethod
-    def approx_bilinear(cls, vtxs):
+    def bilinear(cls, vtxs):
         """
         Returns B-spline surface of a bilinear surface given by 4 corner points.
         We retun also list of UV coordinates of the given points.
         :param vtxs: List of tuples (X,Y,Z)
         :return: ( Surface, vtxs_uv )
         """
-        assert len(vtxs) == 4
+        assert len(vtxs) == 4, "n vtx: {}".format(len(vtxs))
         vtxs = np.array(vtxs)
         def mid(*idx):
-            return np.mean( vtxs[idx], axis=0)
+            return np.mean( vtxs[list(idx)], axis=0)
 
-        poles = [ vtxs[0],  mid(0, 1), vtxs[1], mid(0,2), mid(0,1,2,3), mid(1,3), vtxs[2], mid(2,3), vtxs[3] ]
+        poles = [ [vtxs[0],  mid(0, 1), vtxs[1]],
+                  [mid(0,2), mid(0,1,2,3), mid(1,3)],
+                  [vtxs[2], mid(2,3), vtxs[3]]
+                  ]
         knots = [(0.0, 3), (1.0, 3)]
         surface = Surface(poles, (knots, knots))
         vtxs_uv = [ (0, 0), (1, 0), (0, 1), (1,1) ]
@@ -276,6 +298,10 @@ class Approx:
 
     @classmethod
     def _line(cls, vtxs):
+        '''
+        :param vtxs: List of tuples (X,Y) or (X,Y,Z)
+        :return:
+        '''
         assert len(vtxs) == 2
         vtxs = np.array(vtxs)
         mid = np.mean(vtxs, axis=0)
@@ -292,7 +318,7 @@ class Approx:
         """
         return Curve2D( *cls._line(vtxs) )
 
-
+    @classmethod
     def line_3d(cls,  vtxs):
         """
         Return B-spline approximation of line from two 3d points
@@ -415,10 +441,11 @@ class Shape:
         :param groups: dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
         :return: None
         """
-        if not hasattr(self, 'id'):
-            id=len(groups['shapes'])+1
-            self.id=id
-            groups['shapes'].append(self)
+        if hasattr(self, 'id'):
+            return
+        id=len(groups['shapes'])+1
+        self.id=id
+        groups['shapes'].append(self)
         for sub_ref in self.childs:
             sub_ref.location._dfs(groups)
             sub_ref.shape._dfs(groups)
@@ -480,6 +507,10 @@ class Face(Shape):
             assert type(wires[0][0]) == Edge
             wires = [ Wire(wires) ]
 
+        # check that wires are closed
+        for wire in wires:
+            if not self.is_closed_wire(wire):
+                raise Exception("Trying to make face from non-closed wire.")
         self.sub_types = [Wire]
         super().__init__(wires)
         if surface is None:
@@ -489,12 +520,33 @@ class Face(Shape):
         self.tol=tolerance
         self.restriction_flag =0
 
+    def is_closed_wire(self, wire):
+        vtx_set = {}
+        for edge in wire.subshapes():
+            for vtx in edge.subshapes():
+                vtx_set[vtx] = 0
+                vtx.n_edges += 1
+        closed =  True
+        for vtx in vtx_set.keys():
+            if vtx.n_edges % 2 != 0:
+                closed = False
+            vtx.n_edges = 0
+        return closed
+
+
     def _dfs(self, groups):
         Shape._dfs(self,groups)
-        assert len(self.repr) <= 1
-        for repr,loc in self.repr:
+        if not self.repr:
+            self.implicit_surface()
+        assert len(self.repr) == 1
+        for repr, loc in self.repr:
             repr._dfs(groups)
             loc._dfs(groups)
+
+        # update geometry representation of edges (add 2D curves)
+        for edge in self.subshapes():
+            edge._dfs(groups)
+
             
     def implicit_surface(self):
         """
@@ -514,18 +566,23 @@ class Face(Shape):
             constructor = Approx.plane
         elif len(vtxs) == 4:
             constructor = Approx.bilinear
+        else:
+            raise Exception("Too many vertices {} for implicit surface construction.".format(len(vtxs)))
         (ids, points) = zip(*vtxs.items())
-        (surface, vtxs_uv) =  constructor(points)
+        (surface, vtxs_uv) =  constructor(list(points))
         self.repr = [(surface, Location())]
 
         # set representation of edges
+        assert len(ids) == len(vtxs_uv)
         id_to_uv = dict(zip(ids, vtxs_uv))
         for edge in edges.values():
-            vtxs = edge.subshapes()
-            v0_uv = id_to_uv[vtxs[0].id]
-            v1_uv = id_to_uv[vtxs[1].id]
-            edge.attach_to_surface( surface, v0_uv, v1_uv )
+            e_vtxs = edge.subshapes()
+            v0_uv = id_to_uv[e_vtxs[0].id]
+            v1_uv = id_to_uv[e_vtxs[1].id]
+            edge.attach_to_plane( surface, v0_uv, v1_uv )
 
+        # TODO: Possibly more general attachment of edges to @D curves for general surfaces, but it depends
+        # on organisation of intersection curves.
 
 class Edge(Shape):
     """
@@ -563,6 +620,11 @@ class Edge(Shape):
     def set_edge_flags(self, same_parameter, same_range, degenerated):
         self.edge_flags=(same_parameter,same_range, degenerated)
 
+    def points(self):
+        '''
+        :return: List of coordinates of the edge vertices.
+        '''
+        return [ vtx.point for vtx in self.subshapes()]
 
     def attach_to_3d_curve(self, t_range, curve, location=Location()):
         """
@@ -593,6 +655,7 @@ class Edge(Shape):
         :param v1: UV coordinate of the second edge point
         :return:
         """
+
         self.attach_to_2d_curve((0.0, 1.0), Approx.line_2d([v0, v1]), surface)
 
     def implicit_curve(self):
@@ -601,13 +664,17 @@ class Edge(Shape):
         Should be called in _dfs.
         :return:
         """
-        self.attach_to_3d_curve((0.0,1.0), Approx.line_3d( self.subshapes()))
+        vtx_points = self.points()
+        self.attach_to_3d_curve((0.0,1.0), Approx.line_3d( vtx_points ))
 
 
     #def attach_continuity(self):
 
     def _dfs(self, groups):
         Shape._dfs(self,groups)
+        if not self.repr:
+            self.implicit_curve()
+        assert len(self.repr) > 0
         for repr in self.repr:
             if repr[0]==self.Repr.Curve2d:
                 repr[2]._dfs(groups) #curve
@@ -639,9 +706,14 @@ class Vertex(Shape):
         super().__init__(childs=[])
         # These flags are produced by OCC for vertices.
         self.flags = ShapeFlag(0, 1, 0, 1, 1, 0, 1)
+        # Coordinates in the 3D space. [X, Y, Z]
         self.point=point
+        # tolerance of representations.
         self.tolerance=tolerance
+        # List of geometrical representations of the vertex. Possibly not necessary for meshing.
         self.repr=[]
+        # Number of edges in which vertex is used. Used internally to check closed wires.
+        self.n_edges = 0
 
     def attach_to_3d_curve(self, t, curve, location=Location()):
         """

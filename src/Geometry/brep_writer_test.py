@@ -47,21 +47,26 @@ class TestPlanarGeomeries(unittest.TestCase):
         v5=bw.Vertex((0.0, 1.0, 1.0))
         v6=bw.Vertex((1.0, 0.0, 1.0))
 
+        # top edges
         e1=bw.Edge([v1,v2]) # automatic orientation of edges
         e2=bw.Edge([v2,v3])
         e3=bw.Edge([v3,v1])
 
+        # vertical edges
         e4=bw.Edge([v4,v5])
         e5=bw.Edge([v5,v6])
         e6=bw.Edge([v6,v4])
 
+        # bottom edges
         e7=bw.Edge([v1,v4])
         e8=bw.Edge([v2,v5])
         e9=bw.Edge([v3,v6])
 
+        # sides
         f1=bw.Face([e1, e8, e4.m(), e7.m() ])
         f2=bw.Face([e2, e9, e5.m(), e8.m() ])
-        f3=bw.Face([e3, e7, e6.m(), e4.m() ])
+        f3=bw.Face([e3, e7, e6.m(), e9.m() ])
+        # top, bottom
         f4=bw.Face([e1,e2,e3])
         f5=bw.Face([e4,e5,e6])
 
