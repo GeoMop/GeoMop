@@ -118,7 +118,7 @@ class LESerializer():
         assert ns_idx<len(self.geometry.node_sets)
         ns = self.geometry.node_sets[ns_idx]        
         for point in cfg.diagrams[ns_idx].points:            
-            gf.add_node(ns_idx, point.x, point.y)
+            gf.add_node(ns_idx, point.x, -point.y)
         if cfg.diagrams[ns_idx].topology_owner:
             for line in cfg.diagrams[ns_idx].lines:
                 gf.add_segment( ns.topology_idx, cfg.diagrams[ns_idx].points.index(line.p1), 
@@ -136,18 +136,20 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
+        cfg.diagram.release_all()
         cfg.diagrams = []
         for region in gf.get_regions():
             cfg.diagram.add_region(region.color, region.name, region.dim, region.mesh_step, 
                 region.boundary, region.not_used)
         cfg.layers.delete()
+        
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_idx
             if new_top != curr_topology:
                 new_top == curr_topology
                 curr_block += 1                
             cfg.diagrams.append(Diagram(curr_block, cfg.history))
-            self._read_ns(cfg, i, gf)        
+            self._read_ns(cfg, i, gf)     
         ns_idx = 0   
         last_fracture = None
         last_stratum = None
@@ -237,7 +239,8 @@ class LESerializer():
             cfg.layers.add_interface(depth, False, None, id1)        
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set
-        cfg.diagram = cfg.diagrams[ns_idx]        
+        cfg.diagram = cfg.diagrams[ns_idx]    
+        cfg.diagram.fix_topologies(cfg.diagrams)
         cfg.layers.compute_composition()
         cfg.layers.set_edited_diagram(ns_idx)
                 
@@ -245,7 +248,7 @@ class LESerializer():
         """read  one node set from geometry file structure to diagram structure"""        
         nodes = gf.get_nodes(ns_idx)
         for node in nodes:
-            cfg.diagrams[ns_idx].add_point(node.x, node.y, 'Import point', None, True)        
+            cfg.diagrams[ns_idx].add_point(node.x, -node.y, 'Import point', None, True)        
             
         segments = gf.get_segments(ns_idx)
         for segment in segments:

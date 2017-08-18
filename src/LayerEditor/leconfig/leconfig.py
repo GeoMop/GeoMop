@@ -280,8 +280,10 @@ class LEConfig:
         return False
         
     @classmethod
-    def save_file(cls, file):
+    def save_file(cls, file=None):
         """save to json file"""
+        if file is None:
+            file = cls.curr_file
         cls.data.save(cls, file)
         cls.history.saved()
         cls.config.update_last_data_dir(file)
@@ -302,6 +304,7 @@ class LEConfig:
                 cls.curr_file_timestamp = None
         cls.history.remove_all()
         cls.data.load(cls, file)
+        cls.main_window.refresh_all()
         
     @classmethod
     def confront_file_timestamp(cls):

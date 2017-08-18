@@ -86,7 +86,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh_all(self):
         """For new data"""
         self.diagramScene.set_data()
-        self.refresh_view_data()
+        self.refresh_view_data(0)
+        self.update_panel()
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""

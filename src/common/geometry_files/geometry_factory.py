@@ -80,6 +80,7 @@ class GeometryFactory:
         self.geometry.plane_topologies = []
         self.geometry.surfaces = []
         self.geometry.regions = []
+        self.geometry.main_layers = []
         
     def add_node(self,node_set_idx, x, y):
         self.geometry.node_sets[node_set_idx].nodes.append(Node(x, y))

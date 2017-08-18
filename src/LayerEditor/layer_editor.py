@@ -89,7 +89,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         cfg.save_file()
-        self.mainwindow.show_status_message("File is saved")
+        # self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
