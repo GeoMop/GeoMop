@@ -8,7 +8,7 @@ from .layers_helpers import LayersHelpers
 
 class SplitLayerDlg(QtWidgets.QDialog):
 
-    def __init__(self, min, max, parent=None):
+    def __init__(self, min, max, copy_block, parent=None):
         super(SplitLayerDlg, self).__init__(parent)
         self.setWindowTitle("Split Layer")
 
@@ -33,7 +33,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid.addWidget(self.depth, 1, 1)
         
         d_split_type = QtWidgets.QLabel("Split Interface Type:", self)
-        self.split_type = LayersHelpers.split_type_combo()
+        self.split_type = LayersHelpers.split_type_combo(copy_block)
         
         grid.addWidget(d_split_type, 2, 0)
         grid.addWidget(self.split_type, 2, 1)

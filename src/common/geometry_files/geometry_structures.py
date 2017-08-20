@@ -57,7 +57,7 @@ class Curve(GeoObject):
 class Surface(GeoObject):
     
     def __init__(self, depth):
-        self.transform = [0, 0, depth, 1] 
+        self.transform = [[1, 0, 0], [0, 1, 0], [0, 0, depth]] 
         """Transform4x4Matrix"""
         self.grid = None
         """List of input grid 3DPoints. None for plane"""
@@ -66,8 +66,19 @@ class Surface(GeoObject):
         
     def get_depth(self):
         """Return surface depth in 0"""
-        return self.transform[2]
-
+        return self.transform[2][2]
+        
+    def __eq__(self, other):
+        """operators for comparation"""
+        if self.grid!=other.grid:
+            return False
+        if self.b_spline!=other.b_spline:
+            return False
+        for i in range(0, 3):
+            for j in range(0, 3):
+                if self.transform[i][j]!=other.transform[i][j]:
+                    return False 
+        return True
 
 class Fracture(GeoObject):
     """Fracture object"""

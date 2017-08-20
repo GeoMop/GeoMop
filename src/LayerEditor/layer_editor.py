@@ -49,7 +49,7 @@ class LayerEditor:
         """new file menu action"""
         if not self.save_old_file():
             return
-#        cfg.new_file()
+        cfg.new_file()
  
     def open_file(self):
         """open file menu action"""

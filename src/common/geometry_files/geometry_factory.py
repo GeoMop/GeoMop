@@ -55,9 +55,11 @@ class GeometryFactory:
         return ns
         
     def add_plane_surface(self, depth):
-        """Add new main layer"""
+        """Add new main layer"""        
         surface = Surface(depth)
-        self.geometry.surfaces.append(surface)
+        if len(self.geometry.surfaces)==0 or \
+            surface!=self.geometry.surfaces[-1]:
+            self.geometry.surfaces.append(surface)
         return len(self.geometry.surfaces)-1        
     
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):

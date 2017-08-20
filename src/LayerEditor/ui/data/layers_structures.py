@@ -416,10 +416,12 @@ class Layers():
         if position is None:
             self.interfaces[idx].fracture = Fracture(name)
         else:
+            fracture_diagram_id = None
             if position is FractureInterface.own:
                 self.interfaces[idx].diagram_id2 += 1    
-                self._move_diagram_idx(idx, 1)                
-            self.interfaces[idx].fracture = Fracture(name, position, dup.insert_id-1)
+                self._move_diagram_idx(idx, 1)
+                fracture_diagram_id = dup.insert_id-1
+            self.interfaces[idx].fracture = Fracture(name, position, fracture_diagram_id)
         
     def get_diagram_dup_before(self, idx):
         """Return first idx for division and if is possible division make

@@ -28,11 +28,12 @@ class LayersHelpers():
         err_dialog.open_error_dialog(error)
         
     @staticmethod
-    def split_type_combo():
+    def split_type_combo(copy_block):
         """Get combo box with layer splitting types """
         combo = QtWidgets.QComboBox()
         combo.addItem("interpolated", LayerSplitType.interpolated)
-        combo.addItem("editable", LayerSplitType.editable)
-        combo.addItem("split", LayerSplitType.split)
+        if not copy_block:
+            combo.addItem("editable", LayerSplitType.editable)
+            combo.addItem("split", LayerSplitType.split)
         combo.setCurrentIndex(0)
         return combo

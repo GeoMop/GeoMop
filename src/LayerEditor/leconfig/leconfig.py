@@ -280,6 +280,11 @@ class LEConfig:
         return False
         
     @classmethod
+    def new_file(cls):
+        """Open new empty file"""
+        cls.data.set_new(cls)
+        
+    @classmethod
     def save_file(cls, file=None):
         """save to json file"""
         if file is None:
@@ -302,8 +307,8 @@ class LEConfig:
                 cls.curr_file_timestamp = os.path.getmtime(file)
             except OSError:
                 cls.curr_file_timestamp = None
-        cls.history.remove_all()
-        cls.data.load(cls, file)
+        cls.history.remove_all()        
+        cls.data.load(cls, file)        
         cls.main_window.refresh_all()
         
     @classmethod

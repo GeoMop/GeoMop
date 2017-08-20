@@ -86,6 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh_all(self):
         """For new data"""
         self.diagramScene.set_data()
+        self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
         self.update_panel()
 

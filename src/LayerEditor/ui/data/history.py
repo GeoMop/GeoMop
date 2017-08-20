@@ -126,7 +126,7 @@ class GlobalHistory():
             self.undo_labels = []
             for history in self.histories:
                 history.undo_steps = []            
-            return True, self._return_op( )
+            return True, self.return_op( )
         end = False
         id = None
         while len(self.undo_labels)>0 and \

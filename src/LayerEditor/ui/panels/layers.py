@@ -6,6 +6,7 @@ import PyQt5.QtCore as QtCore
 from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations
 from ui.data import LayersHistory
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
+from ui.menus.layers import __COPY_BLOCK__
 from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
 class Layers(QtWidgets.QWidget):
@@ -39,6 +40,10 @@ class Layers(QtWidgets.QWidget):
         self.size = self.sizeHint()
         self._history = LayersHistory(self, cfg.history)
         """history"""
+        
+    def reload_layers(self, cfg):
+        """Call if data file changed"""
+        self._history = LayersHistory(self, cfg.history)
 
     def mouseMoveEvent(self, event):
         """standart mouse move widget event"""
@@ -280,7 +285,7 @@ class Layers(QtWidgets.QWidget):
         if i<len(cfg.layers.interfaces)-1:
             max = cfg.layers.interfaces[i+1].depth
             
-        dlg = SplitLayerDlg(min, max, cfg.main_window)
+        dlg = SplitLayerDlg(min, max, __COPY_BLOCK__, cfg.main_window)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -396,7 +401,7 @@ class Layers(QtWidgets.QWidget):
                 self._history.delete_diagrams(dup.insert_id, 1, TopologyOperations.insert, label)
                 label = None
             cfg.layers.add_fracture(i, name, position, dup)
-            self._history.delete_fracture(i, label)
+            self._history.delete_fracture(i, position, label)
             self.change_size()
         
     def change_interface_type(self, i, type):

@@ -177,6 +177,7 @@ class Diagram():
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
+        cls.regions = Regions()
         
     @classmethod
     def move_diagram_topologies(cls, id, diagrams):

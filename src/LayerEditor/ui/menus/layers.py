@@ -4,12 +4,15 @@ from PyQt5.QtWidgets import QMenu, QAction
 from leconfig import cfg
 from ui.data import FractureInterface, ChangeInterfaceActions
 
+__COPY_BLOCK__ = True
+
 class LayersLayerMenu(QMenu):
     """
     Contex Menu with layer actions
     """
 
-    def __init__(self, layers_panel, layer_idx):
+    def __init__(self, layers_panel, layer_idx):        
+        
         """Initializes the class."""
         super(LayersLayerMenu, self).__init__(layers_panel)
         self.layers_panel = layers_panel
@@ -91,6 +94,8 @@ class LayersInterfaceMenu(QMenu):
 
     def __init__(self, layers_panel, interface_idx):
         """Initializes the class."""
+        global __COPY_BLOCK__
+        
         super(LayersInterfaceMenu, self).__init__(layers_panel)
         self.layers_panel = layers_panel
         """Layers panel"""
@@ -106,36 +111,37 @@ class LayersInterfaceMenu(QMenu):
             self.addAction(self._add_fracture_action)
             
         actions = d.get_change_interface_actions(interface_idx)
-        if ChangeInterfaceActions.interpolated in actions:
-            self._change_type_action1 = QAction('Set interface as interpolated ...', self)
-            self._change_type_action1.setStatusTip('Change interface type to interpolated')
-            self._change_type_action1.triggered.connect(self._set_interpolated)
-            self.addAction(self._change_type_action1)
-        if ChangeInterfaceActions.editable in actions:
-            self._change_type_action4 = QAction('Set interface as editable', self)
-            self._change_type_action4.setStatusTip('Change interface type to editable')
-            self._change_type_action4.triggered.connect(self._set_editable)
-            self.addAction(self._change_type_action4)
-        if ChangeInterfaceActions.top_interpolated in actions:
-            self._change_type_action3 = QAction('Set top slice as interpolated ...', self)
-            self._change_type_action3.setStatusTip('Change top surface type to interpolated')
-            self._change_type_action3.triggered.connect(self._set_top_interpolated)
-            self.addAction(self._change_type_action3)
-        if ChangeInterfaceActions.top_editable in actions:
-            self._change_type_action6 = QAction('Set top slice as editable', self)
-            self._change_type_action6.setStatusTip('Change top surface type to editable')
-            self._change_type_action6.triggered.connect(self._set_top_editable)
-            self.addAction(self._change_type_action6)
-        if ChangeInterfaceActions.bottom_interpolated in actions:
-            self._change_type_action2 = QAction('Set bottom slice as interpolated ...', self)
-            self._change_type_action2.setStatusTip('Change bottom surface type to interpolated')
-            self._change_type_action2.triggered.connect(self._set_bottom_interpolated)
-            self.addAction(self._change_type_action2)
-        if ChangeInterfaceActions.bottom_editable in actions:
-            self._change_type_action5 = QAction('Set bottom slice as editable', self)
-            self._change_type_action5.setStatusTip('Change bottom surface type to editable')
-            self._change_type_action5.triggered.connect(self._set_bottom_editable)
-            self.addAction(self._change_type_action5)        
+        if not __COPY_BLOCK__:
+            if ChangeInterfaceActions.interpolated in actions:
+                self._change_type_action1 = QAction('Set interface as interpolated ...', self)
+                self._change_type_action1.setStatusTip('Change interface type to interpolated')
+                self._change_type_action1.triggered.connect(self._set_interpolated)
+                self.addAction(self._change_type_action1)
+            if ChangeInterfaceActions.editable in actions:
+                self._change_type_action4 = QAction('Set interface as editable', self)
+                self._change_type_action4.setStatusTip('Change interface type to editable')
+                self._change_type_action4.triggered.connect(self._set_editable)
+                self.addAction(self._change_type_action4)
+            if ChangeInterfaceActions.top_interpolated in actions:
+                self._change_type_action3 = QAction('Set top slice as interpolated ...', self)
+                self._change_type_action3.setStatusTip('Change top surface type to interpolated')
+                self._change_type_action3.triggered.connect(self._set_top_interpolated)
+                self.addAction(self._change_type_action3)
+            if ChangeInterfaceActions.top_editable in actions:
+                self._change_type_action6 = QAction('Set top slice as editable', self)
+                self._change_type_action6.setStatusTip('Change top surface type to editable')
+                self._change_type_action6.triggered.connect(self._set_top_editable)
+                self.addAction(self._change_type_action6)
+            if ChangeInterfaceActions.bottom_interpolated in actions:
+                self._change_type_action2 = QAction('Set bottom slice as interpolated ...', self)
+                self._change_type_action2.setStatusTip('Change bottom surface type to interpolated')
+                self._change_type_action2.triggered.connect(self._set_bottom_interpolated)
+                self.addAction(self._change_type_action2)
+            if ChangeInterfaceActions.bottom_editable in actions:
+                self._change_type_action5 = QAction('Set bottom slice as editable', self)
+                self._change_type_action5.setStatusTip('Change bottom surface type to editable')
+                self._change_type_action5.triggered.connect(self._set_bottom_editable)
+                self.addAction(self._change_type_action5)        
         if ChangeInterfaceActions.split in actions:
             self._change_type_action7 = QAction('Set interface splited', self)
             self._change_type_action7.setStatusTip('Change interface type to split')
