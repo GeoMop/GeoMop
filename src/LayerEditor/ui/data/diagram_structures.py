@@ -1,7 +1,25 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+from .shp_structures import ShpFiles
+from .history import DiagramHistory
+from enum import IntEnum
+from .region_structures import Regions
+
+class TopologyOperations(IntEnum):
+    """Type of topology operation"""
+    none = 0
+    """Added diagrams have topology index copy_top_id"""
+    insert = 1
+    """Added diagrams have topology index 
+    copy_top_id+1 and next is move about 1"""
+    insert_next = 2
+    """First added diagram have topology index
+    copy_top_id, next added diagrams have topology 
+    index copy_top_id+1 and next is move about 1"""
 
 __next_id__ = 1
+__next_diagram_uid__ = 1
+
 
 class Point():
     """
@@ -18,7 +36,10 @@ class Point():
         self.object = None
         """Graphic object""" 
         self.id = id
-        """Line history id"""
+        """Point history id"""
+        self.region_id = 1
+        """Point region id"""
+        
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -65,6 +86,7 @@ class Point():
             return True
         return False        
 
+
 class Line():
     """
     Class for graphic presentation of line
@@ -79,13 +101,35 @@ class Line():
         """Graphic object"""
         self.id = id
         """Line history id"""
+        self.region_id = 1
+        """Line region id"""
+ 
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
             
     def qrectf(self):
         """return QRectF coordinates"""
-        return QtCore.QRectF(self.p1, self.p2)
+        return QtCore.QRectF(self.p1.qpointf(), self.p2.qpointf())
+
+class Polygon():
+    """
+    Class for graphic presentation of line
+    """
+    def __init__(self, lines, id=None):
+        global __next_id__
+        self.lines = lines
+        """Lines"""
+        self.object = None
+        """Graphic object"""
+        self.id = id
+        """Polygon history id"""
+        self.region_id = 2
+        """Polygon region id"""
+        if id is None:            
+            self.id = __next_id__
+            __next_id__ += 1
+
 
 class Diagram():
     """
@@ -99,17 +143,124 @@ class Diagram():
         - Point is griater if is right or x coordinate is equol and point is below 
         - Line.p1<line.p2
     """
-    def __init__(self):       
+    shp = ShpFiles()
+    """Displayed shape files"""
+    views = []    
+    """Not edited diagrams"""
+    map_id = {}
+    """uid, id map"""
+    views_object = {}
+    """Object of not edited diagrams"""
+    topologies = {}
+    """List of all diagrams, divided by topologies"""
+    regions = Regions()
+    """List of regions"""
+    
+    @classmethod
+    def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
+        """Add region"""
+        cls.regions.add_region(color, name, dim, step, boundary, not_used)    
+        
+    @classmethod
+    def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
+        """Add shape to region"""
+        cls.regions.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+
+    @classmethod
+    def get_shapes_from_region(cls, is_fracture, layer_id):
+        """Get shapes from region""" 
+        return cls.regions.get_shapes_from_region(is_fracture, layer_id)
+    
+    @classmethod
+    def release_all(cls):
+        """Discard all links"""
+        cls.views = []    
+        cls.views_object = {}
+        cls.topologies = {}
+        cls.regions = Regions()
+        
+    @classmethod
+    def move_diagram_topologies(cls, id, diagrams):
+        """Increase topology index from id,
+        and fix topologies dictionary"""
+        if not id < len(diagrams):
+            # not fix after last diagram
+            assert id == len(diagrams)
+            return
+        max_top = diagrams[-1].topology_idx+1
+        if max_top in cls.topologies:
+            raise Exception("Invalid max topology index")
+        cls.topologies[max_top]=[]
+        for i in range(len(diagrams)-1, id-1, -1):
+            cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
+            diagrams[i].topology_idx += 1
+            cls.topologies[diagrams[i].topology_idx].append(diagrams[i])
+        if not cls.topologies[diagrams[id].topology_idx][0].topology_owner:
+            cls.topologies[diagrams[id].topology_idx][0].topology_owner = True
+        cls.map_id = {}
+        for i in range(0, len(diagrams)):        
+            cls.map_id[diagrams[i].uid]=i
+
+    @classmethod
+    def fix_topologies(cls, diagrams):
+        """check and fix topologies ordering"""
+        max_top=0
+        copy_to=0
+        for i in range(0, len(diagrams)):
+            if diagrams[i].topology_idx!=max_top:
+                if len(cls.topologies[max_top])>0:
+                    copy_to += 1
+                    max_top = diagrams[i].topology_idx
+                if copy_to != max_top:
+                    cls.topologies[diagrams[i].topology_idx].remove(diagrams[i])
+                    if not copy_to in cls.topologies:
+                        cls.topologies[copy_to] = []
+                    diagrams[i].topology_idx = copy_to
+                    cls.topologies[copy_to].append(diagrams[i])
+        cls.map_id = {}
+        for i in range(0, len(diagrams)):
+            if cls.topologies[diagrams[i].topology_idx].index(diagrams[i])==0:
+                diagrams[i].topology_owner = True
+            else:
+                diagrams[i].topology_owner = False            
+            cls.map_id[diagrams[i].uid]=i
+        del_keys = []
+        for key in cls.topologies:
+            if len(cls.topologies[key])==0:
+                del_keys.append(key)
+        for key in del_keys:
+            if key<=copy_to:
+                raise Exception("Empty topology inside structure")
+            del cls.topologies[key]
+
+    def __init__(self, topology_idx, global_history): 
+        global __next_diagram_uid__
+        self.uid = __next_diagram_uid__
+        """Unique diagram id"""
+        __next_diagram_uid__ += 1  
+        self.topology_idx = topology_idx
+        """Topology index"""
         self._rect = None
         """canvas Rect"""
         self.points = []
         """list of points"""
+        self.topology_owner = False
+        """First diagram in topology is topology owner, and is 
+        responsible for its saving"""
+        if not topology_idx in self.topologies:
+            self.topology_owner = True
+            self.topologies[topology_idx] = []
+        self.topologies[topology_idx].append(self)
         self.lines = []
         """list of lines"""
+        self.polygons= []
+        """list of polygons"""
         self._zoom = 1.0
         """zoom"""
-        self.pen = QtGui.QPen(QtCore.Qt.black, 1)
-        """pen for object paintings"""
+        self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
+        """pen for object paintings"""        
+        self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5)
+        """pen for highlighted object paintings"""
         self.pen_changed = True
         """pen need be changed"""
         self._recount_zoom = 1.0
@@ -118,14 +269,50 @@ class Diagram():
         """x vew possition"""
         self.y = 0 
         """y viw possition"""
-        self._history = History(self)
+        self._history = DiagramHistory(self, global_history)
         """history"""
+        
+    def join(self):
+        """Add diagram to topologies"""
+        self.topology_owner = False
+        if not self.topology_idx in self.topologies:
+            self.topology_owner = True
+            self.topologies[self.topology_idx] = []
+        self.topologies[self.topology_idx].append(self)
+        
+    def release(self):
+        """Discard this object from global links"""
+        self.topologies[self.topology_idx].remove(self)
+        if len(self.topologies[self.topology_idx])<1:
+            del self.topologies[self.topology_idx]
+        else:
+            self.topologies[self.topology_idx][0].topology_owner = True
+        
+    def dcopy(self):
+        """My deep copy implementation"""
+        ret = Diagram(self.topology_idx, self._history.global_history)
+        
+        for point in self.points:
+            ret.add_point(point.x, point.y, 'Copy point', None, True)
+        for line in self.lines:
+            ret.join_line(ret.points[self.points.index(line.p1)],
+                ret.points[self.points.index(line.p2)],
+                "Copy line", None, True)
+        if ret._rect is not None:
+            ret.x = ret._rect.left()
+            ret.y = ret._rect.top() 
+        return ret
       
     @property
     def rect(self):
         if self._rect is None:
-            return QtCore.QRectF(0, 0, 450, 300)
+            if self.shp.boundrect is None:
+                return QtCore.QRectF(0, -300, 450, 300)
+            else:
+                return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100
+        if margin==0:
+            margin = 1
         return QtCore.QRectF(
             self._rect.left()-margin, 
             self._rect.top()-margin,
@@ -143,8 +330,19 @@ class Diagram():
         ratio = self._recount_zoom/value
         if ratio>1.2 or ratio<0.8:
             self.pen_changed = True
-            self.pen = QtGui.QPen(QtCore.Qt.black, 1.2/value)
+            self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
+            self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
             self._recount_zoom = value
+            
+    def first_shp_object(self):
+        """return if is only one shp object in diagram"""
+        if len( self.points)>0:
+            return False
+        if len( self.lines)>0:
+            return False
+        if len(self.shp.datas)>1:
+            return False
+        return True
     
     def get_point_by_id(self, id):
         """return point or None if not exist"""
@@ -159,10 +357,16 @@ class Diagram():
             if line.id==id:
                 return line
         return None
+        
+    def add_file(self, file):
+        """Add new shapefile"""
+        disp = self.shp.add_file(file)
+        self.recount_canvas()
+        return disp
 
     def recount_canvas(self):
         """recount canvas size"""
-        self._rect = None
+        self._rect = self.shp.boundrect        
         for p in self.points:
             if self._rect is None:
                 self._rect = QtCore.QRectF(p.x, p.y, 0, 0)   
@@ -243,7 +447,7 @@ class Diagram():
         for line in p1.lines:
             if line.p2 == p2:
                 return line
-        line = Line(p1,p2, id)
+        line = Line(p1, p2, id)
         p1.lines.append(line)
         p2.lines.append(line)
         self.lines.append(line)
@@ -390,228 +594,3 @@ class Diagram():
         if dx>dy:
             return px, line.p1.y + (px-line.p1.x)*dy/dx
         return line.p1.x + (py-line.p1.y)*dx/dy, py
-        
-    def undo_to_label(self, label=None):
-        """undo to set label, if label is None, undo to previous operation, 
-        that has not None label"""
-        return  self._history.undo_to_label(label)
-        
-    def redo_to_label(self, label=None):
-        """redo to set label, if label is None, redo to next operation, 
-        that has not None label"""
-        return  self._history.redo_to_label(label)
-        
-class History():
-    """
-    Diagram history
-    
-    Basic diagram operation for history purpose
-    """
-    class Step():
-        def __init__(self, operation, params=[], label=None):
-            """
-            add new step
-            :param func operation: history function for restore step
-            :param tuple params: tuple of arguments for history restoring function
-            :param str label: Label name that is show in history
-            """
-            self._operation = operation
-            self._params = params
-            self.label = label
-            
-        def process(self):
-            """process history step restoring"""
-            if self._operation is not None:
-                return self._operation(*self._params)
-            return None
-            
-    def __init__(self, diagram):       
-        self._diagram = diagram
-        """Diagram object"""
-        self.steps = []
-        """history steps"""
-        self.undo_steps = []
-        """Returned history steps"""
-        self.last_undo_steps = 0
-        """Len of steps list during last undo operation"""
-        self.multi = {}
-        """Step is small-grained history operation, multi is use for broad 
-        structuring of history steps. Milti ids dictionary of step label:id
-        """
-        self._added_points = []
-        """added points after last history operation calling"""
-        self._removed_points = []
-        """removed points after last history operation calling"""
-        self._moved_points = []
-        """moved points after last history operation calling"""
-        self._added_lines = []
-        """added lines after last history operation calling"""
-        self._removed_lines = []
-        """removed lines after last history operation calling"""
-       
-    def _return_op(self):
-        """return changes maked after last history operation calling and
-        remove old"""
-        ret = (self._added_points, self._removed_points, self._moved_points, 
-            self._added_lines, self._removed_lines)
-        self._added_points = []
-        self._removed_points = []
-        self._moved_points = []
-        self._added_lines = []
-        self._removed_lines = []    
-        return ret
-        
-    def undo_to_label(self, label=None):
-        """undo to set label, if label is None, undo to previous operation, 
-        that has not None label"""
-        while True:
-            if len(self.steps)==0:
-                break
-            step = self.steps.pop()
-            revert = step.process()
-            if step.label is not None:
-                revert.label=step.label
-            self.undo_steps.append(revert)
-            if step.label is not None and (label is None or label==step.label):
-                self.last_undo_steps=len(self.steps)
-                break
-        return  self._return_op( )
-        
-    def redo_to_label(self, label=None):
-        """redo to set label, if label is None, redo to next operation, 
-        that has not None label"""
-        if self.last_undo_steps!=len(self.steps):
-            self.undo_steps = []
-            return
-        end = False
-        while len(self.undo_steps)>0 and \
-            (self.undo_steps[-1].label is None or not end):
-            # finish if not undo steps or end is set to True and next step has label
-            step = self.undo_steps.pop()
-            revert = step.process()
-            if step.label is not None:
-                revert.label=step.label
-            self.steps.append(revert)
-            if step.label is not None and (label is None or label==step.label):
-                end = True
-        self.last_undo_steps=len(self.steps)
-        return  self._return_op( )
-        
-    def add_multi(self, label):
-        """Add new name of multi operation after last operation"""
-        self.multi[label] = len(self.steps)
-        
-    def undo_to_multi(self, label=None):
-        """undo to set multi label"""
-        return  self._return_op( )
-        
-    def redo_to_multi(self, label=None):
-        """redo to set multi label"""
-        return  self._return_op( )
-        
-    def delete_point(self, id, label=None):
-        """
-        Add delete point to history operation.
-                
-        Calling function must ensure, that any line using this poin is not exist .
-        Return invert operation
-        """
-        self.steps.append(self.Step(self._delete_point, [id],label))
-        
-    def _delete_point(self, id):
-        """
-        Delete point from diagram
-        
-        Return invert operation
-        """
-        point = self._diagram.get_point_by_id(id)
-        assert point is not None
-        revert = self.Step(self._add_point, [id, point.x, point.y])
-        self._removed_points.append(point)
-        self._diagram.delete_point(point, None, True)
-        return revert
-        
-
-    def add_point(self, id, x,  y, label=None):
-        """
-        Add add point to history operation.        
-        """
-        self.steps.append(self.Step(self._add_point, [id,  x,  y],label))
-        
-    def _add_point(self, id, x, y):
-        """
-        Add point to diagram
-        
-        Return invert operation
-        """
-        revert = self.Step(self._delete_point, [id])
-        point = self._diagram.add_point(x,  y,  None, id, True)
-        self._added_points.append(point)
-        return revert
-
-    def move_point(self, id, x,  y, label=None):
-        """
-        Add move point to history operation. 
- 
-        Return invert operation 
-        """
-        self.steps.append(self.Step(self._move_point, [id,  x,  y],label))
-        
-    def _move_point(self, id,  x,  y):
-        """
-        Move point in diagram
-        
-        Return invert operation
-        """
-        point = self._diagram.get_point_by_id(id)
-        assert point is not None
-        revert = self.Step(self._move_point, [id, point.x, point.y])
-        self._diagram.move_point(point, x, y, None, True)
-        self._moved_points.append(point)
-        return revert
-        
-    def delete_line(self, id, label=None):
-        """
-        Add delete line to history operation.
-                
-        If outer points contain this line, is removed from list.
-        Return invert operation
-        """
-        self.steps.append(self.Step(self._delete_line, [id],label))
-        
-    def _delete_line(self, id):
-        """
-        Delete line from diagram
-        """
-        line = self._diagram.get_line_by_id(id)
-        assert line is not None
-        revert = self.Step(self._add_line, [id, line.p1.id, line.p2.id])
-        self._removed_lines.append(line)
-        self._diagram.delete_line(line, None, True)
-        return revert
-
-    def add_line(self, id, p1_id, p2_id, label=None):
-        """
-        Add add line to history operation. 
- 
-        Calling function must ensure, that both points exist.
-        Return invert operation 
-        """
-        self.steps.append(self.Step(self._add_line, [id, p1_id, p2_id],label))
-        
-    def _add_line(self, id, p1_id, p2_id):
-        """
-        Add line to diagram
-        
-        Return invert operation
-        """
-        p1 = self._diagram.get_point_by_id(p1_id)
-        assert p1 is not None
-        p2 = self._diagram.get_point_by_id(p2_id)
-        assert p2 is not None
-        
-        revert = self.Step(self._delete_line, [id])
-        line = self._diagram.join_line(p1, p2, None, id, True)
-        self._added_lines.append(line)
-        return revert
-    

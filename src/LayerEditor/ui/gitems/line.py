@@ -2,6 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
+from leconfig import cfg
 
 class Line(QtWidgets.QGraphicsLineItem):
     """ 
@@ -12,7 +13,7 @@ class Line(QtWidgets.QGraphicsLineItem):
     MOVE_ZVALUE = 10
     TMP_ZVALUE = 0
     
-    def __init__(self, line, data, parent=None):
+    def __init__(self, line, parent=None):
         super(Line, self).__init__(line.p1.x, line.p1.y, line.p2.x, line.p2.y, parent)
         self.line = line
         self._tmp = False
@@ -20,8 +21,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         """Line data object"""
         self.state = ItemStates.standart
         """Item state"""
-        self.data = data        
-        self.setPen(self.data.pen)
+        self.setPen(cfg.diagram.pen)
         self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.STANDART_ZVALUE) 
         
@@ -34,12 +34,13 @@ class Line(QtWidgets.QGraphicsLineItem):
 
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
-        if self.data.pen.widthF() != self.pen().widthF():
-            self.setPen(self.data.pen)
+        if cfg.diagram.pen.widthF() != self.pen().widthF():
+            self.setPen(cfg.diagram.pen)
         if self.pen().color()!=get_state_color(self.state):
-            pen = QtGui.QPen(self.data.pen)
+            pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor(get_state_color(self.state))
             self.setPen(pen)
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         super(Line, self).paint(painter, option, widget)
         
     def mousePressEvent(self,event):
@@ -87,4 +88,3 @@ class Line(QtWidgets.QGraphicsLineItem):
         
     def release_line(self):
         self.line.object = None
-        self.data = None
