@@ -1,6 +1,3 @@
-from ui.data.diagram_structures import Diagram
-from ui.data.history import GlobalHistory
-from ui.data.le_serializer import LESerializer
 import mock_config as mockcfg
 from leconfig import cfg
 import shutil
@@ -16,24 +13,22 @@ def test_serialize_base(request):
         shutil.rmtree(TEST_DIR, ignore_errors=True)
     request.addfinalizer(fin_remove_test_dir)
     
-    ser = LESerializer(cfg)
     points = [[100, 100], [200, 200], [300, 100], [100, 200]]
     lines = [[0, 1], [1, 2], [2, 3], [3, 0]]
+    
+    cfg.data.set_new(cfg)
     diagram = cfg.diagram
+    assert diagram.topology_owner
     
     for point in points:
         diagram.add_point(point[0], point[1], 'Add test point', None, True)
     for line in lines:
         diagram.join_line(diagram.points[line[0]], diagram.points[line[1]], "Add test line", None, True)   
         
-    ser.save(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
-    history = GlobalHistory()
+    cfg.data.save(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
     
-    cfg.diagrams = [Diagram(history)]
-    cfg.diagram = cfg.diagrams[0]
-    
-    ser = LESerializer(cfg)
-    ser.load(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
+    cfg.data.set_new(cfg)    
+    cfg.data.load(cfg, os.path.join(TEST_DIR, "test_geometry1.json"))
     diagram2 = cfg.diagram 
  
     assert len(diagram.points)==len(diagram2.points)
