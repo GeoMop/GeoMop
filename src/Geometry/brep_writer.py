@@ -110,8 +110,10 @@ class ComposedLocation(Location):
         Location._dfs(self, groups)
 
     def _brep_output(self,stream):
-        locs, pows =  zip(*self.location_powers)
-        stream.write("2  {} {} 0\n".format(self.id, pows)) #TODO: proc je pows list? pows[0]
+        stream.write("2 ")
+        for loc, pow in self.location_powers:
+            stream.write("{} {} ".format(loc.id, pow))
+        stream.write("0\n")
 
 def check_knots(deg, knots, N):
     total_multiplicity = 0
@@ -142,9 +144,6 @@ class Curve3D:
         :param degree: Positive int.
         """
 
-        #pole count = len(poles)
-        #multiplicity knot count = len(knots)
-
         if rational:
             check_matrix(poles, [None, 4], scalar_types )
         else:
@@ -165,7 +164,17 @@ class Curve3D:
 
 
     def _brep_output(self,stream):
-        stream.write("Curves {}".format())
+        # writes b-spline curve
+        stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
+        for pole in self.poles:
+            for value in pole:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in self.knots:
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        stream.write("\n")
 
 class Curve2D:
     """
@@ -201,6 +210,19 @@ class Curve2D:
             id = len(groups['curves_2d']) + 1
             self.id = id
             groups['curves_2d'].append(self)
+
+    def _brep_output(self,stream):
+        # writes b-spline curve
+        stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
+        for pole in self.poles:
+            for value in pole:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in self.knots:
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        stream.write("\n")
 
 class Surface:
     """
@@ -250,6 +272,14 @@ class Surface:
             id = len(groups['surfaces']) + 1
             self.id = id
             groups['surfaces'].append(self)
+
+    def _brep_output(self,stream):
+        #writes b-spline surface
+        stream.write("9 {} {} 0 ".format(int(self.rational),int(self.rational))) #TODO: urcite jsou to u, v?
+        for i in self.degree:
+            stream.write(" {}".format(i))
+        stream.write(" {}".format(self.poles))
+        stream.write("\n")
             
 class Approx:
     """
@@ -780,9 +810,17 @@ def write_model(stream, compound, location):
         loc._brep_output(stream)
 
     stream.write("Curves {}\n".format(len(groups['curves_3d'])))
+    for curve in groups['curves_3d']:
+        curve._brep_output(stream)
 
     stream.write("Curve2ds {}\n".format(len(groups['curves_2d'])))
-    
+    for curve in groups['curves_2d']:
+        curve._brep_output(stream)
+
+    stream.write("Surfaces {}\n".format(len(groups['surfaces'])))
+    for surface in groups['surfaces']:
+        surface._brep_output(stream)
+
     #vygeneruje hlavicku... stream write
     # vytvori hlavicku pro locations
     # for all locations (for loc in groups['locations']:
