@@ -175,10 +175,10 @@ class Diagram(QtWidgets.QGraphicsScene):
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
             px = p.x()
-            py = p.y()            
-            line = cfg.diagram. join_line(p1.point, p2.point, label)
-            l = Line(line)
-            self.addItem(l) 
+            py = p.y()
+            added_points, moved_points, added_lines = cfg.diagram.join_line_intersection(
+                p1.point, p2.point, label)
+            self.update_changes(added_points, [], moved_points, added_lines, [])            
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
@@ -410,7 +410,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         
     def _anchor_moved_point(self, event):
         """Test if point colide with other and move it"""
-        below_item = self.itemAt(event.scenePos(), QtGui.QTransform())
+        below_item = self.itemAt(event.scenePos(), QtGui.QTransform())        
         if below_item==self._point_moving:
             # moved point with small zorder value is below cursor             
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
@@ -436,7 +436,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            # self._point_moving.move_point(event.scenePos(), ItemStates.standart)
             
     def mouseReleaseEvent(self,event):
         event.gobject = None

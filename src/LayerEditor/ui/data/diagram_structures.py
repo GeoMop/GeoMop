@@ -4,6 +4,7 @@ from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from enum import IntEnum
 from .region_structures import Regions
+from .polygon_operation import PolygonOperation, SimplePolygon
 
 class TopologyOperations(IntEnum):
     """Type of topology operation"""
@@ -111,6 +112,10 @@ class Line():
     def qrectf(self):
         """return QRectF coordinates"""
         return QtCore.QRectF(self.p1.qpointf(), self.p2.qpointf())
+        
+    def qlinef(self):
+        """return QLineF object"""
+        return QtCore.QLineF(self.p1.qpointf(), self.p2.qpointf())
 
 class Polygon():
     """
@@ -126,6 +131,7 @@ class Polygon():
         """Polygon history id"""
         self.region_id = 2
         """Polygon region id"""
+        self.spolygon = SimplePolygon()
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -451,16 +457,33 @@ class Diagram():
         p1.lines.append(line)
         p2.lines.append(line)
         self.lines.append(line)
+        PolygonOperation.update_polygon_add_line(self, line)    
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)
         return line
+        
+    def join_line_intersection(self, p1, p2, label=None):
+        """
+        As Join line, but try add lines created by intersection
+        return added_points, moved_points, added_lines
+        """
+        new_points, new_lines = PolygonOperation.try_intersection(self, p1, p2, label)
+        lines = []
+        temp_p = p1
+        for p in new_points:
+            lines.append(self.join_line(temp_p, p, label))
+            temp_p = p
+        lines.append(self.join_line(temp_p, p2, label))
+        lines.extend(new_lines)
+        return new_points, new_points, lines
         
     def delete_line(self, l, label="Delete line", not_history=False):
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
         l.p2.lines.remove(l)
+        PolygonOperation.update_polygon_del_line(self, l)
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
@@ -520,7 +543,7 @@ class Diagram():
         
     def merge_point(self, point, atached_point, label='Merge Points'):
         """
-        Merge rwo points. Atached_point will be remove from data
+        Merge two points. Atached_point will be remove from data
         and shoud be released after discarding graphic object.
         Return array of lines that should be removed. This lines is 
         released from data, but object is existed, and should be relesed 
