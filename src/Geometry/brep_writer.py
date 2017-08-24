@@ -251,16 +251,16 @@ class Surface:
 
         assert len(poles) > 0
         assert len(poles[0]) > 0
-        Nu = len(poles)
-        Nv = len(poles[0])
+        self.Nu = len(poles)
+        self.Nv = len(poles[0])
         for row in poles:
-            assert len(row) == Nv
+            assert len(row) == self.Nv
 
         assert (not rational and len(poles[0][0]) == 3) or (rational and len(poles[0][0]) == 4)
 
         (u_knots, v_knots) = knots
-        check_knots(degree[0], u_knots, Nu)
-        check_knots(degree[1], v_knots, Nv)
+        check_knots(degree[0], u_knots, self.Nu)
+        check_knots(degree[1], v_knots, self.Nv)
 
         self.poles=poles
         self.knots=knots
@@ -275,10 +275,27 @@ class Surface:
 
     def _brep_output(self,stream):
         #writes b-spline surface
-        stream.write("9 {} {} 0 ".format(int(self.rational),int(self.rational))) #TODO: urcite jsou to u, v?
-        for i in self.degree:
+        stream.write("9 {} {} 0 0 ".format(int(self.rational),int(self.rational))) #prints B-spline surface u or v rational flag - both same
+        for i in self.degree: #prints <B-spline surface u degree> <_>  <B-spline surface v degree>
             stream.write(" {}".format(i))
-        stream.write(" {}".format(self.poles))
+        (u_knots, v_knots) = self.knots
+        stream.write(" {} {}  {} {} ".format(self.Nu, self.Nv, len(u_knots), len(v_knots)))
+            #prints  <B-spline surface u pole count> <_> <B-spline surface v pole count> <_> <B-spline surface u multiplicity knot count> <_>  <B-spline surface v multiplicity knot count> <B-spline surface v multiplicity knot count>
+#        stream.write(" {}".format(self.poles)) #TODO: tohle smaz, koukam na format poles a chci: B-spline surface weight poles
+        for pole in self.poles: #TODO: check, takovy pokus o poles
+            for vector in pole:
+                for value in vector:
+                    stream.write(" {}".format(value))
+                stream.write(" ")
+            stream.write(" ")
+        for knot in u_knots: #prints B-spline surface u multiplicity knots
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in v_knots: #prints B-spline surface v multiplicity knots
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
         stream.write("\n")
             
 class Approx:
@@ -426,6 +443,8 @@ class Shape:
 
         # Thes flags are produced by OCC for all other shapes safe vertices.
         self.flags=ShapeFlag(0,1,0,1,0,0,0)
+        #shpname: Shape name, defined in childs
+        self.shpname=None
 
     """
     Methods to simplify ceration of oriented references.
@@ -480,6 +499,9 @@ class Shape:
             sub_ref.location._dfs(groups)
             sub_ref.shape._dfs(groups)
 
+    def _brep_output(self, stream):
+        stream.write("{}\n".format(self.shpname))
+
 """
 Shapes with no special parameters, only flags and subshapes.
 Writer can be generic implemented in bas class Shape.
@@ -489,27 +511,32 @@ class Compound(Shape):
     def __init__(self, shapes=[]):
         self.sub_types =  [CompoundSolid, Solid, Shell, Wire, Face, Edge, Vertex]
         super().__init__(shapes)
+        self.shpname = 'Co'
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
         self.sub_types = [Solid]
         super().__init__(solids)
+        self.shpname = 'CS'
 
 class Solid(Shape):
     def __init__(self, shells=[]):
         self.sub_types = [Shell]
         super().__init__(shells)
+        self.shpname='So'
 
 class Shell(Shape):
     def __init__(self, faces=[]):
         self.sub_types = [Face]
         super().__init__(faces)
+        self.shpname='Sh'
 
 
 class Wire(Shape):
     def __init__(self, edges=[]):
         self.sub_types = [Edge]
         super().__init__(edges)
+        self.shpname='Wi'
 
 """
 Shapes with special parameters.
@@ -549,6 +576,7 @@ class Face(Shape):
             self.repr=[(surface, location)]
         self.tol=tolerance
         self.restriction_flag =0
+        self.shpname = 'Fa'
 
     def is_closed_wire(self, wire):
         vtx_set = {}
@@ -646,6 +674,7 @@ class Edge(Shape):
         self.tol = tolerance
         self.repr = []
         self.edge_flags=(1,1,0)
+        self.shpname = 'Ed'
 
     def set_edge_flags(self, same_parameter, same_range, degenerated):
         self.edge_flags=(same_parameter,same_range, degenerated)
@@ -744,6 +773,7 @@ class Vertex(Shape):
         self.repr=[]
         # Number of edges in which vertex is used. Used internally to check closed wires.
         self.n_edges = 0
+        self.shpname = 'Ve'
 
     def attach_to_3d_curve(self, t, curve, location=Location()):
         """
@@ -820,6 +850,9 @@ def write_model(stream, compound, location):
     stream.write("Surfaces {}\n".format(len(groups['surfaces'])))
     for surface in groups['surfaces']:
         surface._brep_output(stream)
+
+    for shape in groups['shapes']: #pridej .reverse a zkontroluj, jestli je to metoda reverse nebo funkce reversed
+        shape._brep_output(stream)
 
     #vygeneruje hlavicku... stream write
     # vytvori hlavicku pro locations
