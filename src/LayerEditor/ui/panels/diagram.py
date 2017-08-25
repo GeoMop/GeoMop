@@ -423,17 +423,17 @@ class Diagram(QtWidgets.QGraphicsScene):
     def mouseReleaseEvent(self,event):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
+        end_moving = False
+        if self._moving:
+            self._moving = False
+            if  self._moving_counter>1:
+                cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
+                cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
+                self.possChanged.emit()
+                end_moving = True
         if event.button()==QtCore.Qt.RightButton and \
             event.modifiers()==QtCore.Qt.NoModifier:
-            if self._moving:
-                self._moving = False
-                if  self._moving_counter>1:
-                    cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
-                    cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
-                    self.possChanged.emit()
-                else:
-                    self._add_line(event.gobject, event.scenePos())                      
-            elif self._point_moving is not None:
+            if self._point_moving is not None:
                 if  self._point_moving_counter>1:
                     self._anchor_moved_point(event)                    
                 else:
@@ -445,21 +445,24 @@ class Diagram(QtWidgets.QGraphicsScene):
                 else:
                     self._add_line(event.gobject, event.scenePos())
                 self._line_moving = None
+            else:
+                self._add_line(event.gobject, event.scenePos())
         if event.button()==QtCore.Qt.RightButton and \
             event.modifiers()==QtCore.Qt.ControlModifier:
             if self._last_line is not None:                 
                 self._add_line(event.gobject, event.scenePos(), False)                
             else:
                 self._add_point(event.gobject, event.scenePos())
+                
         if event.button()==QtCore.Qt.LeftButton:
-            if event.modifiers()==QtCore.Qt.NoModifier:
+            if event.modifiers()==QtCore.Qt.NoModifier and not end_moving:
                 self.deselect_selected()
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
                         self._select_line(event.gobject, True)
                     else:
                         self._select_point(event.gobject)
-            elif event.modifiers()==QtCore.Qt.ShiftModifier:
+            if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
                         self._select_line(event.gobject, True)
@@ -477,14 +480,15 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._moving = False
             if event.gobject is None:
                 return
+        if event.button()==QtCore.Qt.LeftButton and \
+            event.modifiers()==QtCore.Qt.NoModifier:
+            self._moving_counter = 0
+            self._moving = True
+            self._moving_x = event.screenPos().x()
+            self._moving_y = event.screenPos().y()                
         if event.button()==QtCore.Qt.RightButton and \
             event.modifiers()==QtCore.Qt.NoModifier:
-            if event.gobject is None:
-                self._moving_counter = 0
-                self._moving = True
-                self._moving_x = event.screenPos().x()
-                self._moving_y = event.screenPos().y()
-            else:
+            if event.gobject is not None:
                 if isinstance(event.gobject, Line):
                     self._line_moving_counter = 0
                     self._line_moving = event.gobject

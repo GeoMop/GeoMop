@@ -208,8 +208,9 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.append_layer(name, depth)
+            cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
             self._history.delete_layer(len(cfg.layers.layers)-1,"Append layer")
-            self._history.delete_interface(len(cfg.layers.interfaces)-1)
+            self._history.delete_interface(len(cfg.layers.interfaces)-1)            
             self.change_size()
 
     def prepend_layer(self):
@@ -220,6 +221,7 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             depth = dlg.depth.text()
             cfg.layers.prepend_layer(name, depth)
+            cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
             self._history.delete_layer(0,"Prepend layer")
             self._history.delete_interface(0)
             self.change_size()
@@ -236,8 +238,10 @@ class Layers(QtWidgets.QWidget):
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, "Add layer to shadow")
             layers, interfaces = cfg.layers.get_group_copy(idx, 1)
             if cfg.layers.add_layer_to_shadow(idx, name, depth, dup):
-                self._history.change_group(layers, interfaces, idx, 1)
+                cfg.diagram.regions.add_layer(idx, name)
+                self._history.change_group(layers, interfaces, idx, 1, TopologyOperations.insert)
             else:
+                cfg.diagram.regions.copy_related(idx, name)
                 self._history.change_group(layers, interfaces, idx, 2)
             self.change_size()
     
@@ -293,11 +297,11 @@ class Layers(QtWidgets.QWidget):
             split_type = dlg.split_type.currentData()
             dup = None
             label = "Add interface"
+            oper = TopologyOperations.none
             
             if split_type is LayerSplitType.editable or \
                 split_type is LayerSplitType.split:
-                dup = cfg.layers.get_diagram_dup(i)
-                oper = TopologyOperations.none
+                dup = cfg.layers.get_diagram_dup(i)                
                 if split_type is LayerSplitType.split:
                     dup.count = 2
                     oper = TopologyOperations.insert_next
@@ -306,6 +310,7 @@ class Layers(QtWidgets.QWidget):
                 label = None
             layers, interfaces = cfg.layers.get_group_copy(i, 1)    
             cfg.layers.split_layer(i, name, depth, split_type, dup)
+            cfg.diagram.regions.add_layer(i, name, oper)
             self._history.change_group(layers, interfaces, i, 2, label)
             
             self.change_size()
@@ -319,6 +324,7 @@ class Layers(QtWidgets.QWidget):
             name = dlg.name.text()
             self._history.change_layer_name(old_name, i, "Rename layer")
             cfg.layers.layers[i].name = name
+            cfg.diagram.regions.rename_layer(False, i, name)
             self.change_size()
 
     def remove_layer(self, i):
@@ -344,10 +350,27 @@ class Layers(QtWidgets.QWidget):
             ret = dlg.exec_()
             if ret!=QtWidgets.QMessageBox.Ok:                
                 return 
-        dup=None
+        dup=None        
         if removed_res[1]==1:
             dup = cfg.layers.get_diagram_dup(i-1)
-        diagrams = cfg.layers.remove_layer(i, removed_res, dup)
+        del_layers, del_interfaces = cfg.layers.get_group_copy(i, 2)       
+        diagrams, layers = cfg.layers.remove_layer(i, removed_res, dup)
+        if removed_res[3]:
+            cfg.diagram.regions.delete_fracture(i)
+            if removed_res[2]>1:
+                cfg.diagram.regions.delete_fracture(i+1)
+        elif removed_res[2]>0:
+            cfg.diagram.regions.delete_Fracture(i+1)
+        if layers==2:
+            self._history.change_group([], del_interfaces[0:1], i, 2, "Remove layer")
+            cfg.diagram.regions.delete_layer(i)
+            cfg.diagram.regions.delete_layer(i)
+        elif layers==0:
+            self._history.change_group(del_layers[0:1], del_interfaces[0:2], i, 1, "Remove layer")
+            cfg.diagram.regions.delete_data(i)
+        else:
+            self._history.change_group(del_layers, del_interfaces, i, 1, "Remove layer")
+            cfg.diagram.regions.delete_layer(i)
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
@@ -376,8 +399,9 @@ class Layers(QtWidgets.QWidget):
             if ret!=QtWidgets.QMessageBox.Ok:                
                 return 
         del_layers, del_interfaces = cfg.layers.get_group_copy(first_idx, layers)
-        diagrams = cfg.layers.remove_block(i, removed_res) 
+        diagrams = cfg.layers.remove_block(i, removed_res)         
         self._history.change_group(del_layers, del_interfaces, first_idx, 1, "Remove block")
+        cfg.diagram.regions.delete_block(first_idx, layers)
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
@@ -401,6 +425,7 @@ class Layers(QtWidgets.QWidget):
                 self._history.delete_diagrams(dup.insert_id, 1, TopologyOperations.insert, label)
                 label = None
             cfg.layers.add_fracture(i, name, position, dup)
+            cfg.diagram.regions.add_fracture(i, name, position is FractureInterface.own, position is FractureInterface.top)
             self._history.delete_fracture(i, position, label)
             self.change_size()
         
@@ -422,6 +447,7 @@ class Layers(QtWidgets.QWidget):
             cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, label)
             label = None
+            cfg.diagram.regions.move_topology(i)
             cfg.layers.split_interface(i, dup)
         elif type is ChangeInterfaceActions.interpolated or \
             type is ChangeInterfaceActions.bottom_interpolated or \
@@ -483,6 +509,9 @@ class Layers(QtWidgets.QWidget):
         del_layers, del_interfaces = cfg.layers.get_group_copy(i, 2)
         diagrams = cfg.layers.remove_interface(i, removed_res)
         self._history.change_group(del_layers, del_interfaces, i, 1, "Remove interface")
+        cfg.diagram.regions.delete_layer(i)
+        if removed_res[1]==1:
+            cfg.diagram.regions.delete_fracture(i)
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
@@ -500,7 +529,8 @@ class Layers(QtWidgets.QWidget):
                 return
         fracture = cfg.layers.interfaces[i].fracture
         self._history.add_fracture(fracture, i, fracture.type, "Remove fracture")
-        diagram = cfg.layers.remove_fracture(i)        
+        diagram = cfg.layers.remove_fracture(i)
+        cfg.diagram.regions.delete_fracture(i)
         if diagram is not None:
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
@@ -515,5 +545,6 @@ class Layers(QtWidgets.QWidget):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.name.text()
             cfg.layers.interfaces[i].fracture.name = name
+            cfg.diagram.regions.rename_layer(True, i, name)
             self._history.change_fracture_name(old_name, i, "Rename fracture")
             self.change_size()

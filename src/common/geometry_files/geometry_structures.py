@@ -229,10 +229,11 @@ class GL(GeoObject):
     def serialize(self):
         d = {}
         d["name"] = self.name
+        
         d["layer_type"] = self.layer_type.value
         d["top_type"] = self.top_type.value
         d["top"] = self.top.serialize()
-        if self.layer_type is LayerType.stratum:
+        if self.layer_type is not LayerType.fracture:
             d["bottom_type"] = self.bottom_type.value
             d["bottom"] = self.bottom.serialize()
         d["node_regions"] = self.node_regions
@@ -244,12 +245,12 @@ class GL(GeoObject):
         self.name = data["name"]
         self.layer_type = LayerType(data["layer_type"])
         self.top_type = TopologyType(data["top_type"])
-        if self.top_type is TopologyType.given:
+        if self.top_type is not TopologyType.given:
             self.top = SurfaceNodeSet.__new__(SurfaceNodeSet)
         else:
             self.top = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
         self.top.deserialize(data["top"])
-        if self.layer_type is LayerType.stratum:
+        if self.layer_type is not LayerType.fracture:
             self.bottom_type = TopologyType(data["bottom_type"])
             if self.bottom_type is TopologyType.given:
                 self.bottom = SurfaceNodeSet.__new__(SurfaceNodeSet)
