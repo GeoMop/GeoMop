@@ -232,7 +232,7 @@ class ServiceBase(JsonData):
 
         self._child_services = {}
 
-        self._delegator_services = {}
+        #self._delegator_services = {}
 
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
@@ -280,14 +280,16 @@ class ServiceBase(JsonData):
 
         # Service processing loop.
         while not self._closing:
-            logging.info("Loop")
+            #logging.info("Loop")
             self._process_answers()
             self._process_requests()
             self._send_answers()
             self._do_work()
+            self._check_connections()
+            self._check_child_services()
 
             # sleep, not too much
-            remaining_time = 1.0 - (time.time() - last_time)
+            remaining_time = 0.1 - (time.time() - last_time)
             if remaining_time > 0:
                 time.sleep(remaining_time)
             last_time = time.time()
@@ -298,11 +300,14 @@ class ServiceBase(JsonData):
 
 
     def _process_answers(self):
-        logging.info("Process answers ...")
+        #logging.info("Process answers ...")
         for ch_service in self._child_services.values():
             ch_service._process_answers()
-        for d_service in self._delegator_services.values():
-            d_service._process_answers()
+        # for d_service in self._delegator_services.values():
+        #     d_service._process_answers()
+        for con in self._connections.values():
+            if (con._delegator_proxy is not None) and (con._delegator_proxy is not self):
+                con._delegator_proxy._process_answers()
 
     def _process_requests(self):
         requests = self._repeater.get_requests()
@@ -346,6 +351,14 @@ class ServiceBase(JsonData):
         """
         pass
 
+    def _check_connections(self):
+        for con in self._connections.values():
+            con.get_status()
+
+    def _check_child_services(self):
+        for child in self._child_services.values():
+            child.get_status()
+
     def get_connection(self, connection_data):
         """
         Keep active connections in a dict and reuse connection to same hosts.
@@ -357,8 +370,8 @@ class ServiceBase(JsonData):
             return self._connections[addr]
         else:
             con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
-            con.connect()
             con.set_local_service(self)
+            con.connect()
             self._connections[addr] = con
             return con
 
@@ -372,7 +385,7 @@ class ServiceBase(JsonData):
         self._connections.clear()
 
     def get_analysis_workspace(self):
-        return self.process.environment.geomop_analysis_workspace
+        return self.service_host_connection.environment.geomop_analysis_workspace
 
     def get_ip_address(self):
         """

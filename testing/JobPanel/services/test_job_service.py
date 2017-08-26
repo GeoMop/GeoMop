@@ -1,5 +1,6 @@
 from backend.service_base import ServiceBase, ServiceStatus
-#from ..backend.test_connection import get_test_password
+from passwords import get_test_password
+from port_forwarder import PortForwarder
 
 import threading
 import os
@@ -15,10 +16,9 @@ TEST_FILES = "test_files"
 REMOTE_WORKSPACE = "/home/test/workspace"
 
 
-def xxx_test_correct_run(request):
+def test_correct_run(request):
     def clear_test_files():
-        #shutil.rmtree(TEST_FILES, ignore_errors=True)
-        pass
+        shutil.rmtree(TEST_FILES, ignore_errors=True)
     request.addfinalizer(clear_test_files)
 
     # create analysis and job workspaces
@@ -40,8 +40,7 @@ def xxx_test_correct_run(request):
           "executable": {"__class__": "Executable",
                          "path": "JobPanel/services",
                          "name": "_job_service.py",
-                         "script": True},
-          "environment": env}
+                         "script": True}}
     je = {"__class__": "Executable",
           "path": "../testing/JobPanel/services",
           "name": "job_1.py",
@@ -57,26 +56,13 @@ def xxx_test_correct_run(request):
     local_service.request_start_child(service_data)
     job = local_service._child_services[1]
 
-    # wait for job queued
-    for i in range(4):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.queued
-
-    # wait for job running
-    for i in range(9):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.running
-
-    # wait for job done
-    for i in range(9):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.done
+    # check correct job state transition
+    time.sleep(5)
+    assert job.status == ServiceStatus.queued
+    time.sleep(10)
+    assert job.status == ServiceStatus.running
+    time.sleep(25)
+    assert job.status == ServiceStatus.done
 
     # stopping, closing
     local_service._closing = True
@@ -102,15 +88,19 @@ def test_correct_run_connection_fail(request):
     local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
+    # port forwarder
+    port_forwarder = PortForwarder()
+    forwarded_port = port_forwarder.forward_port(22)
+
     # job data
     env_rem = {"__class__": "Environment",
                "geomop_root": os.path.abspath("../src"),
                "geomop_analysis_workspace": REMOTE_WORKSPACE,
                "python": "python3"}
-    #u, p = get_test_password()
-    u, p = "test", ""
+    u, p = get_test_password()
     cr = {"__class__": "ConnectionSSH",
           "address": "localhost",
+          "port": forwarded_port,
           "uid": u,
           "password": p,
           "environment": env_rem}
@@ -118,8 +108,7 @@ def test_correct_run_connection_fail(request):
           "executable": {"__class__": "Executable",
                          "path": "JobPanel/services",
                          "name": "_job_service.py",
-                         "script": True},
-          "environment": env_rem}
+                         "script": True}}
     je = {"__class__": "Executable",
           "path": "../testing/JobPanel/services",
           "name": "job_1.py",
@@ -129,36 +118,30 @@ def test_correct_run_connection_fail(request):
                     "job_executable": je,
                     "workspace": "job",
                     "config_file_name": "job_service.conf",
-                    "wait_before_run": 10.0}
+                    "wait_before_run": 15.0}
 
     # start job
     local_service.request_start_child(service_data)
     #print(local_service._child_services.keys())
     job = local_service._child_services[2]
 
-    time.sleep(20)
-    assert False
-
-    # wait for job queued
-    for i in range(4):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.queued
-
-    # wait for job running
-    for i in range(9):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.running
-
-    # wait for job done
-    for i in range(9):
-        time.sleep(1)
-        job.get_status()
-    time.sleep(1)
-    assert job.get_status() == ServiceStatus.done
+    # check correct job state transition
+    time.sleep(5)
+    port_forwarder.discard_data = True
+    time.sleep(5)
+    port_forwarder.discard_data = False
+    time.sleep(10)
+    assert job.status == ServiceStatus.running
+    time.sleep(5)
+    port_forwarder.discard_data = True
+    time.sleep(5)
+    port_forwarder.discard_data = False
+    time.sleep(5)
+    assert job.status == ServiceStatus.running
+    assert job.online == True
+    time.sleep(10)
+    assert job.status == ServiceStatus.done
 
     # stopping, closing
+    port_forwarder.close_all_forwarded_ports()
     local_service._closing = True

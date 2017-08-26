@@ -12,6 +12,9 @@ import logging
 logging.basicConfig(filename='test_service_base.log', filemode='w', level=logging.INFO)
 
 
+TEST_FILES = "test_files"
+
+
 def test_request_local():
     test_service = TService({})
 
@@ -29,27 +32,36 @@ def test_request_local():
     assert "error" in answer[0]
 
 
-def test_request_remote():
+def test_request_remote(request):
+    def clear_test_files():
+        #shutil.rmtree(TEST_FILES, ignore_errors=True)
+        pass
+    request.addfinalizer(clear_test_files)
+
+    # create analysis workspace
+    os.makedirs(os.path.join(TEST_FILES, "workspace"), exist_ok=True)
+
     # local service
-    local_service = ServiceBase({})
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
+           "python": "python3"}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost",
+          "environment": env}
+    local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # test service data
-    env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
-           "python": "python3"}
-    pd = {"__class__": "ProcessExec",
+    pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
                          "path": "../testing/JobPanel/backend",
                          "name": "t_service.py",
-                         "script": True},
-          "exec_args": {"__class__": "ExecArgs",
-                        "args": ["1", "localhost", str(local_service._repeater._starter_server.address[1])]},
-          "environment": env}
-    cl = {"__class__": "ConnectionLocal",
-          "address": "localhost"}
+                         "script": True}}
     service_data = {"service_host_connection": cl,
-                    "process": pd}
+                    "process": pe,
+                    "workspace": "",
+                    "config_file_name": "t_service.conf"}
 
     # start test service
     local_service.request_start_child(service_data)

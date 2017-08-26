@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import traceback
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -29,9 +30,10 @@ logging.basicConfig(filename='backend_service.log', filemode="w",
 
 
 try:
-    bs = Backend({"repeater_address": [int(sys.argv[1])],
-                  "parent_address": [sys.argv[2], int(sys.argv[3])],
-                  "config_file_name": "backend_service.conf"})
+    input_file = "backend_service.conf"
+    with open(input_file, "r") as f:
+        config = json.load(f)
+    bs = Backend(config)
     bs.run()
 except:
     logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))

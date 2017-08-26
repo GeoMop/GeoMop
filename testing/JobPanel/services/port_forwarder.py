@@ -48,7 +48,7 @@ class PortForwarder:
                 logging.info('Connected!  Tunnel open %r -> %r -> %r' % (self.request.getpeername(),
                                                                          sock.getpeername(),
                                                                          ("localhost", forward_to_port)))
-                while True:
+                while not self.port_forwarder.discard_data:
                     r, w, x = select.select([self.request, sock], [], [])
                     if self.request in r:
                         data = self.request.recv(1024)

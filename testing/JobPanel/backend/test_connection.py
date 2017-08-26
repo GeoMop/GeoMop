@@ -6,6 +6,7 @@
 from backend.connection import *
 from backend.service_base import ServiceBase, ServiceStatus
 from backend.service_proxy import ServiceProxy
+from passwords import get_test_password
 
 import threading
 import socket
@@ -16,40 +17,18 @@ import logging
 import time
 
 
-#logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
+logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
 
-def get_passwords():
-    """Return dict with passwords from secret file."""
-    file = os.path.expanduser("~/.ssh/passwords")
-    d = {}
-    try:
-        with open(file, 'r') as fd:
-            for line in fd:
-                line = line.split(sep="#", maxsplit=1)[0]
-                line = line.strip()
-                sp = line.split(sep=":")
-                if len(sp) == 3:
-                    d[sp[0]] = (sp[1], sp[2])
-    except:
-        pass
-    return d
-
-
-def get_test_password():
-    u = "test"
-    p = ""
-    d = get_passwords()
-    if "test" in d:
-        u = d["test"][0]
-        p = d["test"][1]
-    return u, p
-
-
+TEST_FILES = "test_files"
 REMOTE_WORKSPACE = "/home/test/workspace"
 
 
-def test_port_forwarding():
+def test_port_forwarding(request):
+    def clear_test_files():
+        shutil.rmtree(TEST_FILES, ignore_errors=True)
+    request.addfinalizer(clear_test_files)
+
     class Server(socketserver.ThreadingTCPServer):
         daemon_threads = True
         allow_reuse_address = True
@@ -80,8 +59,20 @@ def test_port_forwarding():
     t.daemon = True
     t.start()
 
+    # local service
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
+           "python": "python3"}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost",
+          "environment": env}
+    local_service = ServiceBase({"service_host_connection": cl})
+    threading.Thread(target=local_service.run, daemon=True).start()
+
     # ConnectionLocal
     con = ConnectionLocal()
+    con.set_local_service(local_service)
     con.connect()
 
     forwarded_port = con.forward_local_port(origin_port)
@@ -93,12 +84,15 @@ def test_port_forwarding():
     con.close_connections()
 
     # environment
-    env = {"__class__": "Environment",
-           "geomop_analysis_workspace": REMOTE_WORKSPACE}
+    env_rem = {"__class__": "Environment",
+               "geomop_root": os.path.abspath("../src"),
+               "geomop_analysis_workspace": REMOTE_WORKSPACE,
+               "python": "python3"}
 
     # ConnectionSSH
     u, p = get_test_password()
-    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env_rem})
+    con.set_local_service(local_service)
     con.connect()
 
     forwarded_port = con.forward_local_port(origin_port)
@@ -108,6 +102,9 @@ def test_port_forwarding():
     assert connection_test("localhost", forwarded_port)
 
     con.close_connections()
+
+    # stopping, closing
+    local_service._closing = True
 
     # shutdown server
     server.shutdown()
@@ -145,8 +142,20 @@ def test_upload_download(request):
     def remove_files(path):
         shutil.rmtree(path)
 
+    # local service
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
+           "python": "python3"}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost",
+          "environment": env}
+    local_service = ServiceBase({"service_host_connection": cl})
+    threading.Thread(target=local_service.run, daemon=True).start()
+
     # ConnectionLocal
     con = ConnectionLocal()
+    con.set_local_service(local_service)
     con.connect()
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
@@ -171,12 +180,15 @@ def test_upload_download(request):
     con.close_connections()
 
     # environment
-    env = {"__class__": "Environment",
-           "geomop_analysis_workspace": REMOTE_WORKSPACE}
+    env_rem = {"__class__": "Environment",
+               "geomop_root": os.path.abspath("../src"),
+               "geomop_analysis_workspace": REMOTE_WORKSPACE,
+               "python": "python3"}
 
     # ConnectionSSH
     u, p = get_test_password()
-    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env})
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env_rem})
+    con.set_local_service(local_service)
     con.connect()
 
     loc = os.path.join(LOCAL_TEST_FILES, "loc")
@@ -212,6 +224,9 @@ def test_upload_download(request):
         pass
 
     con.close_connections()
+
+    # stopping, closing
+    local_service._closing = True
 
 
 def test_exceptions():
@@ -260,18 +275,25 @@ def test_get_delegator():
 
 def test_delegator_exec():
     # local service
-    local_service = ServiceBase({})
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
+           "python": "python3"}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost",
+          "environment": env}
+    local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # environment
-    env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
-           "geomop_analysis_workspace": REMOTE_WORKSPACE,
-           "python": "python3"}
+    env_rem = {"__class__": "Environment",
+               "geomop_root": os.path.abspath("../src"),
+               "geomop_analysis_workspace": REMOTE_WORKSPACE,
+               "python": "python3"}
 
     # ConnectionSSH
     u, p = get_test_password()
-    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment":env})
+    con = ConnectionSSH({"address": "localhost", "uid": u, "password": p, "environment": env_rem})
     con.set_local_service(local_service)
     con.connect()
 
@@ -281,13 +303,14 @@ def test_delegator_exec():
 
     # start process
     process_config = {"__class__": "ProcessExec",
-                      "executable": {"__class__": "Executable", "name": "sleep"},
-                      "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
+                      "environment": env_rem,
+                      "executable": {"__class__": "Executable", "path": "../testing/JobPanel/backend", "name": "t_process.py", "script": True}}
     answer = []
     delegator_proxy.call("request_process_start", process_config, answer)
 
     # wait for answer
     time.sleep(5)
+    delegator_proxy._process_answers()
     process_id = answer[-1]["data"]
 
     # get status
@@ -297,6 +320,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
+    delegator_proxy._process_answers()
     assert answer[-1]["data"][process_id]["running"] is True
 
     # kill
@@ -306,6 +330,7 @@ def test_delegator_exec():
 
     # wait for answer
     time.sleep(5)
+    delegator_proxy._process_answers()
     assert answer[-1]["data"] is True
 
     # stopping, closing
@@ -313,25 +338,38 @@ def test_delegator_exec():
     con.close_connections()
 
 
-def test_docker():
+def test_docker(request):
+    def clear_test_files():
+        shutil.rmtree(TEST_FILES, ignore_errors=True)
+    request.addfinalizer(clear_test_files)
+
+    # create analysis workspace
+    os.makedirs(os.path.join(TEST_FILES, "workspace"), exist_ok=True)
+
     # local service
-    local_service = ServiceBase({})
+    env = {"__class__": "Environment",
+           "geomop_root": os.path.abspath("../src"),
+           "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
+           "python": "python3"}
+    cl = {"__class__": "ConnectionLocal",
+          "address": "localhost",
+          "environment": env}
+    local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # service data
-    env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
-           "python": "python3"}
+    cd = {"__class__": "ConnectionLocal",
+          "address": "172.17.42.1",
+          "environment": env}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
                          "path": "JobPanel/services",
                          "name": "backend_service.py",
-                         "script": True},
-          "environment": env}
-    cl = {"__class__": "ConnectionLocal",
-          "address": "localhost"}
-    service_data = {"service_host_connection": cl,
-                    "process": pd}
+                         "script": True}}
+    service_data = {"service_host_connection": cd,
+                    "process": pd,
+                    "workspace": "",
+                    "config_file_name": "backend_service.conf"}
 
     # start backend
     local_service.request_start_child(service_data)
@@ -345,7 +383,7 @@ def test_docker():
     answer = []
     backend.call("request_stop", None, answer)
     time.sleep(5)
-    assert len(answer) > 0
+    #assert len(answer) > 0
 
     # stopping, closing
     local_service._closing = True

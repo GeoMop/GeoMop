@@ -170,12 +170,15 @@ class ProcessExec(ProcessBase):
             r, w = os.pipe()
             pid = os.fork()
             if pid == 0:
-                os.close(r)
-                os.setsid()
-                with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
-                    p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
-                os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
-                os.close(w)
+                try:
+                    os.close(r)
+                    os.setsid()
+                    with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
+                        p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
+                    os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
+                    os.close(w)
+                except:
+                    pass
                 os._exit(0)
             os.close(w)
             buf = b""
@@ -425,7 +428,8 @@ class ProcessDocker(ProcessBase):
         :return: process_id - possibly hash of the running container.
         """
         home = os.environ["HOME"]
-        cwd = os.getcwd()
+        cwd = os.path.join(self.environment.geomop_analysis_workspace,
+                           self.exec_args.work_dir)
         args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel"]
         args.extend(self._get_limit_args())
         if self.executable.script:

@@ -1,4 +1,5 @@
 from .service_base import ServiceBase, ServiceStatus, call_action
+from .connection import ConnectionStatus, SSHError
 
 import time
 import logging
@@ -52,6 +53,7 @@ class ServiceProxy:
         - service files, service status, ... (convenient)
         """
         self.connection = connection
+        self.connection_id = connection._id
 
         self.status=None
         """ ServiceStatus enum"""
@@ -67,7 +69,14 @@ class ServiceProxy:
         self.results_process_start = []
         """Child service process id save as result list"""
         self.results_get_status = []
-        """Result list of get status requests"""
+        """List of result list of get status request"""
+
+        self.last_time = time.time()
+        """Last time we had info from service"""
+        self.online = False
+        """We are connected to service"""
+        self.downloaded_config = None
+        """Config downloaded from service config file"""
 
         #TODO:
         #  smazat
@@ -164,6 +173,8 @@ class ServiceProxy:
             logging.warning("Start service: Overwriting environment in service_data['process'].")
         self.service_data["process"]["environment"] = self.service_data["service_host_connection"]["environment"]
 
+        self.service_data["status"] = "queued"
+
         # save config file
         file = os.path.join(
             self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
@@ -183,19 +194,7 @@ class ServiceProxy:
                                self.connection.environment.geomop_analysis_workspace)
 
         # 4.
-        # process_config = {"__class__": "ProcessExec", "executable" : {"__class__": "Executable", "name": "sleep"},
-        #                    "exec_args": {"__class__": "ExecArgs", "args": ["60"]}}
         process_config = self.service_data["process"]
-
-        # todo: v budoucnu predavat konfiguraci v souboru
-        # todo: vymyslet, jak ziskavat docker IP
-        # predchoyi kod bz mel fungovat pokud service_host_conncetion.address bude adresa pod kterou
-        # kontejner vidi hostujici pocitac
-        if process_config["__class__"] == "ProcessDocker":
-            process_config = process_config.copy()
-            process_config["exec_args"] = {"__class__": "ExecArgs",
-                                           "args": [str(self._child_id), "172.17.42.1", str(remote_port)]}
-
         delegator_proxy.call("request_process_start", process_config, self.results_process_start)
 
         # 5.
@@ -238,32 +237,61 @@ class ServiceProxy:
         # 1.
         #self.repeater.clients[self._child_id]
 
-        return self.status
-        if self.status == ServiceStatus.queued:
-            self.connection.download([os.path.join(self.service_data["workspace"], self.service_data["config_file_name"])],
-                                     self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-                                     self.connection.environment.geomop_analysis_workspace)
-            file = os.path.join(
-                self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-                self.service_data["workspace"],
-                self.service_data["config_file_name"])
-            with open(file, 'r') as fd:
-                service_conf = json.load(fd)
-                self.status = ServiceStatus[service_conf["status"]]
-                if self.status == ServiceStatus.running:
-                    pass
-                    # pripojit se
-        elif self.status == ServiceStatus.running:
-            if len(self.results_get_status) > 0:
-                s = self.results_get_status[-1]
-                if "error" in s:
-                    pass
-                    # neco spatne
-                else:
-                    self.status = s["data"]
-            self.call("request_get_status", None, self.results_get_status)
+        if self.online:
+            # check get status result
+            self.results_get_status = self.results_get_status[-5:]
+            res = None
+            for item in reversed(self.results_get_status):
+                if len(item) > 0:
+                    res = item[0]
+                    break
+            if (res is None and len(self.results_get_status) >= 5) or (res is not None and "error" in res):
+                self.online = False
+            else:
+                if res is not None:
+                    self.status = res["data"]
+                    self.last_time = time.time()
+
+                # request get status
+                result = []
+                self.call("request_get_status", None, result)
+                self.results_get_status.append(result)
+        elif self.status == ServiceStatus.queued or self.status == ServiceStatus.running:
+            if time.time() > self.last_time + 1:
+                if self.download_config():
+                    self.status = ServiceStatus[self.downloaded_config["status"]]
+                    if self.status == ServiceStatus.running:
+                        disp = self.repeater.clients[self._child_id]
+                        if disp._remote_address is None:
+                            disp.set_remote_address(self.downloaded_config["listen_address"])
+                        else:
+                            self.repeater.reconnect_child(self._child_id)
+                self.last_time = time.time()
         return self.status
 
+    def download_config(self):
+        if self.connection._status != ConnectionStatus.online:
+            return False
+        try:
+            self.connection.download(
+                [os.path.join(self.service_data["workspace"], self.service_data["config_file_name"])],
+                self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                self.connection.environment.geomop_analysis_workspace)
+        except (SSHError, FileNotFoundError, PermissionError):
+            return False
+        file = os.path.join(
+            self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self.service_data["workspace"],
+            self.service_data["config_file_name"])
+        try:
+            with open(file, 'r') as fd:
+                try:
+                    self.downloaded_config = json.load(fd)
+                except ValueError:
+                    return False
+        except OSError:
+            return False
+        return True
 
     # def get(self, variable_name):
     #     self.call("request_get", variable_name, self.__dict__[variable_name])
@@ -275,6 +303,9 @@ class ServiceProxy:
 
     def on_answer_connect(self, data=None):
         self.status = ServiceStatus.running
+        self.online = True
+        self.results_get_status.clear()
+        self.last_time = time.time()
 
 
 
@@ -301,6 +332,17 @@ class ServiceProxy:
         """
         #answer_data =
         pass
+
+
+class DelegatorProxy(ServiceProxy):
+    def get_status(self):
+        super().get_status()
+        if self.status == ServiceStatus.running and not self.online:
+            self.status = ServiceStatus.done
+        return self.status
+
+    def download_config(self):
+        return False
 
 
 # """

@@ -2,7 +2,8 @@ from .json_data import JsonData
 from .environment import Environment
 
 # import in code
-#from .service_proxy import ServiceProxy
+#from .service_proxy import DelegatorProxy
+#from .service_base import ServiceStatus
 
 import paramiko
 
@@ -16,6 +17,7 @@ import select
 import socket
 import socketserver
 import time
+import enum
 
 
 class Error(Exception):
@@ -36,6 +38,13 @@ class SSHAuthenticationError(SSHError):
 class SSHTimeoutError(SSHError):
     """Raised when timeout occurs."""
     pass
+
+
+class ConnectionStatus(enum.IntEnum):
+    not_connected = 1
+    online = 2
+    offline = 3
+    error = 4
 
 
 class ConnectionBase(JsonData):
@@ -59,8 +68,32 @@ class ConnectionBase(JsonData):
         """ Unique name used in GUI."""
         super().__init__(config)
 
+        self._status = ConnectionStatus.not_connected
+        """connection status"""
+
+        self._id = 0
+        """connection id"""
+
         self._local_service = None
         """local service"""
+
+        self._delegator_proxy = None
+        """delegator proxy"""
+
+    def get_status(self):
+        return self._status
+
+    def connect(self):
+        self._status = ConnectionStatus.online
+        self._id += 1
+
+    def close_connections(self):
+        """
+        Close al connections in peaceful meaner.
+        :param self:
+        :return:
+        """
+        self._status = ConnectionStatus.not_connected
 
     def set_local_service(self, local_service):
         self._local_service = local_service
@@ -69,9 +102,6 @@ class ConnectionBase(JsonData):
 class ConnectionLocal(ConnectionBase):
     def __init__(self, config={}):
         super().__init__(config)
-
-    def connect(self):
-        pass
 
     def forward_local_port(self, remote_port):
         """
@@ -130,15 +160,9 @@ class ConnectionLocal(ConnectionBase):
         """
         assert self._local_service is not None
 
-        return self._local_service
+        self._delegator_proxy = self._local_service
 
-    def close_connections(self):
-        """
-        Close al connections in peaceful meaner.
-        :param self:
-        :return:
-        """
-        return
+        return self._delegator_proxy
 
     def _copy(self, paths, from_prefix, to_prefix):
         if from_prefix == to_prefix:
@@ -164,11 +188,11 @@ class ConnectionSSH(ConnectionBase):
         self._forwarded_local_ports = {}
         """dict of forwarded local ports, {'local_port': (thread, server)}"""
 
-        self._delegator_proxy = None
-        """delegator proxy"""
-
         self._delegator_std_in_out_err = None
         """delegator stdin, stdout, stderr"""
+
+        self._ssh = None
+        """ssh client"""
 
         self._sftp = None
         """SFTP session"""
@@ -176,11 +200,34 @@ class ConnectionSSH(ConnectionBase):
         self._delegator_dir = ""
         """directory where delegator is executed"""
 
+        # reconnect thread, lock and event
+        self._reconnect_thread = None
+        self._reconnect_lock = threading.Lock()
+        self._reconnect_event = threading.Event()
+
+        #self._authentication_fail = False
+
+    def get_status(self):
+        if self._status == ConnectionStatus.online:
+            proxy_status = self._delegator_proxy.get_status()
+            from .service_base import ServiceStatus
+            if proxy_status == ServiceStatus.done:
+                self.close_connections()
+                self._delegator_proxy = None
+                self._status = ConnectionStatus.offline
+                self._reconnect_thread = threading.Thread(target=self._reconnect, daemon=True)
+                self._reconnect_event.clear()
+                self._reconnect_thread.start()
+        return self._status
+
     def connect(self):
         """
         :raises SSHAuthenticationError:
         :raises SSHError:
         """
+        if self._status == ConnectionStatus.error:
+            raise SSHError
+
         # open ssh connection
         self._ssh = paramiko.SSHClient()
         self._ssh.load_system_host_keys()
@@ -189,6 +236,7 @@ class ConnectionSSH(ConnectionBase):
         try:
             self._ssh.connect(self.address, self.port, username=self.uid, password=self.password, timeout=self._timeout)
         except paramiko.AuthenticationException:
+            self._status = ConnectionStatus.error
             raise SSHAuthenticationError
         except (paramiko.SSHException, socket.error):
             raise SSHError
@@ -212,6 +260,25 @@ class ConnectionSSH(ConnectionBase):
         except IOError as e:
             self._sftp.mkdir(self._delegator_dir)
         self._sftp.chdir()
+
+        assert self.get_delegator() is not None
+
+        self._id += 1
+        self._status = ConnectionStatus.online
+
+    def _reconnect(self):
+        while True:
+            with self._reconnect_lock:
+                if self._status == ConnectionStatus.offline:
+                    try:
+                        self.connect()
+                        break
+                    except:
+                        pass
+                else:
+                    break
+            #time.sleep(2)
+            self._reconnect_event.wait(timeout=2)
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -238,6 +305,9 @@ class ConnectionSSH(ConnectionBase):
         :param remote_port:
         :return: local_port
         """
+
+        # if self._status != ConnectionStatus.online:
+        #     raise SSHError
 
         class ForwardServer(socketserver.ThreadingTCPServer):
             daemon_threads = True
@@ -329,6 +399,9 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHError:
         """
 
+        # if self._status != ConnectionStatus.online:
+        #     raise SSHError
+
         def handler(chan, origin, server):
             def inner_handler():
                 sock = socket.socket()
@@ -372,6 +445,9 @@ class ConnectionSSH(ConnectionBase):
         :param remote_port:
         :return:
         """
+        if self._status != ConnectionStatus.online:
+            return
+
         self._ssh.get_transport().cancel_port_forward('', remote_port)
 
     def upload(self, paths, local_prefix, remote_prefix):
@@ -386,6 +462,9 @@ class ConnectionSSH(ConnectionBase):
 
         Implementation: just copy
         """
+        if self._status != ConnectionStatus.online:
+            raise SSHError
+
         cwd = self._sftp.getcwd()
         for path in paths:
             # make dirs
@@ -417,6 +496,8 @@ class ConnectionSSH(ConnectionBase):
                     raise
             except socket.timeout:
                 raise SSHTimeoutError
+            except OSError:
+                raise SSHError
         self._sftp.chdir(cwd)
 
     def download(self, paths, local_prefix, remote_prefix):
@@ -431,6 +512,9 @@ class ConnectionSSH(ConnectionBase):
 
         Implementation: just copy
         """
+        if self._status != ConnectionStatus.online:
+            raise SSHError
+
         for path in paths:
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
@@ -449,6 +533,8 @@ class ConnectionSSH(ConnectionBase):
                     raise
             except socket.timeout:
                 raise SSHTimeoutError
+            except OSError:
+                raise SSHError
 
     def get_delegator(self):
         """
@@ -509,11 +595,11 @@ class ConnectionSSH(ConnectionBase):
                     connected = True
                     break
             if connected:
-                from .service_proxy import ServiceProxy
-                self._delegator_proxy = ServiceProxy({}, self._local_service._repeater, self)
+                from .service_proxy import DelegatorProxy
+                self._delegator_proxy = DelegatorProxy({}, self._local_service._repeater, self)
                 self._delegator_proxy._child_id = child_id
                 self._delegator_proxy.on_answer_connect()
-                self._local_service._delegator_services[child_id] = self._delegator_proxy
+                #self._local_service._delegator_services[child_id] = self._delegator_proxy
                 break
 
         return self._delegator_proxy
@@ -524,6 +610,13 @@ class ConnectionSSH(ConnectionBase):
         :param self:
         :return:
         """
+        with self._reconnect_lock:
+            if self._status != ConnectionStatus.error:
+                self._status = ConnectionStatus.not_connected
+        self._reconnect_event.set()
+        if self._reconnect_thread is not None:
+            self._reconnect_thread.join()
+
         # close all forwarded local ports
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
@@ -532,7 +625,9 @@ class ConnectionSSH(ConnectionBase):
             self._sftp.close()
             self._sftp = None
 
-        self._ssh.close()
+        if self._ssh is not None:
+            self._ssh.close()
+            self._ssh = None
 
 
 
