@@ -241,6 +241,8 @@ class ServiceBase(JsonData):
 
         self._connections = {}
         """dict of active connections"""
+        self._connections_lock = threading.Lock()
+        """Lock for _connections"""
 
         self._answers_to_send = []
         """list of answers to send (id, [answer])"""
@@ -366,23 +368,25 @@ class ServiceBase(JsonData):
         :return:
         """
         addr = connection_data["address"]
-        if addr in self._connections:
-            return self._connections[addr]
-        else:
-            con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
-            con.set_local_service(self)
-            con.connect()
-            self._connections[addr] = con
-            return con
+        with self._connections_lock:
+            if addr in self._connections:
+                return self._connections[addr]
+            else:
+                con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
+                con.set_local_service(self)
+                con.connect()
+                self._connections[addr] = con
+                return con
 
     def close_connections(self):
         """
         Close connections and remove it from dict.
         :return:
         """
-        for con in self._connections.values():
-            con.close_connections()
-        self._connections.clear()
+        with self._connections_lock:
+            for con in self._connections.values():
+                con.close_connections()
+            self._connections.clear()
 
     def get_analysis_workspace(self):
         return self.service_host_connection.environment.geomop_analysis_workspace
