@@ -409,6 +409,9 @@ class ShapeRef:
         self.orient=orient
         self.location=location
 
+    def _writeformat(self, stream):
+        stream.write("{}{} {} ".format(orient_chars[self.orient-1], self.shape.id, self.location.id))
+
 class ShapeFlag:
     """
     Auxiliary data class representing the shape flag word of BREP shapes.
@@ -501,6 +504,18 @@ class Shape:
 
     def _brep_output(self, stream):
         stream.write("{}\n".format(self.shpname))
+        self._subrecordoutput(stream)
+        for flag in self.flags.flags: #flag
+            stream.write("{}".format(flag))
+        stream.write("\n")
+#        stream.write("{}".format(self.childs))
+        for child in self.childs:
+            child._writeformat(stream)
+        stream.write("*\n")
+        #subshape, tj. childs
+
+    def _subrecordoutput(self, stream):
+        stream.write("\n")
 
 """
 Shapes with no special parameters, only flags and subshapes.
@@ -642,6 +657,12 @@ class Face(Shape):
         # TODO: Possibly more general attachment of edges to @D curves for general surfaces, but it depends
         # on organisation of intersection curves.
 
+    def _subrecordoutput(self, stream):
+        assert len(self.repr) == 1
+        surf,loc = self.repr[0]
+        stream.write("{} {} {} {}\n\n".format(self.restriction_flag,self.tol,surf.id,loc.id))
+
+
 class Edge(Shape):
     """
     Edge class. Special edge flags have unclear meaning.
@@ -743,6 +764,15 @@ class Edge(Shape):
                 repr[2]._dfs(groups) #curve
                 repr[3]._dfs(groups) #location
 
+    def _subrecordoutput(self, stream): #prints edge data #TODO: tisknu nekolik data representation
+        assert len(self.repr) > 0
+        stream.write("{} {} {} {}\n".format(self.tol,self.edge_flags[0],self.edge_flags[1],self.edge_flags[2]))
+        for repr in self.repr:
+            if repr[0] == self.Repr.Curve2d:
+                stream.write("2")
+            elif repr[0] == self.Repr.Curve3d:
+                stream.write("3")
+        stream.write("\n")
 
 class Vertex(Shape):
     """
@@ -851,15 +881,9 @@ def write_model(stream, compound, location):
     for surface in groups['surfaces']:
         surface._brep_output(stream)
 
-    for shape in groups['shapes']: #pridej .reverse a zkontroluj, jestli je to metoda reverse nebo funkce reversed
+    stream.write("TShapes {}\n".format(len(groups['shapes'])))
+    for shape in reversed(groups['shapes']):
         shape._brep_output(stream)
-
-    #vygeneruje hlavicku... stream write
-    # vytvori hlavicku pro locations
-    # for all locations (for loc in groups['locations']:
-    #   loc._brep_output(stream) -> tuhle metodu implemntuj v tride pro loc, at si to genetuje sama
-    #pak for cyklus pro  to same pro curves_2d, curves 3d atd.
-    #pro shapes je potreba zapisovat pozpatku (protoze nejdriv mam naindexovane nejvyssi shapy)
 
     """
     Write the counpound into the stream.
