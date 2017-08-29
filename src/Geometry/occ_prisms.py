@@ -148,12 +148,13 @@ points_top, points_bot, lines, poly = data
 #poly=[ [1,2,3, -5]]
 
 
-
 points_top=[ [0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]
 lines = [ [0,1], [1,2], [2,0] ]
 poly = [[0,1,2]]
 
 v_edges=v_edges_from_points(points_top, points_top)
+
+#v_edges=v_edges_from_points(points_top, points_bot)
 v_faces=v_faces_from_edges(v_edges, lines)
 solids=solids_from_poly(v_faces, poly)
 

@@ -2,6 +2,19 @@ import enum
 import itertools
 import numpy as np
 
+'''
+TODO:
+- For Solid make auto conversion from Faces similar to Face from Edges
+- For Solid make test that Shells are closed.
+- Implement closed test for shells (similar to wire)
+- Improve test of slosed (Wire, Shell) to check also orientation of (Edges, Faces). ?? May be both if holes are allowed.
+- Rename attributes and methods to more_words_are_separated_by_underscore.
+- rename _writeformat to _brep_output
+- remove (back) groups parameter from _brepo_output, make checks of IDs at main level (only in DEBUG mode)
+- document public methods
+'''
+
+
 class ParamError(Exception):
     pass
 
@@ -73,10 +86,10 @@ class Location:
         """
         if not hasattr(self, 'id'):
             id=len(groups['locations'])+1
-            self.id=id
+            self.id = id
             groups['locations'].append(self)
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         stream.write("1\n")
         for row in self.matrix:
             for number in row:
@@ -100,8 +113,6 @@ class ComposedLocation(Location):
 
         self.location_powers=location_powers
 
-        #for loc, pow in location_powers:
-        #    stream.write(.format(loc.id, pow))
 
     def _dfs(self, groups):
 
@@ -109,9 +120,11 @@ class ComposedLocation(Location):
             location._dfs(groups)
         Location._dfs(self, groups)
 
-    def _brep_output(self,stream):
-        locs, pows =  zip(*self.location_powers)
-        stream.write("2  {} {} 0\n".format(self.id, pows)) #TODO: proc je pows list? pows[0]
+    def _brep_output(self, stream, groups):
+        stream.write("2 ")
+        for loc, pow in self.location_powers:
+            stream.write("{} {} ".format(loc.id, pow))
+        stream.write("0\n")
 
 def check_knots(deg, knots, N):
     total_multiplicity = 0
@@ -142,9 +155,6 @@ class Curve3D:
         :param degree: Positive int.
         """
 
-        #pole count = len(poles)
-        #multiplicity knot count = len(knots)
-
         if rational:
             check_matrix(poles, [None, 4], scalar_types )
         else:
@@ -164,8 +174,18 @@ class Curve3D:
             groups['curves_3d'].append(self)
 
 
-    def _brep_output(self,stream):
-        stream.write("Curves {}".format())
+    def _brep_output(self, stream, groups):
+        # writes b-spline curve
+        stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
+        for pole in self.poles:
+            for value in pole:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in self.knots:
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        stream.write("\n")
 
 class Curve2D:
     """
@@ -202,6 +222,19 @@ class Curve2D:
             self.id = id
             groups['curves_2d'].append(self)
 
+    def _brep_output(self, stream, groups):
+        # writes b-spline curve
+        stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
+        for pole in self.poles:
+            for value in pole:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in self.knots:
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        stream.write("\n")
+
 class Surface:
     """
     Defines a B-spline surface in 3d space. We shall work only with B-splines of degree 2.
@@ -229,16 +262,16 @@ class Surface:
 
         assert len(poles) > 0
         assert len(poles[0]) > 0
-        Nu = len(poles)
-        Nv = len(poles[0])
+        self.Nu = len(poles)
+        self.Nv = len(poles[0])
         for row in poles:
-            assert len(row) == Nv
+            assert len(row) == self.Nv
 
         assert (not rational and len(poles[0][0]) == 3) or (rational and len(poles[0][0]) == 4)
 
         (u_knots, v_knots) = knots
-        check_knots(degree[0], u_knots, Nu)
-        check_knots(degree[1], v_knots, Nv)
+        check_knots(degree[0], u_knots, self.Nu)
+        check_knots(degree[1], v_knots, self.Nv)
 
         self.poles=poles
         self.knots=knots
@@ -250,6 +283,31 @@ class Surface:
             id = len(groups['surfaces']) + 1
             self.id = id
             groups['surfaces'].append(self)
+
+    def _brep_output(self, stream, groups):
+        #writes b-spline surface
+        stream.write("9 {} {} 0 0 ".format(int(self.rational),int(self.rational))) #prints B-spline surface u or v rational flag - both same
+        for i in self.degree: #prints <B-spline surface u degree> <_>  <B-spline surface v degree>
+            stream.write(" {}".format(i))
+        (u_knots, v_knots) = self.knots
+        stream.write(" {} {}  {} {} ".format(self.Nu, self.Nv, len(u_knots), len(v_knots)))
+            #prints  <B-spline surface u pole count> <_> <B-spline surface v pole count> <_> <B-spline surface u multiplicity knot count> <_>  <B-spline surface v multiplicity knot count> <B-spline surface v multiplicity knot count>
+#        stream.write(" {}".format(self.poles)) #TODO: tohle smaz, koukam na format poles a chci: B-spline surface weight poles
+        for pole in self.poles: #TODO: check, takovy pokus o poles
+            for vector in pole:
+                for value in vector:
+                    stream.write(" {}".format(value))
+                stream.write(" ")
+            stream.write(" ")
+        for knot in u_knots: #prints B-spline surface u multiplicity knots
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        for knot in v_knots: #prints B-spline surface v multiplicity knots
+            for value in knot:
+                stream.write(" {}".format(value))
+            stream.write(" ")
+        stream.write("\n")
             
 class Approx:
     """
@@ -327,7 +385,6 @@ class Approx:
         """
         return Curve3D(*cls._line(vtxs))
 
-orient_chars=['+', '-', 'i', 'e']
 
 class Orient(enum.IntEnum):
     Forward=1
@@ -335,10 +392,10 @@ class Orient(enum.IntEnum):
     Internal=3
     External=4
 
-op=Orient.Forward
-om=Orient.Reversed
-oi=Orient.Internal
-oe=Orient.External
+#op=Orient.Forward
+#om=Orient.Reversed
+#oi=Orient.Internal
+#oe=Orient.External
 
 class ShapeRef:
     """
@@ -354,86 +411,123 @@ class ShapeRef:
         :param orient: orientation of the shape, value is enum Orient
         :param location: A Location object. Default is None = identity location.
         """
-        assert issubclass(type(shape), Shape)
+        if not issubclass(type(shape), Shape):
+            raise ParamError("Expected Shape, get: {}.".format(type(shape)))
         assert isinstance(orient, Orient)
         assert issubclass(type(location), Location)
 
         self.shape=shape
-        self.orient=orient
+        self.orientation=orient
         self.location=location
 
-class ShapeFlag:
+    def _writeformat(self, stream, groups):
+        orient_chars = ['+', '-', 'i', 'e']
+        stream.write("{}{} {} ".format(orient_chars[self.orientation-1], self.shape.id, self.location.id))
+
+class ShapeFlag(dict):
     """
     Auxiliary data class representing the shape flag word of BREP shapes.
     All methods set the flags automatically, but it can be overwritten.
+
+    Free - Seems to indicate a top level shapes.
+    Modified - ??
+    Checked - for format version 2 may indicate that shape topology is already checked
+    Orientable - ??
+    Closed - used to indicate closed Wires and Shells
+    Infinite - ?? may indicate shapes extending to infinite, not our case
+    Convex - ?? may indicate convexity of the shape, not clear how this is combined with geometry
     """
-    def __init__(self, free, modified, IGNORED, orientable, closed, infinite, convex):
+    flag_names = ['free', 'modified', 'checked', 'orientable', 'closed', 'infinite', 'convex']
 
-        self.flags = (free, modified, IGNORED, orientable, closed, infinite, convex)
-        for i in self.flags:
-            assert i in [0, 1]
+    def __init__(self, *args):
+        for k, f in zip(self.flag_names, args):
+            assert f in [0, 1]
+            self[k]=f
 
+    def set(self, key, value=1):
+        self[key] = value
+
+    def unset(self, key):
+        self[key] = 0
+
+    def _brep_output(self, stream):
+        for k in self.flag_names:
+            stream.write(str(self[k]))
 
 class Shape:
     def __init__(self, childs):
         """
         Construct base Shape object.
-        :param childs: List of tuples (shape, orient) or (shape, orient, location)
-         to construct ShapeRef objects.
+        Examples:
+            Wire([ edge_1, edge_2.m(), edge_3])     # recommended
+            Wire(edge_1, ShapeRef(edge_2, Orient.Reversed, some_location), edge_3)
+            ... not recommended since it is bad idea to reference same shape with different Locations.
+
+        :param childs: List of ShapeRefs or child objects.
         """
+
+        # self.subtypes - List of allowed types of childs.
+        assert hasattr(self, 'sub_types'), self
 
         # convert list of shape reference tuples to ShapeRef objects
         # automaticaly wrap naked shapes into tuple.
         self.childs=[]
         for child in childs:
-            if type(child) == tuple:
-                args=child
-            else:
-                args=(child,)
-            if not isinstance(args[0], tuple(self.sub_types)):
-                raise ParamError("{} is not instance of {}".format(type(args[0]), self.sub_types) )
-            self.childs.append(ShapeRef(*args))
+            self.append(child)   # append convert to ShapeRef
 
-        # Thes flags are produced by OCC for all other shapes safe vertices.
+        # Thes flags are usualy produced by OCC for all other shapes safe vertices.
         self.flags=ShapeFlag(0,1,0,1,0,0,0)
+
+        # self.shpname: Shape name, defined in childs
+        assert hasattr(self, 'shpname'),  self
+
 
     """
     Methods to simplify ceration of oriented references.
     """
     def p(self):
-        return (self, Orient.Forward)
+        return ShapeRef(self, Orient.Forward)
 
     def m(self):
-        return (self, Orient.Reversed)
+        return ShapeRef(self, Orient.Reversed)
 
     def i(self):
-        return (self, Orient.Internal)
+        return ShapeRef(self, Orient.Internal)
 
     def e(self):
-        return (self, Orient.External)
+        return ShapeRef(self, Orient.External)
 
     def subshapes(self):
         # Return list of subshapes stored in child ShapeRefs.
         return [chld.shape for chld in self.childs]
 
-
     def append(self, shape_ref):
         """
         Append a reference to shild
-        :param shape_ref: Either ShapeRef object or tuple passed to its constructor.
+        :param shape_ref: Either ShapeRef or child shape.
         :return: None
         """
         if type(shape_ref) != ShapeRef:
-            shape_ref=ShapeRef(*shape_ref)
+            shape_ref=ShapeRef(shape_ref)
+        if not isinstance(shape_ref.shape, tuple(self.sub_types)):
+            raise ParamError("Wrong child type: {}, allowed: {}".format(type(shape_ref.shape), self.sub_types))
         self.childs.append(shape_ref)
+
+    #def _convert_to_shaperefs(self, childs):
+
 
     def set_flags(self, flags):
         """
         Set flags given as tuple.
-        :param flags: Tuple of 8 flags.
+        :param flags: Tuple of 7 flags.
         :return:
         """
         self.flags = ShapeFlag(*flags)
+
+
+    def is_closed(self):
+        return self.flags['closed']
+
 
     def _dfs(self, groups):
         """
@@ -443,12 +537,25 @@ class Shape:
         """
         if hasattr(self, 'id'):
             return
-        id=len(groups['shapes'])+1
-        self.id=id
-        groups['shapes'].append(self)
         for sub_ref in self.childs:
             sub_ref.location._dfs(groups)
             sub_ref.shape._dfs(groups)
+        groups['shapes'].append(self)
+        self.id = len(groups['shapes'])
+
+    def _brep_output(self, stream, groups):
+        stream.write("{}\n".format(self.shpname))
+        self._subrecordoutput(stream)
+        self.flags._brep_output(stream)
+        stream.write("\n")
+#        stream.write("{}".format(self.childs))
+        for child in self.childs:
+            child._writeformat(stream, groups)
+        stream.write("*\n")
+        #subshape, tj. childs
+
+    def _subrecordoutput(self, stream):
+        stream.write("\n")
 
 """
 Shapes with no special parameters, only flags and subshapes.
@@ -458,28 +565,58 @@ Writer can be generic implemented in bas class Shape.
 class Compound(Shape):
     def __init__(self, shapes=[]):
         self.sub_types =  [CompoundSolid, Solid, Shell, Wire, Face, Edge, Vertex]
+        self.shpname = 'Co'
         super().__init__(shapes)
+        #flags: free, modified, IGNORED, orientable, closed, infinite, convex
+        self.set_flags( (1, 1, 0, 0, 0, 0, 0) ) # free, modified
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
         self.sub_types = [Solid]
+        self.shpname = 'Cs'
         super().__init__(solids)
+
 
 class Solid(Shape):
     def __init__(self, shells=[]):
         self.sub_types = [Shell]
+        self.shpname='So'
         super().__init__(shells)
+        self.set_flags((0, 1, 0, 0, 0, 0, 0))  # modified
 
 class Shell(Shape):
     def __init__(self, faces=[]):
         self.sub_types = [Face]
+        self.shpname='Sh'
         super().__init__(faces)
+        self.set_flags((0, 1, 0, 1, 0, 0, 0))  # modified, orientable
 
 
 class Wire(Shape):
     def __init__(self, edges=[]):
         self.sub_types = [Edge]
+        self.shpname='Wi'
         super().__init__(edges)
+        self.set_flags((0, 1, 0, 1, 0, 0, 0))  # modified, orientable
+        self._set_closed()
+
+    def _set_closed(self):
+        '''
+        Return true for the even parity of vertices.
+        :return: REtrun true if wire is closed.
+        '''
+        vtx_set = {}
+        for edge in self.subshapes():
+            for vtx in edge.subshapes():
+                vtx_set[vtx] = 0
+                vtx.n_edges += 1
+        closed = True
+        for vtx in vtx_set.keys():
+            if vtx.n_edges % 2 != 0:
+                closed = False
+            vtx.n_edges = 0
+        self.flags.set('closed', closed)
+
 
 """
 Shapes with special parameters.
@@ -492,46 +629,42 @@ class Face(Shape):
     Like vertex and edge have some additional parameters in the BREP format.
     """
 
-    def __init__(self, wires, surface=None, location=Location(), tolerance=0.0):
+    def __init__(self, wires, surface=None, location=Location(), tolerance=1.0e-7):
         """
         :param wires: List of wires, or list of edges, or list of ShapeRef tuples of Edges to construct a Wire.
         :param surface: Representation of the face, surface on which face lies.
         :param location: Location of the surface.
         :param tolerance: Tolerance of the representation.
         """
+        self.sub_types = [Wire, Edge]
+        self.tol=tolerance
+        self.restriction_flag =0
+        self.shpname = 'Fa'
+
+        if type(wires) != list:
+            wires = [ wires ]
         assert(len(wires) > 0)
+        super().__init__(wires)
+
         # auto convert list of edges into wire
-        if type(wires[0]) == Edge:
-            wires = [ Wire(wires) ]
-        elif type(wires[0]) == tuple:
-            assert type(wires[0][0]) == Edge
-            wires = [ Wire(wires) ]
+        shape_type = type(self.childs[0].shape)
+        for shape in self.subshapes():
+            assert type(shape) == shape_type
+        if shape_type == Edge:
+            wire = Wire(self.childs)
+            self.childs = []
+            self.append(wire)
 
         # check that wires are closed
-        for wire in wires:
-            if not self.is_closed_wire(wire):
+        for wire in self.subshapes():
+            if not wire.is_closed():
                 raise Exception("Trying to make face from non-closed wire.")
-        self.sub_types = [Wire]
-        super().__init__(wires)
+
         if surface is None:
             self.repr=[]
         else:
             self.repr=[(surface, location)]
-        self.tol=tolerance
-        self.restriction_flag =0
 
-    def is_closed_wire(self, wire):
-        vtx_set = {}
-        for edge in wire.subshapes():
-            for vtx in edge.subshapes():
-                vtx_set[vtx] = 0
-                vtx.n_edges += 1
-        closed =  True
-        for vtx in vtx_set.keys():
-            if vtx.n_edges % 2 != 0:
-                closed = False
-            vtx.n_edges = 0
-        return closed
 
 
     def _dfs(self, groups):
@@ -544,8 +677,9 @@ class Face(Shape):
             loc._dfs(groups)
 
         # update geometry representation of edges (add 2D curves)
-        for edge in self.subshapes():
-            edge._dfs(groups)
+        for wire in self.subshapes():
+            for edge in wire.subshapes():
+                edge._dfs(groups)
 
             
     def implicit_surface(self):
@@ -584,6 +718,12 @@ class Face(Shape):
         # TODO: Possibly more general attachment of edges to @D curves for general surfaces, but it depends
         # on organisation of intersection curves.
 
+    def _subrecordoutput(self, stream):
+        assert len(self.repr) == 1
+        surf,loc = self.repr[0]
+        stream.write("{} {} {} {}\n\n".format(self.restriction_flag,self.tol,surf.id,loc.id))
+
+
 class Edge(Shape):
     """
     Edge class. Special edge flags have unclear meaning.
@@ -596,28 +736,32 @@ class Edge(Shape):
         #Continuous2d=3
 
 
-    def __init__(self, vertices, tolerance=0.0):
+    def __init__(self, vertices, tolerance=1.0e-7):
         """
         :param vertices: List of shape reference tuples, see ShapeRef class.
         :param tolerance: Tolerance of the representation.
         """
-        assert(len(vertices) == 2)
-
-        # automaticaly convert vertices to their ShapeRefs
-        if type(vertices[0]) == Vertex:
-            vertices[0]=(vertices[0], Orient.Forward)
-        if type(vertices[1]) == Vertex:
-            vertices[1]=(vertices[1], Orient.Reversed)
-
-        assert vertices[0]
-
         self.sub_types = [Vertex]
-        super().__init__(vertices)
+        self.shpname = 'Ed'
         self.tol = tolerance
         self.repr = []
-        self.edge_flags=(1,1,0)
+        self.edge_flags=(1,1,0)         # this is usual value
+
+        assert(len(vertices) == 2)
+
+        super().__init__(vertices)
+        # Overwrite vertex orientation
+        self.childs[0].orientation = Orient.Forward
+        self.childs[1].orientation = Orient.Reversed
 
     def set_edge_flags(self, same_parameter, same_range, degenerated):
+        """
+        Edge flags with unclear meaning.
+        :param same_parameter:
+        :param same_range:
+        :param degenerated:
+        :return:
+        """
         self.edge_flags=(same_parameter,same_range, degenerated)
 
     def points(self):
@@ -667,7 +811,6 @@ class Edge(Shape):
         vtx_points = self.points()
         self.attach_to_3d_curve((0.0,1.0), Approx.line_3d( vtx_points ))
 
-
     #def attach_continuity(self):
 
     def _dfs(self, groups):
@@ -675,7 +818,7 @@ class Edge(Shape):
         if not self.repr:
             self.implicit_curve()
         assert len(self.repr) > 0
-        for repr in self.repr:
+        for i,repr in enumerate(self.repr):
             if repr[0]==self.Repr.Curve2d:
                 repr[2]._dfs(groups) #curve
                 repr[3]._dfs(groups) #surface
@@ -684,6 +827,17 @@ class Edge(Shape):
                 repr[2]._dfs(groups) #curve
                 repr[3]._dfs(groups) #location
 
+    def _subrecordoutput(self, stream): #prints edge data #TODO: tisknu nekolik data representation
+        assert len(self.repr) > 0
+        stream.write(" {} {} {} {}\n".format(self.tol,self.edge_flags[0],self.edge_flags[1],self.edge_flags[2]))
+        for i,repr in enumerate(self.repr):
+            if repr[0] == self.Repr.Curve2d:
+                curve_type, t_range, curve, surface, location = repr
+                stream.write("2 {} {} {} {} {}\n".format(curve.id, surface.id, location.id,t_range[0],t_range[1] )) #TODO: 2 <surface number> <_> <location number> <_> <curve parameter minimal and maximal values>
+            elif repr[0] == self.Repr.Curve3d:
+                curve_type, t_range, curve, location = repr
+                stream.write("1 {} {} {} {}\n".format(curve.id, location.id, t_range[0], t_range[1])) #TODO: 3
+        stream.write("0\n")
 
 class Vertex(Shape):
     """
@@ -696,14 +850,13 @@ class Vertex(Shape):
         Curve2d = 2
         Surface = 3
 
-    def __init__(self, point, tolerance=0.0):
+    def __init__(self, point, tolerance=1.0e-7):
         """
         :param point: 3d point (X,Y,Z)
         :param tolerance: Tolerance of the representation.
         """
         check_matrix(point, [3], (int, float))
 
-        super().__init__(childs=[])
         # These flags are produced by OCC for vertices.
         self.flags = ShapeFlag(0, 1, 0, 1, 1, 0, 1)
         # Coordinates in the 3D space. [X, Y, Z]
@@ -714,6 +867,10 @@ class Vertex(Shape):
         self.repr=[]
         # Number of edges in which vertex is used. Used internally to check closed wires.
         self.n_edges = 0
+        self.shpname = 'Ve'
+        self.sub_types=[]
+
+        super().__init__(childs=[])
 
     def attach_to_3d_curve(self, t, curve, location=Location()):
         """
@@ -758,7 +915,15 @@ class Vertex(Shape):
                 repr[3]._dfs(groups) #location
 
 
+    def _subrecordoutput(self, stream): #prints vertex data
+        stream.write("{}\n".format(self.tolerance))
+        for i in self.point:
+            stream.write("{} ".format(i))
+        stream.write("\n0 0\n\n") #no added <vertex data representation>
+
+
 def index_all(compound,location):
+
     print("Index")
     print(compound.__class__.__name__) #prints class name
 
@@ -771,41 +936,43 @@ def index_all(compound,location):
 
 def write_model(stream, compound, location):
 
-    groups = index_all(compound=compound,location=location)
+    groups = index_all(compound=compound, location=location)
 
-    stream.write("DBRep_DrawableShape\n")
+    # fix shape IDs
+    n_shapes = len(groups['shapes']) + 1
+    for shape in groups['shapes']:
+        shape.id = n_shapes - shape.id
+
+    stream.write("DBRep_DrawableShape\n\n")
     stream.write("CASCADE Topology V1, (c) Matra-Datavision\n")
     stream.write("Locations {}\n".format(len(groups['locations'])))
     for loc in groups['locations']:
-        loc._brep_output(stream)
-
-    stream.write("Curves {}\n".format(len(groups['curves_3d'])))
+        loc._brep_output(stream, groups)
 
     stream.write("Curve2ds {}\n".format(len(groups['curves_2d'])))
-    
-    #vygeneruje hlavicku... stream write
-    # vytvori hlavicku pro locations
-    # for all locations (for loc in groups['locations']:
-    #   loc._brep_output(stream) -> tuhle metodu implemntuj v tride pro loc, at si to genetuje sama
-    #pak for cyklus pro  to same pro curves_2d, curves 3d atd.
-    #pro shapes je potreba zapisovat pozpatku (protoze nejdriv mam naindexovane nejvyssi shapy)
+    for curve in groups['curves_2d']:
+        curve._brep_output(stream, groups)
 
-    """
-    Write the counpound into the stream.
-    :param stream: Output stream.
-    :param compound: Compoud to output together with all subshapes, curves, surfaces and locations.
-    :param location: Global location of the model.
-    :return: None
+    stream.write("Curves {}\n".format(len(groups['curves_3d'])))
+    for curve in groups['curves_3d']:
+        curve._brep_output(stream, groups)
 
-    Algorithm:
-    0. Compound is formed by various objects groups (Locations, 3d curves, 2d curves, surfaces, shapes)
-    linked together by references. This forms an directed acyclic graph (DAG).
-    1. Perform deep first search of the compound, assign unique numbers to all objects within its group,
-       counting from 1. Good way to do this is to implement simple dfs method in Shape class and override it
-       in Face, Edge, Vertex to include include references to their representations. DFS should also
-       fill lists of individual groups passed through in a dictionary.
-    2. Write down individual groups, shapes in reversed order.
-    """
-    pass
+    stream.write("Polygon3D 0\n")
+
+    stream.write("PolygonOnTriangulations 0\n")
+
+    stream.write("Surfaces {}\n".format(len(groups['surfaces'])))
+    for surface in groups['surfaces']:
+        surface._brep_output(stream, groups)
+
+    stream.write("Triangulations 0\n")
+
+    stream.write("\nTShapes {}\n".format(len(groups['shapes'])))
+    for shape in groups['shapes']:
+        #stream.write("# {} id: {}p\n".format(shape.shpname, shape.id))
+        shape._brep_output(stream, groups)
+    stream.write("\n+1 0")
+    #stream.write("0\n")
+
 
 
