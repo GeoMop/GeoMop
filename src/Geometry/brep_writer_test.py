@@ -78,9 +78,10 @@ class TestPlanarGeomeries(unittest.TestCase):
         # top cup
         f4 = bw.Face([e4, e6, e8])
         # bot cup
-        f5 = bw.Face([e5, e7, e9])
+        w5=bw.Wire([e5, e7, e9])
+        f5 = bw.Face([w5.m()])
 
-        shell = bw.Shell([f1.m(), f2.m(), f3.m(), f4.m(), f5])
+        shell = bw.Shell([f1, f2, f3, f4, f5.m()])
         s1=bw.Solid([ shell ])
 
         c1=bw.Compound([s1])

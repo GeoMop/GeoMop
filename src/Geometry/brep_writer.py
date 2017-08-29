@@ -2,6 +2,19 @@ import enum
 import itertools
 import numpy as np
 
+'''
+TODO:
+- For Solid make auto conversion from Faces similar to Face from Edges
+- For Solid make test that Shells are closed.
+- Implement closed test for shells (similar to wire)
+- Improve test of slosed (Wire, Shell) to check also orientation of (Edges, Faces). ?? May be both if holes are allowed.
+- Rename attributes and methods to more_words_are_separated_by_underscore.
+- rename _writeformat to _brep_output
+- remove (back) groups parameter from _brepo_output, make checks of IDs at main level (only in DEBUG mode)
+- document public methods
+'''
+
+
 class ParamError(Exception):
     pass
 
@@ -372,7 +385,6 @@ class Approx:
         """
         return Curve3D(*cls._line(vtxs))
 
-orient_chars=['+', '-', 'i', 'e']
 
 class Orient(enum.IntEnum):
     Forward=1
@@ -380,10 +392,10 @@ class Orient(enum.IntEnum):
     Internal=3
     External=4
 
-op=Orient.Forward
-om=Orient.Reversed
-oi=Orient.Internal
-oe=Orient.External
+#op=Orient.Forward
+#om=Orient.Reversed
+#oi=Orient.Internal
+#oe=Orient.External
 
 class ShapeRef:
     """
@@ -399,18 +411,20 @@ class ShapeRef:
         :param orient: orientation of the shape, value is enum Orient
         :param location: A Location object. Default is None = identity location.
         """
-        assert issubclass(type(shape), Shape)
+        if not issubclass(type(shape), Shape):
+            raise ParamError("Expected Shape, get: {}.".format(type(shape)))
         assert isinstance(orient, Orient)
         assert issubclass(type(location), Location)
 
         self.shape=shape
-        self.orient=orient
+        self.orientation=orient
         self.location=location
 
     def _writeformat(self, stream, groups):
-        stream.write("{}{} {} ".format(orient_chars[self.orient-1], self.shape.id, self.location.id))
+        orient_chars = ['+', '-', 'i', 'e']
+        stream.write("{}{} {} ".format(orient_chars[self.orientation-1], self.shape.id, self.location.id))
 
-class ShapeFlag:
+class ShapeFlag(dict):
     """
     Auxiliary data class representing the shape flag word of BREP shapes.
     All methods set the flags automatically, but it can be overwritten.
@@ -423,52 +437,65 @@ class ShapeFlag:
     Infinite - ?? may indicate shapes extending to infinite, not our case
     Convex - ?? may indicate convexity of the shape, not clear how this is combined with geometry
     """
-    def __init__(self, free, modified, checked, orientable, closed, infinite, convex):
+    flag_names = ['free', 'modified', 'checked', 'orientable', 'closed', 'infinite', 'convex']
 
-        self.flags = (free, modified, checked, orientable, closed, infinite, convex)
-        for i in self.flags:
-            assert i in [0, 1]
+    def __init__(self, *args):
+        for k, f in zip(self.flag_names, args):
+            assert f in [0, 1]
+            self[k]=f
 
+    def set(self, key, value=1):
+        self[key] = value
+
+    def unset(self, key):
+        self[key] = 0
+
+    def _brep_output(self, stream):
+        for k in self.flag_names:
+            stream.write(str(self[k]))
 
 class Shape:
     def __init__(self, childs):
         """
         Construct base Shape object.
-        :param childs: List of tuples (shape, orient) or (shape, orient, location)
-         to construct ShapeRef objects.
+        Examples:
+            Wire([ edge_1, edge_2.m(), edge_3])     # recommended
+            Wire(edge_1, ShapeRef(edge_2, Orient.Reversed, some_location), edge_3)
+            ... not recommended since it is bad idea to reference same shape with different Locations.
+
+        :param childs: List of ShapeRefs or child objects.
         """
+
+        # self.subtypes - List of allowed types of childs.
+        assert hasattr(self, 'sub_types'), self
 
         # convert list of shape reference tuples to ShapeRef objects
         # automaticaly wrap naked shapes into tuple.
         self.childs=[]
         for child in childs:
-            if type(child) == tuple:
-                args=child
-            else:
-                args=(child,)
-            if not isinstance(args[0], tuple(self.sub_types)):
-                raise ParamError("{} is not instance of {}".format(type(args[0]), self.sub_types) )
-            self.childs.append(ShapeRef(*args))
+            self.append(child)   # append convert to ShapeRef
 
-        # Thes flags are produced by OCC for all other shapes safe vertices.
+        # Thes flags are usualy produced by OCC for all other shapes safe vertices.
         self.flags=ShapeFlag(0,1,0,1,0,0,0)
-        #shpname: Shape name, defined in childs
-        self.shpname=None
+
+        # self.shpname: Shape name, defined in childs
+        assert hasattr(self, 'shpname'),  self
+
 
     """
     Methods to simplify ceration of oriented references.
     """
     def p(self):
-        return (self, Orient.Forward)
+        return ShapeRef(self, Orient.Forward)
 
     def m(self):
-        return (self, Orient.Reversed)
+        return ShapeRef(self, Orient.Reversed)
 
     def i(self):
-        return (self, Orient.Internal)
+        return ShapeRef(self, Orient.Internal)
 
     def e(self):
-        return (self, Orient.External)
+        return ShapeRef(self, Orient.External)
 
     def subshapes(self):
         # Return list of subshapes stored in child ShapeRefs.
@@ -477,12 +504,17 @@ class Shape:
     def append(self, shape_ref):
         """
         Append a reference to shild
-        :param shape_ref: Either ShapeRef object or tuple passed to its constructor.
+        :param shape_ref: Either ShapeRef or child shape.
         :return: None
         """
         if type(shape_ref) != ShapeRef:
-            shape_ref=ShapeRef(*shape_ref)
+            shape_ref=ShapeRef(shape_ref)
+        if not isinstance(shape_ref.shape, tuple(self.sub_types)):
+            raise ParamError("Wrong child type: {}, allowed: {}".format(type(shape_ref.shape), self.sub_types))
         self.childs.append(shape_ref)
+
+    #def _convert_to_shaperefs(self, childs):
+
 
     def set_flags(self, flags):
         """
@@ -491,6 +523,11 @@ class Shape:
         :return:
         """
         self.flags = ShapeFlag(*flags)
+
+
+    def is_closed(self):
+        return self.flags['closed']
+
 
     def _dfs(self, groups):
         """
@@ -509,8 +546,7 @@ class Shape:
     def _brep_output(self, stream, groups):
         stream.write("{}\n".format(self.shpname))
         self._subrecordoutput(stream)
-        for flag in self.flags.flags: #flag
-            stream.write("{}".format(flag))
+        self.flags._brep_output(stream)
         stream.write("\n")
 #        stream.write("{}".format(self.childs))
         for child in self.childs:
@@ -529,39 +565,58 @@ Writer can be generic implemented in bas class Shape.
 class Compound(Shape):
     def __init__(self, shapes=[]):
         self.sub_types =  [CompoundSolid, Solid, Shell, Wire, Face, Edge, Vertex]
-        super().__init__(shapes)
         self.shpname = 'Co'
+        super().__init__(shapes)
         #flags: free, modified, IGNORED, orientable, closed, infinite, convex
         self.set_flags( (1, 1, 0, 0, 0, 0, 0) ) # free, modified
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
         self.sub_types = [Solid]
-        super().__init__(solids)
         self.shpname = 'Cs'
+        super().__init__(solids)
 
 
 class Solid(Shape):
     def __init__(self, shells=[]):
         self.sub_types = [Shell]
-        super().__init__(shells)
         self.shpname='So'
-        self.set_flags((0, 1, 0, 0, 0, 0, 0))  # modified, orientable
+        super().__init__(shells)
+        self.set_flags((0, 1, 0, 0, 0, 0, 0))  # modified
 
 class Shell(Shape):
     def __init__(self, faces=[]):
         self.sub_types = [Face]
-        super().__init__(faces)
         self.shpname='Sh'
-        self.set_flags((0, 1, 0, 1, 1, 0, 0))  # modified, closed
+        super().__init__(faces)
+        self.set_flags((0, 1, 0, 1, 0, 0, 0))  # modified, orientable
 
 
 class Wire(Shape):
     def __init__(self, edges=[]):
         self.sub_types = [Edge]
-        super().__init__(edges)
         self.shpname='Wi'
-        self.set_flags((0, 1, 0, 1, 1, 0, 0))  # modified, closed
+        super().__init__(edges)
+        self.set_flags((0, 1, 0, 1, 0, 0, 0))  # modified, orientable
+        self._set_closed()
+
+    def _set_closed(self):
+        '''
+        Return true for the even parity of vertices.
+        :return: REtrun true if wire is closed.
+        '''
+        vtx_set = {}
+        for edge in self.subshapes():
+            for vtx in edge.subshapes():
+                vtx_set[vtx] = 0
+                vtx.n_edges += 1
+        closed = True
+        for vtx in vtx_set.keys():
+            if vtx.n_edges % 2 != 0:
+                closed = False
+            vtx.n_edges = 0
+        self.flags.set('closed', closed)
+
 
 """
 Shapes with special parameters.
@@ -581,40 +636,35 @@ class Face(Shape):
         :param location: Location of the surface.
         :param tolerance: Tolerance of the representation.
         """
-        assert(len(wires) > 0)
-        # auto convert list of edges into wire
-        if type(wires[0]) == Edge:
-            wires = [ Wire(wires) ]
-        elif type(wires[0]) == tuple:
-            assert type(wires[0][0]) == Edge
-            wires = [ Wire(wires) ]
-
-        # check that wires are closed
-        for wire in wires:
-            if not self.is_closed_wire(wire):
-                raise Exception("Trying to make face from non-closed wire.")
-        self.sub_types = [Wire]
-        super().__init__(wires)
-        if surface is None:
-            self.repr=[]
-        else:
-            self.repr=[(surface, location)]
+        self.sub_types = [Wire, Edge]
         self.tol=tolerance
         self.restriction_flag =0
         self.shpname = 'Fa'
 
-    def is_closed_wire(self, wire):
-        vtx_set = {}
-        for edge in wire.subshapes():
-            for vtx in edge.subshapes():
-                vtx_set[vtx] = 0
-                vtx.n_edges += 1
-        closed =  True
-        for vtx in vtx_set.keys():
-            if vtx.n_edges % 2 != 0:
-                closed = False
-            vtx.n_edges = 0
-        return closed
+        if type(wires) != list:
+            wires = [ wires ]
+        assert(len(wires) > 0)
+        super().__init__(wires)
+
+        # auto convert list of edges into wire
+        shape_type = type(self.childs[0].shape)
+        for shape in self.subshapes():
+            assert type(shape) == shape_type
+        if shape_type == Edge:
+            wire = Wire(self.childs)
+            self.childs = []
+            self.append(wire)
+
+        # check that wires are closed
+        for wire in self.subshapes():
+            if not wire.is_closed():
+                raise Exception("Trying to make face from non-closed wire.")
+
+        if surface is None:
+            self.repr=[]
+        else:
+            self.repr=[(surface, location)]
+
 
 
     def _dfs(self, groups):
@@ -691,24 +741,27 @@ class Edge(Shape):
         :param vertices: List of shape reference tuples, see ShapeRef class.
         :param tolerance: Tolerance of the representation.
         """
-        assert(len(vertices) == 2)
-
-        # automaticaly convert vertices to their ShapeRefs
-        if type(vertices[0]) == Vertex:
-            vertices[0]=(vertices[0], Orient.Forward)
-        if type(vertices[1]) == Vertex:
-            vertices[1]=(vertices[1], Orient.Reversed)
-
-        assert vertices[0]
-
         self.sub_types = [Vertex]
-        super().__init__(vertices)
+        self.shpname = 'Ed'
         self.tol = tolerance
         self.repr = []
-        self.edge_flags=(1,1,0)
-        self.shpname = 'Ed'
+        self.edge_flags=(1,1,0)         # this is usual value
+
+        assert(len(vertices) == 2)
+
+        super().__init__(vertices)
+        # Overwrite vertex orientation
+        self.childs[0].orientation = Orient.Forward
+        self.childs[1].orientation = Orient.Reversed
 
     def set_edge_flags(self, same_parameter, same_range, degenerated):
+        """
+        Edge flags with unclear meaning.
+        :param same_parameter:
+        :param same_range:
+        :param degenerated:
+        :return:
+        """
         self.edge_flags=(same_parameter,same_range, degenerated)
 
     def points(self):
@@ -804,7 +857,6 @@ class Vertex(Shape):
         """
         check_matrix(point, [3], (int, float))
 
-        super().__init__(childs=[])
         # These flags are produced by OCC for vertices.
         self.flags = ShapeFlag(0, 1, 0, 1, 1, 0, 1)
         # Coordinates in the 3D space. [X, Y, Z]
@@ -816,6 +868,9 @@ class Vertex(Shape):
         # Number of edges in which vertex is used. Used internally to check closed wires.
         self.n_edges = 0
         self.shpname = 'Ve'
+        self.sub_types=[]
+
+        super().__init__(childs=[])
 
     def attach_to_3d_curve(self, t, curve, location=Location()):
         """
