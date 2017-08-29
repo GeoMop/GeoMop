@@ -6,14 +6,16 @@ import netgen.meshing as ngmesh
 import netgen.csg as ngcsg
 import netgen.NgOCC as ngocc
 
-file="breps/3_prism_full.brep"
+#file="breps/3_prism_full.brep"
+file="test_prism.brep"
 mesh_file=os.path.splitext(file)[0] + ".mesh.ng"
-geom=ngocc.LoadOCC_BREP("breps/3_prism_full.brep")
+gmsh_file=os.path.splitext(file)[0] + ".msh"
+geom=ngocc.LoadOCC_BREP(file)
 geom
 
 
 param = ngmesh.MeshingParameters()
-param.maxh = 10
+param.maxh = 0.2
 print (param)
 
 mesh = ngocc.GenerateMesh(geom, param)
@@ -25,4 +27,4 @@ mesh = ngocc.GenerateMesh(geom, param)
 
 
 mesh.Save(mesh_file)
-mesh.Export("breps/export.msh","Gmsh2 Format")
+mesh.Export(gmsh_file,"Gmsh2 Format")
