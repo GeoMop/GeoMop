@@ -617,8 +617,9 @@ class Face(Shape):
             loc._dfs(groups)
 
         # update geometry representation of edges (add 2D curves)
-        for edge in self.subshapes():
-            edge._dfs(groups)
+        for wire in self.subshapes():
+            for edge in wire.subshapes():
+                edge._dfs(groups)
 
             
     def implicit_surface(self):
@@ -747,7 +748,6 @@ class Edge(Shape):
         vtx_points = self.points()
         self.attach_to_3d_curve((0.0,1.0), Approx.line_3d( vtx_points ))
 
-
     #def attach_continuity(self):
 
     def _dfs(self, groups):
@@ -755,7 +755,7 @@ class Edge(Shape):
         if not self.repr:
             self.implicit_curve()
         assert len(self.repr) > 0
-        for repr in self.repr:
+        for i,repr in enumerate(self.repr):
             if repr[0]==self.Repr.Curve2d:
                 repr[2]._dfs(groups) #curve
                 repr[3]._dfs(groups) #surface
@@ -766,13 +766,14 @@ class Edge(Shape):
 
     def _subrecordoutput(self, stream): #prints edge data #TODO: tisknu nekolik data representation
         assert len(self.repr) > 0
-        stream.write("{} {} {} {}\n".format(self.tol,self.edge_flags[0],self.edge_flags[1],self.edge_flags[2]))
-        for repr in self.repr:
+        stream.write(" {} {} {} {}\n".format(self.tol,self.edge_flags[0],self.edge_flags[1],self.edge_flags[2]))
+        for i,repr in enumerate(self.repr):
             if repr[0] == self.Repr.Curve2d:
-                stream.write("2")
+                curve_type, t_range, curve, surface, location = repr
+                stream.write("2 {} {} {} {} {}\n".format(curve.id, surface.id, location.id,t_range[0],t_range[1] )) #TODO: 2 <surface number> <_> <location number> <_> <curve parameter minimal and maximal values>
             elif repr[0] == self.Repr.Curve3d:
-                stream.write("3")
-        stream.write("\n")
+                curve_type, t_range, curve, location = repr
+                stream.write("1 {} {} {} {}\n".format(curve.id, location.id, t_range[0], t_range[1])) #TODO: 3
 
 class Vertex(Shape):
     """
@@ -847,6 +848,12 @@ class Vertex(Shape):
                 repr[2]._dfs(groups) #curve
                 repr[3]._dfs(groups) #location
 
+
+    def _subrecordoutput(self, stream): #prints vertex data
+        stream.write("{}\n".format(self.tolerance))
+        for i in self.point:
+            stream.write("{} ".format(i))
+        stream.write("\n0 0\n\n") #no added <vertex data representation>
 
 def index_all(compound,location):
     print("Index")
