@@ -6,7 +6,7 @@ set -x
 SCRIPT_DIR=`pwd`/${0%/*}
 
 # directory containing whole build process
-WORKDIR=$HOME/workspace
+WORKDIR=$HOME
 
 # name of the development image
 BASE_IMAGE=geomop/sandbox_base
