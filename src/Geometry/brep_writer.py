@@ -73,10 +73,10 @@ class Location:
         """
         if not hasattr(self, 'id'):
             id=len(groups['locations'])+1
-            self.id=id
+            self.id = id
             groups['locations'].append(self)
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         stream.write("1\n")
         for row in self.matrix:
             for number in row:
@@ -100,8 +100,6 @@ class ComposedLocation(Location):
 
         self.location_powers=location_powers
 
-        #for loc, pow in location_powers:
-        #    stream.write(.format(loc.id, pow))
 
     def _dfs(self, groups):
 
@@ -109,7 +107,7 @@ class ComposedLocation(Location):
             location._dfs(groups)
         Location._dfs(self, groups)
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         stream.write("2 ")
         for loc, pow in self.location_powers:
             stream.write("{} {} ".format(loc.id, pow))
@@ -163,7 +161,7 @@ class Curve3D:
             groups['curves_3d'].append(self)
 
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         # writes b-spline curve
         stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
         for pole in self.poles:
@@ -211,7 +209,7 @@ class Curve2D:
             self.id = id
             groups['curves_2d'].append(self)
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         # writes b-spline curve
         stream.write("7 {} 0  {} {} {} ".format(int(self.rational), self.degree, len(self.poles), len(self.knots)))
         for pole in self.poles:
@@ -273,7 +271,7 @@ class Surface:
             self.id = id
             groups['surfaces'].append(self)
 
-    def _brep_output(self,stream):
+    def _brep_output(self, stream, groups):
         #writes b-spline surface
         stream.write("9 {} {} 0 0 ".format(int(self.rational),int(self.rational))) #prints B-spline surface u or v rational flag - both same
         for i in self.degree: #prints <B-spline surface u degree> <_>  <B-spline surface v degree>
@@ -409,17 +407,25 @@ class ShapeRef:
         self.orient=orient
         self.location=location
 
-    def _writeformat(self, stream):
+    def _writeformat(self, stream, groups):
         stream.write("{}{} {} ".format(orient_chars[self.orient-1], self.shape.id, self.location.id))
 
 class ShapeFlag:
     """
     Auxiliary data class representing the shape flag word of BREP shapes.
     All methods set the flags automatically, but it can be overwritten.
-    """
-    def __init__(self, free, modified, IGNORED, orientable, closed, infinite, convex):
 
-        self.flags = (free, modified, IGNORED, orientable, closed, infinite, convex)
+    Free - Seems to indicate a top level shapes.
+    Modified - ??
+    Checked - for format version 2 may indicate that shape topology is already checked
+    Orientable - ??
+    Closed - used to indicate closed Wires and Shells
+    Infinite - ?? may indicate shapes extending to infinite, not our case
+    Convex - ?? may indicate convexity of the shape, not clear how this is combined with geometry
+    """
+    def __init__(self, free, modified, checked, orientable, closed, infinite, convex):
+
+        self.flags = (free, modified, checked, orientable, closed, infinite, convex)
         for i in self.flags:
             assert i in [0, 1]
 
@@ -468,7 +474,6 @@ class Shape:
         # Return list of subshapes stored in child ShapeRefs.
         return [chld.shape for chld in self.childs]
 
-
     def append(self, shape_ref):
         """
         Append a reference to shild
@@ -482,7 +487,7 @@ class Shape:
     def set_flags(self, flags):
         """
         Set flags given as tuple.
-        :param flags: Tuple of 8 flags.
+        :param flags: Tuple of 7 flags.
         :return:
         """
         self.flags = ShapeFlag(*flags)
@@ -495,14 +500,13 @@ class Shape:
         """
         if hasattr(self, 'id'):
             return
-        id=len(groups['shapes'])+1
-        self.id=id
-        groups['shapes'].append(self)
         for sub_ref in self.childs:
             sub_ref.location._dfs(groups)
             sub_ref.shape._dfs(groups)
+        groups['shapes'].append(self)
+        self.id = len(groups['shapes'])
 
-    def _brep_output(self, stream):
+    def _brep_output(self, stream, groups):
         stream.write("{}\n".format(self.shpname))
         self._subrecordoutput(stream)
         for flag in self.flags.flags: #flag
@@ -510,7 +514,7 @@ class Shape:
         stream.write("\n")
 #        stream.write("{}".format(self.childs))
         for child in self.childs:
-            child._writeformat(stream)
+            child._writeformat(stream, groups)
         stream.write("*\n")
         #subshape, tj. childs
 
@@ -527,24 +531,29 @@ class Compound(Shape):
         self.sub_types =  [CompoundSolid, Solid, Shell, Wire, Face, Edge, Vertex]
         super().__init__(shapes)
         self.shpname = 'Co'
+        #flags: free, modified, IGNORED, orientable, closed, infinite, convex
+        self.set_flags( (1, 1, 0, 0, 0, 0, 0) ) # free, modified
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
         self.sub_types = [Solid]
         super().__init__(solids)
-        self.shpname = 'CS'
+        self.shpname = 'Cs'
+
 
 class Solid(Shape):
     def __init__(self, shells=[]):
         self.sub_types = [Shell]
         super().__init__(shells)
         self.shpname='So'
+        self.set_flags((0, 1, 0, 0, 0, 0, 0))  # modified, orientable
 
 class Shell(Shape):
     def __init__(self, faces=[]):
         self.sub_types = [Face]
         super().__init__(faces)
         self.shpname='Sh'
+        self.set_flags((0, 1, 0, 1, 1, 0, 0))  # modified, closed
 
 
 class Wire(Shape):
@@ -552,6 +561,7 @@ class Wire(Shape):
         self.sub_types = [Edge]
         super().__init__(edges)
         self.shpname='Wi'
+        self.set_flags((0, 1, 0, 1, 1, 0, 0))  # modified, closed
 
 """
 Shapes with special parameters.
@@ -564,7 +574,7 @@ class Face(Shape):
     Like vertex and edge have some additional parameters in the BREP format.
     """
 
-    def __init__(self, wires, surface=None, location=Location(), tolerance=0.0):
+    def __init__(self, wires, surface=None, location=Location(), tolerance=1.0e-7):
         """
         :param wires: List of wires, or list of edges, or list of ShapeRef tuples of Edges to construct a Wire.
         :param surface: Representation of the face, surface on which face lies.
@@ -676,7 +686,7 @@ class Edge(Shape):
         #Continuous2d=3
 
 
-    def __init__(self, vertices, tolerance=0.0):
+    def __init__(self, vertices, tolerance=1.0e-7):
         """
         :param vertices: List of shape reference tuples, see ShapeRef class.
         :param tolerance: Tolerance of the representation.
@@ -774,6 +784,7 @@ class Edge(Shape):
             elif repr[0] == self.Repr.Curve3d:
                 curve_type, t_range, curve, location = repr
                 stream.write("1 {} {} {} {}\n".format(curve.id, location.id, t_range[0], t_range[1])) #TODO: 3
+        stream.write("0\n")
 
 class Vertex(Shape):
     """
@@ -786,7 +797,7 @@ class Vertex(Shape):
         Curve2d = 2
         Surface = 3
 
-    def __init__(self, point, tolerance=0.0):
+    def __init__(self, point, tolerance=1.0e-7):
         """
         :param point: 3d point (X,Y,Z)
         :param tolerance: Tolerance of the representation.
@@ -855,7 +866,9 @@ class Vertex(Shape):
             stream.write("{} ".format(i))
         stream.write("\n0 0\n\n") #no added <vertex data representation>
 
+
 def index_all(compound,location):
+
     print("Index")
     print(compound.__class__.__name__) #prints class name
 
@@ -868,46 +881,43 @@ def index_all(compound,location):
 
 def write_model(stream, compound, location):
 
-    groups = index_all(compound=compound,location=location)
+    groups = index_all(compound=compound, location=location)
 
-    stream.write("DBRep_DrawableShape\n")
+    # fix shape IDs
+    n_shapes = len(groups['shapes']) + 1
+    for shape in groups['shapes']:
+        shape.id = n_shapes - shape.id
+
+    stream.write("DBRep_DrawableShape\n\n")
     stream.write("CASCADE Topology V1, (c) Matra-Datavision\n")
     stream.write("Locations {}\n".format(len(groups['locations'])))
     for loc in groups['locations']:
-        loc._brep_output(stream)
-
-    stream.write("Curves {}\n".format(len(groups['curves_3d'])))
-    for curve in groups['curves_3d']:
-        curve._brep_output(stream)
+        loc._brep_output(stream, groups)
 
     stream.write("Curve2ds {}\n".format(len(groups['curves_2d'])))
     for curve in groups['curves_2d']:
-        curve._brep_output(stream)
+        curve._brep_output(stream, groups)
+
+    stream.write("Curves {}\n".format(len(groups['curves_3d'])))
+    for curve in groups['curves_3d']:
+        curve._brep_output(stream, groups)
+
+    stream.write("Polygon3D 0\n")
+
+    stream.write("PolygonOnTriangulations 0\n")
 
     stream.write("Surfaces {}\n".format(len(groups['surfaces'])))
     for surface in groups['surfaces']:
-        surface._brep_output(stream)
+        surface._brep_output(stream, groups)
 
-    stream.write("TShapes {}\n".format(len(groups['shapes'])))
-    for shape in reversed(groups['shapes']):
-        shape._brep_output(stream)
+    stream.write("Triangulations 0\n")
 
-    """
-    Write the counpound into the stream.
-    :param stream: Output stream.
-    :param compound: Compoud to output together with all subshapes, curves, surfaces and locations.
-    :param location: Global location of the model.
-    :return: None
+    stream.write("\nTShapes {}\n".format(len(groups['shapes'])))
+    for shape in groups['shapes']:
+        #stream.write("# {} id: {}p\n".format(shape.shpname, shape.id))
+        shape._brep_output(stream, groups)
+    stream.write("\n+1 0")
+    #stream.write("0\n")
 
-    Algorithm:
-    0. Compound is formed by various objects groups (Locations, 3d curves, 2d curves, surfaces, shapes)
-    linked together by references. This forms an directed acyclic graph (DAG).
-    1. Perform deep first search of the compound, assign unique numbers to all objects within its group,
-       counting from 1. Good way to do this is to implement simple dfs method in Shape class and override it
-       in Face, Edge, Vertex to include include references to their representations. DFS should also
-       fill lists of individual groups passed through in a dictionary.
-    2. Write down individual groups, shapes in reversed order.
-    """
-    pass
 
 
