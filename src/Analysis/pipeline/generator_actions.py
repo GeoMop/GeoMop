@@ -89,7 +89,7 @@ class RangeGenerator(GeneratorActionType):
         if self._get_state().value > ActionStateType.created.value:
             return
         self._output = self.__get_output_from_items()
-        template =copy.deepcopy(self._output.subtype)
+        template = copy.deepcopy(self._output.subtype)
         # first is middle
         self._output.add_item(template)
         for item in self._variables['Items']:

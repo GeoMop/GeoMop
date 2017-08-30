@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMenu, QAction
+from leconfig import cfg
 
 class EditMenu(QMenu):
     """Menu with file actions."""
@@ -39,11 +40,56 @@ class EditMenu(QMenu):
         
     def _undo(self):
         """Revert last diagram operation"""
-        self._diagram.undo_to_label() 
+        view = cfg.history.get_undo_view()
+        if view is not None:
+            view.set_view()
+        while True:
+            ret, ops = cfg.history.try_undo_to_label() 
+            if ops["type"] is not None:
+                if ops["type"]=="Diagram":
+                    self._diagram.update_changes(
+                        ops["added_points"], ops["removed_points"], 
+                        ops["moved_points"], ops["added_lines"], ops["removed_lines"])
+                elif ops["type"]=="Layers":                    
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()
+                    if ops["edit_first"]: 
+                        cfg.layer.set_edited_diagram(0)
+                        cfg.set_curr_diagram(0)               
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.update_panel()
+            if ret:
+                return
+            view = cfg.history.get_undo_view()
+            if view is not None:
+                view.set_view()
 
     def _redo(self):
         """Put last diagram reverted operation back"""
-        self._diagram.redo_to_label()
+        view = cfg.history.get_redo_view()
+        if view is not None:
+            view.set_view()
+        
+        while True:
+            ret, ops = cfg.history.try_redo_to_label()             
+            if ops["type"] is not None:
+                if ops["type"]=="Diagram":
+                    self._diagram.update_changes(
+                        ops["added_points"], ops["removed_points"], 
+                        ops["moved_points"], ops["added_lines"], ops["removed_lines"])
+                elif ops["type"]=="Layers":                    
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()
+                    if ops["edit_first"]: 
+                        cfg.layer.set_edited_diagram(0)
+                        cfg.set_curr_diagram(0)               
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.update_panel()
+            if ret:
+                return
+            view = cfg.history.get_redo_view()
+            if view is not None:
+                view.set_view()
 
     def _delete(self):
         """delete selected items"""

@@ -1,3 +1,5 @@
+# TODO: not used, delete after diagram changes or remove this
+
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 from ui.panels.diagram import OperatinState
 
