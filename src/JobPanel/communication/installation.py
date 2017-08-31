@@ -1,4 +1,3 @@
-"""class represent instalation"""
 import sys
 import os
 import re
@@ -42,6 +41,17 @@ __status_dir__ = "status"
 __lib_dir__ = "ins-lib"
 
 class Installation:
+    """
+    Class representing and manipulating with a GeoMop (backend) instalation.
+    We assume this installation is on remote hosts, which are assumed to run linux.
+
+    JB, TODO:
+    - Overview of functionalities the class cares of.
+    - Why all splitting for linux and win case? The work to be done on remote is same, so just make
+      unified interface to whatever ssh library is in use.
+    - Do we want to support Windows remote hosts in future? Then make system specific layer
+      to perform necessary basic operations as change dir, mkdir, delete, run python script, ...
+    """
     python_env = None
     """python running envirounment"""
     libs_env = None
