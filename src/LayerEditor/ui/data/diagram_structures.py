@@ -142,6 +142,9 @@ class Line():
     def qlinef(self):
         """return QLineF object"""
         return QtCore.QLineF(self.p1.qpointf(), self.p2.qpointf())
+        
+    def get_tmp_line(self, p1, p2):
+        return Line(p1, p2, -1)
 
 class Polygon():
     """
@@ -167,7 +170,7 @@ class Polygon():
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
-
+        
 
 class Diagram():
     """
@@ -465,6 +468,7 @@ class Diagram():
         polygon = Polygon(lines)
         self.regions.set_default_region(polygon.id, self.topology_idx, 3)
         self.new_polygons.append(polygon)
+        self.polygons.append(polygon)
         return polygon
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):

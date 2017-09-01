@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink
+from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon
 from ui.gitems import ItemStates
 from leconfig import cfg
     
@@ -127,9 +127,18 @@ class Diagram(QtWidgets.QGraphicsScene):
             l = Line(l2)
             self.addItem(l) 
             p = Point(point)
-            self.addItem(p)                 
+            self.addItem(p)
+            self._add_polygons()
         return p, None
         
+    def _add_polygons(self):
+        """If is new polygon in data object, created it"""
+        if len(cfg.diagram.new_polygons)>0:
+            for polygon in cfg.diagram.new_polygons:
+                p = Polygon(polygon)
+                self.addItem(p)  
+            cfg.diagram.new_polygons = []
+            
     def _add_line(self, gobject, p,  add_last=True):
         """If self._last_line is set, last line is repaint to point p and change 
         its state. If add_last is True new last line is created. if 
@@ -184,6 +193,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             l.set_tmp()
             self.addItem(l) 
             self._last_line = line
+            self._add_polygons()
         
     def _remove_last(self):
         """Remove last point and line from diagram."""
@@ -205,7 +215,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.addItem(p)
         for line in added_lines:
             l = Line(line)
-            self.addItem(l) 
+            self.addItem(l)        
         for point in removed_points:
             p = point.object
             p.release_point()
@@ -216,6 +226,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.removeItem(l)
         for point in moved_points:
             point.object.move_point()        
+        self._add_polygons()
         
     def release_views(self):
         """release all diagram views"""
@@ -263,6 +274,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             p = Point(point)
             self.addItem(p)
         self._recount_zoom = cfg.diagram.zoom
+        self._add_polygons()
         
     def blink_start(self, rect):
         """Start blink window"""
@@ -419,6 +431,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
             # self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            
             
     def mouseReleaseEvent(self,event):
         event.gobject = None

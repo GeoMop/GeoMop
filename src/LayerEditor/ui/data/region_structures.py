@@ -64,7 +64,7 @@ class Regions():
             elif dim==2:
                 self.layer_region_2D[layer_id][object_id]=1
             else:
-                self.layer_region_2D[layer_id][object_id]=2
+                self.layer_region_3D[layer_id][object_id]=2
         
         
     # layer functions
@@ -72,9 +72,11 @@ class Regions():
     def add_fracture(self, id, name, is_own, is_top):
         """insert layer to structure and copy regions"""
         self.layers[-id] = name
-        move_id = id
-        if (is_top or is_own) and id>0:
-            move_id = id-1
+        move_id = None
+        if (not is_top):
+            move_id = self._find_less(id)
+        if move_id is None:
+            move_id = id
         self.layer_region_1D[-id]=deepcopy(self.layer_region_1D[move_id])
         self.layer_region_2D[-id]=deepcopy(self.layer_region_2D[move_id])
         self.layer_region_3D[-id]=deepcopy(self.layer_region_3D[move_id])
