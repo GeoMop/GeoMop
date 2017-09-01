@@ -1,6 +1,14 @@
 """Structures for Layer Geometry File"""
 
-from enum import IntEnum
+import sys
+import os
+geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.append(geomop_src)
+
+from json_data import *
+
+
+
 
 class LayerType(IntEnum):
     """Layer type"""
@@ -12,6 +20,17 @@ class LayerType(IntEnum):
 class TopologyType(IntEnum):
     given = 0
     interpolated = 1
+
+
+class RegionDim(IntEnum):
+    well = 1
+    fracture = 2
+    bulk = 3
+
+class TopologyObject(IntEnum):
+    node = 0
+    segment = 1
+    polygon = 2
 
 
 class GeoObject:
@@ -50,7 +69,7 @@ class GeoObject:
             else:
                 setattr(self, k, v)
 
-class Curve(GeoObject):
+class Curve(JsonData):
     def __init__():
         pass    
 
@@ -80,216 +99,181 @@ class Surface(GeoObject):
                     return False 
         return True
 
-class Fracture(GeoObject):
-    """Fracture object"""
-
-    def __init__(self, region_idx):    
-        self.region_idx = region_idx
-        """region index"""
-        self.poly_lines = []
-        """List of Faces (polygon lines]"""
 
 
-class Segment(GeoObject):
+class Segment(JsonData):
+
     """Line object"""
-    def __init__(self, n1_idx, n2_idx):
-        self.n1_idx = n1_idx
+    def __init__(self, config={}):
+        self.node_ids  = ( int, int )
         """First point index"""
-        self.n2_idx = n2_idx
         """Second point index"""
         self.surface_idx = None
         """Surface index"""
+        super().__init__(config)
 
-class Polygon(GeoObject):
+
+class Polygon(JsonData):
+
     """Polygon object"""
-    def __init__(self, segments=[]):
-        self.segments_idx = segments
+    def __init__(self, config={}):
+        self.segment_ids = [ int ]
         """List of segments index"""
-        self.surface_idx = None
+        self.surface_id = int
         """Surface index"""
+        super().__init__(config)
 
-class Node(GeoObject):
-    """Node coordinates"""
-    
-    def __init__(self, x, y):
-        self.x = x
-        """X - coordinate"""
-        self.y = y
-        """y coordinate"""
-        
-        
-class Topology(GeoObject):
+
+
+class Topology(JsonData):
     """Topological presentation of geometry objects"""
-    
-    class_def={
-            "segments":Segment,
-            "polygons":Polygon 
 
-        }
-
-    def __init__(self):
-        self.segments = []
+    def __init__(self, config={}):
+        self.segments = [ ClassFactory(Segment) ]
         """List of topology segments (line)"""
-        self.polygons = []
+        self.polygons = [ ClassFactory(Polygon) ]
         """List of topology polygons"""
- 
+        super().__init__(config)
 
-class NodeSet(GeoObject):
+class NodeSet(JsonData):
+
     """Set of point (nodes) with topology"""
     
-    class_def={
-            "nodes": Node
-        }
-        
-    def __init__(self, topology_idx):
-        self.topology_idx = topology_idx
+
+    def __init__(self, config={}):
+        self.topology_id = int
         """Topology index"""
-        self.nodes = []
+        self.nodes = [ (float, float) ]
         """list of Nodes"""
-        self.linked_node_set = None
+        self.linked_node_set_id = None
         """node_set_idx of pair interface node set or None"""
-        self.linked_nodes = []
+        self.linked_node_ids = [ int ]
         """If linked_node_set is not None there is list od pair indexes of nodes or none
         if node has not pair"""
+        super().__init__(config)
 
-        
     def reset(self):
         """Reset node set"""
         self.nodes = []
 
     
-class SurfaceNodeSet(GeoObject):
+class SurfaceNodeSet(JsonData):
     """Node set in space for transformation(x,y) ->(u,v). 
     Only for GL"""
 
-    def __init__(self, ns_idx, surface_idx):
-        self.ns_idx = ns_idx
+    def __init__(self, config={}):
+        self.nodeset_id = int
         """Node set index"""
-        self.surface_idx = surface_idx
+        self.surface_id = int
         """Surface index"""
+        super().__init__(config)
 
-
-class InterpolatedNodeSet(GeoObject):
+class InterpolatedNodeSet(JsonData):
     """Two node set with same Topology in space for transformation(x,y) ->(u,v).
     If both node sets is same, topology is vertical    
     Only for GL"""
 
-    def __init__(self, ns1_idx, ns2_idx, surface_idx):
-        self.source_ns = [ns1_idx, ns2_idx]
+    def __init__(self, config={}):
+        self.source_nodeset_ids = ( int, int )
         """Top and bottom node set index"""
-        self.surface_idx = surface_idx
-        """Surface index"""    
+        self.surface_id = int
+        """Surface index"""
+        super().__init__(config)
 
-class Region(GeoObject):
+class Region(JsonData):
     """Description of disjunct geometri area sorte by dimension (dim=1 well, dim=2 fracture, dim=3 bulk). """
     
-    def __init__(self, color, name, dim=3, step=0.01,  boundary=False, not_used=False):
-        self.color = color
+    def __init__(self, config={}):
+        self.color = ""
         """8-bite region color"""
-        self.name = name
+        self.name = ""
         """region name"""
-        self.dim = dim
+        self.dim = RegionDim
         """dimension (dim=1 well, dim=2 fracture, dim=3 bulk)"""
-        self.boundary = boundary
-        """Is boundary region"""
-        self.not_used = not_used     
-        """is used"""
-        self.mesh_step = step
-        """mesh step"""
-        self.shapes_idx = []
-        """List of shapes indexes"""
+        self.topo_dim = TopologyObject
 
-class GL(GeoObject):
+        self.boundary = False
+        """Is boundary region"""
+        self.not_used = False
+        """is used - TODO: do we need it??"""
+        self.mesh_step = float
+        """mesh step"""
+        self.brep_shape_ids = [ int ]
+        """List of shape indexes - in BREP geometry """
+        super().__init__(config)
+
+class GeoLayer(JsonData):
     """Geological layers"""
     
-    def __init__(self, name, type, top_type, top, bottom_type=None, bottom=None):
-        self.name =  name
+    def __init__(self, config={}):
+        self.name =  ""
         """Layer Name"""
-        self.layer_type = type
+
         """Layer type :class:`geometry_files.geometry_structures.LayerType`"""
-        self.top_type = top_type
-        """Topology type :class:`geometry_files.geometry_structures.TopologyType`"""
-        self.top =  top
+        self.top =  ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
         """Accoding topology type surface node set or interpolated node set"""
         
-        self.bottom_type = bottom_type
-        """ optional, only for stratum type, bottom topology type 
-        :class:`geometry_files.geometry_structures.TopologyType`"""
-        self.bottom = bottom
+        self.bottom = ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
         """ optional, only for stratum type, accoding bottom topology 
         type surface node set or interpolated node set"""
-        
-        self.polygon_regions = []
-        """List of indexes of 3D shapes"""
-        self.segment_regions = []
-        """List of indexes of 2D shapes"""
-        self.node_regions = []
-        """List of indexes of 1D shapes"""
-        
-    def serialize(self):
-        d = {}
-        d["name"] = self.name
-        d["layer_type"] = self.layer_type.value
-        d["top_type"] = self.top_type.value
-        d["top"] = self.top.serialize()
-        if self.layer_type is LayerType.stratum:
-            d["bottom_type"] = self.bottom_type.value
-            d["bottom"] = self.bottom.serialize()
-        d["node_regions"] = self.node_regions
-        d["polygon_regions"] = self.polygon_regions
-        d["segment_regions"] = self.segment_regions
-        return d
-                
-    def deserialize(self, data):
-        self.name = data["name"]
-        self.layer_type = LayerType(data["layer_type"])
-        self.top_type = TopologyType(data["top_type"])
-        if self.top_type is TopologyType.given:
-            self.top = SurfaceNodeSet.__new__(SurfaceNodeSet)
-        else:
-            self.top = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
-        self.top.deserialize(data["top"])
-        if self.layer_type is LayerType.stratum:
-            self.bottom_type = TopologyType(data["bottom_type"])
-            if self.bottom_type is TopologyType.given:
-                self.bottom = SurfaceNodeSet.__new__(SurfaceNodeSet)
-            else:
-                self.bottom = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
-            self.bottom.deserialize(data["bottom"])
-        self.node_regions = data["node_regions"] 
-        self.polygon_regions = data["polygon_regions"]
-        self.segment_regions = data["segment_regions"] 
-        
-class UserSupplement(GeoObject):
-    def __init__(self):
+
+        # assign regions to every topology object
+        self.polygon_region_ids = [ int ]
+        self.segment_region_ids = [ int ]
+        self.node_region_ids = [ int ]
+
+        super().__init__(config)
+
+       # # set __class__ keys:
+       #  if config['top_type'] is TopologyType.given:
+       #      self.top = SurfaceNodeSet.__new__(SurfaceNodeSet)
+       #  elif self.top_type is TopologyType.interpolated:
+       #      self.top = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
+       #  self.top.deserialize(data["top"])
+       #  if self.layer_type is LayerType.stratum:
+       #      self.bottom_type = TopologyType(data["bottom_type"])
+       #      if self.bottom_type is TopologyType.given:
+       #          self.bottom = SurfaceNodeSet.__new__(SurfaceNodeSet)
+       #      else:
+       #          self.bottom = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
+       #      self.bottom.deserialize(data["bottom"])
+
+
+class FractureLayer(GeoLayer):
+    def __init__(self, config={}):
+        super().__init__(config)
+
+class StratumLayer(GeoLayer):
+    def __init__(self, config={}):
+        super().__init__(config)
+
+
+class UserSupplement(JsonData):
+    def __init__(self, config={}):
         self.last_node_set = 0
         """Last edited node set"""
-        
+        super().__init__(config)
 
-class LayerGeometry(GeoObject):
-    """Geometry File Layer Data"""
-    class_def={
-            "main_layers":GL, 
-            "surfaces":Surface, 
-            "curves":Curve, 
-            "plane_topologies":Topology, 
-            "node_sets": NodeSet, 
-            "supplement":UserSupplement, 
-            "regions":Region
-        }
-    
-    def __init__(self):
-        self.regions = [Region("#000000", "NONE_1D", 1), Region("#000000", "NONE_2D", 2), Region("#000000", "NONE_3D", 3)]
+
+class LayerGeometry(JsonData):
+
+    def __init__(self, config={}):
+        self.regions = [ ClassFactory(Region) ]
+
+        #    [Region("#000000", "NONE_1D", 1),
+        #     Region("#000000", "NONE_2D", 2),
+        #     Region("#000000", "NONE_3D", 3)]
         """List of regions"""
-        self.main_layers = []
+        self.main_layers = [ ClassFactory( [StratumLayer, FractureLayer] ) ]
         """List of geological layers"""
-        self.surfaces = []
-        """List of surfaces"""
-        self.curves = []
-        """List of curves"""
-        self.plane_topologies = []
+        self.surfaces = [ ClassFactory(Surface) ]
+        """List of B-spline surfaces"""
+        self.curves = [ ClassFactory(Curve) ]
+        """List of B-spline curves,"""
+        self.plane_topologies = [ ClassFactory(Topology) ]
         """List of topologies"""
-        self.node_sets = []
-        """List of nodes"""
-        self.supplement = UserSupplement()
+        self.node_sets = [ ClassFactory( NodeSet) ]
+        """List of node sets"""
+        self.supplement = ClassFactory( UserSupplement )
         """Addition data that is used for displaying in layer editor"""
+        super().__init__(config)

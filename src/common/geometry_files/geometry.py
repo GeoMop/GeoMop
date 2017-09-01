@@ -13,8 +13,7 @@ class GeometrySer:
         with open(self.file) as f:
             contents = f.read()
         obj = json.loads(contents, encoding="utf-8")
-        lg = LayerGeometry.__new__(LayerGeometry)
-        lg.deserialize(obj)
+        lg = LayerGeometry(obj)
         return lg
         
         

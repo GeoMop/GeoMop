@@ -1,11 +1,11 @@
-"""Start script that inicialize main window """
 import sys
 import os
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
-import geometry_files
+geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
+sys.path.append(geomop_src)
+
+import geometry_files.geometry_structures
+from geometry_files.geometry import GeometrySer
 import brep_writer as bw
 
 ###
@@ -15,6 +15,8 @@ sys.path.append( netgen_install_prefix + netgen_path )
 
 import netgen.csg as ngcsg
 import netgen.meshing as ngmesh
+
+
 
 
 
@@ -134,10 +136,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     geom = Geometry()
-    #geom.load(args.layers_file)
+    geom.load(args.layers_file)
     geom.construct_brep_geometry()
-    geom.mesh_netgen()
-    geom.netgen_to_gmsh()
+    #geom.mesh_netgen()
+    #geom.netgen_to_gmsh()
 
 
 
