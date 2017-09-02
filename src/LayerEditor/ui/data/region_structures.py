@@ -58,6 +58,8 @@ class Regions():
     
     def set_default_region(self, object_id, topology_id, dim):
         """Set default region in set object."""
+        if not topology_id in self.layers_topology:
+            return
         for layer_id in self.layers_topology[topology_id]:
             if dim==1:
                 self.layer_region_1D[layer_id][object_id]=0

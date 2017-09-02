@@ -107,7 +107,7 @@ class Line():
         else:
             if self.polygon1 != polygon:
                 if self.polygon2 is None:
-                    self.polygon1 = polygon
+                    self.polygon2 = polygon
                 else:
                     raise Exception("Line can't be part more than one polygon.")
                     
@@ -247,6 +247,29 @@ class Diagram():
                 map[top_id][1][i] = diagram.lines[i].id
             for i in range(0, len(diagram.polygons)):
                 map[top_id][2][i] = diagram.polygons[i].id
+                
+    def fix_polygon_map(self, polygon_idx, line_idxs):
+        """Check and fix polygon map for region assignation"""
+        if len(line_idxs)==len(self.polygons[polygon_idx].lines):
+            ok = True
+            for line in self.polygons[polygon_idx].lines:
+                idx = self.lines.index(line)
+                if not idx in line_idxs:
+                    ok = False
+                    break
+            if ok:
+                return
+        for polygon in self.polygons:
+            if len(line_idxs)==len(polygon.lines):
+                ok = True
+                for line in polygon.lines:
+                    idx = self.lines.index(line)
+                    if not idx in line_idxs:
+                        ok = False
+                        break
+                if ok:
+                    map[self.topology_idx][2][polygon_idx] = polygon.id
+                    return
     
     @classmethod
     def delete_map(cls):

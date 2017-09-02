@@ -134,6 +134,11 @@ class LESerializer():
             for line in cfg.diagrams[ns_idx].lines:
                 gf.add_segment( ns.topology_idx, cfg.diagrams[ns_idx].points.index(line.p1), 
                     cfg.diagrams[ns_idx].points.index(line.p2)) 
+            for polygon in cfg.diagrams[ns_idx].polygons:
+                p_idxs = []
+                for line in polygon.lines:
+                    p_idxs.append(cfg.diagrams[ns_idx].lines.index(line))                
+                gf.add_polygon(ns.topology_idx, p_idxs)
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
@@ -162,6 +167,8 @@ class LESerializer():
             cfg.diagrams.append(Diagram(curr_block, cfg.history))
             self._read_ns(cfg, i, gf)  
         Diagram.make_revert_map()
+        for i in range(0, len(gf.geometry.node_sets)):
+            self._fix_polygon_map(cfg, i, gf)        
         ns_idx = 0   
         last_fracture = None
         last_stratum = None
@@ -282,6 +289,11 @@ class LESerializer():
             cfg.diagrams[ns_idx].join_line(cfg.diagrams[ns_idx].points[segment.n1_idx], 
                 cfg.diagrams[ns_idx].points[segment.n2_idx], "Import line", None, True)
 
+    def _fix_polygon_map(self, cfg, ns_idx, gf):
+        """read  one node set from geometry file structure to diagram structure"""        
+        polygons = gf.get_polygons(ns_idx)
+        for i in range(0, len(polygons)):
+            cfg.diagrams[ns_idx].fix_polygon_map(i, polygons[i].segments_idx)
     
 class LESerializerException(Exception):
     def __init__(self, message, errors):

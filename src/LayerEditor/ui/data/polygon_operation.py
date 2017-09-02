@@ -89,7 +89,6 @@ class PolygonGroups():
             self.boundaries_lines[group_id] = []
             self.boundaries_points[group_id] = []            
         polygon = self.groups[group_id][0]
-        start_point = polygon.boundary_points
         for line in polygon.boundary_lines:
             if line.count_polygons() == 1:
                 start_point = line.p1
@@ -154,36 +153,44 @@ class PolygonGroups():
         start = False
         if not reverse:
             for i in range(0, len(self.boundaries_points[group_idx])):
-                if self.boundaries_points==p1:
+                if self.boundaries_points[group_idx][i]==p1:
                     start=True
-                if self.boundaries_points==p2:
+                if self.boundaries_points[group_idx][i]==p2 and start:
                     poly.points.append(self.boundaries_points[group_idx][i])
                     return poly
                 if start:
                     poly.points.append(self.boundaries_points[group_idx][i])
                     poly.lines.append(self.boundaries_lines[group_idx][i])
             for i in range(0, len(self.boundaries_points[group_idx])):
-                if self.boundaries_points==p2:
+                if self.boundaries_points[group_idx][i]==p2:
                     poly.points.append(self.boundaries_points[group_idx][i])
                     return poly
                 poly.points.append(self.boundaries_points[group_idx][i])
                 poly.lines.append(self.boundaries_lines[group_idx][i])                    
         else:
             for i in range(len(self.boundaries_points[group_idx])-1, -1, -1):
-                if self.boundaries_points==p1:
+                if i==0:
+                    line_i = len(self.boundaries_points[group_idx])-1
+                else:
+                    line_i = i-1
+                if self.boundaries_points[group_idx][i]==p1:
                     start=True
-                if self.boundaries_points==p2:
+                if self.boundaries_points[group_idx][i]==p2 and start:
                     poly.points.append(self.boundaries_points[group_idx][i])
                     return poly
                 if start:
                     poly.points.append(self.boundaries_points[group_idx][i])
-                    poly.lines.append(self.boundaries_lines[group_idx][i])
+                    poly.lines.append(self.boundaries_lines[group_idx][line_i])
             for i in range(len(self.boundaries_points[group_idx])-1, -1, -1):
-                if self.boundaries_points==p2:
+                if i==0:
+                    line_i = len(self.boundaries_points[group_idx])-1
+                else:
+                    line_i = i-1
+                if self.boundaries_points[group_idx][i]==p2:
                     poly.points.append(self.boundaries_points[group_idx][i])
                     return poly
                 poly.points.append(self.boundaries_points[group_idx][i])
-                poly.lines.append(self.boundaries_lines[group_idx][i])
+                poly.lines.append(self.boundaries_lines[group_idx][line_i])
         return poly
             
     def _get_fake_path(self, outside, start_point, end_point, paths, clusters):
@@ -290,7 +297,7 @@ class PolygonGroups():
                 for p in test_polyline.points:
                     test_polygon.append(p.qpointf())
                 for i in range(0, len(paths), 2):
-                    reverse = not test_polygon.containsPoint(revers_points[i/2], QtCore.Qt.OddEvenFill)
+                    reverse = test_polygon.containsPoint(revers_points[int(i/2)], QtCore.Qt.OddEvenFill)
                     if i==0:
                         polyline = self.get_polyline(paths[i].group_idx, 
                             paths[i].points[0], paths[i].points[-1], reverse)
@@ -301,14 +308,15 @@ class PolygonGroups():
                     poly = outside._make_polyline_from_path(paths[i+1])
                     polyline.join(poly)
                     i += 1                            
-                polygon = outside.make_polygon_diagram(diagram, polyline)                    
+                polygon = outside.make_polygon_diagram(diagram, polyline)
+                for i in range(0, len(paths), 2):                    
+                    poly = outside._make_polyline_from_path(paths[i+1])
+                    outside.split_bundled_cluster_to_polygon(clusters[int(i/2)+1], polygon)
+                    i += 1
                 outside.split_cluster_to_polygon(polygon.spolygon)
                 outside.add_bundled_to_polygon(polygon)
                 #TODO process inner objects
-                for i in range(0, len(paths), 2):                    
-                    poly = outside._make_polyline_from_path(paths[i+1])
-                    outside.split_bundled_cluster_to_polygon(clusters[i/2+1], polygon)
-                    i += 1
+                return True
         return False
 
     
@@ -342,14 +350,10 @@ class PolylineCluster():
         
     def set_possition(self, polygon, bundled):
         """All line set in polygon"""
-        for poly in self.polyline:
+        for poly in self.polylines:
             for line in poly.lines:
                 line.in_polygon = polygon
-                line.bundled = True
-        for poly in self.polyline:
-            for line in poly.lines:
-                line.in_polygon = polygon
-                line.bundled = False
+                line.bundled = bundled
         
     def set_bundled(self, bundled):
         """All line set in polygon"""
@@ -480,9 +484,11 @@ class Shape(metaclass=abc.ABCMeta):
         """Return neighbor polygon over set line"""
         if line.polygon1 == None:
             return None
-        if line.polygon1 != self:
-            return line.polygon1
-        return line.polygon2
+        if line.polygon1.spolygon != self:
+            return line.polygon1.spolygon
+        if line.polygon2 == None:
+            return None
+        return line.polygon2.spolygon
 
     
     def find_cluster(self, line):
@@ -880,7 +886,7 @@ class Shape(metaclass=abc.ABCMeta):
             if polygon.spolygon.gtpolygon.containsPoint(cluster.get_point().qpointf(), QtCore.Qt.OddEvenFill):                
                 self.bundled_clusters.remove(cluster)
                 polygon.spolygon.bundled_clusters.append(cluster)
-                cluster.set_possition(polygon)        
+                cluster.set_possition(polygon.spolygon, True)        
         
     def split_bundled_cluster_to_polygon(self, cluster, polygon):
         """Move bundled clusters split set polyline from this
@@ -895,7 +901,7 @@ class Shape(metaclass=abc.ABCMeta):
         remove = []
         moved = {}
         for poly in cluster.polylines:
-            if poly.lines[0] in polygon.boundary.lines:
+            if poly.lines[0] in polygon.spolygon.boundary_lines:
                 remove.append(poly)
             index = None            
             if poly.points[0] in joins:
@@ -990,7 +996,7 @@ class Shape(metaclass=abc.ABCMeta):
         for p in polyline.points:
             polygon.spolygon.gtpolygon.append(p.qpointf())
         polygon.spolygon.boundary_lines = polyline.lines
-        polygon.spolygon.boundary_points = polyline.points
+        polygon.spolygon.boundary_points = polyline.points[0:-1]
         self.inner.add_polygon(polygon.spolygon)
         return polygon                
                 
@@ -1088,10 +1094,9 @@ class SimplePolygon(Shape):
                         else:
                             path = self._find_path([poly], new_polylines, poly.points[0], 
                                 cluster.joins[1])
+                        break                        
+                    if len(path)>1:
                         break
-                        
-            if len(path)>1:
-                break
         if len(path)>1:
            self._split_polygon_by_path(diagram, cluster, path)
         if self.reload_polygon:
