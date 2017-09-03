@@ -176,8 +176,8 @@ class JsonData:
 
         try:
             self._deserialize_dict(self.__dict__, config, filter_attrs)
-        except WrongKeyError:
-            raise WrongKeyError("Unknown attrs in initialization of class {}".format(self.__class__))
+        except:
+            raise Exception("Failed deserialization of class {}".format(self.__class__))
 
 
     @staticmethod
@@ -186,16 +186,10 @@ class JsonData:
             if key in skip_attrs:
                 continue
             value = config_dict.get(key, temp)
-            del config_dict[key]
+            config_dict.pop(key, None)
 
-            if inspect.isclass(temp):
-                # just type given
-                assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
-                filled_template = JsonData._deserialize_item(temp, value)
-            else:
-                # given default value
-                filled_template = JsonData._deserialize_item(temp.__class__, value)
-
+            assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
+            filled_template = JsonData._deserialize_item(temp, value)
             template_dict[key] = filled_template
 
         if config_dict.keys():
@@ -237,7 +231,7 @@ class JsonData:
 
         # tuple,
         elif isinstance(temp, tuple):
-            assert value.__class__ is list, "Expecting list, get class: {}".format(value.__class__)
+            assert isinstance(value, (list, tuple)), "Expecting list, get class: {}".format(value.__class__)
             assert len(temp) == len(value)
             l = []
             for i_temp, i_val in zip(temp, value):
@@ -254,6 +248,9 @@ class JsonData:
 
         # other scalar types
         else:
+            # only temp type matters
+            if not inspect.isclass(temp):
+                temp = temp.__class__
 
             if issubclass(temp, IntEnum):
                 if value.__class__ is str:
