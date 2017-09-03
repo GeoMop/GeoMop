@@ -161,6 +161,7 @@ class Polygon():
             else:
                 line.polygon2 = self
             line.bundled = True
+            line.in_polygon = None
         self.object = None
         """Graphic object"""
         self.id = id
