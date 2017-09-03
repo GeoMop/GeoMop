@@ -342,9 +342,9 @@ class Approx:
         def mid(*idx):
             return np.mean( vtxs[list(idx)], axis=0)
 
-        poles = [ [vtxs[0],  mid(0, 1), vtxs[1]],
-                  [mid(0,2), mid(0,1,2,3), mid(1,3)],
-                  [vtxs[2], mid(2,3), vtxs[3]]
+        poles = [ [vtxs[0],  mid(0, 2), vtxs[2]],
+                  [mid(0,1), mid(0,1,2,3), mid(2,3)],
+                  [vtxs[1], mid(1,3), vtxs[3]]
                   ]
         knots = [(0.0, 3), (1.0, 3)]
         surface = Surface(poles, (knots, knots))
