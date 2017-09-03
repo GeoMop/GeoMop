@@ -33,56 +33,21 @@ class TopologyObject(IntEnum):
     polygon = 2
 
 
-class GeoObject:
-    class_def = {}
-    
-    def serialize(self):
-        d = {}
-        for k, v in self.__dict__.items():
-            if isinstance(v, GeoObject):
-                d[k] = v.serialize()                
-            elif isinstance(v, list):
-                d[k]=[]
-                for item in v:
-                    if isinstance(item, GeoObject):
-                        d[k].append(item.serialize()) 
-                    else:
-                        d[k].append(item)
-            else:
-                d[k] = v
-        return d
-                
-    def deserialize(self, data):
-        for k, v in data.items():
-            if k in self.class_def:
-                if isinstance(v, list):
-                    list_ = []
-                    for item in v:
-                        obj = self.class_def[k].__new__(self.class_def[k])
-                        obj.deserialize(item)
-                        list_.append(obj)
-                    setattr(self, k, list_)
-                else:
-                    obj = self.class_def[k].__new__(self.class_def[k])
-                    obj.deserialize(v)
-                    setattr(self, k, obj)
-            else:
-                setattr(self, k, v)
-
 class Curve(JsonData):
-    def __init__():
-        pass    
+    def __init__(self, config={}):
+        super().__init__(config)
 
-class Surface(GeoObject):
+class Surface(JsonData):
     
-    def __init__(self, depth):
-        self.transform = [[1, 0, 0], [0, 1, 0], [0, 0, depth]] 
+    def __init__(self, config={}):
+        self.transform = 4*(3*(float,), )
         """Transform4x4Matrix"""
         self.grid = None
         """List of input grid 3DPoints. None for plane"""
         self.b_spline = None
         """B-spline,None for plane"""
-        
+        super().__init__(config)
+
     def get_depth(self):
         """Return surface depth in 0"""
         return self.transform[2][2]
@@ -108,7 +73,7 @@ class Segment(JsonData):
         self.node_ids  = ( int, int )
         """First point index"""
         """Second point index"""
-        self.surface_idx = None
+        self.surface_id = None
         """Surface index"""
         super().__init__(config)
 
@@ -119,10 +84,9 @@ class Polygon(JsonData):
     def __init__(self, config={}):
         self.segment_ids = [ int ]
         """List of segments index"""
-        self.surface_id = int
+        self.surface_id = None
         """Surface index"""
         super().__init__(config)
-
 
 
 class Topology(JsonData):
@@ -134,6 +98,8 @@ class Topology(JsonData):
         self.polygons = [ ClassFactory(Polygon) ]
         """List of topology polygons"""
         super().__init__(config)
+
+
 
 class NodeSet(JsonData):
 
@@ -156,7 +122,13 @@ class NodeSet(JsonData):
         """Reset node set"""
         self.nodes = []
 
-    
+
+
+
+
+
+
+
 class SurfaceNodeSet(JsonData):
     """Node set in space for transformation(x,y) ->(u,v). 
     Only for GL"""
@@ -168,17 +140,21 @@ class SurfaceNodeSet(JsonData):
         """Surface index"""
         super().__init__(config)
 
+
+
 class InterpolatedNodeSet(JsonData):
     """Two node set with same Topology in space for transformation(x,y) ->(u,v).
     If both node sets is same, topology is vertical    
     Only for GL"""
 
     def __init__(self, config={}):
-        self.source_nodeset_ids = ( int, int )
+        self.surf_nodesets = ( SurfaceNodeSet, SurfaceNodeSet )
         """Top and bottom node set index"""
         self.surface_id = int
         """Surface index"""
         super().__init__(config)
+
+
 
 class Region(JsonData):
     """Description of disjunct geometri area sorte by dimension (dim=1 well, dim=2 fracture, dim=3 bulk). """
@@ -209,14 +185,9 @@ class GeoLayer(JsonData):
         self.name =  ""
         """Layer Name"""
 
-        """Layer type :class:`geometry_files.geometry_structures.LayerType`"""
         self.top =  ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
         """Accoding topology type surface node set or interpolated node set"""
         
-        self.bottom = ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
-        """ optional, only for stratum type, accoding bottom topology 
-        type surface node set or interpolated node set"""
-
         # assign regions to every topology object
         self.polygon_region_ids = [ int ]
         self.segment_region_ids = [ int ]
@@ -224,27 +195,19 @@ class GeoLayer(JsonData):
 
         super().__init__(config)
 
-       # # set __class__ keys:
-       #  if config['top_type'] is TopologyType.given:
-       #      self.top = SurfaceNodeSet.__new__(SurfaceNodeSet)
-       #  elif self.top_type is TopologyType.interpolated:
-       #      self.top = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
-       #  self.top.deserialize(data["top"])
-       #  if self.layer_type is LayerType.stratum:
-       #      self.bottom_type = TopologyType(data["bottom_type"])
-       #      if self.bottom_type is TopologyType.given:
-       #          self.bottom = SurfaceNodeSet.__new__(SurfaceNodeSet)
-       #      else:
-       #          self.bottom = InterpolatedNodeSet.__new__(InterpolatedNodeSet)
-       #      self.bottom.deserialize(data["bottom"])
-
 
 class FractureLayer(GeoLayer):
     def __init__(self, config={}):
+
         super().__init__(config)
 
 class StratumLayer(GeoLayer):
     def __init__(self, config={}):
+
+        self.bottom = ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
+        """ optional, only for stratum type, accoding bottom topology
+        type surface node set or interpolated node set"""
+
         super().__init__(config)
 
 
@@ -264,16 +227,17 @@ class LayerGeometry(JsonData):
         #     Region("#000000", "NONE_2D", 2),
         #     Region("#000000", "NONE_3D", 3)]
         """List of regions"""
-        self.main_layers = [ ClassFactory( [StratumLayer, FractureLayer] ) ]
+        self.layers = [ ClassFactory( [StratumLayer, FractureLayer] ) ]
         """List of geological layers"""
         self.surfaces = [ ClassFactory(Surface) ]
         """List of B-spline surfaces"""
         self.curves = [ ClassFactory(Curve) ]
         """List of B-spline curves,"""
-        self.plane_topologies = [ ClassFactory(Topology) ]
+        self.topologies = [ ClassFactory(Topology) ]
         """List of topologies"""
         self.node_sets = [ ClassFactory( NodeSet) ]
         """List of node sets"""
         self.supplement = ClassFactory( UserSupplement )
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
+
