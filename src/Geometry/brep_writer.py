@@ -412,7 +412,7 @@ class ShapeRef:
         :param location: A Location object. Default is None = identity location.
         """
         if not issubclass(type(shape), Shape):
-            raise ParamError("Expected Shape, get: {}.".format(type(shape)))
+            raise ParamError("Expected Shape, get: {}.".format(shape))
         assert isinstance(orient, Orient)
         assert issubclass(type(location), Location)
 
