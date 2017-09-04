@@ -166,9 +166,9 @@
     "topologies": [
         {
             "polygons": [
-                 {"segment_ids": [0,1,2] }, 
+                 {"segment_ids": [2,1,0] }, 
                  {"segment_ids": [2,3,4,5] }, 
-                 {"segment_ids": [5,6,7] }
+                 {"segment_ids": [7,6,5] }
             ],
             "segments": [
                 {
@@ -176,7 +176,7 @@
                     "surface_id": null
                 },
                 {
-                    "node_ids": [1, 2],
+                    "node_ids": [2, 1],
                     "surface_id": null
                 },
                 {
@@ -188,11 +188,11 @@
                     "surface_id": null
                 },
                 {
-                    "node_ids": [3, 4],
+                    "node_ids": [4, 3],
                     "surface_id": null
                 },
                 {
-                    "node_ids": [4, 2],
+                    "node_ids": [2, 4],
                     "surface_id": null
                 },
                 {

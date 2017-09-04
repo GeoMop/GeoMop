@@ -55,6 +55,12 @@ class Topology(gs.Topology):
     - support for polygons with holes, here and in creation of faces and solids
     """
     def init(self):
+        node_id_set = { nid for segment in self.segments for nid in segment.node_ids }
+
+        self.n_nodes =  len(node_id_set)
+        assert self.n_nodes == max(node_id_set) + 1
+        self.n_segments  = len(self.segments)
+
         for poly in self.polygons:
             self.orient_polygon(poly)
 
@@ -76,12 +82,12 @@ class Topology(gs.Topology):
 
 
     def code_oriented_segment(self, id_seg, reversed):
-        return id_seg + reversed*len(self.segments)
+        return id_seg + reversed*self.n_segments
 
 
     def orient_segment(self, id_seg):
-        if id_seg > len(self.segments):
-            return id_seg - len(self.segments), True
+        if id_seg >= len(self.segments):
+            return id_seg - self.n_segments, True
         else:
             return id_seg, False
 
@@ -221,13 +227,16 @@ class StratumLayer(gs.StratumLayer):
         shapes = []
 
         vert_edges=[]
-        vert_faces=[]
+
         for i, i_reg in enumerate(self.node_region_ids):
             edge = bw.Edge( [self.i_bot.vertices[i], self.i_top.vertices[i]] )
             vert_edges.append(edge)
             if self.regions[i_reg].is_active(1):
                 shapes.append( (edge, i_reg) )
+        assert len(vert_edges) == self.topology.n_nodes, "n_vert_faces: %d n_nodes: %d"%(len(vert_faces), self.topology.n_nodes)
+        assert len(vert_edges) == len(self.node_region_ids)
 
+        vert_faces = []
         for i, i_reg in enumerate(self.segment_region_ids):
             segment = self.topology.segments[i]
             # make face oriented to the right side of the segment when looking from top
@@ -243,6 +252,8 @@ class StratumLayer(gs.StratumLayer):
             vert_faces.append(face)
             if self.regions[i_reg].is_active(2):
                 shapes.append((face, i_reg))
+        assert len(vert_faces) == len(self.topology.segments)
+        assert len(vert_faces) == len(self.segment_region_ids)
 
         for i, i_reg in enumerate(self.polygon_region_ids):
             if self.regions[i_reg].is_active(3):
@@ -252,14 +263,14 @@ class StratumLayer(gs.StratumLayer):
                 # we orient all faces inwards (assuming normal oriented up for counter clockwise edges, right hand rule)
                 # assume polygons oriented upwards
                 faces = []
-                faces.append( self.i_top.faces[i].m() )
-                faces.append( self.i_bot.faces[i] )
                 for id_seg in segment_ids:
                     i_seg, reversed = self.topology.orient_segment(id_seg)
                     if reversed:
-                        faces.append( vert_faces[i_seg] )
+                        faces.append( vert_faces[i_seg].m() )
                     else:
-                        faces.append(vert_faces[i_seg].m())
+                        faces.append( vert_faces[i_seg] )
+                faces.append( self.i_top.faces[i] )
+                faces.append( self.i_bot.faces[i].m() )
                 shell = bw.Shell( faces )
                 solid = bw.Solid([shell])
 
@@ -302,12 +313,13 @@ class LayerGeometry(gs.LayerGeometry):
         #self.set_ids(self.nodesets)
         last_interface = None
 
-        # initialize layers, neigboring layers refer to common interface
-        for layer in self.layers:
-            layer.init(self)
         # orient polygons
         for topo in self.topologies:
             topo.init()
+
+        # initialize layers, neigboring layers refer to common interface
+        for layer in self.layers:
+            layer.init(self)
 
 
 
@@ -354,9 +366,16 @@ class LayerGeometry(gs.LayerGeometry):
                 self.brep_shapes += layer.make_shapes()
 
         shapes, shape_regions = zip(*self.brep_shapes)
+
         compound = bw.Compound(shapes)
         with open("layer_model.brep", 'w') as f:
             bw.write_model(f, compound, bw.Location() )
+
+        shape_to_reg = [ (i, shape.id, i_reg, self.regions[i_reg].dim) for i, (shape, i_reg) in enumerate(self.brep_shapes) ]
+        for line in shape_to_reg:
+            print(line)
+
+        #print(compound)
 
 
     def split_to_blocks(self):
