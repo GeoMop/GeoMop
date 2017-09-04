@@ -589,7 +589,8 @@ class Layers():
         return False        
         
     def _add_shadow(self, idx):
-        """Transform idx layer to shadow block"""
+        """Transform idx layer to shadow block. Return 
+        count of removed layers"""
         if idx == len(self.layers)-1:
             del self.interfaces[-1]
             del self.layers[-1]            
@@ -609,32 +610,32 @@ class Layers():
             return
         if idx == 0:
             del self.interfaces[0]
-            del self.layers[0] 
+            del self.layers[0]
             self.interfaces[idx].splited = False
             if self.interfaces[0].fracture is not None:
                 if self.interfaces[0].fracture.type is FractureInterface.top:
                     self.interfaces[0].fracture = None
                 else:
                     self.interfaces[0].fracture.type = FractureInterface.none
-            return
+            return 1
         if idx>0 and self.layers[idx-1].shadow and self.layers[idx-1].shadow:
             del self.interfaces[idx+1]
             del self.layers[idx+1]
             del self.interfaces[idx]
             del self.layers[idx]            
-            return
+            return 2
         if idx>0 and self.layers[idx-1].shadow:
             del self.interfaces[idx]
             del self.layers[idx]
             self.interfaces[idx].splited = True
             self.interfaces[idx].diagram_id2 = None
-            return
+            return 1
         if self.layers[idx +1].shadow:
             del self.interfaces[idx]
             del self.layers[idx+1]
             self.interfaces[idx+1].splited = True
             self.interfaces[idx+1].diagram_id1 = None            
-            return
+            return 1
         self.interfaces[idx].splited = True
         self.interfaces[idx].diagram_id2 = None
         self.layers[idx].shadow = True
@@ -646,31 +647,33 @@ class Layers():
         if self.interfaces[idx+1].fracture is not None:
             if self.interfaces[idx+1].fracture.type is FractureInterface.top:
                 self.interfaces[idx+1].fracture = None
+        return 0
             
         
     def remove_layer(self, idx, removed_res, dup):
         """Remove layer. Variable removed_res is one, that is
         was returned by remove_layer_changes. Variable dup is 
         returned by get_diagram_dup and new diagrams was added
-        outside this function"""
+        outside this function. Is returned tuple with removed 
+        diagrams and count of removed layers """
         
         if removed_res[1]==1:
             assert removed_res[0]==1
             self.interfaces[idx].diagram_id1=self.interfaces[idx+1].diagram_id1
-            self._add_shadow(idx)
-            return [self.interfaces[idx].diagram_id1+1]
-        self._add_shadow(idx)
+            count_res = self._add_shadow(idx)
+            return [self.interfaces[idx].diagram_id1+1], count_res
+        count_res = self._add_shadow(idx)
         if removed_res[0]==0:
-            return []
+            return [], count_res
         if removed_res[0]==1:
             self._move_diagram_idx(idx, -1)
             if self.interfaces[idx+1].diagram_id1 is not None:
-                return [self.interfaces[idx+1].diagram_id1]
+                return [self.interfaces[idx+1].diagram_id1], count_res
             else:
-                return [self.interfaces[idx].diagram_id1]
+                return [self.interfaces[idx].diagram_id1], count_res
         if removed_res[0]==2:
             self._move_diagram_idx(idx, -2)
-            return [self.interfaces[idx+1].diagram_id1, self.interfaces[idx].diagram_id1]
+            return [self.interfaces[idx+1].diagram_id1, self.interfaces[idx].diagram_id1], count_res
         raise Exception("Invalid remove layer {0} operation".format(str(idx)))
         
     def remove_interface(self, idx, removed_res):
@@ -686,9 +689,9 @@ class Layers():
         
     def remove_block(self, idx, removed_res):
         """Remove all block where id idx layer. Variable removed_res is one, 
-        that is was returned by remove_block_changes."""        
+        that is was returned by remove_block_changes."""
         (first_idx, first_slice_id, layers, fractures, slices) = removed_res        
-        for i in range(0, layers-1):
+        for i in range(0, layers-1):            
             del self.interfaces[first_idx+1]
             del self.layers[first_idx+1]
         self._add_shadow(first_idx)
@@ -699,8 +702,10 @@ class Layers():
         return res
         
     def remove_layer_changes(self, idx):
-        """Return tuple with count (removed slices,added slice, removed fractures)"""        
+        """Return tuple with count (removed slices,added slice, removed fractures
+        , remove first fracture)"""        
         fractures=0
+        first = False
         if idx == len(self.interfaces) or self.interfaces[idx+1].splited:
             ret = 0            
             if self.interfaces[idx+1].splited:
@@ -718,37 +723,41 @@ class Layers():
             if self.interfaces[idx].splited:
                 if self.interfaces[idx].fracture is not None and \
                     self.interfaces[idx].fracture.type is FractureInterface.bottom:
+                    first = True
                     fractures += 1
                 elif idx>0 and self.layers[idx-1].shadow and \
                     self.interfaces[idx].fracture is not None and \
                     self.interfaces[idx].fracture.type is FractureInterface.own:
+                    first = True
                     fractures += 1
                     ret +=1
                 if self.interfaces[idx].diagram_id2 is not None:
+                    first = True
                     ret += 1
                 if self.interfaces[idx+1].diagram_id1  is not None:
                     ret += 1                    
-                return (ret, 0, fractures)
+                return (ret, 0, fractures, first)
             # layer is first all block
             if idx==0:
                 if self.interfaces[idx+1].diagram_id1  is None or \
                     self.interfaces[idx].diagram_id1  is None:
-                    return (ret+1, 0, fractures)
+                    return (ret+1, 0, fractures, first)
                 else:
-                    return (ret+2, 0, fractures)
+                    return (ret+2, 0, fractures, first)
             # interpolated
             if self.interfaces[idx+1].diagram_id1  is None:                
-                return (ret, 0, fractures)
+                return (ret, 0, fractures, first)
             # remain editable and before is not splited
             if self.interfaces[idx].diagram_id1  is not None or \
                 idx==0:    
-                return (ret+1, 0, fractures)
+                return (ret+1, 0, fractures, first)
             else:
-                return (ret+1, 1, fractures)          
-        return (0, 0, fractures)
+                return (ret+1, 1, fractures, first)          
+        return (0, 0, fractures, first)
 
     def remove_block_changes(self, idx):
-        """Return tuple with count (first layer, removed layers,removed slices, removed fractures)"""        
+        """Return tuple with count (first layer, removed layers,removed slices, 
+        removed fractures)"""        
         first_idx = 0
         first_slice_id = None
         layers = 0

@@ -2,7 +2,7 @@
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment, Node, GL
 from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface, TopologyType
-from .geometry_structures import Region
+from .geometry_structures import Region, Polygon
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -67,17 +67,19 @@ class GeometryFactory:
         gl = GL(name, type, top_type, top, bottom_type, bottom)
         gl.node_regions = regions_idx[0]
         gl.segment_regions = regions_idx[1]
-        gl.segment_polygons = regions_idx[2]
+        gl.polygon_regions = regions_idx[2]
         self.geometry.main_layers.append(gl)
         
         return  len(self.geometry.main_layers)-1
 
     def add_node_set(self, topology_idx):
+        """Add new node set"""
         ns = NodeSet(topology_idx)
         self.geometry.node_sets.append(ns)
         return  len(self.geometry.node_sets)-1
         
     def reset(self):
+        """Remove all data from base structure"""
         self.geometry.node_sets = []
         self.geometry.plane_topologies = []
         self.geometry.surfaces = []
@@ -85,20 +87,35 @@ class GeometryFactory:
         self.geometry.main_layers = []
         
     def add_node(self,node_set_idx, x, y):
+        """Add one node"""
         self.geometry.node_sets[node_set_idx].nodes.append(Node(x, y))
         return len(self.geometry.node_sets[node_set_idx].nodes)-1
         
     def get_nodes(self, node_set_idx):
+        """Get list of nodes"""
         return self.geometry.node_sets[node_set_idx].nodes
      
     def add_segment(self,topology_idx, n1_idx, n2_idx):
+        """Add one segment"""
         self.geometry.plane_topologies[topology_idx].segments.append(
             Segment(n1_idx, n2_idx))
         return len(self.geometry.plane_topologies[topology_idx].segments)-1
+
+    def add_polygon(self,topology_idx, p_idxs):
+        """Add one polygon"""
+        self.geometry.plane_topologies[topology_idx].polygons.append(
+            Polygon(p_idxs))
+        return len(self.geometry.plane_topologies[topology_idx].polygons)-1
         
     def get_segments(self, node_set_idx):
+        """Get list of segments"""
         ns =  self.geometry.node_sets[node_set_idx]
         return self.geometry.plane_topologies[ns.topology_idx].segments
+        
+    def  get_polygons(self, node_set_idx):
+        """Get list of polygons"""
+        ns =  self.geometry.node_sets[node_set_idx]
+        return self.geometry.plane_topologies[ns.topology_idx].polygons
         
     def get_GL_regions(self, gl_idx):
         """Return lis of gl regions"""
