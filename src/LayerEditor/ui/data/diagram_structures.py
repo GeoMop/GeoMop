@@ -3,7 +3,7 @@ import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
-from .polygon_operation import PolygonOperation, SimplePolygon
+from .polygon_operation import PolygonOperation, SimplePolygon, Outside
 
 __next_id__ = 1
 __next_diagram_uid__ = 1
@@ -379,6 +379,8 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
+        self.outside = Outside()
+        """Help variable for polygons structures"""
         
     def join(self):
         """Add diagram to topologies"""
@@ -623,6 +625,7 @@ class Diagram():
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
+        PolygonOperation.next_split_line(line) 
         l2 = self.join_line(point2, line.p2, None)
         #save revert operations to history        
         self._history.add_line(line.id, line.p1, point2, None)

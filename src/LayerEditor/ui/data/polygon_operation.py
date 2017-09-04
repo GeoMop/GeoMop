@@ -159,6 +159,12 @@ class PolygonGroups():
             if end:
                 break
     
+    def refresh_polygon(self, polygon):
+        for group in self.groups:
+            if polygon in group:
+                self._make_group_boundary(self.groups.index(group))
+                break
+    
     def add_polygon(self, polygon):
         self.polygons.append(polygon)
         added = False
@@ -488,7 +494,6 @@ class Shape(metaclass=abc.ABCMeta):
         if line.polygon2 == None:
             return None
         return line.polygon2.spolygon
-
     
     def find_cluster(self, line):
         """Return if cluster is bunded and cluster index"""
@@ -498,6 +503,36 @@ class Shape(metaclass=abc.ABCMeta):
         for i in range(0, len(self.clusters)):
             if self.clusters[i].contains_line(line):
                 return False, i
+                
+    def split_boundary_line(self, line, new_line, new_point):
+        """Split line in boundary"""
+        p_index = self.boundary_points.index(line.second_point(new_point))
+        l_index = self.boundary_lines.index(line)        
+        if p_index == l_index:
+            self.boundary_lines.insert(l_index+1, new_line)
+            self.boundary_points.insert(p_index+1, new_point)
+        else:
+            self.boundary_lines.insert(l_index, new_line)
+            self.boundary_points.insert(p_index, new_point)
+        
+    def split_line(self, line, new_line, new_point):
+        """Split line in polygon"""
+        if line.bundled:
+            clusters = self.bundled_clusters
+        else:
+            clusters = self.clusters
+            
+        for cluster in clusters:
+            for poly in cluster.polylines:
+                if new_line in poly.lines: 
+                        p_index = poly.points.index(line.second_point(new_point))
+                        l_index = poly.lines.index(line)                        
+                        if p_index == l_index:
+                            poly.lines.insert(l_index+1, new_line)
+                            poly.points.insert(p_index+1, new_point)
+                        else:
+                            poly.lines.insert(l_index, new_line)
+                            poly.points.insert(p_index, new_point)
                 
     def join(self, line):
         """Join line in shape, return if is bundled"""
@@ -1119,7 +1154,7 @@ class SimplePolygon(Shape):
         
         self.reload_shape_boundary(polygon, False)
         polygon.spolygon.reload_shape_boundary(polygon, True)
-        parent = PolygonOperation.get_container(polygon)        
+        parent = PolygonOperation.get_container(diagram, polygon)        
         parent.inner.add_polygon(new_polygon.spolygon)
         
     def split_shape(self, diagram, polygon, cluster):
@@ -1185,26 +1220,29 @@ class PolygonOperation():
     """
     Static class for polygon localization
     """
+    line_spliting = None
+    """Note about spliting line in next add operation"""
     
-    outside = Outside()
-    """Shape outside polygons"""
+    @classmethod    
+    def next_split_line(cls, line):
+        """Set note about spliting line in next add operation"""
+        cls.line_spliting = line
     
-    @classmethod
-    def get_container(cls, polygon):
+    @staticmethod
+    def get_container(diagram, polygon):
         """Get shape that contains polygon"""
-        return cls.outside.get_container(polygon) 
-        
+        return diagram.outside.get_container(polygon) 
     
-    @classmethod
-    def find_polygon(cls, diagram, point):
+    @staticmethod
+    def find_polygon(diagram, point):
         """Try find polygon that contains point"""
         for polygon in diagram.polygons:
             if polygon.spolygon.gtpolygon.containsPoint(point, QtCore.Qt.OddEvenFill):
                 return polygon
         return None
         
-    @classmethod
-    def find_polygon_by_neighbors(cls, diagram, line, p1, p2):
+    @staticmethod
+    def find_polygon_by_neighbors(diagram, line, p1, p2):
         """
         Try find polygon in neighboring lines
         
@@ -1222,7 +1260,34 @@ class PolygonOperation():
                     if l.polygon2.spolygon.gtpolygon.containsPoint(p2, QtCore.Qt.OddEvenFill):
                         return l.polygon2            
         return None
-                
+    
+    @classmethod
+    def split_line(cls, diagram, line, new_line):
+        """Find and split line by new point"""
+        if line.p1 == new_line.p1 or line.p1 == new_line.p2:
+            new_point = line.p1
+        else:
+            new_point = line.p2
+            
+        new_line.bundled = line.bundled
+        new_line.in_polygon = line.in_polygon
+        new_line.polygon1 = line.polygon1
+        new_line.polygon2 = line.polygon2
+        
+        if line.in_polygon is not None:
+            line.in_polygon.spolygon.split_line(line, new_line, new_point)
+        elif line.polygon1 is not None:
+            line.polygon1.spolygon.split_boundary_line(line, new_line, new_point)
+            line.polygon1.spolygon.reload_shape_boundary(line.polygon1, True)
+            if line.polygon2 is not None:
+                line.polygon2.spolygon.split_boundary_line(line, new_line, new_point)
+                line.polygon2.spolygon.reload_shape_boundary(line.polygon2, True)            
+                parent = PolygonOperation.get_container(line.polygon1)        
+                parent.inner.reload_polygon(line.polygon1.spolygon)    
+        else:
+            raise Exception("Can't split line") 
+        
+        
     @classmethod
     def find_polygon_boundary(cls, line):
         """Try find polygon that contains line"""
@@ -1231,6 +1296,11 @@ class PolygonOperation():
     @classmethod
     def update_polygon_add_line(cls, diagram, line):
         """Update polygon structures after add line"""
+        if cls.line_spliting is not None:
+            line2 = cls.line_spliting
+            cls.line_spliting = None
+            cls.split_line(diagram, line2, line)
+            return
         bundled = False
         lp1 = len(line.p1.lines)
         lp2 = len(line.p2.lines)
@@ -1239,7 +1309,7 @@ class PolygonOperation():
                 (line.p1.x+line.p2.x)/2,(line.p1.y+line.p2.y)/2)                
             polygon = cls.find_polygon_by_neighbors(diagram, line, line.p1, middle)
             if polygon is None:
-                bundled = cls.outside.join(line)                
+                bundled = diagram.outside.join(line)                
             else:
                 bundled = polygon.spolygon.join(line)
         elif lp1>1 or lp2>1:
@@ -1251,19 +1321,19 @@ class PolygonOperation():
                 p2 = QtCore.QPointF( line.p1.x, line.p1.y)
             polygon = cls.find_polygon_by_neighbors(diagram, line, p1, p2)
             if polygon is None:
-                bundled = cls.outside.append(line)
+                bundled = diagram.outside.append(line)
             else:
                 bundled = polygon.spolygon.append(line)
         else:
             p = QtCore.QPointF( line.p1.x, line.p1.y)
             polygon = cls.find_polygon(diagram, p)
             if polygon is None:
-                bundled = cls.outside.add(line)                
+                bundled = diagram.outside.add(line)                
             else:
                 bundled = polygon.spolygon.add(line)
         line.bundled = bundled
         if polygon is None:
-            cls.outside.apply_add_line_changes(diagram, None, line)
+            diagram.outside.apply_add_line_changes(diagram, None, line)
         else:
             line.in_polygon = polygon
             polygon.spolygon.apply_add_line_changes(diagram, polygon, line)
@@ -1281,7 +1351,7 @@ class PolygonOperation():
                     (line.p1.x+line.p2.x)/2,(line.p1.y+line.p2.y)/2)                
                 polygon = cls.find_polygon(middle)
             if polygon is None:
-                cls.outside.disjoin(line)
+                diagram.outside.disjoin(line)
             else:
                 polygon.disjoin(line)
         elif lp1>1 or lp2>1:
@@ -1291,14 +1361,14 @@ class PolygonOperation():
                 p = QtCore.QPointF( line.p1.x, line.p1.y)
             polygon = cls.find_polygon(p)
             if polygon is None:
-                cls.outside.take(line)
+                diagram.outside.take(line)
             else:
                 polygon.take(line)
         else:
             p = QtCore.QPointF( line.p1.x, line.p1.y)
             polygon = cls.find_polygon(p)
             if polygon is None:
-                cls.outside.remove(line)
+                diagram.outside.remove(line)
             else:
                 polygon.remove(line)                
         
