@@ -21,3 +21,8 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         
     def release_polygon(self):
         self.polygon.object = None
+        
+    def refresh_polygon(self):
+        """reload polygon.spolygon.gtpolygon"""
+        self.setPolygon(self.polygon.spolygon.gtpolygon)
+    

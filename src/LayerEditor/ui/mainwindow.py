@@ -83,6 +83,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
 
+    def release_data(self, diagram):
+        """Release all diagram graphic object"""
+        self.diagramScene.release_data(diagram)
+
     def refresh_all(self):
         """For new data"""
         self.diagramScene.set_data()
