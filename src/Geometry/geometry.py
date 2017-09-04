@@ -368,6 +368,7 @@ class LayerGeometry(gs.LayerGeometry):
         shapes, shape_regions = zip(*self.brep_shapes)
 
         compound = bw.Compound(shapes)
+        compound.set_free_shapes()
         with open("layer_model.brep", 'w') as f:
             bw.write_model(f, compound, bw.Location() )
 
