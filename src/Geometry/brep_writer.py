@@ -325,9 +325,10 @@ class Approx:
         assert len(vtxs) == 3, "n vtx: {}".format(len(vtxs))
         vtxs.append( (0,0,0) )
         vtxs = np.array(vtxs)
-        vtxs[3] = vtxs[1] + vtxs[2] - vtxs[0]
-        (surf, vtxs_uv) = cls.bilinear(vtxs)
-        return (surf, vtxs_uv[0:3])
+        vv = vtxs[1] + vtxs[2] - vtxs[0]
+        vtx4 = [ vtxs[0], vtxs[1], vv, vtxs[2]]
+        (surf, vtxs_uv) = cls.bilinear(vtx4)
+        return (surf, [ vtxs_uv[0], vtxs_uv[1], vtxs_uv[3] ])
 
     @classmethod
     def bilinear(cls, vtxs):
@@ -342,20 +343,22 @@ class Approx:
         def mid(*idx):
             return np.mean( vtxs[list(idx)], axis=0)
 
-        poles = [ [vtxs[0],  mid(0, 2), vtxs[2]],
+        # v - direction v0 -> v2
+        # u - direction v0 -> v1
+        poles = [ [vtxs[0],  mid(0, 3), vtxs[3]],
                   [mid(0,1), mid(0,1,2,3), mid(2,3)],
-                  [vtxs[1], mid(1,3), vtxs[3]]
+                  [vtxs[1], mid(1,2), vtxs[2]]
                   ]
         knots = [(0.0, 3), (1.0, 3)]
         surface = Surface(poles, (knots, knots))
-        vtxs_uv = [ (0, 0), (1, 0), (0, 1), (1,1) ]
+        vtxs_uv = [ (0, 0), (1, 0), (1, 1), (0, 1) ]
         return (surface, vtxs_uv)
 
 
 
 
     @classmethod
-    def _line(cls, vtxs):
+    def _line(cls, vtxs, overhang=0.0):
         '''
         :param vtxs: List of tuples (X,Y) or (X,Y,Z)
         :return:
@@ -364,7 +367,7 @@ class Approx:
         vtxs = np.array(vtxs)
         mid = np.mean(vtxs, axis=0)
         poles = [ vtxs[0],  mid, vtxs[1] ]
-        knots = [(0.0, 3), (1.0, 3)]
+        knots = [(0.0+overhang, 3), (1.0-overhang, 3)]
         return (poles, knots)
 
     @classmethod
@@ -405,6 +408,9 @@ class ShapeRef:
     All methods accept the tuple (shape, orient, location) and
     construct the ShapeRef object automatically.
     """
+
+    orient_chars = ['+', '-', 'i', 'e']
+
     def __init__(self, shape, orient=Orient.Forward, location=Location()):
         """
         :param shape: referenced shape
@@ -421,8 +427,12 @@ class ShapeRef:
         self.location=location
 
     def _writeformat(self, stream, groups):
-        orient_chars = ['+', '-', 'i', 'e']
-        stream.write("{}{} {} ".format(orient_chars[self.orientation-1], self.shape.id, self.location.id))
+
+        stream.write("{}{} {} ".format(self.orient_chars[self.orientation-1], self.shape.id, self.location.id))
+
+    def __repr__(self):
+        return "{}{} ".format(self.orient_chars[self.orientation-1], self.shape.id)
+
 
 class ShapeFlag(dict):
     """
@@ -557,6 +567,33 @@ class Shape:
     def _subrecordoutput(self, stream):
         stream.write("\n")
 
+    def __repr__(self):
+        if not hasattr(self, 'id'):
+            self.index_all()
+        if len(self.childs)==0:
+            return ""
+        repr = ""
+        repr+=self.shpname + " " + str(self.id) + " : "
+        for child in self.childs:
+            repr+=child.__repr__()
+        repr+="\n"
+        for child in self.childs:
+            repr+=child.shape.__repr__()
+        repr+="\n"
+        return repr
+
+
+    def index_all(self, location=Location()):
+        # print("Index")
+        # print(compound.__class__.__name__) #prints class name
+
+        groups = dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
+        self._dfs(groups)  # pridej jako parametr dictionary listu jednotlivych grup. v listech primo objekty
+        location._dfs(groups)
+        # print(groups)
+        return groups
+
+
 """
 Shapes with no special parameters, only flags and subshapes.
 Writer can be generic implemented in bas class Shape.
@@ -569,6 +606,15 @@ class Compound(Shape):
         super().__init__(shapes)
         #flags: free, modified, IGNORED, orientable, closed, infinite, convex
         self.set_flags( (1, 1, 0, 0, 0, 0, 0) ) # free, modified
+
+    def set_free_shapes(self):
+        """
+        Set 'free' attributes to all shapes of the compound.
+        :return:
+        """
+        for shape in self.subshapes():
+            shape.flags.set('free', True)
+
 
 class CompoundSolid(Shape):
     def __init__(self, solids=[]):
@@ -690,19 +736,27 @@ class Face(Shape):
         :return: None
         """
         edges = {}
-        vtxs = {}
+        vtxs = []
         for wire in self.subshapes():
-            for edge in wire.subshapes():
-                edges[edge.id] =  edge
-                for vtx in edge.subshapes():
-                    vtxs[vtx.id] = vtx.point
+            for edge in wire.childs:
+                edges[edge.shape.id] =  edge.shape
+                e_vtxs = edge.shape.subshapes()
+                if edge.orientation == Orient.Reversed:
+                    e_vtxs.reverse()
+                for vtx in e_vtxs:
+                    vtxs.append( (vtx.id, vtx.point) )
+        vtxs = vtxs[1:] + vtxs[:1]
+        odd_vtx = vtxs[1::2]
+        even_vtx = vtxs[0::2]
+        assert odd_vtx == even_vtx, "odd: {} even: {}".format(odd_vtx, even_vtx)
+        vtxs = odd_vtx
         if len(vtxs) == 3:
             constructor = Approx.plane
         elif len(vtxs) == 4:
             constructor = Approx.bilinear
         else:
             raise Exception("Too many vertices {} for implicit surface construction.".format(len(vtxs)))
-        (ids, points) = zip(*vtxs.items())
+        (ids, points) = zip(*vtxs)
         (surface, vtxs_uv) =  constructor(list(points))
         self.repr = [(surface, Location())]
 
@@ -922,21 +976,11 @@ class Vertex(Shape):
         stream.write("\n0 0\n\n") #no added <vertex data representation>
 
 
-def index_all(compound,location):
-
-    print("Index")
-    print(compound.__class__.__name__) #prints class name
-
-    groups=dict(locations=[], curves_2d=[], curves_3d=[], surfaces=[], shapes=[])
-    compound._dfs(groups)#pridej jako parametr dictionary listu jednotlivych grup. v listech primo objekty
-    location._dfs(groups)
-    print(groups)
-    return groups
 
 
 def write_model(stream, compound, location):
 
-    groups = index_all(compound=compound, location=location)
+    groups = compound.index_all(location=location)
 
     # fix shape IDs
     n_shapes = len(groups['shapes']) + 1
