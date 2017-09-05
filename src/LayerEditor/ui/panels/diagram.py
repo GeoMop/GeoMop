@@ -170,7 +170,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     return
                 p1 = self._last_p1_real               
             else:
-                p1, label = self._add_point(None, 
+                p1, label = self._add_point(self._last_p1_on_line, 
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
             px = p.x()
