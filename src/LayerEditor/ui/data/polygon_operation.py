@@ -87,10 +87,10 @@ class Polyline():
         for i in range(0, len(self.points)):
             if self.points[i] == p:
                 new_poly = Polyline()
-                new_poly.lines[i:]
-                new_poly.points[i:]
-                self.lines[0:i]
-                self.points[0:i+1]
+                new_poly.lines = self.lines[i:]
+                new_poly.points = self.points[i:]
+                self.lines = self.lines[0:i]
+                self.points = self.points[0:i+1]
                 return new_poly
         return None
         
@@ -203,14 +203,16 @@ class PolygonGroups():
         for cluster in outside.bundled_clusters:
             for join in cluster.inner_joins:
                 if join!=end_point and join in self.boundaries_points[group_idx]:
-                    polylines = cluster.reduce_polylines()
+                    polylines = cluster.reduce_polylines()  
+                    if len(polylines)==0:
+                        continue
                     start_polyline = outside._find_line_in_polylines_point(polylines, join)
                     if cluster==clusters[0]:
                         if start_polyline.points[0]==start_point or \
                             start_polyline.points[-1]==start_point:
                             path = [start_polyline]
-                        else:
-                            path = outside._find_path([start_polyline], polylines, 
+                        else:                            
+                            path = outside._find_path([], polylines, 
                                 join, start_point)                      
                         paths.insert(0, path)
                         clusters.insert(0, cluster)
@@ -226,7 +228,7 @@ class PolygonGroups():
                                         start_polyline.points[-1]==next_join:
                                         path = [start_polyline]
                                     else:
-                                        path =outside._find_path([start_polyline], polylines, 
+                                        path =outside._find_path([], polylines, 
                                             join, next_join)
                                     paths.insert(0, path)
                                     clusters.insert(0, cluster)
@@ -267,7 +269,7 @@ class PolygonGroups():
             for i in range(0, len(self.groups)):
                 self._make_group_boundary(i) 
                     
-    def add_inner_diagram(self, diagram, outside, cluster):
+    def add_inner_polygon(self, diagram, outside, cluster):
         """Add boundary part polyline"""
         for point in cluster.inner_joins: 
             clusters = [cluster]
@@ -287,7 +289,6 @@ class PolygonGroups():
                         test_polyline.lines[-1]))
                     poly = outside._make_polyline_from_path(paths[i+1])
                     test_polyline.join(poly)
-                i = 0
                 test_polygon = QtGui.QPolygonF()        
                 for p in test_polyline.points:
                     test_polygon.append(p.qpointf())
@@ -302,7 +303,6 @@ class PolygonGroups():
                         polyline.join(poly)
                     poly = outside._make_polyline_from_path(paths[i+1])
                     polyline.join(poly)
-                    i += 1                            
                 polygon = outside.make_polygon_diagram(diagram, polyline)
                 for i in range(0, len(paths), 2):                    
                     poly = outside._make_polyline_from_path(paths[i+1])
@@ -311,7 +311,6 @@ class PolygonGroups():
                 outside.add_cluster_to_polygon(polygon)
                 outside.add_bundled_to_polygon(polygon)
                 #TODO process inner objects
-                polygon.spolygon.reload_shape_boundary(polygon, True)
                 return True
         return False
 
@@ -320,9 +319,12 @@ class PolylineCluster():
     """
     Cluster of bundled polylines
     """
-    def __init__(self, first_line, join=None, inner_join=None):
-        self.polylines = [Polyline(first_line)]
+    def __init__(self, first_line=None, join=None, inner_join=None):
+        
+        self.polylines = []
         """Bundled polylines"""
+        if first_line is not None:
+            self.polylines.append(Polyline(first_line))
         self.bundles = []
         """Polyline joins (Points)"""
         self.joins = []        
@@ -524,15 +526,15 @@ class Shape(metaclass=abc.ABCMeta):
             
         for cluster in clusters:
             for poly in cluster.polylines:
-                if new_line in poly.lines: 
-                        p_index = poly.points.index(line.second_point(new_point))
-                        l_index = poly.lines.index(line)                        
-                        if p_index == l_index:
-                            poly.lines.insert(l_index+1, new_line)
-                            poly.points.insert(p_index+1, new_point)
-                        else:
-                            poly.lines.insert(l_index, new_line)
-                            poly.points.insert(p_index, new_point)
+                if line in poly.lines: 
+                    p_index = poly.points.index(line.second_point(new_point))
+                    l_index = poly.lines.index(line)                        
+                    if p_index == l_index:
+                        poly.lines.insert(l_index+1, new_line)
+                        poly.points.insert(p_index+1, new_point)
+                    else:
+                        poly.lines.insert(l_index, new_line)
+                        poly.points.insert(p_index, new_point)
                 
     def join(self, line):
         """Join line in shape, return if is bundled"""
@@ -594,8 +596,6 @@ class Shape(metaclass=abc.ABCMeta):
             res = False
         else:
             appended = self._append_to_boundary(lp, p, line)
-            if len(appended.joins)>0:
-                self.reload_polygon = True
         if appended is None:
             raise Exception("Can't add line to polygon structures")
         return res
@@ -629,9 +629,6 @@ class Shape(metaclass=abc.ABCMeta):
                 cluster1.joins.extend(cluster2.joins)
                 cluster1.inner_joins.extend(cluster2.inner_joins)
                 cluster1.split_polygon = True
-            else:
-                if len(cluster1.joins)>0:
-                    self.reload_polygon = True        
         
     def _join_two_boundary(self, cluster, lp, p, line):
         """Join two boundary clusters"""
@@ -647,9 +644,12 @@ class Shape(metaclass=abc.ABCMeta):
             if not joined:
                 for gbp in self.inner.boundaries_points:
                     for bp in gbp:
-                        cluster.inner_joins.append(p)
-                        cluster.split_polygon = True
-                        joined = True
+                        if p==bp:
+                            cluster.inner_joins.append(p)
+                            cluster.split_polygon = True
+                            joined = True
+                            break
+                    if joined:
                         break
         if not joined:
             if lp>3:
@@ -693,7 +693,6 @@ class Shape(metaclass=abc.ABCMeta):
                     self.clusters.remove(cluster)
                     self.bundled_clusters.append(cluster)
                     cluster.joins.append(p)
-                    self.reload_polygon = True
                     joined = True
                     break
             if not joined:
@@ -705,6 +704,8 @@ class Shape(metaclass=abc.ABCMeta):
                             cluster.inner_joins.append(p)
                             joined = True
                             break 
+                    if joined:
+                        break 
         if not joined:
             if lp>3:
                 #try join to bundled in bundle
@@ -793,6 +794,8 @@ class Shape(metaclass=abc.ABCMeta):
                             res_cluster = PolylineCluster(line, None, p)
                             self.bundled_clusters.append(res_cluster)
                             break
+                    if res_cluster is not None:
+                        break 
         if res_cluster is None:
             if lp>3:
                 #try add to bundled in bundle
@@ -860,14 +863,22 @@ class Shape(metaclass=abc.ABCMeta):
         
     def _make_polyline_from_path(self, path):
         """Join path to one polyline"""
-        res = copy(path[0])
+        res = Polyline()
+        if len(path)==1 or path[0].points[-1]==path[1].points[0] or \
+            path[0].points[-1]==path[1].points[-1]:
+            res.lines = copy(path[0].lines)
+            res.points = copy(path[0].points)
+        else:
+            res.lines = path[0].lines[::-1]
+            res.points = path[0].points[::-1]
+        
         for i in range(1, len(path)):
             if res.points[-1]==path[i].points[0]:
                 res.lines.extend(path[i].lines)
                 res.points.extend(path[i].points[1:])
             else:
-                res.lines.extend(reversed(path[i].lines))
-                res.points.extend(reversed(path[i].points)[1:])
+                res.lines.extend(path[i].lines[::-1])
+                res.points.extend(path[i].points[-2::-1])
         return res
         
     def _find_line_in_polylines(self, polylines, line):
@@ -887,8 +898,6 @@ class Shape(metaclass=abc.ABCMeta):
     def _find_path(self, path, polylines, start_point, end_point):
         """Try recursivly find path to set end_point"""
         for poly in polylines:
-            if poly == path[-1]:
-                continue
             found = False
             if poly.points[0]==start_point:
                 if poly.points[-1]==end_point:
@@ -911,7 +920,7 @@ class Shape(metaclass=abc.ABCMeta):
                     res = self._find_path(new_path, new_polylines, poly.points[0], end_point)
                 if res is not None:
                     return res
-            return None
+        return None
             
     def add_bundled_to_polygon(self, polygon):
         """Move bundled clusters to set polyline from this
@@ -929,7 +938,7 @@ class Shape(metaclass=abc.ABCMeta):
         #TODO process inner objects
         joins = []        
         for bundle in cluster.bundles:
-            if bundle in polygon.boundary.points:
+            if bundle in polygon.spolygon.boundary_points:
                 joins.append(bundle)
         for join in joins:
             cluster.bundles.remove(join)
@@ -938,6 +947,7 @@ class Shape(metaclass=abc.ABCMeta):
         for poly in cluster.polylines:
             if poly.lines[0] in polygon.spolygon.boundary_lines:
                 remove.append(poly)
+                continue
             index = None            
             if poly.points[0] in joins:
                index = joins.index(poly.points[0])
@@ -947,15 +957,17 @@ class Shape(metaclass=abc.ABCMeta):
                second = poly.points[0]
             if index is not None:
                 if polygon.spolygon.gtpolygon.containsPoint(second.qpointf(), QtCore.Qt.OddEvenFill):
-                    polygon.spolygon.bundled_clusters.append(PolylineCluster(poly, joins[index]))
+                    polygon.spolygon.bundled_clusters.append(PolylineCluster(None, joins[index]))
+                    polygon.spolygon.bundled_clusters[-1].polylines.append(poly)
                     if second in cluster.bundles:
-                        moved[second] = polygon.spolygon.bundled_clusters
+                        moved[second] = polygon.spolygon.bundled_clusters[-1]
                         cluster.bundles.remove(second)
                         polygon.spolygon.bundled_clusters[-1].bundles.append(second)
                 else:
-                    self.bundled_clusters.append(PolylineCluster(poly, None, joins[index]))                    
+                    self.bundled_clusters.append(PolylineCluster(None, None, joins[index]))
+                    self.bundled_clusters[-1].polylines.append(poly)
                     if second in cluster.bundles:
-                        moved[second] = self.bundled_clusters
+                        moved[second] = self.bundled_clusters[-1]
                         cluster.bundles.remove(second)
                         self.bundled_clusters[-1].bundles.append(second)
                 del joins[index]            
@@ -965,17 +977,17 @@ class Shape(metaclass=abc.ABCMeta):
         while len(cluster.polylines)>0:
             remove = []
             for poly in cluster.polylines:
-                if poly.lines[0] in moved:
+                if poly.points[0] in moved:
                     remove.append(poly)                        
-                    moved[poly.lines[0]].append(poly)
+                    moved[poly.lines[0]].polylines.append(poly)
                     second = poly.points[-1]
                     if second in cluster.bundles:
                         moved[second] = moved[poly.lines[0]]
                         cluster.bundles.remove(second)
                         moved[poly.lines[0]].bundles.append(second)
-                elif poly.lines[-1] in moved:
+                elif poly.points[-1] in moved:
                     remove.append(poly)                        
-                    moved[poly.lines[-1]].append(poly)
+                    moved[poly.lines[-1]].polylines.append(poly)
                     second = poly.points[-1]
                     if second in cluster.bundles:
                         moved[second] = moved[poly.lines[-1]]
@@ -1017,7 +1029,7 @@ class Shape(metaclass=abc.ABCMeta):
         for cluster in self.bundled_clusters:
             if cluster.split_polygon:
                 if len(cluster.inner_joins)>1:
-                    if self.inner.add_inner_diagram(diagram, self, cluster):
+                    if self.inner.add_inner_polygon(diagram, self, cluster):
                         cluster.split_polygon = False                        
                         return True
                 
@@ -1025,9 +1037,6 @@ class Shape(metaclass=abc.ABCMeta):
         """Make diagram polygon object"""
         polygon = diagram.add_polygon(polyline.lines)
         polygon.spolygon = SimplePolygon()
-        polygon.spolygon.gtpolygon = QtGui.QPolygonF()        
-        for p in polyline.points:
-            polygon.spolygon.gtpolygon.append(p.qpointf())
         polygon.spolygon.boundary_lines = polyline.lines
         polygon.spolygon.boundary_points = polyline.points[0:-1]        
         self.inner.add_polygon(polygon.spolygon)
@@ -1066,7 +1075,6 @@ class Shape(metaclass=abc.ABCMeta):
                     self.bundled_clusters.append(cluster)
         self.add_bundled_to_polygon(polygon)
         self.add_cluster_to_polygon(polygon)
-        polygon.spolygon.reload_shape_boundary(polygon, True)
 
 
 class Outside(Shape):
@@ -1099,8 +1107,6 @@ class SimplePolygon(Shape):
         super(SimplePolygon, self).__init__()
         self.gtpolygon = None
         """Qt polygon"""
-        self.reload_polygon = False
-        """Polygon border should be reloaded"""
         
     def get_boundary_polyline(self, p1, p2, reverse=False):
         """Get boundary polyline from point p1 to p2"""
@@ -1153,7 +1159,6 @@ class SimplePolygon(Shape):
         #TODO process inner objects
         
         self.reload_shape_boundary(polygon, False)
-        polygon.spolygon.reload_shape_boundary(polygon, True)
         parent = PolygonOperation.get_container(diagram, polygon)        
         parent.inner.add_polygon(new_polygon.spolygon)
         
@@ -1186,14 +1191,19 @@ class SimplePolygon(Shape):
                         return True
         return False
         
-    def reload_shape_boundary(self, polygon, only_bundled):
-        """Try add or remove bundled structures to boundary"""
-        if not only_bundled:
+    def reload_shape_boundary(self, polygon, only_possition):
+        """Try add or remove bundled structures to boundary. If not
+        count of boundary points changed, reload only shape contour"""
+        if not only_possition:
             polygon.lines = []
             for line in self.boundary_lines:
-                polygon.lines.append(line)
-                
-        # ToDo : reload polygon buddled border
+                polygon.lines.append(line)                
+        polygon.spolygon.gtpolygon = QtGui.QPolygonF()        
+        for p in self.boundary_points:
+            polygon.spolygon.gtpolygon.append(p.qpointf())
+        polygon.spolygon.gtpolygon.append(self.boundary_points[0].qpointf())
+        if polygon.object is not None:
+            polygon.object.refresh_polygon()
         return False
         
     def apply_add_line_changes(self, diagram, polygon, line):    
@@ -1210,10 +1220,6 @@ class SimplePolygon(Shape):
                     if self.split_shape(diagram, polygon, cluster):
                         cluster.split_polygon = False                        
                         return True
-        if self.reload_polygon:
-            if self.reload_shape_boundary(polygon, True):
-                self.reload_polygon = False
-                return True
 
 
 class PolygonOperation():
@@ -1242,7 +1248,14 @@ class PolygonOperation():
         return None
         
     @staticmethod
-    def find_polygon_by_neighbors(diagram, line, p1, p2):
+    def _find_polygon_from_spolygon(diagram, spolygon):
+        """Try find polygon from spolygon"""
+        for polygon in diagram.polygons:
+            if spolygon==polygon.spolygon:
+                return polygon
+        
+    @classmethod
+    def find_polygon_by_neighbors(cls, diagram, line, p1, p2):
         """
         Try find polygon in neighboring lines
         
@@ -1254,11 +1267,17 @@ class PolygonOperation():
                 if l.in_polygon is not None:
                     return l.in_polygon
                 if l.polygon1 is not None:
-                    if l.polygon1.spolygon.gtpolygon.containsPoint(p2, QtCore.Qt.OddEvenFill):
+                    if l.polygon1.spolygon.gtpolygon.containsPoint(p2, QtCore.Qt.OddEvenFill):                        
                         return l.polygon1
-                if l.polygon2 is not None:
-                    if l.polygon2.spolygon.gtpolygon.containsPoint(p2, QtCore.Qt.OddEvenFill):
-                        return l.polygon2            
+                    else:
+                        if l.polygon2 is not None:
+                            if l.polygon2.spolygon.gtpolygon.containsPoint(p2, QtCore.Qt.OddEvenFill):
+                                return l.polygon2 
+                        parent = PolygonOperation.get_container(diagram, l.polygon1)
+                        if parent == diagram.outside:
+                            return None
+                        else:
+                            return cls._find_polygon_from_spolygon(diagram, parent)
         return None
     
     @classmethod
@@ -1278,14 +1297,14 @@ class PolygonOperation():
             line.in_polygon.spolygon.split_line(line, new_line, new_point)
         elif line.polygon1 is not None:
             line.polygon1.spolygon.split_boundary_line(line, new_line, new_point)
-            line.polygon1.spolygon.reload_shape_boundary(line.polygon1, True)
+            line.polygon1.spolygon.reload_shape_boundary(line.polygon1, False)
             if line.polygon2 is not None:
                 line.polygon2.spolygon.split_boundary_line(line, new_line, new_point)
-                line.polygon2.spolygon.reload_shape_boundary(line.polygon2, True)            
-                parent = PolygonOperation.get_container(line.polygon1)        
-                parent.inner.reload_polygon(line.polygon1.spolygon)    
+                line.polygon2.spolygon.reload_shape_boundary(line.polygon2, False)            
+            parent = PolygonOperation.get_container(diagram, line.polygon1)        
+            parent.inner.refresh_polygon(line.polygon1.spolygon)    
         else:
-            raise Exception("Can't split line") 
+            diagram.outside.split_line(line, new_line, new_point)
         
         
     @classmethod

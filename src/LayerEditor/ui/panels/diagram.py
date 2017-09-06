@@ -170,7 +170,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     return
                 p1 = self._last_p1_real               
             else:
-                p1, label = self._add_point(None, 
+                p1, label = self._add_point(self._last_p1_on_line, 
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
             px = p.x()
@@ -264,6 +264,11 @@ class Diagram(QtWidgets.QGraphicsScene):
             obj = point.object
             obj.release_point()
             self.removeItem(obj)
+        for polygon in cfg.diagrams[old_diagram].polygons:
+            obj = polygon.object
+            obj.release_polygon()
+            self.removeItem(obj)
+            
         
     def set_data(self):        
         """set new shapes data"""
@@ -273,6 +278,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         for point in cfg.diagram.points:
             p = Point(point)
             self.addItem(p)
+            for polygon in cfg.diagram.polygons:
+                if polygon.object is None:
+                    p = Polygon(polygon)
+                    self.addItem(p)  
         self._recount_zoom = cfg.diagram.zoom
         self._add_polygons()
         
@@ -430,8 +439,21 @@ class Diagram(QtWidgets.QGraphicsScene):
             below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            # self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+        self.update_related_diagrams(self._point_moving)
             
+    def update_related_diagrams(self, points):
+        """Update all polynoms related to set points"""
+        polygons =  []
+        for point in cfg.diagram.points:
+            for line in point.lines:
+                if line.polygon1 is not None:
+                    if not line.polygon1 in polygons:
+                        polygons.append(line.polygon1)
+                        if line.polygon2 is not None:
+                            if not line.polygon2 in polygons:
+                                polygons.append(line.polygon2)
+        for polygon in polygons:
+            polygon.refresh(cfg.diagram)
             
     def mouseReleaseEvent(self,event):
         event.gobject = None

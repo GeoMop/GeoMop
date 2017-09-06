@@ -282,7 +282,9 @@ class LEConfig:
     @classmethod
     def new_file(cls):
         """Open new empty file"""
+        cls.main_window.release_data(cls.diagram_id())
         cls.data.set_new(cls)
+        cls.main_window.refresh_all()
         
     @classmethod
     def save_file(cls, file=None):
@@ -298,6 +300,7 @@ class LEConfig:
         """
         save file name and timestamp
         """        
+        cls.main_window.release_data(cls.diagram_id())
         cls.curr_file = file
         cls.config.update_last_data_dir(file)
         if file is None:

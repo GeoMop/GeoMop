@@ -171,6 +171,10 @@ class Polygon():
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
+            
+    def refresh(self, diagram):
+        """Some polygon points is moved"""
+        self.spolygon.reload_shape_boundary(self, True)
         
 
 class Diagram():
