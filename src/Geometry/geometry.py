@@ -183,6 +183,14 @@ class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 
 
 class Region(gs.Region):
+
+    def init(self, topo_dim, extrude):
+        assert topo_dim == self.topo_dim
+        if hasattr(self, 'dim'):
+            assert self.dim == topo_dim + extrude
+        else:
+            self.dim = topo_dim + extrude
+
     def is_active(self, dim):
         active = not self.not_used
         if active:
@@ -197,6 +205,9 @@ class FractureLayer(gs.FractureLayer):
         self.i_top = self.top.make_interface(lg)
         self.topology = self.i_top.topology
         self.regions = lg.regions
+        for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
+            for i_reg in reg_list:
+                self.regions[i_reg].init(topo_dim=dim, extrude = False)
 
     def make_shapes(self):
         shapes=[]
@@ -222,6 +233,9 @@ class StratumLayer(gs.StratumLayer):
         assert self.i_top.topology.id == self.i_bot.topology.id
         self.topology = self.i_top.topology
         self.regions = lg.regions
+        for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
+            for i_reg in reg_list:
+                self.regions[i_reg].init(topo_dim=dim, extrude = True)
 
     def make_shapes(self):
         shapes = []
