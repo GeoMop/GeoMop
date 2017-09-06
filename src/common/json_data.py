@@ -69,6 +69,34 @@ class Chicken(Animal):
         def.wing = 1 # not serialized
 
 TODO:
+- Make unit test work.
+- Track actual path in the data tree during recursive deserialization. Use this path in error messages.
+- Distinguish asserts (check consistancy of code, can be safely removed in production code) and
+input checks (these should be tested through explicit if (...): raise ...)
+- Add unit tests for:
+    - optional but typed input
+
+FUTURE (as soon as we are not about to release):
+- See existing solutions (attr - allow declaration of variables in the class and
+  provides automatic generatrion of initialization, representation and other common methods.)
+
+- Review design of the module so that definition of variables is part of the class, not part of the init,
+  possibly using 'attr' in significant way.
+    - automaticaly add methods to:
+    - initialize to default values (should be called before explicit initialization)
+    - deserialize (and validate) - specific kind of initialization
+    - validate
+    - serialize
+    - repr == serialize ??
+
+- Allow to serialize some objects into separate list converting references to indices. (support for the thing we do in Geometry)
+-
+
+- Instead of JsonDataNoConstruct have dict_type_of_class(my_class), which returns specification of
+  dictionary representation of the class.
+
+
+
 - Is __init__ the best place to specify types and do deserialization as well?
   We have no way to initialize private attributes (not accesible from input, but known at construction time of the class
   - object created dynamicaly at run time.
@@ -87,6 +115,14 @@ TODO:
         - allow explicti construction/initialization of the instancies
   cons:
         - Two places where we fill and possibly check class attributes
+
+- Serialization of repeating objects:
+        a = A()
+        b = B(a)
+        c = C(a)
+        serialize ([b,c]) # whe should serialize 'a' just once and use kind of referencing (natural in YAML)
+
+
 """
 #import json
 
@@ -100,8 +136,6 @@ TODO:
 
 from enum import IntEnum
 import inspect
-
-
 
 
 
@@ -125,9 +159,7 @@ class Obligatory:
     Wrapper to specify that the value is obligatory on input.
     """
     def __init__(self, type_spec):
-        self.type=type_spec
-    def type(self):
-        return self.type
+        self._type=type_spec
 
 
 class ClassFactory:
@@ -219,7 +251,8 @@ class JsonData:
     ?? Anything similar in current JobPanel?
     """
 
-    __serialized__attrs___ = []
+    _serialized_attrs = []
+
     """ List of attributes to serilaize. Leave empty to use public attributes."""
 
     def __init__(self, config):
@@ -230,21 +263,21 @@ class JsonData:
         """
         self._filter_attrs = None
 
-        if not hasattr(self, '__serialized_attrs__'):
-            self._filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
+        if not hasattr(self, '_serialized_attrs'):
+            self._filter_attrs = [ key for key in self.__dict__.keys() if key[0] == "_" ]
         else:
-            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self.__serialized__attrs__ ]
+            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self._serialized_attrs ]
 
         try:
-            self._deserialize_dict(self.__dict__, config, self._filter_attrs)
+            self._deserialize_dict(self.__dict__, config)
         except:
             raise Exception("Failed deserialization of class {}".format(self.__class__))
 
 
-    @staticmethod
-    def _deserialize_dict(template_dict, config_dict, filter_attrs):
+
+    def _deserialize_dict(template_dict, config_dict):
         for key, temp in template_dict.items():
-            if key in filter_attrs:
+            if key in self._filter_attrs:
                 continue
             value = config_dict.get(key, temp)
             config_dict.pop(key, None)
@@ -272,14 +305,14 @@ class JsonData:
             if value  is None:
                 raise Exception("Missing obligatory key.")
             else:
-                temp = temp.type
+                temp = temp._type
 
         # No check.
         if temp is None:
             return temp
 
         elif isinstance(temp, dict):
-            JsonData._deserialize_dict(temp, value, [])
+            self._deserialize_dict(temp, value)
             return temp
 
         # list,
