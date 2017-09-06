@@ -96,7 +96,7 @@ TODO:
 # TODO:
 #  - example of child classes
 #  - support both types and default values in declaration of serializable attrs
-#
+#  - Just warn for unknown attrs on  input
 
 from enum import IntEnum
 import inspect
@@ -228,6 +228,8 @@ class JsonData:
         :param config: config dict
         :param serialized_attr: list of serialized attributes
         """
+        self._filter_attrs = None
+
         if not hasattr(self, '__serialized_attrs__'):
             self._filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
         else:
