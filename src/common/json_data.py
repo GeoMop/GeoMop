@@ -2,12 +2,46 @@
 json_data module provides base class for generic serialization/deserialiation
 of derived classes with elementaty type checking.
 
+Rules:
+- classes are converted into dictionaries, tuples to the lists and scalar types (str, float, int, bool) and then
+  serialized/deserialized  to/from JSON format.
+
+- all attributes not starting with underscore are serialized by default. Class may provide list of attributes that should not be serialized
+  or list of attributes that should be serialized to override this implicit mechanism.
+
+- All attributes have to be created (in constructor) before serialization/deserialization. One can either assign default values
+  in which case the input value must have the same type (checked recursively). Or just assign the type in which case the
+  input value is checked against the type. If the value is not on input the value None is assigned.
+
+- Attributes with type None can get any value from input, no checks or conversions are performed.
+
+- None values propagates upwards through the recursion tree as follows:
+    - [None ] -> []                         # Full sequence is [ int ] - no value on input -> [None] -> []
+    - {a: None, b:x}  -> {a: None, b:x}     # nothing special
+    - self.x = None  -> self..x = None      # nothing special
+
+- Lists may have specified type of elements, setting just single element:
+    [ int ]
+    [ ClassFactory( [ A, B ] ) ]
+    or default value with singel element (not very usefull)
+    [ 0 ]
+
+- Lists with no elements are treated as [ None ], i.e. list of anything.
+
+- self.x = ClassFactory( class_list = [ A, B ] )
+  Input for attribute x should be a dictionary, that should contain key '__class__' which
+  must be name  of a class containd in the 'class_list'. The class of that name is constructed using deserialization recoursively.
+  For class_lists of length 1, the '__class__' key is optional.
+
+- self.x = Obligatory(<Type>)
+  To mark an attribute with type <Type> that is obligatory on input.
+
+
 Example:
-import json%data as jd
+import json_data as jd
 
-class Animal(jd.JsonData, config={}):
-    def __init__():
-
+class Animal(jd.JsonData):
+    def __init__(config = {}):
         self.n_legs = 4       # Default value, type given implicitely, optional on input.
         self.n_legs = int     # Just type, input value obligatory
         self.length = float   # floats are initializble also from ints
@@ -47,6 +81,12 @@ TODO:
         # other type definitions
         super().deserialize(x, config )
         return x
+
+  pros:
+        - can add serialization/deserialization to already existing classes with its own constructors
+        - allow explicti construction/initialization of the instancies
+  cons:
+        - Two places where we fill and possibly check class attributes
 """
 #import json
 
@@ -80,6 +120,16 @@ class WrongKeyError(Error):
         return "'{}'".format(self.key)
 
 
+class Obligatory:
+    """
+    Wrapper to specify that the value is obligatory on input.
+    """
+    def __init__(self, type_spec):
+        self.type=type_spec
+    def type(self):
+        return self.type
+
+
 class ClassFactory:
     """
     Helper class for JsonData.
@@ -102,12 +152,21 @@ class ClassFactory:
         :param config:
         :return:
         """
-        assert config.__class__ is dict, "Expecting dict instead of: \n{}".format(config)
 
+        # Call default constructor when config is the default value
+        if config.__class__ is not dict:
+            if isinstance(config, ClassFactory):
+                return None
+            elif type(config) in self.class_list:
+                return config
+            else:
+                raise Exception("Expecting dict instead of: \n{}".format(config))
+
+        # __class__ specification not necessary for single valued 'class_list'
         if len(self.class_list) == 1 and  not "__class__" in config:
             config["__class__"] = self.class_list[0].__name__
 
-        assert "__class__" in config
+        assert "__class__" in config, "Missing '__class__' key to construct one of: {}".format(self.config_list)
 
         for c in self.class_list:
             if c.__name__ == config["__class__"]:
@@ -170,20 +229,20 @@ class JsonData:
         :param serialized_attr: list of serialized attributes
         """
         if not hasattr(self, '__serialized_attrs__'):
-            filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
+            self._filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
         else:
-            filter_attrs = [ key for key in self.__dict__.keys() if key not in self.__serialized__attrs__ ]
+            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self.__serialized__attrs__ ]
 
         try:
-            self._deserialize_dict(self.__dict__, config, filter_attrs)
+            self._deserialize_dict(self.__dict__, config, self._filter_attrs)
         except:
             raise Exception("Failed deserialization of class {}".format(self.__class__))
 
 
     @staticmethod
-    def _deserialize_dict(template_dict, config_dict,  skip_attrs):
+    def _deserialize_dict(template_dict, config_dict, filter_attrs):
         for key, temp in template_dict.items():
-            if key in skip_attrs:
+            if key in filter_attrs:
                 continue
             value = config_dict.get(key, temp)
             config_dict.pop(key, None)
@@ -207,10 +266,16 @@ class JsonData:
         :param value: value for deserialization
         :return:
         """
+        if isinstance(temp, Obligatory):
+            if value  is None:
+                raise Exception("Missing obligatory key.")
+            else:
+                temp = temp.type
 
         # No check.
         if temp is None:
             return temp
+
         elif isinstance(temp, dict):
             JsonData._deserialize_dict(temp, value, [])
             return temp
@@ -223,7 +288,9 @@ class JsonData:
                 l=value
             elif len(temp) == 1:
                 for v in value:
-                    l.append(JsonData._deserialize_item(temp[0], v))
+                    value = JsonData._deserialize_item(temp[0], v)
+                    if value is not None:
+                        l.append(value)
             else:
                 print("Warning: Overwriting default list content:\n {}\n by:\n {}.".format(temp, value))
                 l=value
@@ -244,10 +311,12 @@ class JsonData:
 
         # JsonData default value, keep the type.
         elif isinstance(temp, JsonData):
-            return ClassFactory(temp.__name__).make_instance(value)
+            return ClassFactory( [temp.__class__] ).make_instance(value)
 
         # other scalar types
         else:
+            if inspect.isclass(value):
+                return None
             # only temp type matters
             if not inspect.isclass(temp):
                 temp = temp.__class__
@@ -275,11 +344,27 @@ class JsonData:
         """
         return self._get_dict()
 
+
+    # def _is_attr_serialized(self, attr):
+    #     """
+    #     Return True if attribute is serialized.
+    #     :param attr: attribute
+    #     :return:
+    #     """
+    #     if self._serialized_attr is None:
+    #         if attr[0] != "_":
+    #             return True
+    #     else:
+    #         if attr in self._serialized_attr:
+    #             return True
+    #     return False
+
+
     def _get_dict(self):
         """Return dict for serialization."""
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
-            if self._is_attr_serialized(k) and not isinstance(v, ClassFactory):
+            if k not in self._filter_attrs and not isinstance(v, ClassFactory):
                 d[k] = JsonData._serialize_object(v)
         return d
 

@@ -28,6 +28,7 @@ class RegionDim(IntEnum):
     bulk = 3
 
 class TopologyObject(IntEnum):
+    invalid = -1
     node = 0
     segment = 1
     polygon = 2
@@ -48,9 +49,15 @@ class Surface(JsonData):
         """B-spline,None for plane"""
         super().__init__(config)
 
+    @staticmethod
+    def make_surface(depth):
+        mat = 4*[3*[0]]
+        mat[0][0] = mat[1][1] = mat[2][2] = 1.0
+        mat[3][2] = depth
+
     def get_depth(self):
         """Return surface depth in 0"""
-        return self.transform[2][2]
+        return self.transform[3][2]
         
     def __eq__(self, other):
         """operators for comparation"""
@@ -58,10 +65,8 @@ class Surface(JsonData):
             return False
         if self.b_spline!=other.b_spline:
             return False
-        for i in range(0, 3):
-            for j in range(0, 3):
-                if self.transform[i][j]!=other.transform[i][j]:
-                    return False 
+        if self.transform != other.transform:
+            return False
         return True
 
 
@@ -113,7 +118,7 @@ class NodeSet(JsonData):
         """list of Nodes"""
         self.linked_node_set_id = None
         """node_set_idx of pair interface node set or None"""
-        self.linked_node_ids = [ int ]
+        self.linked_node_ids = [ ]
         """If linked_node_set is not None there is list od pair indexes of nodes or none
         if node has not pair"""
         super().__init__(config)
@@ -139,7 +144,7 @@ class SurfaceNodeSet(JsonData):
         self.surface_id = int
         """Surface index"""
         super().__init__(config)
-
+        self.interface_type = TopologyType.given
 
 
 class InterpolatedNodeSet(JsonData):
@@ -153,6 +158,7 @@ class InterpolatedNodeSet(JsonData):
         self.surface_id = int
         """Surface index"""
         super().__init__(config)
+        self.interface_type = TopologyType.interpolated
 
 
 
@@ -164,17 +170,15 @@ class Region(JsonData):
         """8-bite region color"""
         self.name = ""
         """region name"""
-        self.dim = RegionDim
-        """dimension (dim=1 well, dim=2 fracture, dim=3 bulk)"""
         self.topo_dim = TopologyObject
-
+        """dimension (0,1,2) in Stratum layer: well, fracture, bulk"""
         self.boundary = False
         """Is boundary region"""
         self.not_used = False
         """is used - TODO: do we need it??"""
-        self.mesh_step = float
+        self.mesh_step = 1.0
         """mesh step"""
-        self.brep_shape_ids = [ int ]
+        self.brep_shape_ids = [ ]
         """List of shape indexes - in BREP geometry """
         super().__init__(config)
 
@@ -194,12 +198,17 @@ class GeoLayer(JsonData):
         self.node_region_ids = [ int ]
 
         super().__init__(config)
+        self.layer_type = LayerType.shadow
+
+
 
 
 class FractureLayer(GeoLayer):
     def __init__(self, config={}):
 
         super().__init__(config)
+        self.layer_type = LayerType.fracture
+        self.top_type = self.top.interface_type
 
 class StratumLayer(GeoLayer):
     def __init__(self, config={}):
@@ -208,6 +217,14 @@ class StratumLayer(GeoLayer):
         """ optional, only for stratum type, accoding bottom topology
         type surface node set or interpolated node set"""
 
+        super().__init__(config)
+        self.layer_type = LayerType.stratum
+        self.top_type = self.top.interface_type
+        self.bottom_type = self.bottom.interface_type
+
+
+class ShadowLayer(GeoLayer):
+    def __init__(self, config={}):
         super().__init__(config)
 
 
@@ -222,10 +239,6 @@ class LayerGeometry(JsonData):
 
     def __init__(self, config={}):
         self.regions = [ ClassFactory(Region) ]
-
-        #    [Region("#000000", "NONE_1D", 1),
-        #     Region("#000000", "NONE_2D", 2),
-        #     Region("#000000", "NONE_3D", 3)]
         """List of regions"""
         self.layers = [ ClassFactory( [StratumLayer, FractureLayer] ) ]
         """List of geological layers"""
@@ -237,7 +250,7 @@ class LayerGeometry(JsonData):
         """List of topologies"""
         self.node_sets = [ ClassFactory( NodeSet) ]
         """List of node sets"""
-        self.supplement = ClassFactory( UserSupplement )
+        self.supplement = UserSupplement()
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
