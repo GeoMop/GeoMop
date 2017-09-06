@@ -52,10 +52,12 @@ class GeometryFactory:
             self.add_topology()
         return self.geometry.topologies[i]
         
-    def get_interpolated_ns(self, ns1_idx, ns2_idx, surface_idx):
+    def get_interpolated_ns(self, ns1_idx, ns2_idx, surface_idx, surface_idx_1=None, surface_idx_2= None):
         """Create and return interpolated node set"""
+        surface_idx_1 = surface_idx
+        surface_idx_2 = surface_idx
         # TODO: make real surface nodesets and take them as parameters
-        surf_nodesets = ( dict( nodeset_id=ns1_idx, surface_id=surface_idx ), dict( nodeset_id=ns2_idx, surface_id=surface_idx ) )
+        surf_nodesets = ( dict( nodeset_id=ns1_idx, surface_id=surface_idx_1 ), dict( nodeset_id=ns2_idx, surface_id=surface_idx_2 ) )
         ns = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, surface_id=surface_idx) )
         return ns
         
