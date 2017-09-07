@@ -156,6 +156,10 @@ class _ClientDispatcher(asynchat.async_chat):
         #self.discard_buffers()
         self.received_data.clear()
 
+        # clear push_queue
+        for i in range(len(self.push_queue)):
+            self.push_queue.pop(0)
+
         # create request 0
         with self.sent_requests_lock:
             self.sent_requests[0] = (None, {"action": "on_answer_connect", "data": None})
@@ -504,7 +508,7 @@ class StarterServerDispatcher(asyncore.dispatcher):
             if len(s) == 2:
                 child_id = int(s[0])
                 port = int(s[1])
-                print((child_id, port))
+                #print((child_id, port))
                 #print(self.async_repeater.clients)
 
                 if child_id in self.async_repeater.clients:
@@ -512,6 +516,10 @@ class StarterServerDispatcher(asyncore.dispatcher):
                     logging.info("Initial back connection done.")
         self.close()
         # We close also if we get wrong data. As whole connection is from bad guy.
+
+    def handle_error(self):
+        self.close()
+
 
 class AsyncRepeater():
     """
@@ -632,6 +640,7 @@ class AsyncRepeater():
         self.clients[id].reconnect()
 
     def remove_child(self, id):
+        # todo: neni thread safe
         self.clients[id].close()
         del self.clients[id]
 

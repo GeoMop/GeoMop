@@ -168,9 +168,24 @@ class ConnectionLocal(ConnectionBase):
         if from_prefix == to_prefix:
             return
         for path in paths:
-            to_file = os.path.join(to_prefix, path)
-            os.makedirs(os.path.dirname(to_file), exist_ok=True)
-            shutil.copyfile(os.path.join(from_prefix, path), to_file)
+            src = os.path.join(from_prefix, path)
+            dst = os.path.join(to_prefix, path)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.isdir(src):
+                self._copy_dir(src, dst)
+            else:
+                shutil.copyfile(src, dst)
+
+    def _copy_dir(self, src, dst):
+        names = os.listdir(src)
+        os.makedirs(dst, exist_ok=True)
+        for name in names:
+            srcname = os.path.join(src, name)
+            dstname = os.path.join(dst, name)
+            if os.path.isdir(srcname):
+                self._copy_dir(srcname, dstname)
+            else:
+                shutil.copyfile(srcname, dstname)
 
 
 class ConnectionSSH(ConnectionBase):

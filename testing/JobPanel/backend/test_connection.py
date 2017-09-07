@@ -304,7 +304,7 @@ def test_delegator_exec():
     # start process
     process_config = {"__class__": "ProcessExec",
                       "environment": env_rem,
-                      "executable": {"__class__": "Executable", "path": "../testing/JobPanel/backend", "name": "t_process.py", "script": True}}
+                      "executable": {"__class__": "Executable", "path": "../testing/JobPanel/backend/t_process.py", "script": True}}
     answer = []
     delegator_proxy.call("request_process_start", process_config, answer)
 
@@ -363,8 +363,7 @@ def test_docker(request):
           "environment": env}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "backend_service.py",
+                         "path": "JobPanel/services/backend_service.py",
                          "script": True}}
     service_data = {"service_host_connection": cd,
                     "process": pd,

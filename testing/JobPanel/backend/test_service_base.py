@@ -55,8 +55,7 @@ def test_request_remote(request):
     # test service data
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "../testing/JobPanel/backend",
-                         "name": "t_service.py",
+                         "path": "../testing/JobPanel/backend/t_service.py",
                          "script": True}}
     service_data = {"service_host_connection": cl,
                     "process": pe,

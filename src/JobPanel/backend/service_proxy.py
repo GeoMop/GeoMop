@@ -307,6 +307,9 @@ class ServiceProxy:
         self.results_get_status.clear()
         self.last_time = time.time()
 
+    def close(self):
+        self.repeater.remove_child(self._child_id)
+
 
 
     # def make_ping(self):

@@ -95,7 +95,11 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d", "-s", params[0], "-o", os.path.join("output", self._store_id)]
+        yaml_file = params[0]
+        output_dir = os.path.join("output", self._store_id)
+        runner.command = ["flow123d", "-s", yaml_file, "-o", output_dir]
+        runner.input_files = [yaml_file, self._yaml_support.get_mesh_file()]
+        runner.output_files = [output_dir]
         return runner
         
     def _update(self):    

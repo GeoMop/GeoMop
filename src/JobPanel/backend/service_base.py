@@ -466,7 +466,7 @@ class ServiceBase(JsonData):
         child_id = proxy.start_service()
         self._child_services[child_id] = proxy
 
-        return proxy.get_status()
+        return child_id
 
 
     # def request_stop_child(self, request_data):

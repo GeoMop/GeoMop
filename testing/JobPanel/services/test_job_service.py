@@ -38,12 +38,10 @@ def test_correct_run(request):
     # job data
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "_job_service.py",
+                         "path": "JobPanel/services/_job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services",
-          "name": "job_1.py",
+          "path": "../testing/JobPanel/services/job_1.py",
           "script": True}
     service_data = {"service_host_connection": cl,
                     "process": pe,
@@ -70,8 +68,7 @@ def test_correct_run(request):
 
 def test_correct_run_connection_fail(request):
     def clear_test_files():
-        #shutil.rmtree(TEST_FILES, ignore_errors=True)
-        pass
+        shutil.rmtree(TEST_FILES, ignore_errors=True)
     request.addfinalizer(clear_test_files)
 
     # create analysis and job workspaces
@@ -106,12 +103,10 @@ def test_correct_run_connection_fail(request):
           "environment": env_rem}
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "_job_service.py",
+                         "path": "JobPanel/services/_job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services",
-          "name": "job_1.py",
+          "path": "../testing/JobPanel/services/job_1.py",
           "script": True}
     service_data = {"service_host_connection": cr,
                     "process": pe,
