@@ -1,4 +1,4 @@
-import unittest
+import pytest
 import brep_writer as bw
 import sys
 
@@ -151,7 +151,6 @@ class TestPlanarGeomeries(unittest.TestCase):
             #bw.write_model(sys.stdout, c1, cloc)
         print(c1)
 
-#pridej test s vice locations
 
 if __name__ == '__main__':
     unittest.main()
