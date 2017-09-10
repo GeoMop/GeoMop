@@ -18,6 +18,7 @@ import socket
 import socketserver
 import time
 import enum
+import stat
 
 
 class Error(Exception):
@@ -477,6 +478,8 @@ class ConnectionSSH(ConnectionBase):
 
         Implementation: just copy
         """
+        assert os.path.isabs(remote_prefix)
+
         if self._status != ConnectionStatus.online:
             raise SSHError
 
@@ -497,23 +500,43 @@ class ConnectionSSH(ConnectionBase):
 
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
-            try:
-                self._sftp.put(loc, rem)
-            except FileNotFoundError as e:
-                if e.filename is None:
-                    raise OSError(errno.ENOENT, "No such remote file", rem)
-                else:
-                    raise
-            except PermissionError as e:
-                if e.filename is None:
-                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
-                else:
-                    raise
-            except socket.timeout:
-                raise SSHTimeoutError
-            except OSError:
-                raise SSHError
+            if os.path.isdir(loc):
+                self._upload_dir(loc, rem)
+            else:
+                self._upload_file(loc, rem)
         self._sftp.chdir(cwd)
+
+    def _upload_file(self, loc, rem):
+        try:
+            self._sftp.put(loc, rem)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+
+    def _upload_dir(self, loc, rem):
+        names = os.listdir(loc)
+        try:
+            self._sftp.chdir(rem)
+        except IOError:
+            self._sftp.mkdir(rem)
+        for name in names:
+            loc_name = os.path.join(loc, name)
+            rem_name = os.path.join(rem, name)
+            if os.path.isdir(loc_name):
+                self._upload_dir(loc_name, rem_name)
+            else:
+                self._upload_file(loc_name, rem_name)
 
     def download(self, paths, local_prefix, remote_prefix):
         """
@@ -534,22 +557,38 @@ class ConnectionSSH(ConnectionBase):
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
             os.makedirs(os.path.dirname(loc), exist_ok=True)
-            try:
-                self._sftp.get(rem, loc)
-            except FileNotFoundError as e:
-                if e.filename is None:
-                    raise OSError(errno.ENOENT, "No such remote file", rem)
-                else:
-                    raise
-            except PermissionError as e:
-                if e.filename is None:
-                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
-                else:
-                    raise
-            except socket.timeout:
-                raise SSHTimeoutError
-            except OSError:
-                raise SSHError
+            if stat.S_ISDIR(self._sftp.stat(rem).st_mode):
+                self._download_dir(loc, rem)
+            else:
+                self._download_file(loc, rem)
+
+    def _download_file(self, loc, rem):
+        try:
+            self._sftp.get(rem, loc)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+
+    def _download_dir(self, loc, rem):
+        os.makedirs(loc, exist_ok=True)
+        for fileattr in self._sftp.listdir_attr(rem):
+            loc_name = os.path.join(loc, fileattr.filename)
+            rem_name = os.path.join(rem, fileattr.filename)
+            if stat.S_ISDIR(fileattr.st_mode):
+                self._download_dir(loc_name, rem_name)
+            else:
+                self._download_file(loc_name, rem_name)
 
     def get_delegator(self):
         """
