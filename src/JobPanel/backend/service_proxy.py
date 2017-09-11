@@ -53,7 +53,6 @@ class ServiceProxy:
         - service files, service status, ... (convenient)
         """
         self.connection = connection
-        self.connection_id = connection._id
 
         self.status=None
         """ ServiceStatus enum"""

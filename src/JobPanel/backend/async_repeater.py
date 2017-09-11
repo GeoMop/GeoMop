@@ -135,8 +135,15 @@ class _ClientDispatcher(asynchat.async_chat):
         self.received_data = bytearray()
         # Storage for partially received answer.
         self.connection = connection
-        self.connection_id = connection._id
+        """connection for creating tunnels"""
         self.forwarded_local_port = None
+        """forwarded local port for connection to service"""
+        self.forwarded_local_port_id = None
+        """forwarded local port connection id"""
+        self.forwarded_remote_port = None
+        """forwarded remote port for back connection from service"""
+        self.forwarded_remote_port_id = None
+        """forwarded remote port connection id"""
 
         self.connect_to_address_queue = []
         """Queue for connect request"""
@@ -149,9 +156,19 @@ class _ClientDispatcher(asynchat.async_chat):
         asynchat.async_chat.__init__(self)
 
     def connect_to_address_safe(self, address):
+        """
+        Thread safe version of connect_to_address.
+        :param address:
+        :return:
+        """
         self.connect_to_address_queue.append(address)
 
     def connect_to_address(self, address):
+        """
+        Connect dispatcher to child service.
+        :param address: address where child service listening
+        :return:
+        """
         self.close()
         #self.discard_buffers()
         self.received_data.clear()
@@ -223,19 +240,50 @@ class _ClientDispatcher(asynchat.async_chat):
             self._remote_address = address
 
         # forward tunnel
-        self.connection_id = self.connection._id
+        self.forwarded_local_port_id = self.connection._id
         self.forwarded_local_port = self.connection.forward_local_port(self._remote_address[1])
 
         #self.connect_to_address(("localhost", local_port))
         self.connect_to_address_safe((self._remote_address[0], self.forwarded_local_port))
 
     def reconnect(self):
-        if self.connection._id > self.connection_id:
-            self.connection_id = self.connection._id
+        """
+        Reconnect dispatcher.
+        :return:
+        """
+        if self.connection._id > self.forwarded_local_port_id:
+            self.forwarded_local_port_id = self.connection._id
             self.forwarded_local_port = self.connection.forward_local_port(self._remote_address[1])
         self.connect_to_address_safe((self._remote_address[0], self.forwarded_local_port))
 
+    def forward_remote_port(self, local_port):
+        """
+        Forwards remote port for service back connection.
+        :param local_port:
+        :return:
+        """
+        self.forwarded_remote_port_id = self.connection._id
+        self.forwarded_remote_port = self.connection.forward_remote_port(local_port)
+        return self.forwarded_remote_port
+
+    def close_forwarded_ports(self):
+        """
+        Close forwarded ports opened by dispatcher.
+        :return:
+        """
+        # forwarded_local_port
+        if (self.forwarded_local_port_id is not None) and (self.forwarded_local_port_id == self.connection._id):
+            self.connection.close_forwarded_local_port(self.forwarded_local_port)
+
+        # forwarded_remote_port
+        if (self.forwarded_remote_port_id is not None) and (self.forwarded_remote_port_id == self.connection._id):
+            self.connection.close_forwarded_remote_port(self.forwarded_remote_port)
+
     def process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
         # connect to address
         l = len(self.connect_to_address_queue)
         if l > 0:
@@ -251,6 +299,11 @@ class _ClientDispatcher(asynchat.async_chat):
                 self.push(self.push_queue.pop(0))
 
     def push_safe(self, data):
+        """
+        Thread safe version of push.
+        :param data:
+        :return:
+        """
         self.push_queue.append(data)
 
 
@@ -408,6 +461,10 @@ class ServerDispatcher(asynchat.async_chat):
                 self.push_safe( _pack_message(id, self.repeater_address, sender, data) )
 
     def process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
         # push
         l = len(self.push_queue)
         if l > 0:
@@ -415,6 +472,11 @@ class ServerDispatcher(asynchat.async_chat):
                 self.push(self.push_queue.pop(0))
 
     def push_safe(self, data):
+        """
+        Thread safe version of push.
+        :param data:
+        :return:
+        """
         self.push_queue.append(data)
 
 
@@ -586,11 +648,19 @@ class AsyncRepeater():
             logging.info("Starter client started.")
 
     def _loop(self):
+        """
+        Repeater loop.
+        :return:
+        """
         while not self._loop_closing:
             asyncore.loop(timeout=0.01, count=1)
             self._process_queues()
 
     def _process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
         if self._server_dispatcher is not None:
             self._server_dispatcher.process_queues()
         for c in self.clients.values():
@@ -632,16 +702,27 @@ class AsyncRepeater():
         else:
             # remote tunnel
             local_port = self._starter_server.address[1]
-            remote_port = connection.forward_remote_port(local_port)
+            remote_port = self.clients[id].forward_remote_port(local_port)
 
         return id, remote_port
 
     def reconnect_child(self, id):
+        """
+        Reconnect client dispatcher.
+        :param id:
+        :return:
+        """
         self.clients[id].reconnect()
 
     def remove_child(self, id):
+        """
+        Remove connection to child repeater.
+        :param id:
+        :return:
+        """
         # todo: neni thread safe
         self.clients[id].close()
+        self.clients[id].close_forwarded_ports()
         del self.clients[id]
 
 
@@ -708,21 +789,31 @@ class AsyncRepeater():
 
     def close(self):
         """
-
+        Close repeater.
         :return:
         """
+        # repeater loop
         if self._loop_thread is not None:
             self._loop_closing = True
             self._loop_thread.join(timeout=1)
             if self._loop_thread.is_alive():
                 logging.warning("Repeater loop closing timeout.")
+
+        # server
         if self._server is not None:
             self._server.close()
+
+        # server dispatcher
         if self._server_dispatcher is not None:
             self._server_dispatcher.close()
+
+        # client dispatchers
         for c in self.clients.values():
             if c is not None:
                 c.close()
+                c.close_forwarded_ports()
+
+        # starter server
         self._starter_server.close()
 
     def _starter_client_run(self):

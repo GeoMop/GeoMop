@@ -113,6 +113,13 @@ class ConnectionLocal(ConnectionBase):
         """
         return remote_port
 
+    def close_forwarded_local_port(self, local_port):
+        """
+        Close forwarded local port.
+        :param local_port:
+        :return:
+        """
+        pass
 
     def forward_remote_port(self, local_port):
         """
@@ -124,6 +131,14 @@ class ConnectionLocal(ConnectionBase):
         :return: remote_port
         """
         return local_port
+
+    def close_forwarded_remote_port(self, remote_port):
+        """
+        Close forwarded remote port.
+        :param remote_port:
+        :return:
+        """
+        pass
 
     def upload(self,  paths, local_prefix, remote_prefix  ):
         """
@@ -204,6 +219,9 @@ class ConnectionSSH(ConnectionBase):
         self._forwarded_local_ports = {}
         """dict of forwarded local ports, {'local_port': (thread, server)}"""
 
+        self._forwarded_remote_ports = set()
+        """set of forwarded remote ports"""
+
         self._delegator_std_in_out_err = None
         """delegator stdin, stdout, stderr"""
 
@@ -229,7 +247,6 @@ class ConnectionSSH(ConnectionBase):
             from .service_base import ServiceStatus
             if proxy_status == ServiceStatus.done:
                 self.close_connections()
-                self._delegator_proxy = None
                 self._status = ConnectionStatus.offline
                 self._reconnect_thread = threading.Thread(target=self._reconnect, daemon=True)
                 self._reconnect_event.clear()
@@ -453,6 +470,9 @@ class ConnectionSSH(ConnectionBase):
             remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
         except paramiko.SSHException:
             raise SSHError
+
+        self._forwarded_remote_ports.add(remote_port)
+
         return remote_port
 
     def close_forwarded_remote_port(self, remote_port):
@@ -464,7 +484,9 @@ class ConnectionSSH(ConnectionBase):
         if self._status != ConnectionStatus.online:
             return
 
-        self._ssh.get_transport().cancel_port_forward('', remote_port)
+        if remote_port in self._forwarded_remote_ports:
+            self._ssh.get_transport().cancel_port_forward('', remote_port)
+            self._forwarded_remote_ports.remove(remote_port)
 
     def upload(self, paths, local_prefix, remote_prefix):
         """
@@ -671,9 +693,16 @@ class ConnectionSSH(ConnectionBase):
         if self._reconnect_thread is not None:
             self._reconnect_thread.join()
 
+        # close delegator proxi
+        if self._delegator_proxy is not None:
+            self._delegator_proxy.close()
+            self._delegator_proxy = None
+
         # close all forwarded local ports
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
+
+        self._forwarded_remote_ports.clear()
 
         if self._sftp is not None:
             self._sftp.close()
