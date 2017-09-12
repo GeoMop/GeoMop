@@ -147,7 +147,7 @@ class TestPlanarGeomeries(unittest.TestCase):
         loc2=bw.Location([[0,0,1,0],[1,0,0,0],[0,1,0,0]]) #dej tam tu druhou z prikladu
         cloc=bw.ComposedLocation([(loc1,1),(loc2,1)])
 
-        with open("test_prism.brep", "w") as f:
+        with open("_out_test_prism.brep", "w") as f:
             bw.write_model(f, c1, cloc)
             #bw.write_model(sys.stdout, c1, cloc)
         print(c1)
