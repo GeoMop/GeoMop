@@ -386,10 +386,8 @@ class LayersHistory(History):
 
     __location__ = EventLocation.layer
             
-    def __init__(self, layer,  global_history): 
+    def __init__(self, global_history): 
         super(LayersHistory, self).__init__(global_history)       
-        self._layer = layer
-        """Layer panel object""" 
         self._refresh_panel = True
         """Refresh layer panel"""
         self._check_viewed = False
@@ -738,6 +736,216 @@ class LayersHistory(History):
         self._edit_first = False
         return ret
         
+class RegionHistory(History):
+    """
+    Region history
+    
+    Basic region operation for history purpose
+    """
 
+    __location__ = EventLocation.layer
+            
+    def __init__(self, global_history): 
+        super(RegionHistory, self).__init__(global_history)       
+        
+    def add_layer(self, id, name, insert, label=None):
+        """
+        Add add layer to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._add_layer, [id, name, insert],label))
+        
+    def _add_layer(self, id, name, insert):
+        """
+        Insert layer to regions
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.add_layer_history(id, name, insert)
+        
+        revert =  HistoryStep(self._delete_layer, [id])        
+        return revert
 
+    def delete_layer(self, id, label=None):
+        """
+        Add delete layer to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_layer, [id], label))
+        
+    def _delete_layer(self, id):
+        """
+        Delete layer from regions
+        
+        Return invert operation
+        """
+        name = self.global_history.cfg.diagram.regions.layers[id]
+        insert = self.global_history.cfg.diagram.regions.delete_layer(id, False)
+        revert =  HistoryStep(self._add_layer, [id, name, insert])        
+        return revert
 
+    def add_fracture(self, id, name, is_own, is_top, label=None):
+        """
+        Add add fracture to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._add_fracture, [id, name, is_own, is_top],label))
+        
+    def _add_fracture(self, id, name, is_own, is_top):
+        """
+        Insert fracture to regions
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.add_fracture(id, name, is_own, is_top, False)
+        
+        revert =  HistoryStep(self._delete_fracture, [id])        
+        return revert
+
+    def delete_fracture(self, id, label=None):
+        """
+        Add delete fracture to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_fracture, [id], label))
+        
+    def _delete_fracture(self, id):
+        """
+        Delete fracture from regions
+        
+        Return invert operation
+        """
+        name = self.global_history.cfg.diagram.regions.layers[-id]
+        is_top = self.global_history.cfg.diagram.regions.get_topology(-id) == \
+            self.global_history.cfg.diagram.regions.get_topology(id)
+        is_own = self.global_history.cfg.diagram.regions.delete_fracture(id, False)
+        revert =  HistoryStep(self._add_fracture, [id, name, is_own, is_top])        
+        return revert
+
+    def move_topology(self, id, label=None):
+        """
+        Add move topology to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._unmove_topology, [id], label))
+        
+    def _move_topology(self, id):
+        """
+        Add new topology to position where is set index, and 
+        move topologies after its 
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.move_topology(id, False)
+        revert =  HistoryStep(self._unmove_topology, [id])        
+        return revert
+
+    def unmove_topology(self, id, label=None):
+        """
+        Add unmove topology to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._unmove_topology, [id], label))
+        
+    def _unmove_topology(self, id):
+        """
+        delete topology from position where is set index, and 
+        move topologies after its 
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.unmove_topology(id, False)
+        revert =  HistoryStep(self._move_topology, [id])        
+        return revert
+        
+    def rename_layer(self, is_fracture, id, name, label=None):
+        """
+        Add rename layer to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._rename_layer, [is_fracture, id, name],label))
+        
+    def _rename_layer(self, is_fracture, id, name):
+        """
+        Insert layer to regions
+        
+        Return invert operation
+        """        
+        if is_fracture:
+            old_name = self.global_history.cfg.diagram.regions.layers[-id]
+        else:
+            old_name = self.global_history.cfg.diagram.regions.layers[id]
+        self.global_history.cfg.diagram.regions.rename_layer(is_fracture, id, name, False)
+        revert =  HistoryStep(self._rename_layer, [is_fracture, id, old_name])        
+        return revert
+    
+    def save_data(self, id, r1D, r2D, r3D, label=None):
+        """
+        Add save layer data operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._save_data, [id, r1D, r2D, r3D],label))
+        
+    def _save_data(self, id, r1D, r2D, r3D):
+        """
+        Save layer data
+        
+        Return invert operation
+        """        
+        revert =  HistoryStep(self._load_data, [id, r1D, r2D, r3D])        
+        return revert
+        
+    def load_data(self, id, r1D, r2D, r3D, label=None):
+        """
+        Add save layer data operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._rename_layer, [id, r1D, r2D, r3D],label))
+        
+    def _load_data(self, id, r1D, r2D, r3D):
+        """
+        Save layer data
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.layer_region_1D[id]=r1D
+        self.global_history.cfg.diagram.regions.layer_region_2D[id]=r2D
+        self.global_history.cfg.diagram.regions.layer_region_3D[id]=r3D
+        
+        revert =  HistoryStep(self._save_data, [id, r1D, r2D, r3D])        
+        return revert
+
+    def copy_related(self, id, name, label=None):
+        """
+        Add copy related to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._copy_related, [id, name],label))
+        
+    def _copy_related(self, id, name):
+        """
+        Copy data to layers from related layers.
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.copy_related(id, name)
+        revert =  HistoryStep(self._delete_data, [id])        
+        return revert
+        
+    def delete_data(self, id, label=None):
+        """
+        Add copy related to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_data, [id],label))
+        
+    def _delete_data(self, id):
+        """
+        Copy data to layers from related layers.
+        
+        Return invert operation
+        """
+        old_name = self.global_history.cfg.diagram.regions.layers[id]
+        self.global_history.cfg.diagram.regions.delete_data(id)
+        revert =  HistoryStep(self._copy_related, [id, old_name])        
+        return revert

@@ -36,7 +36,7 @@ class LESerializer():
         
     def set_new(self, cfg):
         """Set new file"""
-        cfg.diagram.release_all()
+        cfg.release_all()
         self.geometry = self._get_first_geometry(cfg)        
         
     def save(self, cfg, path):
@@ -142,7 +142,7 @@ class LESerializer():
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
-        cfg.diagram.release_all()
+        cfg.release_all()
         cfg.diagrams = []
         cfg.layers.delete()
         

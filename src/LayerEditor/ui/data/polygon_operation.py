@@ -422,10 +422,11 @@ class PolylineCluster():
                     return True
         return False
         
-    def find_poly_by_end_point(self, line):
+    def find_poly_by_end_point(self, point):
         """Find polyline with set end point"""
         for poly in self.polylines:
-            if poly.points[-1]:
+            if poly.points[-1] == point or \
+                poly.points[0] == point:
                 return poly
         return None 
  

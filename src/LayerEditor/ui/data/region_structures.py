@@ -1,5 +1,6 @@
 from enum import IntEnum
 from copy import deepcopy
+from .history import RegionHistory
 
 class TopologyOperations(IntEnum):
     """Type of topology operation"""
@@ -35,11 +36,16 @@ class Region():
 class Regions():
     """
     Regions diagram
+    
+    All regions function for layer panel contains history operation without 
+    label and must be placed after first history operation with label. Function 
+    that worked with regions value and si not used by layer panel, should contain
+    label.
     """
     
     diagram_map = None
     
-    def __init__(self):
+    def __init__(self, global_history):
         self.regions = []
         """List of regions"""
         self.layers = {}
@@ -53,6 +59,8 @@ class Regions():
         """Dictionary of indexes lists 2D shapes (lines) (layers_id:{line.id:region.id})"""
         self.layer_region_3D = {}
         """Dictionary of indexes lists 3D shapes (polygons) (layers_id:[{polygon.id:region.id}])"""
+        self._history = RegionHistory(global_history)
+        """History class"""
         
     # diagram functions
     
@@ -66,17 +74,16 @@ class Regions():
             elif dim==2:
                 self.layer_region_2D[layer_id][object_id]=1
             else:
-                self.layer_region_3D[layer_id][object_id]=2
+                self.layer_region_3D[layer_id][object_id]=2        
         
-        
-    # layer functions
+    # layer panel functions
 
-    def add_fracture(self, id, name, is_own, is_top):
+    def add_fracture(self, id, name, is_own, is_top, to_history=True):
         """insert layer to structure and copy regions"""
-        self.layers[-id] = name
+        self.layers[-id] = name        
         move_id = None
         if (not is_top):
-            move_id = self._find_less(id)
+            move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
         self.layer_region_1D[-id]=deepcopy(self.layer_region_1D[move_id])
@@ -86,9 +93,27 @@ class Regions():
             if move_id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].append(-id)
         if is_own:
-            self.move_topology(id)
+            self.move_topology(id, False)
+        if to_history:
+            self._history.delete_fracture(-id)            
+            self._history.save_data(-id, self.layer_region_1D[-id], self.layer_region_2D[-id], 
+                self.layer_region_2D[-id])
+            
+    def add_layer_history(self, id, name, insert):
+        """Add layer for reverse history operation"""
+        oper = TopologyOperations.none
+        if insert:
+            oper = TopologyOperations.insert
+        self.add_layer(id, name, oper, False)
         
-    def add_layer(self, id, name, oper):
+    def get_topology(self, layer_id):
+        """Get topology id for set layer or fracture"""
+        max_topology_key = max(self.layers_topology) 
+        for i in range(0, max_topology_key+1):
+            if layer_id in self.layers_topology[i]:
+                return i        
+        
+    def add_layer(self, id, name, oper, to_history=True):
         """insert layer to structure and copy regions"""
         move_id, topology_id = self._find_less(id)
         if move_id is None:
@@ -107,12 +132,16 @@ class Regions():
                self.layers[-i-1] = self.layers[-i]
                del self.layers[-i]
         self.layers[id]=name
+        if to_history:
+            self._history.delete_layer(id)
+            self._history.save_data(id, self.layer_region_1D[id], self.layer_region_2D[id], 
+                self.layer_region_2D[id])
         
-        self._add_to_topology(id, id)           
+        self._add_to_topology(id)           
         if oper is TopologyOperations.insert or oper is TopologyOperations.insert_next:            
-            self.move_topology(id)           
+            self.move_topology(id, False)           
             
-    def _add_to_topology(self, id, insert_id):
+    def _add_to_topology(self, id):
         """Add layer id and increment other"""
         max_topology_key = max(self.layers_topology)
         for i in range(max_topology_key, -1, -1):
@@ -120,9 +149,9 @@ class Regions():
             old = deepcopy(self.layers_topology[i])
             self.layers_topology[i] = []
             for layer_id in old:
-                if layer_id<=id:
+                if layer_id<=id and id>=-layer_id:
                     if not end:
-                        self.layers_topology[i].append(insert_id)
+                        self.layers_topology[i].append(id)
                     end = True
                     if layer_id<id:
                         self.layers_topology[i].append(layer_id)
@@ -132,10 +161,35 @@ class Regions():
                     self.layers_topology[i].append(layer_id-1)
             if end:
                 break
+                
+    def _remove_from_topology(self, id):
+        """Remove layer id and decrement other"""
+        max_topology_key = max(self.layers_topology) 
+        del_row = 0
+        for i in range(0, max_topology_key+1):
+            if id in self.layers_topology[i]:
+                self.layers_topology[i].remove(id)
+            if -id in self.layers_topology[i]:
+                self.layers_topology[i].remove(-id)
+            if len(self.layers_topology[i])==0:
+                del_row += 1
+                if max_topology_key==i:
+                    del self.layers_topology[i]
+            else:            
+                if max(self.layers_topology[i])>id or min(self.layers_topology[i])<-id:
+                    old = deepcopy(self.layers_topology[i])
+                    self.layers_topology[i-del_row] = []
+                    for layer_id in old:
+                        if layer_id>id:
+                            self.layers_topology[i-del_row].append(layer_id-1)
+                        elif layer_id<-id:
+                            self.layers_topology[i-del_row].append(layer_id+1)
+                        else:
+                            self.layers_topology[i-del_row].append(layer_id)
+        return del_row
         
-    def move_topology(self, id):
-        """increment layers id topology and bigger. If 
-        with_fracture_id is set,fracture id -1 is moved too"""
+    def move_topology(self, id, to_history=True):
+        """increment layers id topology and bigger."""
         max_topology_key = max(self.layers_topology)
         for i in range(max_topology_key, -1, -1):
             if id in self.layers_topology[i]:
@@ -149,60 +203,82 @@ class Regions():
                 break
             # move bigger            
             self.layers_topology[i+1] = max_topology_key[i]
+        if to_history:
+            self._history.unmove_topology(id)
 
-    def unmove_topology(self, id):
-        """decrement layers id topology and bigger. If 
-        with_fracture_id is set,fracture id -1 is moved too"""
+    def unmove_topology(self, id, to_history=True):
+        """decrement layers id topology and bigger."""
         max_topology_key = max(self.layers_topology)
         move_all = False
         for i in range(0, max_topology_key+1):
             if move_all: 
                 # move bigger            
                 self.layers_topology[i-1] = max_topology_key[i]
-            if id in self.layers_topology[i]:
-                move_all = True
-                for layer_id in self.layers_topology[i]:
-                    self.layers_topology[i-1].append(layer_id)
+            else:
+                if id in self.layers_topology[i]:
+                    move_all = True
+                    for layer_id in self.layers_topology[i]:
+                        self.layers_topology[i-1].append(layer_id)
         del self.layers_topology[max_topology_key]
+        if to_history:
+            self._history.move_topology(id)
         
-    def rename_layer(self, is_fracture, id, name):
+    def rename_layer(self, is_fracture, id, name, to_history=True):
         """copy data from related structure"""
         if is_fracture:
             self.layers[-id] = name
         else:
             self.layers[id] = name
+        if to_history:            
+            self._history.rename_layer(is_fracture, id, name)
         
-    def delete_fracture(self, id):    
+    def delete_fracture(self, id, to_history=True):    
         """delete fracture from structure"""
+        topology_removed = False
+        is_top = self.get_topology(-id) == self.get_topology(id)
+        name = self.layers[-id]
+        
         del self.layers[-id]
+        r1D = self.layer_region_1D[-id]
         del self.layer_region_1D[-id]
+        r2D = self.layer_region_2D[-id]
         del self.layer_region_2D[-id]
+        r3D = self.layer_region_3D[-id]
         del self.layer_region_3D[-id]
         for top_id in self.layers_topology:
             if -id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].remove(-id)
+                if len(self.layers_topology[top_id])==0:
+                    move_id, topology_id = self._find_more(id)
+                    if topology_id is not None:                    
+                        self.unmove_topology(move_id, False)
+                        topology_removed = True
                 break
+        if to_history:            
+            self._history.add_fracture(id, name, is_top, topology_removed) 
+            self._history.load_data(id, r1D, r2D, r3D)
+        return topology_removed
         
-    def delete_layer(self, id):
+    def delete_layer(self, id, to_history=True):
         """delete layer from structure"""
+        name = self.layers[id]
+        
+        r1D = self.layer_region_1D[id]
         self._unmove_dim(id, self.layer_region_1D)
+        r2D = self.layer_region_2D[id]
         self._unmove_dim(id, self.layer_region_2D)
+        r3D = self.layer_region_3D[id]
         self._unmove_dim(id, self.layer_region_3D)
         
         max_layer_key = max(self.layers)
         for i in range(id, max_layer_key):
             self.layers[i] = self.layers[i+1]
             
-        for top_id in self.layers_topology:
-            if id in self.layers_topology[top_id]:
-                self.layers_topology[top_id].remove(id)
-                if len(self.layers_topology[top_id])==0:
-                    move_id, topology_id = self._find_more(id)
-                    if topology_id is not None:                    
-                        self.unmove_topology(move_id)
-                    else:
-                        del self.layers_topology[top_id]
-                break
+        del_row = self._remove_from_topology(id)
+        if to_history:
+            self._history.add_layer(id, name, del_row>0)
+            self._history.load_data(id, r1D, r2D, r3D)
+        return del_row>0
         
     def delete_block(self, id, layers):
         """delete block from structure"""
@@ -216,35 +292,58 @@ class Regions():
             if id in self.layers_topology[i]:
                 removed_layer = self.layers_topology[i]
         del self.layers_topology[max_topology_key]
+        
+        remove_shadow = True
     
         if max_topology_key!=j and j!=0:
-            # start and end removed
+            # start or end is not removed
             if id-1 not in self.layers_topology[-1]:
                 if id-1 not in self.layers_topology[-1]:
-                    # shadow befor or after
+                    # other shadow is not befor or after
                     shadow = removed_layer[0]
+                    old_name = self.layers[removed_layer[0]]
                     del removed_layer[0]
                     self.layers_topology[-1].append(shadow)
+                    r1D = self.layer_region_1D[shadow]
+                    r2D = self.layer_region_2D[shadow]
+                    r3D = self.layer_region_3D[shadow]
                     self.layer_region_1D[shadow] = []
                     self.layer_region_2D[shadow] = []
                     self.layer_region_3D[shadow] = []
-                    
+                    self._history.copy_data(id, old_name)
+                    self._history.load_data(id, r1D, r2D, r3D)
+                    remove_shadow = False
+        
         for i in sorted(removed_layer):
+            if i>=0:
+                name = self.layers[i]
+                r1D = self.layer_region_1D[i]
+                r2D = self.layer_region_2D[i]
+                r3D = self.layer_region_3D[i]                 
+                self._history.add_layer(i, name, i==0 and remove_shadow)
+                self._history.load_data(i, r1D, r2D, r3D)                
+        
+        for i in sorted(removed_layer, reverse=True):
             if i>0:
                 self._unmove_dim(i, self.layer_region_1D)
                 self._unmove_dim(i, self.layer_region_2D)
                 self._unmove_dim(i, self.layer_region_3D)            
-                max_layer_key = max(self.layers)
-                
+                max_layer_key = max(self.layers)                
                 for i in range(i, max_layer_key):
-                    self.layers[i] = self.layers[i+1]                    
+                    self.layers[i] = self.layers[i+1]
             else:
+                name = self.layers[i]
+                r1D = self.layer_region_1D[i]
+                r2D = self.layer_region_2D[i]
+                r3D = self.layer_region_3D[i]
                 del self.layers[i]
                 del self.layer_region_1D[i]
                 del self.layer_region_2D[i]
                 del self.layer_region_3D[i]
+                self._history.delete_fracture(-i, name, False, False) 
+                self._history.load_data(i, r1D, r2D, r3D)
         
-    def copy_related(self, id, name):
+    def copy_related(self, id, name, to_history=True):
         """copy data from related structure"""
         self.layers[id] = name
         copy_id, topology_id = self._find_less(id)
@@ -255,9 +354,16 @@ class Regions():
         self.layer_region_1D[id]=deepcopy(self.layer_region_1D[copy_id])
         self.layer_region_2D[id]=deepcopy(self.layer_region_2D[copy_id])
         self.layer_region_3D[id]=deepcopy(self.layer_region_3D[copy_id])
+        if to_history:
+            self._history.delete_data(id)
         
-    def delete_data(self, id):
+    def delete_data(self, id, to_history=True):
         """For shadow block delete data, and set topology to -1"""
+        old_name = self.layers[id]
+        r1D = self.layer_region_1D[id]
+        r2D = self.layer_region_2D[id]
+        r3D = self.layer_region_3D[id]
+        self._unmove_dim(id, self.layer_region_3D)
         self.layer_region_1D[id] = []
         self.layer_region_2D[id] = []
         self.layer_region_3D[id] = []
@@ -273,15 +379,18 @@ class Regions():
                         del self.layers_topology[top_id]
                 break
         self.layers_topology[-1].append(id)
+        if to_history:
+            self._history.copy_data(id, old_name)
+            self._history.load_data(id, r1D, r2D, r3D)
         
     def _move_dim(self, id, layer_region):
         """Move topology structure from index id"""
         max_layer_key = max(self.layers)
         for i in range(max_layer_key, id-1, -1):
             layer_region[i+1] = layer_region[i]
-            if i!=id and -i in self.layer_region:
-               self.layer_region[-i-1] = self.layer_region[-i]
-               del self.layer_region[-i]
+            if i!=id and -i in layer_region:
+               layer_region[-i-1] = layer_region[-i]
+               del layer_region[-i]
                
     def _unmove_dim(self, id, layer_region):
         """UnMove topology structure from index id"""

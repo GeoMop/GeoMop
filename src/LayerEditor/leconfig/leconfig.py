@@ -245,11 +245,17 @@ class LEConfig:
         """return interpolated new diagram in set depth"""
         # TODO: instead copy compute middle diagram
         return cls.diagrams[dup.dup1_id].dcopy()
+        
+    @classmethod
+    def release_all(cls):
+        """Release all diagram data"""
+        data.Diagram.release_all(cls.history)
     
     @classmethod
     def init(cls):
-        """Init class wit static method"""
+        """Init class with static method"""
         cls.history = data.GlobalHistory(cls)
+        data.Diagram.release_all(cls.history)
         cls.data = data.LESerializer(cls)
         
     @staticmethod

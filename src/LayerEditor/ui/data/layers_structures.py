@@ -45,11 +45,13 @@ class FractureInterface(IntEnum):
     top = 2
     own = 3
     
+    
 class LayerSplitType(IntEnum):
     """Fracture interface type"""
     interpolated = 0
     editable = 1
     split = 2
+    
     
 class ChangeInterfaceActions(IntEnum):
     """Interface possible actions"""
@@ -60,6 +62,7 @@ class ChangeInterfaceActions(IntEnum):
     top_editable = 4
     bottom_editable = 5
     split = 6
+    
 
 class ClickedControlType(IntEnum):
     """Type of control that is clicked"""
@@ -73,6 +76,7 @@ class ClickedControlType(IntEnum):
     edit2 = 7
     fracture_view = 8
     fracture_edit = 9
+    
     
 class Fracture():
     """One fracture in panel"""

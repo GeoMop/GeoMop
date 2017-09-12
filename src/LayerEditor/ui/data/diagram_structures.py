@@ -199,7 +199,7 @@ class Diagram():
     """Object of not edited diagrams"""
     topologies = {}
     """List of all diagrams, divided by topologies"""
-    regions = Regions()
+    regions = None
     """List of regions"""
     
     @classmethod
@@ -282,12 +282,12 @@ class Diagram():
         Regions.diagram_map = None
     
     @classmethod
-    def release_all(cls):
+    def release_all(cls, history):
         """Discard all links"""
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
-        cls.regions = Regions()
+        cls.regions = Regions(history)
         
     @classmethod
     def move_diagram_topologies(cls, id, diagrams):
