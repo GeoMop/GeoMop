@@ -33,7 +33,7 @@ class GridSurface:
         """
         point_seq = np.loadtxt(filename)
         assert min(point_seq.shape) > 1
-        self.init_from_seq(point_seq)
+        self.init_from_seq(point_seq.T)
 
 
     def init_from_seq(self, point_seq):
@@ -84,11 +84,30 @@ class GridSurface:
 
         self.shape = (nu, nv)
         self.uv_step = ( 1.0 / float(nu-1), 1.0 / float(nv-1) )
-        self.shift = np.column_stack( (point_seq_xy[:, 0], ) )
+        self.xy_shift = point_seq_xy[:, 0]
+        self.z_shift = 0.0
         self.mat_uv_to_xy = np.column_stack((u_range_0, v_range_0))
         self.mat_xy_to_uv = la.inv(self.mat_uv_to_xy)
 
         self.grid = point_seq[2,:].reshape(nv, nu)
+
+    def transform(self, xy_mat, z_shift):
+        """
+        Transform the surface by arbitrary XY linear transform and Z shift.
+        :param xy_mat: np array, 2 rows 3 cols, last column is xy shift
+        :param z_shift: float
+        :return: None
+        """
+        self.mat_uv_to_xy = xy_mat[0:2,0:2].dot( self.mat_uv_to_xy )
+        self.xy_shift = xy_mat[0:2,0:2].dot( self.xy_shift ) + xy_mat[0:2, 2]
+        self.mat_xy_to_uv = la.inv(self.mat_uv_to_xy)
+
+        self.z_shift += z_shift
+
+    def get_xy_envelope(self):
+        return self.uv_to_xy(np.array([[0,0], [1,0], [1,1], [0,1]]).T)
+
+
 
 
     def xy_to_uv(self, xy_points):
@@ -97,7 +116,7 @@ class GridSurface:
         :return: matrix of UV coordinates
         """
         assert xy_points.shape[0] == 2
-        return self.mat_xy_to_uv.dot(xy_points - self.shift)
+        return self.mat_xy_to_uv.dot((xy_points.T - self.xy_shift).T)
 
 
     def uv_to_xy(self, uv_points):
@@ -106,7 +125,7 @@ class GridSurface:
         :return: matrix of UV coordinates
         """
         assert uv_points.shape[0] == 2, "Size: {}".format(uv_points.shape)
-        return self.mat_uv_to_xy.dot(uv_points) + self.shift
+        return (self.mat_uv_to_xy.dot(uv_points).T + self.xy_shift).T
 
 
     def eval_in_xy(self, points):
@@ -118,7 +137,7 @@ class GridSurface:
 
         assert points.shape[0] == 2, "Size: {}".format(uv_points.shape)
         uv_points = self.xy_to_uv(points)
-        return eval_in_uv(uv_points)
+        return self.eval_in_uv(uv_points)
 
 
     def eval_in_uv(self, uv_points):
@@ -141,7 +160,7 @@ class GridSurface:
             u_loc = np.array([1 - uv_loc[0], uv_loc[0]])
             v_loc = np.array([1 - uv_loc[1], uv_loc[1]])
             Z_mat = self.grid[iv: (iv + 2), iu: (iu + 2)]
-            result[i] = v_loc.dot(Z_mat).dot(u_loc)
+            result[i] = v_loc.dot(Z_mat).dot(u_loc) + self.z_shift
         return result
 
     def plot_matplot_lib(self, fig_ax, nu=None, nv=None, **kwargs):
@@ -161,7 +180,6 @@ class GridSurface:
         U = np.linspace(0.0, 1.0, nu)
         V = np.linspace(0.0, 1.0, nv)
         U,V = np.meshgrid(U,V)
-        orig_shape = U.shape
         points = np.vstack( [U.ravel(), V.ravel()] )
 
         XY = self.uv_to_xy( points )
@@ -173,7 +191,7 @@ class GridSurface:
         Z = Z.reshape(U.shape)
 
         # Plot the surface.
-        surf = fig_ax.plot_surface(X, Y,  Z)
+        surf = fig_ax.plot_surface(X, Y,  Z, **kwargs)
 
         return surf
 
@@ -233,9 +251,9 @@ if __name__ == "__main__":
                                linewidth=0, antialiased=False)
 
         # Customize the z axis.
-        ax.set_zlim(-1.01, 1.01)
-        ax.zaxis.set_major_locator(LinearLocator(10))
-        ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+        #ax.set_zlim(-1.01, 1.01)
+        #ax.zaxis.set_major_locator(LinearLocator(10))
+        #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
         # Add a color bar which maps values to colors.
         #fig.colorbar(surf_plot, shrink=0.5, aspect=5)
@@ -243,11 +261,10 @@ if __name__ == "__main__":
         plt.show()
 
 
-    #surf = GridSurface()
-    #surf.load("test_data/test_surface_Hradek_200x200.csv")
-    import math
+    #import math
+    #surf=make_function_grid(lambda x: math.sin(x[0])*(math.cos(x[1])), 5, 4)
 
+    surf = GridSurface()
+    surf.load("test_data/test_surface_Hradek_200x200.csv")
 
-
-    surf=make_function_grid(lambda x: math.sin(x[0])*(math.cos(x[1])), 5, 4)
     plot_surface(surf)
