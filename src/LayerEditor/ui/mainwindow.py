@@ -34,11 +34,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scroll_area.setWidget(self.layers)
         
         self._vsplitter.addWidget(self.scroll_area)        
+        self.regions = panels.Regions()        
+        self._vsplitter.addWidget(self.regions)     
         self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
-        self._vsplitter.addWidget(self.shp)     
+        self._vsplitter.addWidget(self.shp) 
         if cfg.diagram.shp.is_empty():
             self.shp.hide()   
-        
+
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._hsplitter)

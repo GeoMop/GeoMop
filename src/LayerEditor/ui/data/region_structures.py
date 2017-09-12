@@ -1,5 +1,6 @@
 from enum import IntEnum
 from copy import deepcopy
+from collections import OrderedDict
 from .history import RegionHistory
 
 class TopologyOperations(IntEnum):
@@ -61,6 +62,17 @@ class Regions():
         """Dictionary of indexes lists 3D shapes (polygons) (layers_id:[{polygon.id:region.id}])"""
         self._history = RegionHistory(global_history)
         """History class"""
+        
+    # region panels functions
+    
+    def get_layers(self, topology_idx):
+        """Return dictionary layers (id:layer_name) with set topology"""
+        pom = {}
+        for id in self.layers_topology[topology_idx]:
+            pom[id] = self.layers[id]
+        ret = OrderedDict(sorted(pom.items(), key=lambda x: 2*x[0] if x[0]>0 else -2*x[0]-1))
+        return ret
+        
         
     # diagram functions
     
