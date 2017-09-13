@@ -62,8 +62,7 @@ class Surface(JsonData):
 
     @staticmethod
     def make_surface(depth):
-        surf = Surface()
-        surf.depth = depth
+        surf = Surface(dict(depth=depth))
         surf.transform_xy = 2*[3*[0.0]]
         surf.transform_xy[0][0] = surf.transform_xy[1][1] = 1.0
         surf.transform_z = [1.0, -depth]

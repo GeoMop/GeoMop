@@ -78,13 +78,17 @@ class GeometryFactory:
         """Add new main layer"""
         layer_class = [ gs.StratumLayer, gs.FractureLayer, gs.ShadowLayer ][type]
 
+
         iface_classes = [ SurfaceNodeSet, InterpolatedNodeSet ]
         top_interface = iface_classes[top_type]
         assert isinstance(top, top_interface)
-        bot_interface = iface_classes[bottom_type]
-        assert isinstance(bottom, bot_interface)
+        layer_config = dict(name=name, top=top)
+        if bottom_type is not None:
+            bot_interface = iface_classes[bottom_type]
+            assert isinstance(bottom, bot_interface)
+            layer_config['bottom'] = bottom
 
-        gl = layer_class(dict(name=name, top=top, bottom=bottom))
+        gl = layer_class(layer_config)
         gl.node_region_ids = regions_idx[0]
         gl.segment_region_ids = regions_idx[1]
         gl.polygon_region_ids = regions_idx[2]
