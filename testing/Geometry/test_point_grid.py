@@ -11,7 +11,7 @@ def surface():
     surf = pg.make_function_grid(function, 5, 6)
     return surf
 
-def check_surface(surf, xy_mat, xy_shift, z_shift):
+def check_surface(surf, xy_mat, xy_shift, z_mat):
     nu, nv = 30, 40
     # surface on unit square
     U = np.linspace(0.0, 1.0, nu)
@@ -26,7 +26,7 @@ def check_surface(surf, xy_mat, xy_shift, z_shift):
     hy = 1.0 / surf.shape[1]
     tol = 0.5* ( hx*hx + 2*hx*hy + hy*hy)
     for xy, z_approx in zip(UV.T, Z_grid):
-        z_func = function(xy) + z_shift
+        z_func = z_mat[0]*function(xy) + z_mat[1]
         eps = max(eps, math.fabs( z_approx - z_func))
         assert math.fabs( z_approx - z_func) < tol
     print("Max norm: ", eps, "Tol: ", tol)
@@ -34,14 +34,14 @@ def check_surface(surf, xy_mat, xy_shift, z_shift):
 def test_grid_surface(surface):
     xy_mat = np.array([ [1.0, 0.0], [0.0, 1.0] ])
     xy_shift = np.array([0.0, 0.0 ])
-    z_shift = 0.0
+    z_shift = np.array([1.0, 0.0])
 
     check_surface(surface, xy_mat, xy_shift, z_shift)
 
     # transformed surface
     xy_mat = np.array([ [3.0, -3.0], [2.0, 2.0] ]) / math.sqrt(2)
     xy_shift = np.array([[-2.0, 5.0 ]])
-    z_shift = 1.3
+    z_shift = np.array([1.0, 1.3])
     surface.transform(np.concatenate((xy_mat, xy_shift.T), axis=1), z_shift)
 
     check_surface(surface, xy_mat, xy_shift, z_shift)

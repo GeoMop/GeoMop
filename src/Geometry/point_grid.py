@@ -85,24 +85,28 @@ class GridSurface:
         self.shape = (nu, nv)
         self.uv_step = ( 1.0 / float(nu-1), 1.0 / float(nv-1) )
         self.xy_shift = point_seq_xy[:, 0]
+        self.z_scale = 1.0
         self.z_shift = 0.0
         self.mat_uv_to_xy = np.column_stack((u_range_0, v_range_0))
         self.mat_xy_to_uv = la.inv(self.mat_uv_to_xy)
 
         self.grid = point_seq[2,:].reshape(nv, nu)
 
-    def transform(self, xy_mat, z_shift):
+    def transform(self, xy_mat, z_mat):
         """
         Transform the surface by arbitrary XY linear transform and Z shift.
         :param xy_mat: np array, 2 rows 3 cols, last column is xy shift
         :param z_shift: float
         :return: None
         """
+        assert xy_mat.shape == (2, 3)
+        assert z_mat.shape == (2, )
         self.mat_uv_to_xy = xy_mat[0:2,0:2].dot( self.mat_uv_to_xy )
         self.xy_shift = xy_mat[0:2,0:2].dot( self.xy_shift ) + xy_mat[0:2, 2]
         self.mat_xy_to_uv = la.inv(self.mat_uv_to_xy)
 
-        self.z_shift += z_shift
+        self.z_scale *= z_mat[0]
+        self.z_shift = z_mat[0] * self.z_shift + z_mat[1]
 
     def get_xy_envelope(self):
         return self.uv_to_xy(np.array([[0,0], [1,0], [1,1], [0,1]]).T)
@@ -135,7 +139,7 @@ class GridSurface:
         :return:
         """
 
-        assert points.shape[0] == 2, "Size: {}".format(uv_points.shape)
+        assert points.shape[0] == 2, "Size: {}".format(points.shape)
         uv_points = self.xy_to_uv(points)
         return self.eval_in_uv(uv_points)
 
@@ -160,7 +164,7 @@ class GridSurface:
             u_loc = np.array([1 - uv_loc[0], uv_loc[0]])
             v_loc = np.array([1 - uv_loc[1], uv_loc[1]])
             Z_mat = self.grid[iv: (iv + 2), iu: (iu + 2)]
-            result[i] = v_loc.dot(Z_mat).dot(u_loc) + self.z_shift
+            result[i] = self.z_scale*(v_loc.dot(Z_mat).dot(u_loc)) + self.z_shift
         return result
 
     def plot_matplot_lib(self, fig_ax, nu=None, nv=None, **kwargs):

@@ -72,14 +72,13 @@ class GmshIO:
                     # Version 1.0 or 2.0 Nodes
                     try:
                         if ftype==0 and len(columns)==4:
-                            self.nodes[int(columns[0])] = map(float,
-                                                              columns[1:])
+                            self.nodes[int(columns[0])] = [ float(col) for col  in  columns[1:] ]
                         elif ftype==1:
                             nnods=int(columns[0])
                             for N in range(nnods):
                                 data=mshfile.read(4+3*dsize)
                                 i,x,y,z=struct.unpack('=i3d',data)
-                                self.nodes[i]=(x,y,z)
+                                self.nodes[i]=[x,y,z]
                             mshfile.read(1)
                     except ValueError:
                         print('Node format error: '+line, ERROR)

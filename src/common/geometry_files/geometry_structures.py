@@ -27,7 +27,7 @@ class RegionDim(IntEnum):
     fracture = 2
     bulk = 3
 
-class TopologyObject(IntEnum):
+class TopologyDim(IntEnum):
     invalid = -1
     node = 0
     segment = 1
@@ -38,34 +38,49 @@ class Curve(JsonData):
     def __init__(self, config={}):
         super().__init__(config)
 
+class SurfaceApproximation(JsonData):
+    def __init__(self, config={}):
+        self.b_spline = None
+        """B-spline,None for plane"""
+
+
 class Surface(JsonData):
     
     def __init__(self, config={}):
-        self.transform = 4*(3*(float,), )
-        """Transform4x4Matrix"""
-        self.grid = None
+        self.transform_xy = 2*(3*(float,), )
+        """Transformation matrix and shift in XY plane."""
+        self.transform_z = 2*(float,)
+        """Transformation in Z direction (scale and shift)."""
+        self.depth = float
+        """ Representative Z coord of the surface."""
+        self.grid_file = ""
         """List of input grid 3DPoints. None for plane"""
-        self.b_spline = None
-        """B-spline,None for plane"""
+        self.grid_polygon = 4*(2*(float,))
+        """Vertices of the boundary polygon of the grid."""
+        self.approximation = ClassFactory(SurfaceApproximation)
         super().__init__(config)
 
     @staticmethod
     def make_surface(depth):
-        mat = 4*[3*[0]]
-        mat[0][0] = mat[1][1] = mat[2][2] = 1.0
-        mat[3][2] = depth
+        surf = Surface()
+        surf.depth = depth
+        surf.transform_xy = 2*[3*[0.0]]
+        surf.transform_xy[0][0] = surf.transform_xy[1][1] = 1.0
+        surf.transform_z = [1.0, -depth]
+        surf.approximation = None
+        surf.grid_file = None
 
     def get_depth(self):
         """Return surface depth in 0"""
-        return self.transform[3][2]
+        return self.depth
         
     def __eq__(self, other):
         """operators for comparation"""
-        if self.grid!=other.grid:
+        if self.depth != other.depth:
             return False
-        if self.b_spline!=other.b_spline:
+        if self.transform_z != other.transform_z:
             return False
-        if self.transform != other.transform:
+        if self.transform_xy != other.transform_xy:
             return False
         return True
 
@@ -170,7 +185,7 @@ class Region(JsonData):
         """8-bite region color"""
         self.name = ""
         """region name"""
-        self.topo_dim = TopologyObject
+        self.topo_dim = TopologyDim
         """dimension (0,1,2) in Stratum layer: well, fracture, bulk"""
         self.boundary = False
         """Is boundary region"""

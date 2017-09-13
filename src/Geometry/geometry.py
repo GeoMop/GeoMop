@@ -16,7 +16,9 @@ import geometry_files.geometry_structures as gs
 from geometry_files.geometry import GeometrySer
 import brep_writer as bw
 import gmsh_io
-
+import point_grid
+import numpy as np
+import math
 
 ###
 netgen_install_prefix="/home/jb/local/"
@@ -65,18 +67,38 @@ class ShapeInfo:
 class Curve(gs.Curve):
     pass
 
+
+class SurfaceApproximation(gs.SurfaceApproximation):
+    pass
+
+
 class Surface(gs.Surface):
-    def z_eval(self, X):
-        x, y = X
-        z_shift = self.transform[3][2]
-        return z_shift
+    """
+    Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
+    """
+
+    def init(self, geom_file_base):
+        if self.grid_file[0] == '.':
+            self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
+        self.grid_surf = point_grid.GridSurface()
+        self.grid_surf.load(self.grid_file)
+
+        mat_xy = np.array(self.transform_xy)
+        mat_z = np.array(self.transform_z)
+        self.grid_surf.transform(mat_xy, mat_z)
+
+
+    def eval_z(self, x, y):
+        return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
+
 
     @staticmethod
     def interpol(a, b, t):
         return (t * b + (1-t) * a)
 
     def line_intersect(self, a, b):
-        z = self.transform[3][2]
+        # TODO:
+        z = self.depth
         t = (a[2] - z) / (a[2] - b[2])
         # (1-t) = (z - bz) / (az - bz)
         x = self.interpol(a[0], b[0], t )
@@ -142,7 +164,7 @@ class Interface:
         self.surface = surface
         self.topology = topology
         if nodes is not None:
-            self.nodes = [ (X[0], X[1], self.surface.z_eval(X) ) for X in nodes]
+            self.nodes = [ (X[0], X[1], self.surface.depth ) for X in nodes]
         self.make_shapes()
 
 
@@ -174,8 +196,8 @@ class Interface:
         assert len(a_nodes) == len(b_nodes)
         self.nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
-            az = a_surface.z_eval( (ax, ay) )
-            bz = b_surface.z_eval( (bx, by) )
+            az = a_surface.depth
+            bz = b_surface.depth
             line = ( (ax, ay, az), (bx,by,bz) )
             x,y,z = self.surface.line_intersect( *line )
             self.nodes.append( (x,y,z) )
@@ -353,6 +375,8 @@ class UserSupplement(gs.UserSupplement):
 
 class LayerGeometry(gs.LayerGeometry):
 
+    el_type_to_dim = {15: 0, 1: 1, 2: 2, 4: 3}
+
     """
         - create BREP B-spline approximation from Z-grids (Bapprox)
         - load other surfaces
@@ -380,7 +404,10 @@ class LayerGeometry(gs.LayerGeometry):
         self.set_ids(self.surfaces)
         self.set_ids(self.topologies)
         #self.set_ids(self.nodesets)
-        last_interface = None
+
+        # load and construct grid surface functions
+        for surf in self.surfaces:
+            surf.init(self.filename_base)
 
         # orient polygons
         for topo in self.topologies:
@@ -451,7 +478,7 @@ class LayerGeometry(gs.LayerGeometry):
 
         compound = bw.Compound(self.free_shapes)
         compound.set_free_shapes()
-        self.brep_file = self.filename_base + ".brep"
+        self.brep_file = os.path.abspath(self.filename_base + ".brep")
         with open(self.brep_file, 'w') as f:
             bw.write_model(f, compound, bw.Location() )
 
@@ -503,6 +530,52 @@ class LayerGeometry(gs.LayerGeometry):
         from subprocess import call
         call(["gmsh", "-3", self.geo_file])
 
+
+
+    def deform_mesh(self):
+        """
+        In fact three different algorithms are necessary:
+        I. Modification of extruded mesh, surfaces are horizontal planes.
+        II. Small modification of curved mesh, modify just surface nodes and possibly
+            small number of neighbouring elements.
+        III. Big modification o curved mesh, need to evaluate discrete surface. Line/triangle intersection, need BIH.
+        :return:
+        """
+        # The I. algorithm:
+        # new empty nodes list
+        # go through volume elements; every volume region should have reference to its top and bot interface;
+        # move nodes of volume element
+        nodes_shift = { id: [] for id, el in self.mesh.nodes.items()}
+        for id, elm in self.mesh.elements.items():
+            el_type, tags, nodes = elm
+            if len(tags) < 2:
+                raise Exception("Less then 2 tags.")
+            dim = self.el_type_to_dim[el_type]
+            shape_id = tags[1]
+            shape_info = self.shape_dict[ (dim, shape_id) ]
+            if not shape_info.free:
+                continue
+            for i_node in nodes:
+                x,y,z = self.mesh.nodes[i_node]
+                top_ref_z = shape_info.top_iface.surface.depth
+                top_z = shape_info.top_iface.surface.eval_z(x,y)
+                bot_ref_z = shape_info.bot_iface.surface.depth
+                bot_z = shape_info.bot_iface.surface.eval_z(x, y)
+                assert bot_ref_z >= z and z >= top_ref_z, "{} >= {} >= {}".format(bot_ref_z, z, top_ref_z)
+                if shape_info.top_iface.surface.id == shape_info.bot_iface.surface.id:
+                    z_shift = top_z - z
+                else:
+                    t = (z - bot_ref_z) / (top_ref_z - bot_ref_z)
+                    z_shift = (1 - t) * bot_z + t * top_z - z
+                nodes_shift[i_node].append( z_shift )
+
+        for id, shift_list in nodes_shift.items():
+            assert len(shift_list) != 0, "Node: {}".format(id)
+            mean_shift = sum(shift_list) / float(len(shift_list))
+            assert sum([ math.fabs(x - mean_shift) for x in shift_list]) / float(len(shift_list)) < math.fabs(mean_shift)/100.0,\
+                "{} List: {}".format(id, shift_list)
+            self.mesh.nodes[id][2] += mean_shift
+
     def modify_mesh(self):
         self.tmp_msh_file = self.filename_base + ".tmp.msh"
         self.mesh = gmsh_io.GmshIO()
@@ -510,15 +583,15 @@ class LayerGeometry(gs.LayerGeometry):
             self.mesh.read(f)
 
         # deform mesh, nontrivial evaluation of Z for the interface mesh
+        self.deform_mesh()
 
 
-        el_type_to_dim = {15:0, 1:1, 2:2, 4:3}
         new_elements = {}
-        for k, elm in self.mesh.elements.items():
+        for id, elm in self.mesh.elements.items():
             el_type, tags, nodes = elm
             if len(tags) < 2:
                 raise Exception("Less then 2 tags.")
-            dim = el_type_to_dim[el_type]
+            dim = self.el_type_to_dim[el_type]
             shape_id = tags[1]
             shape_info = self.shape_dict[ (dim, shape_id) ]
 
@@ -534,7 +607,7 @@ class LayerGeometry(gs.LayerGeometry):
             else:
                 self.mesh.physical[region.name] = (physical_id, dim)
             tags[0] = physical_id
-            new_elements[k] = (el_type, tags, nodes)
+            new_elements[id] = (el_type, tags, nodes)
         self.mesh.elements = new_elements
         self.msh_file = self.filename_base + ".msh"
         with open(self.msh_file, "w") as f:
