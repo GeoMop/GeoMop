@@ -4,6 +4,8 @@ Dialog for adding region to interface.
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
+from leconfig import cfg
+from geomop_dialogs import GMErrorDialog
 
 class AddRegionDlg(QtWidgets.QDialog):
     
@@ -27,7 +29,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         ]
 
 
-    def __init__(self, dimension, parent=None):
+    def __init__(self, parent=None):
         super(AddRegionDlg, self).__init__(parent)
         self.setWindowTitle("Add Region")
 
@@ -38,6 +40,15 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_name.setText("New Region")
         grid.addWidget(d_region_name, 0, 0)
         grid.addWidget(self.region_name, 0, 1)
+        
+        d_region_dim = QtWidgets.QLabel("Region Dimension:", self)
+        self.region_dim = QtWidgets.QComboBox()            
+        self.region_dim.addItem("0D",  0)
+        self.region_dim.addItem("1D",  1)
+        self.region_dim.addItem("2D",  2)
+        self.region_dim.setCurrentIndex(2) 
+        grid.addWidget(d_region_dim , 1, 0)
+        grid.addWidget(self.region_dim , 1, 1)
 
         self._tranform_button = QtWidgets.QPushButton("Add", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -48,5 +59,28 @@ class AddRegionDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, 1, 1)
+        grid.addWidget(button_box, 2, 1)
         self.setLayout(grid)
+        
+    @classmethod
+    def get_some_color(cls, i):
+        """Return firs collor accoding to index"""
+        return cls.BACKGROUND_COLORS[i%15]
+        
+    def accept(self):
+        """
+        Accepts the form if region data is valid.
+        :return: None
+        """
+        error = None
+        for region in cfg.diagram.regions.data.regions:
+            if self.region_name.text() == region.name:
+                error = "Region name already exist"
+                break
+        if len(self.region_name.text()) or self.region_name.text().isspace():
+            error = "Region name is empty"
+        if error is not None:
+            err_dialog = GMErrorDialog(self)
+            err_dialog.open_error_dialog(error)
+        else:
+            super(AddRegionDlg, self).accept()

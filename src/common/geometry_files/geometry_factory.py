@@ -13,9 +13,9 @@ class GeometryFactory:
         """Geometry data object"""
         if  geometry is None:
             default_regions = [
-                Region(dict( color="#000000", name="NONE_1D", topo_dim=0)),
-                Region(dict( color="#000000", name="NONE_2D", topo_dim=1)),
-                Region(dict( color="#000000", name="NONE_3D", topo_dim=2))
+                Region(dict( color="#f0f0e8", name="NONE_0D", topo_dim=0)),
+                Region(dict( color="#f0f0e8", name="NONE_1D", topo_dim=1)),
+                Region(dict( color="#f0f0e8", name="NONE_2D", topo_dim=2))
                 ]
             self.geometry = LayerGeometry( dict(regions=default_regions) )
             
@@ -66,7 +66,7 @@ class GeometryFactory:
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
         
-    def add_plane_surface(self, depth):
+    def add_plane_surface(self, depth, file=None):
         """Add new main layer"""        
         surface = Surface.make_surface(depth)
         if len(self.geometry.surfaces)==0 or \

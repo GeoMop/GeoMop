@@ -45,12 +45,16 @@ class Regions(QtWidgets.QToolBox):
         self.regions = {}
         self.add_button = {}
         self.color_button = {}
+        self.name = {}
+        self.boundary = {}
+        self.notuse = {}
+        
         for layer_id in layers:
             grid = QtWidgets.QGridLayout(self)             
             # select and add region
             self.regions[layer_id] = QtWidgets.QComboBox()            
             for i in range(0, len(data.regions)):
-                label = data.regions[i].name + " (" + str(data.regions[i].dim.value+1) + "D)"
+                label = data.regions[i].name + " (" + str(data.regions[i].dim.value) + "D)"
                 self.regions[layer_id].addItem( label,  i)
             curr_index = 0
             self.regions[layer_id].setCurrentIndex(curr_index) 
@@ -63,10 +67,12 @@ class Regions(QtWidgets.QToolBox):
             grid.addWidget(self.add_button[layer_id], 0, 1)
             
             # name
-            name_label = QtWidgets.QLabel("Name:", self)
-            name = QtWidgets.QLabel(data.regions[curr_index].name, self)
+            name_label = QtWidgets.QLabel("Name:", self)            
+            self.name[layer_id] = QtWidgets.QLineEdit()
+            self.name[layer_id].setText(data.regions[curr_index].name)            
             grid.addWidget(name_label, 1, 0)
-            grid.addWidget(name, 1, 1)
+            grid.addWidget(self.name[layer_id], 1, 1)
+            
             #color button
             color_label = QtWidgets.QLabel("Color:", self)
             pom_lamda = lambda ii, button: lambda: self.color_set(ii, button)
@@ -80,11 +86,24 @@ class Regions(QtWidgets.QToolBox):
             self.color_button[layer_id].clicked.connect(pom_lamda(i, self.color_button[layer_id]))
             grid.addWidget(color_label, 2, 0)
             grid.addWidget(self.color_button[layer_id], 2, 1)
+            
             # dimension
             dim_label = QtWidgets.QLabel("Dimension:", self)
-            dim = QtWidgets.QLabel(str(data.regions[curr_index].dim.value + 1) + "D", self)
+            dim = QtWidgets.QLabel(str(data.regions[curr_index].dim.value) + "D", self)
             grid.addWidget(dim_label, 3, 0)
             grid.addWidget(dim, 3, 1)
+            
+            # boundary
+            boundary_label = QtWidgets.QLabel("Boundary:", self)
+            self.boundary[layer_id] = QtWidgets.QCheckBox()            
+            grid.addWidget(boundary_label, 4, 0)
+            grid.addWidget(self.boundary[layer_id], 4, 1)
+            
+            # not use
+            notuse_label = QtWidgets.QLabel("Not Use:", self)
+            self.notuse[layer_id] = QtWidgets.QCheckBox()            
+            grid.addWidget(notuse_label, 5, 0)
+            grid.addWidget(self.notuse[layer_id], 5, 1)
             
             widget = QtWidgets.QWidget(self)
             widget.setLayout(grid);
@@ -92,12 +111,19 @@ class Regions(QtWidgets.QToolBox):
             
     def add_Region(self, i):
         """Add new region to all combo and select it in layer i"""
+        dlg = AddRegionDlg(cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            name = dlg.region_name.text()
+            dim = dlg.region_dim.currentData()
+            color = dlg.get_some_color(i)
+        
         
             
     def color_set(self, region_idx, color_button):
         """Region color is changed, refresh diagram"""
         region = cfg.diagram.regions.regions[region_idx]
-        color_dia = QtWidgets.QColorDialog(QColor(region.color))
+        color_dia = QtWidgets.QColorDialog(QtGui.QColor(region.color))
         i = 0
         for color in AddRegionDlg.BACKGROUND_COLORS:
             color_dia.setCustomColor(i,  color)            
