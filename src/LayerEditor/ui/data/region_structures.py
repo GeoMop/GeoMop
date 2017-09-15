@@ -70,9 +70,57 @@ class Regions():
         pom = {}
         for id in self.layers_topology[topology_idx]:
             pom[id] = self.layers[id]
-        ret = OrderedDict(sorted(pom.items(), key=lambda x: 2*x[0] if x[0]>0 else -2*x[0]-1))
+        ret = OrderedDict(sorted(pom.items(), key=lambda x: 2*x[0] if x[0]>0 else -2*x[0]-1))        
         return ret
         
+    def add_new_region(self, color, name, dim):
+        """Add region"""
+        region = Region(color, name, dim)
+        self.regions.append(region)
+        self._history.delete_region(id, "Add new region")
+        return region   
+  
+    def insert_region(self, id, region, to_history=True, label=None):
+        """Add region"""
+        self.regions.insert(id, region)
+        if to_history:
+            self._history.delete_region(id, label) 
+        return region
+      
+    def set_region_name(self, id, name):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].name = name
+        self._history.change_region(id, region, "Set region name") 
+        return region 
+       
+    def set_region_color(self, id, color):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].color = color
+        self._history.change_region(id, region, "Set region color") 
+        return region 
+
+    def set_region_boundary(self, id, boundary):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].boundary = boundary
+        self._history.change_region(id, region, "Set region boundary")         
+        return region 
+
+    def set_region_not_use(self, id, not_use):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].not_use = not_use
+        self._history.change_region(id, region, "Set region usage") 
+        
+    def delete_region(self, id, to_history=True, label=None):
+        """Add region"""
+        region = self.regions[id]
+        del self.regions[id]
+        if to_history:
+            self._history.insert_region(id, region, label) 
+        return region
         
     # diagram functions
     
@@ -444,7 +492,8 @@ class Regions():
         
     def add_region(self, color, name, dim, step=0.01,  boundary=False, not_used=False):
         """Add region"""
-        self.regions.append(Region(color, name, dim, step, boundary, not_used)) 
+        region = Region(color, name, dim, step, boundary, not_used)
+        self.regions.append(region)
     
     def add_shapes_to_region(self, is_fracture, layer_id, layer_name, topology_idx, regions):
         """

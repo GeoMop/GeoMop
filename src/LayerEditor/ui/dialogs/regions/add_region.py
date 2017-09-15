@@ -73,11 +73,11 @@ class AddRegionDlg(QtWidgets.QDialog):
         :return: None
         """
         error = None
-        for region in cfg.diagram.regions.data.regions:
+        for region in cfg.diagram.regions.regions:
             if self.region_name.text() == region.name:
                 error = "Region name already exist"
                 break
-        if len(self.region_name.text()) or self.region_name.text().isspace():
+        if len(self.region_name.text())==0 or self.region_name.text().isspace():
             error = "Region name is empty"
         if error is not None:
             err_dialog = GMErrorDialog(self)

@@ -949,3 +949,55 @@ class RegionHistory(History):
         self.global_history.cfg.diagram.regions.delete_data(id)
         revert =  HistoryStep(self._copy_related, [id, old_name])        
         return revert
+        
+    def insert_region(self, id, region, label=None):
+        """
+        Add insert region to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._insert_region, [id, region],label))
+        
+    def _insert_region(self, id, region):
+        """
+        Insert region to set possition
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.insert_region(id, region, False)
+        revert =  HistoryStep(self._delete_region, [id])        
+        return revert
+
+    def delete_region(self, id, label=None):
+        """
+        Add delete region to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_region, [id],label))
+        
+    def _delete_region(self, id):
+        """
+        Delete region to set possition
+        
+        Return invert operation
+        """        
+        region = self.global_history.cfg.diagram.regions.delete_region(id, False)
+        revert =  HistoryStep(self._insert_region, [id, region])        
+        return revert
+        
+    def change_region(self, id, region, label=None):
+        """
+        Add change region to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_region, [id],label))
+        
+    def _change_region(self, id, region):
+        """
+        Delete region to set possition
+        
+        Return invert operation
+        """        
+        old_region = self.global_history.cfg.diagram.regions.regions[id]
+        self.global_history.cfg.diagram.regions.regions[id]
+        revert =  HistoryStep(self._change_region, [id, old_region])        
+        return revert
