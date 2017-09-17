@@ -2,8 +2,8 @@
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
 from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface
-from .geometry_structures import Region, Polygon
-import geometry_files.geometry_structures as gs
+from .geometry_structures import Region, Polygon, TopologyDim, StratumLayer
+from .geometry_structures import FractureLayer, ShadowLayer
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -13,9 +13,9 @@ class GeometryFactory:
         """Geometry data object"""
         if  geometry is None:
             default_regions = [
-                Region(dict( color="#f0f0e8", name="NONE_0D", topo_dim=0)),
-                Region(dict( color="#f0f0e8", name="NONE_1D", topo_dim=1)),
-                Region(dict( color="#f0f0e8", name="NONE_2D", topo_dim=2))
+                Region(dict( color="#f0f0e8", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
+                Region(dict( color="#f0f0e8", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
+                Region(dict( color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
                 ]
             self.geometry = LayerGeometry( dict(regions=default_regions) )
             
@@ -76,15 +76,19 @@ class GeometryFactory:
     
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
-        layer_class = [ gs.StratumLayer, gs.FractureLayer, gs.ShadowLayer ][type]
+        layer_class = [ StratumLayer, FractureLayer, ShadowLayer ][type]
+
 
         iface_classes = [ SurfaceNodeSet, InterpolatedNodeSet ]
         top_interface = iface_classes[top_type]
         assert isinstance(top, top_interface)
-        bot_interface = iface_classes[bottom_type]
-        assert isinstance(bottom, bot_interface)
+        layer_config = dict(name=name, top=top)
+        if bottom_type is not None:
+            bot_interface = iface_classes[bottom_type]
+            assert isinstance(bottom, bot_interface)
+            layer_config['bottom'] = bottom
 
-        gl = layer_class(dict(name=name, top=top, bottom=bottom))
+        gl = layer_class(layer_config)
         gl.node_region_ids = regions_idx[0]
         gl.segment_region_ids = regions_idx[1]
         gl.polygon_region_ids = regions_idx[2]

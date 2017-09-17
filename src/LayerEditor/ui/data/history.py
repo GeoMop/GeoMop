@@ -879,40 +879,40 @@ class RegionHistory(History):
         revert =  HistoryStep(self._rename_layer, [is_fracture, id, old_name])        
         return revert
     
-    def save_data(self, id, r1D, r2D, r3D, label=None):
+    def save_data(self, id, r0D, r1D, r2D, label=None):
         """
         Add save layer data operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._save_data, [id, r1D, r2D, r3D],label))
+        self.steps.append(HistoryStep(self._save_data, [id, r0D, r1D, r2D],label))
         
-    def _save_data(self, id, r1D, r2D, r3D):
+    def _save_data(self, id, r0D, r1D, r2D):
         """
         Save layer data
         
         Return invert operation
         """        
-        revert =  HistoryStep(self._load_data, [id, r1D, r2D, r3D])        
+        revert =  HistoryStep(self._load_data, [id, r0D, r1D, r2D])        
         return revert
         
-    def load_data(self, id, r1D, r2D, r3D, label=None):
+    def load_data(self, id, r0D, r1D, r2D, label=None):
         """
         Add save layer data operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._rename_layer, [id, r1D, r2D, r3D],label))
+        self.steps.append(HistoryStep(self._rename_layer, [id, r0D, r1D, r2D],label))
         
-    def _load_data(self, id, r1D, r2D, r3D):
+    def _load_data(self, id, r0D, r1D, r2D):
         """
         Save layer data
         
         Return invert operation
         """
+        self.global_history.cfg.diagram.regions.layer_region_0D[id]=r0D
         self.global_history.cfg.diagram.regions.layer_region_1D[id]=r1D
         self.global_history.cfg.diagram.regions.layer_region_2D[id]=r2D
-        self.global_history.cfg.diagram.regions.layer_region_3D[id]=r3D
         
-        revert =  HistoryStep(self._save_data, [id, r1D, r2D, r3D])        
+        revert =  HistoryStep(self._save_data, [id, r0D, r1D, r0D])        
         return revert
 
     def copy_related(self, id, name, label=None):
@@ -1001,3 +1001,36 @@ class RegionHistory(History):
         self.global_history.cfg.diagram.regions.regions[id]
         revert =  HistoryStep(self._change_region, [id, old_region])        
         return revert
+
+    def change_shape_region(self, shape_id, layer_id, dim, region_id, label=None):
+        """
+        Add change shapes region to history operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_region,[shape_id, layer_id, dim, region_id]))
+        
+    def _change_shape_region(self, shape_id, layer_id, dim, region_id):
+        """
+        Change shapes region to set possition
+        
+        Return invert operation
+        """ 
+        if dim==0:
+            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_0D
+        elif dim==1:
+            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_1D
+        else:
+            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_2D
+            
+        if shape_id in layer_region[layer_id]:
+            old_region_id = layer_region[layer_id][shape_id]
+        else:
+            old_region_id = None
+        if region_id is None:
+            del layer_region[layer_id][shape_id]
+        else:
+            layer_region[layer_id][shape_id] = region_id
+        revert =  HistoryStep(self._change_shape_region, [shape_id, layer_id, dim, old_region_id])        
+        return revert
+        
+

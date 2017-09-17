@@ -1,6 +1,4 @@
-from geometry_files.geometry_factory import  GeometryFactory
-from geometry_files.geometry import GeometrySer
-from geometry_files.geometry_structures import LayerType, TopologyType
+from geometry_files import GeometryFactory, GeometrySer, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
 

@@ -107,10 +107,13 @@ src/JobsScheduler/lock/lib.lock
 #result files
 src/JobsScheduler/jobs
 src/JobsScheduler/log
+_out_*
 
 #temporary installed files
 src/JobsScheduler/ins-lib
 
 # Docker build dependencies and libraries.
 docker/geomop_build/build
+
+
 docker/geomop_build/lib

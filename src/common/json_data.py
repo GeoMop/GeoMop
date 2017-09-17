@@ -328,6 +328,8 @@ class JsonData:
                     return temp[value]
                 elif value.__class__ is int:
                     return temp(value)
+                elif isinstance(value, temp):
+                    return value
                 else:
                     assert False, "{} is not value of IntEnum: {}".format(value, temp)
 

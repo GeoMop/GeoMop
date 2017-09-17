@@ -1,56 +1,28 @@
 {
     "surfaces": [
         {
-            "b_spline": null,
-            "grid": null,
-            "transform": [
-                [
-                    1,
-                    0,
-                    0
-                ],
-                [
-                    0,
-                    1,
-                    0
-                ],
-                [
-                    0,
-                    0,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    0.0
-                ]
-            ]
+            "approximation": {
+                "b_spline": null
+            },
+            "grid_file": "./test_surface_Hradek_200x200.csv",
+            "transform_xy": [
+                [ 0.015, 0.0, 10372 ],
+                [ 0, 0.015, 16715 ]
+            ],
+            "transform_z": [ 0.01, 10.0],
+            "depth": 10.0
         },
         {
-            "b_spline": null,
-            "grid": null,
-            "transform": [
-                [
-                    1,
-                    0,
-                    0
-                ],
-                [
-                    0,
-                    1,
-                    0
-                ],
-                [
-                    0,
-                    0,
-                    1
-                ],
-                [
-                    0,
-                    0,
-                    100.0
-                ]
-            ]
+            "approximation": {
+                "b_spline": null
+            },
+            "grid_file": "./test_surface_Hradek_200x200.csv",
+            "transform_xy": [
+                [ 0.015, 0, 10372 ],
+                [ 0, 0.015, 16715 ]
+            ],
+            "transform_z": [ 0.005, 100.0],
+            "depth": 100.0
         }
     ],
     "regions": [

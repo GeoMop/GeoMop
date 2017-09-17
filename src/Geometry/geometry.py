@@ -1,6 +1,9 @@
 """
 TODO:
-- debug why we have empty Compound, seems that nothing is created since  region.is%active is not called.
+- check how GMSH number surfaces standing alone,
+  seems that it number object per dimension by the IN time in DFS from solids down to Vtx,
+  just ignoring main compound, not sure how numbering works for free standing surfaces.
+
 """
 import sys
 import os
@@ -12,6 +15,10 @@ import json_data as js
 import geometry_files.geometry_structures as gs
 from geometry_files.geometry import GeometrySer
 import brep_writer as bw
+import gmsh_io
+import point_grid
+import numpy as np
+import math
 
 ###
 netgen_install_prefix="/home/jb/local/"
@@ -22,21 +29,76 @@ import netgen.csg as ngcsg
 import netgen.meshing as ngmesh
 
 
+class ShapeInfo:
+    #count_by_dim = [0,0,0,0]
+    """
+    Class to capture information about individual shapes finally meshed by GMSH as independent objects.
+    """
+
+    _shapes_dim ={'Vertex':0, 'Edge':1, 'Face':2, 'Solid':3}
+
+    def __init__(self, shape, i_reg=None, top=None, bot=None):
+        self.shape = shape
+        #self.dim = shapes_dim.get(type(shape).__name__)
+        #assert self.dim is not None
+
+        #self.dim_spec_id = self.count_by_dim[dim]
+        #self.count_by_dim += 1
+
+        if i_reg is None:
+            self.free = False
+        else:
+            self.i_reg = i_reg
+            self.top_iface = top
+            self.bot_iface = bot
+            self.free = True
+
+    def set(self, i_reg, top, bot):
+        assert not self.free
+        self.i_reg = i_reg
+        self.top_iface = top
+        self.bot_iface = bot
+        self.free = True
+
+    def dim(self):
+        return self._shapes_dim.get(type(self.shape).__name__, None)
+
+
 class Curve(gs.Curve):
     pass
 
+
+class SurfaceApproximation(gs.SurfaceApproximation):
+    pass
+
+
 class Surface(gs.Surface):
-    def z_eval(self, X):
-        x, y = X
-        z_shift = self.transform[3][2]
-        return z_shift
+    """
+    Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
+    """
+
+    def init(self, geom_file_base):
+        if self.grid_file[0] == '.':
+            self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
+        self.grid_surf = point_grid.GridSurface()
+        self.grid_surf.load(self.grid_file)
+
+        mat_xy = np.array(self.transform_xy)
+        mat_z = np.array(self.transform_z)
+        self.grid_surf.transform(mat_xy, mat_z)
+
+
+    def eval_z(self, x, y):
+        return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
+
 
     @staticmethod
     def interpol(a, b, t):
         return (t * b + (1-t) * a)
 
     def line_intersect(self, a, b):
-        z = self.transform[3][2]
+        # TODO:
+        z = self.depth
         t = (a[2] - z) / (a[2] - b[2])
         # (1-t) = (z - bz) / (az - bz)
         x = self.interpol(a[0], b[0], t )
@@ -102,18 +164,18 @@ class Interface:
         self.surface = surface
         self.topology = topology
         if nodes is not None:
-            self.nodes = [ (X[0], X[1], self.surface.z_eval(X) ) for X in nodes]
+            self.nodes = [ (X[0], X[1], self.surface.depth ) for X in nodes]
         self.make_shapes()
 
 
     def make_shapes(self):
-        self.vertices = [bw.Vertex(node) for node in self.nodes]
+        self.vertices = [ ShapeInfo(bw.Vertex(node)) for node in self.nodes]
         self.edges = []
         for segment in self.topology.segments:
             #nodes_id, surface_id = segment
             na, nb = segment.node_ids
-            edge = bw.Edge( [self.vertices[na], self.vertices[nb]] )
-            self.edges.append( edge)
+            edge = bw.Edge( [self.vertices[na].shape, self.vertices[nb].shape] )
+            self.edges.append( ShapeInfo(edge) )
         self.faces = []
         n_segments = len(self.topology.segments)
         for poly in self.topology.polygons:
@@ -122,25 +184,28 @@ class Interface:
             for id_seg in poly.segment_ids:
                 i_seg, reversed = self.topology.orient_segment(id_seg)
                 if reversed:
-                    edges.append(self.edges[i_seg].m())
+                    edges.append(self.edges[i_seg].shape.m())
                 else:
-                    edges.append(self.edges[i_seg])
+                    edges.append(self.edges[i_seg].shape)
             wire = bw.Wire(edges)
             face = bw.Face([wire])
-            self.faces.append(face)
+            self.faces.append( ShapeInfo(face) )
 
 
     def interpolate_interface(self, a_surface, a_nodes, b_surface, b_nodes):
         assert len(a_nodes) == len(b_nodes)
         self.nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
-            az = a_surface.z_eval( (ax, ay) )
-            bz = b_surface.z_eval( (bx, by) )
+            az = a_surface.depth
+            bz = b_surface.depth
             line = ( (ax, ay, az), (bx,by,bz) )
             x,y,z = self.surface.line_intersect( *line )
             self.nodes.append( (x,y,z) )
 
-
+    def iter_shapes(self):
+        for s_list in [ self.vertices, self.edges, self.faces ]:
+            for shp in s_list:
+                yield shp
 
 class SurfaceNodeSet(gs.SurfaceNodeSet):
 
@@ -186,8 +251,10 @@ class Region(gs.Region):
 
     def init(self, topo_dim, extrude):
         assert topo_dim == self.topo_dim
+        if self.not_used:
+            return
         if hasattr(self, 'dim'):
-            assert self.dim == topo_dim + extrude
+            assert self.dim == topo_dim + extrude, "dim: %d tdim: %d ext: %d"%(self.dim, topo_dim, extrude)
         else:
             self.dim = topo_dim + extrude
 
@@ -210,7 +277,10 @@ class FractureLayer(gs.FractureLayer):
                 self.regions[i_reg].init(topo_dim=dim, extrude = False)
 
     def make_shapes(self):
-        shapes=[]
+        """
+        Make shapes in main
+        :return:
+        """
 
         # no point regions
         #for i, i_reg in enumerate(self.node_region_ids):
@@ -219,12 +289,13 @@ class FractureLayer(gs.FractureLayer):
 
         for i, i_reg in enumerate(self.segment_region_ids):
             if self.regions[i_reg].is_active(1):
-                shapes.append( (self.i_top.edges[i], i_reg) )
+                self.i_top.edges[i].set(i_reg, self.i_top, self.i_top)
 
         for i, i_reg in enumerate(self.polygon_region_ids):
             if self.regions[i_reg].is_active(2):
-                shapes.append( (self.i_top.faces[i], i_reg) )
-        return shapes
+                self.i_top.faces[i].set(i_reg, self.i_top, self.i_top)
+
+        return []
 
 class StratumLayer(gs.StratumLayer):
     def init(self, lg):
@@ -233,9 +304,9 @@ class StratumLayer(gs.StratumLayer):
         assert self.i_top.topology.id == self.i_bot.topology.id
         self.topology = self.i_top.topology
         self.regions = lg.regions
-        for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
+        for tdim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
             for i_reg in reg_list:
-                self.regions[i_reg].init(topo_dim=dim, extrude = True)
+                self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
     def make_shapes(self):
         shapes = []
@@ -243,10 +314,12 @@ class StratumLayer(gs.StratumLayer):
         vert_edges=[]
 
         for i, i_reg in enumerate(self.node_region_ids):
-            edge = bw.Edge( [self.i_bot.vertices[i], self.i_top.vertices[i]] )
-            vert_edges.append(edge)
+            edge = bw.Edge( [self.i_bot.vertices[i].shape, self.i_top.vertices[i].shape] )
+            edge_info = ShapeInfo(edge)
+            vert_edges.append(edge_info)
             if self.regions[i_reg].is_active(1):
-                shapes.append( (edge, i_reg) )
+                edge_info.set( i_reg, self.i_top, self.i_bot)
+            shapes.append(edge_info)
         assert len(vert_edges) == self.topology.n_nodes, "n_vert_faces: %d n_nodes: %d"%(len(vert_faces), self.topology.n_nodes)
         assert len(vert_edges) == len(self.node_region_ids)
 
@@ -255,40 +328,44 @@ class StratumLayer(gs.StratumLayer):
             segment = self.topology.segments[i]
             # make face oriented to the right side of the segment when looking from top
 
-            edge_start = vert_edges[segment.node_ids[0]]
-            edge_bot = self.i_bot.edges[i]
-            edge_end = vert_edges[segment.node_ids[1]]
-            edge_top = self.i_top.edges[i]
+            edge_start = vert_edges[segment.node_ids[0]].shape
+            edge_bot = self.i_bot.edges[i].shape
+            edge_end = vert_edges[segment.node_ids[1]].shape
+            edge_top = self.i_top.edges[i].shape
 
             # edges oriented counter clockwise = positively oriented face
             wire = bw.Wire([edge_start.m(), edge_bot, edge_end, edge_top.m()])
             face = bw.Face([wire])
-            vert_faces.append(face)
+            face_info = ShapeInfo(face)
+            vert_faces.append(face_info)
             if self.regions[i_reg].is_active(2):
-                shapes.append((face, i_reg))
+                face_info.set(i_reg, self.i_top, self.i_bot)
+            shapes.append(face_info)
         assert len(vert_faces) == len(self.topology.segments)
         assert len(vert_faces) == len(self.segment_region_ids)
 
         for i, i_reg in enumerate(self.polygon_region_ids):
+
+            polygon = self.topology.polygons[i]
+            segment_ids = polygon.segment_ids  # segment_id > n_segments .. reversed edge
+
+            # we orient all faces inwards (assuming normal oriented up for counter clockwise edges, right hand rule)
+            # assume polygons oriented upwards
+            faces = []
+            for id_seg in segment_ids:
+                i_seg, reversed = self.topology.orient_segment(id_seg)
+                if reversed:
+                    faces.append( vert_faces[i_seg].shape.m() )
+                else:
+                    faces.append( vert_faces[i_seg].shape )
+            faces.append( self.i_top.faces[i].shape )
+            faces.append( self.i_bot.faces[i].shape.m() )
+            shell = bw.Shell( faces )
+            solid = bw.Solid([shell])
+            solid_info = ShapeInfo(solid)
             if self.regions[i_reg].is_active(3):
-                polygon = self.topology.polygons[i]
-                segment_ids = polygon.segment_ids  # segment_id > n_segments .. reversed edge
-
-                # we orient all faces inwards (assuming normal oriented up for counter clockwise edges, right hand rule)
-                # assume polygons oriented upwards
-                faces = []
-                for id_seg in segment_ids:
-                    i_seg, reversed = self.topology.orient_segment(id_seg)
-                    if reversed:
-                        faces.append( vert_faces[i_seg].m() )
-                    else:
-                        faces.append( vert_faces[i_seg] )
-                faces.append( self.i_top.faces[i] )
-                faces.append( self.i_bot.faces[i].m() )
-                shell = bw.Shell( faces )
-                solid = bw.Solid([shell])
-
-                shapes.append((solid, i_reg))
+                solid_info.set(i_reg, self.i_top, self.i_bot)
+            shapes.append(solid_info)
 
         return shapes
 
@@ -297,6 +374,8 @@ class UserSupplement(gs.UserSupplement):
 
 
 class LayerGeometry(gs.LayerGeometry):
+
+    el_type_to_dim = {15: 0, 1: 1, 2: 2, 4: 3}
 
     """
         - create BREP B-spline approximation from Z-grids (Bapprox)
@@ -325,7 +404,10 @@ class LayerGeometry(gs.LayerGeometry):
         self.set_ids(self.surfaces)
         self.set_ids(self.topologies)
         #self.set_ids(self.nodesets)
-        last_interface = None
+
+        # load and construct grid surface functions
+        for surf in self.surfaces:
+            surf.init(self.filename_base)
 
         # orient polygons
         for topo in self.topologies:
@@ -373,25 +455,51 @@ class LayerGeometry(gs.LayerGeometry):
         """
         self.split_to_blocks()
 
-        self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
-        self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
+        #self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
+        #self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
+
+
+        self.all_shapes=[]
+        self.free_shapes =[]
+
         for block in self.blocks:
             for layer in block:
-                self.brep_shapes += layer.make_shapes()
+                self.all_shapes += layer.make_shapes()
 
-        shapes, shape_regions = zip(*self.brep_shapes)
 
-        compound = bw.Compound(shapes)
+        for i_face in self.interfaces:
+            for shp in i_face.iter_shapes():
+                self.all_shapes.append(shp)
+
+        self.free_shapes = [ shp_info for shp_info in self.all_shapes if shp_info.free ]
+        # sort down from solids to vertices
+        self.free_shapes.sort(key=lambda shp: shp.dim(), reverse=True)
+        self.free_shapes = [shp_info.shape for shp_info in self.free_shapes]
+
+        compound = bw.Compound(self.free_shapes)
         compound.set_free_shapes()
-        with open("layer_model.brep", 'w') as f:
+        self.brep_file = os.path.abspath(self.filename_base + ".brep")
+        with open(self.brep_file, 'w') as f:
             bw.write_model(f, compound, bw.Location() )
 
-        shape_to_reg = [ (i, shape.id, i_reg, self.regions[i_reg].dim) for i, (shape, i_reg) in enumerate(self.brep_shapes) ]
-        for line in shape_to_reg:
-            print(line)
+        # prepare dict: (dim, shape_id) : shape info
 
-        #print(compound)
+        self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
+        shape_by_dim=[[] for i in range(4)]
+        for shp_info in self.all_shapes:
+            dim = shp_info.dim()
+            shape_by_dim[dim].append(shp_info)
 
+        self.shape_dict = {}
+        for dim, shp_list in enumerate(shape_by_dim):
+            for gmsh_shp_id, si in enumerate(shp_list):
+                self.shape_dict[(dim, gmsh_shp_id + 1)] = si
+
+        # debug listing
+        #xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
+        #xx.sort(key=lambda x: x[0])
+        #for i in xx:
+        #    print(i[0][0], i[0][1], i[1])
 
     def split_to_blocks(self):
         blocks=[]
@@ -408,6 +516,102 @@ class LayerGeometry(gs.LayerGeometry):
                 block=[]
         blocks.append(block)
         self.blocks=blocks
+
+
+    def call_gmsh(self):
+        self.geo_file = self.filename_base + ".tmp.geo"
+        self.mesh_step = 5
+        with open(self.geo_file, "w") as f:
+            print('Merge "%s";\n'%(self.brep_file), file=f)
+            print('Field[1] = MathEval;\n', file=f)
+            print('Field[1].F = "%f";\n'%(self.mesh_step), file=f)
+            print('Background Field = 1;\n', file=f)
+
+        from subprocess import call
+        call(["gmsh", "-3", self.geo_file])
+
+
+
+    def deform_mesh(self):
+        """
+        In fact three different algorithms are necessary:
+        I. Modification of extruded mesh, surfaces are horizontal planes.
+        II. Small modification of curved mesh, modify just surface nodes and possibly
+            small number of neighbouring elements.
+        III. Big modification o curved mesh, need to evaluate discrete surface. Line/triangle intersection, need BIH.
+        :return:
+        """
+        # The I. algorithm:
+        # new empty nodes list
+        # go through volume elements; every volume region should have reference to its top and bot interface;
+        # move nodes of volume element
+        nodes_shift = { id: [] for id, el in self.mesh.nodes.items()}
+        for id, elm in self.mesh.elements.items():
+            el_type, tags, nodes = elm
+            if len(tags) < 2:
+                raise Exception("Less then 2 tags.")
+            dim = self.el_type_to_dim[el_type]
+            shape_id = tags[1]
+            shape_info = self.shape_dict[ (dim, shape_id) ]
+            if not shape_info.free:
+                continue
+            for i_node in nodes:
+                x,y,z = self.mesh.nodes[i_node]
+                top_ref_z = shape_info.top_iface.surface.depth
+                top_z = shape_info.top_iface.surface.eval_z(x,y)
+                bot_ref_z = shape_info.bot_iface.surface.depth
+                bot_z = shape_info.bot_iface.surface.eval_z(x, y)
+                assert bot_ref_z >= z and z >= top_ref_z, "{} >= {} >= {}".format(bot_ref_z, z, top_ref_z)
+                if shape_info.top_iface.surface.id == shape_info.bot_iface.surface.id:
+                    z_shift = top_z - z
+                else:
+                    t = (z - bot_ref_z) / (top_ref_z - bot_ref_z)
+                    z_shift = (1 - t) * bot_z + t * top_z - z
+                nodes_shift[i_node].append( z_shift )
+
+        for id, shift_list in nodes_shift.items():
+            assert len(shift_list) != 0, "Node: {}".format(id)
+            mean_shift = sum(shift_list) / float(len(shift_list))
+            assert sum([ math.fabs(x - mean_shift) for x in shift_list]) / float(len(shift_list)) < math.fabs(mean_shift)/100.0,\
+                "{} List: {}".format(id, shift_list)
+            self.mesh.nodes[id][2] += mean_shift
+
+    def modify_mesh(self):
+        self.tmp_msh_file = self.filename_base + ".tmp.msh"
+        self.mesh = gmsh_io.GmshIO()
+        with open(self.tmp_msh_file, "r") as f:
+            self.mesh.read(f)
+
+        # deform mesh, nontrivial evaluation of Z for the interface mesh
+        self.deform_mesh()
+
+
+        new_elements = {}
+        for id, elm in self.mesh.elements.items():
+            el_type, tags, nodes = elm
+            if len(tags) < 2:
+                raise Exception("Less then 2 tags.")
+            dim = self.el_type_to_dim[el_type]
+            shape_id = tags[1]
+            shape_info = self.shape_dict[ (dim, shape_id) ]
+
+            if not shape_info.free:
+                continue
+            region = self.regions[shape_info.i_reg]
+            if not region.is_active(dim):
+                continue
+            assert region.dim == dim
+            physical_id = shape_info.i_reg + 10000
+            if region.name in self.mesh.physical:
+                assert self.mesh.physical[region.name][0] == physical_id
+            else:
+                self.mesh.physical[region.name] = (physical_id, dim)
+            tags[0] = physical_id
+            new_elements[id] = (el_type, tags, nodes)
+        self.mesh.elements = new_elements
+        self.msh_file = self.filename_base + ".msh"
+        with open(self.msh_file, "w") as f:
+            self.mesh.write_ascii(f)
 
 
 
@@ -475,6 +679,7 @@ def construct_derived_geometry(gs_obj):
         geo_obj = gs_obj
     return geo_obj
 
+
 if __name__ == "__main__":
     import argparse
 
@@ -488,6 +693,7 @@ if __name__ == "__main__":
     geom_serializer = GeometrySer(layers_file)
     gs_lg = geom_serializer.read()
     lg = construct_derived_geometry(gs_lg)
+    lg.filename_base = filename_base
 
     lg.init()   # initialize the tree with ids and references where necessary
 
@@ -495,5 +701,6 @@ if __name__ == "__main__":
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-
+    lg.call_gmsh()
+    lg.modify_mesh()
 

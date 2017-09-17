@@ -455,6 +455,10 @@ class ShapeFlag(dict):
             self[k]=f
 
     def set(self, key, value=1):
+        if value:
+            value =1
+        else:
+            value =0
         self[key] = value
 
     def unset(self, key):
@@ -1013,7 +1017,8 @@ def write_model(stream, compound, location):
 
     stream.write("\nTShapes {}\n".format(len(groups['shapes'])))
     for shape in groups['shapes']:
-        #stream.write("# {} id: {}p\n".format(shape.shpname, shape.id))
+        #print("# {} id: {} childs: {}\n".format(shape.shpname, shape.id,
+        #                                        [ch.id for ch in shape.subshapes()]))
         shape._brep_output(stream, groups)
     stream.write("\n+1 0")
     #stream.write("0\n")

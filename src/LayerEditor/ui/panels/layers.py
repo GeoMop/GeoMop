@@ -16,10 +16,15 @@ class Layers(QtWidgets.QWidget):
     pyqtSignals:
         * :py:attr:`viewInterfacesChanged(int) <viewInterfacesChanged>`
         * :py:attr:`editInterfaceChanged(int,int) <editInterfaceChanged>`
+        * :py:attr:`topologyChanged() <topologyChanged>`
         
     All regions function contains history operation without label and
     must be placed after first history operation with label.
     """
+    
+    topologyChanged = QtCore.pyqtSignal()
+    """Signal is sent when current selected topology or some 
+    topology structure is changed."""
     
     viewInterfacesChanged = QtCore.pyqtSignal(int)
     """Signal is sent when one or more interfaces is set or unset as viwed.
@@ -214,6 +219,7 @@ class Layers(QtWidgets.QWidget):
             self._history.delete_layer(len(cfg.layers.layers)-1,"Append layer")
             self._history.delete_interface(len(cfg.layers.interfaces)-1)
             cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
+            self.topologyChanged.emit()
             self.change_size()
 
     def prepend_layer(self):
@@ -227,6 +233,7 @@ class Layers(QtWidgets.QWidget):
             self._history.delete_layer(0,"Prepend layer")
             self._history.delete_interface(0)
             cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
+            self.topologyChanged.emit()
             self.change_size()
             
     def add_layer_to_shadow(self, idx):
@@ -246,6 +253,7 @@ class Layers(QtWidgets.QWidget):
             else:                
                 self._history.change_group(layers, interfaces, idx, 2)
                 cfg.diagram.regions.copy_related(idx, name)
+            self.topologyChanged.emit()
             self.change_size()
     
     def change_viewed(self, i, type):
@@ -282,8 +290,9 @@ class Layers(QtWidgets.QWidget):
         cfg.layers.set_edited_interface(i, second, fracture)
         diagram_idx = cfg.layers.get_diagram_idx(i, second, fracture)
         old = cfg.set_curr_diagram(diagram_idx)
-        self.update()
+        self.update()        
         self. editInterfaceChanged.emit(old, diagram_idx)
+        self.topologyChanged.emit()
     
     def add_interface(self, i):
         """Split layer by new interface"""
@@ -316,6 +325,7 @@ class Layers(QtWidgets.QWidget):
             self._history.change_group(layers, interfaces, i, 2, label)
             cfg.diagram.regions.add_layer(i, name, oper)
             
+            self.topologyChanged.emit()
             self.change_size()
 
     def rename_layer(self, i):
@@ -328,6 +338,7 @@ class Layers(QtWidgets.QWidget):
             self._history.change_layer_name(old_name, i, "Rename layer")
             cfg.layers.layers[i].name = name
             cfg.diagram.regions.rename_layer(False, i, name)
+            self.topologyChanged.emit()
             self.change_size()
 
     def remove_layer(self, i):
@@ -383,6 +394,7 @@ class Layers(QtWidgets.QWidget):
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
+        self.topologyChanged.emit()
         self.change_size() 
                 
     def remove_block(self, i):
@@ -415,6 +427,7 @@ class Layers(QtWidgets.QWidget):
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
             self._history.insert_diagrams(diagram, TopologyOperations.insert)
+        self.topologyChanged.emit()
         self.change_size()
      
     def add_fracture(self, i):
@@ -436,6 +449,7 @@ class Layers(QtWidgets.QWidget):
             cfg.layers.add_fracture(i, name, position, dup)            
             self._history.delete_fracture(i, position, label)
             cfg.diagram.regions.add_fracture(i, name, position is FractureInterface.own, position is FractureInterface.top)
+            self.topologyChanged.emit()
             self.change_size()
         
     def change_interface_type(self, i, type):
@@ -480,6 +494,7 @@ class Layers(QtWidgets.QWidget):
             label = None
             cfg.layers.change_to_editable(i,type, dup)
         self._history.change_interface(old_interface, i, label)
+        self.topologyChanged.emit()
         self.change_size()
         
     def set_interface_depth(self, i):
@@ -525,6 +540,7 @@ class Layers(QtWidgets.QWidget):
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
             self._history.insert_diagrams(diagram, TopologyOperations.insert)
+        self.topologyChanged.emit()
         self.change_size()
 
     def remove_fracture(self, i):
@@ -544,6 +560,7 @@ class Layers(QtWidgets.QWidget):
             if cfg.remove_and_save_diagram(diagram):
                 cfg.layers.set_edited_diagram(0)
             self._history.insert_diagrams(i, TopologyOperations.insert)
+        self.topologyChanged.emit()
         self.change_size()
         
     def rename_fracture(self, i):
@@ -556,4 +573,5 @@ class Layers(QtWidgets.QWidget):
             cfg.layers.interfaces[i].fracture.name = name            
             self._history.change_fracture_name(old_name, i, "Rename fracture")
             cfg.diagram.regions.rename_layer(True, i, name)
+            self.topologyChanged.emit()
             self.change_size()

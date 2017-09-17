@@ -20,5 +20,5 @@ class GeometrySer:
     def write(self, lg):
         """Write LayerGeometry data to file"""
         with open(self.file, 'w') as f:
-            json.dump(lg.serialize(), f, indent=4)
+            json.dump(lg.serialize(), f, indent=4, sort_keys=True)
         

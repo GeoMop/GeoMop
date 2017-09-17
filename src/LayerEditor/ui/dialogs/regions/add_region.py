@@ -1,7 +1,7 @@
 """
 Dialog for adding region to interface.
 """
-
+from geometry_files import TopologyDim
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
@@ -43,9 +43,9 @@ class AddRegionDlg(QtWidgets.QDialog):
         
         d_region_dim = QtWidgets.QLabel("Region Dimension:", self)
         self.region_dim = QtWidgets.QComboBox()            
-        self.region_dim.addItem("0D",  0)
-        self.region_dim.addItem("1D",  1)
-        self.region_dim.addItem("2D",  2)
+        self.region_dim.addItem("0D", TopologyDim.node)
+        self.region_dim.addItem("1D", TopologyDim.segment)
+        self.region_dim.addItem("2D", TopologyDim.polygon)
         self.region_dim.setCurrentIndex(2) 
         grid.addWidget(d_region_dim , 1, 0)
         grid.addWidget(self.region_dim , 1, 1)
