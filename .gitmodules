@@ -4,3 +4,6 @@
 [submodule "src/Geometry/bapprox"]
 	path = src/Geometry/bapprox
 	url = git@github.com:GeoMop/bapprox.git
+[submodule "src/Geometry/intersections"]
+	path = src/Geometry/intersections
+	url = git@github.com:GeoMop/Intersections.git
