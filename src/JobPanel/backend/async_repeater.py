@@ -608,7 +608,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, parent_address=("", 0)):
+    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater. Empty list mean root repeater.
@@ -620,7 +620,7 @@ class AsyncRepeater():
         """
         self.repeater_address = repeater_address
         self.parent_address = parent_address
-        self.max_client_id=0
+        self.max_client_id = max_client_id
         self.clients = {}
         """ Dict of clients. Keys client_id. """
         self.clients_lock = threading.Lock()
@@ -641,10 +641,6 @@ class AsyncRepeater():
         self._starter_server = StarterServer(self)
         self._loop_thread = None
         self._loop_closing = False
-
-        self.add_child_lock = threading.Lock()
-        """Lock for add_child()"""
-
 
     def run(self):
         """
@@ -687,7 +683,7 @@ class AsyncRepeater():
             c.process_queues()
 
 
-    def add_child(self, connection, remote_address=None):
+    def add_child(self, connection, remote_address=None, id=None):
         """
         Setup connection to a child repeater.
         1. Create a Dispatcher for connection to the child repeater, but do not connect.
@@ -711,12 +707,17 @@ class AsyncRepeater():
              Then it servers also as a unique token to check that the correct repeater is connecting to the StarterServer.
              Must keep generating of ID atomic.
         """
-        with self.add_child_lock:
-            self.max_client_id += 1
-            id = self.max_client_id
         client = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection)
 
         with self.clients_lock:
+            if id is not None:
+                assert id not in self.clients
+                if id > self.max_client_id:
+                    self.max_client_id = id
+            else:
+                self.max_client_id += 1
+                id = self.max_client_id
+
             self.clients[id] = client
 
         if remote_address:

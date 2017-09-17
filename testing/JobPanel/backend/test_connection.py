@@ -368,14 +368,16 @@ def test_docker(request):
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
-          "environment": env}
+          "environment": env,
+          "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # service data
     cd = {"__class__": "ConnectionLocal",
           "address": "172.17.42.1",
-          "environment": env}
+          "environment": env,
+          "name": "docker"}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
                          "path": "JobPanel/services/backend_service.py",
@@ -391,7 +393,7 @@ def test_docker(request):
 
     # wait for backend running
     time.sleep(5)
-    assert backend.status == ServiceStatus.running
+    assert backend._status == ServiceStatus.running
 
     # stop backend
     answer = []

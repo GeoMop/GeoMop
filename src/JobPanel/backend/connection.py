@@ -672,10 +672,10 @@ class ConnectionSSH(ConnectionBase):
                     break
             if connected:
                 from .service_proxy import DelegatorProxy
-                self._delegator_proxy = DelegatorProxy({}, self._local_service._repeater, self)
-                self._delegator_proxy._child_id = child_id
+                self._delegator_proxy = DelegatorProxy({})
+                self._delegator_proxy.set_rep_con(self._local_service._repeater, self)
+                self._delegator_proxy.child_id = child_id
                 self._delegator_proxy.on_answer_connect()
-                #self._local_service._delegator_services[child_id] = self._delegator_proxy
                 break
 
         return self._delegator_proxy
