@@ -1,6 +1,8 @@
 import enum
 import itertools
 import numpy as np
+import bspline as bs
+
 
 '''
 TODO:
@@ -135,8 +137,25 @@ def check_knots(deg, knots, N):
     assert total_multiplicity == deg + N + 1
 
 
+# TODO: perform explicit conversion to np.float64 in order to avoid problems on different arch
+# should be unified in bspline as well, convert  to np.arrays as soon as posible
+scalar_types = (int, float, np.int64, np.float64)
 
-scalar_types = (int, float, np.int64)
+
+def curve_from_bs( curve):
+    """
+    Make BREP writer Curve (2d or 3d) from bspline curve.
+    :param curve: bs.Curve object
+    :return:
+    """
+    dim = curve.dim
+    if dim == 2:
+        curve_dim = Curve2D
+    elif dim == 3:
+        curve_dim = Curve3D
+    else:
+        assert False
+    return curve_dim(curve.poles, curve.basis.pack_knots(), curve.rational, curve.basis.degree)
 
 class Curve3D:
     """
@@ -234,6 +253,18 @@ class Curve2D:
                 stream.write(" {}".format(value))
             stream.write(" ")
         stream.write("\n")
+
+
+
+def surface_from_bs(surf):
+    """
+    Make BREP writer Surface from bspline surface.
+    :param surf: bs.Surface object
+    :return:
+    """
+    return Surface(surf.poles, (surf.u_basis.pack_knots(), surf.v_basis.pack_knots()),
+                   surf.rational, (surf.u_basis.degree, surf.v_basis.degree) )
+
 
 class Surface:
     """
@@ -679,7 +710,7 @@ class Face(Shape):
     Like vertex and edge have some additional parameters in the BREP format.
     """
 
-    def __init__(self, wires, surface=None, location=Location(), tolerance=1.0e-7):
+    def __init__(self, wires, surface=None, location=Location(), tolerance=1.0e-3):
         """
         :param wires: List of wires, or list of edges, or list of ShapeRef tuples of Edges to construct a Wire.
         :param surface: Representation of the face, surface on which face lies.
@@ -713,6 +744,7 @@ class Face(Shape):
         if surface is None:
             self.repr=[]
         else:
+            assert type(surface) == Surface
             self.repr=[(surface, location)]
 
 
@@ -773,7 +805,7 @@ class Face(Shape):
             v1_uv = id_to_uv[e_vtxs[1].id]
             edge.attach_to_plane( surface, v0_uv, v1_uv )
 
-        # TODO: Possibly more general attachment of edges to @D curves for general surfaces, but it depends
+        # TODO: Possibly more general attachment of edges to 2D curves for general surfaces, but it depends
         # on organisation of intersection curves.
 
     def _subrecordoutput(self, stream):
@@ -794,7 +826,7 @@ class Edge(Shape):
         #Continuous2d=3
 
 
-    def __init__(self, vertices, tolerance=1.0e-7):
+    def __init__(self, vertices, tolerance=1.0e-3):
         """
         :param vertices: List of shape reference tuples, see ShapeRef class.
         :param tolerance: Tolerance of the representation.
@@ -836,6 +868,7 @@ class Edge(Shape):
         :param location: Location object. Default is None = identity location.
         :return: None
         """
+        assert type(curve) == Curve3D
         self.repr.append( (self.Repr.Curve3d, t_range, curve, location) )
 
     def attach_to_2d_curve(self, t_range, curve, surface, location=Location()):
@@ -847,6 +880,8 @@ class Edge(Shape):
         :param location: Location object. Default is None = identity location.
         :return: None
         """
+        assert type(surface) == Surface
+        assert type(curve) == Curve2D
         self.repr.append( (self.Repr.Curve2d, t_range, curve, surface, location) )
 
     def attach_to_plane(self, surface, v0, v1):
@@ -857,7 +892,7 @@ class Edge(Shape):
         :param v1: UV coordinate of the second edge point
         :return:
         """
-
+        assert type(surface) == Surface
         self.attach_to_2d_curve((0.0, 1.0), Approx.line_2d([v0, v1]), surface)
 
     def implicit_curve(self):
@@ -908,17 +943,17 @@ class Vertex(Shape):
         Curve2d = 2
         Surface = 3
 
-    def __init__(self, point, tolerance=1.0e-7):
+    def __init__(self, point, tolerance=1.0e-3):
         """
         :param point: 3d point (X,Y,Z)
         :param tolerance: Tolerance of the representation.
         """
-        check_matrix(point, [3], (int, float))
+        check_matrix(point, [3], scalar_types)
 
         # These flags are produced by OCC for vertices.
         self.flags = ShapeFlag(0, 1, 0, 1, 1, 0, 1)
         # Coordinates in the 3D space. [X, Y, Z]
-        self.point=point
+        self.point=np.array(point)
         # tolerance of representations.
         self.tolerance=tolerance
         # List of geometrical representations of the vertex. Possibly not necessary for meshing.
