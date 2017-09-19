@@ -200,7 +200,7 @@ Section "LayerEditor" SecLayerEditor
   SetOutPath $INSTDIR
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
 
-# SectionEnd
+SectionEnd
 
 
 Section "ModelEditor" SecModelEditor
