@@ -191,11 +191,14 @@ Section "JobPanel" SecJobPanel
 SectionEnd
 
 
-# Section /o "LayerEditor" SecLayerEditor
+Section "LayerEditor" SecLayerEditor
 
-#   RMDir /r "$INSTDIR\LayerEditor"
-#   SetOutPath $INSTDIR
-#   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\LayerEditor"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
 
 # SectionEnd
 
