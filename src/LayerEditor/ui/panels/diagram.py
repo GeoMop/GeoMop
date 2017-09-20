@@ -161,7 +161,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         its state. If add_last is True new last line is created. if 
         self._last_line is None, self._last_line is added only"""
         if not self._last_line:
-            if gobject is None:
+            if gobject is None or isinstance(gobject, Polygon):
                 self._last_p1_real = None
                 self._last_p1_on_line = None
                 px = p.x()

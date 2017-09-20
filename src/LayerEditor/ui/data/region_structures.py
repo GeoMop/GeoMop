@@ -121,6 +121,21 @@ class Regions():
                 layer_region[layer_id][shape_id] = self.regions.index(region)
                 self._history.change_shape_region(shape_id, layer_id, dim, old_region_id, "Add shape region")
                 
+    def del_regions(self, dim, shape_id):
+        """Shape region for all layers in current topology is removed from 
+        current value"""
+        if dim==0:
+            layer_region = self.layer_region_0D
+        elif dim==1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
+        for layer_id in self.layers_topology[self.current_topology_id]:
+            old_region_id = layer_region[layer_id][shape_id] 
+            del layer_region[layer_id][shape_id]
+            self._history.change_shape_region(shape_id, layer_id, dim, old_region_id, "Add shape region")        
+            
+                
     def get_regions(self, dim, shape_id):
         """Get Shape regions for all layers in current topology"""
         if dim==0:

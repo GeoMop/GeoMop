@@ -531,11 +531,18 @@ class Diagram():
                     self._rect.setBottom(p.y)
                     
     def add_polygon(self, lines):
+        """Add polygon to list"""
         polygon = Polygon(lines)
         self.regions.add_regions(2, polygon.id)
         self.new_polygons.append(polygon)
         self.polygons.append(polygon)
         return polygon
+        
+    def del_polygon(self, polygon):
+        """Remove polygon from list"""
+        self.polygons.remove(polygon)
+        self.regions.del_regions(2, polygon.id)
+        self.deleted_polygons.append(polygon)
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
@@ -591,6 +598,7 @@ class Diagram():
             need_recount = True
         # remove point
         self.points.remove(p)
+        self.regions.del_regions(0, p.id)
         # recount canvas size
         if need_recount:
             self.recount_canvas()
@@ -637,6 +645,7 @@ class Diagram():
         l.p1.lines.remove(l)
         l.p2.lines.remove(l)
         PolygonOperation.update_polygon_del_line(self, l)
+        self.regions.del_regions(1, l.id)
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)

@@ -324,7 +324,7 @@ class PolygonGroups():
         p = copy(self.polygons)
         self.groups = []
         while len(p)>0:
-            self.groups.append(p.pop())
+            self.groups.append([p.pop()])
             all = False
             # all neighbor is added
             while all:
@@ -1154,8 +1154,7 @@ class Shape(metaclass=abc.ABCMeta):
                 line.in_polygon = move_polygon            
         parent = PolygonOperation.get_container(diagram, del_polygon)        
         parent.inner.del_polygon(del_polygon.spolygon)
-        diagram.polygons.remove(del_polygon)
-        diagram.deleted_polygons.append(del_polygon)
+        diagram.del_polygon(del_polygon)        
         
     def remove_line(self, del_line):
         """disjoin 2 shapes"""
@@ -1665,8 +1664,7 @@ class PolygonOperation():
             if line.polygon2 is not None:
                 line.polygon1.spolygon.remove_2boundary(line, line.polygon2.spolygon)
                 parent = PolygonOperation.get_container(diagram, line.polygon1)
-                parent.delete_polygon(diagram, line.polygon1, line.polygon2)
-                
+                parent.delete_polygon(diagram, line.polygon1, line.polygon2)                
             else:
                 parent = PolygonOperation.get_container(diagram, line.polygon1)
                 line.polygon1.spolygon.remove_boundary(line, parent)
