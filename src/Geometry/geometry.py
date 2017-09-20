@@ -108,8 +108,7 @@ class Surface(gs.Surface):
     def init(self, geom_file_base):
         if self.grid_file[0] == '.':
             self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
-        self.grid_surf = bs.GridSurface()
-        self.grid_surf.load(self.grid_file)
+        self.grid_surf = bs.GridSurface.load(self.grid_file)
         self.grid_surf.check_map()
 
         # make approximation
@@ -418,7 +417,9 @@ class StratumLayer(gs.StratumLayer):
             for i_reg in reg_list:
                 self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
-    def make_vert_bw_surface(self, si_top, si_bot):
+
+
+    def make_vert_bw_surface(self, si_top, si_bot, edge_start, edge_end):
         top_box = si_top.curve_z.aabb()
         bot_box = si_bot.curve_z.aabb()
         top_z = top_box[1][1] # max
@@ -431,7 +432,7 @@ class StratumLayer(gs.StratumLayer):
         v11[2] = v01[2] = top_z
         assert la.norm(v00[0:2] - v01[0:2]) < 1e-10
         assert la.norm(v10[0:2] - v11[0:2]) < 1e-10
-        surf = bs_approx.plane_surface([v00, v10, v01], overhang=0.1)
+        surf = bs_approx.plane_surface([v00, v10, v01], overhang=0.0)
 
         v00, v10 = si_bot.shape.points()
         v01, v11 = si_top.shape.points()
@@ -442,11 +443,12 @@ class StratumLayer(gs.StratumLayer):
         bw_surf = bw.surface_from_bs(surf)
 
         top_curve = si_top.vert_curve(v_to_z)
-        t_start, t_end = surf.eval_array(top_curve.eval_array(np.array([0, 1])))
-        #t_start, t_end = top_curve.eval_array(np.array([0, 1]))
+        uv_v_top = top_curve.eval_array(np.array([0, 1]))
+        xyz_v_top = surf.eval_array(uv_v_top)
+
         bot_curve = si_bot.vert_curve(v_to_z)
-        b_start, b_end = surf.eval_array(bot_curve.eval_array(np.array([0, 1])))
-        #b_start, b_end = bot_curve.eval_array(np.array([0, 1]))
+        uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
+        xyz_v_bot = surf.eval_array(uv_v_bot)
 
         # v_vec = np.linspace(0,1, 100)
         # u_vec = np.zeros(len(v_vec))
@@ -460,14 +462,22 @@ class StratumLayer(gs.StratumLayer):
 
         #plt.show()
 
-        check_point_tol(t_start, v01, 1e-3)
-        check_point_tol(t_end, v11, 1e-3)
-
-        check_point_tol(b_start, v00, 1e-3)
-        check_point_tol(b_end, v10, 1e-3)
+        for new, orig in zip( list(xyz_v_bot) + list(xyz_v_top), [v00, v10, v01, v11]):
+            check_point_tol(new, orig, 1e-3)
 
         si_top.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(top_curve), bw_surf )
         si_bot.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(bot_curve), bw_surf )
+
+        # attach line curves to vertical edges
+        curve = bs_approx.line( [v00, v01] )
+        edge_start.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
+        edge_start.attach_to_plane(bw_surf, uv_v_bot[0], uv_v_top[0])
+
+        curve = bs_approx.line( [v10, v11] )
+        edge_end.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
+        edge_end.attach_to_plane(bw_surf, uv_v_bot[1], uv_v_top[1])
+
+
 
         return bw_surf
 
@@ -501,11 +511,8 @@ class StratumLayer(gs.StratumLayer):
 
             # make planar surface
             # attach curves to top and bot edges
-            vert_surface = self.make_vert_bw_surface(si_top, si_bot)
+            vert_surface = self.make_vert_bw_surface(si_top, si_bot, edge_start, edge_end)
 
-            # attach line curves to vertical edges
-            edge_start.attach_to_plane(vert_surface, [0, 0], [0, 1])
-            edge_end.attach_to_plane(vert_surface, [1, 0], [1, 1])
 
             # edges oriented counter clockwise = positively oriented face
             wire = bw.Wire([edge_start.m(), edge_bot, edge_end, edge_top.m()])
