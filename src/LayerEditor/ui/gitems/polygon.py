@@ -15,14 +15,18 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         polygon.object = self
         """polygon data object"""
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        brush = QtGui.QBrush(QtGui.QColor(polygon.get_color()))
+        self.color = polygon.get_color()
+        brush = QtGui.QBrush(QtGui.QColor(self.color))
         self.setBrush(brush)
         self.setZValue(self.STANDART_ZVALUE) 
         
     def update_color(self):
-        brush = QtGui.QBrush(QtGui.QColor(self.polygon.get_color()))
-        self.setBrush(brush)
-        self.update()
+        color = self.polygon.get_color()
+        if self.color != color:
+            self.color = color
+            brush = QtGui.QBrush(QtGui.QColor(color))
+            self.setBrush(brush)
+            self.update()
         
     def release_polygon(self):
         self.polygon.object = None

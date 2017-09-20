@@ -49,7 +49,7 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions
         for i in range(0, len(regions)):
             layer_id = data.layers_topology[self.topology_idx][i]
-            new_index = self.regions[layer_id].findData(data.regions.index(regions[i]))            
+            new_index = self.regions[layer_id].findData(regions[i])            
             self.regions[layer_id].setCurrentIndex(new_index)
         
     def _show_layers(self):
@@ -65,6 +65,7 @@ class Regions(QtWidgets.QToolBox):
         self.boundary = {}
         self.notused = {}
         self.layers_id = []
+        data.current_regions = {}
         for layer_id in self.layers:
             self.layers_id.append(layer_id) 
             widget = self._add_region_panel(layer_id, self._get_last_region(layer_id))
@@ -103,14 +104,13 @@ class Regions(QtWidgets.QToolBox):
             
     def _add_region_panel(self, layer_id, region):
         """add one region panel to tool box and set regin data"""
-        data = cfg.diagram.regions
-        data.current_regions = {}
+        data = cfg.diagram.regions        
         grid = QtWidgets.QGridLayout()             
         # select and add region
         pom_lamda = lambda ii: lambda: self._region_set(ii)
         self.regions[layer_id] = QtWidgets.QComboBox()            
         for i in range(0, len(data.regions)):            
-            label = region.name + " (" + str(data.regions[i].dim.value) + "D)"
+            label = data.regions[i].name + " (" + str(data.regions[i].dim.value) + "D)"
             self.regions[layer_id].addItem( label,  i) 
             data.current_regions[layer_id] = region
         curr_index = self.regions[layer_id].findData(data.regions.index(region))    
@@ -297,3 +297,4 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions
         layer_id = self.layers_id[self.currentIndex()]
         data.current_layer_id = layer_id
+        cfg.diagram.layer_region_changed()
