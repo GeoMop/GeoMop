@@ -1,0 +1,4 @@
+[submodule "submodules/intersections"]
+	path = submodules/intersections
+	url = git@github.com:GeoMop/Intersections.git
+	branch = master
