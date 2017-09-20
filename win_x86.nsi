@@ -137,6 +137,11 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
 
+  # Install pyshp.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
+
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
   CreateDirectory "$INSTDIR\sample\ModelEditor"
