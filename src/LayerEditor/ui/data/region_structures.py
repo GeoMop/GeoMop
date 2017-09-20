@@ -87,7 +87,7 @@ class Regions():
     def add_regions(self, dim, shape_id):
         """Shape region for all layers in current topology is added to 
         current value"""
-        if len(self.current_regions)==0 or dim!=self.current_regions[0].dim:
+        if len(self.current_regions)==0 or dim!=self.current_regions[self.current_layer_id].dim.value:
             return self.set_default_region( dim, shape_id, self.current_topology_id)
         if dim==0:
             layer_region = self.layer_region_0D
@@ -109,10 +109,11 @@ class Regions():
             layer_region = self.layer_region_1D
         else:
             layer_region = self.layer_region_2D
-        for layer_id in self.layers_topology[self.current_topology_id]:
+        for layer_id in self.layers_topology[self.current_topology_id]:            
             region = self.current_regions[layer_id]            
             old_region_id = layer_region[layer_id][shape_id]
-            if old_region_id!=self.regions.index(region):
+            if old_region_id!=self.regions.index(region) and \
+                region.dim.value==dim:
                 layer_region[layer_id][shape_id] = self.regions.index(region)
                 self._history.change_shape_region(shape_id, layer_id, dim, old_region_id, "Add shape region")
                 
