@@ -122,7 +122,7 @@ class Diagram(QtWidgets.QGraphicsScene):
     
     def _add_point(self, gobject, p1, label='Add point'):
         """Add point to diagram and paint it."""
-        if gobject is None:
+        if gobject is None or isinstance(gobject, Polygon):
             point =cfg.diagram.add_point(p1.x(), p1.y(), label) 
             p = Point(point)
             self.addItem(p)
@@ -147,12 +147,21 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.addItem(p)  
             cfg.diagram.new_polygons = []
             
+    def _del_polygons(self):
+        """If is new polygon in data object, created it"""
+        if len(cfg.diagram.deleted_polygons)>0:
+            for polygon in cfg.diagram.deleted_polygons:
+                obj = polygon.object
+                obj.release_polygon()
+                self.removeItem(obj)
+            cfg.diagram.deleted_polygons = []
+            
     def _add_line(self, gobject, p,  add_last=True):
         """If self._last_line is set, last line is repaint to point p and change 
         its state. If add_last is True new last line is created. if 
         self._last_line is None, self._last_line is added only"""
         if not self._last_line:
-            if gobject is None:
+            if gobject is None or isinstance(gobject, Polygon):
                 self._last_p1_real = None
                 self._last_p1_on_line = None
                 px = p.x()
@@ -216,6 +225,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_line.object.release_line()
             self.removeItem(l)                        
             self._last_line = None
+            self._del_polygons()
     
     def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
@@ -235,6 +245,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         for point in moved_points:
             point.object.move_point()        
         self._add_polygons()
+        self._del_polygons()
         
     def release_views(self):
         """release all diagram views"""
@@ -401,7 +412,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.removeItem(point)
                 removed.append(point)
         for point in removed:
-            self._selected_points.remove(point)       
+            self._selected_points.remove(point)
+        self._del_polygons()       
     
     def select_all(self): 
         """select all items"""

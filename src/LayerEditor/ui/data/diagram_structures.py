@@ -111,22 +111,23 @@ class Line():
                 else:
                     raise Exception("Line can't be part more than one polygon.")
                     
+    def del_polygon(self, polygon):
+        """Add polygon, that is use this line"""
+        if self.polygon1 == polygon:
+            if self.polygon2 is None:
+                self.polygon1 = None
+            else:
+                self.polygon1 = self.polygon2
+                self.polygon2 = None
+        elif self.polygon2 == polygon:
+            self.polygon2 = None
+                    
     def second_point(self, p):
         """return second line point"""
         if p==self.p1:
             return self.p2
         return self.p1
                     
-    def del_polygon(self, polygon):
-        """Delete polygon, that was use this line"""
-        if self.polygon1 == polygon:
-            self.polygon1 = self.polygon2
-            self.polygon2 = None
-        elif self.polygon2 == polygon:
-            self.polygon2 = None
-        else:
-            raise Exception("Line is not part of this polygon.")
-
     def count_polygons(self):
         """Delete polygon, that was use this line"""
         if self.polygon1 is None:
@@ -274,6 +275,17 @@ class Diagram():
 #                map[top_id][1][i] = diagram.lines[i].id
 #           for i in range(0, len(diagram.points)):
 #                map[top_id][0][i] = diagram.points[i].id
+
+    def layer_region_changed(self):
+        """Layer color is changed, refresh all region collors"""
+        for polygon in self.polygons:
+            polygon.object.update_color()
+            
+# TODO: Lines and points
+#            for i in range(0, len(diagram.lines)):                
+#                map[top_id][1][i] = diagram.lines[i].id
+#           for i in range(0, len(diagram.points)):
+#                map[top_id][0][i] = diagram.points[i].id
                 
     def fix_polygon_map(self, polygon_idx, line_idxs):
         """Check and fix polygon map for region assignation"""
@@ -389,6 +401,8 @@ class Diagram():
         """list of polygons"""
         self.new_polygons = []
         """list of polygons that has not still graphic object"""
+        self.deleted_polygons = []
+        """list of polygons that should be remove from graphic object"""
         self._zoom = 1.0
         """zoom"""
         self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
@@ -517,11 +531,18 @@ class Diagram():
                     self._rect.setBottom(p.y)
                     
     def add_polygon(self, lines):
+        """Add polygon to list"""
         polygon = Polygon(lines)
         self.regions.add_regions(2, polygon.id)
         self.new_polygons.append(polygon)
         self.polygons.append(polygon)
         return polygon
+        
+    def del_polygon(self, polygon):
+        """Remove polygon from list"""
+        self.polygons.remove(polygon)
+        self.regions.del_regions(2, polygon.id)
+        self.deleted_polygons.append(polygon)
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
@@ -577,6 +598,7 @@ class Diagram():
             need_recount = True
         # remove point
         self.points.remove(p)
+        self.regions.del_regions(0, p.id)
         # recount canvas size
         if need_recount:
             self.recount_canvas()
@@ -623,6 +645,7 @@ class Diagram():
         l.p1.lines.remove(l)
         l.p2.lines.remove(l)
         PolygonOperation.update_polygon_del_line(self, l)
+        self.regions.del_regions(1, l.id)
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
