@@ -181,21 +181,21 @@ class ClassFactory:
                     raise Exception("Failed initizlization of type: {}\npath: {}".format(c, path))
         assert False, "Input class: {} not in the factory list: {}\npath: {} ".format(class_name, self.class_list, path)
 
-class ClassFromList(ClassFactory):
-    def __init__(self, class_name):
-        assert issubclass(class_name, JsonData)
-        self.class_name = clase_name
-
-    def make_instance(self, config):
-        """
-        Make instance from config dict.
-        Dict must contain item "__class__" with name of desired class.
-        Desired class must be in class_list.
-        :param config:
-        :return:
-        """
-        assert config.__class__ is list
-        return class_name(config)
+# class ClassFromList(ClassFactory):
+#     def __init__(self, class_name):
+#         assert issubclass(class_name, JsonData)
+#         self.class_name = clase_name
+#
+#     def make_instance(self, config):
+#         """
+#         Make instance from config dict.
+#         Dict must contain item "__class__" with name of desired class.
+#         Desired class must be in class_list.
+#         :param config:
+#         :return:
+#         """
+#         assert config.__class__ is list
+#         return class_name(config)
 
 
 class JsonData:
@@ -257,7 +257,7 @@ class JsonData:
             if key in filter_attrs:
                 continue
             value = config_dict.get(key, temp)
-            config_dict.pop(key, None)
+            config_dict.pop(key, 0)
 
             assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
             filled_template = JsonData._deserialize_item(temp, value, path + [key])
@@ -287,9 +287,14 @@ class JsonData:
             else:
                 temp = temp.type
 
+
         # No check.
         if temp is None:
-            return temp
+            return value
+
+        # Explicitely no value for a optional key.
+        if value is None:
+            return None
 
         elif isinstance(temp, dict):
             result = JsonData._deserialize_dict(temp, value, [], path)
