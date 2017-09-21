@@ -1,0 +1,310 @@
+{
+    "curves": [],
+    "layers": [
+        {
+            "__class__": "FractureLayer",
+            "name": "New Layer",
+            "node_region_ids": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            "polygon_region_ids": [
+                6,
+                6,
+                6
+            ],
+            "segment_region_ids": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+            ],
+            "top": {
+                "__class__": "SurfaceNodeSet",
+                "nodeset_id": 0,
+                "surface_id": 0
+            }
+        },
+        {
+            "__class__": "StratumLayer",
+            "bottom": {
+                "__class__": "InterpolatedNodeSet",
+                "surf_nodesets": [
+                    {
+                        "nodeset_id": 0,
+                        "surface_id": 0
+                    },
+                    {
+                        "nodeset_id": 0,
+                        "surface_id": 0
+                    }
+                ],
+                "surface_id": 1
+            },
+            "name": "New Layer",
+            "node_region_ids": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            "polygon_region_ids": [
+                4,
+                5,
+                5
+            ],
+            "segment_region_ids": [
+                3,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+            ],
+            "top": {
+                "__class__": "SurfaceNodeSet",
+                "nodeset_id": 0,
+                "surface_id": 0
+            }
+        }
+    ],
+    "node_sets": [
+        {
+            "linked_node_ids": [],
+            "linked_node_set_id": null,
+            "nodes": [
+                [
+                    112.17201166180757,
+                    89.21282798833818
+                ],
+                [
+                    173.8338192419825,
+                    143.00291545189503
+                ],
+                [
+                    190.23323615160348,
+                    45.262390670553934
+                ],
+                [
+                    74.78134110787171,
+                    29.51895043731778
+                ],
+                [
+                    170.5539358600583,
+                    -15.087463556851311
+                ],
+                [
+                    279.44606413994165,
+                    9.839650145772595
+                ]
+            ],
+            "topology_id": 0
+        }
+    ],
+    "regions": [
+        {
+            "boundary": true,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 0.01,
+            "name": "NONE_1D",
+            "not_used": true,
+            "topo_dim": 0
+        },
+        {
+            "boundary": false,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 0.01,
+            "name": "NONE_2D",
+            "not_used": true,
+            "topo_dim": 1
+        },
+        {
+            "boundary": false,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 0.01,
+            "name": "NONE_3D",
+            "not_used": true,
+            "topo_dim": 2
+        },
+        {
+            "boundary": true,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 1,
+            "name": ".side",
+            "not_used": false,
+            "topo_dim": 1
+        },
+        {
+            "boundary": false,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 1,
+            "name": "3d_01",
+            "not_used": false,
+            "topo_dim": 2
+        },
+        {
+            "boundary": false,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 1,
+            "name": "3d_02",
+            "not_used": false,
+            "topo_dim": 2
+        },
+        {
+            "boundary": true,
+            "brep_shape_ids": [],
+            "color": "#000000",
+            "mesh_step": 1,
+            "name": ".top",
+            "not_used": false,
+            "topo_dim": 2
+        }
+    ],
+    "supplement": {
+        "last_node_set": 0
+    },
+    "surfaces": [
+        {
+            "depth": 10.0,
+            "transform_xy": [
+                [
+                    0.015,
+                    0.0,
+                    10372
+                ],
+                [
+                    0,
+                    -0.015,
+                    -16915
+                ]
+            ],
+            "transform_z": [
+                0.1,
+                -10.0
+            ]
+        },
+        {
+            "depth": 100.0,
+            "transform_xy": [
+                [
+                    0.015,
+                    0,
+                    10372
+                ],
+                [
+                    0,
+                    -0.015,
+                    -16915
+                ]
+            ],
+            "transform_z": [
+                0.05,
+                -100.0
+            ]
+        }
+    ],
+    "topologies": [
+        {
+            "polygons": [
+                {
+                    "segment_ids": [
+                        2,
+                        1,
+                        0
+                    ]
+                },
+                {
+                    "segment_ids": [
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                {
+                    "segment_ids": [
+                        7,
+                        6,
+                        5
+                    ]
+                }
+            ],
+            "segments": [
+                {
+                    "node_ids": [
+                        0,
+                        1
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        2,
+                        1
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        0,
+                        2
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        3,
+                        0
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        4,
+                        3
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        2,
+                        4
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        2,
+                        5
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "node_ids": [
+                        4,
+                        5
+                    ],
+                    "surface_id": null
+                }
+            ]
+        }
+    ]
+}
