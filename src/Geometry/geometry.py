@@ -5,27 +5,29 @@ TODO:
   just ignoring main compound, not sure how numbering works for free standing surfaces.
 
 """
-import sys
 import os
+import sys
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-intersections_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "intersections","src")
+#intersections_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "intersections","src")
 sys.path.append(geomop_src)
-sys.path.append(intersections_src)
+#sys.path.append(intersections_src)
 
 import json_data as js
 import geometry_files.geometry_structures as gs
-from geometry_files.geometry import GeometrySer
-import brep_writer as bw
 import gmsh_io
 #import point_grid
 import numpy as np
 import numpy.linalg as la
 import math
 
+
+#from submodules.intersections.src import brep_writer as bw
+import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import bspline_plot as bs_plot
+import brep_writer as bw
 
 import matplotlib.pyplot as plt
 
@@ -105,45 +107,92 @@ class Surface(gs.Surface):
     Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
     """
 
-    def init(self, geom_file_base):
-        if self.grid_file[0] == '.':
-            self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
-        self.grid_surf = bs.GridSurface.load(self.grid_file)
-        self.grid_surf.check_map()
+    def set_file(self, geom_file_base):
 
-        # make approximation
+        # allow relative position to the main layers.json file
+        if self.grid_file:
+            self.is_bumpy = True
+            if self.grid_file[0] == '.':
+                self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
+        else:
+            self.is_bumpy = False
+
+
+    def make_bumpy_surface(self):
+        # load grid surface and make its approximation
+
+        self.grid_surf = bs.GridSurface.load(self.grid_file)
         self.approx_surf = bs_approx.surface_from_grid(self.grid_surf, (16, 16))
         self.mat_xy = mat_xy = np.array(self.transform_xy)
         mat_z = np.array(self.transform_z)
         self.approx_surf.transform(mat_xy, mat_z)
         self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
 
+
+    def make_flat_surface(self, xy_aabb):
+        # flat surface
+        corners = np.zeros( (3, 3) )
+        corners[[1, 0], 0] = xy_aabb[0][0]  # min X
+        corners[2, 0] = xy_aabb[1][0]  # max X
+        corners[[1, 2], 1] = xy_aabb[0][1]  # min Y
+        corners[0, 1] = xy_aabb[1][1]  # max Y
+        corners[:,2] = self.depth
+
+        basis = bs.SplineBasis.make_equidistant(2, 1)
+        z_const = - self.depth
+        poles = np.ones( (3, 3, 1 ) ) * z_const
+        surf_z = bs.Surface( (basis, basis), poles)
+        self.grid_surf = bs.Z_Surface(corners[:, 0:2], surf_z)
+        self.approx_surf = self.grid_surf
+        self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
+
+
     def plot_nodes(self, nodes):
+        """
+        Plot nodes with the surface boundary.
+        :param nodes: array Nx2 of XY points
+        """
+
+        # plot nodes
         x_nodes = np.array(nodes)[:, 0]
         y_nodes = np.array(nodes)[:, 1]
         plt.plot(x_nodes, y_nodes, 'bo')
 
+        # plot boundary
         vtx = np.array([[0, 1], [0, 0], [1, 0], [1, 1], [0, 1]])
-        xy_vtx = self.grid_surf.uv_to_xy(vtx)
-        xy = np.array([ self.mat_xy[0:2, 0:2].dot(v) + self.mat_xy[:,2] for v in xy_vtx ])
-        plt.plot(xy[:, 0], xy[:,1], color='red')
+        xy = self.grid_surf.uv_to_xy(vtx)
 
-        s_xy = self.approx_surf.uv_to_xy(vtx)
-        plt.plot(s_xy[:, 0], s_xy[:, 1], color='green')
+        # variants of the same (for debugging)
+        # xy = self.approx_surf.uv_to_xy(vtx)
+        # Just for bump surface:
+        # xy = np.array([ self.mat_xy[0:2, 0:2].dot(v) + self.mat_xy[:,2] for v in xy_vtx ])
+        # xy = self.grid_surf.quad
 
+        plt.plot(xy[:, 0], xy[:, 1], color='green')
         plt.show()
 
-    def check_nodes(self, nodes):
-        #self.plot_nodes(nodes)
 
-        uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
-        for i, uv in enumerate(uv_nodes):
-            if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[0] < 1.0 ):
-                raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
+    def check_nodes(self, nodes):
+        """
+        :param nodes:
+        :return:
+        """
+        if self.is_bumpy:
+            self.make_bumpy_surface()
+            uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
+            for i, uv in enumerate(uv_nodes):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[0] < 1.0 ):
+                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
+        else:
+            nod = np.array(nodes)
+            nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
+            self.make_flat_surface(nod_aabb)
+            # self.plot_nodes(nodes)
 
 
     def approx_eval_z(self, x, y):
         return self.approx_surf.z_eval_xy_array(np.array([[x, y]]))[0]
+
 
     def eval_z(self, x, y):
         return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
@@ -256,8 +305,6 @@ class Topology(gs.Topology):
 class NodeSet(gs.NodeSet):
     pass
 
-#class Interface(gs.Interface):
-#    pass
 
 class Interface:
     def __init__(self, surface, nodes, topology):
@@ -417,6 +464,13 @@ class StratumLayer(gs.StratumLayer):
             for i_reg in reg_list:
                 self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
+    def plot_vert_face(self, v_to_z, si_top, si_bot):
+        top_curve = si_top.vert_curve(v_to_z)
+        bot_curve = si_bot.vert_curve(v_to_z)
+        bs_plot.plot_curve_2d(top_curve, poles=True)
+        bs_plot.plot_curve_2d(bot_curve, poles=True)
+        plt.show()
+
 
 
     def make_vert_bw_surface(self, si_top, si_bot, edge_start, edge_end):
@@ -425,22 +479,20 @@ class StratumLayer(gs.StratumLayer):
         top_z = top_box[1][1] # max
         bot_z = bot_box[0][1] # min
 
+        # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
         v00, v10 = np.array(si_bot.shape.points()).copy()
         v01, v11 = np.array(si_top.shape.points()).copy()
-
         v00[2] = v10[2] = bot_z
         v11[2] = v01[2] = top_z
+
+        # allow just vertical extrusion, same XY on bot and top
         assert la.norm(v00[0:2] - v01[0:2]) < 1e-10
         assert la.norm(v10[0:2] - v11[0:2]) < 1e-10
         surf = bs_approx.plane_surface([v00, v10, v01], overhang=0.0)
-
-        v00, v10 = si_bot.shape.points()
-        v01, v11 = si_top.shape.points()
-
-        #overhang = 0.1
-        #inv_oh = overhang / (1.0 - 2.0 * overhang)
-        v_to_z = [bot_z, top_z]
         bw_surf = bw.surface_from_bs(surf)
+
+        v_to_z = [bot_z, top_z]
+        #self.plot_vert_face(v_to_z, si_top, si_bot)
 
         top_curve = si_top.vert_curve(v_to_z)
         uv_v_top = top_curve.eval_array(np.array([0, 1]))
@@ -450,25 +502,17 @@ class StratumLayer(gs.StratumLayer):
         uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
         xyz_v_bot = surf.eval_array(uv_v_bot)
 
-        # v_vec = np.linspace(0,1, 100)
-        # u_vec = np.zeros(len(v_vec))
-        # uv_points = np.stack( (u_vec, v_vec), axis=1)
-        # xyz = surf.eval_array(uv_points)
-        # plt.plot(v_vec, xyz[:,2])
-        #
-        # plt.plot([0, 1], [bot_z, top_z], 'bo', color='red')
-        # plt.plot([b_start[1], t_start[1]], [v00[2], v01[2]], 'bo', color='red')
-
-
-        #plt.show()
-
+        # check precision of corners
+        v00, v10 = si_bot.shape.points()
+        v01, v11 = si_top.shape.points()
         for new, orig in zip( list(xyz_v_bot) + list(xyz_v_top), [v00, v10, v01, v11]):
             check_point_tol(new, orig, 1e-3)
 
+        # attach 2D curves to horizontal edges
         si_top.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(top_curve), bw_surf )
         si_bot.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(bot_curve), bw_surf )
 
-        # attach line curves to vertical edges
+        # attach 2D and 3D curves to vertical edges
         curve = bs_approx.line( [v00, v01] )
         edge_start.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
         edge_start.attach_to_plane(bw_surf, uv_v_bot[0], uv_v_top[0])
@@ -476,8 +520,6 @@ class StratumLayer(gs.StratumLayer):
         curve = bs_approx.line( [v10, v11] )
         edge_end.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
         edge_end.attach_to_plane(bw_surf, uv_v_bot[1], uv_v_top[1])
-
-
 
         return bw_surf
 
@@ -588,7 +630,7 @@ class LayerGeometry(gs.LayerGeometry):
 
         # load and construct grid surface functions
         for surf in self.surfaces:
-            surf.init(self.filename_base)
+            surf.set_file(self.filename_base)
 
         # orient polygons
         for topo in self.topologies:
