@@ -5,3 +5,5 @@ CHANGELOG.md usr/share/geomop
 requirements.txt usr/share/geomop
 scripts/geomop-me usr/bin
 scripts/geomop-me.desktop usr/share/applications
+scripts/geomop-le usr/bin
+scripts/geomop-le.desktop usr/share/applications

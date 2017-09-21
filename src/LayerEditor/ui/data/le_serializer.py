@@ -1,6 +1,4 @@
-from geometry_files.geometry_factory import  GeometryFactory
-from geometry_files.geometry import GeometrySer
-from geometry_files.geometry_structures import LayerType, TopologyType
+from geometry_files import GeometryFactory, GeometrySer, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
 
@@ -36,7 +34,7 @@ class LESerializer():
         
     def set_new(self, cfg):
         """Set new file"""
-        cfg.diagram.release_all()
+        cfg.release_all()
         self.geometry = self._get_first_geometry(cfg)        
         
     def save(self, cfg, path):
@@ -142,7 +140,7 @@ class LESerializer():
     
     def load(self, cfg, path):
         """Load diagram data from set file"""
-        cfg.diagram.release_all()
+        cfg.release_all()
         cfg.diagrams = []
         cfg.layers.delete()
         

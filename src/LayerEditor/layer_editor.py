@@ -1,4 +1,5 @@
-"""Start script that inicialize main window
+"""
+Start script that inicialize main window
 """
 import sys
 import os

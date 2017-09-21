@@ -34,11 +34,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scroll_area.setWidget(self.layers)
         
         self._vsplitter.addWidget(self.scroll_area)        
+        self.regions = panels.Regions()        
+        self._vsplitter.addWidget(self.regions)     
         self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
-        self._vsplitter.addWidget(self.shp)     
+        self._vsplitter.addWidget(self.shp) 
         if cfg.diagram.shp.is_empty():
             self.shp.hide()   
-        
+
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._hsplitter)
@@ -78,10 +80,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # signals        
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
+        self.diagramScene.regionUpdateRequired.connect(self._update_region)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
+        self.layers.topologyChanged.connect(self.set_topology)
 
     def release_data(self, diagram):
         """Release all diagram graphic object"""
@@ -191,4 +195,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_panel(self):
         """Update layers panel"""
         self.layers.change_size()
-    
+        
+    def set_topology(self):
+        """Current topology or its structure is changed"""
+        self.regions.set_topology(cfg.diagram.topology_idx)
+        
+    def _update_region(self, dim, shape_idx):
+        """Update region for set shape"""
+        if dim==2:
+            regions = cfg.diagram.polygons[shape_idx].get_polygon_regions()
+            self.regions.select_current_regions(regions)
+            
+        
+        

@@ -136,16 +136,20 @@ class PolygonGroups():
             self.boundaries_points.append([])
         else:
             self.boundaries_lines[group_id] = []
-            self.boundaries_points[group_id] = []            
-        polygon = self.groups[group_id][0]
-        for line in polygon.boundary_lines:
-            if line.count_polygons() == 1:
-                start_point = line.p1
-                last_point = line.p2
-                last_line = line
-                self.boundaries_lines[group_id].append(line)
-                self.boundaries_points[group_id].append(line.p1)                
-                break
+            self.boundaries_points[group_id] = []
+        i = 0
+        start_point = None
+        while start_point is None: 
+            polygon = self.groups[group_id][i]
+            for line in polygon.boundary_lines:
+                if line.count_polygons() == 1:
+                    start_point = line.p1
+                    last_point = line.p2
+                    last_line = line
+                    self.boundaries_lines[group_id].append(line)
+                    self.boundaries_points[group_id].append(line.p1)                
+                    break
+            i += 1
         while start_point!=last_point:
             end = True
             for line in last_point.lines:
@@ -422,10 +426,11 @@ class PolylineCluster():
                     return True
         return False
         
-    def find_poly_by_end_point(self, line):
+    def find_poly_by_end_point(self, point):
         """Find polyline with set end point"""
         for poly in self.polylines:
-            if poly.points[-1]:
+            if poly.points[-1] == point or \
+                poly.points[0] == point:
                 return poly
         return None 
  

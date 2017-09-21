@@ -17,18 +17,26 @@ class Diagram(QtWidgets.QGraphicsScene):
     pyqtSignals:
         * :py:attr:`cursorChanged(float, float) <cursorChanged>`
         * :py:attr:`possChanged() <possChanged>`
+        * :py:attr:`regionUpdateRequired(int, int) <regionUpdateRequired>`
     """
     cursorChanged = QtCore.pyqtSignal(float, float)
     """Signal is sent when cursor position has changed.
 
-    :param int line: new x coordinate
-    :param int column: new y coordinate
+    :param float line: new x coordinate
+    :param float column: new y coordinate
     """
     possChanged = QtCore.pyqtSignal()
     """
     Signal is sent, when zoom has changed or vissible part of scene is move. 
     New coordinates is set in _data variable and parent view should connect
     to signal and change visualisation.
+    """
+    regionUpdateRequired = QtCore.pyqtSignal(int, int)
+    """
+    Shape was clicked and region update in region panel is required
+    
+    :param int dimension: shape dimension
+    :param int idx: shape index in diagram structure
     """
     BLINK_INTERVAL = 500
     """blink interval in ms"""
@@ -495,14 +503,24 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
                         self._select_line(event.gobject, True)
-                    else:
+                    elif isinstance(event.gobject, Point):
                         self._select_point(event.gobject)
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
                         self._select_line(event.gobject, True)
-                    else:
+                    elif isinstance(event.gobject, Point):
                         self._select_point(event.gobject)
+            if event.modifiers()==QtCore.Qt.ControlModifier:
+                if event.gobject is not None:
+                    if isinstance(event.gobject, Polygon):
+                        event.gobject.polygon.set_current_region()
+                        event.gobject.update_color()
+            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
+                if event.gobject is not None:
+                    if isinstance(event.gobject, Polygon):
+                        self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+                
             
     def mousePressEvent(self,event):
         """Standart mouse event"""
@@ -529,7 +547,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._line_moving = event.gobject
                     self._line_moving_pos = event.scenePos()
                     self._line_moving_old = event.gobject.line.qrectf()
-                else:
+                elif isinstance(event.gobject, Point):
                     # point
                     self._point_moving_counter = 0
                     self._point_moving = event.gobject

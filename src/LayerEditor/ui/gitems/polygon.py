@@ -15,9 +15,14 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         polygon.object = self
         """polygon data object"""
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        brush = QtGui.QBrush(QtGui.QColor(240, 240, 232))
+        brush = QtGui.QBrush(QtGui.QColor(polygon.get_color()))
         self.setBrush(brush)
         self.setZValue(self.STANDART_ZVALUE) 
+        
+    def update_color(self):
+        brush = QtGui.QBrush(QtGui.QColor(self.polygon.get_color()))
+        self.setBrush(brush)
+        self.update()
         
     def release_polygon(self):
         self.polygon.object = None
@@ -25,4 +30,13 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     def refresh_polygon(self):
         """reload polygon.spolygon.gtpolygon"""
         self.setPolygon(self.polygon.spolygon.gtpolygon)
+        
+    def mousePressEvent(self,event):
+        """Standart mouse event"""
+        event.gobject = self
+        
+    def mouseReleaseEvent(self,event):
+        """Standart mouse event"""
+        event.gobject = self
+
     

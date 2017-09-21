@@ -2,8 +2,8 @@
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
 from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface
-from .geometry_structures import Region, Polygon
-import geometry_files.geometry_structures as gs
+from .geometry_structures import Region, Polygon, TopologyDim, StratumLayer
+from .geometry_structures import FractureLayer, ShadowLayer
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -13,9 +13,9 @@ class GeometryFactory:
         """Geometry data object"""
         if  geometry is None:
             default_regions = [
-                Region(dict( color="#000000", name="NONE_1D", not_used=True, topo_dim=gs.TopologyDim.node)),
-                Region(dict( color="#000000", name="NONE_2D", not_used=True, topo_dim=gs.TopologyDim.segment)),
-                Region(dict( color="#000000", name="NONE_3D", not_used=True, topo_dim=gs.TopologyDim.polygon))
+                Region(dict( color="#f0f0e8", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
+                Region(dict( color="#f0f0e8", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
+                Region(dict( color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
                 ]
             self.geometry = LayerGeometry( dict(regions=default_regions) )
             
@@ -66,7 +66,7 @@ class GeometryFactory:
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
         
-    def add_plane_surface(self, depth):
+    def add_plane_surface(self, depth, file=None):
         """Add new main layer"""        
         surface = Surface.make_surface(depth)
         if len(self.geometry.surfaces)==0 or \
@@ -76,7 +76,7 @@ class GeometryFactory:
     
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
-        layer_class = [ gs.StratumLayer, gs.FractureLayer, gs.ShadowLayer ][type]
+        layer_class = [ StratumLayer, FractureLayer, ShadowLayer ][type]
 
 
         iface_classes = [ SurfaceNodeSet, InterpolatedNodeSet ]

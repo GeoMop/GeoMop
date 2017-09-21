@@ -176,6 +176,17 @@ class Polygon():
         """Some polygon points is moved"""
         self.spolygon.reload_shape_boundary(self, True)
         
+    def get_color(self):
+        """Return region color"""
+        return Diagram.regions.get_region_color(2, self.id)
+
+    def set_current_region(self):
+        """Set polygon region to current region"""
+        Diagram.regions.set_regions(2, self.id)
+        
+    def get_polygon_regions(self):
+        """Return polygon regions"""
+        return Diagram.regions. get_regions(2, self.id)
 
 class Diagram():
     """
@@ -199,7 +210,7 @@ class Diagram():
     """Object of not edited diagrams"""
     topologies = {}
     """List of all diagrams, divided by topologies"""
-    regions = Regions()
+    regions = None
     """List of regions"""
     
     @classmethod
@@ -253,6 +264,17 @@ class Diagram():
             for i in range(0, len(diagram.polygons)):
                 map[top_id][2][i] = diagram.polygons[i].id
                 
+    def region_color_changed(self, region_idx):
+        """Region collor was changed"""
+        for polygon in self.polygons:
+            if self.regions.get_region_id(2, polygon.id)==region_idx:
+                polygon.object.update_color()
+# TODO: Lines and points
+#            for i in range(0, len(diagram.lines)):                
+#                map[top_id][1][i] = diagram.lines[i].id
+#           for i in range(0, len(diagram.points)):
+#                map[top_id][0][i] = diagram.points[i].id
+                
     def fix_polygon_map(self, polygon_idx, line_idxs):
         """Check and fix polygon map for region assignation"""
         if len(line_idxs)==len(self.polygons[polygon_idx].lines):
@@ -282,12 +304,12 @@ class Diagram():
         Regions.diagram_map = None
     
     @classmethod
-    def release_all(cls):
+    def release_all(cls, history):
         """Discard all links"""
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
-        cls.regions = Regions()
+        cls.regions = Regions(history)
         
     @classmethod
     def move_diagram_topologies(cls, id, diagrams):
@@ -496,7 +518,7 @@ class Diagram():
                     
     def add_polygon(self, lines):
         polygon = Polygon(lines)
-        self.regions.set_default_region(polygon.id, self.topology_idx, 3)
+        self.regions.add_regions(2, polygon.id)
         self.new_polygons.append(polygon)
         self.polygons.append(polygon)
         return polygon
@@ -505,7 +527,7 @@ class Diagram():
         """Add point to canvas"""
         point = Point(x, y, id)
         self.points.append(point)
-        self.regions.set_default_region(point.id, self.topology_idx, 1)
+        self.regions.add_regions(0, point.id)
         #save revert operations to history
         if not not_history:
             self._history.delete_point(point.id, label)
@@ -574,7 +596,7 @@ class Diagram():
         p2.lines.append(line)
         self.lines.append(line)
         PolygonOperation.update_polygon_add_line(self, line) 
-        self.regions.set_default_region(line.id, self.topology_idx, 2)
+        self.regions.add_regions(1, line.id)
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)
