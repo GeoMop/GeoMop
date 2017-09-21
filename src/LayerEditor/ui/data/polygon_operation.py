@@ -143,7 +143,7 @@ class Polyline():
         """return secont end point"""
         if point==self.points[0]:
             return self.points[-1]
-        return self.points[-1] 
+        return self.points[0]
         
     def remove_end(self, point):
         """return secont end point"""
