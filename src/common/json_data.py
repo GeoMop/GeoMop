@@ -62,7 +62,7 @@ class Animal(jd.JsonData):
 
 class Chicken(Animal):
     # explicit specification of attributes to serialize/deserialize.
-    __serialized_attrs__ = [ color, tail ]
+    _serialized_attrs_ = [ 'color', 'tail' ]
 
     def __init__():
         def.color = 0
@@ -219,7 +219,7 @@ class JsonData:
     ?? Anything similar in current JobPanel?
     """
 
-    __serialized__attrs___ = []
+    _serialized_attrs_ = []
     """ List of attributes to serilaize. Leave empty to use public attributes."""
 
     def __init__(self, config):
@@ -230,15 +230,15 @@ class JsonData:
         """
         self._filter_attrs = None
 
-        if not hasattr(self, '__serialized_attrs__'):
+        if not self._serialized_attrs_:
             self._filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
         else:
-            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self.__serialized__attrs__ ]
+            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self._serialized_attrs_ ]
 
         try:
             self._deserialize_dict(self.__dict__, config, self._filter_attrs)
         except:
-            raise Exception("Failed deserialization of class {}".format(self.__class__))
+            raise Exception("Failed deserialization of class {} from:\n {}".format(self.__class__, config))
 
 
     @staticmethod
@@ -250,7 +250,10 @@ class JsonData:
             config_dict.pop(key, None)
 
             assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
-            filled_template = JsonData._deserialize_item(temp, value)
+            try:
+                filled_template = JsonData._deserialize_item(temp, value)
+            except:
+                raise Exception("Failed deserialization key: {}\ntype: {}\nfrom: {}".format(key, temp, value))
             template_dict[key] = filled_template
 
         if config_dict.keys():
