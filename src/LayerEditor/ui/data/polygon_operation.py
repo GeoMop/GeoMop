@@ -103,21 +103,25 @@ class Polyline():
                 return new_poly
         return None
         
-    def join(self, polyline):
-        """Join two polylines. One of polyline points must be 
-        same as self end point"""
-        if self.points[-1]==polyline.points[0]:
+    def join(self, polyline, p=None):
+        """Join two polylines. If p is set, join point
+        must match to p"""
+        if self.points[-1]==polyline.points[0] and \
+            (p is None or p==self.points[-1]):            
             self.lines.extend(polyline.lines)
             self.points.extend(polyline.points[1:])
-        elif self.points[-1]==polyline.points[-1]:
+        elif self.points[-1]==polyline.points[-1] and \
+            (p is None or p==self.points[-1]):
             self.lines.extend(polyline.lines[::-1])
             self.points.extend(polyline.points[-2::-1])
-        elif self.points[0]==polyline.points[0]:
+        elif self.points[0]==polyline.points[0] and \
+            (p is None or p==self.points[0]):
             polyline.lines.extend(self.lines[::-1])
             self.lines = polyline.lines 
             polyline.points.extend(self.points[-2::-1]) 
             self.points = polyline.points 
-        elif self.points[0]==polyline.points[-1]:
+        elif self.points[0]==polyline.points[-1] and \
+            (p is None or p==self.points[0]):
             polyline.lines.extend(self.lines)
             self.lines = polyline.lines 
             polyline.points.extend(self.points[1:]) 
@@ -187,8 +191,7 @@ class PolygonGroups():
         self.groups.extend(polygon.inner.groups)
         self.polygons.extend(polygon.inner.polygons)
         self.boundaries_lines.extend(polygon.inner.boundaries_lines)
-        self.boundaries_points.extend(polygon.inner.boundaries_points)
-        
+        self.boundaries_points.extend(polygon.inner.boundaries_points)        
         
     def move(self, polygon):        
         """Move to this group not neighborgs droups that is inside parent polygon
@@ -294,7 +297,6 @@ class PolygonGroups():
                         else:
                             if group != added_to and group not in join: 
                                 join.append(group)
-                break    
         if len(join)>0:
             for group in join:
                 added_to.extend(group)
@@ -372,25 +374,28 @@ class PolygonGroups():
                                     paths.insert(0, path)
                                     clusters.insert(0, cluster)
                                     paths.insert(0, FakePolyline(end_point, join, group_idx)) 
-                                return res
+                                    return res
         # tray switch to other group over join point
         for join in self.joins[group_idx]:
-            for next_joins_id in range(0, len(self.joins)):
-                if next_joins_id not in used_groups:
-                    for next_joins in self.joins[next_joins_id]:
-                        if next_joins == join:
-                            paths.insert(0, [])
-                            clusters.insert(0, None)
-                            paths.insert(0, FakePolyline(end_point, join, group_idx))
-                            res = self._get_fake_path(outside, start_point, 
-                                join, paths, clusters, new_user_group)    
-                            return res    
+            if join!=end_point:
+                for next_joins_id in range(0, len(self.joins)):
+                    if next_joins_id not in new_user_group:
+                        for next_join in self.joins[next_joins_id]:
+                            if next_join == join:
+                                res = self._get_fake_path(outside, start_point, 
+                                    join, paths, clusters, new_user_group)
+                                if res:
+                                    paths.insert(0, [])
+                                    clusters.insert(0, None)
+                                    paths.insert(0, FakePolyline(end_point, join, group_idx))
+                                    return res
         return False
         
-    def _get_test_Point(self, point, line):
-        """Get point (QPoitF) in half of opposite boundary line"""
-        for l in point.lines:
-            if line!=l and l.count_polygons()==1:
+    def _get_test_Point(self, test_polyline, group_id):
+        """Get point (QPoitF) in half of one opposite boundary line
+        (line that is not in test polyline)"""
+        for l in self.boundaries_lines[group_id]:
+            if l not in test_polyline.lines:
                 return QtCore.QPointF(
                     (l.p1.x+l.p2.x)/2,(l.p1.y+l.p2.y)/2) 
         return None        
@@ -436,8 +441,8 @@ class PolygonGroups():
                         poly = self.get_boundary_polyline(paths[i].group_idx, 
                             paths[i].points[0], paths[i].points[-1])
                         test_polyline.join(poly)
-                    revers_points.append(self._get_test_Point(test_polyline.points[-1], 
-                        test_polyline.lines[-1]))
+                    revers_points.append(self._get_test_Point(test_polyline, 
+                        paths[i].group_idx))
                     if len(paths[i+1])>0:
                         poly = outside._make_polyline_from_path(paths[i+1])
                         test_polyline.join(poly)
@@ -459,7 +464,7 @@ class PolygonGroups():
                 polygon = outside.make_polygon_diagram(diagram, polyline)
                 self.add_polygon(polygon.spolygon)
                 polygon.spolygon.reload_shape_boundary(polygon, True)
-                for i in range(1, int(len(paths)/2)+1): 
+                for i in range(0, int(len(paths)/2)): 
                     if clusters[i] is not None:                    
                         outside.split_cluster_to_polygon(clusters[i], polygon)
                 outside.add_cluster_to_polygon(polygon)
@@ -523,10 +528,10 @@ class PolylineCluster():
         bundles = copy(self.bundles)
         for join  in self.joins:
             bundles.append(join)
-            counter.append(1)
+            counter.append(100)
         for join  in self.inner_joins:
             bundles.append(join)
-            counter.append(1)
+            counter.append(100)
         res = []
         # romove all lines, that is not in bundle and prepare counter
         for poly in self.polylines:
@@ -932,7 +937,7 @@ class Shape(metaclass=abc.ABCMeta):
                     bpolyline = bcluster.find_poly_by_end_point(p, None, line)
                     if bpolyline is not None:                        
                         cluster.polylines.remove(polyline)                         
-                        bpolyline.join(polyline)
+                        bpolyline.join(polyline, p)
                         self._join_clusters(bcluster, cluster, True, True)
                         joined = True
                         break
@@ -981,7 +986,7 @@ class Shape(metaclass=abc.ABCMeta):
                     bpolyline = bcluster.find_poly_by_end_point(p)
                     if bpolyline is not None:
                         cluster.polylines.remove(polyline)
-                        bpolyline.join(polyline)
+                        bpolyline.join(polyline, p)
                         self._join_clusters(bcluster, cluster, True, False)
                         joined = True
                         break
@@ -1022,13 +1027,13 @@ class Shape(metaclass=abc.ABCMeta):
                     if npolyline is not None:
                         if ncluster==cluster:
                             cluster.polylines.remove(polyline)
-                            npolyline.join(polyline)
+                            npolyline.join(polyline, p)
                             if  npolyline.points[-1]==npolyline.points[0]: 
                                 cluster.cyrcle_poly = npolyline
                             cluster.check_inner_polygons = True
                         else:
                             cluster.polylines.remove(polyline)
-                            npolyline.join(polyline)
+                            npolyline.join(polyline, p)
                             self._join_clusters(ncluster, cluster, False, False)
                         joined = True
                         break
@@ -1726,8 +1731,7 @@ class PolygonOperation():
             parent = PolygonOperation.get_container(diagram, line.polygon1)        
             parent.inner.refresh_polygon(line.polygon1.spolygon)    
         else:
-            diagram.outside.split_line(line, new_line, new_point)
-        
+            diagram.outside.split_line(line, new_line, new_point)        
         
     @classmethod
     def find_polygon_boundary(cls, line):
