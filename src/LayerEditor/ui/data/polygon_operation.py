@@ -81,8 +81,9 @@ class Polyline():
         
     def split(self, p, only_inner=False):
         """
-        Split polyline emd return end as new polyline
-        or None
+        Split polyline end return end as new polyline.
+        If is p first or last point, is return polyline, without
+        line. I point is not in polyline, return None.
         """
         if only_inner:
             if len(self.points)<3:
@@ -122,10 +123,11 @@ class Polyline():
             self.points.extend(polyline.points[1:])
         elif self.points[0]==polyline.points[-1] and \
             (p is None or p==self.points[0]):
-            polyline.lines.extend(self.lines)
-            self.lines = polyline.lines 
-            polyline.points.extend(self.points[1:]) 
-            self.points = polyline.points 
+            new = copy(polyline)
+            new.lines.extend(self.lines)
+            self.lines = new.lines
+            new.points.extend(self.points[1:]) 
+            self.points = new.points 
             
     def append(self, line):
         """Join line to the end of polyline 
@@ -152,11 +154,11 @@ class Polyline():
     def remove_end(self, point):
         """return secont end point"""
         if point==self.points[0]:
-            del self.points[-1]
-            del self.lines[-1]
-        else:
             del self.points[0]
             del self.lines[0]
+        else:
+            del self.points[-1]
+            del self.lines[-1]
  
  
 class FakePolyline(Polyline):
@@ -338,6 +340,8 @@ class PolygonGroups():
         find list of path to set end_point"""
         res = False
         group_idx = self._find_group(end_point, used_groups)
+        if group_idx is None:
+            return False
         new_user_group = copy(used_groups)
         new_user_group.append(group_idx)
         # find bundled cluster that continue from found group_idx 
@@ -580,12 +584,14 @@ class PolylineCluster():
                 break
         new_cluster = None
         new_polyline = del_polyline.split(line.p1)
+        # remove deleted line
         if line.p2 in new_polyline.points:
             start = line.p2 
             new_polyline.remove_end(line.p1)
         else:
             start = line.p1
             del_polyline.remove_end(line.p1)
+        # find start polylines for spliting (polyline where was line neighbors) in new part 
         if len(new_polyline.lines)==0:
             # fix new polyline
             if start not in self.bundles:
@@ -605,11 +611,11 @@ class PolylineCluster():
         else:            
             new_cluster = PolylineCluster()
             next_polylines = [new_polyline]
-            
+        # find start polylines for spliting (polyline where was line neighbors) in self part    
         if len(del_polyline.lines)==0:    
             # fix self            
             self.polylines.remove(del_polyline)                
-            start = line.second(start)
+            start = line.second_point(start)
             if start not in self.bundles:
                 self._try_remove_joins(start)
             else:
@@ -623,8 +629,9 @@ class PolylineCluster():
         processed_bundles = []
         while len(next_polylines)>0:
             next_bundles = []
+            # process found polylines, and find its bundles
             for polyline in next_polylines:
-                if not polyline[0] in processed_bundles:
+                if not polyline.points[0] in processed_bundles:
                     end = polyline.points[0]
                 else:
                     end = polyline.points[-1]
@@ -640,14 +647,17 @@ class PolylineCluster():
                     new_cluster.bundles.append(end)
                 new_cluster.polylines.append(polyline)
             next_polylines = []
+            # find bundle continuing
             for bundle in next_bundles:
                 processed_bundles.append(bundle)
                 for polyline in self.polylines:
                     if polyline.points[0]==bundle or polyline.points[-1]==bundle:
                         next_polylines.append(polyline)
+            # remove found
             for polyline in next_polylines:
                 self.polylines.remove(polyline)
-        
+        return new_cluster
+                
     def try_add_in_bundle(self, p, line):
         """Try add line to bundle in point p"""
         for bundle in self.bundles:                        
@@ -938,7 +948,12 @@ class Shape(metaclass=abc.ABCMeta):
                     if bpolyline is not None:                        
                         cluster.polylines.remove(polyline)                         
                         bpolyline.join(polyline, p)
-                        self._join_clusters(bcluster, cluster, True, True)
+                        if bcluster==cluster:                            
+                            if  bpolyline.points[-1]==bpolyline.points[0]: 
+                                cluster.cyrcle_poly = bpolyline
+                            cluster.check_inner_polygons = True
+                        else:                            
+                            self._join_clusters(bcluster, cluster, True, True)
                         joined = True
                         break
         return joined
@@ -1025,15 +1040,13 @@ class Shape(metaclass=abc.ABCMeta):
                 for ncluster in self.clusters:                                        
                     npolyline = ncluster.find_poly_by_end_point(p, None, line)
                     if npolyline is not None:
-                        if ncluster==cluster:
-                            cluster.polylines.remove(polyline)
-                            npolyline.join(polyline, p)
+                        cluster.polylines.remove(polyline)                        
+                        npolyline.join(polyline, p)
+                        if ncluster==cluster:                            
                             if  npolyline.points[-1]==npolyline.points[0]: 
                                 cluster.cyrcle_poly = npolyline
                             cluster.check_inner_polygons = True
-                        else:
-                            cluster.polylines.remove(polyline)
-                            npolyline.join(polyline, p)
+                        else:                            
                             self._join_clusters(ncluster, cluster, False, False)
                         joined = True
                         break
@@ -1390,7 +1403,7 @@ class Shape(metaclass=abc.ABCMeta):
                 cluster.set_possition(polygon, True)        
         
     def split_cluster_to_polygon(self, cluster, polygon):
-        """Split bundled cluster to boundary,polygon and set polygon
+        """Splitcluster to boundary,polygon and set polygon
         polygon lines remove."""
         joins = []        
         is_bundled = cluster in self.bundled_clusters
@@ -1503,6 +1516,16 @@ class Shape(metaclass=abc.ABCMeta):
                         cluster.check_inner_polygons = False
                         return True                
         for cluster in self.bundled_clusters:
+            if cluster.check_inner_polygons:
+                if cluster.cyrcle_poly is not None:
+                    self.make_polygon_from_cyrcle(diagram, cluster, cluster.cyrcle_poly)
+                    cluster.cyrcle_poly = None
+                    cluster.check_inner_polygons = False
+                    return True
+                else:
+                    if self._try_path(diagram, polygon, line, cluster):
+                        cluster.check_inner_polygons = False
+                        return True
             if cluster.split_polygon:
                 if len(cluster.inner_joins)>1:
                     if cluster.inner_joins[-1] in cluster.inner_joins[:-1]:
