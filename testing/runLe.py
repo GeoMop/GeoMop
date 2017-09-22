@@ -14,5 +14,5 @@ sys.path.insert(3, __mock_dir__)
 __root_dir__ = os.getcwd()
 
 import pytest
-code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testLe.xml") + ' LayerEditor')
+code = pytest.main("--junitxml=" + os.path.join(__root_dir__, "testLe.xml") + ' LayerEditor -vv')
 sys.exit(code)

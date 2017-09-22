@@ -116,10 +116,10 @@ class Polyline():
             self.points.extend(polyline.points[-2::-1])
         elif self.points[0]==polyline.points[0] and \
             (p is None or p==self.points[0]):
-            polyline.lines.extend(self.lines[::-1])
-            self.lines = polyline.lines 
-            polyline.points.extend(self.points[-2::-1]) 
-            self.points = polyline.points 
+            self.lines = self.lines[::-1]
+            self.lines.extend(polyline.lines)
+            self.points = self.points[::-1] 
+            self.points.extend(polyline.points[1:])
         elif self.points[0]==polyline.points[-1] and \
             (p is None or p==self.points[0]):
             polyline.lines.extend(self.lines)
