@@ -1,5 +1,26 @@
 from ui.data.diagram_structures import Point, Line
-from ui.data.polygon_operation import Polyline
+from ui.data.polygon_operation import Polyline, PolylineCluster
+
+
+def create_polyline(p1, p2, num_lines=2):
+    """
+    Create polyline from p1 to p2 with num_lines lines.
+    :param p1: first point
+    :param p2: second point
+    :param num_lines: number of lines
+    :return: created polyline
+    """
+    p = [p1]
+    l = []
+    for i in range(num_lines - 1):
+        p.append(Point(0, 0))
+        l.append(Line(p[i], p[i + 1]))
+    p.append(p2)
+    l.append(Line(p[-2], p[-1]))
+    poly = Polyline()
+    poly.lines = l
+    poly.points = p
+    return poly
 
 
 class TestPolyline:
@@ -190,25 +211,117 @@ class TestPolyline:
 
         a.remove_end(p[0])
         # check after remove
-        assert a.lines == l[:-1]
-        assert a.points == p[:-1]
+        assert a.lines == l[1:]
+        assert a.points == p[1:]
 
-        a.remove_end(p[-2])
+        a.remove_end(p[-1])
         # check after remove
         assert a.lines == l[1:-1]
         assert a.points == p[1:-1]
 
 
+class TestPolygonGroups:
+    def test_extend(self):
+        pass
+
+    def test_move(self):
+        pass
+
+    def test_refresh_polygon(self):
+        pass
+
+    def test_add_polygon(self):
+        pass
+
+    def test_get_boundary_polyline(self):
+        pass
+
+    def test_get_fake_path(self):
+        pass
+
+    def test_del_polygon(self):
+        pass
 
 
+class TestPolylineCluster:
+    def test_reduce_polylines(self):
+        # bundles
+        a = Point(0, 0)
+        b = Point(0, 0)
+        c = Point(0, 0)
+        d = Point(0, 0)
+        e = Point(0, 0)
 
+        # joins
+        join = Point(0, 0)
+        inner_join = Point(0, 0)
 
-# todo:
-# PolygonGroups
-# - vsechno necarkovany
-# - _get_fake_path
-# - add_inner_polygon - netestovat
-#
-# PolylineCluster
-# - reduce_polylines
-# - co maji spllit v nazvu
+        # construct cluster
+        cluster = PolylineCluster()
+        cluster.polylines = [create_polyline(a, b),
+                             create_polyline(b, c),
+                             create_polyline(c, a),
+                             create_polyline(a, d),
+                             create_polyline(b, e),
+                             create_polyline(e, Point(0, 0)),
+                             create_polyline(a, inner_join),
+                             create_polyline(c, join)]
+        cluster.bundles = [a, b, c, d, e]
+        cluster.joins = [join]
+        cluster.inner_joins = [inner_join]
+
+        res = cluster.reduce_polylines()
+        # check reduction
+        assert res == cluster.polylines[:3] + cluster.polylines[-2:]
+
+    def test_split_cluster(self):
+        # 1. case
+        #########
+        # bundles
+        a = Point(0, 0)
+        b = Point(0, 0)
+
+        polylines = [create_polyline(a, b, 3),
+                     create_polyline(Point(0, 0), a),
+                     create_polyline(Point(0, 0), a),
+                     create_polyline(b, Point(0, 0)),
+                     create_polyline(b, Point(0, 0))]
+
+        # construct cluster
+        cluster = PolylineCluster()
+        cluster.polylines = polylines.copy()
+        cluster.bundles = [a, b]
+
+        line = polylines[0].lines[1]
+        new_cluster = cluster.split_cluster(line)
+        # check split
+        assert cluster.polylines == polylines[:3]
+        assert len(cluster.polylines[0].lines) == 1
+        assert cluster.bundles == [a]
+        assert len(new_cluster.polylines) == 3
+        assert len(new_cluster.polylines[0].lines) == 1
+        assert new_cluster.polylines[1:] == polylines[-2:]
+        assert new_cluster.bundles == [b]
+
+    def test_try_split_by_bundle(self):
+        p = [Point(0, 0), Point(0, 0), Point(0, 0)]
+        l = [Line(p[0], p[1]), Line(p[1], p[2])]
+
+        a = Polyline()
+        a.lines = l.copy()
+        a.points = p.copy()
+
+        c = PolylineCluster()
+        c.polylines = [a]
+
+        l2 = Line(Point(0, 0), Point(0, 0))
+
+        assert c.try_split_by_bundle(p[1], l2)
+        # check splitted polyline
+        assert c.polylines[0].lines == l[:1]
+        assert c.polylines[0].points == p[:2]
+        assert c.polylines[1].lines == l[1:]
+        assert c.polylines[1].points == p[1:]
+        assert c.polylines[2].lines == [l2]
+        assert c.polylines[2].points == [l2.p1, l2.p2]
+        assert c.bundles == [p[1]]
