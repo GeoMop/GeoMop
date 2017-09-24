@@ -66,13 +66,22 @@ class GeometryFactory:
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
         
-    def add_plane_surface(self, depth, file=None):
+    def add_plane_surface(self, surface):
         """Add new main layer"""        
-        surface = Surface.make_surface(depth)
-        if len(self.geometry.surfaces)==0 or \
-            surface!=self.geometry.surfaces[-1]:
+        surface = Surface({
+            "depth":surface.depth, 
+            "transform_xy":surface.transform_xy, 
+            "grid_file":surface.grid_file, 
+            "transform_z":surface.transform_z})
+        ret = None
+        for old_surface in self.geometry.surfaces:
+            if surface==old_surface:
+                ret = self.geometry.surfaces.index(old_surface)
+                break
+        if ret is None:        
             self.geometry.surfaces.append(surface)
-        return len(self.geometry.surfaces)-1        
+            ret = len(self.geometry.surfaces)-1
+        return ret        
     
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""

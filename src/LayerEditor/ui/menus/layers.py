@@ -148,10 +148,10 @@ class LayersInterfaceMenu(QMenu):
             self._change_type_action7.triggered.connect(self._set_split)
             self.addAction(self._change_type_action7)        
 
-        self._set_depth_action = QAction('Set Depth ...', self)
-        self._set_depth_action.setStatusTip('Set interface depth')
-        self._set_depth_action.triggered.connect(self._set_depth)
-        self.addAction(self._set_depth_action)
+        self._set_surface_action = QAction('Set Surface ...', self)
+        self._set_surface_action.setStatusTip('Set interface surface')
+        self._set_surface_action.triggered.connect(self._set_surface)
+        self.addAction(self._set_surface_action)
         
         if interface_idx==len(d.interfaces)-1:
             self._append_layer_action = QAction('Append Layer ...', self)
@@ -212,9 +212,9 @@ class LayersInterfaceMenu(QMenu):
         """Set interface type to split"""
         self.layers_panel.change_interface_type(self.interface_idx, ChangeInterfaceActions.split)
         
-    def _set_depth(self):
+    def _set_surface(self):
         """Change interface type"""
-        self.layers_panel.set_interface_depth(self.interface_idx)
+        self.layers_panel.set_interface_surface(self.interface_idx)
         
     def _append_layer(self):
         """Append layer to the end"""

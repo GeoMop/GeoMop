@@ -508,24 +508,24 @@ class LayersHistory(History):
         self._refresh_panel = True
         return revert
 
-    def change_interface_depth(self, depth, id, label=None):
+    def change_interface_surface(self, surface, id, label=None):
         """
-        Add change interface depth to history operation. 
+        Add change interface surface to history operation. 
  
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_interface_depth, [depth, id],label))
+        self.steps.append(HistoryStep(self._change_interface_surface, [surface, id],label))
         
-    def _change_interface_depth(self, depth, id):
+    def _change_interface_surface(self, surface, id):
         """
         Switch fracture name
         
         Return invert operation
         """
-        old_depth = self.global_history.cfg.interfaces[id].depth
-        self.global_history.cfg.layers.interfaces[id].depth = depth
+        old_surface = self.global_history.cfg.interfaces[id].surface
+        self.global_history.cfg.layers.interfaces[id].surface = surface
         
-        revert =  HistoryStep(self._change_interface_depth, [old_depth, id])
+        revert =  HistoryStep(self._change_interface_surface, [old_surface, id])
         self._refresh_panel = True
         return revert
         

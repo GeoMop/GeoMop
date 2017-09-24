@@ -3,11 +3,12 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
-from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations
+from copy import deepcopy
+from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations, Surface
 from ui.data import LayersHistory
 from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
 from ui.menus.layers import __COPY_BLOCK__
-from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetDepthDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
+from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetSurfaceDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
 class Layers(QtWidgets.QWidget):
     """
@@ -210,12 +211,12 @@ class Layers(QtWidgets.QWidget):
 
     def append_layer(self):
         """Append layer to the end"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].depth)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].surface.depth)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
-            depth = dlg.depth.text()
-            cfg.layers.append_layer(name, depth)            
+            surface = dlg.fill_surface(Surface(0.0))
+            cfg.layers.append_layer(name, surface)            
             self._history.delete_layer(len(cfg.layers.layers)-1,"Append layer")
             self._history.delete_interface(len(cfg.layers.interfaces)-1)
             cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
@@ -224,12 +225,12 @@ class Layers(QtWidgets.QWidget):
 
     def prepend_layer(self):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].depth, True)
+        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].surface.depth, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
-            depth = dlg.depth.text()
-            cfg.layers.prepend_layer(name, depth)            
+            surface = dlg.fill_surface(Surface(0.0))
+            cfg.layers.prepend_layer(name, surface)            
             self._history.delete_layer(0,"Prepend layer")
             self._history.delete_interface(0)
             cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
@@ -238,16 +239,16 @@ class Layers(QtWidgets.QWidget):
             
     def add_layer_to_shadow(self, idx):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].depth,cfg.layers.interfaces[idx+1].depth, False, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].surface.depth,cfg.layers.interfaces[idx+1].surface.depth, False, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
-            depth = dlg.depth.text()
+            surface = dlg.fill_surface(Surface(0.0))
             dup = cfg.layers.get_diagram_dup_before(idx)            
             cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, "Add layer to shadow")
             layers, interfaces = cfg.layers.get_group_copy(idx, 1)
-            if cfg.layers.add_layer_to_shadow(idx, name, depth, dup):                
+            if cfg.layers.add_layer_to_shadow(idx, name, surface, dup):                
                 self._history.change_group(layers, interfaces, idx, 1, TopologyOperations.insert)
                 cfg.diagram.regions.add_layer(idx, name)
             else:                
@@ -296,16 +297,16 @@ class Layers(QtWidgets.QWidget):
     
     def add_interface(self, i):
         """Split layer by new interface"""
-        min = cfg.layers.interfaces[i].depth
+        min = cfg.layers.interfaces[i].surface.depth
         max = None
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].depth
+            max = cfg.layers.interfaces[i+1].surface.depth
             
         dlg = SplitLayerDlg(min, max, __COPY_BLOCK__, cfg.main_window)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
-            depth = dlg.depth.text()
+            surface = dlg.fill_surface(Surface(0.0))
             split_type = dlg.split_type.currentData()
             dup = None
             label = "Add interface"
@@ -321,7 +322,7 @@ class Layers(QtWidgets.QWidget):
                 self._history.delete_diagrams(dup.insert_id, dup.count, oper, label)
                 label = None
             layers, interfaces = cfg.layers.get_group_copy(i, 1)    
-            cfg.layers.split_layer(i, name, depth, split_type, dup)            
+            cfg.layers.split_layer(i, name, surface, split_type, dup)            
             self._history.change_group(layers, interfaces, i, 2, label)
             cfg.diagram.regions.add_layer(i, name, oper)
             
@@ -497,22 +498,21 @@ class Layers(QtWidgets.QWidget):
         self.topologyChanged.emit()
         self.change_size()
         
-    def set_interface_depth(self, i):
+    def set_interface_surface(self, i):
         """Set interface depth"""
         min = None
         max = None
         if i>0:
-            min = cfg.layers.interfaces[i-1].depth
+            min = cfg.layers.interfaces[i-1].surface.depth
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].depth
-        old_depth = cfg.layers.interfaces[i].depth
+            max = cfg.layers.interfaces[i+1].surface.depth
+        old_surface = deepcopy(cfg.layers.interfaces[i].surface)
 
-        dlg = SetDepthDlg(cfg.layers.interfaces[i].depth,  cfg.main_window, min, max)
+        dlg = SetSurfaceDlg(cfg.layers.interfaces[i].surface,  cfg.main_window, min, max)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
-            depth = dlg.depth.text()
-            cfg.layers.interfaces[i].set_depth(depth)
-            self._history.change_interface_depth(old_depth, i, "Set interface depth")
+            dlg.fill_surface(cfg.layers.interfaces[i].surface)
+            self._history.change_interface_surface(old_surface, i, "Set interface surface")
             self.change_size()
         
     def remove_interface(self, i):
