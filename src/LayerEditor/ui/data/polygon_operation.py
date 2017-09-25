@@ -196,7 +196,7 @@ class PolygonGroups():
         self.boundaries_points.extend(polygon.inner.boundaries_points)        
         
     def move(self, polygon):        
-        """Move to this group not neighborgs droups that is inside parent polygon
+        """Move to this group not neighborgs group that is inside parent polygon.
         This group is inside parent polygon"""
         remove = []
         for i in range(len(polygon.inner.groups)-1, -1, -1):            
@@ -510,7 +510,10 @@ class PolylineCluster():
         for poly in self.polylines:
             for point in poly.points:
                 if point not in self.joins and point not in self.inner_joins:
-                    return point
+                    return point.qpointf()
+        for poly in self.polylines:
+            for line in poly.lines:
+                return QtCore.QPointF((line.p1.x+line.p2.x)/2,(line.p1.y+line.p2.y)/2)  
         return None
         
     def set_possition(self, polygon, bundled):
@@ -525,6 +528,13 @@ class PolylineCluster():
         for poly in self.polylines:
             for line in poly.lines:
                 line.bundled = bundled
+                
+    def copy_joins(self, new_cluster, p):
+        """If some join in point p, copy it"""
+        if p in self.joins:
+            new_cluster.joins.append(p)
+        if p in self.inner_joins:
+            new_cluster.inner_joins.append(p)
         
     def reduce_polylines(self):
         """Return only polylines, that both end points continue"""
@@ -745,6 +755,16 @@ class Shape(metaclass=abc.ABCMeta):
             if polygon.spolygon == ipolygon:
                 return self
             inner = ipolygon.get_container(polygon)
+            if inner is not None:
+                return inner
+        return None
+        
+    def get_deep(self, polygon, deep):
+        """Get shape that contains polygon"""
+        for ipolygon in self.inner.polygons:
+            if polygon.spolygon == ipolygon:
+                return deep+1
+            inner = ipolygon.get_deep(polygon+1)
             if inner is not None:
                 return inner
         return None
@@ -1140,7 +1160,7 @@ class Shape(metaclass=abc.ABCMeta):
                 res = Polyline(self.boundary_lines[-1])
                 len(self.boundary_lines)-2
             else:
-                if self._test_end(self.boundary_lines[index+1], diagrams):
+                if self._test_end(self.boundary_lines[index-1], diagrams):
                     return None
                 res = Polyline(self.boundary_lines[index-1])
                 for i in range(index-2, 0, -1): 
@@ -1276,20 +1296,21 @@ class Shape(metaclass=abc.ABCMeta):
                 if started:
                     start = i
                     started=False
-                    point = self.points[i]
+                    point = self.boundary_points[i]
                 del self.boundary_points[i]
             else:
                 if not started:
                     started = True
                 i += 1
-            if point==border.point[0]:
-                for j in range(len(border.lines)-1, -1, -1):
-                    self.boundary_points.insert(start, border.points[j])
-                    self.boundary_lines.insert(start, border.lines[j])
-            else:
-                for j in range(0, len(border.lines)):
-                    self.boundary_points.insert(start, border.points[j+1])
-                    self.boundary_lines.insert(start, border.lines[j])
+        # TODO FIX no bordel but complemet !!!!!
+        if point==border.points[0]:
+            for j in range(len(border.lines)-1, -1, -1):
+                self.boundary_points.insert(start, border.points[j])
+                self.boundary_lines.insert(start, border.lines[j])
+        else:
+            for j in range(0, len(border.lines)):
+                self.boundary_points.insert(start, border.points[j+1])
+                self.boundary_lines.insert(start, border.lines[j])
         self.reload_shape_boundary(polygon, True)
         
     def delete_polygon(self, diagram, del_polygon, move_polygon):
@@ -1395,9 +1416,8 @@ class Shape(metaclass=abc.ABCMeta):
     def add_bundled_to_polygon(self, polygon):
         """Move bundled clusters to set polyline from this
         to set polygon"""
-        #TODO process inner objects
         for cluster in self.bundled_clusters:
-            if polygon.spolygon.gtpolygon.containsPoint(cluster.get_point().qpointf(), QtCore.Qt.OddEvenFill):                
+            if polygon.spolygon.gtpolygon.containsPoint(cluster.get_point(), QtCore.Qt.OddEvenFill):                
                 self.bundled_clusters.remove(cluster)
                 polygon.spolygon.bundled_clusters.append(cluster)
                 cluster.set_possition(polygon, True)        
@@ -1417,6 +1437,7 @@ class Shape(metaclass=abc.ABCMeta):
         moved = {}
         for poly in cluster.polylines:
             if poly.lines[0] in polygon.spolygon.boundary_lines:
+                # remove new boundary polyline 
                 remove.append(poly)
                 continue
             index = None            
@@ -1426,21 +1447,26 @@ class Shape(metaclass=abc.ABCMeta):
             if poly.points[-1] in joins:
                index = joins.index(poly.points[-1])
                second = poly.points[0]
+            # copy all points that is in bundles
             if index is not None:
                 if polygon.spolygon.gtpolygon.containsPoint(second.qpointf(), QtCore.Qt.OddEvenFill):
+                    # polyline to cluster in new polygon
                     polygon.spolygon.bundled_clusters.append(PolylineCluster(None, joins[index]))
                     polygon.spolygon.bundled_clusters[-1].polylines.append(poly)
+                    cluster.copy_joins(self.bundled_clusters[-1], second)
                     if second in cluster.bundles:
                         moved[second] = polygon.spolygon.bundled_clusters[-1]
                         cluster.bundles.remove(second)
                         polygon.spolygon.bundled_clusters[-1].bundles.append(second)
                 else:
+                    # new polyline to parent cluster(self)
                     self.bundled_clusters.append(PolylineCluster(None, None, joins[index]))
                     self.bundled_clusters[-1].polylines.append(poly)
+                    cluster.copy_joins(self.bundled_clusters[-1], second)
                     if second in cluster.bundles:
                         moved[second] = self.bundled_clusters[-1]
                         cluster.bundles.remove(second)
-                        self.bundled_clusters[-1].bundles.append(second)
+                        self.bundled_clusters[-1].bundles.append(second)                    
                     if not is_bundled:
                         self.bundled_clusters[-1].set_bundled(True)
                 del joins[index]            
@@ -1454,6 +1480,7 @@ class Shape(metaclass=abc.ABCMeta):
                     remove.append(poly)                        
                     moved[poly.lines[0]].polylines.append(poly)
                     second = poly.points[-1]
+                    cluster.copy_joins(moved[poly.lines[0]], second)
                     if second in cluster.bundles:
                         moved[second] = moved[poly.lines[0]]
                         cluster.bundles.remove(second)
@@ -1462,6 +1489,7 @@ class Shape(metaclass=abc.ABCMeta):
                     remove.append(poly)                        
                     moved[poly.lines[-1]].polylines.append(poly)
                     second = poly.points[-1]
+                    cluster.copy_joins(moved[poly.lines[-1]], second)
                     if second in cluster.bundles:
                         moved[second] = moved[poly.lines[-1]]
                         cluster.bundles.remove(second)
@@ -1478,7 +1506,7 @@ class Shape(metaclass=abc.ABCMeta):
     def add_cluster_to_polygon(self, polygon):
         """Split free clusters to set polygon and this"""
         for cluster in self.clusters:
-            if polygon.spolygon.gtpolygon.containsPoint(cluster.get_point().qpointf(), QtCore.Qt.OddEvenFill):
+            if polygon.spolygon.gtpolygon.containsPoint(cluster.get_point(), QtCore.Qt.OddEvenFill):
                 self.clusters.remove(cluster)
                 polygon.spolygon.clusters.append(cluster)
                 cluster.set_possition(polygon)
@@ -1688,6 +1716,14 @@ class PolygonOperation():
     def get_container(diagram, polygon):
         """Get shape that contains polygon"""
         return diagram.outside.get_container(polygon) 
+        
+    @staticmethod
+    def get_deep(diagram, polygon):
+        """Get shape that contains polygon"""
+        deep = diagram.outside.get_deep(polygon, 0) 
+        if deep is None:
+            return 0
+        return deep
     
     @staticmethod
     def find_polygon(diagram, point):

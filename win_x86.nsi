@@ -137,6 +137,11 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
 
+  # Install pyshp.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
+
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
   CreateDirectory "$INSTDIR\sample\ModelEditor"
@@ -191,13 +196,16 @@ Section "JobPanel" SecJobPanel
 SectionEnd
 
 
-# Section /o "LayerEditor" SecLayerEditor
+Section "LayerEditor" SecLayerEditor
 
-#   RMDir /r "$INSTDIR\LayerEditor"
-#   SetOutPath $INSTDIR
-#   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
+  # Section is mandatory.
+  SectionIn RO
 
-# SectionEnd
+  RMDir /r "$INSTDIR\LayerEditor"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\LayerEditor"
+
+SectionEnd
 
 
 Section "ModelEditor" SecModelEditor
