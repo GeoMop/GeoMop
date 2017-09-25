@@ -6,3 +6,6 @@ scipy==0.18.1
 pyshp==1.2.10
 paramiko
 psutil
+
+pip3
+setuptools
