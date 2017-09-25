@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=GeoMop - Layer Editor
+Comment=Editor for layer geometry
+Exec=geomop-le %U
+Terminal=false
+Type=Application
+MimeType=text/plain;
+Icon=/usr/share/geomop/src/common/icon/128x128/geomap.png
+Categories=TextEditor;Development;
+StartupNotify=true

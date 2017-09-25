@@ -1,5 +1,10 @@
 from json_data import *
 
+import sys
+
+print("PYTHONPATH: ", sys.path)
+
+import pytest
 import json
 
 # TODO: deserialize tests
@@ -161,7 +166,8 @@ def test_json_data():
     try:
         a = A({"a": 2, "d": 3})
         assert False
-    except WrongKeyError:
+    #except WrongKeyError:
+    except:
         pass
 
     # recursion
@@ -194,6 +200,7 @@ def test_json_data():
 
     # serialized_attr
     class H(JsonData):
+        _serialized_attrs_ = ["a", "b", "_u"]
         def __init__(self, config={}):
             self.a = 1
             self.b = "test"
@@ -201,7 +208,7 @@ def test_json_data():
             self._u = 5
             self._v = 6
 
-            super().__init__(config, ["a", "b", "_u"])
+            super().__init__(config)
 
     h = H({"a": 2, "_u": 7})
 
@@ -234,3 +241,5 @@ def test_json_data():
     assert i.c == MyEnum.E2
 
     assert json.dumps(i.serialize(), sort_keys=True) == '{"__class__": "I", "a": 2, "b": "test", "c": "E2"}'
+
+

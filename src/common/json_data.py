@@ -62,7 +62,7 @@ class Animal(jd.JsonData):
 
 class Chicken(Animal):
     # explicit specification of attributes to serialize/deserialize.
-    __serialized_attrs__ = [ color, tail ]
+    _serialized_attrs_ = [ 'color', 'tail' ]
 
     def __init__():
         def.color = 0
@@ -144,7 +144,7 @@ class ClassFactory:
 
         self.class_list = class_list
 
-    def make_instance(self, config):
+    def make_instance(self, config, path):
         """
         Make instance from config dict.
         Dict must contain item "__class__" with name of desired class.
@@ -160,39 +160,42 @@ class ClassFactory:
             elif type(config) in self.class_list:
                 return config
             else:
-                raise Exception("Expecting dict instead of: \n{}".format(config))
+                raise Exception("Expecting dict instead of: \n{}\npath: {}".format(config, path))
 
         # __class__ specification not necessary for single valued 'class_list'
         if len(self.class_list) == 1 and  not "__class__" in config:
             config["__class__"] = self.class_list[0].__name__
 
-        assert "__class__" in config, "Missing '__class__' key to construct one of: {}".format(self.config_list)
+        assert "__class__" in config, "Missing '__class__' key to construct one of: {}\npath: {}".format(self.config_list, path)
+        class_name = config["__class__"]
 
         for c in self.class_list:
-            if c.__name__ == config["__class__"]:
+            if c.__name__ == class_name:
                 config = config.copy()
                 del config["__class__"]
                 try:
                     return c(config)
                 except TypeError:
-                    raise TypeError("Non-standard JsonData constructor for class: {}".format(c))
-        assert False, "Input class: {} not in the factory list: {} ".format(config["__class__"], self.class_list)
+                    raise TypeError("Non-standard JsonData constructor for class: {}\npath: {}".format(c, path))
+                except:
+                    raise Exception("Failed initizlization of type: {}\npath: {}".format(c, path))
+        assert False, "Input class: {} not in the factory list: {}\npath: {} ".format(class_name, self.class_list, path)
 
-class ClassFromList(ClassFactory):
-    def __init__(self, class_name):
-        assert issubclass(class_name, JsonData)
-        self.class_name = clase_name
-
-    def make_instance(self, config):
-        """
-        Make instance from config dict.
-        Dict must contain item "__class__" with name of desired class.
-        Desired class must be in class_list.
-        :param config:
-        :return:
-        """
-        assert config.__class__ is list
-        return class_name(config)
+# class ClassFromList(ClassFactory):
+#     def __init__(self, class_name):
+#         assert issubclass(class_name, JsonData)
+#         self.class_name = clase_name
+#
+#     def make_instance(self, config):
+#         """
+#         Make instance from config dict.
+#         Dict must contain item "__class__" with name of desired class.
+#         Desired class must be in class_list.
+#         :param config:
+#         :return:
+#         """
+#         assert config.__class__ is list
+#         return class_name(config)
 
 
 class JsonData:
@@ -219,8 +222,13 @@ class JsonData:
     ?? Anything similar in current JobPanel?
     """
 
-    __serialized__attrs___ = []
-    """ List of attributes to serilaize. Leave empty to use public attributes."""
+    _serialized_attrs_ = []
+    """ List of attributes to serialize. Leave empty to use public attributes."""
+
+    _not_serialized_attrs_=[]
+    """
+    List of attributes to not serialize. Lower priarity then _serialized_attrs_. Leave empty to use non-public attributes.
+    """
 
     def __init__(self, config):
         """
@@ -228,38 +236,43 @@ class JsonData:
         :param config: config dict
         :param serialized_attr: list of serialized attributes
         """
-        self._filter_attrs = None
 
-        if not hasattr(self, '__serialized_attrs__'):
-            self._filter_attrs = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
+        if self._serialized_attrs_:
+            self.__class__._not_serialized_attrs_ = [key for key in self.__dict__.keys() if key not in self._serialized_attrs_]
+        elif self._not_serialized_attrs_:
+            pass
         else:
-            self._filter_attrs = [ key for key in self.__dict__.keys() if key not in self.__serialized__attrs__ ]
+            self.__class__._not_serialized_attrs_ = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
+        self.__class__._not_serialized_attrs_.extend( ['__class__', '_not_serialized_attrs_'] )
 
-        try:
-            self._deserialize_dict(self.__dict__, config, self._filter_attrs)
-        except:
-            raise Exception("Failed deserialization of class {}".format(self.__class__))
-
+        path = []
+        result_dict = self._deserialize_dict(self.__dict__, config, self._not_serialized_attrs_, path)
+        for key, val in result_dict.items():
+            self.__dict__[key] = val
 
     @staticmethod
-    def _deserialize_dict(template_dict, config_dict, filter_attrs):
+    def _deserialize_dict(template_dict, config_dict, filter_attrs, path):
+        result_dict = {}
         for key, temp in template_dict.items():
             if key in filter_attrs:
                 continue
             value = config_dict.get(key, temp)
-            config_dict.pop(key, None)
+            config_dict.pop(key, 0)
 
             assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
-            filled_template = JsonData._deserialize_item(temp, value)
-            template_dict[key] = filled_template
+            filled_template = JsonData._deserialize_item(temp, value, path + [key])
+            result_dict[key] = filled_template
+
+        for key in ['__class__']:
+            config_dict.pop(key, 0)
 
         if config_dict.keys():
-            raise WrongKeyError("Keys {} not serializable attrs of dict:\n{}"
-                                .format(config_dict.keys(), template_dict))
-
+            raise WrongKeyError("Keys {} not serializable attrs of dict:\n{}\n{}"
+                                .format(list(config_dict.keys()), template_dict, path))
+        return result_dict
 
     @staticmethod
-    def _deserialize_item(temp, value):
+    def _deserialize_item(temp, value, path):
         """
         Deserialize value.
 
@@ -270,17 +283,22 @@ class JsonData:
         """
         if isinstance(temp, Obligatory):
             if value  is None:
-                raise Exception("Missing obligatory key.")
+                raise Exception("Missing obligatory key, path: {}".format(path))
             else:
                 temp = temp.type
 
+
         # No check.
         if temp is None:
-            return temp
+            return value
+
+        # Explicitely no value for a optional key.
+        if value is None:
+            return None
 
         elif isinstance(temp, dict):
-            JsonData._deserialize_dict(temp, value, [])
-            return temp
+            result = JsonData._deserialize_dict(temp, value, [], path)
+            return result
 
         # list,
         elif isinstance(temp, list):
@@ -289,31 +307,31 @@ class JsonData:
             if len(temp) == 0:
                 l=value
             elif len(temp) == 1:
-                for v in value:
-                    value = JsonData._deserialize_item(temp[0], v)
+                for ival, v in enumerate(value):
+                    value = JsonData._deserialize_item(temp[0], v, path + [str(ival)])
                     if value is not None:
                         l.append(value)
             else:
-                print("Warning: Overwriting default list content:\n {}\n by:\n {}.".format(temp, value))
+                print("Warning: Overwriting default list content:\n {}\n path:\n {}.".format(temp, path))
                 l=value
             return l
 
         # tuple,
         elif isinstance(temp, tuple):
-            assert isinstance(value, (list, tuple)), "Expecting list, get class: {}".format(value.__class__)
+            assert isinstance(value, (list, tuple)), "Expecting list, get class: {}\,path: {}".format(value.__class__, path)
             assert len(temp) == len(value)
             l = []
-            for i_temp, i_val in zip(temp, value):
-                l.append(JsonData._deserialize_item(i_temp, i_val))
+            for i, tmp, val in zip(range(len(value)), temp, value):
+                l.append(JsonData._deserialize_item(tmp, val, path + [str(i)]))
             return tuple(l)
 
         # ClassFactory - class given by '__class__' key.
         elif isinstance(temp, ClassFactory):
-            return temp.make_instance(value)
+            return temp.make_instance(value, path)
 
         # JsonData default value, keep the type.
         elif isinstance(temp, JsonData):
-            return ClassFactory( [temp.__class__] ).make_instance(value)
+            return ClassFactory( [temp.__class__] ).make_instance(value, path)
 
         # other scalar types
         else:
@@ -331,13 +349,13 @@ class JsonData:
                 elif isinstance(value, temp):
                     return value
                 else:
-                    assert False, "{} is not value of IntEnum: {}".format(value, temp)
+                    assert False, "{} is not value of IntEnum: {}\npath: {}".format(value, temp, path)
 
             else:
                 try:
                     filled_template = temp(value)
                 except:
-                    raise Exception("Can not convert value {} to type {}.".format(value, temp))
+                    raise Exception("Can not convert value {} to type {}.\npath: {}".format(value, temp, path))
                 return filled_template
 
 
@@ -368,7 +386,7 @@ class JsonData:
         """Return dict for serialization."""
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
-            if k not in self._filter_attrs and not isinstance(v, ClassFactory):
+            if k not in self._not_serialized_attrs_ and not isinstance(v, ClassFactory):
                 d[k] = JsonData._serialize_object(v)
         return d
 
