@@ -151,7 +151,7 @@ class NodeSet(JsonData):
 class SurfaceNodeSet(JsonData):
     """Node set in space for transformation(x,y) ->(u,v). 
     Only for GL"""
-
+    _not_serialized_attrs_ = ['interface_type']
     def __init__(self, config={}):
         self.nodeset_id = int
         """Node set index"""
@@ -165,9 +165,9 @@ class InterpolatedNodeSet(JsonData):
     """Two node set with same Topology in space for transformation(x,y) ->(u,v).
     If both node sets is same, topology is vertical    
     Only for GL"""
-
+    _not_serialized_attrs_ = ['interface_type']
     def __init__(self, config={}):
-        self.surf_nodesets = ( SurfaceNodeSet, SurfaceNodeSet )
+        self.surf_nodesets = ( ClassFactory([SurfaceNodeSet]), ClassFactory([SurfaceNodeSet]) )
         """Top and bottom node set index"""
         self.surface_id = int
         """Surface index"""
@@ -198,7 +198,7 @@ class Region(JsonData):
 
 class GeoLayer(JsonData):
     """Geological layers"""
-    
+    _not_serialized_attrs_ = ['layer_type']
     def __init__(self, config={}):
         self.name =  ""
         """Layer Name"""
@@ -218,13 +218,14 @@ class GeoLayer(JsonData):
 
 
 class FractureLayer(GeoLayer):
+    _not_serialized_attrs_ = ['layer_type', 'top_type']
     def __init__(self, config={}):
-
         super().__init__(config)
         self.layer_type = LayerType.fracture
         self.top_type = self.top.interface_type
 
 class StratumLayer(GeoLayer):
+    _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
     def __init__(self, config={}):
 
         self.bottom = ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
