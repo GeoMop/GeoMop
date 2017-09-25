@@ -221,9 +221,6 @@ class TestPolyline:
 
 
 class TestPolygonGroups:
-    def test_extend(self):
-        pass
-
     def test_move(self):
         pass
 
