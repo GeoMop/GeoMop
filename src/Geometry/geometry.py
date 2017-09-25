@@ -32,12 +32,12 @@ import brep_writer as bw
 import matplotlib.pyplot as plt
 
 ###
-netgen_install_prefix="/home/jb/local/"
-netgen_path = "opt/netgen/lib/python3/dist-packages"
-sys.path.append( netgen_install_prefix + netgen_path )
+#netgen_install_prefix="/home/jb/local/"
+#netgen_path = "opt/netgen/lib/python3/dist-packages"
+#sys.path.append( netgen_install_prefix + netgen_path )
 
-import netgen.csg as ngcsg
-import netgen.meshing as ngmesh
+#import netgen.csg as ngcsg
+#import netgen.meshing as ngmesh
 
 
 
@@ -838,48 +838,48 @@ class LayerGeometry(gs.LayerGeometry):
 
 
 
-    def mesh_export(self, mesh, filename):
-        """ export Netgen mesh to neutral format """
+    # def mesh_export(self, mesh, filename):
+    #     """ export Netgen mesh to neutral format """
+    #
+    #     print("export mesh in neutral format to file = ", filename)
+    #
+    #     f = open(filename, 'w')
+    #
+    #     points = mesh.Points()
+    #     print(len(points), file=f)
+    #     for p in points:
+    #         print(p.p[0], p.p[1], p.p[2], file=f)
+    #
+    #     volels = mesh.Elements3D();
+    #     print(len(volels), file=f)
+    #     for el in volels:
+    #         print(el.index, end="   ", file=f)
+    #         for p in el.points:
+    #             print(p.nr, end=" ", file=f)
+    #         print(file=f)
 
-        print("export mesh in neutral format to file = ", filename)
-
-        f = open(filename, 'w')
-
-        points = mesh.Points()
-        print(len(points), file=f)
-        for p in points:
-            print(p.p[0], p.p[1], p.p[2], file=f)
-
-        volels = mesh.Elements3D();
-        print(len(volels), file=f)
-        for el in volels:
-            print(el.index, end="   ", file=f)
-            for p in el.points:
-                print(p.nr, end=" ", file=f)
-            print(file=f)
-
-    def mesh_netgen(self):
-        """
-        Use Netgen python interface to make a mesh.
-        :return:
-        """
-
-        geo = ngcsg.CSGeometry("shaft.geo")
-
-        param = ngmesh.MeshingParameters()
-        param.maxh = 10
-        print(param)
-
-        m1 = ngcsg.GenerateMesh(geo, param)
-        m1.SecondOrder()
-
-        self.mesh_export(m1, "shaft.mesh")
-
-        ngcsg.Save(m1, "mesh.vol", geo)
-        print("Finished")
-
-    def netgen_to_gmsh(self):
-        pass
+    # def mesh_netgen(self):
+    #     """
+    #     Use Netgen python interface to make a mesh.
+    #     :return:
+    #     """
+    #
+    #     geo = ngcsg.CSGeometry("shaft.geo")
+    #
+    #     param = ngmesh.MeshingParameters()
+    #     param.maxh = 10
+    #     print(param)
+    #
+    #     m1 = ngcsg.GenerateMesh(geo, param)
+    #     m1.SecondOrder()
+    #
+    #     self.mesh_export(m1, "shaft.mesh")
+    #
+    #     ngcsg.Save(m1, "mesh.vol", geo)
+    #     print("Finished")
+    #
+    # def netgen_to_gmsh(self):
+    #     pass
 
 
 
