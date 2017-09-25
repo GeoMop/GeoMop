@@ -188,7 +188,7 @@ class Polygon():
     def get_polygon_regions(self):
         """Return polygon regions"""
         return Diagram.regions. get_regions(2, self.id)
-
+ 
 class Diagram():
     """
     Layer diagram
