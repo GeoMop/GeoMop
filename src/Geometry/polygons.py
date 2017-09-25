@@ -1,5 +1,20 @@
 import numpy as np
 import bisect
+import numpy.linalg as la
+import enum
+
+
+left_side = 0
+right_side = 1
+
+
+class IdMap(dict):
+    id = 0
+
+    def append(self, obj):
+        obj.id = self.id
+        self[id] = obj
+        self.id += 1
 
 
 class PolygonDecomposition:
@@ -11,13 +26,15 @@ class PolygonDecomposition:
         """
         Constructor.
         """
-        self.points = {}
+        self.points = IdMap()
         # Points dictionary ID -> Point
-        self.segments = {}
+        self.segments = IdMap()
         # Segmants dictionary ID - > Segmant
-        self.polygons = {}
+        self.pt_to_seg = {}
+        # dict (a.id, b.id) -> segment
+        self.polygons = IdMap()
         # Polygon dictionary ID -> Polygon
-        self.polygons.append(Polygon(0, None, None))
+        self.polygons.append(Polygon(0, None))
 
         #
         self.tolerance = 0.01
@@ -27,6 +44,7 @@ class PolygonDecomposition:
         i_active_event = 0
         # Position to write to next new event.
 
+
     def set_tolerance(self, tolerance):
         """
         Set tolerance for snapping to existing points and lines.
@@ -34,6 +52,8 @@ class PolygonDecomposition:
         :param tolerance: float, a distance used to snap points to existing objects.
         :return: None
         """
+        self.tolerance = tolerance
+
     # History operations
     #
     # def undo(self, n_steps):
@@ -79,7 +99,7 @@ class PolygonDecomposition:
         #pt = np.array(point, dtype=float)
         x_pt, y_pt = point
         edges_on_y_axes = []
-        for e in self.edges:
+        for e in self.segments:
             vtxs = np.array([ e.vtxs[0].xy, e.vtxs[1].xy])
             Dy = vtxs[1, 1] - vtxs[0, 1]
             magnitude = np.max(vtxs[:, 1])
@@ -105,6 +125,10 @@ class PolygonDecomposition:
         px, seg0 = edges_on_y_axes[i]
         is_snapped, t0 =  self._snap_to_segment(seg0, point, up_is_cc=False)
         if is_snapped:
+            if t0 <= 0 + self.tolerance:
+                return (0, seg0.vtxs[0], seg0)
+            if t0 >= 1 - self.tolerance:
+                return (0, seg0.vtxs[1], seg0)
             return (1, seg0, t0)
         else:
             poly0 = t0
@@ -135,36 +159,47 @@ class PolygonDecomposition:
             # nothing to add
             return obj
         elif dim == 1:
-            self._split_segment(obj, t)
+            return self._split_segment(obj, t)
         else:
             poly = t
-            self._add_free_point(obj, point, poly)
+            return self._add_free_point(obj, point, poly)
 
 
-    def add_line(self, a_vtx, b_vtx):
+    def add_line(self, a, b):
         """
         Try to add new line from point A to point B. Check intersection with any other line and
         call add_point for endpoints and intersections, then call operation connect_points for individual
         segments.
-        :param a_vtx: numpy array X, Y
-        :param b_vtx: numpy array X, Y
+        :param a: numpy array X, Y
+        :param b: numpy array X, Y
         :return:
         """
-        a = np.array(a_vtx)
-        b = np.array(b_vtx)
+        a_point = self.add_point(a)
+        b_point = self.add_point(b)
+
         t_list = []
         for e in self.edges:
             (t0, t1) = e.line_line(a, b)
             if t1 is not None:
-                t_list.append( (t1, e) )
+                mid_pt = self._split_segment(e, t0)
+                t_list.append( (t1, e, mid_pt) )
         t_list.sort()
-        start_p = a
-        dab = b - a
-        for t, e in t_list:
-            end_p = dab * t + a
-            self._add_segment(start_p, end_p)
-            start_p = end_p
-        self._add_segment(start_p, b)
+        start_pt = a_point
+        for t, e, mid_pt in t_list:
+            self._new_segment(start_pt, mid_pt)
+            start_pt = end_pt
+        self._new_segment(start_pt, b_point)
+
+    def move_points(self):
+        pass
+
+    def _append_segment(self, seg):
+        self.segments.append(seg)
+        self.points_to_segment[ seg.vtxs_ids() ] = seg
+
+    def _remove_segment(self, seg):
+        del self.points_to_segment[ seg.vtxs_ids() ]
+        del self.segments[seg.id]
 
 
     # Reversible operations
@@ -176,8 +211,10 @@ class PolygonDecomposition:
         :param point: XY array
         :return: Point instance
         """
-        id = self.points.size()
-        self.points.append(Point(id, point, poly))
+
+        pt = Point(point, poly)
+        self.points.append(pt)
+        return pt
 
 
     def _remove_free_point(self, point):
@@ -190,24 +227,45 @@ class PolygonDecomposition:
         :param t_point:
         :return:
         """
-        id = self.points.size()
-        mid_pt = Point(id, point, None)
-        #mid_pt.segment =
+        mid_pt = Point(point, None)
         self.points.append(mid_pt)
 
-        new_seg = Segment(id, (mid_pt, seg.points[1]), seg.polygon, seg.ori, (seg, seg), seg.next)
-        seg.points[1] = mid_pt
+        new_seg = Segment((mid_pt, seg.vtxs[1]), seg.polygon, seg.ori, (seg, seg), seg.next)
+        seg.vtxs[1] = mid_pt
         seg.next = (new_seg, new_seg)
+
+        # mid_pt.segments.append(new_seg)
+        # mid_pt.segments.append(seg)
+        #
+        # del new_seg.vtx[1].segments[seg.id]
+        # new_seg.vtx[1].segments[new_seg.id] = new_seg
+
+        self._append_segment(new_seg)
+        return mid_pt
 
 
     def _join_lines(self, point, lines):
         pass
 
-    def _add_segment(self, a, b):
+    def _new_segment(self, a_pt, b_pt):
+        """
+        Add segment between given existing points. Assumes that there is no intersection with other segment.
+        Just return the segment if it exists.
+        :param a_pt: Start point of the segment.
+        :param b_pt: End point.
+        :return: new segment
+        """
+        segment = self.points_to_segment.get((a_pt.id, b_pt.id), None)
+        if segment is not None:
+            return segment
+
+
+
+
+
+    def _del_segment(self, segment_id):
         pass
 
-    def _remove_segment(self, a, b):
-        pass
 
 # Data classes contins no modification methods, all modifications are through reversible atomic operations.
 class Point:
@@ -215,39 +273,90 @@ class Point:
         self.id = id
         self.pt = point
         self.poly = poly
-        #self.segment = None
+        # self.segments = []
+
 
 class Segment:
-    def __init__(self, id, points, polygon, ori, prev, next):
+    def __init__(self, id, vtxs, polygon, ori, prev, next):
         self.id = id
-        self.points = points
+        self.vtxs = vtxs
         # tuple (start, end) point object
         self.polygon = polygon
         # (left_poly, right_poly) - polygons on left and right side
-        self.ori = ori
+        #self.ori = ori
         # (left_ori, right_ori); indicator if segment orientation match ccwise direction of the polygon
-        self.prev = prev
+        #self.prev = prev
         # (left_prev, right_prev);  previous edge for left and right side;
         self.next = next
         # (left_next, right_next); next edge for left and right side;
 
     def contains_point(self, pt):
-        Dxy = self.points[1] - self.points[0]
+        Dxy = self.vtxs[1].point - self.vtxs[0].point
         axis = np.argmax(Dxy)
         D = Dxy[axis]
-        magnitude = np.max(self.points[:, axis])
+        magnitude = max([self.vtxs[0].point[axis], self.vtxs[1].point[axis] ])
         assert np.abs(D) > 1e-12 * magnitude
-        t = (pt[axis] - self.points[0, axis]) / D
+        t = (pt[axis] - self.vtxs[0].point[axis]) / D
         if 0 <= t <= 1:
             return t
         else:
             return None
 
-class Polygon:
-    def __init__(self, id, segment, ori):
-        self.id = id
-        self.segment = segment
-        # First segment
-        self.seg_ori = ori
-        # Indicate if the oriantation of the first segment math ccwise direction.
+    def line_line(self, a, b):
+        """
+        Find intersection of 'self' and (a,b) edges.
+        :param a: start vtx of edge1
+        :param b: end vtx of edge1
+        :return: (t0, t1) Parameters of the intersection for 'sef' and other edge.
+        """
+        mat = np.array([ self.vtxs[1].point - self.vtxs[0].point, a - b])
+        rhs = a - self.vtxs[0].point
+        try:
+            t0, t1 = la.solve(mat.T, rhs)
+        except la.LinAlgError:
+            return (None, None)
+            # TODO: possibly treat case of overlapping segments
+        if 0 <= t0 <=1 and 0 <= t1 <=1:
+            return (t0, t1)
+        else:
+            return (None, None)
 
+    # def is_vertex(self, point):
+    #     if point == self.points[0]:
+    #          return 0
+    #     if point == self.points[1]:
+    #         return 1
+    #     return None
+
+    def vtxs_ids(self):
+        return (self.points[0].id, self.points[1].id)
+
+
+class Polygon:
+    def __init__(self, id, segment):
+        self.id = id
+        self.segments = [ segment ]
+        # First segments of boundary components. With orientation.
+        # Indicate if the orientation of the first segment math ccwise direction.
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def get_outer_segments(self):
+        """
+        :return: List of boundary componencts without tails. Single component is list of segments (with orientation)
+        that forms outer boundary, i.e. excluding internal tails, i.e. segments appearing just once.
+        """
+        components = []
+        for first in self.segments:
+            component = []
+            segment = first
+            while (1):
+                side = left_side if first.polygon[left_side] == self else right_side
+
+                if not segment.polygon[left_side] == segment.polygon[right_side]:
+                    component.append( (segment, side) )
+                segment = segment.next[side]
+                if segment == first:
+                    break
+            components.append(component)
