@@ -198,6 +198,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
+            self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
             p1 = Point(line.p1)
@@ -224,8 +225,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.removeItem(p2)
             self._last_line.object.release_line()
             self.removeItem(l)                        
-            self._last_line = None
-            self._del_polygons()
+            self._last_line = None            
     
     def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
@@ -581,3 +581,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         cfg.diagram.zoom *= (1.0 + delta)
         # send signal
         self.possChanged.emit()
+        
+    def keyPressEvent(self, event):
+        """Standart key press event"""
+        if event.key() == QtCore.Qt.Key_Escape:
+            self._remove_last()
