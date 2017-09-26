@@ -119,14 +119,14 @@ class ShpFiles(QtWidgets.QTableWidget):
             color_dia.setCustomColor(i,  color)            
             i += 1
         selected_color = color_dia.getColor()        
+        if selected_color.isValid():
+            pixmap = QtGui.QPixmap(16, 16)
+            pixmap.fill(selected_color)
+            icon = QtGui.QIcon(pixmap)
+            color_button.setIcon(icon)
         
-        pixmap = QtGui.QPixmap(16, 16)
-        pixmap.fill(selected_color)
-        icon = QtGui.QIcon(pixmap)
-        color_button.setIcon(icon)
-        
-        shp.set_color(selected_color)
-        self.background_changed.emit()
+            shp.set_color(selected_color)
+            self.background_changed.emit()
         
     def attr_set(self, file_idx, attr_combo):
         """Shapefile dislayed attribute is changed, refresh diagram"""

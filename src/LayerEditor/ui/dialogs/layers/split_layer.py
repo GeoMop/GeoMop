@@ -21,24 +21,22 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
         
-        d_depth = QtWidgets.QLabel("Split in Depth:", self)
-        self.depth = QtWidgets.QLineEdit()
+        d_split_type = QtWidgets.QLabel("Split Interface Type:", self)
+        self.split_type = LayersHelpers.split_type_combo(copy_block)
+        
+        grid.addWidget(d_split_type, 1, 0)
+        grid.addWidget(self.split_type, 1, 1)
+        
+        d_surface = QtWidgets.QLabel("Split in Surface:", self)
+        grid.addWidget(d_surface, 2, 0)
+        i = LayersHelpers.add_surface_to_grid(self, grid, 3)
+        
         self.validator = QtGui.QDoubleValidator()
         self.validator.setBottom(min)
         self.validator.setTop(max)
         self.depth.setValidator(self.validator)
         self.depth.setText(str((min+max)/2))
         
-        grid.addWidget(d_depth, 1, 0)
-        grid.addWidget(self.depth, 1, 1)
-        
-        d_split_type = QtWidgets.QLabel("Split Interface Type:", self)
-        self.split_type = LayersHelpers.split_type_combo(copy_block)
-        
-        grid.addWidget(d_split_type, 2, 0)
-        grid.addWidget(self.split_type, 2, 1)
-
-
         self._tranform_button = QtWidgets.QPushButton("Split", self)
         self._tranform_button.clicked.connect(self.accept)
         self._cancel_button = QtWidgets.QPushButton("Cancel", self)
@@ -48,7 +46,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, 3, 1)
+        grid.addWidget(button_box, i, 3, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
@@ -58,3 +56,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         """
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
             super(SplitLayerDlg, self).accept()
+
+    def fill_surface(self, surface):
+        """Fill set surface"""
+        return LayersHelpers.fill_surface(self, self.grid, surface)

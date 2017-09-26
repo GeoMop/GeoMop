@@ -32,15 +32,18 @@ class SetNameDlg(QtWidgets.QDialog):
         grid.addWidget(button_box, 1, 1)
         self.setLayout(grid)
 
-class SetDepthDlg(QtWidgets.QDialog):
+class SetSurfaceDlg(QtWidgets.QDialog):
 
-    def __init__(self, value,  parent=None, min=None, max=None):
-        super(SetDepthDlg, self).__init__(parent)
-        self.setWindowTitle("Set Depth")
+    def __init__(self, surface,  parent=None, min=None, max=None):
+        super(SetSurfaceDlg, self).__init__(parent)
+        self.setWindowTitle("Set Surface")
 
         grid = QtWidgets.QGridLayout(self)
         
-        d_depth = QtWidgets.QLabel("Set Interface Depth:", self)
+        d_surface = QtWidgets.QLabel("Set Interface Surface:", self)
+        grid.addWidget(d_surface, 0, 0)
+        i = LayersHelpers.add_surface_to_grid(self, grid, 1, surface)
+        
         self.depth = QtWidgets.QLineEdit()
         self.validator = QtGui.QDoubleValidator()
         
@@ -51,12 +54,8 @@ class SetDepthDlg(QtWidgets.QDialog):
         self.validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         
         self.depth.setValidator(self.validator)
-        self.depth.setText(str(value))
         
-        grid.addWidget(d_depth, 0, 0)
-        grid.addWidget(self.depth, 0, 1)
-
-        self._tranform_button = QtWidgets.QPushButton("Set Depth", self)
+        self._tranform_button = QtWidgets.QPushButton("Set Surface", self)
         self._tranform_button.clicked.connect(self.accept)
         self._cancel_button = QtWidgets.QPushButton("Cancel", self)
         self._cancel_button.clicked.connect(self.reject)
@@ -65,7 +64,7 @@ class SetDepthDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, 1, 1)
+        grid.addWidget(button_box, i, 3, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
@@ -74,4 +73,8 @@ class SetDepthDlg(QtWidgets.QDialog):
         :return: None
         """
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
-             super(SetDepthDlg, self).accept()
+             super(SetSurfaceDlg, self).accept()
+             
+    def fill_surface(self, surface):
+        """Fill set surface"""
+        return LayersHelpers.fill_surface(self, self.grid, surface)

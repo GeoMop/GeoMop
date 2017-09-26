@@ -24,8 +24,10 @@ class AppendLayerDlg(QtWidgets.QDialog):
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
         
-        d_depth = QtWidgets.QLabel("Bottom Interface Depth:", self)
-        self.depth = QtWidgets.QLineEdit()
+        d_surface = QtWidgets.QLabel("Bottom Interface Surface:", self)
+        grid.addWidget(d_surface, 1, 0)
+        i = LayersHelpers.add_surface_to_grid(self, grid, 2)
+        
         self.validator = QtGui.QDoubleValidator()
         if add:
             self.validator.setBottom(min_depth)
@@ -38,11 +40,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
             self.validator.setBottom( min_depth)
             self.depth.setText(str(min_depth+100))
         self.depth.setValidator(self.validator)
-       
         
-        grid.addWidget(d_depth, 1, 0)
-        grid.addWidget(self.depth, 1, 1)
-
         if add:
             self._tranform_button = QtWidgets.QPushButton("Add", self)
         elif prepend:
@@ -57,7 +55,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, 2, 1)
+        grid.addWidget(button_box, i, 3, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
@@ -67,3 +65,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
         """
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
             super(AppendLayerDlg, self).accept()
+            
+    def fill_surface(self, surface):
+        """Fill set surface"""
+        return LayersHelpers.fill_surface(self, self.grid, surface)
