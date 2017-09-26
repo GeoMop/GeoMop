@@ -234,25 +234,6 @@ class PolygonDecomposition:
             self._split_polygon(a_pt, b_pt, a_insert, b_insert)
 
 
-        next  = [None, None]
-        next[left_side] = left_next
-        next[right_side] = right_next
-        # TODO: split polygon
-        # - need to separate boundary components
-        # - replace polygons by wires; segments points to wires a "side of a boundary"
-        # - polygon will beformed by outer wire and holes
-        # - Wires refers to its polygon
-        # - after connection we either connect two wires into one or split one wire into two
-        # - then we must decide if one wire is inside other wire or ther are disjoint
-
-
-
-
-        new_seg = Segment([a_pt, b_pt], new_polygons, next)
-        self._append_segment(new_seg)
-        left_prev.next[left_prev_side] = new_seg
-        right_prev.next[right_prev_side] = new_seg
-
     def del_segment(self, segment):
         a_pt, b_pt = segment.points
         # single seg ment vertices
@@ -267,34 +248,25 @@ class PolygonDecomposition:
             return self.rm_dendrite(segment, end_vtx)
 
         if segment.is_dendrite():
-        # dendrite -> split wire
+            # dendrite -> split wire
+            self._split_wire(segment)
         else:
-        # different wires -> join polygons
-        pass
+            # different wires -> join polygons
+            pass
 
     # Helper change operations.
     def _append_segment(self, seg):
+        seg.points[0].join_segment(seg)
+        seg.points[1].join_segment(seg)
         self.segments.append(seg)
         self.points_to_segment[ seg.vtxs_ids() ] = seg
 
     def _remove_segment(self, seg):
+        seg.points[0].rm_segment(seg)
+        seg.points[1].rm_segment(seg)
         del self.points_to_segment[ seg.vtxs_ids() ]
         del self.segments[seg.id]
 
-    def _point_join_segment(self, point, seg):
-        if point.segment == None:
-            point.poly = None
-            point.segment = seg
-
-    def _point_rm_segment(self, point, seg):
-        if point.segment == seg:
-            for new_seg in point.segments():
-                if not new_seg == seg:
-                    point.segment = new_seg
-                    return
-            assert seg.is_dendrite()
-            point.poly = seg.wire[0].polygon
-            point.segment = None
 
 
     # Special getters.
@@ -335,7 +307,7 @@ class PolygonDecomposition:
         :param t_point:
         :return:
         """
-        self._point_rm_segment(seg.vtxs[1], seg)
+        seg.vtxs[1].rm_segment(seg)
 
         xy_point = seg.paramteric(t_point)
         mid_pt = Point(xy_point, None)
@@ -351,7 +323,6 @@ class PolygonDecomposition:
         seg.next[left_side] = new_seg
         prev_seg.next[prev_side] = new_seg
 
-        self._point_join_segment(mid_pt, new_seg)
         self._append_segment(new_seg)
         return mid_pt
 
@@ -441,16 +412,74 @@ class PolygonDecomposition:
         assert a_wire != b_wire
         assert a_wire.polygon == b_wire.polygon
 
+        # set next links
+        new_seg = Segment( (a_pt, b_pt), (a_wire, a_wire), (None, None))
+        a_prev.next[a_side] = new_seg
+        new_seg.next[left_side] = b_next
+        new_seg.next[right_side] = a_next
+        b_prev.next[b_side] = new_seg
 
-        seg = Segment( (a_pt, b_pt), (a_wire, a_wire), (None, None))
-        a_prev.next[a_side] = seg
-        seg.next[left_side] = b_next
-        seg.next[right_side] = a_next
-        b_prev.next[b_side] = seg
+        #set wire links
+        seg = new_seg
+        while (1):
+            side = left_side if seg.wire[left_side] == b_wire else right_side
+            assert seg.wire[side] == b_wire
+            seg.wire[side] = a_wire
+            seg = seg.next[side]
+            if seg == new_seg:
+                break
+
+        # remove b_wire
+        if a_wire.polygon.outer_wire == b_wire:
+            a_wire.polygon.outer_wire = a_wire
+        else:
+            del a_wire.polygon.holes[b_wire.id]
+        del self.wires[b_wire.id]
+        return new_seg
 
 
-    def _split_wire(self):
-        pass
+    def _split_wire(self, segment):
+        assert segment.wire[0] == segment.wire[1]
+        a_wire = segment.wire[0]
+        polygon = a_wire.polygon
+        b_wire = Wire()
+        self.wires.append(b_wire)
+
+        # set next links
+        a_prev = segment.previous(left_side)
+        a_prev_side = a_prev.previous_side(segment.points[0])
+        a_prev.next[a_prev_side] = segment.next[right_side]
+
+        b_prev = segment.previous(right_side)
+        b_prev_side = b_prev.previous_side(segment.points[1])
+        b_prev.next[b_prev_side] = segment.next[left_side]
+
+        # set new wire to segments
+        seg = segment.next[left_side]
+        while (1):
+            side = left_side if seg.wire[left_side] == a_wire else right_side
+            assert seg.wire[side] == a_wire
+            seg.wire[side] = b_wire
+            seg = seg.next[side]
+            if seg == segment:
+                break
+
+        # setup new wire
+        b_wire.segment = segment.next[left_side]
+        b_wire.polygon = a_wire.polygon
+        if a_wire.segment == segment:
+            a_wire.segment = a_prev
+
+        # remove segment
+        self._remove_segment(segment)
+
+
+
+        if polygon.outer_wire == a_wire:
+            b_wire.parent = a_wire.parent # todo: not always true
+        b_wire
+
+
 
     def _split_poly(self):
         pass
@@ -463,7 +492,7 @@ class PolygonDecomposition:
 
 # Data classes contins no modification methods, all modifications are through reversible atomic operations.
 class Point:
-    def __init__(self, id, point, poly):
+    def __init__(self, point, poly):
         self.id = id
         self.xy = point
         self.poly = poly
@@ -495,6 +524,7 @@ class Point:
             if seg == start_segment:
                 return
 
+
     def insert_segment(self, vector):
         vec_angle =  np.angle(complex(vector[0], vector[1]))
         for seg in self.segments():
@@ -513,6 +543,23 @@ class Point:
                 return (prev, next, prev_side, wire)
             last = (seg, da)
         return (None, None, None, None)
+
+
+    def join_segment(self, seg):
+        if self.segment == None:
+            self.poly = None
+            self.segment = seg
+
+
+    def rm_segment(self, seg):
+        if self.segment == seg:
+            for new_seg in self.segments():
+                if not new_seg == seg:
+                    self.segment = new_seg
+                    return
+            assert seg.is_dendrite()
+            self.poly = seg.wire[0].polygon
+            self.segment = None
 
 
 
