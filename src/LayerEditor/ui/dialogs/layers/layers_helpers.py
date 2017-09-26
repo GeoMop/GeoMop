@@ -6,6 +6,7 @@ from geomop_dialogs import GMErrorDialog
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
 from ui.data import LayerSplitType
+from leconfig import cfg
 
 class LayersHelpers():
 
@@ -69,8 +70,7 @@ class LayersHelpers():
         
         def _add_file(self):
             """Clicked event for _file_button"""
-            from os.path import expanduser
-            home = expanduser("~")
+            home = cfg.config.data_dir
             file = QtWidgets.QFileDialog.getOpenFileName(
                 dialog, "Choose grif file", home,"File (*.*)")
             if file[0]:

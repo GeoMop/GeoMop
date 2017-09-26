@@ -31,7 +31,7 @@ class GeometryFactory:
         
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
-        region = Region(dict(color=color, name=name, topo_dim=dim-1, mesh_step=step, boundary=boundary, not_used=not_used))
+        region = Region(dict(color=color, name=name, topo_dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
 
     def get_topology(self, node_set_idx):

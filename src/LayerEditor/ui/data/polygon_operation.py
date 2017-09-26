@@ -206,13 +206,13 @@ class PolygonGroups():
                 self.boundaries_lines.append(polygon.inner.boundaries_lines[i])
                 self.boundaries_points.append(polygon.inner.boundaries_points[i])
                 for ipolygon in polygon.inner.groups[i]:
-                    self.polygons.inner.append(ipolygon)
-                    polygon.inner.polygons.remove(polygon)
-                remove.appemd(i)
+                    self.polygons.append(polygon.inner.polygons[ipolygon])
+                    del polygon.inner.polygons[ipolygon]
+                remove.append(i)
         for id in remove:
-            polygon.inner.groups.remove(polygon.inner.groups[i])
-            polygon.inner.boundaries_lines.remove(polygon.inner.boundaries_lines[i])
-            polygon.inner.boundaries_points.remove(polygon.inner.boundaries_points[i])
+            polygon.inner.groups.remove(polygon.inner.groups[id])
+            polygon.inner.boundaries_lines.remove(polygon.inner.boundaries_lines[id])
+            polygon.inner.boundaries_points.remove(polygon.inner.boundaries_points[id])
         
     def _make_group_boundary(self, group_id):
         """Make boundary for group_id polygon group"""
