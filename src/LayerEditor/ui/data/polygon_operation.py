@@ -1288,7 +1288,7 @@ class Shape(metaclass=abc.ABCMeta):
         start = 0
         started = False
         point = None
-        i=0
+        i = 0
         while i<len(self.boundary_lines):
             if (self.boundary_lines[i].polygon1==polygon and self.boundary_lines[i].polygon2==del_polygon) or \
                 (self.boundary_lines[i].polygon2==polygon and self.boundary_lines[i].polygon1==del_polygon):
@@ -1297,20 +1297,44 @@ class Shape(metaclass=abc.ABCMeta):
                     start = i
                     started=False
                     point = self.boundary_points[i]
-                del self.boundary_points[i]
+                del self.boundary_points[i]                
             else:
                 if not started:
                     started = True
                 i += 1
-        # TODO FIX no bordel but complemet !!!!!
-        if point==border.points[0]:
+        started = False
+        last_point = None
+        i = 0
+        addition_lines = []
+        addition_points = []
+        for j in range (0, len(del_polygon.spolygon.boundary_lines)):
+            if (del_polygon.spolygon.boundary_lines[j].polygon1==polygon and \
+                del_polygon.spolygon.boundary_lines[j].polygon2==del_polygon) or \
+                (del_polygon.spolygon.boundary_lines[j].polygon2==polygon and \
+                del_polygon.spolygon.boundary_lines[j].polygon1==del_polygon):
+                if not started:
+                    started = True
+            else:
+                if not started:
+                    last_point = del_polygon.spolygon.boundary_points[j+1]
+                    addition_lines.append(del_polygon.spolygon.boundary_lines[j])
+                    addition_points.append(del_polygon.spolygon.boundary_points[j])
+                else:
+                    addition_lines.insert(i, del_polygon.spolygon.boundary_lines[j])
+                    addition_points.insert(i, del_polygon.spolygon.boundary_points[j])
+                    i += 1
+        if last_point is None:
+            addition_points.append(del_polygon.spolygon.boundary_points[-1])
+        else:
+            addition_points.append(last_point)
+        if point==addition_points[0]:
             for j in range(len(border.lines)-1, -1, -1):
-                self.boundary_points.insert(start, border.points[j])
-                self.boundary_lines.insert(start, border.lines[j])
+                self.boundary_points.insert(start, addition_points[j])
+                self.boundary_lines.insert(start, addition_lines[j])
         else:
             for j in range(0, len(border.lines)):
-                self.boundary_points.insert(start, border.points[j+1])
-                self.boundary_lines.insert(start, border.lines[j])
+                self.boundary_points.insert(start, addition_points[j+1])
+                self.boundary_lines.insert(start, addition_lines[j])
         self.reload_shape_boundary(polygon, True)
         
     def delete_polygon(self, diagram, del_polygon, move_polygon):
