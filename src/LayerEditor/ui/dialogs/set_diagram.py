@@ -7,6 +7,9 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from geomop_dialogs import GMErrorDialog
 from leconfig import cfg
+import b_spline
+import bspline as bs
+
 
 class SetDiagramDlg(QtWidgets.QDialog):
 
@@ -154,6 +157,10 @@ class SetDiagramDlg(QtWidgets.QDialog):
                 err_dialog.open_error_dialog("Bad shape file format")
                 ret = False 
         else:      
-            pass
+            gs = bs.GridSurface.load(self.grid_file_name.text())
+            poly = gs.quad
+            cfg.diagram.area.set_area([poly[0][0], poly[1][0], poly[2][0], poly[3][0]], 
+                [poly[0][1], poly[1][1], poly[2][1], poly[3][1]])
+            
         if ret:
             super(SetDiagramDlg, self).accept()
