@@ -16,20 +16,15 @@ sys.path.append(geomop_src)
 import json_data as js
 import geometry_files.geometry_structures as gs
 import gmsh_io
-#import point_grid
 import numpy as np
 import numpy.linalg as la
 import math
 
-
-#from submodules.intersections.src import brep_writer as bw
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
-import bspline_plot as bs_plot
 import brep_writer as bw
 
-import matplotlib.pyplot as plt
 
 ###
 #netgen_install_prefix="/home/jb/local/"
