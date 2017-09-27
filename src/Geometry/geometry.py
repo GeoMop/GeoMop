@@ -766,7 +766,10 @@ class LayerGeometry(gs.LayerGeometry):
             print('Background Field = 1;\n', file=f)
 
         from subprocess import call
-        call(["gmsh", "-3", self.geo_file])
+        gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
+        if not os.path.exists(gmsh_path):
+            gmsh_path = "gmsh"
+        call([gmsh_path, "-3", self.geo_file])
 
 
 
