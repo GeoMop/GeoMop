@@ -5,3 +5,4 @@ from .shp_background import ShpBackground
 from .diagram_view import DiagramView
 from .blink import Blink
 from .polygon import Polygon
+from .init_area import InitArea
