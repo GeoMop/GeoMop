@@ -14,6 +14,7 @@ from leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import icon
+from ui.dialogs.set_diagram import SetDiagramDlg
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -25,32 +26,32 @@ class LayerEditor:
         
         # load config        
         cfg.init()
+        init_dlg = SetDiagramDlg()
+        ret = init_dlg.exec_()
         
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
+        
+        if ret!=QtWidgets.QDialog.Accepted:
+            self.open_file()
         
         # set default values
         self._update_document_name()
 
         # show
         self.mainwindow.show()
-        
-        #test        
-#        for i in range(0, 20):
-#            for j in range(0, 20):
-#                x1 = i*50
-#                x2 = i*50+20*(i%9-5) +20*(j%11-6) 
-#                y1= j*50
-#                y2 = j*50 +30*(i%4) +20*(j%9-4) + j%7 
-#                p1 = cfg.diagram.add_point(x1, y1, None, None, True)
-#                cfg.diagram.add_line(p1, x2, y2, None, True)
         self.mainwindow.paint_new_data()
         
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
             return
+        cfg.init()
         cfg.new_file()
+        init_dlg = SetDiagramDlg()
+        ret = init_dlg.exec_()
+        if ret!=QtWidgets.QDialog.Accepted:
+            self.open_file()
  
     def open_file(self):
         """open file menu action"""

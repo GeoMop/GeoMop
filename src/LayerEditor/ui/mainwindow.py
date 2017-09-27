@@ -103,6 +103,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.set_data()
         self.display_all()
         self.layers.change_size()
+        self.diagramScene.show_init_area(True)
+        if not cfg.config.show_init_area:
+            self.diagramScene.show_init_area(False)            
         
     def refresh_curr_data(self, old_i, new_i):
         """Propagate new diagram scene to canvas"""
@@ -163,11 +166,11 @@ class MainWindow(QtWidgets.QMainWindow):
             # resize acoording height
             cfg.diagram.zoom = view_rect.height()/rect.height()
             cfg.diagram.y = rect.top()
-            cfg.diagram.x = rect.left()+(view_rect.width()/cfg.diagram.zoom-rect.width())/2
+            cfg.diagram.x = rect.left()-(view_rect.width()/cfg.diagram.zoom-rect.width())/2
         else:
             cfg.diagram.zoom = view_rect.width()/rect.width()
             cfg.diagram.x = rect.left()
-            cfg.diagram.y = rect.top()+(view_rect.height()/cfg.diagram.zoom-rect.height())/2
+            cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
         self._display(view_rect)
         
     def _display(self, view_rect):

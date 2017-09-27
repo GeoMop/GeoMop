@@ -38,6 +38,7 @@ class _Config:
 
         self._analysis = kw_or_def('_analysis')
         self._workspace = kw_or_def('_workspace')
+        self.show_init_area = kw_or_def('show_init_area', True)
             
         self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
         """directory of the most recently opened data file"""

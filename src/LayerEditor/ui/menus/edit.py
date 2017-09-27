@@ -22,6 +22,15 @@ class EditMenu(QMenu):
         self.addAction(self._redo_action)        
 
         self.addSeparator()
+        
+        self._init_area_action = QAction('&Initialize Area', self)
+        self._init_area_action.setCheckable(True)
+        self._init_area_action.setChecked(cfg.config.show_init_area) 
+        self._init_area_action.setStatusTip('Show initialization area')
+        self.addAction(self._init_area_action)
+        self._init_area_action.triggered.connect(self._show_init_area)
+        
+        self.addSeparator()
 
         self._delete_action = QAction('&Delete', self)
         self._delete_action.setStatusTip('Delete selected items')
@@ -102,3 +111,9 @@ class EditMenu(QMenu):
     def _select(self):
         """select all items"""
         self._diagram.select_all() 
+        
+    def _show_init_area(self):
+        """Show initialization area menu action"""
+        state = self._init_area_action.isChecked()
+        cfg.config.show_init_area = state
+        self._diagram.show_init_area(state)

@@ -32,12 +32,12 @@ import brep_writer as bw
 import matplotlib.pyplot as plt
 
 ###
-netgen_install_prefix="/home/jb/local/"
-netgen_path = "opt/netgen/lib/python3/dist-packages"
-sys.path.append( netgen_install_prefix + netgen_path )
+#netgen_install_prefix="/home/jb/local/"
+#netgen_path = "opt/netgen/lib/python3/dist-packages"
+#sys.path.append( netgen_install_prefix + netgen_path )
 
-import netgen.csg as ngcsg
-import netgen.meshing as ngmesh
+#import netgen.csg as ngcsg
+#import netgen.meshing as ngmesh
 
 
 
@@ -742,14 +742,27 @@ class LayerGeometry(gs.LayerGeometry):
         blocks.append(block)
         self.blocks=blocks
 
+    def mesh_step_estimate(self):
+        min_vtx = np.ones(3) * (np.inf)
+        max_vtx = np.ones(3) * (-np.inf)
+        for si in self.all_shapes:
+            if hasattr(si.shape, 'point'):
+                min_vtx = np.minimum(min_vtx, si.shape.point)
+                max_vtx = np.maximum(max_vtx, si.shape.point)
+        assert np.all(min_vtx < np.inf)
+        assert np.all(max_vtx > -np.inf)
+        char_length = np.max(max_vtx - min_vtx)
+        print("Char length: {}", char_length)
+        return char_length / 20
 
-    def call_gmsh(self):
+    def call_gmsh(self, mesh_step):
+        if mesh_step == 0.0:
+            mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"
-        self.mesh_step = 5
         with open(self.geo_file, "w") as f:
             print('Merge "%s";\n'%(self.brep_file), file=f)
             print('Field[1] = MathEval;\n', file=f)
-            print('Field[1].F = "%f";\n'%(self.mesh_step), file=f)
+            print('Field[1].F = "%f";\n'%(mesh_step), file=f)
             print('Background Field = 1;\n', file=f)
 
         from subprocess import call
@@ -840,48 +853,48 @@ class LayerGeometry(gs.LayerGeometry):
 
 
 
-    def mesh_export(self, mesh, filename):
-        """ export Netgen mesh to neutral format """
+    # def mesh_export(self, mesh, filename):
+    #     """ export Netgen mesh to neutral format """
+    #
+    #     print("export mesh in neutral format to file = ", filename)
+    #
+    #     f = open(filename, 'w')
+    #
+    #     points = mesh.Points()
+    #     print(len(points), file=f)
+    #     for p in points:
+    #         print(p.p[0], p.p[1], p.p[2], file=f)
+    #
+    #     volels = mesh.Elements3D();
+    #     print(len(volels), file=f)
+    #     for el in volels:
+    #         print(el.index, end="   ", file=f)
+    #         for p in el.points:
+    #             print(p.nr, end=" ", file=f)
+    #         print(file=f)
 
-        print("export mesh in neutral format to file = ", filename)
-
-        f = open(filename, 'w')
-
-        points = mesh.Points()
-        print(len(points), file=f)
-        for p in points:
-            print(p.p[0], p.p[1], p.p[2], file=f)
-
-        volels = mesh.Elements3D();
-        print(len(volels), file=f)
-        for el in volels:
-            print(el.index, end="   ", file=f)
-            for p in el.points:
-                print(p.nr, end=" ", file=f)
-            print(file=f)
-
-    def mesh_netgen(self):
-        """
-        Use Netgen python interface to make a mesh.
-        :return:
-        """
-
-        geo = ngcsg.CSGeometry("shaft.geo")
-
-        param = ngmesh.MeshingParameters()
-        param.maxh = 10
-        print(param)
-
-        m1 = ngcsg.GenerateMesh(geo, param)
-        m1.SecondOrder()
-
-        self.mesh_export(m1, "shaft.mesh")
-
-        ngcsg.Save(m1, "mesh.vol", geo)
-        print("Finished")
-
-    def netgen_to_gmsh(self):
-        pass
+    # def mesh_netgen(self):
+    #     """
+    #     Use Netgen python interface to make a mesh.
+    #     :return:
+    #     """
+    #
+    #     geo = ngcsg.CSGeometry("shaft.geo")
+    #
+    #     param = ngmesh.MeshingParameters()
+    #     param.maxh = 10
+    #     print(param)
+    #
+    #     m1 = ngcsg.GenerateMesh(geo, param)
+    #     m1.SecondOrder()
+    #
+    #     self.mesh_export(m1, "shaft.mesh")
+    #
+    #     ngcsg.Save(m1, "mesh.vol", geo)
+    #     print("Finished")
+    #
+    # def netgen_to_gmsh(self):
+    #     pass
 
 
 
@@ -910,6 +923,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('layers_file', help="Input Layers file (JSON).")
+    parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
     args = parser.parse_args()
 
     from geometry_files.geometry import GeometrySer
@@ -926,6 +940,6 @@ if __name__ == "__main__":
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-    lg.call_gmsh()
+    lg.call_gmsh(args.mesh_step)
     lg.modify_mesh()
 
