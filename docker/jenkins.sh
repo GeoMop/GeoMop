@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# initialize submodules
+CURR_PATH=$(pwd)
+cd /var/lib/jenkins/workspace/gm-build
+/bin/bash tools/initialize_submodules.sh
+cd $CURR_PATH
+
 if $TESTS; then
 
 echo "************ RUNNING TESTS *************"

@@ -142,6 +142,14 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
 
+  # Install gmsh.
+  SetOutPath $INSTDIR
+  File /r "${BUILD_DIR}\gmsh"
+
+  # Install intersections.
+  SetOutPath $INSTDIR
+  File /r "${GIT_DIR}\submodules\intersections"
+
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
   CreateDirectory "$INSTDIR\sample\ModelEditor"
@@ -174,7 +182,19 @@ Section "-JobsScheduler" SecJobsScheduler
 SectionEnd
 
 
-Section "JobPanel" SecJobPanel
+Section "Geometry" SecGeometry
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\Geometry"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\Geometry"
+
+SectionEnd
+
+
+Section /o "-JobPanel" SecJobPanel
 
   # Section is mandatory.
   SectionIn RO

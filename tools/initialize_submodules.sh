@@ -2,6 +2,7 @@
 
 #  Should be run from Geomop root_dir
 git submodule init
+git submodule update
 origin_url=`git config --get remote.origin.url` 
 if [ "${origin_url}" != "${origin_url#https}" ]
 then 
