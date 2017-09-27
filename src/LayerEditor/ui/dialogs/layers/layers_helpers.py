@@ -40,7 +40,7 @@ class LayersHelpers():
         return combo
        
     @staticmethod
-    def fill_surface(dialog, grid, surface):
+    def fill_surface(dialog, surface):
         """Return surface"""
         try:
             surface.depth = float(dialog.depth.text())

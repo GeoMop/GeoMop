@@ -136,14 +136,14 @@ class Regions(QtWidgets.QToolBox):
         
         #color button
         color_label = QtWidgets.QLabel("Color:", self)
-        pom_lamda = lambda ii, button: lambda: self._color_set(ii, button)
+        pom_lamda = lambda ii: lambda: self._color_set(ii)
         self.color_button[layer_id] = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
         icon = QtGui.QIcon(pixmap)
         self.color_button[layer_id].setIcon(icon)
         self.color_button[layer_id].setFixedSize( 25, 25 )
-        self.color_button[layer_id].clicked.connect(pom_lamda(i, self.color_button[layer_id]))
+        self.color_button[layer_id].clicked.connect(pom_lamda(layer_id))
         grid.addWidget(color_label, 2, 0)
         grid.addWidget(self.color_button[layer_id], 2, 1)
         
@@ -253,9 +253,10 @@ class Regions(QtWidgets.QToolBox):
             self.regions[layer_id].setItemText(
                 self.regions[layer_id].currentIndex(), combo_text)
             
-    def _color_set(self, region_idx, color_button):
+    def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
-        region = cfg.diagram.regions.regions[region_idx]
+        region_id = self.regions[layer_id].currentData()
+        region = cfg.diagram.regions.regions[region_id]
         color_dia = QtWidgets.QColorDialog(QtGui.QColor(region.color))
         i = 0
         for color in AddRegionDlg.BACKGROUND_COLORS:
@@ -266,10 +267,10 @@ class Regions(QtWidgets.QToolBox):
             pixmap = QtGui.QPixmap(16, 16)
             pixmap.fill(selected_color)
             icon = QtGui.QIcon(pixmap)
-            color_button.setIcon(icon)
+            self.color_button[layer_id].setIcon(icon)
         
             region.color = selected_color.name()
-            cfg.diagram.region_color_changed(region_idx)
+            cfg.diagram.region_color_changed(region_id)
         
     def _region_set(self, layer_id):
         """Region in combo box was changed"""
