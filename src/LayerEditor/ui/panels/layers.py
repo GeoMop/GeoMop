@@ -291,9 +291,9 @@ class Layers(QtWidgets.QWidget):
         cfg.layers.set_edited_interface(i, second, fracture)
         diagram_idx = cfg.layers.get_diagram_idx(i, second, fracture)
         old = cfg.set_curr_diagram(diagram_idx)
-        self.update()        
-        self. editInterfaceChanged.emit(old, diagram_idx)
-        self.topologyChanged.emit()
+        self.update() 
+        self.topologyChanged.emit() # first update regions      
+        self. editInterfaceChanged.emit(old, diagram_idx)        
     
     def add_interface(self, i):
         """Split layer by new interface"""
@@ -368,7 +368,7 @@ class Layers(QtWidgets.QWidget):
         dup=None        
         if removed_res[1]==1:
             dup = cfg.layers.get_diagram_dup(i-1)
-        del_layers, del_interfaces = cfg.layers.get_group_copy(i, 2)       
+        del_layers, del_interfaces = cfg.layers.get_group_copy(i, 1)       
         diagrams, layers = cfg.layers.remove_layer(i, removed_res, dup)
         if layers==2:
             self._history.change_group([], del_interfaces[0:1], i, 2, "Remove layer")

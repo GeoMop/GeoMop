@@ -45,17 +45,17 @@ class LayersHelpers():
         try:
             surface.depth = float(dialog.depth.text())
             surface.grid_file = dialog.file_name.text()
-            surface.transform_xy[0][0] = float(dialog.dialog.xyscale11.text())
-            surface.transform_xy[0][1] = float(dialog.dialog.xyscale12.text())
-            surface.transform_xy[1][0] = float(dialog.dialog.xyscale21.text())
-            surface.transform_xy[1][1] = float(dialog.dialog.xyscale22.text())
-            surface.transform_xy[0][2] = float(dialog.dialog.xyshift1.text())
-            surface.transform_xy[1][2] = float(dialog.dialog.xyshift2.text())
-            surface.transform_z[0] = float(dialog.dialog.zscale.text())
-            surface.transform_z[2] = float(dialog.dialog.zshift.text())
+            surface.transform_xy[0][0] = float(dialog.xyscale11.text())
+            surface.transform_xy[0][1] = float(dialog.xyscale12.text())
+            surface.transform_xy[1][0] = float(dialog.xyscale21.text())
+            surface.transform_xy[1][1] = float(dialog.xyscale22.text())
+            surface.transform_xy[0][2] = float(dialog.xyshift1.text())
+            surface.transform_xy[1][2] = float(dialog.xyshift2.text())
+            surface.transform_z[0] = float(dialog.zscale.text())
+            surface.transform_z[1] = float(dialog.zshift.text())
             return surface
         except:
-            raise ValueError("Invalid depth type")
+            raise ValueError("Invalid surface type")
       
     @staticmethod
     def add_surface_to_grid(dialog, grid, row, surface=None):

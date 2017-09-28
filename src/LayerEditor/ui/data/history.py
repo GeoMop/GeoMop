@@ -900,7 +900,7 @@ class RegionHistory(History):
         Add save layer data operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._rename_layer, [id, r0D, r1D, r2D],label))
+        self.steps.append(HistoryStep(self._load_data, [id, r0D, r1D, r2D],label))
         
     def _load_data(self, id, r0D, r1D, r2D):
         """
@@ -989,7 +989,7 @@ class RegionHistory(History):
         Add change region to history operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_region, [id],label))
+        self.steps.append(HistoryStep(self._change_region, [id, region],label))
         
     def _change_region(self, id, region):
         """
@@ -1007,7 +1007,7 @@ class RegionHistory(History):
         Add change shapes region to history operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_region,[shape_id, layer_id, dim, region_id]))
+        self.steps.append(HistoryStep(self._change_shape_region,[shape_id, layer_id, dim, region_id]))
         
     def _change_shape_region(self, shape_id, layer_id, dim, region_id):
         """

@@ -301,6 +301,7 @@ class LEConfig:
         cls.data.save(cls, file)
         cls.history.saved()
         cls.config.update_last_data_dir(file)
+        cls.config.add_recent_file(file)
         
     @classmethod
     def open_file(cls, file):
@@ -320,6 +321,7 @@ class LEConfig:
         cls.history.remove_all()        
         cls.data.load(cls, file)        
         cls.main_window.refresh_all()
+        cls.config.add_recent_file(file)
         
     @classmethod
     def confront_file_timestamp(cls):

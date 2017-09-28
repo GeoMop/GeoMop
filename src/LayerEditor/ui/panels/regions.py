@@ -70,16 +70,14 @@ class Regions(QtWidgets.QToolBox):
             self.layers_id.append(layer_id) 
             widget = self._add_region_panel(layer_id, self._get_last_region(layer_id))
             self.addItem(widget, self.layers[layer_id])
-        layer_id = self._get_last_layer()
-        self.setCurrentIndex(layer_id)
-        data.current_layer_id = layer_id
+        index = self._get_last_layer()
+        self.setCurrentIndex(index)
+        data.current_layer_id = self.layers_id[self.currentIndex()]
         
     def _get_last_layer(self):
         """Return last layer_id"""
-        data = cfg.diagram.regions
         if not self.topology_idx in self.last_layer:
-            self.last_layer[self.topology_idx] = \
-                self.last_layer[self.topology_idx] = data.layers[data.layers_topology[self.topology_idx][0]]
+            self.last_layer[self.topology_idx] = 0
         if self.last_layer[self.topology_idx] in self.layers_id:
             index = self.last_layer[self.topology_idx]
         else:
@@ -296,6 +294,8 @@ class Regions(QtWidgets.QToolBox):
     def _layer_changed(self):
         """Next layer tab is selected"""
         data = cfg.diagram.regions
-        layer_id = self.layers_id[self.currentIndex()]
+        index = self.currentIndex()
+        layer_id = self.layers_id[index]
         data.current_layer_id = layer_id
+        self.last_layer[self.topology_idx] = index
         cfg.diagram.layer_region_changed()

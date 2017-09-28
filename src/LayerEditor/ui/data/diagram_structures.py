@@ -497,9 +497,10 @@ class Diagram():
             ret.join_line(ret.points[self.points.index(line.p1)],
                 ret.points[self.points.index(line.p2)],
                 "Copy line", None, True)
-        if ret._rect is not None:
-            ret.x = ret._rect.left()
-            ret.y = ret._rect.top() 
+        ret.x = self.x
+        ret.y = self.y
+        ret.zoom = self.zoom
+            
         return ret
       
     @property

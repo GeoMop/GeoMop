@@ -1361,9 +1361,9 @@ class Shape(metaclass=abc.ABCMeta):
                     if len(cluster.polylines)==0:
                         self.bundled_clusters.remove(cluster)
                     else:
-                        if len(self.joins)==0 and len(self.inner_joins)==0:
+                        if len(cluster.joins)==0 and len(cluster.inner_joins)==0:
                             self.clusters.append(cluster)
-                            self.bundled_clusters.append(cluster)
+                            self.bundled_clusters.remove(cluster)
                     return True
         for cluster in self.clusters:
             for polyline in cluster.polylines:
