@@ -93,6 +93,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_all(self):
         """For new data"""
+        self.set_topology()
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)

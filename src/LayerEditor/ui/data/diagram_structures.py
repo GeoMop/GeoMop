@@ -201,6 +201,21 @@ class Area():
         self.ymax = None
         """boundary rect"""
         
+    def serialize(self, data):
+        """Return inicialization arrea in polygon coordinates"""
+        for i in range(0, len(self.gtpolygon)-1):
+            data.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
+        
+    def deserialize(self, data):
+        """Set inicialization arrea from polygon coordinates"""
+        px = []
+        py = []
+        for point in data:
+            (x, y) = point
+            px.append(x)
+            py.append(y)
+        self.set_area(px, py)
+        
     def set_area(self, pxs, pys):
         """Set initialization area"""
         self.gtpolygon = QtGui.QPolygonF()        
@@ -312,7 +327,8 @@ class Diagram():
     def layer_region_changed(self):
         """Layer color is changed, refresh all region collors"""
         for polygon in self.polygons:
-            polygon.object.update_color()
+            if polygon.object is not None:
+                polygon.object.update_color()
             
 # TODO: Lines and points
 #            for i in range(0, len(diagram.lines)):                

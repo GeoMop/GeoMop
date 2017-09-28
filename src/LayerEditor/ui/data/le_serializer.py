@@ -18,7 +18,7 @@ class LESerializer():
         gf = GeometryFactory() 
         tp_idx = gf.add_topology()        
         ns_idx = gf.add_node_set(tp_idx)        
-        gf.geometry.supplement.last_node_set = ns_idx
+        gf.geometry.supplement.last_node_set = ns_idx       
         cfg.diagrams = [Diagram(tp_idx, cfg.history)]
         cfg.diagram = cfg.diagrams[0]
         for region in gf.get_regions():
@@ -120,6 +120,8 @@ class LESerializer():
                 layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
         gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
+        gf.geometry.supplement.init_area = []
+        Diagram.area.serialize(gf.geometry.supplement.init_area)
         Diagram.delete_map()
         errors = gf.check_file_consistency()
         if len(errors)>0:
@@ -279,7 +281,8 @@ class LESerializer():
         else:
             cfg.layers.add_interface(surface, False, None, id1)        
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
-            ns_idx = gf.geometry.supplement.last_node_set
+            ns_idx = gf.geometry.supplement.last_node_set        
+        Diagram.area.deserialize(gf.geometry.supplement.init_area)
         Diagram.delete_map()
         cfg.diagram = cfg.diagrams[ns_idx]    
         cfg.diagram.fix_topologies(cfg.diagrams)
