@@ -38,6 +38,7 @@ class _Config:
 
         self._analysis = kw_or_def('_analysis')
         self._workspace = kw_or_def('_workspace')
+        self.show_init_area = kw_or_def('show_init_area', True)
             
         self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
         """directory of the most recently opened data file"""
@@ -300,6 +301,7 @@ class LEConfig:
         cls.data.save(cls, file)
         cls.history.saved()
         cls.config.update_last_data_dir(file)
+        cls.config.add_recent_file(file)
         
     @classmethod
     def open_file(cls, file):
@@ -319,6 +321,7 @@ class LEConfig:
         cls.history.remove_all()        
         cls.data.load(cls, file)        
         cls.main_window.refresh_all()
+        cls.config.add_recent_file(file)
         
     @classmethod
     def confront_file_timestamp(cls):

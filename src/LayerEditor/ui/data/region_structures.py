@@ -264,7 +264,7 @@ class Regions():
         """insert layer to structure and copy regions"""
         move_id, topology_id = self._find_less(id)
         if move_id is None:
-            move_id, topology_id = self._find_more(id)
+            move_id, topology_id = self._find_more(id-1)
         self._move_dim(id, self.layer_region_0D)
         self.layer_region_0D[id]=deepcopy(self.layer_region_0D[move_id])
         self._move_dim(id, self.layer_region_1D)

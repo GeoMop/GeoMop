@@ -189,6 +189,52 @@ class Polygon():
         """Return polygon regions"""
         return Diagram.regions. get_regions(2, self.id)
  
+class Area():
+    """Initialization area"""
+    
+    def __init__(self):
+        self.gtpolygon = None
+        """displaing polygon"""
+        self.xmin = None
+        self.xmax = None
+        self.ymin = None
+        self.ymax = None
+        """boundary rect"""
+        
+    def serialize(self, data):
+        """Return inicialization arrea in polygon coordinates"""
+        for i in range(0, len(self.gtpolygon)-1):
+            data.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
+        
+    def deserialize(self, data):
+        """Set inicialization arrea from polygon coordinates"""
+        px = []
+        py = []
+        for point in data:
+            (x, y) = point
+            px.append(x)
+            py.append(y)
+        self.set_area(px, py)
+        
+    def set_area(self, pxs, pys):
+        """Set initialization area"""
+        self.gtpolygon = QtGui.QPolygonF()        
+        self.xmin = pxs[0]
+        self.xmax = pxs[0]
+        self.ymin = -pys[0]
+        self.ymax = -pys[0]
+        for i in range(0, len(pxs)):
+            self.gtpolygon.append(QtCore.QPointF(pxs[i], -pys[i]))
+            if self.xmin > pxs[i]:
+                self.xmin = pxs[i]
+            if self.xmax < pxs[i]:
+                self.xmax = pxs[i]
+            if self.ymin > -pys[i]:
+                self.ymin = -pys[i]
+            if self.ymax < -pys[i]:
+                self.ymax = -pys[i]
+        self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
+ 
 class Diagram():
     """
     Layer diagram
@@ -213,6 +259,8 @@ class Diagram():
     """List of all diagrams, divided by topologies"""
     regions = None
     """List of regions"""
+    area = Area()
+    """diagram area"""
     
     @classmethod
     def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
@@ -279,7 +327,8 @@ class Diagram():
     def layer_region_changed(self):
         """Layer color is changed, refresh all region collors"""
         for polygon in self.polygons:
-            polygon.object.update_color()
+            if polygon.object is not None:
+                polygon.object.update_color()
             
 # TODO: Lines and points
 #            for i in range(0, len(diagram.lines)):                
@@ -448,16 +497,19 @@ class Diagram():
             ret.join_line(ret.points[self.points.index(line.p1)],
                 ret.points[self.points.index(line.p2)],
                 "Copy line", None, True)
-        if ret._rect is not None:
-            ret.x = ret._rect.left()
-            ret.y = ret._rect.top() 
+        ret.x = self.x
+        ret.y = self.y
+        ret.zoom = self.zoom
+            
         return ret
       
     @property
     def rect(self):
         if self._rect is None:
             if self.shp.boundrect is None:
-                return QtCore.QRectF(0, -300, 450, 300)
+                dx= (abs(self.area.xmax-self.area.xmin)+abs(self.area.ymax-self.area.ymin))/100
+                return QtCore.QRectF(self.area.xmin-dx, self.area.ymin-dx, 
+                    self.area.xmax-self.area.xmin+2*dx, self.area.ymax-self.area.ymin+2*dx)
             else:
                 return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100

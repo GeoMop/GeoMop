@@ -3,7 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon
+from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea
 from ui.gitems import ItemStates
 from leconfig import cfg
     
@@ -98,6 +98,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         """blink object"""
         self.blink_timer = QtCore.QTimer()
         """Blink timer"""
+        self.init_area=None
+        """Initialization area"""
         self.blink_timer.setSingleShot(True) 
         
         super(Diagram, self).__init__(parent)
@@ -106,6 +108,14 @@ class Diagram(QtWidgets.QGraphicsScene):
   
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
+        
+    def  show_init_area(self, state):
+        """Show initialization area"""
+        if self.init_area is not None:
+            self.removeItem(self.init_area)
+        if state:
+            self.init_area = InitArea(cfg.diagram.area)
+            self.addItem(self.init_area)
         
     def refresh_shp_backgrounds(self):
         """refresh updated shape files on background"""
@@ -198,6 +208,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
+            self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
             p1 = Point(line.p1)
@@ -224,8 +235,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.removeItem(p2)
             self._last_line.object.release_line()
             self.removeItem(l)                        
-            self._last_line = None
-            self._del_polygons()
+            self._last_line = None            
     
     def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
@@ -581,3 +591,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         cfg.diagram.zoom *= (1.0 + delta)
         # send signal
         self.possChanged.emit()
+        
+    def keyPressEvent(self, event):
+        """Standart key press event"""
+        if event.key() == QtCore.Qt.Key_Escape:
+            self._remove_last()

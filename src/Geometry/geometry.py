@@ -434,7 +434,7 @@ class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 class Region(gs.Region):
 
     def init(self, topo_dim, extrude):
-        assert topo_dim == self.topo_dim
+        assert topo_dim == self.topo_dim, "Region ('{}') topology dimension ({})  do not match layer dimension ({}).".format( self.name, self.topo_dim, topo_dim)
         if self.not_used:
             return
         if hasattr(self, 'dim'):
@@ -742,8 +742,10 @@ class LayerGeometry(gs.LayerGeometry):
 
         self.all_shapes = [ si for si in self.all_shapes if hasattr(si.shape,  'id') ]
         self.compute_bounding_box()
-        # prepare dict: (dim, shape_id) : shape info
 
+        # ignore shapes without ID - not part of the output
+        self.all_shapes = [ shp for si in self.all_shapes if hasattr(si.shape,  'id') ]
+        # prepare dict: (dim, shape_id) : shape info
         self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
         shape_by_dim=[[] for i in range(4)]
         for shp_info in self.all_shapes:
