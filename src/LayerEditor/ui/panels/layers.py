@@ -233,7 +233,7 @@ class Layers(QtWidgets.QWidget):
             cfg.layers.prepend_layer(name, surface)            
             self._history.delete_layer(0,"Prepend layer")
             self._history.delete_interface(0)
-            cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
+            cfg.diagram.regions.add_layer(0, name, TopologyOperations.none)
             self.topologyChanged.emit()
             self.change_size()
             
