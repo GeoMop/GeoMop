@@ -68,22 +68,6 @@ class PolygonDecomposition:
         self.tolerance = tolerance
 
 
-    # History operations
-    #
-    # def undo(self, n_steps):
-    #     self.i_active_event -= 1
-    #     for
-    #
-    # def redo(self, n_steps):
-    #     self.i_active_event += 1
-    #
-    #
-    # def add_events(self, event_bundle):
-    #     assert event_bundle is list
-    #     self.events = self.events[0:self.i_active_event]
-    #     self.events.append(event_bundle)
-
-
     def _snap_to_segment(self, segment, point, up_is_left ):
         """
         Snap to segment or to its side wire.
@@ -296,15 +280,6 @@ class PolygonDecomposition:
         self.pt_to_seg.pop( (a, b), None )
         self.pt_to_seg.pop( (b, a), None)
         del self.segments[seg.id]
-
-
-
-    # Special getters.
-
-
-
-
-
 
 
     # Reversible atomic change operations.
@@ -746,10 +721,6 @@ class Segment:
         # prev vtx of next segment == next vtx of self segment
         self.next[side] = next_seg
 
-    #def have_vtx(self, pt):
-    #    return self.vtxs[out_vtx] == pt or self.vtxs[in_vtx] == pt
-
-
     def connect_vtx(self, vtx_idx, insert_info):
         self.vtxs[vtx_idx].join_segment(self, vtx_idx)
         prev, next, wire = insert_info
@@ -881,12 +852,6 @@ class Segment:
             return True
         return False
 
-    # def is_vertex(self, point):
-    #     if point == self.points[0]:
-    #          return 0
-    #     if point == self.points[1]:
-    #         return 1
-    #     return None
 
     def vtxs_ids(self):
         return (self.vtxs[out_vtx].id, self.vtxs[in_vtx].id)
@@ -914,12 +879,6 @@ class Segment:
             pass
         return (seg, side)
 
-    #def previous_side(self, point):
-    #    if self.vtxs[out_vtx] == point:
-    #        return right_side
-    #    else:
-    #        assert self.vtxs[in_vtx] == point
-    #        return left_side
 
 class Wire:
     def __init__(self):
@@ -989,7 +948,6 @@ class Wire:
         else:
             return False
 
-
     def contains_wire(self, wire):
         if self is None:
             return True
@@ -1015,7 +973,6 @@ class Polygon:
         # Wires of holes.
         self.free_points = {}
         # Dict ID->pt of free points inside the polygon.
-
 
     def __eq__(self, other):
         return self.id == other.id
