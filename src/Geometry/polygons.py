@@ -48,10 +48,8 @@ class PolygonDecomposition:
         #
         self.tolerance = 0.01
 
-        events = []
-        # Primitive list of (macro) events,
-        i_active_event = 0
-        # Position to write to next new event.
+
+
     def __repr__(self):
         stream = ""
         for label, objs in [ ("Polygons:", self.polygons), ("Wires:", self.wires), ("Segments:", self.segments)]:
@@ -68,6 +66,7 @@ class PolygonDecomposition:
         :return: None
         """
         self.tolerance = tolerance
+
 
     # History operations
     #
@@ -126,41 +125,26 @@ class PolygonDecomposition:
         point = np.array(point)
         x_pt, y_pt = point
         x_axis_segs = []
-        for e in self.segments.values():
-            x_isec = e.x_line_isec(point)
-            for x_pt in x_isec:
-                x_axis_segs.append((x_pt, e.id, e))
+        for seg in self.segments.values():
+            x_isec = seg.x_line_isec(point, self.tolerance)
+            for x_isec_pt in x_isec:
+                x_axis_segs.append((x_isec_pt, seg.id, seg))
 
         if len(x_axis_segs) == 0:
             return self._snap_to_polygon(self.outer_polygon, point)
         x_axis_segs.sort()
-        i = bisect.bisect_left(x_axis_segs, (x_pt, e.id, e))
-        # i ... minimal i for which x_axis_segs[i] <= x_pt
-        #  both e[i] and e[i+1] are from vertical lines
-        #  one or both of e[i] and e[i+1] are from horizontal lines
-        #  We check all these edges for incidence with Point.
+        i = bisect.bisect_left(x_axis_segs, (x_pt, seg.id, seg))
+        # i ...  x_axis_segs[i-1] < x_pt <= x_axis_segs[i]
 
         assert i <= len(x_axis_segs)
-        if i == len(x_axis_segs):
-            return self._snap_to_polygon(self.outer_polygon, point)
-
-        px, id, seg0 = x_axis_segs[i]
-        snapped_0 =  self._snap_to_segment(seg0, point, up_is_left=False)
-        if snapped_0[0] < 2:
-            return snapped_0
-        wire0 = snapped_0[1]
-
-        if i >= len(x_axis_segs)-1:
-            return self._snap_to_polygon(wire0.polygon, point)
-
-        px, id, seg1 = x_axis_segs[i+1]
-        snapped_1 =  self._snap_to_segment(seg1, point, up_is_left=True)
-        if snapped_1[0] < 2:
-            return snapped_1
-        wire1 = snapped_1[1]
-
-        assert wire0.polygon == wire1.polygon
-        return self._snap_to_polygon(wire0.polygon, point)
+        idx_set = [ (max(i-1, 0), False), (min(i, len(x_axis_segs)-1), True) ]
+        for j, up in idx_set:
+            px, id, seg = x_axis_segs[j]
+            snapped = self._snap_to_segment(seg, point, up_is_left=up)
+            if snapped[0] < 2:
+                return snapped
+            wire = snapped[1]
+        return self._snap_to_polygon(wire.polygon, point)
 
 
     # Macro operations.
@@ -193,8 +177,8 @@ class PolygonDecomposition:
         :param b: numpy array X, Y
         :return:
         """
-        a = np.array(a)
-        b = np.array(b)
+        a = np.array(a, dtype=float)
+        b = np.array(b, dtype=float)
         a_point = self.add_point(a)
         b_point = self.add_point(b)
 
@@ -232,6 +216,9 @@ class PolygonDecomposition:
         segment = self.pt_to_seg.get((a_pt.id, b_pt.id), None)
         if segment is not None:
             return segment
+        segment = self.pt_to_seg.get((b_pt.id, a_pt.id), None)
+        if segment is not None:
+            return segment
 
         if a_pt.is_free() and b_pt.is_free():
             assert a_pt.poly == b_pt.poly
@@ -260,17 +247,17 @@ class PolygonDecomposition:
 
 
     def del_segment(self, segment):
-        a_pt, b_pt = segment.points
+        a_pt, b_pt = segment.vtxs
         left_self_ref = segment.next[left_side] == (segment, right_side)
         right_self_ref = segment.next[right_side] == (segment, left_side)
         # single seg ment vertices
         if left_self_ref and right_self_ref:
-            return self._rm_wire_in_poly(segment)
+            return self._rm_wire(segment)
         # one single segment
         if left_self_ref:
-            return self.rm_dendrite(segment, in_vtx)
+            return self._wire_rm_dendrite(segment, in_vtx)
         if right_self_ref:
-            return self.rm_dendrite(segment, out_vtx)
+            return self._wire_rm_dendrite(segment, out_vtx)
 
         if segment.is_dendrite():
             # dendrite -> split wire
@@ -280,17 +267,34 @@ class PolygonDecomposition:
             self._join_poly(segment)
 
 
+    def delete_point(self, point):
+        """
+        Delete given point with all connected segments.
+        :param point:
+        :return:
+        """
+        segs_to_del = [ seg for seg, side in point.segments()]
+        for seg in segs_to_del:
+            self.del_segment(seg)
+        self._remove_free_point(point)
+
+
+
     # Helper change operations.
-    def _append_segment(self, seg):
+    def _make_segment(self, points):
+        seg = Segment(points)
+        self.segments.append(seg)
         for vtx in [out_vtx, in_vtx]:
             seg.vtxs[vtx].join_segment(seg, vtx)
-        self.segments.append(seg)
         self.pt_to_seg[ seg.vtxs_ids() ] = seg
+        return seg
 
-    def _remove_segment(self, seg):
-        seg.vtxs[out_vtx].rm_segment(seg)
-        seg.vtxs[in_vtx].rm_segment(seg)
-        del self.pt_to_seg[ seg.vtxs_ids() ]
+    def _destroy_segment(self, seg):
+        seg.vtxs[out_vtx].rm_segment(seg, out_vtx)
+        seg.vtxs[in_vtx].rm_segment(seg, in_vtx)
+        a, b = seg.vtxs_ids()
+        self.pt_to_seg.pop( (a, b), None )
+        self.pt_to_seg.pop( (b, a), None)
         del self.segments[seg.id]
 
 
@@ -321,7 +325,7 @@ class PolygonDecomposition:
 
     def _remove_free_point(self, point):
         assert point.poly is not None
-        assert point.segment is None
+        assert point.segment[0] is None
         del point.poly.free_points[point.id]
         del self.points[point.id]
 
@@ -332,6 +336,7 @@ class PolygonDecomposition:
         :param seg:
         :param t_point:
         :return:
+        TODO: replace by del_segment and 2x new_segment
         """
         if t_point < self.tolerance:
             return seg.vtxs[out_vtx]
@@ -351,8 +356,7 @@ class PolygonDecomposition:
         seg.disconnect_vtx(in_vtx)
 
 
-        new_seg = Segment((mid_pt, seg.vtxs[in_vtx]))
-        self._append_segment(new_seg)
+        new_seg = self._make_segment((mid_pt, seg.vtxs[in_vtx]))
         seg.vtxs[in_vtx] = mid_pt
         new_seg.connect_vtx(out_vtx, seg_tip_insert)
         if b_seg_insert is None:
@@ -365,20 +369,29 @@ class PolygonDecomposition:
 
 
     def _join_segments(self, mid_point, seg0, seg1):
+        """
+        TODO: replace by del_segment and 2x new_segment
+        """
+        if seg0.vtxs[in_vtx] == mid_point:
+            seg0_out_vtx, seg0_in_vtx = out_vtx, in_vtx
+        else:
+            seg0_out_vtx, seg0_in_vtx = in_vtx, out_vtx
 
-        # TODO: implement segment inversion and allow joining of any two segments
-        assert seg0.vtxs[in_vtx] == mid_point
-        assert seg1.vtxs[out_vtx] == mid_point
+        if seg1.vtxs[out_vtx] == mid_point:
+            seg1_out_vtx, seg1_in_vtx = out_vtx, in_vtx
+        else:
+            seg1_out_vtx, seg1_in_vtx = in_vtx, out_vtx
 
         # Assert that no other segments are joined to the mid_point
-        assert seg0.next[left_side] == (seg1, left_side)
-        assert seg1.next[right_side] == (seg0, right_side)
+        assert seg0.next[seg0_in_vtx] == (seg1, seg1_in_vtx)
+        assert seg1.next[seg1_out_vtx] == (seg0, seg0_out_vtx)
 
-        b_seg1_insert = seg1.vtx_insert_info(in_vtx)
-        seg1.disconnect(in_vtx)
-        seg1.disconnect(out_vtx)
-        seg0.vtxs[in_vtx] = seg1.vtxs[in_vtx]
-        seg0.connect_vtx(in_vtx, b_seg1_insert)
+        b_seg1_insert = seg1.vtx_insert_info(seg1_in_vtx)
+        seg1.disconnect_vtx(seg1_in_vtx)
+        seg1.disconnect_vtx(seg1_out_vtx)
+        seg0.disconnect_vtx(seg0_in_vtx)
+        seg0.vtxs[seg0_in_vtx] = seg1.vtxs[seg1_in_vtx]
+        seg0.connect_vtx(seg0_in_vtx, b_seg1_insert)
 
         # fix possible polygon references
         for side in [left_side, right_side]:
@@ -386,8 +399,8 @@ class PolygonDecomposition:
             if wire.segment == (seg1, side):
                 wire.segment = (seg0, side)
 
-        self._remove_segment(seg1)
-        del self.points[mid_point.id]
+        self._destroy_segment(seg1)
+        self._remove_free_point(mid_point)
 
     def _new_wire(self, polygon, a_pt, b_pt):
         """
@@ -399,12 +412,11 @@ class PolygonDecomposition:
         del polygon.free_points[b_pt.id]
         wire = Wire()
         wire.polygon = polygon
-        seg = Segment((a_pt, b_pt))
+        seg = self._make_segment((a_pt, b_pt))
         seg.connect_free_vtx(out_vtx, wire)
         seg.connect_free_vtx(in_vtx, wire)
         wire.segment = (seg, right_side)
         wire.parent = polygon.outer_wire
-        self._append_segment(seg)
         self.wires.append(wire)
         polygon.holes[wire.id] = wire
         return seg
@@ -420,7 +432,7 @@ class PolygonDecomposition:
         polygon = wire.polygon
         del polygon.holes[wire.id]
         del self.wires[wire.id]
-        self._remove_segment(segment)
+        self._destroy_segment(segment)
 
 
     def _wire_add_dendrite(self, root_pt, r_insert, free_pt):
@@ -432,8 +444,7 @@ class PolygonDecomposition:
         assert wire.polygon == free_pt.poly
         del polygon.free_points[free_pt.id]
 
-        seg = Segment( (root_pt, free_pt))
-        self._append_segment(seg)
+        seg = self._make_segment( (root_pt, free_pt))
         seg.connect_vtx(out_vtx, r_insert)
         seg.connect_free_vtx(in_vtx, wire)
         return seg
@@ -447,7 +458,7 @@ class PolygonDecomposition:
         assert segment.is_dendrite()
         segment.disconnect_vtx(root_vtx)
         segment.disconnect_wires()
-        self._remove_segment(segment)
+        self._destroy_segment(segment)
 
     def _join_wires(self, a_pt, b_pt, a_insert, b_insert):
         """
@@ -459,8 +470,7 @@ class PolygonDecomposition:
         assert a_wire.polygon == b_wire.polygon
 
         # set next links
-        new_seg = Segment( (a_pt, b_pt))
-        self._append_segment(new_seg)
+        new_seg = self._make_segment( (a_pt, b_pt))
         new_seg.connect_vtx(out_vtx, a_insert)
         new_seg.connect_vtx(in_vtx, b_insert)
 
@@ -496,8 +506,8 @@ class PolygonDecomposition:
             assert seg.wire[side] == a_wire
             seg.wire[side] = b_wire
 
-        segment.disconnect(out_vtx)
-        segment.disconnect(in_vtx)
+        segment.disconnect_vtx(out_vtx)
+        segment.disconnect_vtx(in_vtx)
         segment.disconnect_wires()
 
         # setup new b_wire
@@ -520,7 +530,7 @@ class PolygonDecomposition:
             polygon.holes[b_wire.id] = b_wire
 
         # remove segment
-        self._remove_segment(segment)
+        self._destroy_segment(segment)
 
 
 
@@ -538,8 +548,7 @@ class PolygonDecomposition:
         self.wires.append(left_wire)
 
         # set next links
-        new_seg = Segment( (a_pt, b_pt))
-        self.segments.append(new_seg)
+        new_seg = self._make_segment( (a_pt, b_pt))
         new_seg.connect_vtx(out_vtx, (a_prev, a_next, right_wire))
         new_seg.connect_vtx(in_vtx, b_insert)
 
@@ -587,7 +596,7 @@ class PolygonDecomposition:
         return new_seg
 
 
-    def _joint_poly(self, segment):
+    def _join_poly(self, segment):
         """
         Join polygons by removing a segment.
         """
@@ -681,14 +690,15 @@ class Point:
             self.poly = None
             self.segment = (seg, vtx)
 
-    def rm_segment(self, seg):
-        if self.segment[0] == seg:
+    def rm_segment(self, seg, vtx):
+        if self.segment[0] is not None and self.segment[0] == seg:
             for new_seg, side in self.segments():
                 if not new_seg == seg:
                     self.segment = (new_seg, side)
                     return
             assert seg.is_dendrite()
             self.poly = seg.wire[left_side].polygon
+            self.poly.free_points[self.id] = self
             self.segment = (None, None)
 
     def colocated(self, xy_pt, tol):
@@ -779,7 +789,7 @@ class Segment:
         Disconect next links of one vtx side of self segment.
         :param vtx_idx: out_vtx or in_vtx
         """
-        self.vtxs[vtx_idx].rm_segment(self)
+        self.vtxs[vtx_idx].rm_segment(self, vtx_idx)
         seg_side_prev = 1 - vtx_idx
         seg_side_next = vtx_idx
 
@@ -806,7 +816,7 @@ class Segment:
         :return:
         """
         Dxy = self.vector()
-        axis = np.argmax(Dxy)
+        axis = np.argmax(np.abs(Dxy))
         D = Dxy[axis]
         assert np.abs(D) > 1e-100
         t = (pt[axis] - self.vtxs[0].xy[axis]) / D
@@ -837,14 +847,18 @@ class Segment:
         else:
             return (None, None)
 
-    def x_line_isec(self, xy):
+    def x_line_isec(self, xy, tol = 1e-12):
         vtxs = np.array([self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy])
         Dy = vtxs[1, 1] - vtxs[0, 1]
         magnitude = np.max(vtxs[:, 1])
         # require at least 4 decimal digit remaining precision of the Dy
         if np.abs(Dy) < 1e-12 * (1.0 + magnitude):
             # horizontal edge
-            return [ vtxs[0, 0], vtxs[1, 0] ]
+            min_y, max_y = np.sort(vtxs[:, 1])
+            if min_y - tol <= xy[1] <= max_y + tol:
+                return [ vtxs[0, 0], vtxs[1, 0] ]
+            else:
+                return []
         else:
             t = (xy[1] - vtxs[0, 1]) / Dy
             if 0 < t <= 1:

@@ -49,7 +49,9 @@ class TestPolygons:
             patches = []
         pts = []
         for seg, side in polygon.outer_wire.outer_segments():
-            pts.append(seg.vtxs[0].xy)
+
+            pts.append(seg.vtxs[1-side].xy)
+        pts.append(seg.vtxs[side].xy)
         patches.append(mp.Polygon(pts))
         return patches
 
@@ -63,7 +65,8 @@ class TestPolygons:
         patches = []
         for poly in decomp.polygons.values():
             patches.extend( self.plot_polygon(poly) )
-        p = mc.PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
+        #p = mc.PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
+        p = mc.PatchCollection(patches, color='blue', alpha=0.2)
 
         ax.add_collection(p)
 
@@ -111,6 +114,10 @@ class TestPolygons:
         assert len(decomp.polygons) == 1
         assert len(decomp.outer_polygon.holes) == 1
 
+        # test line matching existing segment
+        sg_c = decomp.new_segment(pt_a, pt_b)
+        sg_c = decomp.new_segment(pt_b, pt_a)
+
         # test add_line - new_segment, add_dendrite
         res = decomp.add_line( (0,0), (0,1) )
         assert len(res) == 1
@@ -137,9 +144,8 @@ class TestPolygons:
         assert pt == (0, pt_b, None)
 
         print(decomp)
-        # test _split_segment
-
-        result = decomp.add_line((2,1), (3,0))           # _join_wires
+        # test _split_segment, new segment - add_dendrite
+        result = decomp.add_line((2,1), (3,0))
         sg_e, sg_f = result
 
         assert sg_e.vtxs[in_vtx].colocated((2,1), 0.001)
@@ -157,16 +163,68 @@ class TestPolygons:
         assert sg_f.next[right_side] == (sg_g, right_side)
         assert sg_g.next[right_side] == (sg_g, left_side)
         assert sg_g.next[left_side] == (sg_e, left_side)
-        decomp.add_line((2.5, 0), (3, 0.5))
+        sg_o, sg_p = decomp.add_line((2.5, 0), (3, 0.5))
 
+        # test add_point on segment
+        decomp.add_point((2.25, 0.75))
         #self.plot_polygons(decomp)
 
 
+        # test new_segment - split polygon
+        decomp.add_line( (-0.5, 1), (1, -0.5))
 
-        decomp.add_line( (-0.5, 1), (1, -0.5))  # new polygon
+        # test split_segment in vertex
+        decomp.add_line( (2,0.5), (2,-0.5))
+
+        # test new_segment - join_wires
+        assert len(decomp.wires) == 3
+        assert len(decomp.polygons) == 2
+        sg_m, = decomp.add_line((0, 1), (2, 1))
+        assert len(decomp.wires) == 2
+        assert len(decomp.polygons) == 2
+
+        #self.plot_polygons(decomp)
+
+        # delete segment - split wire
+        decomp.del_segment(sg_m)
+        assert len(decomp.wires) == 3
+        assert len(decomp.polygons) == 2
+
+        pt_op = sg_p.vtxs[out_vtx]
+        decomp.del_segment(sg_f)
+        assert len(decomp.wires) == 4
+        assert len(decomp.polygons) == 2
+
+        #test split_segment connected on both sides; split non outer polygon
+        decomp.add_line( (0,0.25), (0.25, 0.25))
+
+        # test _join_segments - _split_segment inversion
+        seg1 = sg_e
+        mid_point = seg1.vtxs[in_vtx]
+        seg0 = sg_e.next[left_side][0]
+        decomp._join_segments(mid_point, seg0, seg1)
+
+        print("Decomp:\n", decomp)
+        decomp.delete_point(pt_op)
+        #self.plot_polygons(decomp)
+
+
+    def test_split_poly(self):
+        decomp = PolygonDecomposition()
+        sg_a, = decomp.add_line((0,0), (2,0))
+        sg_b, = decomp.add_line((2, 0), (2, 2))
+        sg_c, = decomp.add_line((2, 2), (0, 2))
+        assert sg_a.next == [ (sg_a, 1), (sg_b, 1)]
+        assert sg_b.next == [ (sg_a, 0), (sg_c, 1)]
+        assert sg_c.next == [ (sg_b, 0), (sg_c, 0)]
+        sg_d, = decomp.add_line((0, 2), (0, 0))
         print("Decomp:\n", decomp)
         self.plot_polygons(decomp)
 
-#        decomp.add_point( [0.3, 0.3] )
-#        decomp.add_line( (-0.1, -0.1), (0.3, 0.3) )
-#        decomp.add_line( (0.3, 0.3), (1, 1))
+
+        assert len(decomp.polygons) == 2
+        decomp.add_line((0.5, 0.5), (1, 0.5))
+        decomp.add_line((1, 0.5), (1, 1))
+        decomp.add_line((1, 1), (0.5, 1))
+        decomp.add_line((0.5, 1), (0.5, 0.5))
+        self.plot_polygons(decomp)
