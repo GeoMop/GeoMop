@@ -10,23 +10,43 @@ import numpy as np
 
 class TestPoint:
     def test_insert_segment(self):
-        vec = np.array([10, 1])
-        pt0 = Point( [0.0, 0.0], None)
-        assert pt0.insert_segment(vec) == None
+        decomp = PolygonDecomposition()
+        pt0 = decomp.points.append(Point( [0.0, 0.0], None))
+        assert pt0.insert_segment(np.array([10, 1])) == None
 
-        pt1 = Point( [0.0, 1.0], None)
-        seg0 = Segment( (pt0, pt1))
+        pt1 = decomp.points.append(Point( [0.0, 1.0], None))
+        seg0 = decomp.segments.append(Segment( (pt0, pt1)))
         seg0.next = [ (seg0, left_side), (seg0, right_side)]
         pt0.segment = (seg0, out_vtx)
         pt1.segment = (seg0, in_vtx)
-        assert pt0.insert_segment(vec) == ( (seg0, right_side), (seg0, left_side), None)
 
+        assert pt0.insert_segment(np.array([10, 1])) == ( (seg0, right_side), (seg0, left_side), None)
+        assert pt0.insert_segment(np.array([-10, -1])) == ((seg0, right_side), (seg0, left_side), None)
+
+        pt2 = decomp.points.append(Point([0.0, -1], None))
+        seg1 = decomp.segments.append(Segment( (pt2, pt0) ))
+        pt2.segment = (seg1, out_vtx)
+        pt3 = decomp.points.append(Point([-1, 0], None))
+        seg2 = decomp.segments.append(Segment( (pt0, pt3) ))
+        pt2.segment = (seg1, in_vtx)
+        seg0.next[right_side] = (seg1, right_side)
+        seg1.next[right_side] = (seg1, left_side)
+        seg1.next[left_side] = (seg2, left_side)
+        seg2.next[left_side] = (seg2, right_side)
+        seg2.next[right_side] = (seg0, left_side)
+
+        assert pt0.insert_segment(np.array([10, 1])) == ((seg0, right_side), (seg1, right_side), None)
+        assert pt0.insert_segment(np.array([-10, -1])) == ((seg1, left_side), (seg2, left_side), None)
+        assert pt0.insert_segment(np.array([-10, +1])) == ((seg2, right_side), (seg0, left_side), None)
 
 class TestPolygons:
     def plot_polygon(self, polygon):
         if polygon is None or polygon.displayed or polygon.outer_wire == None:
             return []
-        patches = self.plot_polygon( polygon.outer_wire.polygon )
+        if polygon.outer_wire.parent is not None:
+            patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
+        else:
+            patches = []
         pts = []
         for seg, side in polygon.outer_wire.outer_segments():
             pts.append(seg.vtxs[0].xy)
@@ -86,8 +106,12 @@ class TestPolygons:
         pt = decomp.snap_point([1+5e-3, 5e-3])
         assert pt == (0, pt_b, None)
 
-        # test new_segment and add_line - simple cases
+        # test new_segment, new_wire
         sg_c = decomp.new_segment(pt_a, pt_b)
+        assert len(decomp.polygons) == 1
+        assert len(decomp.outer_polygon.holes) == 1
+
+        # test add_line - new_segment, add_dendrite
         res = decomp.add_line( (0,0), (0,1) )
         assert len(res) == 1
         sg_d = res[0]
@@ -99,6 +123,9 @@ class TestPolygons:
         assert pt_a.segment == (sg_c, out_vtx)
 
         res = decomp.add_line( (2,0), (3,1) )
+        sg_x, = res
+        assert len(decomp.polygons) == 1
+        assert len(decomp.outer_polygon.holes) == 2
 
 
         # test snap point - snap to line
@@ -110,14 +137,35 @@ class TestPolygons:
         assert pt == (0, pt_b, None)
 
         print(decomp)
-        decomp.add_line( (2.5,0), (3, 0.5))
-        decomp.add_line((2,1), (3,0))           # _join_wires
-        print(decomp)
+        # test _split_segment
+
+        result = decomp.add_line((2,1), (3,0))           # _join_wires
+        sg_e, sg_f = result
+
+        assert sg_e.vtxs[in_vtx].colocated((2,1), 0.001)
+        assert sg_e.vtxs[out_vtx].colocated((2.5, 0.5), 0.001)
+        assert sg_f.vtxs[out_vtx].colocated((2.5, 0.5), 0.001)
+        assert sg_f.vtxs[in_vtx].colocated((3, 0), 0.001)
+
+        assert sg_e.next[left_side] == (sg_e, right_side)
+        sg_h = sg_e.next[right_side][0]
+        assert sg_e.next[right_side] == (sg_h, left_side)
+        assert sg_h.next[left_side] == (sg_h, right_side)
+        assert sg_h.next[right_side] == (sg_f, left_side)
+        assert sg_f.next[left_side] == (sg_f, right_side)
+        sg_g = sg_f.next[right_side][0]
+        assert sg_f.next[right_side] == (sg_g, right_side)
+        assert sg_g.next[right_side] == (sg_g, left_side)
+        assert sg_g.next[left_side] == (sg_e, left_side)
+        decomp.add_line((2.5, 0), (3, 0.5))
+
+        #self.plot_polygons(decomp)
+
+
+
+        decomp.add_line( (-0.5, 1), (1, -0.5))  # new polygon
+        print("Decomp:\n", decomp)
         self.plot_polygons(decomp)
-
-
-#        decomp.add_line( (-0.5, 1), (1, -0.5))  # new polygon
-#        self.plot_polygons(decomp)
 
 #        decomp.add_point( [0.3, 0.3] )
 #        decomp.add_line( (-0.1, -0.1), (0.3, 0.3) )
