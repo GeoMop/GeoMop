@@ -240,6 +240,44 @@ Section "ModelEditor" SecModelEditor
 SectionEnd
 
 
+Section "-Batch files" SecBatchFiles
+
+  CreateDirectory "$INSTDIR\bin"
+  SetOutPath $INSTDIR\bin
+
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +5
+    FileOpen $0 "job_panel.bat" w
+    FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\JobPanel\job_panel.py"$\r$\n'
+    FileClose $0
+
+  IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +5
+    FileOpen $0 "layer_editor.bat" w
+    FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\layer_editor.py"$\r$\n'
+    FileClose $0
+
+  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +5
+    FileOpen $0 "model_editor.bat" w
+    FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py"$\r$\n'
+    FileClose $0
+
+  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +5
+    FileOpen $0 "geometry.bat" w
+    FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py"$\r$\n'
+    FileClose $0
+
+  IfFileExists "$INSTDIR\gmsh\gmsh.exe" 0 +5
+    FileOpen $0 "gmsh.bat" w
+    FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 '"$INSTDIR\gmsh\gmsh.exe"$\r$\n'
+    FileClose $0
+
+SectionEnd
+
+
 Section "Start Menu shortcuts" SecStartShortcuts
 
   CreateDirectory "$SMPROGRAMS\GeoMop"
@@ -333,8 +371,12 @@ SectionEnd
 "Remove jobs scheduler."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
 "The job panel."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecLayerEditor} \
+"The layer editor."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecModelEditor} \
 "The interactive editor for Flow123d configuration files."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecBatchFiles} \
+"This adds batch files to bin directory."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcuts} \
 "This adds shortcuts to your Start Menu."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopIcons} \
