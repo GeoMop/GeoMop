@@ -15,6 +15,10 @@ class CurrentView():
     def __init__(self, event_location):
         self.diagram_id = self.cfg.diagram_id()
         """Current diagram id"""
+        self.tab_id = self.cfg.main_window.regions.currentIndex()
+        """Current layer tab id in region panel"""
+        self.region_id = self.cfg.main_window.regions.get_current_region()
+        """Current region id in region panel"""
         self.diagram_zoom =  self.cfg.diagram.zoom
         """Current diagram zoom"""
         self.diagram_pos_x = self.cfg.diagram.x
@@ -29,17 +33,21 @@ class CurrentView():
         if self.event_location is EventLocation.layer:
             return True
         elif self.event_location is EventLocation.diagram:
-            return self.diagram_id==self.cfg.diagram_id()            
+            return self.diagram_id==self.cfg.diagram_id()  
+        elif self.event_location is EventLocation.region:
+            return True
         raise ValueError("Invalid event location type")
         
-    def cmp(self, event_location):
+    def cmp(self, event_location, first_location):
         """Return if current view is same as actual state"""
-        if event_location != self.event_location:
+        if event_location != first_location:
             return False
         if self.event_location is EventLocation.layer:
             return True
         elif self.event_location is EventLocation.diagram:
-            return self.diagram_id==self.cfg.diagram_id()            
+            return self.diagram_id==self.cfg.diagram_id()
+        elif self.event_location is EventLocation.region:
+            return True
         raise ValueError("Invalid event location type")
         
     def set_view(self):

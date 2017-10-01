@@ -1139,7 +1139,7 @@ class Shape(metaclass=abc.ABCMeta):
     def _test_end(self, line, diagrams):
         """Test for get_polyline_from_boundary"""
         if diagrams is None:
-            return line.count_polygons==2
+            return line.count_polygons()==2
         if line.polygon1==diagrams[0] and line.polygon2==diagrams[1]:
             return False
         if line.polygon2==diagrams[0] and line.polygon1==diagrams[1]:
@@ -1193,7 +1193,12 @@ class Shape(metaclass=abc.ABCMeta):
         return res 
 
     def _move_disjoin_boundary_to_bundled(self, boundary, polygon2, is_outside, all=False):
-        """Move disjoin boundary to budled cluster of next polygon"""
+        """Move disjoin boundary to budled cluster of next polygon
+        
+        :param bool is_outside: polygon2 is outside area
+        :param bool all: boundary contains all rest polygon lines 
+            (is disjoin polygon without neigbors)
+        """
         join_clusters = []
         for cluster in self.bundled_clusters:
             if boundary.points[0] in cluster.joins:
@@ -1215,10 +1220,14 @@ class Shape(metaclass=abc.ABCMeta):
         else:
             cluster.polylines.append(boundary)
         if not all:
-            if is_outside:
-                cluster.inner_joins.append(boundary.points[-1])
+            if len(boundary.points[-1].lines)==1:
+                point = boundary.points[0]
             else:
-                cluster.joins.append(boundary.points[-1])
+                point = boundary.points[-1]
+            if is_outside:
+                cluster.inner_joins.append(point)
+            else:
+                cluster.joins.append(point)
         for i in range(start, len(boundary.points)-1):
             first = True
             remove = []
@@ -1345,7 +1354,7 @@ class Shape(metaclass=abc.ABCMeta):
                 line.in_polygon = move_polygon 
         parent = PolygonOperation.get_container(diagram, del_polygon)        
         parent.inner.del_polygon(del_polygon.spolygon)
-        diagram.del_polygon(del_polygon)        
+        diagram.del_polygon(del_polygon, PolygonOperation.label, PolygonOperation.not_history)        
         
     def remove_line(self, del_line):
         """disjoin 2 shapes"""
@@ -1594,7 +1603,7 @@ class Shape(metaclass=abc.ABCMeta):
                 
     def make_polygon_diagram(self, diagram, polyline, ):
         """Make diagram polygon object"""
-        polygon = diagram.add_polygon(polyline.lines)
+        polygon = diagram.add_polygon(polyline.lines, PolygonOperation.label, PolygonOperation.not_history)
         polygon.spolygon = SimplePolygon()
         polygon.spolygon.boundary_lines = polyline.lines
         polygon.spolygon.boundary_points = polyline.points[0:-1] 
@@ -1730,6 +1739,10 @@ class PolygonOperation():
     """
     line_spliting = None
     """Note about spliting line in next add operation"""
+    label = None
+    """History label for this operation"""
+    not_history = True
+    """Not save this operation to history"""
     
     @classmethod    
     def next_split_line(cls, line):
@@ -1822,8 +1835,11 @@ class PolygonOperation():
         return None
     
     @classmethod
-    def update_polygon_add_line(cls, diagram, line):
+    def update_polygon_add_line(cls, diagram, line, label=None, not_history=True):
         """Update polygon structures after add line"""
+        cls.label = label
+        cls.not_history = not_history
+        
         if cls.line_spliting is not None:
             line2 = cls.line_spliting
             cls.line_spliting = None
@@ -1868,8 +1884,11 @@ class PolygonOperation():
         # TODO: If line is in boundary, update outside
     
     @classmethod
-    def update_polygon_del_line(cls, diagram, line):
+    def update_polygon_del_line(cls, diagram, line, label=None, not_history=True):
         """Update polygon structures after delete line"""
+        cls.label = label
+        cls.not_history = not_history
+        
         if line.polygon1 is not None:
             if line.polygon2 is not None:
                 border = line.polygon1.spolygon.remove_2boundary(line, line.polygon2.spolygon)

@@ -22,6 +22,9 @@ class _Config:
     SERIAL_FILE = "LayerEditorData"
     """Serialize class file"""
     
+    COUNT_RECENT_FILES = 5
+    """Count of recent files"""
+    
     CONTEXT_NAME = 'LayerEditor'
     
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'LayerEditor')

@@ -68,6 +68,8 @@ class EditMenu(QMenu):
                     if ops["refresh_panel"]: 
                         cfg.main_window.update_panel()
             if ret:
+                self._diagram._add_polygons()
+                self._diagram._del_polygons()
                 return
             view = cfg.history.get_undo_view()
             if view is not None:
@@ -94,7 +96,12 @@ class EditMenu(QMenu):
                         cfg.set_curr_diagram(0)               
                     if ops["refresh_panel"]: 
                         cfg.main_window.update_panel()
+                elif ops["type"]=="Regions": 
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.set_region(view.tab_id, view.region_id)
             if ret:
+                self._diagram._add_polygons()
+                self._diagram._del_polygons()
                 return
             view = cfg.history.get_redo_view()
             if view is not None:

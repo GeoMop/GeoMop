@@ -183,7 +183,7 @@ class Polygon():
 
     def set_current_region(self):
         """Set polygon region to current region"""
-        Diagram.regions.set_regions(2, self.id)
+        Diagram.regions.set_regions(2, self.id, True, "Set Regions")
         
     def get_polygon_regions(self):
         """Return polygon regions"""
@@ -358,6 +358,27 @@ class Diagram():
                 if ok:
                     map[self.topology_idx][2][polygon_idx] = polygon.id
                     return
+                    
+    def get_polygon_lines(self, id):
+        """Return polygon lines ndexes"""
+        for polygon in self.polygons:
+            if polygon.id==id:
+                idxs = []
+                for line in polygon.lines:
+                    idxs.append(line.id)
+                return idxs
+                
+    def find_polygon(self, line_idxs):
+        """Try find poligon accoding to lines indexes"""
+        for polygon in self.polygons:
+            if len(line_idxs)==len(polygon.lines):
+                ok = True
+                for line in polygon.lines:
+                    if not line.id in line_idxs:
+                        ok = False
+                        break
+                if ok:                    
+                    return polygon.id
     
     @classmethod
     def delete_map(cls):
@@ -582,27 +603,29 @@ class Diagram():
                 if self._rect.bottom()<p.y:
                     self._rect.setBottom(p.y)
                     
-    def add_polygon(self, lines):
+    def add_polygon(self, lines, label=None, not_history=True):
         """Add polygon to list"""
         polygon = Polygon(lines)
-        self.regions.add_regions(2, polygon.id)
-        self.new_polygons.append(polygon)
         self.polygons.append(polygon)
+        if not not_history:
+            self.regions.add_regions(2, polygon.id, not not_history, label)
+        self.new_polygons.append(polygon)        
         return polygon
         
-    def del_polygon(self, polygon):
+    def del_polygon(self, polygon, label=None, not_history=True):
         """Remove polygon from list"""
         self.polygons.remove(polygon)
-        self.regions.del_regions(2, polygon.id)
+        if not not_history:
+            self.regions.del_regions(2, polygon.id, not not_history, label)
         self.deleted_polygons.append(polygon)
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
         point = Point(x, y, id)
-        self.points.append(point)
-        self.regions.add_regions(0, point.id)
+        self.points.append(point)        
         #save revert operations to history
         if not not_history:
+            self.regions.add_regions(0, point.id)
             self._history.delete_point(point.id, label)
         # recount canvas size
         if self._rect is None:
@@ -650,7 +673,8 @@ class Diagram():
             need_recount = True
         # remove point
         self.points.remove(p)
-        self.regions.del_regions(0, p.id)
+        if not not_history:
+            self.regions.del_regions(0, p.id, not not_history)
         # recount canvas size
         if need_recount:
             self.recount_canvas()
@@ -668,12 +692,13 @@ class Diagram():
         line = Line(p1, p2, id)
         p1.lines.append(line)
         p2.lines.append(line)
-        self.lines.append(line)
-        PolygonOperation.update_polygon_add_line(self, line) 
-        self.regions.add_regions(1, line.id)
+        self.lines.append(line)        
         #save revert operations to history
         if not not_history:
-            self._history.delete_line(line.id, label)
+            self._history.delete_line(line.id, label)        
+        PolygonOperation.update_polygon_add_line(self, line, None, not_history) 
+        if not not_history:
+            self.regions.add_regions(1, line.id, not not_history)
         return line
         
     def join_line_intersection(self, p1, p2, label=None):
@@ -695,12 +720,12 @@ class Diagram():
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
-        l.p2.lines.remove(l)
-        PolygonOperation.update_polygon_del_line(self, l)
-        self.regions.del_regions(1, l.id)
+        l.p2.lines.remove(l)        
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
+            self.regions.del_regions(1, l.id, not not_history)
+        PolygonOperation.update_polygon_del_line(self, l, None, not_history)        
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
         """Call if point is moved by another way and need save history"""

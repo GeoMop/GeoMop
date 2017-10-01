@@ -208,6 +208,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
+            self._add_polygons()
             self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
@@ -253,9 +254,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             l.release_line()
             self.removeItem(l)
         for point in moved_points:
-            point.object.move_point()        
-        self._add_polygons()
-        self._del_polygons()
+            point.object.move_point()
         
     def release_views(self):
         """release all diagram views"""
@@ -469,6 +468,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+        self._add_polygons()
+        self._del_polygons()
         self.update_related_diagrams(self._point_moving)
             
     def update_related_diagrams(self, points):
