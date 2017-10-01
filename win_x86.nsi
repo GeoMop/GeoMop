@@ -248,31 +248,31 @@ Section "-Batch files" SecBatchFiles
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +5
     FileOpen $0 "job_panel.bat" w
     FileWrite $0 "@echo off$\r$\n"
-    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\JobPanel\job_panel.py"$\r$\n'
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\JobPanel\job_panel.py" %*$\r$\n'
     FileClose $0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +5
     FileOpen $0 "layer_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
-    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\layer_editor.py"$\r$\n'
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\layer_editor.py" %*$\r$\n'
     FileClose $0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +5
     FileOpen $0 "model_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
-    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py"$\r$\n'
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py" %*$\r$\n'
     FileClose $0
 
   IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +5
     FileOpen $0 "geometry.bat" w
     FileWrite $0 "@echo off$\r$\n"
-    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py"$\r$\n'
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py" %*$\r$\n'
     FileClose $0
 
   IfFileExists "$INSTDIR\gmsh\gmsh.exe" 0 +5
     FileOpen $0 "gmsh.bat" w
     FileWrite $0 "@echo off$\r$\n"
-    FileWrite $0 '"$INSTDIR\gmsh\gmsh.exe"$\r$\n'
+    FileWrite $0 '"$INSTDIR\gmsh\gmsh.exe" %*$\r$\n'
     FileClose $0
 
 SectionEnd
