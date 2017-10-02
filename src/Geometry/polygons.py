@@ -453,6 +453,7 @@ class PolygonDecomposition:
         for seg, side in b_wire.segments(start= (new_seg, in_vtx), end= (new_seg, out_vtx)):
             assert seg.wire[side] == b_wire, "wire: {} bwire: {} awire{}".format(seg.wire[side], b_wire, a_wire)
             seg.wire[side] = a_wire
+        new_seg.wire[out_vtx] = a_wire
 
         # remove b_wire
         if a_wire.polygon.outer_wire == b_wire:
@@ -524,8 +525,8 @@ class PolygonDecomposition:
 
         # set next links
         new_seg = self._make_segment( (a_pt, b_pt))
-        new_seg.connect_vtx(out_vtx, (a_prev, a_next, right_wire))
-        new_seg.connect_vtx(in_vtx, b_insert)
+        new_seg.connect_vtx(out_vtx, a_insert)
+        new_seg.connect_vtx(in_vtx, (b_prev, b_next, left_wire))
 
         # set right_wire links
         for seg, side in orig_wire.segments(start=new_seg.next[left_side], end = (new_seg, left_side)):
@@ -847,9 +848,8 @@ class Segment:
         :return:
         """
         x_isec = self.x_line_isec(xy)
-        x_isec.append(xy[0])
-        if min( x_isec )  > xy[0]:
-            return True
+        if x_isec and min( x_isec )  > xy[0]:
+                return True
         return False
 
 

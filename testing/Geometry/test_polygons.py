@@ -39,6 +39,23 @@ class TestPoint:
         assert pt0.insert_segment(np.array([-10, -1])) == ((seg1, left_side), (seg2, left_side), None)
         assert pt0.insert_segment(np.array([-10, +1])) == ((seg2, right_side), (seg0, left_side), None)
 
+
+class TestWire:
+    def test_contains(self):
+        decomp = PolygonDecomposition()
+        sg_a, = decomp.add_line((0,0), (2,0))
+        sg_b, = decomp.add_line((2, 0), (2, 2))
+        sg_c, = decomp.add_line((2, 2), (0, 2))
+        sg_d, = decomp.add_line((0, 2), (0, 0))
+        in_wire = sg_a.wire[left_side]
+        assert in_wire.contains_point([-1, 1]) == False
+        assert in_wire.contains_point([-0.0001, 1]) == False
+        assert in_wire.contains_point([+0.0001, 1]) == True
+        assert in_wire.contains_point([1.999, 1]) == True
+        assert in_wire.contains_point([2.0001, 1]) == False
+        assert in_wire.contains_point([0, 1]) == True
+        assert in_wire.contains_point([2, 1]) == False
+
 class TestPolygons:
     def plot_polygon(self, polygon):
         if polygon is None or polygon.displayed or polygon.outer_wire == None:
@@ -189,6 +206,7 @@ class TestPolygons:
         decomp.del_segment(sg_m)
         assert len(decomp.wires) == 3
         assert len(decomp.polygons) == 2
+        #self.plot_polygons(decomp)
 
         pt_op = sg_p.vtxs[out_vtx]
         decomp.del_segment(sg_f)
@@ -214,17 +232,33 @@ class TestPolygons:
         sg_a, = decomp.add_line((0,0), (2,0))
         sg_b, = decomp.add_line((2, 0), (2, 2))
         sg_c, = decomp.add_line((2, 2), (0, 2))
-        assert sg_a.next == [ (sg_a, 1), (sg_b, 1)]
-        assert sg_b.next == [ (sg_a, 0), (sg_c, 1)]
-        assert sg_c.next == [ (sg_b, 0), (sg_c, 0)]
         sg_d, = decomp.add_line((0, 2), (0, 0))
+
+        assert sg_a.next == [ (sg_d, 0), (sg_b, 1)]
+        assert sg_b.next == [ (sg_a, 0), (sg_c, 1)]
+        assert sg_c.next == [ (sg_b, 0), (sg_d, 1)]
+        assert sg_d.next == [ (sg_c, 0), (sg_a, 1)]
+
+        external_wire = list(decomp.outer_polygon.holes.values())[0]
+        assert sg_a.wire[right_side] == external_wire
+        assert sg_b.wire[right_side] == external_wire
+        assert sg_c.wire[right_side] == external_wire
+        assert sg_d.wire[right_side] == external_wire
         print("Decomp:\n", decomp)
-        self.plot_polygons(decomp)
+        #self.plot_polygons(decomp)
 
 
         assert len(decomp.polygons) == 2
-        decomp.add_line((0.5, 0.5), (1, 0.5))
+        sg_e, =decomp.add_line((0.5, 0.5), (1, 0.5))
         decomp.add_line((1, 0.5), (1, 1))
         decomp.add_line((1, 1), (0.5, 1))
         decomp.add_line((0.5, 1), (0.5, 0.5))
+        self.plot_polygons(decomp)
+        print("Decomp:\n", decomp)
+
+        # join nested wires
+        sg_x = decomp.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
+        self.plot_polygons(decomp)
+        #print("Decomp:\n", decomp)
+        decomp.del_segment(sg_x)
         self.plot_polygons(decomp)
