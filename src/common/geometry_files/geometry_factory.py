@@ -13,8 +13,8 @@ class GeometryFactory:
         """Geometry data object"""
         if  geometry is None:
             default_regions = [
-                Region(dict( color="#f0f0e8", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
-                Region(dict( color="#f0f0e8", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
+                Region(dict( color="#ffffff", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
+                Region(dict( color="#000000", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
                 Region(dict( color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
                 ]
             self.geometry = LayerGeometry( dict(regions=default_regions) )

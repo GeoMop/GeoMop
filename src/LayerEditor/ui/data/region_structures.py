@@ -99,7 +99,7 @@ class Regions():
         for layer_id in self.layers_topology[self.current_topology_id]:
             if dim!=self.current_regions[layer_id].dim:
                 # default region
-                layer_region[layer_id][shape_id] = self.regions.index(self.current_regions[layer_id])
+                layer_region[layer_id][shape_id] = dim
                 if to_history:
                     self._history.change_shape_region(shape_id, layer_id, dim, None, label)
             else:

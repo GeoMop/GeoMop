@@ -15,8 +15,13 @@ def create_polyline(p1, p2, num_lines=2):
     for i in range(num_lines - 1):
         p.append(Point(0, 0))
         l.append(Line(p[i], p[i + 1]))
+        p[i].lines.append(l)
+        p[i+1].lines.append(l)        
     p.append(p2)
     l.append(Line(p[-2], p[-1]))
+    p[-2].lines.append(l)
+    p[-1].lines.append(l)
+
     poly = Polyline()
     poly.lines = l
     poly.points = p
@@ -283,6 +288,10 @@ class TestPolylineCluster:
                      create_polyline(Point(0, 0), a),
                      create_polyline(b, Point(0, 0)),
                      create_polyline(b, Point(0, 0))]
+                     
+        # test polyline joins
+        assert len(a.lines)==3
+        assert len(b.lines)==3
 
         # construct cluster
         cluster = PolylineCluster()

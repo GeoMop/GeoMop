@@ -45,6 +45,17 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             pen.setColor(get_state_color(self.state))
             self.setPen(pen)
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
+        if self.state==ItemStates.standart:
+            color = self.point.get_color()
+            if color != "#ffffff":
+                old_pen = self.pen()
+                pen = QtGui.QPen(cfg.diagram.pen)
+                pen.setColor(QtGui.QColor(color))
+                pen.setStyle(QtCore.Qt.DotLine)
+                pen.setWidthF(5*self.pen().widthF())
+                self.setPen(pen)
+                super(Point, self).paint(painter, option, widget)
+                self.setPen(old_pen)
         super(Point, self).paint(painter, option, widget)
         
     def move_point(self, pos=None, new_state=None):

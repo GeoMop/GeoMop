@@ -7,7 +7,7 @@ import mock_config as mockcfg
 
 dialog_result = {}
 mockcfg.set_empty_config()
-editor = layer_editor.LayerEditor()
+editor = layer_editor.LayerEditor(False)
 
 
 def test_err_dialog(request):

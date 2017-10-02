@@ -44,7 +44,6 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         grid.addWidget(d_surface, 0, 0)
         i = LayersHelpers.add_surface_to_grid(self, grid, 1, surface)
         
-        self.depth = QtWidgets.QLineEdit()
         self.validator = QtGui.QDoubleValidator()
         
         if min is not None:
@@ -77,4 +76,4 @@ class SetSurfaceDlg(QtWidgets.QDialog):
              
     def fill_surface(self, surface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, self.grid, surface)
+        return LayersHelpers.fill_surface(self, surface)

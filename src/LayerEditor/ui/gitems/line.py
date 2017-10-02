@@ -39,9 +39,21 @@ class Line(QtWidgets.QGraphicsLineItem):
         if self.pen().color()!=get_state_color(self.state):
             pen = QtGui.QPen(cfg.diagram.pen)
             pen.setColor(get_state_color(self.state))
-            self.setPen(pen)
-        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
-        super(Line, self).paint(painter, option, widget)
+            self.setPen(pen)            
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing) 
+        super(Line, self).paint(painter, option, widget)            
+        if self.state==ItemStates.standart:
+            color = self.line.get_color()
+            if color != "#000000":
+                old_pen = self.pen()
+                pen = QtGui.QPen(cfg.diagram.pen)
+                pen.setColor(QtGui.QColor(color))
+                pen.setStyle(QtCore.Qt.DotLine)
+                pen.setWidthF(1.5*self.pen().widthF())
+                self.setPen(pen)
+                super(Line, self).paint(painter, option, widget)
+                self.setPen(old_pen)
+        
         
     def mousePressEvent(self,event):
         """Standart mouse event"""

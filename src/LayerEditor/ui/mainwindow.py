@@ -208,7 +208,11 @@ class MainWindow(QtWidgets.QMainWindow):
         """Update region for set shape"""
         if dim==2:
             regions = cfg.diagram.polygons[shape_idx].get_polygon_regions()
-            self.regions.select_current_regions(regions)
+        elif dim==1:
+            regions = cfg.diagram.lines[shape_idx].get_line_regions()
+        elif dim==0:
+            regions = cfg.diagram.lines[shape_idx].get_point_regions()
+        self.regions.select_current_regions(regions)
             
         
         

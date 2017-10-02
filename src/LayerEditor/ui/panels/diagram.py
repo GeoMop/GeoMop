@@ -539,10 +539,20 @@ class Diagram(QtWidgets.QGraphicsScene):
                     if isinstance(event.gobject, Polygon):
                         event.gobject.polygon.set_current_region()
                         event.gobject.update_color()
+                    elif isinstance(event.gobject, Line):
+                        event.gobject.line.set_current_region()
+                        event.gobject.update()
+                    elif isinstance(event.gobject, Point):
+                        event.gobject.point.set_current_region()
+                        event.gobject.update()
             if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
                         self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+                    elif isinstance(event.gobject, Line):
+                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
+                    elif isinstance(event.gobject, Point):
+                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
                 
             
     def mousePressEvent(self,event):

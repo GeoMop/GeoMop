@@ -70,7 +70,20 @@ class Point():
         if self.x==other.x and self.y==other.y:
             assert self is other
             return True
-        return False        
+        return False       
+       
+    def get_color(self):
+        """Return line color"""
+        return Diagram.regions.get_region_color(0, self.id)
+
+    def set_current_region(self):
+        """Set point region to current region"""
+        Diagram.regions.set_regions(0, self.id, True, "Set Regions")
+        
+    def get_point_regions(self):
+        """Return polygon regions"""
+        return Diagram.regions. get_regions(0, self.id)
+
 
 
 class Line():
@@ -146,6 +159,19 @@ class Line():
         
     def get_tmp_line(self, p1, p2):
         return Line(p1, p2, -1)
+        
+    def get_color(self):
+        """Return line color"""
+        return Diagram.regions.get_region_color(1, self.id)
+        
+    def set_current_region(self):
+        """Set polygon region to current region"""
+        Diagram.regions.set_regions(1, self.id, True, "Set Regions")
+        
+    def get_line_regions(self):
+        """Return polygon regions"""
+        return Diagram.regions. get_regions(1, self.id)
+
 
 class Polygon():
     """

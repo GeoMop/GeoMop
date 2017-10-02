@@ -642,20 +642,29 @@ class PolylineCluster():
             # process found polylines, and find its bundles
             for polyline in next_polylines:
                 if not polyline.points[0] in processed_bundles:
-                    end = polyline.points[0]
-                else:
-                    end = polyline.points[-1]
-                if end in self.joins:
-                    self.joins.remove(end)
-                    new_cluster.joins.append(end)
-                elif end in self.inner_joins:
-                    self.inner_joins.remove(end)
-                    new_cluster.inner_joins.append(end)
-                elif end in self.bundles:
-                    self.bundles.remove(end)
-                    next_bundles.append(end)
-                    new_cluster.bundles.append(end)
+                    if polyline.points[0] in self.joins:
+                        self.joins.remove(polyline.points[0])
+                        new_cluster.joins.append(polyline.points[0])
+                    elif polyline.points[0] in self.inner_joins:
+                        self.inner_joins.remove(polyline.points[0])
+                        new_cluster.inner_joins.append(polyline.points[0])
+                    elif polyline.points[0] in self.bundles:
+                        self.bundles.remove(polyline.points[0])
+                        next_bundles.append(polyline.points[0])
+                        new_cluster.bundles.append(polyline.points[0])
+                if not polyline.points[-1] in processed_bundles:
+                    if polyline.points[-1] in self.joins:
+                        self.joins.remove(polyline.points[-1])
+                        new_cluster.joins.append(polyline.points[-1])
+                    elif polyline.points[-1] in self.inner_joins:
+                        self.inner_joins.remove(polyline.points[-1])
+                        new_cluster.inner_joins.append(polyline.points[-1])
+                    elif polyline.points[-1] in self.bundles:
+                        self.bundles.remove(polyline.points[-1])
+                        next_bundles.append(polyline.points[-1])
+                        new_cluster.bundles.append(polyline.points[-1])
                 new_cluster.polylines.append(polyline)
+
             next_polylines = []
             # find bundle continuing
             for bundle in next_bundles:
