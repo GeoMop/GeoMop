@@ -296,7 +296,7 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
@@ -313,7 +313,7 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\geomap.ico" 0
+    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor

@@ -21,7 +21,7 @@ class LayerEditor:
     def __init__(self):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
-        self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
         cfg.init()
