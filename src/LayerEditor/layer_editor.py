@@ -50,8 +50,7 @@ class LayerEditor:
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
-            return
-        cfg.init()
+            return        
         cfg.new_file()
         init_dlg = SetDiagramDlg()
         ret = init_dlg.exec_()
@@ -84,7 +83,6 @@ class LayerEditor:
         if not self.save_old_file():
             return
         cfg.open_recent_file(action.text())
-        self.mainwindow.reload()
         self.mainwindow.update_recent_files()
 #        self._update_document_name()
 #        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")

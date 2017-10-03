@@ -57,6 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._menu = self.menuBar()
         self._edit_menu = EditMenu(self, self.diagramScene)
         self._file_menu = MainFileMenu(self, layer_editor)
+        self.update_recent_files(0)
         
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
@@ -81,6 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
         self.diagramScene.regionUpdateRequired.connect(self._update_region)
+        self.diagramScene.regionsUpdateRequired.connect(self._update_regions)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
@@ -98,6 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
         self.update_panel()
+        self.display_all()
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
@@ -204,7 +207,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Current topology or its structure is changed"""
         self.regions.set_topology(cfg.diagram.topology_idx)
         
-    def _update_region(self, dim, shape_idx):
+    def _update_regions(self, dim, shape_idx):
         """Update region for set shape"""
         if dim==2:
             regions = cfg.diagram.polygons[shape_idx].get_polygon_regions()
@@ -213,6 +216,16 @@ class MainWindow(QtWidgets.QMainWindow):
         elif dim==0:
             regions = cfg.diagram.lines[shape_idx].get_point_regions()
         self.regions.select_current_regions(regions)
+        
+    def _update_region(self, dim, shape_idx):
+        """Update region for set shape"""
+        if dim==2:
+            region = cfg.diagram.polygons[shape_idx].get_polygon_region()
+        elif dim==1:
+            region = cfg.diagram.lines[shape_idx].get_line_region()
+        elif dim==0:
+            region = cfg.diagram.lines[shape_idx].get_point_region()
+        self.regions.select_current_region(region)
             
         
         

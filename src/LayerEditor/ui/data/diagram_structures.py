@@ -78,11 +78,19 @@ class Point():
 
     def set_current_region(self):
         """Set point region to current region"""
+        Diagram.regions.set_region(0, self.id, True, "Set Region")
+        
+    def get_point_region(self):
+        """Return polygon regions"""
+        return Diagram.regions.get_region(0, self.id)
+        
+    def set_current_regions(self):
+        """Set point region to current region"""
         Diagram.regions.set_regions(0, self.id, True, "Set Regions")
         
     def get_point_regions(self):
         """Return polygon regions"""
-        return Diagram.regions. get_regions(0, self.id)
+        return Diagram.regions.get_regions(0, self.id)
 
 
 
@@ -166,11 +174,19 @@ class Line():
         
     def set_current_region(self):
         """Set polygon region to current region"""
+        Diagram.regions.set_region(1, self.id, True, "Set Region")
+        
+    def get_line_region(self):
+        """Return polygon regions"""
+        return Diagram.regions.get_region(1, self.id)
+        
+    def set_current_regions(self):
+        """Set polygon region to current region"""
         Diagram.regions.set_regions(1, self.id, True, "Set Regions")
         
     def get_line_regions(self):
         """Return polygon regions"""
-        return Diagram.regions. get_regions(1, self.id)
+        return Diagram.regions.get_regions(1, self.id)
 
 
 class Polygon():
@@ -209,11 +225,19 @@ class Polygon():
 
     def set_current_region(self):
         """Set polygon region to current region"""
+        Diagram.regions.set_region(2, self.id, True, "Set Region")
+        
+    def set_current_regions(self):
+        """Set polygon region to current region"""
         Diagram.regions.set_regions(2, self.id, True, "Set Regions")
         
     def get_polygon_regions(self):
         """Return polygon regions"""
-        return Diagram.regions. get_regions(2, self.id)
+        return Diagram.regions.get_regions(2, self.id)
+        
+    def get_polygon_region(self):
+        """Return polygon regions"""
+        return Diagram.regions.get_region(2, self.id)
  
 class Area():
     """Initialization area"""
