@@ -278,6 +278,9 @@ class TestPolylineCluster:
 
     def test_split_cluster(self):
         # 1. case
+        # \   /
+        #  -x-
+        # /   \
         #########
         # bundles
         a = Point(0, 0)
@@ -308,6 +311,144 @@ class TestPolylineCluster:
         assert len(new_cluster.polylines[0].lines) == 1
         assert new_cluster.polylines[1:] == polylines[-2:]
         assert new_cluster.bundles == [b]
+
+    # 2. case
+    # \  /
+    #  -x
+    # /  \
+    #########
+    # bundles
+    a = Point(0, 0)
+    b = Point(0, 0)
+
+    polylines = [create_polyline(a, b, 2),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(b, Point(0, 0)),
+                 create_polyline(b, Point(0, 0))]
+
+    # test polyline joins
+    assert len(a.lines) == 3
+    assert len(b.lines) == 3
+
+    # construct cluster
+    cluster = PolylineCluster()
+    cluster.polylines = polylines.copy()
+    cluster.bundles = [a, b]
+
+    line = polylines[0].lines[1]
+    new_cluster = cluster.split_cluster(line)
+    # check split
+    assert cluster.polylines == polylines[:3]
+    assert len(cluster.polylines[0].lines) == 1
+    assert cluster.bundles == [a]
+    assert len(new_cluster.polylines) == 1
+    assert len(new_cluster.polylines[0].lines) == 4
+    assert len(new_cluster.bundles) == 0
+
+    # 3. case
+    # \  /
+    #  -x-
+    # /  \
+    #########
+    # bundles
+    a = Point(0, 0)
+    b = Point(0, 0)
+
+    polylines = [create_polyline(a, b, 2),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(b, Point(0, 0)),
+                 create_polyline(b, Point(0, 0)),
+                 create_polyline(b, Point(0, 0))]
+
+    # test polyline joins
+    assert len(a.lines) == 3
+    assert len(b.lines) == 4
+
+    # construct cluster
+    cluster = PolylineCluster()
+    cluster.polylines = polylines.copy()
+    cluster.bundles = [a, b]
+
+    line = polylines[0].lines[1]
+    new_cluster = cluster.split_cluster(line)
+    # check split
+    assert cluster.polylines == polylines[:3]
+    assert len(cluster.polylines[0].lines) == 1
+    assert cluster.bundles == [a]
+    assert len(new_cluster.polylines) == 3#polylines[-3:]
+    assert new_cluster.bundles == [b]
+
+    # 4. case
+    # \  /
+    #  x-
+    # /  \
+    #########
+    # bundles
+    a = Point(0, 0)
+    b = Point(0, 0)
+
+    polylines = [create_polyline(a, b, 2),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(b, Point(0, 0)),
+                 create_polyline(b, Point(0, 0))]
+
+    # test polyline joins
+    assert len(a.lines) == 3
+    assert len(b.lines) == 3
+
+    # construct cluster
+    cluster = PolylineCluster()
+    cluster.polylines = polylines.copy()
+    cluster.bundles = [a, b]
+
+    line = polylines[0].lines[0]
+    new_cluster = cluster.split_cluster(line)
+    # check split
+    assert len(cluster.polylines ) == 1
+    assert len(cluster.polylines[0].lines) == 4
+    assert len(cluster.bundles) == 0
+    assert len(new_cluster.polylines) == 3
+    assert len(new_cluster.polylines[0].lines) == 1
+    assert new_cluster.polylines[1:] == polylines[-2:]
+    assert new_cluster.bundles == [b]
+
+    # 5. case
+    # \  /
+    # -x-
+    # /  \
+    #########
+    # bundles
+    a = Point(0, 0)
+    b = Point(0, 0)
+
+    polylines = [create_polyline(a, b, 2),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(Point(0, 0), a),
+                 create_polyline(b, Point(0, 0)),
+                 create_polyline(b, Point(0, 0))]
+
+    # test polyline joins
+    assert len(a.lines) == 4
+    assert len(b.lines) == 3
+
+    # construct cluster
+    cluster = PolylineCluster()
+    cluster.polylines = polylines.copy()
+    cluster.bundles = [a, b]
+
+    line = polylines[0].lines[0]
+    new_cluster = cluster.split_cluster(line)
+    # check split
+    assert cluster.polylines == polylines[1:4]
+    assert cluster.bundles == [a]
+    assert len(new_cluster.polylines) == 3
+    assert len(new_cluster.polylines[0].lines) == 1
+    assert new_cluster.polylines[1:] == polylines[-2:]
+    assert new_cluster.bundles == [b]
 
     def test_try_split_by_bundle(self):
         p = [Point(0, 0), Point(0, 0), Point(0, 0)]
