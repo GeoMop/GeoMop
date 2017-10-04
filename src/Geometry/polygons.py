@@ -4,7 +4,13 @@ import numpy.linalg as la
 import enum
 
 # TODO: rename point - > node
-
+# TODO: Change points, segments, wires, polygons, holes, free_points to sets where it is appropriate.
+# TODO: careful unification of tolerance usage.
+# TODO: Review segment snapping to snap in normal direction.
+# TODO: Performance tests:
+# - snap_point have potentialy very bad complexity O(Nlog(N)) with number of segments
+# - add_line linear with number of segments
+# - other operations are at most linear with number of segments per wire or point
 
 in_vtx = left_side = 1
 # vertex where edge comes in; side where next segment is connected through the in_vtx
@@ -185,8 +191,52 @@ class PolygonDecomposition:
         result.append( self.new_segment(start_pt, b_point) )
         return result
 
-    def move_points(self):
-        pass
+    def check_displacment(self, points, displacement):
+        """
+        param: points: List of Points to move.
+        param: displacement: Numpy array, 2D vector of displacement to add to the points.
+        :return: Shortened displacement to not cross any segment.
+        """
+        # Collect fixed sides of segments connecting fixed and moving point.
+        segment_set = set()
+        for pt in points:
+            for seg, side in pt.segments():
+                opposite = (seg, 1-side)
+                if opposite in segment_set:
+                    segment_set.remove(opposite)
+                else:
+                    segment_set.add((seg, side))
+
+        # collect segments fomring envelope(s) of the moving points
+        envelope = set()
+        for seg, side in segment_set:
+            for e_seg_side in seg.wire[side].segments(start = seg.next[side]):
+                if e_seg_side in segment_set:
+                    break
+                e_seg, e_side = e_seg_side
+                envelope.add(e_seg)
+
+        new_displ = displacement
+        for seg in envelope:
+            for pt in points:
+                (t0, t1) = seg.intersection(pt.xy, pt.xy + new_displ)
+                # TODO: Treat case of vector and segment in line.
+                # TODO: Check bound checks in intersection.
+                if t0 is not None:
+                    new_displ *= t1
+        return new_displ
+
+
+    def move_points(self, points, displacement):
+        """
+        Move given points by given displacement vector. Assumes no intersections. But possible
+        segment splitting (add_point is called).
+        param: points: List of Points to move.
+        param: displacement: Numpy array, 2D vector of displacement to add to the points.
+        :return: None
+        """
+        for pt in self.points:
+            pt.xy += displacement
 
 
     def new_segment(self, a_pt, b_pt):
@@ -576,10 +626,45 @@ class PolygonDecomposition:
         """
         Join polygons by removing a segment.
         """
-        pass
 
+        # Join holes
+        left_wire = segment.wire[left_side]
+        right_wire = segment.wire[right_side]
 
+        if left_wire.parent == right_wire:
+            # right is outer
+            orig_polygon = right_wire.polygon
+            new_polygon = left_wire.polygon
+        elif right_wire.parent == left_wire:
+            # left is outer
+            orig_polygon = left_wire.polygon
+            new_polygon = right_wire.polygon
+        else:
+            assert left_wire.parent == right_wire.parent
+            assert left_wire == left_wire.polygon.outer_wire
+            assert right_wire == right_wire.polygon.outer_wire
+            orig_polygon = right_wire
+            new_polygon = left_wire.polygon
 
+        orig_polygon.holes.update(new_polygon.holes)
+        orig_polygon.free_points.update(new_polygon.free_points)
+
+        # remove outer wire from holes add right_wire == orig_wire
+        if left_wire.id in orig_polygon.holes:
+            del orig_polygon.holes[left_wire.id]
+            orig_polygon.holes[right_wire.id] = right_wire
+
+        # fix wire links for
+        for seg, side in left_wire.segments():
+            assert seg.wire[side] == left_wire
+            seg.wire[side] = right_wire
+
+        segment.disconnect_vtx(out_vtx)
+        segment.disconnect_vtx(in_vtx)
+        segment.disconnect_wires()
+        self._destroy_segment(segment)
+        del self.wires[left_wire.id]
+        del self.polygons[new_polygon.id]
 
 
 # Data classes contains no modification methods, all modifications are through reversible atomic operations.
