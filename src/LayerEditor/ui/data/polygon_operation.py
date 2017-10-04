@@ -847,10 +847,10 @@ class Shape(metaclass=abc.ABCMeta):
                     l_index = poly.lines.index(line)                        
                     if p_index == l_index:
                         poly.lines.insert(l_index+1, new_line)
-                        poly.points.insert(p_index+1, new_point)
+                        poly.points.insert(l_index+1, new_point)
                     else:
                         poly.lines.insert(l_index, new_line)
-                        poly.points.insert(p_index, new_point)
+                        poly.points.insert(l_index+1, new_point)
                 
     def join(self, line):
         """Join line in shape, return if is bundled"""
