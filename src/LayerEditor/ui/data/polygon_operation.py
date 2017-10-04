@@ -78,6 +78,18 @@ class Polyline():
             """polyline parts"""
             self.points = [line.p1, line.p2]
             """polyline ordered points"""
+            
+    def check(self, closed=False):
+        """Check polyline"""
+        if closed:
+            assert self.points[0]==self.points[-1]
+        for i in range(0, len(self.lines)):
+            if self.lines[i].p1==self.points[i]:
+               assert self.lines[i].p2==self.points[i+1]
+            elif self.lines[i].p2==self.points[i]:
+               assert self.lines[i].p1==self.points[i+1]
+            else:
+                assert False
         
     def split(self, p, only_inner=False):
         """
@@ -602,6 +614,7 @@ class PolylineCluster():
             start = line.p1
             del_polyline.remove_end(line.p1)
         # find start polylines for spliting (polyline where was line neighbors) in new part 
+        processed_bundles = []
         if len(new_polyline.lines)==0:
             # fix new polyline
             if start not in self.bundles:
@@ -618,9 +631,12 @@ class PolylineCluster():
                 next_polylines[0].join(next_polylines[1])
                 del next_polylines[1]
                 self.bundles.remove(start)
-            # else:
-            #     self.bundles.remove(start)
-            #     new_cluster.bundles.append(start)
+            else:
+                self.bundles.remove(start)
+                new_cluster.bundles.append(start)
+                processed_bundles.append(start)
+                for polyline in next_polylines:
+                    self.polylines.remove(polyline)
         else:            
             new_cluster = PolylineCluster()
             next_polylines = [new_polyline]
@@ -638,8 +654,7 @@ class PolylineCluster():
                     self.polylines.remove(join[1])
                     join[0].join(join[1])
                     self.bundles.remove(start)
-        # split and move to new coluster
-        processed_bundles = []
+        # split and move to new coluster        
         while len(next_polylines)>0:
             next_bundles = []
             # process found polylines, and find its bundles
@@ -813,10 +828,10 @@ class Shape(metaclass=abc.ABCMeta):
         l_index = self.boundary_lines.index(line)        
         if p_index == l_index:
             self.boundary_lines.insert(l_index+1, new_line)
-            self.boundary_points.insert(p_index+1, new_point)
+            self.boundary_points.insert(l_index+1, new_point)
         else:
             self.boundary_lines.insert(l_index, new_line)
-            self.boundary_points.insert(p_index, new_point)
+            self.boundary_points.insert(l_index+1, new_point)
         
     def split_line(self, line, new_line, new_point):
         """Split line in polygon"""
@@ -1297,7 +1312,7 @@ class Shape(metaclass=abc.ABCMeta):
         if polyline is not None:
             self._move_disjoin_boundary_to_bundled(polyline, outside, True, 
                 len(polyline.lines)==len(self.boundary_lines)-1)
-        if len(polyline.lines)<len(self.boundary_lines)-1:
+        if polyline is None or len(polyline.lines)<len(self.boundary_lines)-1:
             polyline2 = self._get_polyline_from_boundary(del_line, False, True)
             if polyline2 is not None:
                 self._move_disjoin_boundary_to_bundled(polyline2, outside, True)
@@ -1498,7 +1513,7 @@ class Shape(metaclass=abc.ABCMeta):
                     # polyline to cluster in new polygon
                     polygon.spolygon.bundled_clusters.append(PolylineCluster(None, joins[index]))
                     polygon.spolygon.bundled_clusters[-1].polylines.append(poly)
-                    cluster.copy_joins(self.bundled_clusters[-1], second)
+                    cluster.copy_joins(polygon.spolygon.bundled_clusters[-1], second)
                     if second in cluster.bundles:
                         moved[second] = polygon.spolygon.bundled_clusters[-1]
                         cluster.bundles.remove(second)
@@ -1613,8 +1628,9 @@ class Shape(metaclass=abc.ABCMeta):
                     cluster.split_polygon = False
                     return True 
                 
-    def make_polygon_diagram(self, diagram, polyline, ):
+    def make_polygon_diagram(self, diagram, polyline):
         """Make diagram polygon object"""
+        polyline.check(True)
         polygon = diagram.add_polygon(polyline.lines, PolygonOperation.label, PolygonOperation.not_history)
         polygon.spolygon = SimplePolygon()
         polygon.spolygon.boundary_lines = polyline.lines
