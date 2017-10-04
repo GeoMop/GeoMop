@@ -618,6 +618,9 @@ class PolylineCluster():
                 next_polylines[0].join(next_polylines[1])
                 del next_polylines[1]
                 self.bundles.remove(start)
+            # else:
+            #     self.bundles.remove(start)
+            #     new_cluster.bundles.append(start)
         else:            
             new_cluster = PolylineCluster()
             next_polylines = [new_polyline]

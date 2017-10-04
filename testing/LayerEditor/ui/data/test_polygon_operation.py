@@ -377,7 +377,7 @@ class TestPolylineCluster:
     assert cluster.polylines == polylines[:3]
     assert len(cluster.polylines[0].lines) == 1
     assert cluster.bundles == [a]
-    assert len(new_cluster.polylines) == 3#polylines[-3:]
+    assert new_cluster.polylines == polylines[-3:]
     assert new_cluster.bundles == [b]
 
     # 4. case
