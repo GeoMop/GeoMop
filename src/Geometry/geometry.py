@@ -23,6 +23,7 @@ import math
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
+#import bspline_plot as bs_plot
 import brep_writer as bw
 
 
@@ -176,7 +177,7 @@ class Surface(gs.Surface):
             self.make_bumpy_surface()
             uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
             for i, uv in enumerate(uv_nodes):
-                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[0] < 1.0 ):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
                     raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
         else:
             nod = np.array(nodes)
@@ -534,10 +535,14 @@ class StratumLayer(gs.StratumLayer):
 
         top_curve = si_top.vert_curve(v_to_z)
         uv_v_top = top_curve.eval_array(np.array([0, 1]))
+        assert np.all( 0 < uv_v_top ) and np.all( uv_v_top < 1), \
+            "Top surface under bottom surface for layer id = {}.".format(self.id)
         xyz_v_top = surf.eval_array(uv_v_top)
 
         bot_curve = si_bot.vert_curve(v_to_z)
         uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
+        assert np.all( 0 < uv_v_bot) and np.all(uv_v_bot < 1), \
+            "Top surface under bottom surface for layer id = {}.".format(self.id)
         xyz_v_bot = surf.eval_array(uv_v_bot)
 
         # check precision of corners
@@ -672,7 +677,8 @@ class LayerGeometry(gs.LayerGeometry):
 
 
         # initialize layers, neigboring layers refer to common interface
-        for layer in self.layers:
+        for id, layer in enumerate(self.layers):
+            layer.id = id
             layer.init(self)
 
 
