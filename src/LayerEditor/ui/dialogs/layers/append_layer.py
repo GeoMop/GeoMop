@@ -55,7 +55,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, i, 3, 1, 2)
+        grid.addWidget(button_box, i, 3, 1, 3)
         self.setLayout(grid)
 
     def accept(self):
