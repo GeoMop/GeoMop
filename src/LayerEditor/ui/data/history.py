@@ -4,6 +4,7 @@ class EventLocation(IntEnum):
     """Location where event happen"""
     diagram = 0
     layer = 1
+    region = 2
 
 class LocalLabel():
     """
@@ -96,9 +97,12 @@ class GlobalHistory():
         if is label operation done, return True and ops list. If not, new current view 
         is set and return False"""
         id = None
+        view = None
         while len(self.labels)>0:
+            if view is None:
+                view = self.histories[self.labels[-1].history_id].__location__
             if not self.labels[-1].view.cmp(
-                self.histories[self.labels[-1].history_id].__location__):
+                self.histories[self.labels[-1].history_id].__location__, view):
                 # view is changes
                 if id is not None:
                     return False, self.histories[id].return_op()
@@ -122,20 +126,23 @@ class GlobalHistory():
         if is label operation done, return True and ops list. If not, new current view 
         is set and return False"""
         if self.last_undo_labels!=len(self.labels):
-            # new history step was added after undo operation
+            # new history step was added after undo operation            
             self.undo_labels = []
             for history in self.histories:
                 history.undo_steps = []            
             return True, self.return_op( )
         end = False
-        id = None
+        id = None        
+        view = None
         while len(self.undo_labels)>0 and \
             (self.undo_labels[-1].label is None or not end):
             # label if is first and all None labels (if first label is not 
             # is none, view was changed)
+            if view is None:
+                view = self.histories[self.undo_labels[-1].history_id].__location__
             end = True
             if not self.undo_labels[-1].view.cmp(
-                self.histories[self.undo_labels[-1].history_id].__location__):
+                self.histories[self.undo_labels[-1].history_id].__location__, view):
                 self.last_undo_labels=len(self.labels)
                 if id is not None:
                     return False, self.histories[id].return_op()
@@ -743,10 +750,12 @@ class RegionHistory(History):
     Basic region operation for history purpose
     """
 
-    __location__ = EventLocation.layer
+    __location__ = EventLocation.region
             
     def __init__(self, global_history): 
-        super(RegionHistory, self).__init__(global_history)       
+        super(RegionHistory, self).__init__(global_history) 
+        self._refresh_panel = False
+        """Refresh region panel"""      
         
     def add_layer(self, id, name, insert, label=None):
         """
@@ -999,6 +1008,7 @@ class RegionHistory(History):
         """        
         old_region = self.global_history.cfg.diagram.regions.regions[id]
         self.global_history.cfg.diagram.regions.regions[id]
+        self._refresh_panel = True
         revert =  HistoryStep(self._change_region, [id, old_region])        
         return revert
 
@@ -1007,20 +1017,24 @@ class RegionHistory(History):
         Add change shapes region to history operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_shape_region,[shape_id, layer_id, dim, region_id]))
+        line_idxs = []
+        if dim==2:
+            line_idxs = self.global_history.cfg.diagram.get_polygon_lines(shape_id)        
+        self.steps.append(HistoryStep(self._change_shape_region,[shape_id, layer_id, dim, region_id, line_idxs]))
         
-    def _change_shape_region(self, shape_id, layer_id, dim, region_id):
+    def _change_shape_region(self, shape_id, layer_id, dim, region_id, line_idxs):
         """
         Change shapes region to set possition
         
         Return invert operation
         """ 
         if dim==0:
-            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_0D
+            layer_region = self.global_history.cfg.diagram.regions.layer_region_0D
         elif dim==1:
-            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_1D
+            layer_region = self.global_history.cfg.diagram.regions.layer_region_1D
         else:
-            layer_region = self.global_history.cfg.diagram.regions.regions.layer_region_2D
+            layer_region = self.global_history.cfg.diagram.regions.layer_region_2D
+            shape_id =  self.global_history.cfg.diagram.find_polygon(line_idxs)
             
         if shape_id in layer_region[layer_id]:
             old_region_id = layer_region[layer_id][shape_id]
@@ -1030,7 +1044,11 @@ class RegionHistory(History):
             del layer_region[layer_id][shape_id]
         else:
             layer_region[layer_id][shape_id] = region_id
-        revert =  HistoryStep(self._change_shape_region, [shape_id, layer_id, dim, old_region_id])        
+        revert =  HistoryStep(self._change_shape_region, [shape_id, layer_id, dim, old_region_id, line_idxs])        
         return revert
         
-
+    def return_op(self):
+        """return nedded check """
+        ret = {"type":"Region", "refresh_panel":self._refresh_panel}
+        self._refresh_panel = False
+        return ret

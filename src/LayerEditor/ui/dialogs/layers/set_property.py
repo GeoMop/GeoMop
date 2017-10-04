@@ -44,7 +44,6 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         grid.addWidget(d_surface, 0, 0)
         i = LayersHelpers.add_surface_to_grid(self, grid, 1, surface)
         
-        self.depth = QtWidgets.QLineEdit()
         self.validator = QtGui.QDoubleValidator()
         
         if min is not None:
@@ -64,7 +63,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, i, 3, 1, 2)
+        grid.addWidget(button_box, i, 3, 1, 3)
         self.setLayout(grid)
 
     def accept(self):
@@ -77,4 +76,4 @@ class SetSurfaceDlg(QtWidgets.QDialog):
              
     def fill_surface(self, surface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, self.grid, surface)
+        return LayersHelpers.fill_surface(self, surface)

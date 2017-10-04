@@ -22,6 +22,9 @@ class _Config:
     SERIAL_FILE = "LayerEditorData"
     """Serialize class file"""
     
+    COUNT_RECENT_FILES = 5
+    """Count of recent files"""
+    
     CONTEXT_NAME = 'LayerEditor'
     
     CONFIG_DIR = os.path.join(cfg.__config_dir__, 'LayerEditor')
@@ -290,6 +293,7 @@ class LEConfig:
     def new_file(cls):
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
+        cls.init()
         cls.data.set_new(cls)
         cls.main_window.refresh_all()
         
@@ -361,10 +365,8 @@ class LEConfig:
         return: if file have good format (boolean)
         """
         try:
-            with open(file_name, 'r') as file_d:
-                cls.document = file_d.read()
+            cls.open_file(file_name)
             cls.config.update_last_data_dir(file_name)
-            cls._set_file(file_name)
             cls.config.add_recent_file(file_name)
             return True
         except (RuntimeError, IOError) as err:

@@ -19,15 +19,20 @@ from ui.dialogs.set_diagram import SetDiagramDlg
 class LayerEditor:
     """Analyzis editor main class"""
     
-    def __init__(self):
+    def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
         cfg.init()
-        init_dlg = SetDiagramDlg()
-        ret = init_dlg.exec_()
+        
+        if init_dialog:
+            init_dlg = SetDiagramDlg()
+            ret = init_dlg.exec_()
+        else:
+            ret = QtWidgets.QDialog.Accepted
+            cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
         
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
@@ -45,8 +50,7 @@ class LayerEditor:
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
-            return
-        cfg.init()
+            return        
         cfg.new_file()
         init_dlg = SetDiagramDlg()
         ret = init_dlg.exec_()
@@ -79,7 +83,6 @@ class LayerEditor:
         if not self.save_old_file():
             return
         cfg.open_recent_file(action.text())
-        self.mainwindow.reload()
         self.mainwindow.update_recent_files()
 #        self._update_document_name()
 #        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")

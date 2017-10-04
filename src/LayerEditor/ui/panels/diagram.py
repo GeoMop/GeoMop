@@ -18,6 +18,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         * :py:attr:`cursorChanged(float, float) <cursorChanged>`
         * :py:attr:`possChanged() <possChanged>`
         * :py:attr:`regionUpdateRequired(int, int) <regionUpdateRequired>`
+        * :py:attr:`regionsUpdateRequired(int, int) <regionUpdateRequired>`
     """
     cursorChanged = QtCore.pyqtSignal(float, float)
     """Signal is sent when cursor position has changed.
@@ -34,6 +35,14 @@ class Diagram(QtWidgets.QGraphicsScene):
     regionUpdateRequired = QtCore.pyqtSignal(int, int)
     """
     Shape was clicked and region update in region panel is required
+    
+    :param int dimension: shape dimension
+    :param int idx: shape index in diagram structure
+    """
+    regionsUpdateRequired = QtCore.pyqtSignal(int, int)
+    """
+    Shape was clicked and all regions in current topology update 
+    in region panel is required
     
     :param int dimension: shape dimension
     :param int idx: shape index in diagram structure
@@ -153,17 +162,22 @@ class Diagram(QtWidgets.QGraphicsScene):
         """If is new polygon in data object, created it"""
         if len(cfg.diagram.new_polygons)>0:
             for polygon in cfg.diagram.new_polygons:
+                obj = polygon.object
+                if obj is not None:
+                    obj.release_polygon()
+                    self.removeItem(obj)
                 p = Polygon(polygon)
                 self.addItem(p)  
             cfg.diagram.new_polygons = []
             
     def _del_polygons(self):
-        """If is new polygon in data object, created it"""
+        """If is deleted polygon in data object, delete it"""
         if len(cfg.diagram.deleted_polygons)>0:
             for polygon in cfg.diagram.deleted_polygons:
                 obj = polygon.object
-                obj.release_polygon()
-                self.removeItem(obj)
+                if obj is not None:                    
+                    obj.release_polygon()
+                    self.removeItem(obj)
             cfg.diagram.deleted_polygons = []
             
     def _add_line(self, gobject, p,  add_last=True):
@@ -208,6 +222,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
+            self._add_polygons()
             self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
@@ -253,9 +268,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             l.release_line()
             self.removeItem(l)
         for point in moved_points:
-            point.object.move_point()        
-        self._add_polygons()
-        self._del_polygons()
+            point.object.move_point()
         
     def release_views(self):
         """release all diagram views"""
@@ -469,6 +482,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+        self._add_polygons()
+        self._del_polygons()
         self.update_related_diagrams(self._point_moving)
             
     def update_related_diagrams(self, points):
@@ -538,10 +553,39 @@ class Diagram(QtWidgets.QGraphicsScene):
                     if isinstance(event.gobject, Polygon):
                         event.gobject.polygon.set_current_region()
                         event.gobject.update_color()
+                    elif isinstance(event.gobject, Line):
+                        event.gobject.line.set_current_region()
+                        event.gobject.update()
+                    elif isinstance(event.gobject, Point):
+                        event.gobject.point.set_current_region()
+                        event.gobject.update()
+            if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
+                if event.gobject is not None:
+                    if isinstance(event.gobject, Polygon):
+                        event.gobject.polygon.set_current_regions()
+                        event.gobject.update_color()
+                    elif isinstance(event.gobject, Line):
+                        event.gobject.line.set_current_regions()
+                        event.gobject.update()
+                    elif isinstance(event.gobject, Point):
+                        event.gobject.point.set_current_regions()
+                        event.gobject.update()
             if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
                         self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+                    elif isinstance(event.gobject, Line):
+                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
+                    elif isinstance(event.gobject, Point):
+                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
+            if event.modifiers()==(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
+                if event.gobject is not None:
+                    if isinstance(event.gobject, Polygon):
+                        self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+                    elif isinstance(event.gobject, Line):
+                        self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
+                    elif isinstance(event.gobject, Point):
+                        self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
                 
             
     def mousePressEvent(self,event):
