@@ -406,7 +406,7 @@ class Diagram():
                         ok = False
                         break
                 if ok:
-                    map[self.topology_idx][2][polygon_idx] = polygon.id
+                    Regions.diagram_map[self.topology_idx][2][polygon_idx] = polygon.id
                     return
                     
     def get_polygon_lines(self, id):
