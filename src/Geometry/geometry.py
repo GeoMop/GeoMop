@@ -740,11 +740,11 @@ class LayerGeometry(gs.LayerGeometry):
         with open(self.brep_file, 'w') as f:
             bw.write_model(f, compound, bw.Location() )
 
+
+        # ignore shapes without ID - not part of the output
         self.all_shapes = [ si for si in self.all_shapes if hasattr(si.shape,  'id') ]
         self.compute_bounding_box()
 
-        # ignore shapes without ID - not part of the output
-        self.all_shapes = [ shp for si in self.all_shapes if hasattr(si.shape,  'id') ]
         # prepare dict: (dim, shape_id) : shape info
         self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
         shape_by_dim=[[] for i in range(4)]
