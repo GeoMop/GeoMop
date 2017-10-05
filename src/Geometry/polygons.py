@@ -25,11 +25,27 @@ out_vtx = right_side = 0
 class IdMap(dict):
     id = 0
 
-    def append(self, obj):
-        obj.id = IdMap.id
-        IdMap.id += 1
+    def get_new_id(self):
+        if not hasattr(self, '_next_id'):
+            self._next_id = 0
+        self._next_id += 1
+        return self._next_id
+
+    def append(self, obj, id = None):
+        if id is None:
+            id = self.get_new_id()
+        obj.id = id
         self[obj.id] = obj
         return obj
+
+
+class PolygonChange(enum.Enum):
+    none=0
+    shape=1
+    add=2
+    remove=3
+    split=4
+    join=5
 
 
 class PolygonDecomposition:
@@ -40,6 +56,7 @@ class PolygonDecomposition:
     def __init__(self):
         """
         Constructor.
+        PUBLIC: outer_polygon_id
         """
         self.points = IdMap()
         # Points dictionary ID -> Point
@@ -53,12 +70,12 @@ class PolygonDecomposition:
         # Polygon dictionary ID -> Polygon
         self.outer_polygon = Polygon(None)
         self.polygons.append(self.outer_polygon)
+
+
+        self.last_polygon_change=(PolygonChange.add, self.outer_polygon, self.outer_polygon)
         # add outer polygon
-
-
         #
         self.tolerance = 0.01
-
 
 
     def __repr__(self):
@@ -69,6 +86,124 @@ class PolygonDecomposition:
                 stream += str(obj) + "\n"
         return stream
 
+
+    ##################################################################
+    # Interface for LayerEditor.
+    ##################################################################
+    def add_free_point(self, point_id, xy, polygon_id):
+        """
+        LAYERS
+        :param: ID of point to add.
+        :param: point: (X,Y)
+        :return: Point instance
+        """
+        polygon = self.polygons[polygon_id]
+        self._add_free_point(xy, polygon, id = point_id)
+
+
+    def remove_free_point(self, point_id):
+        """
+        LAYERS
+        :param: point_id - ID of free point to remove
+        :return: None
+        """
+        point = self.points[point_id]
+        self._remove_free_point(point)
+
+
+    def new_segment(self, a_pt, b_pt):
+        """
+        LAYERS
+        Add segment between given existing points. Assumes that there is no intersection with other segment.
+        Just return the segment if it exists.
+        :param a_pt: Start point of the segment.
+        :param b_pt: End point.
+        :return: new segment
+        """
+        self.last_polygon_change = (PolygonChange.none, None, None)
+        segment = self.pt_to_seg.get((a_pt.id, b_pt.id), None)
+        if segment is not None:
+            return segment
+        segment = self.pt_to_seg.get((b_pt.id, a_pt.id), None)
+        if segment is not None:
+            return segment
+
+        if a_pt.is_free() and b_pt.is_free():
+            assert a_pt.poly == b_pt.poly
+            return self._new_wire(a_pt.poly, a_pt, b_pt)
+
+        vec = b_pt.xy - a_pt.xy
+        a_insert = a_pt.insert_segment(vec)
+        b_insert = b_pt.insert_segment(-vec)
+
+        if a_pt.is_free():
+            assert b_insert is not None
+            return self._wire_add_dendrite(b_pt, b_insert, a_pt)
+        if b_pt.is_free():
+            assert a_insert is not None
+            return self._wire_add_dendrite(a_pt, a_insert, b_pt)
+
+        assert a_insert is not None
+        assert b_insert is not None
+        a_prev, a_next, a_wire = a_insert
+        b_prev, b_next, b_wire = b_insert
+
+        if a_wire != b_wire:
+            return self._join_wires(a_pt, b_pt, a_insert, b_insert)
+        else:
+            return self._split_poly(a_pt, b_pt, a_insert, b_insert)
+
+
+    def delete_segment(self, segment):
+        """
+        LAYERS
+        Remove specified segment.
+        :param segment:
+        :return: None
+        """
+        self.last_polygon_change = (PolygonChange.none, None, None)
+        left_self_ref = segment.next[left_side] == (segment, right_side)
+        right_self_ref = segment.next[right_side] == (segment, left_side)
+        # Lonely segment, both endpoints are free.
+        if left_self_ref and right_self_ref:
+            return self._rm_wire(segment)
+        # At least one free endpoint.
+        if left_self_ref:
+            return self._wire_rm_dendrite(segment, in_vtx)
+        if right_self_ref:
+            return self._wire_rm_dendrite(segment, out_vtx)
+
+        # Both endpoints connected.
+        if segment.is_dendrite():
+            # Same wire from both sides. Dendrite.
+            self._split_wire(segment)
+        else:
+            # Different wires.
+            self._join_poly(segment)
+
+
+    def get_last_polygon_changes(self):
+        """
+        LAYERS
+        Return information about polygon changes during last new_segment or delete_segment operations.
+        :return: ( PolygonChange, p0.id, p1.id)
+        cases:
+        (PolygonChange.none, None, None) - no change in any polygon, already existed segment
+        (PolygonChange.shape, poly_id, None) - chenged polygon shape, e.g. add/remove dendrite
+        (PolygonChange.add, orig_poly_id, new_poly_id) - new polygon inside other polygon
+        (PolygonChange.remove, orig_poly_id, new_poly_id) - deleted polygon inside other polygon
+        (PolygonChange.split, orig_poly_id, new_poly_id) - split new_poly from orig_poly
+        (PolygonChange.join, orig_poly_id, new_poly_id) - join both polygons into orig_poly
+
+        After init of PolygonDecomposition this method returns:
+        (PolygonChange.add, outer_polygon_id, outer_polygon_id)
+        """
+        type, p0, p1 = self.last_polygon_change
+        id0 = None if p0 is None else p0.id
+        id1 = None if p1 is None else p1.id
+        return (type, id0, id1)
+
+
     def set_tolerance(self, tolerance):
         """
         Set tolerance for snapping to existing points and lines.
@@ -77,7 +212,6 @@ class PolygonDecomposition:
         :return: None
         """
         self.tolerance = tolerance
-
 
 
     def snap_point(self, point):
@@ -115,6 +249,7 @@ class PolygonDecomposition:
             wire = snapped[1]
         return self._snap_to_polygon(wire.polygon, point)
 
+
     def _snap_to_segment(self, segment, point, up_is_left ):
         """
         Snap to segment or to its side wire.
@@ -147,6 +282,7 @@ class PolygonDecomposition:
 
     def check_displacment(self, points, displacement):
         """
+        LAYERS
         param: points: List of Points to move.
         param: displacement: Numpy array, 2D vector of displacement to add to the points.
         :return: Shortened displacement to not cross any segment.
@@ -237,72 +373,6 @@ class PolygonDecomposition:
 
 
 
-    def new_segment(self, a_pt, b_pt):
-        """
-        Add segment between given existing points. Assumes that there is no intersection with other segment.
-        Just return the segment if it exists.
-        :param a_pt: Start point of the segment.
-        :param b_pt: End point.
-        :return: new segment
-        """
-        segment = self.pt_to_seg.get((a_pt.id, b_pt.id), None)
-        if segment is not None:
-            return segment
-        segment = self.pt_to_seg.get((b_pt.id, a_pt.id), None)
-        if segment is not None:
-            return segment
-
-        if a_pt.is_free() and b_pt.is_free():
-            assert a_pt.poly == b_pt.poly
-            return self._new_wire(a_pt.poly, a_pt, b_pt)
-
-        vec = b_pt.xy - a_pt.xy
-        a_insert = a_pt.insert_segment(vec)
-        b_insert = b_pt.insert_segment(-vec)
-
-        if a_pt.is_free():
-            assert b_insert is not None
-            return self._wire_add_dendrite(b_pt, b_insert, a_pt)
-        if b_pt.is_free():
-            assert a_insert is not None
-            return self._wire_add_dendrite(a_pt, a_insert, b_pt)
-
-        assert a_insert is not None
-        assert b_insert is not None
-        a_prev, a_next, a_wire = a_insert
-        b_prev, b_next, b_wire = b_insert
-
-        if a_wire != b_wire:
-            return self._join_wires(a_pt, b_pt, a_insert, b_insert)
-        else:
-            return self._split_poly(a_pt, b_pt, a_insert, b_insert)
-
-
-    def delete_segment(self, segment):
-        """
-        Remove specified segment.
-        :param segment:
-        :return: None
-        """
-        a_pt, b_pt = segment.vtxs
-        left_self_ref = segment.next[left_side] == (segment, right_side)
-        right_self_ref = segment.next[right_side] == (segment, left_side)
-        # Lonely segment, both endpoints are free.
-        if left_self_ref and right_self_ref:
-            return self._rm_wire(segment)
-        # At least one free endpoint.
-        if left_self_ref:
-            return self._wire_rm_dendrite(segment, in_vtx)
-        if right_self_ref:
-            return self._wire_rm_dendrite(segment, out_vtx)
-
-        # Both endpoints connected.
-        if segment.is_dendrite():
-            # Same wire from both sides. Dendrite.
-            self._split_wire(segment)
-        else:
-            # Different wires.
-            self._join_poly(segment)
 
 
     def delete_point(self, point):
@@ -334,14 +404,17 @@ class PolygonDecomposition:
         for pt in points:
             pt.xy += displacement
 
-    def _add_free_point(self, point, poly):
+    def _add_free_point(self, point, poly, id=None):
         """
         :param point: XY array
         :return: Point instance
         """
 
         pt = Point(point, poly)
-        self.points.append(pt)
+        if id is None:
+            self.points.append(pt)
+        else:
+            self.points.append(pt, id)
         poly.free_points[pt.id] = pt
         return pt
 
@@ -355,6 +428,8 @@ class PolygonDecomposition:
 
     def _split_segment(self, seg, t_point):
         """
+
+
         Split a segment into two segments. Original keeps the start point.
         :param seg:
         :param t_point:
@@ -470,6 +545,7 @@ class PolygonDecomposition:
         seg = self._make_segment( (root_pt, free_pt))
         seg.connect_vtx(out_vtx, r_insert)
         seg.connect_free_vtx(in_vtx, wire)
+        self.last_polygon_change = (PolygonChange.shape, None, None)
         return seg
 
     def _wire_rm_dendrite(self, segment, tip_vtx):
@@ -482,6 +558,7 @@ class PolygonDecomposition:
         segment.disconnect_vtx(root_vtx)
         segment.disconnect_wires()
         self._destroy_segment(segment)
+        self.last_polygon_change = (PolygonChange.shape, None, None)
 
     def _join_wires(self, a_pt, b_pt, a_insert, b_insert):
         """
@@ -514,9 +591,7 @@ class PolygonDecomposition:
         else:
             del a_wire.polygon.holes[b_wire.id]
         del self.wires[b_wire.id]
-
-
-
+        self.last_polygon_change = (PolygonChange.shape, None, None)
         return new_seg
 
 
@@ -562,8 +637,8 @@ class PolygonDecomposition:
             polygon.holes[b_wire.id] = b_wire
             self._update_wire_parents(a_wire, a_wire, b_wire)
 
-
         # remove segment
+        self.last_polygon_change = (PolygonChange.shape, None, None)
         self._destroy_segment(segment)
 
     def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
@@ -612,6 +687,7 @@ class PolygonDecomposition:
             # two disjoint polygons
             new_poly.outer_wire = left_wire
             left_wire.parent = orig_wire.parent
+            self.last_polygon_change = (PolygonChange.split, orig_poly, new_poly)
         else:
             # two embedded wires/polygons
             if right_wire.contains_wire(left_wire):
@@ -626,6 +702,7 @@ class PolygonDecomposition:
             if inner_wire.id in orig_poly.holes:
                 del orig_poly.holes[inner_wire.id]
                 orig_poly.holes[outer_wire.id] = outer_wire
+            self.last_polygon_change = (PolygonChange.add, orig_poly, new_poly)
 
         # split free points
         for pt in orig_poly.free_points.values():
@@ -644,25 +721,29 @@ class PolygonDecomposition:
         Join polygons by removing a segment.
         """
 
-        # Join holes
+
         left_wire = segment.wire[left_side]
         right_wire = segment.wire[right_side]
 
-        if left_wire.parent == right_wire:
-            # right is outer
-            orig_polygon = right_wire.polygon
-            new_polygon = left_wire.polygon
-        elif right_wire.parent == left_wire:
-            # left is outer
-            orig_polygon = left_wire.polygon
-            new_polygon = right_wire.polygon
-        else:
-            assert left_wire.parent == right_wire.parent
+        if left_wire.parent == right_wire.parent:
             assert left_wire == left_wire.polygon.outer_wire
             assert right_wire == right_wire.polygon.outer_wire
             orig_polygon = right_wire.polygon
             new_polygon = left_wire.polygon
+            self.last_polygon_change = (PolygonChange.join, orig_polygon, new_polygon)
+        else:
+            if left_wire.parent == right_wire:
+                # right is outer
+                orig_polygon = right_wire.polygon
+                new_polygon = left_wire.polygon
+            else:
+                assert right_wire.parent == left_wire
+                # left is outer
+                orig_polygon = left_wire.polygon
+                new_polygon = right_wire.polygon
+            self.last_polygon_change = (PolygonChange.remove, orig_polygon, new_polygon)
 
+        # Join holes and free points
         orig_polygon.holes.update(new_polygon.holes)
         orig_polygon.free_points.update(new_polygon.free_points)
 
@@ -1150,3 +1231,24 @@ class Polygon:
         else:
             outer = self.outer_wire.id
         return "Poly({}) out wire: {} holes: {}".format(self.id, outer, [ w.id for w in self.holes.values()])
+
+    def depth(self):
+        """
+        LAYERS
+        Return depth of the polygon. That is number of other polygons it is contained in.
+        :return: int
+        """
+        depth=0
+        wire = self.outer_wire
+        while (wire is not None):
+            depth += 1
+            wire = wire.parent
+
+    def vertices(self):
+        """
+        LAYERS
+        Return list of polygon vertices (point objects) in counter clockwise direction.
+        :return:
+        """
+        return [seg.vtxs[side] for seg, side in self.outer_wire.segments()]
+
