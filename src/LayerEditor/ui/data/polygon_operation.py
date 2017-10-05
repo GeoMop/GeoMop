@@ -1015,6 +1015,7 @@ class Shape(metaclass=abc.ABCMeta):
                     self.clusters.remove(cluster)
                     self.bundled_clusters.append(cluster)
                     cluster.joins.append(p)
+                    cluster.set_bundled(True)
                     joined = True
                     break
             if not joined:
@@ -1024,6 +1025,7 @@ class Shape(metaclass=abc.ABCMeta):
                             self.clusters.remove(cluster)
                             self.bundled_clusters.append(cluster)
                             cluster.inner_joins.append(p)
+                            cluster.set_bundled(True)
                             joined = True
                             break 
                     if joined:
@@ -1653,7 +1655,16 @@ class Outside(Shape):
     """
     
     def __init__(self):
-        super(Outside, self).__init__()          
+        super(Outside, self).__init__()  
+
+    def find_polygon(self, point):
+        """Try find polygon that contains point"""
+        for polygon in self.inner.polygons:
+            res = polygon.find_polygon(point)
+            if res is not None:
+                return res 
+        return None
+        
    
 class SimplePolygon(Shape):
     """
@@ -1664,6 +1675,16 @@ class SimplePolygon(Shape):
         super(SimplePolygon, self).__init__()
         self.gtpolygon = None
         """Qt polygon"""
+        
+    def find_polygon(self, point):
+        """Try find polygon that contains point"""
+        if self.gtpolygon.containsPoint(point, QtCore.Qt.OddEvenFill):
+            for polygon in self.inner.polygons:
+                res = polygon.find_polygon(point)
+                if res is not None:
+                    return res 
+            return self        
+        return None
         
     def get_boundary_polyline(self, p1, p2, reverse=False):
         """Get boundary polyline from point p1 to p2"""
@@ -1790,12 +1811,12 @@ class PolygonOperation():
             return 0
         return deep
     
-    @staticmethod
-    def find_polygon(diagram, point):
+    @classmethod
+    def find_polygon(cls, diagram, point):
         """Try find polygon that contains point"""
-        for polygon in diagram.polygons:
-            if polygon.spolygon.gtpolygon.containsPoint(point, QtCore.Qt.OddEvenFill):
-                return polygon
+        res = diagram.outside.find_polygon(point)
+        if res is not None:
+            return cls._find_polygon_from_spolygon(diagram, res)
         return None
         
     @staticmethod
