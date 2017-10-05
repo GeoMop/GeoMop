@@ -203,18 +203,18 @@ class TestPolygons:
         #self.plot_polygons(decomp)
 
         # delete segment - split wire
-        decomp.del_segment(sg_m)
+        decomp.delete_segment(sg_m)
         assert len(decomp.wires) == 3
         assert len(decomp.polygons) == 2
         #self.plot_polygons(decomp)
 
         pt_op = sg_p.vtxs[out_vtx]
-        decomp.del_segment(sg_f)
+        decomp.delete_segment(sg_f)
         assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
 
         #test split_segment connected on both sides; split non outer polygon
-        decomp.add_line( (0,0.25), (0.25, 0.25))
+        seg_y, = decomp.add_line( (0,0.25), (0.25, 0.25))
 
         # test _join_segments - _split_segment inversion
         seg1 = sg_e
@@ -224,15 +224,20 @@ class TestPolygons:
 
         print("Decomp:\n", decomp)
         decomp.delete_point(pt_op)
-        #self.plot_polygons(decomp)
+        self.plot_polygons(decomp)
 
+        # test join polygons
+        decomp.delete_segment(seg_y)
 
     def test_split_poly(self):
+
         decomp = PolygonDecomposition()
         sg_a, = decomp.add_line((0,0), (2,0))
         sg_b, = decomp.add_line((2, 0), (2, 2))
         sg_c, = decomp.add_line((2, 2), (0, 2))
         sg_d, = decomp.add_line((0, 2), (0, 0))
+        # closed outer polygon
+
 
         assert sg_a.next == [ (sg_d, 0), (sg_b, 1)]
         assert sg_b.next == [ (sg_a, 0), (sg_c, 1)]
@@ -252,13 +257,20 @@ class TestPolygons:
         sg_e, =decomp.add_line((0.5, 0.5), (1, 0.5))
         decomp.add_line((1, 0.5), (1, 1))
         decomp.add_line((1, 1), (0.5, 1))
-        decomp.add_line((0.5, 1), (0.5, 0.5))
-        self.plot_polygons(decomp)
-        print("Decomp:\n", decomp)
+        seg_in_x, = decomp.add_line((0.5, 1), (0.5, 0.5))
+        # closed inner polygon
+
+
+
 
         # join nested wires
         sg_x = decomp.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
         self.plot_polygons(decomp)
         #print("Decomp:\n", decomp)
-        decomp.del_segment(sg_x)
+        decomp.delete_segment(sg_x)
+
+        self.plot_polygons(decomp)
+        print("Decomp:\n", decomp)
+        # join polygons - nested case
+        decomp.delete_segment(seg_in_x)
         self.plot_polygons(decomp)

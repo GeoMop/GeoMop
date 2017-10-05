@@ -12,6 +12,11 @@ import enum
 # - add_line linear with number of segments
 # - other operations are at most linear with number of segments per wire or point
 
+# TODO: Reconstruction just from list of points, segments and polygons.
+# TODO: Reconstruction from Point.xy; Semgnet.(vtxs, next); Wire.(segment,  parent); Polygon.(outer, holes, free_points)
+
+
+
 in_vtx = left_side = 1
 # vertex where edge comes in; side where next segment is connected through the in_vtx
 out_vtx = right_side = 0
@@ -74,32 +79,6 @@ class PolygonDecomposition:
         self.tolerance = tolerance
 
 
-    def _snap_to_segment(self, segment, point, up_is_left ):
-        """
-        Snap to segment or to its side wire.
-        :return:
-        """
-        tt = segment.contains_point(point, self.tolerance)
-        if tt is not None:
-            if segment.vtxs[out_vtx].colocated(segment.parametric(tt), self.tolerance):
-                return (0, segment.vtxs[out_vtx], None)
-            if segment.vtxs[in_vtx].colocated(segment.parametric(tt), self.tolerance):
-                return (0, segment.vtxs[in_vtx], None)
-            return (1, segment, tt)
-        else:
-            up_ori = segment.vtxs[in_vtx].xy[1] > segment.vtxs[out_vtx].xy[1]
-            if up_ori == up_is_left:
-                side = left_side
-            else:
-                side = right_side
-            wire = segment.wire[side]
-            return (2, wire, None)
-
-    def _snap_to_polygon(self, polygon, point):
-        for pt in polygon.free_points.values():
-            if pt.colocated(point, self.tolerance):
-                return (0, pt, None)
-        return (2, polygon, None)
 
     def snap_point(self, point):
         """
@@ -136,60 +115,35 @@ class PolygonDecomposition:
             wire = snapped[1]
         return self._snap_to_polygon(wire.polygon, point)
 
-
-    # Macro operations.
-    def add_point(self, point):
+    def _snap_to_segment(self, segment, point, up_is_left ):
         """
-        Try to add a new point, checking snapping to lines and existing points.
-        :param point: numpy array with XY coordinates
-        :param poly: Optional polygon that should contain the point
-        :return: Point instance.
-
-        This operation translates to add_free_point or to split_line_by_point.
+        Snap to segment or to its side wire.
+        Auxiliary method for 'snap_point'.
+        :return: see: snap_point
         """
-        dim, obj, t = self.snap_point(point)
-        if dim == 0:
-            # nothing to add
-            return obj
-        elif dim == 1:
-            return self._split_segment(obj, t)
+        tt = segment.contains_point(point, self.tolerance)
+        if tt is not None:
+            if segment.vtxs[out_vtx].colocated(segment.parametric(tt), self.tolerance):
+                return (0, segment.vtxs[out_vtx], None)
+            if segment.vtxs[in_vtx].colocated(segment.parametric(tt), self.tolerance):
+                return (0, segment.vtxs[in_vtx], None)
+            return (1, segment, tt)
         else:
-            poly = obj
-            return self._add_free_point(point, poly)
+            up_ori = segment.vtxs[in_vtx].xy[1] > segment.vtxs[out_vtx].xy[1]
+            if up_ori == up_is_left:
+                side = left_side
+            else:
+                side = right_side
+            wire = segment.wire[side]
+            return (2, wire, None)
+
+    def _snap_to_polygon(self, polygon, point):
+        for pt in polygon.free_points.values():
+            if pt.colocated(point, self.tolerance):
+                return (0, pt, None)
+        return (2, polygon, None)
 
 
-    def add_line(self, a, b):
-        """
-        Try to add new line from point A to point B. Check intersection with any other line and
-        call add_point for endpoints and intersections, then call operation connect_points for individual
-        segments.
-        :param a: numpy array X, Y
-        :param b: numpy array X, Y
-        :return:
-        """
-        a = np.array(a, dtype=float)
-        b = np.array(b, dtype=float)
-        a_point = self.add_point(a)
-        b_point = self.add_point(b)
-
-
-        seg_list = []
-        for seg in self.segments.values():
-            (t0, t1) = seg.intersection(a, b)
-            if t1 is not None:
-                seg_list.append((seg, t0, t1))
-        t_list = []
-        for seg, t0, t1 in seg_list:
-            mid_pt = self._split_segment(seg, t0)
-            t_list.append( (t1, mid_pt) )
-        t_list.sort()   # sort by t1
-        start_pt = a_point
-        result = []
-        for t1, mid_pt in t_list:
-            result.append( self.new_segment(start_pt, mid_pt) )
-            start_pt = mid_pt
-        result.append( self.new_segment(start_pt, b_point) )
-        return result
 
     def check_displacment(self, points, displacement):
         """
@@ -227,16 +181,60 @@ class PolygonDecomposition:
         return new_displ
 
 
-    def move_points(self, points, displacement):
+    ###################################################################
+    # Macro operations that change state of the decomposition.
+    def add_point(self, point):
         """
-        Move given points by given displacement vector. Assumes no intersections. But possible
-        segment splitting (add_point is called).
-        param: points: List of Points to move.
-        param: displacement: Numpy array, 2D vector of displacement to add to the points.
-        :return: None
+        Try to add a new point, snap to lines and existing points.
+        :param point: numpy array with XY coordinates
+        :return: Point instance.
+
+        This operation translates to atomic operations: add_free_point and split_line_by_point.
         """
-        for pt in self.points:
-            pt.xy += displacement
+        dim, obj, t = self.snap_point(point)
+        if dim == 0:
+            # nothing to add
+            return obj
+        elif dim == 1:
+            return self._split_segment(obj, t)
+        else:
+            poly = obj
+            return self._add_free_point(point, poly)
+
+
+    def add_line(self, a, b):
+        """
+        Try to add new line from point A to point B. Check intersection with any other line and
+        call add_point for endpoints, call split_segment for intersections, then call operation new_segment for individual
+        segments.
+        :param a: numpy array X, Y
+        :param b: numpy array X, Y
+        :return: List of subdivided segments. Split segments are not reported.
+        """
+        a = np.array(a, dtype=float)
+        b = np.array(b, dtype=float)
+        a_point = self.add_point(a)
+        b_point = self.add_point(b)
+
+
+        seg_list = []
+        for seg in self.segments.values():
+            (t0, t1) = seg.intersection(a, b)
+            if t1 is not None:
+                seg_list.append((seg, t0, t1))
+        t_list = []
+        for seg, t0, t1 in seg_list:
+            mid_pt = self._split_segment(seg, t0)
+            t_list.append( (t1, mid_pt) )
+        t_list.sort()   # sort by t1
+        start_pt = a_point
+        result = []
+        for t1, mid_pt in t_list:
+            result.append( self.new_segment(start_pt, mid_pt) )
+            start_pt = mid_pt
+        result.append( self.new_segment(start_pt, b_point) )
+        return result
+
 
 
     def new_segment(self, a_pt, b_pt):
@@ -280,24 +278,30 @@ class PolygonDecomposition:
             return self._split_poly(a_pt, b_pt, a_insert, b_insert)
 
 
-    def del_segment(self, segment):
+    def delete_segment(self, segment):
+        """
+        Remove specified segment.
+        :param segment:
+        :return: None
+        """
         a_pt, b_pt = segment.vtxs
         left_self_ref = segment.next[left_side] == (segment, right_side)
         right_self_ref = segment.next[right_side] == (segment, left_side)
-        # single seg ment vertices
+        # Lonely segment, both endpoints are free.
         if left_self_ref and right_self_ref:
             return self._rm_wire(segment)
-        # one single segment
+        # At least one free endpoint.
         if left_self_ref:
             return self._wire_rm_dendrite(segment, in_vtx)
         if right_self_ref:
             return self._wire_rm_dendrite(segment, out_vtx)
 
+        # Both endpoints connected.
         if segment.is_dendrite():
-            # dendrite -> split wire
+            # Same wire from both sides. Dendrite.
             self._split_wire(segment)
         else:
-            # different wires -> join polygons
+            # Different wires.
             self._join_poly(segment)
 
 
@@ -314,28 +318,22 @@ class PolygonDecomposition:
 
 
 
-    # Helper change operations.
-    def _make_segment(self, points):
-        seg = Segment(points)
-        self.segments.append(seg)
-        for vtx in [out_vtx, in_vtx]:
-            seg.vtxs[vtx].join_segment(seg, vtx)
-        self.pt_to_seg[ seg.vtxs_ids() ] = seg
-        return seg
-
-    def _destroy_segment(self, seg):
-        seg.vtxs[out_vtx].rm_segment(seg, out_vtx)
-        seg.vtxs[in_vtx].rm_segment(seg, in_vtx)
-        a, b = seg.vtxs_ids()
-        self.pt_to_seg.pop( (a, b), None )
-        self.pt_to_seg.pop( (b, a), None)
-        del self.segments[seg.id]
 
 
     # Reversible atomic change operations.
-    # Action ( forward, backward ),
-    # forward = (add_free_point, X, Y)  ... func name, params
-    # backward = (remove_free_point, pt_id) ... func name , params
+    # TODO: Add history notifiers to the return point.
+
+    def move_points(self, points, displacement):
+        """
+        Move given points by given displacement vector. Assumes no intersections. But possible
+        segment splitting (add_point is called).
+        param: points: List of Points to move.
+        param: displacement: Numpy array, 2D vector of displacement to add to the points.
+        :return: None
+        """
+        for pt in points:
+            pt.xy += displacement
+
     def _add_free_point(self, point, poly):
         """
         :param point: XY array
@@ -643,7 +641,7 @@ class PolygonDecomposition:
             assert left_wire.parent == right_wire.parent
             assert left_wire == left_wire.polygon.outer_wire
             assert right_wire == right_wire.polygon.outer_wire
-            orig_polygon = right_wire
+            orig_polygon = right_wire.polygon
             new_polygon = left_wire.polygon
 
         orig_polygon.holes.update(new_polygon.holes)
@@ -667,6 +665,25 @@ class PolygonDecomposition:
         del self.polygons[new_polygon.id]
 
 
+    ###################################
+    # Helper change operations.
+    def _make_segment(self, points):
+        seg = Segment(points)
+        self.segments.append(seg)
+        for vtx in [out_vtx, in_vtx]:
+            seg.vtxs[vtx].join_segment(seg, vtx)
+        self.pt_to_seg[ seg.vtxs_ids() ] = seg
+        return seg
+
+    def _destroy_segment(self, seg):
+        seg.vtxs[out_vtx].rm_segment(seg, out_vtx)
+        seg.vtxs[in_vtx].rm_segment(seg, in_vtx)
+        a, b = seg.vtxs_ids()
+        self.pt_to_seg.pop( (a, b), None )
+        self.pt_to_seg.pop( (b, a), None)
+        del self.segments[seg.id]
+
+
 # Data classes contains no modification methods, all modifications are through reversible atomic operations.
 class Point:
     def __init__(self, point, poly):
@@ -685,13 +702,11 @@ class Point:
         return "Pt({}) {}".format(self.id, self.xy)
 
     def is_free(self):
+        """
+        Indicator of a free point, not connected to eny segment.
+        :return:
+        """
         return self.segment[0] is  None
-
-    #def is_outgoing(self, segment):
-    #   return self == segment.vtxs[0]
-
-    def magnitude(self):
-        return la.norm(self.xy, np.inf)
 
     def segments(self, start = (None, None) ):
         """
@@ -712,13 +727,14 @@ class Point:
             if seg_side == start:
                 return
 
-
-
     def insert_segment(self, vector):
         """
-        Return
-        :param vector:
+        Insert a vector between segments connected to the point.
+
+        :param vector: (X, Y) ... any indexable pair.
         :return: ( (prev_seg, prev_side), (next_seg, next_side), wire )
+        Previous segment side, and next segment side relative from inserted vector and the
+        wire separated by the vector.
         """
         if self.segment[0] is None:
             return None
@@ -747,11 +763,17 @@ class Point:
 
 
     def join_segment(self, seg, vtx):
+        """
+        Connect a segment side to the point.
+        """
         if self.is_free():
             self.poly = None
             self.segment = (seg, vtx)
 
     def rm_segment(self, seg, vtx):
+        """
+        Disconnect segment side.
+        """
         if self.segment[0] is not None and self.segment[0] == seg:
             for new_seg, side in self.segments():
                 if not new_seg == seg:
@@ -763,6 +785,12 @@ class Point:
             self.segment = (None, None)
 
     def colocated(self, xy_pt, tol):
+        """
+        Check if other point is close to  'self' point.
+        :param xy_pt: Numpy array (X,Y)
+        :param tol: Tolerance.
+        :return: bool
+        """
         return la.norm(self.xy - xy_pt) < tol
 
 class Segment:
@@ -787,6 +815,9 @@ class Segment:
         return "Seg({}) [ {}, {} ] next: {} wire: {}".format(self.id, self.vtxs[out_vtx], self.vtxs[in_vtx], next, self.wire )
 
     def _half_seg_repr(self, side):
+        """
+        Auxiliary method for __repr__.
+        """
         if self.next[side] is None:
             return str(None)
         else:
@@ -798,32 +829,43 @@ class Segment:
         return tab[side][side_vtx]
 
 
-    def set_next(self, left, right):
-        self.set_next_side(left_side, left)
-        self.set_next_side(right_side, right)
-
-    def set_next_side(self, side, next_seg):
+    def _set_next_side(self, side, next_seg):
+        """
+        Auxiliary method for connect_* methods.
+        """
         assert next_seg[0].vtxs[1 - next_seg[1]] == self.vtxs[side]
         # prev vtx of next segment == next vtx of self segment
         self.next[side] = next_seg
 
     def connect_vtx(self, vtx_idx, insert_info):
+        """
+        Connect 'self' segment to a non-free point.
+        :param vtx_idx: out_idx / in_idx; specification of the segment's endpoint to connect.
+        :param insert_info: (prev_side, next_side, wire)
+                ... as returned by Point.insert_segment and self.vtx_insert_info
+        """
         self.vtxs[vtx_idx].join_segment(self, vtx_idx)
         prev, next, wire = insert_info
         set_side = vtx_idx
-        self.set_next_side(set_side, next)
+        self._set_next_side(set_side, next)
 
         prev_seg, prev_side = prev
-        prev_seg.set_next_side(prev_side, (self, 1 - set_side) )
+        prev_seg._set_next_side(prev_side, (self, 1 - set_side) )
         self.wire[set_side] = wire
         #assert prev_seg.wire[prev_side] == wire    # this doesn't hold in middle of change operations
 
     def connect_free_vtx(self, vtx_idx, wire):
+        """
+        Connect 'self' segment to a free point.
+        :param vtx_idx: out_idx / in_idx; specification of the segment's endpoint to connect.
+        :param wire: Wire to set to the related side of the segment (in fact both sides should have same wire).
+        """
         self.vtxs[vtx_idx].join_segment(self, vtx_idx)
         next_side = vtx_idx
         other_side = 1 - next_side
-        self.set_next_side(next_side, (self, other_side))
+        self._set_next_side(next_side, (self, other_side))
         self.wire[next_side] = wire
+
 
     def vtx_insert_info(self, vtx_idx):
         """
@@ -884,6 +926,7 @@ class Segment:
         else:
             return None
 
+
     def intersection(self, a, b):
         """
         Find intersection of 'self' and (a,b) edges.
@@ -905,6 +948,12 @@ class Segment:
             return (None, None)
 
     def x_line_isec(self, xy, tol = 1e-12):
+        """
+        Find intersection of the segment with a horizontal line passing through the given point.
+        :param xy: The point. (X,Y) any indexable.
+        :param tol: Tolerance. TODO: no default tolerance, pas in the tolerance of the Decomposition.
+        :return: List of zero, one or two points. corresponding to no, point and segment intersections respectively.
+        """
         vtxs = np.array([self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy])
         Dy = vtxs[1, 1] - vtxs[0, 1]
         magnitude = np.max(vtxs[:, 1])
@@ -927,6 +976,7 @@ class Segment:
 
     def is_on_x_line(self, xy):
         """
+        Returns true if the segment is on the right horizontal halfline. startign in given point.
         TODO: Careful test of numerical stability when x_axis goes through
         a point or a segment is on it.
         :param xy:
@@ -1018,6 +1068,8 @@ class Wire:
         """
         :return: List of boundary componencts without tails. Single component is list of segments (with orientation)
         that forms outer boundary, i.e. excluding internal tails, i.e. segments appearing just once.
+        TODO: This is not reliable for dendrites with holes. We should use whole wire for plotting.
+        Then remove this method.
         """
         for seg, side  in self.segments():
             if not seg.is_dendrite():
@@ -1025,6 +1077,12 @@ class Wire:
 
 
     def contains_point(self, xy):
+        """
+        Check if the wire contains given point.
+        TODO: use tolerance.
+        :param xy:
+        :return:
+        """
         n_isec = 0
         for seg, side in self.segments():
             n_isec += int(seg.is_on_x_line(xy))
@@ -1034,6 +1092,11 @@ class Wire:
             return False
 
     def contains_wire(self, wire):
+        """
+        Check if the 'self' wire contains other wire.
+        Translates to call of 'contains_point' for carefully selected point.
+        TODO: use tolerance.
+        """
         if self is None:
             return True
         if wire is None:
