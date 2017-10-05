@@ -313,7 +313,7 @@ class PolygonDecomposition:
         """
         segs_to_del = [ seg for seg, side in point.segments()]
         for seg in segs_to_del:
-            self.del_segment(seg)
+            self.delete_segment(seg)
         self._remove_free_point(point)
 
 
@@ -503,12 +503,20 @@ class PolygonDecomposition:
             seg.wire[side] = a_wire
         new_seg.wire[out_vtx] = a_wire
 
+        # update parent lins of the child wires
+        for wire in self.wires.values():
+            if wire.parent == b_wire:
+                wire.parent = a_wire
+
         # remove b_wire
         if a_wire.polygon.outer_wire == b_wire:
             a_wire.polygon.outer_wire = a_wire
         else:
             del a_wire.polygon.holes[b_wire.id]
         del self.wires[b_wire.id]
+
+
+
         return new_seg
 
 
@@ -539,23 +547,34 @@ class PolygonDecomposition:
         b_wire.polygon = a_wire.polygon
         if polygon.outer_wire == a_wire:
             # one wire inside other
+            outer_wire, inner_wire = b_wire, a_wire
             if a_wire.contains_wire(b_wire):
-                polygon.outer_wire = a_wire
-                b_wire.parent = a_wire
-                polygon.holes[b_wire.id] = b_wire
-            else:
-                polygon.outer_wire = b_wire
-                b_wire.parent = a_wire.parent
-                a_wire.parent = b_wire
-                polygon.holes[a_wire.id] = a_wire
+                outer_wire, inner_wire = a_wire, b_wire
+            polygon.outer_wire = outer_wire
+            outer_wire.parent = a_wire.parent  # outer keep parent of original wire
+            inner_wire.parent = outer_wire
+            polygon.holes[inner_wire.id] = inner_wire
+            self._update_wire_parents(a_wire, outer_wire, inner_wire)
+
         else:
             # both wires are holes
             b_wire.parent = a_wire.parent
             polygon.holes[b_wire.id] = b_wire
+            self._update_wire_parents(a_wire, a_wire, b_wire)
+
 
         # remove segment
         self._destroy_segment(segment)
 
+    def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
+        # Auxiliary method of split and join wires.
+        # update all wires having orig wire as parent
+        for wire in self.wires.values():
+            if wire.parent == orig_wire:
+                if inner_wire.contains_wire(wire):
+                    wire.parent = inner_wire
+                else:
+                    wire.parent = outer_wire
 
 
     def _split_poly(self, a_pt, b_pt, a_insert, b_insert):

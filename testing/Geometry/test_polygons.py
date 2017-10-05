@@ -65,9 +65,9 @@ class TestPolygons:
         else:
             patches = []
         pts = []
-        for seg, side in polygon.outer_wire.outer_segments():
-
+        for seg, side in polygon.outer_wire.segments():
             pts.append(seg.vtxs[1-side].xy)
+
         pts.append(seg.vtxs[side].xy)
         patches.append(mp.Polygon(pts))
         return patches
@@ -249,7 +249,6 @@ class TestPolygons:
         assert sg_b.wire[right_side] == external_wire
         assert sg_c.wire[right_side] == external_wire
         assert sg_d.wire[right_side] == external_wire
-        print("Decomp:\n", decomp)
         #self.plot_polygons(decomp)
 
 
@@ -259,14 +258,14 @@ class TestPolygons:
         decomp.add_line((1, 1), (0.5, 1))
         seg_in_x, = decomp.add_line((0.5, 1), (0.5, 0.5))
         # closed inner polygon
-
+        print("Decomp:\n", decomp)
 
 
 
         # join nested wires
         sg_x = decomp.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
         self.plot_polygons(decomp)
-        #print("Decomp:\n", decomp)
+        print("Decomp:\n", decomp)
         decomp.delete_segment(sg_x)
 
         self.plot_polygons(decomp)
