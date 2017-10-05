@@ -545,7 +545,7 @@ class PolygonDecomposition:
         seg = self._make_segment( (root_pt, free_pt))
         seg.connect_vtx(out_vtx, r_insert)
         seg.connect_free_vtx(in_vtx, wire)
-        self.last_polygon_change = (PolygonChange.shape, None, None)
+        self.last_polygon_change = (PolygonChange.shape, polygon, None)
         return seg
 
     def _wire_rm_dendrite(self, segment, tip_vtx):
@@ -555,10 +555,11 @@ class PolygonDecomposition:
 
         root_vtx = 1 - tip_vtx
         assert segment.is_dendrite()
+        polygon = segment.wire[out_vtx].polygon
         segment.disconnect_vtx(root_vtx)
         segment.disconnect_wires()
         self._destroy_segment(segment)
-        self.last_polygon_change = (PolygonChange.shape, None, None)
+        self.last_polygon_change = (PolygonChange.shape, polygon, None)
 
     def _join_wires(self, a_pt, b_pt, a_insert, b_insert):
         """
@@ -568,6 +569,7 @@ class PolygonDecomposition:
         b_prev, b_next, b_wire = b_insert
         assert a_wire != b_wire
         assert a_wire.polygon == b_wire.polygon
+        self.last_polygon_change = (PolygonChange.shape, a_wire.polygon, None)
 
         # set next links
         new_seg = self._make_segment( (a_pt, b_pt))
@@ -591,7 +593,7 @@ class PolygonDecomposition:
         else:
             del a_wire.polygon.holes[b_wire.id]
         del self.wires[b_wire.id]
-        self.last_polygon_change = (PolygonChange.shape, None, None)
+
         return new_seg
 
 
@@ -638,7 +640,7 @@ class PolygonDecomposition:
             self._update_wire_parents(a_wire, a_wire, b_wire)
 
         # remove segment
-        self.last_polygon_change = (PolygonChange.shape, None, None)
+        self.last_polygon_change = (PolygonChange.shape, polygon, None)
         self._destroy_segment(segment)
 
     def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
@@ -1250,5 +1252,7 @@ class Polygon:
         Return list of polygon vertices (point objects) in counter clockwise direction.
         :return:
         """
+        if self.outer_wire is None:
+            return []
         return [seg.vtxs[side] for seg, side in self.outer_wire.segments()]
 

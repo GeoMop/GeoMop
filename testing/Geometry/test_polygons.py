@@ -64,11 +64,8 @@ class TestPolygons:
             patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
         else:
             patches = []
-        pts = []
-        for seg, side in polygon.outer_wire.segments():
-            pts.append(seg.vtxs[1-side].xy)
+        pts = [ pt.xy for pt in polygon.vertices() ]
 
-        pts.append(seg.vtxs[side].xy)
         patches.append(mp.Polygon(pts))
         return patches
 
@@ -82,20 +79,14 @@ class TestPolygons:
         patches = []
         for poly in decomp.polygons.values():
             patches.extend( self.plot_polygon(poly) )
-        #p = mc.PatchCollection(patches, cmap=matplotlib.cm.jet, alpha=0.4)
         p = mc.PatchCollection(patches, color='blue', alpha=0.2)
 
         ax.add_collection(p)
 
-        #lines = []
+
         for s in decomp.segments.values():
-            #lines.append( [ (s.vtxs[0].xy[0], s.vtxs[1].xy[0]), (s.vtxs[0].xy[1], s.vtxs[1].xy[1]) ] )
             ax.plot((s.vtxs[0].xy[0], s.vtxs[1].xy[0]), (s.vtxs[0].xy[1], s.vtxs[1].xy[1]), color='green')
 
-
-        #lc = mc.LineCollection(lines, linewidths=2)
-        #fig, ax = plt.subplots()
-        #ax.add_collection(lc)
         x_pts = []
         y_pts = []
         for pt in decomp.points.values():
@@ -111,6 +102,7 @@ class TestPolygons:
         decomp = PolygonDecomposition()
         decomp.set_tolerance(0.01)
         outer = decomp.outer_polygon
+        assert decomp.get_last_polygon_changes() == (PolygonChange.add, outer.id, outer.id)
 
         # test add point
         pt_a = decomp.add_point(  [0, 0] )
@@ -130,6 +122,8 @@ class TestPolygons:
         sg_c = decomp.new_segment(pt_a, pt_b)
         assert len(decomp.polygons) == 1
         assert len(decomp.outer_polygon.holes) == 1
+        assert decomp.get_last_polygon_changes() == (PolygonChange.none, None, None)
+
 
         # test line matching existing segment
         sg_c = decomp.new_segment(pt_a, pt_b)
@@ -145,6 +139,7 @@ class TestPolygons:
         assert sg_c.next[right_side] == (sg_d, left_side)
         assert pt_a.poly == None
         assert pt_a.segment == (sg_c, out_vtx)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
 
         res = decomp.add_line( (2,0), (3,1) )
         sg_x, = res
@@ -164,6 +159,7 @@ class TestPolygons:
         # test _split_segment, new segment - add_dendrite
         result = decomp.add_line((2,1), (3,0))
         sg_e, sg_f = result
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
 
         assert sg_e.vtxs[in_vtx].colocated((2,1), 0.001)
         assert sg_e.vtxs[out_vtx].colocated((2.5, 0.5), 0.001)
@@ -188,7 +184,8 @@ class TestPolygons:
 
 
         # test new_segment - split polygon
-        decomp.add_line( (-0.5, 1), (1, -0.5))
+        decomp.add_line( (-0.5, 1), (0.5, 0))
+        assert decomp.get_last_polygon_changes() == (PolygonChange.add, outer.id, 2)
 
         # test split_segment in vertex
         decomp.add_line( (2,0.5), (2,-0.5))
@@ -199,6 +196,7 @@ class TestPolygons:
         sg_m, = decomp.add_line((0, 1), (2, 1))
         assert len(decomp.wires) == 2
         assert len(decomp.polygons) == 2
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
 
         #self.plot_polygons(decomp)
 
@@ -207,14 +205,18 @@ class TestPolygons:
         assert len(decomp.wires) == 3
         assert len(decomp.polygons) == 2
         #self.plot_polygons(decomp)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
 
+        # other split wire
         pt_op = sg_p.vtxs[out_vtx]
         decomp.delete_segment(sg_f)
         assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
+        #self.plot_polygons(decomp)
 
         #test split_segment connected on both sides; split non outer polygon
         seg_y, = decomp.add_line( (0,0.25), (0.25, 0.25))
+        assert decomp.get_last_polygon_changes() == (PolygonChange.split, 2, 3)
 
         # test _join_segments - _split_segment inversion
         seg1 = sg_e
@@ -228,6 +230,7 @@ class TestPolygons:
 
         # test join polygons
         decomp.delete_segment(seg_y)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.join, 2, 3)
 
     def test_split_poly(self):
 
