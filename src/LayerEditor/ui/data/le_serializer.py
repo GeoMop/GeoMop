@@ -58,13 +58,11 @@ class LESerializer():
             if layers_info.diagram_id1 is not None and \
                 layers_info.diagram_id1>last_ns_idx:
                 last_ns_idx += 1
-                ns_idx = gf.add_node_set(tp_idx)
-                self._write_ns(cfg, ns_idx, gf)
+                self._write_decomposition(tp_idx, cfg.diagrams[last_ns_idx].decomp, gf)
             if layers_info.diagram_id2 is not None and \
                 layers_info.diagram_id2>last_ns_idx:
                 last_ns_idx += 1
-                ns_idx = gf.add_node_set(tp_idx)
-                self._write_ns(cfg, ns_idx, gf)
+                self._write_decomposition(tp_idx, cfg.diagrams[last_ns_idx].decomp, gf)
             if layers_info.stype1 is TopologyType.interpolated:
                 surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
                 if layers_info.diagram_id2 is None:
@@ -111,8 +109,7 @@ class LESerializer():
                 gf.add_topologies_to_count(layers_info.block_idx+1)
                 if layers_info.fracture_own.fracture_diagram_id>last_ns_idx:
                     last_ns_idx += 1
-                    ns_idx = gf.add_node_set(tp_idx+1)
-                    self._write_ns(cfg, ns_idx, gf)
+                    self._write_decomposition(tp_idx+1, cfg.diagrams[last_ns_idx].decomp, gf)
                 surface_idx = gf.add_plane_surface(cfg.layers.interfaces[layers_info.layer_idx+1].surface)
                 ns = gf.get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx+1)
@@ -130,22 +127,13 @@ class LESerializer():
         reader = GeometrySer(path)
         reader.write(gf.geometry)
             
-    def _write_ns(self, cfg, ns_idx, gf):
+    def _write_decomposition(self, tp_idx, decomp, gf):
         """write one node set from diagram structure to geometry file structure"""
-        assert ns_idx<len(self.geometry.node_sets)
-        ns = self.geometry.node_sets[ns_idx]        
-        for point in cfg.diagrams[ns_idx].points:            
-            gf.add_node(ns_idx, point.x, -point.y)
-        if cfg.diagrams[ns_idx].topology_owner:
-            for line in cfg.diagrams[ns_idx].lines:
-                gf.add_segment( ns.topology_id, cfg.diagrams[ns_idx].points.index(line.p1),
-                    cfg.diagrams[ns_idx].points.index(line.p2)) 
-            for polygon in cfg.diagrams[ns_idx].polygons:
-                p_idxs = []
-                for line in polygon.lines:
-                    p_idxs.append(cfg.diagrams[ns_idx].lines.index(line))                
-                gf.add_polygon(ns.topology_id, p_idxs)
-    
+        decomp.make_indices()
+        out_points = [ pt.xy for pt in decomp.points.values() ]
+        gf.add_node_set(tp_idx, out_points)
+        gf.set_topology(tp_idx, decomp)
+
     def load(self, cfg, path):
         """Load diagram data from set file"""
         cfg.release_all()

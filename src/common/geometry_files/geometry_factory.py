@@ -105,12 +105,38 @@ class GeometryFactory:
         
         return  len(self.geometry.layers)-1
 
-    def add_node_set(self, topology_idx):
+    def add_node_set(self, topology_idx, points):
         """Add new node set"""
         ns = NodeSet(dict(topology_id = topology_idx, nodes = [] ))
         self.geometry.node_sets.append(ns)
+        for x,y in points:
+            ns.nodes.append((x, y))
         return  len(self.geometry.node_sets)-1
-        
+
+    def set_topology(self, tp_idx, decomp):
+        topologies = self.geometry.topologies
+        while tp_idx < len(topologies):
+            self.add_topology()
+        topology = topologies[tp_idx]
+
+        topology.segments = []
+        for seg in decomp.segments.values():
+            segment = Segment(dict(node_ids=(seg.vtxs[0].index, seg.vtxs[1].index)))
+            topology.segments.append(segment)
+
+        topology.polygons = []
+        for poly in decomp.polygons.values():
+            polygon = Polygon()
+            polygon.outer_wire = [seg.index for seg, side in poly.outer_wire.segments()]
+            polygon.holes = []
+            for hole in poly.holes.values():
+                wire = [seg.index for seg, side in hole.segments()]
+                polygon.holes.append(wire)
+            polygon.free_points = []
+            for pt in poly.free_points.values():
+                polygon.free_points.append(pt.index)
+            topology.polygons.append(polygon)
+
     def reset(self):
         """Remove all data from base structure"""
         self.geometry.node_sets = []
@@ -119,26 +145,22 @@ class GeometryFactory:
         self.geometry.regions = []
         self.geometry.layers = []
         self.geometry.curves = []
-        
-    def add_node(self, node_set_idx, x, y):
-        """Add one node"""
-        self.geometry.node_sets[node_set_idx].nodes.append( (x, y) )
-        return len(self.geometry.node_sets[node_set_idx].nodes)-1
-        
+
+
     def get_nodes(self, node_set_idx):
         """Get list of nodes"""
         return self.geometry.node_sets[node_set_idx].nodes
      
     def add_segment(self,topology_idx, n1_idx, n2_idx):
         """Add one segment"""
-        segment = Segment(dict( node_ids=(n1_idx, n2_idx) ))
+        segment =
         self.geometry.topologies[topology_idx].segments.append(segment)
 
         return len(self.geometry.topologies[topology_idx].segments)-1
 
     def add_polygon(self,topology_idx, p_idxs):
         """Add one polygon"""
-        poly = Polygon(dict( segment_ids=p_idxs ))
+        poly =
         self.geometry.topologies[topology_idx].polygons.append(poly)
         return len(self.geometry.topologies[topology_idx].polygons)-1
         

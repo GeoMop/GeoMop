@@ -4,6 +4,7 @@ from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
 from .polygon_operation import PolygonOperation, SimplePolygon, Outside
+import polygons
 
 __next_id__ = 1
 __next_diagram_uid__ = 1
@@ -311,6 +312,7 @@ class Diagram():
     """List of regions"""
     area = Area()
     """diagram area"""
+
     
     @classmethod
     def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
@@ -541,6 +543,11 @@ class Diagram():
         """history"""
         self.outside = Outside()
         """Help variable for polygons structures"""
+        self.decomposition = polygons.PolygonDecomposition()
+        change, outer_polygon_id, pp = self.decomposition.get_last_change()
+        assert change == polygons.PolygonChange.add
+        # TODO: Use outer polygon id.
+        """ Decomposition of the a plane into polygons."""
         
     def join(self):
         """Add diagram to topologies"""

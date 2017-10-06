@@ -102,7 +102,9 @@ class Polygon(JsonData):
     """Polygon object"""
     def __init__(self, config={}):
         self.segment_ids = [ int ]
-        """List of segments index"""
+        """List of segments index of the outer wire."""
+        self.holes = [ [int] ]
+        """List of lists of segments of hole's wires"""
         self.surface_id = None
         """Surface index"""
         super().__init__(config)
