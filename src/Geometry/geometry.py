@@ -23,8 +23,13 @@ import math
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
-#import bspline_plot as bs_plot
 import brep_writer as bw
+
+def import_plotting():
+    global plt
+    global bs_plot
+    import matplotlib.pyplot as plt
+    import bspline_plot as bs_plot
 
 
 ###
@@ -148,6 +153,7 @@ class Surface(gs.Surface):
         Plot nodes with the surface boundary.
         :param nodes: array Nx2 of XY points
         """
+        import_plotting()
 
         # plot nodes
         x_nodes = np.array(nodes)[:, 0]
@@ -504,6 +510,7 @@ class StratumLayer(gs.StratumLayer):
                 self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
     def plot_vert_face(self, v_to_z, si_top, si_bot):
+        import_plotting()
         top_curve = si_top.vert_curve(v_to_z)
         bot_curve = si_bot.vert_curve(v_to_z)
         bs_plot.plot_curve_2d(top_curve, poles=True)
@@ -515,8 +522,8 @@ class StratumLayer(gs.StratumLayer):
     def make_vert_bw_surface(self, si_top, si_bot, edge_start, edge_end):
         top_box = si_top.curve_z.aabb()
         bot_box = si_bot.curve_z.aabb()
-        top_z = top_box[1][1] # max
-        bot_z = bot_box[0][1] # min
+        top_z = top_box[1][1] + 1.0 # max
+        bot_z = bot_box[0][1] - 1.0# min
 
         # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
         v00, v10 = np.array(si_bot.shape.points()).copy()
@@ -535,14 +542,16 @@ class StratumLayer(gs.StratumLayer):
 
         top_curve = si_top.vert_curve(v_to_z)
         uv_v_top = top_curve.eval_array(np.array([0, 1]))
-        assert np.all( 0 < uv_v_top ) and np.all( uv_v_top < 1), \
-            "Top surface under bottom surface for layer id = {}.".format(self.id)
+        assert np.all( 0 <= uv_v_top ) and np.all( uv_v_top <= 1), \
+            "Top point < bottom point, for layer id = {}. Top range:{}. Bot range {}. UV: {}"\
+            .format(self.id, (top_box[0][1], top_box[1][1]), (bot_box[0][1], bot_box[1][1]), uv_v_top)
         xyz_v_top = surf.eval_array(uv_v_top)
 
         bot_curve = si_bot.vert_curve(v_to_z)
         uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
-        assert np.all( 0 < uv_v_bot) and np.all(uv_v_bot < 1), \
-            "Top surface under bottom surface for layer id = {}.".format(self.id)
+        assert np.all( 0 <= uv_v_bot ) and np.all( uv_v_bot <= 1), \
+            "Top point < bottom point, for layer id = {}. Top range:{}. Bot range {}."\
+            .format(self.id, (top_box[0][1], top_box[1][1]), (bot_box[0][1], bot_box[1][1]), uv_v_bot)
         xyz_v_bot = surf.eval_array(uv_v_bot)
 
         # check precision of corners
