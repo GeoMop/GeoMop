@@ -1,12 +1,10 @@
-import pytest
-
 import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib import patches as mp
-from matplotlib import collections  as mc
-
-from polygons import *
 import numpy as np
+from matplotlib import collections  as mc
+from matplotlib import patches as mp
+
+from geometry_files.polygons import *
+
 
 class TestPoint:
     def test_insert_segment(self):
