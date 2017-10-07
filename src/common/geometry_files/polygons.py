@@ -767,6 +767,83 @@ class PolygonDecomposition:
         del self.polygons[new_polygon.id]
 
 
+    def make_indices(self):
+        """
+        Asign index to every node, segment and ppolygon.
+        :return: None
+        """
+        for collection in [self.points, self.segments, self.polygons]:
+            for idx, obj in enumerate(collection):
+                obj.index = idx
+
+
+
+    def make_wire_from_segments(self, seg_ids, polygon):
+        """
+        Set half segments of the wire, and the wire itself.
+        :param seg_ids: Segment ids, at least 2 and listed in the orientation matching the wire (cc wise)
+        :param polygon: Polygon the wire is part of.
+        :return: None
+        """
+        assert len(seg_ids) >= 2
+        wire = Wire()
+        self.wires.append(wire)
+
+        # detect orientation of the first segment
+        seg0 = self.segments[seg_ids[0]]
+        seg1 = self.segments[seg_ids[1]]
+        vtx0_side = seg1.point_side(seg0.vtxs[out_vtx])
+        if vtx0_side is None:
+            assert seg1.point_side(seg0.vtxs[in_vtx]) is not None, "Can not connect segments: {} {}".format(seg0.id, seg1.id)
+            side0 = in_vtx
+        else:
+            side0 = out_vtx
+        seg_side_0 = (seg0, side0)
+
+        # set segment sides along the wire
+        for id in seg_ids:
+            seg = self.segments[id]
+            side = seg.point_side(seg0.vtxs[side0])
+            assert side is not None, "Can not connect segments: {} {}".format(seg0.id, seg.id)
+            seg0.next[side0] = (seg, side)
+            seg0.wire[side0] = wire
+            seg0, side0 = seg, side
+        seg0.next[side0] = seg_side_0
+        seg0.wire[side0] = wire
+        wire.segment = seg_side_0
+        wire.polygon = polygon
+
+    def finish_setup(self):
+        """
+        - set back links from points to segments or polygons
+        - check that all segments are set.
+        - set parent links of all wires
+        :return:
+        """
+        for seg in self.segments.values():
+            for side in [out_vtx, in_vtx]:
+                seg.vtxs[side].segment = (seg, side)
+            assert None not in seg.wire
+            assert None not in seg.next
+        self.set_wire_parents(self.outer_polygon, None)
+
+    def set_wire_parents(self, polygon, parent_wire):
+        """
+        Recursively set parent wire links from holes.
+        :param polygon: Which polygon's holes to set.
+        :param parent_wire: parent wire to set to holes.
+        :return: None
+        """
+        for hole_wire in polygon.holes.values():
+            hole_wire.parent = parent_wire
+            seg, side  = hole_wire.segment
+            other_wire = seg.wire[1 - side]
+            if not other_wire == hole_wire:
+                other_poly = other_wire.polygon
+                other_poly.outer_wire = hole_wire
+                self.set_polygon_parents(other_poly, hole_wire)
+
+
     ###################################
     # Helper change operations.
     def _make_segment(self, points):
@@ -789,7 +866,6 @@ class PolygonDecomposition:
 # Data classes contains no modification methods, all modifications are through reversible atomic operations.
 class Point:
     def __init__(self, point, poly):
-        self.id = id
         self.xy = np.array(point)
         self.poly = poly
         # Containing polygon for free-nodes. None for others.
@@ -897,15 +973,10 @@ class Point:
 
 class Segment:
     def __init__(self, vtxs):
-        self.id = id
         self.vtxs = list(vtxs)
-        # tuple (start, end) point object
+        # tuple (out_vtx, in_vtx) of point objects; segment is oriented from out_vtx to in_vtx
         self.wire = [None, None]
-        # (left_poly, right_poly) - polygons on left and right side
-        #self.ori = ori
-        # (left_ori, right_ori); indicator if segment orientation match ccwise direction of the polygon
-        #self.prev = prev
-        # (left_prev, right_prev);  previous edge for left and right side;
+        # (left_wire, right_wire) - wires on left and right side
         self.next = [None, None]
         # (left_next, right_next); next edge for left and right side;
 
@@ -1116,6 +1187,13 @@ class Segment:
             pass
         return (seg, side)
 
+    def point_side(self, pt):
+        if pt == self.vtxs[out_vtx]:
+            return out_vtx
+        elif pt == self.vtxs[in_vtx]:
+            return in_vtx
+        else:
+            return None
 
 class Wire:
     def __init__(self):

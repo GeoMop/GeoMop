@@ -40,10 +40,7 @@ class GeometryFactory:
         return ns.topology_id
 
     def set_topology(self, tp_idx, decomp):
-        topologies = self.geometry.topologies
-        while tp_idx < len(topologies):
-            self.add_topology()
-        topology = topologies[tp_idx]
+        topology = self.add_topologies_to_count(tp_idx)
 
         topology.segments = []
         for seg in decomp.segments.values():

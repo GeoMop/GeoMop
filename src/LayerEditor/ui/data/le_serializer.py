@@ -1,6 +1,7 @@
 from geometry_files import GeometryFactory, GeometrySer, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface, Surface
+import geometry_files.polygons as polygons
 
 class LESerializer():
     """Class for diagram data serialization"""
@@ -197,11 +198,31 @@ class LESerializer():
             diagram.join_line(diagram.points[n1_idx],
                               diagram.points[n2_idx], "Import line", None, True)
 
+
+    def _read_decomposition(self, diagram, ns_idx, gf):
+        """write one node set from diagram structure to geometry file structure"""
+        decomp = diagram.decomp = polygons.Decomp()
+        for pt in gf.get_nodes(ns_idx):
+            decomp.points.append(polygons.Point(pt))
+        for seg in gf.get_segments(ns_idx):
+            decomp.segments.append(polygons.Segment(seg.node_ids))
+        for poly in gf.get_polygons(ns_idx):
+            p = decomp.polygons.append(polygons.Polygon(None))
+            p.outer_wire = decomp.make_wire_from_segments(poly.segment_ids, p)
+            for hole in poly.holes:
+                wire = decomp.make_wire_from_segments(hole, p)
+                p.holes[wire.id] = wire
+            for free_pt_id in poly.free_points:
+                pt = decomp.points[free_pt_id]
+                p.free_points[pt.id] = pt
+        decomp.finish_setup()
+
     def _fix_polygon_map(self, cfg, ns_idx, gf):
-        """read  one node set from geometry file structure to diagram structure"""        
+        """read  one node set from geometry file structure to diagram structure"""
         polygons = gf.get_polygons(ns_idx)
         for i, poly in enumerate(polygons):
             cfg.diagrams[ns_idx].fix_polygon_map(i, poly.segment_ids)
+
 
     def save(self, cfg, path):
         geometry = self.cfg_to_geometry(cfg)
@@ -328,12 +349,13 @@ class LESerializer():
 
 
 
-    def _write_decomposition(self, tp_idx, decomp, gf):
+    def _write_decomposition(self, tp_idx, diagram, gf):
         """write one node set from diagram structure to geometry file structure"""
+        decomp = diagram.decomp
         decomp.make_indices()
         out_points = [pt.xy for pt in decomp.points.values()]
         gf.add_node_set(tp_idx, out_points)
-        self.set_topology(tp_idx, decomp)
+        gf.set_topology(tp_idx, decomp)
 
 
 class LESerializerException(Exception):

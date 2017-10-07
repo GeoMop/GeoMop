@@ -105,6 +105,8 @@ class Polygon(JsonData):
         """List of segments index of the outer wire."""
         self.holes = [ [int] ]
         """List of lists of segments of hole's wires"""
+        self.free_points = [ int ]
+        """List of free points in polygon."""
         self.surface_id = None
         """Surface index"""
         super().__init__(config)
