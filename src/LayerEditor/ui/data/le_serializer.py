@@ -22,31 +22,6 @@ class LESerializer():
         cfg.diagrams = [Diagram(0, cfg.history)]
         cfg.diagram = cfg.diagrams[0]
 
-    # def _get_first_geometry(self, cfg):
-    #     """Get emty geometry (new)"""
-    #     # TODO: have method to setup just Geometry IO class
-    #     # and use standard load method to inittialize cfg.
-    #
-    #     cfg.diagrams = []
-    #     cfg.layers.delete()
-    #     lname = "New Layer"
-    #
-    #     gf = GeometryFactory()
-    #     tp_idx = gf.add_topology()
-    #     ns_idx = gf.add_node_set(tp_idx)
-    #     gf.geometry.supplement.last_node_set = ns_idx
-    #     cfg.diagrams = [Diagram(tp_idx, cfg.history)]
-    #     cfg.diagram = cfg.diagrams[0]
-    #     for region in gf.get_regions():
-    #         cfg.add_region(region.color, region.name, region.topo_dim, region.mesh_step,
-    #             region.boundary, region.not_used)
-    #     cfg.add_shapes_to_region(False, 0, lname, tp_idx, [[], [], []])
-    #     cfg.layers.add_interface(Surface("0"), False, None, ns_idx)
-    #     cfg.layers.add_interface(Surface("100"), False)
-    #     cfg.layers.add_layer(lname)
-    #     cfg.layers.compute_composition()
-    #     cfg.layers.set_edited_diagram(0)
-    #     return gf.geometry
 
     def _get_first_geometry(self):
         lname = "Layer 1"
@@ -244,26 +219,28 @@ class LESerializer():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         # layers
         layers_info = cfg.layers.get_first_layer_info()
-        #  tp_idx = gf.add_topology()
         last_ns_idx = -1
 
         block_ids = set()
         while not layers_info.end:
             if layers_info.block_idx not in block_ids:
                 tp_idx = gf.add_topology()
-            # if layers_info.block_idx > tp_idx:
-            #    gf.add_topologies_to_count(layers_info.block_idx)
-            #    tp_idx = layers_info.block_idx
+
             if layers_info.diagram_id1 is not None and \
                             layers_info.diagram_id1 > last_ns_idx:
+                # TODO: use some relation between diagram_id1 and ns_index, absolutely not clear if diagram_id1
+                # is diagram index or not. Same for later calls of _write_ns
                 last_ns_idx += 1
-                ns_idx = gf.add_node_set(tp_idx)
-                self._write_ns(cfg, ns_idx, gf)
+                d_idx = last_ns_idx
+                diagram = cfg.diagrams[d_idx]
+                self._write_ns(tp_idx, diagram, gf)
             if layers_info.diagram_id2 is not None and \
                             layers_info.diagram_id2 > last_ns_idx:
                 last_ns_idx += 1
-                ns_idx = gf.add_node_set(tp_idx)
-                self._write_ns(cfg, ns_idx, gf)
+                d_idx = last_ns_idx
+                diagram = cfg.diagrams[d_idx]
+                self._write_ns(tp_idx, diagram, gf)
+
             if layers_info.stype1 is TopologyType.interpolated:
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
                 if layers_info.diagram_id2 is None:
@@ -279,6 +256,7 @@ class LESerializer():
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
                 ns1 = gf.get_surface_ns(layers_info.diagram_id1, surface_idx)
                 ns1_type = TopologyType.given
+
             if layers_info.stype2 is TopologyType.interpolated:
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
                 if layers_info.diagram_id2 is None:
@@ -294,6 +272,7 @@ class LESerializer():
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
                 ns2 = gf.get_surface_ns(layers_info.diagram_id2, surface_idx)
                 ns2_type = TopologyType.given
+
             if layers_info.fracture_before is not None:
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx)
                 gf.add_GL(layers_info.fracture_before.name, LayerType.fracture, regions, ns1_type, ns1)
@@ -311,8 +290,9 @@ class LESerializer():
                 gf.add_topologies_to_count(layers_info.block_idx + 1)
                 if layers_info.fracture_own.fracture_diagram_id > last_ns_idx:
                     last_ns_idx += 1
-                    ns_idx = gf.add_node_set(tp_idx + 1)
-                    self._write_ns(cfg, ns_idx, gf)
+                    d_idx = last_ns_idx
+                    diagram = cfg.diagrams[d_idx]
+                    self._write_ns(tp_idx + 1, diagram, gf)
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
                 ns = gf.get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx + 1)
@@ -328,20 +308,22 @@ class LESerializer():
             raise LESerializerException("Some file consistency errors occure", errors)
         return gf.geometry
 
-    def _write_ns(self, cfg, ns_idx, gf):
+    def _write_ns(self, tp_idx, diagram, gf):
         """write one node set from diagram structure to geometry file structure"""
-        assert ns_idx < len(gf.geometry.node_sets)
+        ns_idx = gf.add_node_set(tp_idx)
         ns = gf.geometry.node_sets[ns_idx]
-        for point in cfg.diagrams[ns_idx].points:
+        for point in diagram.points:
             gf.add_node(ns_idx, point.x, -point.y)
-        if cfg.diagrams[ns_idx].topology_owner:
-            for line in cfg.diagrams[ns_idx].lines:
-                gf.add_segment(ns.topology_id, cfg.diagrams[ns_idx].points.index(line.p1),
-                               cfg.diagrams[ns_idx].points.index(line.p2))
-            for polygon in cfg.diagrams[ns_idx].polygons:
+        if diagram.topology_owner:
+            for line in diagram.lines:
+                gf.add_segment(ns.topology_id, diagram.points.index(line.p1),
+                               diagram.points.index(line.p2))
+            for polygon in diagram.polygons:
                 p_idxs = []
                 for line in polygon.lines:
-                    p_idxs.append(cfg.diagrams[ns_idx].lines.index(line))
+                    p_idxs.append(diagram.lines.index(line))
+                gf.add_polygon(ns.topology_id, p_idxs)
+
                 gf.add_polygon(ns.topology_id, p_idxs)
 
 

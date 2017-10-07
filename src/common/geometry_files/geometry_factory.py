@@ -112,9 +112,9 @@ class GeometryFactory:
         
         return  len(self.geometry.layers)-1
 
-    def add_node_set(self, topology_idx):
+    def add_node_set(self, topology_idx, points=[]):
         """Add new node set"""
-        ns = NodeSet(dict(topology_id = topology_idx, nodes = [] ))
+        ns = NodeSet(dict(topology_id = topology_idx, nodes = points ))
         self.geometry.node_sets.append(ns)
         return  len(self.geometry.node_sets)-1
         
