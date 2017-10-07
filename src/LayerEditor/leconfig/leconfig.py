@@ -323,7 +323,7 @@ class LEConfig:
             except OSError:
                 cls.curr_file_timestamp = None
         cls.history.remove_all()        
-        cls.le_serializer.data.load(cls, file)
+        cls.le_serializer.load(cls, file)
         cls.main_window.refresh_all()
         cls.config.add_recent_file(file)
         

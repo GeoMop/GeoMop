@@ -65,24 +65,31 @@ class GeometryFactory:
         """Create and return surface node set"""
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
-        
-    def add_plane_surface(self, surface):
+
+    def add_surface_plane(self, depth):
+        """Add new main layer"""
+        surface = Surface({"depth": depth})
+        return self._reuse_surface(surface)
+
+
+    def add_surface(self, surface):
         """Add new main layer"""        
         surface = Surface({
             "depth":surface.depth, 
             "transform_xy":surface.transform_xy, 
             "grid_file":surface.grid_file, 
             "transform_z":surface.transform_z})
-        ret = None
+        return self._reuse_surface(surface)
+
+
+    def _reuse_surface(self, surface):
         for old_surface in self.geometry.surfaces:
             if surface==old_surface:
-                ret = self.geometry.surfaces.index(old_surface)
-                break
-        if ret is None:        
-            self.geometry.surfaces.append(surface)
-            ret = len(self.geometry.surfaces)-1
-        return ret        
-    
+                return self.geometry.surfaces.index(old_surface)
+        self.geometry.surfaces.append(surface)
+        return len(self.geometry.surfaces)-1
+
+
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
         layer_class = [ StratumLayer, FractureLayer, ShadowLayer ][type]
