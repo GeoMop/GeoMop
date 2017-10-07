@@ -48,13 +48,16 @@ class LESerializer():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         # layers
         layers_info = cfg.layers.get_first_layer_info()
-        tp_idx = gf.add_topology()
+        #  tp_idx = gf.add_topology()
         last_ns_idx = -1
-        
-        while not layers_info.end:            
-            if layers_info.block_idx > tp_idx:
-                gf.add_topologies_to_count(layers_info.block_idx)
-                tp_idx = layers_info.block_idx
+
+        block_ids = set()
+        while not layers_info.end:
+            if layers_info.block_idx not in block_ids:
+                tp_idx = gf.add_topology()
+            #if layers_info.block_idx > tp_idx:
+            #    gf.add_topologies_to_count(layers_info.block_idx)
+            #    tp_idx = layers_info.block_idx
             if layers_info.diagram_id1 is not None and \
                 layers_info.diagram_id1>last_ns_idx:
                 last_ns_idx += 1
