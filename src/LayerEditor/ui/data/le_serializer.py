@@ -66,7 +66,7 @@ class LESerializer():
                 new_top == curr_topology
                 curr_block += 1                
             cfg.diagrams.append(Diagram(curr_block, cfg.history))
-            self._read_ns(cfg, i, gf)  
+            self._read_ns(cfg.diagrams[-1], i, gf)
         Diagram.make_revert_map()
         for i in range(0, len(gf.geometry.node_sets)):
             self._fix_polygon_map(cfg, i, gf)        
@@ -184,18 +184,18 @@ class LESerializer():
         cfg.layers.compute_composition()
         cfg.layers.set_edited_diagram(ns_idx)
                 
-    def _read_ns(self, cfg, ns_idx, gf):
+    def _read_ns(self, diagram, ns_idx, gf):
         """read  one node set from geometry file structure to diagram structure"""        
         nodes = gf.get_nodes(ns_idx)
         for node in nodes:
             x, y = node
-            cfg.diagrams[ns_idx].add_point(x, -y, 'Import point', None, True)
+            diagram.add_point(x, -y, 'Import point', None, True)
             
         segments = gf.get_segments(ns_idx)
         for segment in segments:
             n1_idx, n2_idx = segment.node_ids
-            cfg.diagrams[ns_idx].join_line(cfg.diagrams[ns_idx].points[n1_idx],
-                cfg.diagrams[ns_idx].points[n2_idx], "Import line", None, True)
+            diagram.join_line(diagram.points[n1_idx],
+                              diagram.points[n2_idx], "Import line", None, True)
 
     def _fix_polygon_map(self, cfg, ns_idx, gf):
         """read  one node set from geometry file structure to diagram structure"""        
