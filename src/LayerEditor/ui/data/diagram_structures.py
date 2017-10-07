@@ -252,19 +252,14 @@ class Area():
         self.ymax = None
         """boundary rect"""
         
-    def serialize(self, data):
+    def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
         for i in range(0, len(self.gtpolygon)-1):
-            data.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
+            points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
-    def deserialize(self, data):
+    def deserialize(self, points):
         """Set inicialization arrea from polygon coordinates"""
-        px = []
-        py = []
-        for point in data:
-            (x, y) = point
-            px.append(x)
-            py.append(y)
+        px, py = zip(*points)
         self.set_area(px, py)
         
     def set_area(self, pxs, pys):
@@ -274,16 +269,12 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for i in range(0, len(pxs)):
-            self.gtpolygon.append(QtCore.QPointF(pxs[i], -pys[i]))
-            if self.xmin > pxs[i]:
-                self.xmin = pxs[i]
-            if self.xmax < pxs[i]:
-                self.xmax = pxs[i]
-            if self.ymin > -pys[i]:
-                self.ymin = -pys[i]
-            if self.ymax < -pys[i]:
-                self.ymax = -pys[i]
+        for x, y in zip(pxs, pxs):
+            self.gtpolygon.append(QtCore.QPointF(x, -y))
+            self.xmin = min(self.xmin, x)
+            self.xmax = max(self.xmax, x)
+            self.ymin = min(self.ymin, -y)
+            self.ymax = max(self.ymax, -y)
         self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
  
 class Diagram():

@@ -9,7 +9,7 @@ import config as cfg
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_dialogs import GMErrorDialog
 from geomop_analysis import Analysis, InvalidAnalysis
-import ui.data as data
+import ui.data
 from ui.helpers import CurrentView
 
 
@@ -154,11 +154,11 @@ class LEConfig:
     """List of diagram data"""
     history = None
     """History for current geometry data"""
-    layers = data.Layers()
+    layers = ui.data.Layers()
     """Layers structure"""
     diagram =  None
     """Current diagram data"""
-    data = None    
+    le_serializer = None
     """Data from geometry file"""    
     main_window = None    
     """parent of dialogs"""
@@ -180,17 +180,17 @@ class LEConfig:
     @classmethod
     def add_region(cls, color, name, dim, step,  boundary, not_used):
         """Add region"""
-        data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
+        ui.data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        ui.data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
     
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return data.Diagram.get_shapes_from_region(is_fracture, layer_id)
+        return ui.data.Diagram.get_shapes_from_region(is_fracture, layer_id)
         
     @classmethod
     def set_curr_diagram(cls, i):
@@ -218,9 +218,9 @@ class LEConfig:
                 cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
                 cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))
-        if oper is data.TopologyOperations.insert:
+        if oper is ui.data.TopologyOperations.insert:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
-        elif oper is data.TopologyOperations.insert_next:
+        elif oper is ui.data.TopologyOperations.insert_next:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
             
     @classmethod
@@ -230,8 +230,8 @@ class LEConfig:
         for i in range(0, len(diagrams)):
             cls.diagrams.insert(id+i, diagrams[i])
             cls.diagrams[id+i].join()
-        if oper is data.TopologyOperations.insert or \
-            oper is data.TopologyOperations.insert_next:
+        if oper is ui.data.TopologyOperations.insert or \
+            oper is ui.data.TopologyOperations.insert_next:
             cls.diagrams[id].move_diagram_topologies(id+len(diagrams), cls.diagrams)
             
     @classmethod
@@ -241,7 +241,7 @@ class LEConfig:
         cls.history.removed_diagrams.append(cls.diagrams[idx])
         curr_id = cls.diagram_id()
         del cls.diagrams[idx]
-        data.Diagram.fix_topologies(cls.diagrams)
+        ui.data.Diagram.fix_topologies(cls.diagrams)
         return curr_id == idx
         
     @classmethod
@@ -253,14 +253,14 @@ class LEConfig:
     @classmethod
     def release_all(cls):
         """Release all diagram data"""
-        data.Diagram.release_all(cls.history)
+        ui.data.Diagram.release_all(cls.history)
     
     @classmethod
     def init(cls):
         """Init class with static method"""
-        cls.history = data.GlobalHistory(cls)
-        data.Diagram.release_all(cls.history)
-        cls.data = data.LESerializer(cls)
+        cls.history = ui.data.GlobalHistory(cls)
+        ui.data.Diagram.release_all(cls.history)
+        cls.le_serializer = ui.data.LESerializer(cls)
         
     @staticmethod
     def get_current_view(location):
@@ -294,7 +294,7 @@ class LEConfig:
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
-        cls.data.set_new(cls)
+        cls.le_serializer.set_new(cls)
         cls.main_window.refresh_all()
         
     @classmethod
@@ -302,7 +302,7 @@ class LEConfig:
         """save to json file"""
         if file is None:
             file = cls.curr_file
-        cls.data.save(cls, file)
+        cls.le_serializer.save(cls, file)
         cls.history.saved()
         cls.config.update_last_data_dir(file)
         cls.config.add_recent_file(file)
@@ -323,7 +323,7 @@ class LEConfig:
             except OSError:
                 cls.curr_file_timestamp = None
         cls.history.remove_all()        
-        cls.data.load(cls, file)        
+        cls.le_serializer.load(cls, file)
         cls.main_window.refresh_all()
         cls.config.add_recent_file(file)
         

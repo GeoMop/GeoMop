@@ -249,7 +249,7 @@ class UserSupplement(JsonData):
     def __init__(self, config={}):
         self.last_node_set = 0
         """Last edited node set"""
-        self.init_area = [(float, float)]
+        self.init_area = [(0.0, 0.0), (1.0, 1.0)]
         """Initialization area (polygon x,y coordinates)"""
         
         super().__init__(config)
