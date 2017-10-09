@@ -186,7 +186,9 @@ class LESerializer():
         cfg.layers.set_edited_diagram(ns_idx)
                 
     def _read_ns(self, diagram, ns_idx, gf):
-        """read  one node set from geometry file structure to diagram structure"""        
+        """read  one node set from geometry file structure to diagram structure"""
+        return self._read_decomposition(diagram, ns_idx, gf)
+
         nodes = gf.get_nodes(ns_idx)
         for node in nodes:
             x, y = node
@@ -331,6 +333,8 @@ class LESerializer():
 
     def _write_ns(self, tp_idx, diagram, gf):
         """write one node set from diagram structure to geometry file structure"""
+        return self._write_decomposition(tp_idx, diagram, gf)
+
         ns_idx = gf.add_node_set(tp_idx)
         ns = gf.geometry.node_sets[ns_idx]
         for point in diagram.points:
