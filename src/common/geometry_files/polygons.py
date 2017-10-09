@@ -138,10 +138,10 @@ class PolygonDecomposition:
 
         if a_pt.is_free():
             assert b_insert is not None
-            return self._wire_add_dendrite(b_pt, b_insert, a_pt)
+            return self._wire_add_dendrite( (a_pt, b_pt), b_insert, in_vtx)
         if b_pt.is_free():
             assert a_insert is not None
-            return self._wire_add_dendrite(a_pt, a_insert, b_pt)
+            return self._wire_add_dendrite( (a_pt, b_pt), a_insert, out_vtx)
 
         assert a_insert is not None
         assert b_insert is not None
@@ -533,18 +533,22 @@ class PolygonDecomposition:
         self._destroy_segment(segment)
 
 
-    def _wire_add_dendrite(self, root_pt, r_insert, free_pt):
+    def _wire_add_dendrite(self, points, r_insert, root_idx):
         """
         Add new dendrite tip segment.
+        points: (out_pt, in_pt)
+        r_insert: insert information for root point
+        root_idx: index (0/1) of the root, i.e. non-free point.
         """
+        free_pt = points[1-root_idx]
         polygon = free_pt.poly
         r_prev, r_next, wire = r_insert
         assert wire.polygon == free_pt.poly
         del polygon.free_points[free_pt.id]
 
-        seg = self._make_segment( (root_pt, free_pt))
-        seg.connect_vtx(out_vtx, r_insert)
-        seg.connect_free_vtx(in_vtx, wire)
+        seg = self._make_segment( points)
+        seg.connect_vtx(root_idx, r_insert)
+        seg.connect_free_vtx(1-root_idx, wire)
         self.last_polygon_change = (PolygonChange.shape, polygon, None)
         return seg
 
