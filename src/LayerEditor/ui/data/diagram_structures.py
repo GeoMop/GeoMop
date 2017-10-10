@@ -3,7 +3,7 @@ import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
-from .polygon_operation import PolygonOperation, SimplePolygon, Outside
+from .polygon_operation import PolygonOperation
 import polygons
 
 __next_id__ = 1
@@ -210,8 +210,6 @@ class Polygon():
         """Graphic object"""
         self.id = id
         """Polygon history id"""
-        self.spolygon = SimplePolygon()
-        """Poligon work instance in polygon operation"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -532,7 +530,7 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
-        self.outside = Outside()
+        self.po = PolygonOperation()
         """Help variable for polygons structures"""
         self.decomposition = polygons.PolygonDecomposition()
         change, outer_polygon_id, pp = self.decomposition.get_last_change()
@@ -670,7 +668,8 @@ class Diagram():
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
         point = Point(x, y, id)
-        self.points.append(point)        
+        self.points.append(point) 
+        self.po.add_point(self, point) 
         #save revert operations to history
         if not not_history:
             self.regions.add_regions(0, point.id)
@@ -720,6 +719,7 @@ class Diagram():
         if not trimed.contains(p.qpointf()) :
             need_recount = True
         # remove point
+        self.po.remove_point(self, p) 
         self.points.remove(p)
         if not not_history:
             self.regions.del_regions(0, p.id, not not_history)
@@ -744,7 +744,7 @@ class Diagram():
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)        
-        PolygonOperation.update_polygon_add_line(self, line, None, not_history) 
+        self.po.add_line(self, line) 
         if not not_history:
             self.regions.add_regions(1, line.id, not not_history)
         return line
@@ -768,15 +768,15 @@ class Diagram():
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
-        l.p2.lines.remove(l)        
+        l.p2.lines.remove(l)
+        self.po.remove_line(self, l)
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
-            self.regions.del_regions(1, l.id, not not_history)
-        PolygonOperation.update_polygon_del_line(self, l, None, not_history)        
+            self.regions.del_regions(1, l.id, not not_history)        
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
-        """Call if point is moved by another way and need save history"""
+        """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
         self._history.move_point(p.id, x_old, y_old)
         # compute recount params
@@ -799,7 +799,6 @@ class Diagram():
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
-        PolygonOperation.next_split_line(line) 
         l2 = self.join_line(point2, line.p2, None)
         #save revert operations to history        
         self._history.add_line(line.id, line.p1, point2, None)

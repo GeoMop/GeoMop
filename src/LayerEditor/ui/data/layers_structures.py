@@ -437,8 +437,7 @@ class Layers():
         else:
             self.layers.insert(idx, Layer(name))
             self.interfaces.insert(idx+1, Interface(Surface(surface.depth), True))
-        return False
-       
+        return False       
        
     def add_fracture(self, idx, name, position, dup):
         """add fracture to interface
