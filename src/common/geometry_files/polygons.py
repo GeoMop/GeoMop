@@ -607,7 +607,7 @@ class PolygonDecomposition:
         # update parent lins of the child wires
         for wire in self.wires.values():
             if wire.parent == b_wire:
-                wire.parent = a_wire
+                wire.set_parent(a_wire)
 
         # remove b_wire
         if a_wire.polygon.outer_wire == b_wire:
@@ -649,14 +649,14 @@ class PolygonDecomposition:
             if a_wire.contains_wire(b_wire):
                 outer_wire, inner_wire = a_wire, b_wire
             polygon.outer_wire = outer_wire
-            outer_wire.parent = a_wire.parent  # outer keep parent of original wire
-            inner_wire.parent = outer_wire
+            outer_wire.set_parent(a_wire.parent)  # outer keep parent of original wire
+            inner_wire.set_parent(outer_wire)
             polygon.holes[inner_wire.id] = inner_wire
             self._update_wire_parents(a_wire, outer_wire, inner_wire)
 
         else:
             # both wires are holes
-            b_wire.parent = a_wire.parent
+            b_wire.set_parent(a_wire.parent)
             polygon.holes[b_wire.id] = b_wire
             self._update_wire_parents(a_wire, a_wire, b_wire)
 
@@ -670,9 +670,9 @@ class PolygonDecomposition:
         for wire in self.wires.values():
             if wire.parent == orig_wire:
                 if inner_wire.contains_wire(wire):
-                    wire.parent = inner_wire
+                    wire.set_parent(inner_wire)
                 else:
-                    wire.parent = outer_wire
+                    wire.set_parent(outer_wire)
 
 
     def _split_poly(self, a_pt, b_pt, a_insert, b_insert):
@@ -708,7 +708,7 @@ class PolygonDecomposition:
         if orig_wire.polygon.outer_wire == orig_wire:
             # two disjoint polygons
             new_poly.outer_wire = left_wire
-            left_wire.parent = orig_wire.parent
+            left_wire.set_parent( orig_wire.parent)
             self.last_polygon_change = (PolygonChange.split, orig_poly, new_poly)
         else:
             # two embedded wires/polygons
@@ -719,8 +719,8 @@ class PolygonDecomposition:
             outer_wire.polygon = orig_poly
             inner_wire.polygon = new_poly
             new_poly.outer_wire = inner_wire
-            outer_wire.parent = orig_wire.parent
-            inner_wire.parent = outer_wire
+            outer_wire.set_parent( orig_wire.parent)
+            inner_wire.set_parent( outer_wire )
             if inner_wire.id in orig_poly.holes:
                 del orig_poly.holes[inner_wire.id]
                 orig_poly.holes[outer_wire.id] = outer_wire
@@ -855,7 +855,7 @@ class PolygonDecomposition:
         :return: None
         """
         for hole_wire in polygon.holes.values():
-            hole_wire.parent = parent_wire
+            hole_wire.set_parent(parent_wire)
             seg, side  = hole_wire.segment
             other_wire = seg.wire[1 - side]
             if not other_wire == hole_wire:
