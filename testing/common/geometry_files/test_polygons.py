@@ -361,20 +361,20 @@ class TestPolygons:
         decomp._join_segments(sg0.vtxs[1], sg0, sg1)
         decomp._join_segments(sg0.vtxs[1], sg0, sg2)
 
-    def test_polygon_childs(self):
-        decomp = PolygonDecomposition()
-        decomp.add_line((0, 0), (3, 0))
-        decomp.add_line((0, 0), (0, 3))
-        decomp.add_line((0, 3), (3, 0))
-        decomp.add_line((1, 1), (2, 1))
-        decomp.add_line((1, 1), (1, 2))
-        decomp.add_line((1, 2), (2, 1))
-        self.plot_polygons(decomp)
-
-        decomp.add_line((1, 1), (0, 0))
-        decomp.add_line((2, 1), (3, 0))
-        decomp.add_line((1, 2), (0, 3))
-        self.plot_polygons(decomp)
+    # def test_polygon_childs(self):
+    #     decomp = PolygonDecomposition()
+    #     decomp.add_line((0, 0), (3, 0))
+    #     decomp.add_line((0, 0), (0, 3))
+    #     decomp.add_line((0, 3), (3, 0))
+    #     decomp.add_line((1, 1), (2, 1))
+    #     decomp.add_line((1, 1), (1, 2))
+    #     decomp.add_line((1, 2), (2, 1))
+    #     self.plot_polygons(decomp)
+    #
+    #     decomp.add_line((1, 1), (0, 0))
+    #     decomp.add_line((2, 1), (3, 0))
+    #     decomp.add_line((1, 2), (0, 3))
+    #     self.plot_polygons(decomp)
 
     def test_polygon_childs(self):
         decomp = PolygonDecomposition()
@@ -388,7 +388,7 @@ class TestPolygons:
         lst = list(decomp.get_childs(1))
         assert lst == [1,2,3]
 
-        decomp.add_line((1, 1), (0, 0))
-        decomp.add_line((2, 1), (4, 0))
-        decomp.add_line((1, 2), (0, 4))
-        self.plot_polygons(decomp)
+        # decomp.add_line((1, 1), (0, 0))
+        # decomp.add_line((2, 1), (4, 0))
+        # decomp.add_line((1, 2), (0, 4))
+        # self.plot_polygons(decomp)

@@ -1790,7 +1790,7 @@ class PolygonOperation():
         
     def add_line(self, diagram, line):
         """Add new point to decomposition"""
-        segment = self.decompositon.new_segment(diagram.points.index(line.p1), diagram.points.index(line.p2))
+        segment = self.decompositon.new_segment_ids(diagram.points.index(line.p1), diagram.points.index(line.p2))
         line.segment = segment 
         res = self.decompositon.get_last_polygon_changes()
         if res[0] != PolygonChange.none:
@@ -1799,7 +1799,7 @@ class PolygonOperation():
     def move_line(self, diagram, line):
         """remove and move line"""
         self.decompositon.delete_segment(line.segment)
-        segment = self.decompositon.new_segment(diagram.points.index(line.p1), diagram.points.index(line.p2))
+        segment = self.decompositon.new_segment_ids(diagram.points.index(line.p1), diagram.points.index(line.p2))
         line.segment = segment 
         
     def remove_line(self, diagram, line):

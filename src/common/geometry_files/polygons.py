@@ -122,8 +122,12 @@ class PolygonDecomposition:
         point = self.points[point_id]
         self._remove_free_point(point)
 
+    def new_segment_ids(self, a_pt_id, b_pt_id):
+        a_pt = self.points[a_pt_id]
+        b_pt = self.points[b_pt_id]
+        self.new_segment(a_pt, b_pt)
 
-    def new_segment(self, a_pt_id, b_pt_id):
+    def new_segment(self, a_pt, b_pt):
         """
         LAYERS
         Add segment between given existing points. Assumes that there is no intersection with other segment.
@@ -133,15 +137,12 @@ class PolygonDecomposition:
         :return: new segment
         """
         self.last_polygon_change = (PolygonChange.none, None, None)
-        segment = self.pt_to_seg.get((a_pt_id, b_pt_id), None)
+        segment = self.pt_to_seg.get((a_pt.id, b_pt.id), None)
         if segment is not None:
             return segment
-        segment = self.pt_to_seg.get((b_pt_id, a_pt_id), None)
+        segment = self.pt_to_seg.get((b_pt.id, a_pt.id), None)
         if segment is not None:
             return segment
-            
-        a_pt = self.points[a_pt_id]
-        b_pt = self.points[b_pt_id]
 
         if a_pt.is_free() and b_pt.is_free():
             assert a_pt.poly == b_pt.poly
