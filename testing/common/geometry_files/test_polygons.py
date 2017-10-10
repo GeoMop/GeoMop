@@ -149,7 +149,7 @@ class TestPolygons:
         assert sg_c.next[right_side] == (sg_d, left_side)
         assert pt_a.poly == None
         assert pt_a.segment == (sg_c, out_vtx)
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
         res = decomp.add_line( (2,0), (3,1) )
         sg_x, = res
@@ -169,7 +169,7 @@ class TestPolygons:
         # test _split_segment, new segment - add_dendrite
         result = decomp.add_line((2,1), (3,0))
         sg_e, sg_f = result
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
         assert sg_e.vtxs[out_vtx].colocated((2,1), 0.001)
         assert sg_e.vtxs[in_vtx].colocated((2.5, 0.5), 0.001)
@@ -212,7 +212,7 @@ class TestPolygons:
 
         assert len(decomp.wires) == 3
         assert len(decomp.polygons) == 2
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
         #self.plot_polygons(decomp)
 
@@ -221,7 +221,7 @@ class TestPolygons:
         assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
         #self.plot_polygons(decomp)
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
         # other split wire
         pt_op = sg_p.vtxs[out_vtx]
@@ -343,9 +343,13 @@ class TestPolygons:
 
         step = decomp.check_displacment([pt0, pt], (1.0, 1.0), 0.1)
         assert la.norm( step - np.array([0.45, 0.45]) ) < 1e-6
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [1,2,3,4], None)
 
         decomp.move_points([pt], step)
         assert la.norm( pt.xy - np.array([0.95, 0.95]) ) < 1e-6
+
+        step = decomp.check_displacment([pt], (1.0, 1.0), 0.1)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [2,3,4], None)
 
 
     def test_join_segments(self):
@@ -356,3 +360,17 @@ class TestPolygons:
         sg2, = decomp.add_line((2, 0), (3, 0))
         decomp._join_segments(sg0.vtxs[1], sg0, sg1)
         decomp._join_segments(sg0.vtxs[1], sg0, sg2)
+
+    def test_polygon_childs(self):
+        decomp = PolygonDecomposition()
+        decomp.add_line((0, 0), (3, 0))
+        decomp.add_line((0, 0), (0, 3))
+        decomp.add_line((0, 3), (3, 0))
+        decomp.add_line((1, 1), (2, 1))
+        decomp.add_line((1, 1), (1, 2))
+        decomp.add_line((1, 2), (2, 1))
+
+        decomp.add_line((1, 1), (0, 0))
+        decomp.add_line((2, 1), (3, 0))
+        #decomp.add_line((1, 2), (0, 3))
+        #self.plot_polygons(decomp)
