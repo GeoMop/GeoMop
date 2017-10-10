@@ -181,6 +181,13 @@ class PolygonDecomposition:
             # Different wires.
             self._join_poly(segment)
 
+    def get_childs(self, polygon_id):
+        """
+        Retunr list of child ploygons.
+        :param polygon_id:
+        :return:
+        TODO: ...
+        """
 
     def get_last_polygon_changes(self):
         """
@@ -508,14 +515,13 @@ class PolygonDecomposition:
 
         del polygon.free_points[a_pt.id]
         del polygon.free_points[b_pt.id]
-        wire = Wire()
+        wire = self.wires.append(Wire())
         wire.polygon = polygon
+        wire.set_parent(polygon.outer_wire)
         seg = self._make_segment((a_pt, b_pt))
         seg.connect_free_vtx(out_vtx, wire)
         seg.connect_free_vtx(in_vtx, wire)
         wire.segment = (seg, right_side)
-        wire.parent = polygon.outer_wire
-        self.wires.append(wire)
         polygon.holes[wire.id] = wire
         return seg
 
@@ -573,7 +579,8 @@ class PolygonDecomposition:
         b_prev, b_next, b_wire = b_insert
         assert a_wire != b_wire
         assert a_wire.polygon == b_wire.polygon
-        self.last_polygon_change = (PolygonChange.shape, a_wire.polygon, None)
+        polygon = a_wire.polygon
+        self.last_polygon_change = (PolygonChange.shape, polygon, None)
 
         # set next links
         new_seg = self._make_segment( (a_pt, b_pt))
@@ -608,8 +615,7 @@ class PolygonDecomposition:
         assert segment.is_dendrite()
         a_wire = segment.wire[left_side]
         polygon = a_wire.polygon
-        b_wire = Wire()
-        self.wires.append(b_wire)
+        b_wire = self.wires.append(Wire())
 
         # set new wire to segments (b_wire is on the segment side of the vtx[1])
         b_vtx_next_side = in_vtx
@@ -668,8 +674,7 @@ class PolygonDecomposition:
         orig_wire  = a_wire
 
         right_wire = a_wire
-        left_wire = Wire()
-        self.wires.append(left_wire)
+        left_wire = self.wires.append(Wire())
 
         # set next links
         new_seg = self._make_segment( (a_pt, b_pt))
@@ -1224,6 +1229,9 @@ class Wire:
         else:
             return self.id
 
+    def set_parent(self, parent_wire):
+        self.parent = parent_wire
+        parent_wire.childs.add(self)
     def segments(self, start = (None, None), end = (None, None)):
         """
         Yields all (segmnet, side) of the same wire as the 'start' segment side,
@@ -1248,16 +1256,16 @@ class Wire:
                 assert False, "Repeated seg: {}\nVisited: {}".format(seg_side, visited)
             assert not seg_side == start, "Inifinite loop."
 
-    def outer_segments(self):
-        """
-        :return: List of boundary componencts without tails. Single component is list of segments (with orientation)
-        that forms outer boundary, i.e. excluding internal tails, i.e. segments appearing just once.
-        TODO: This is not reliable for dendrites with holes. We should use whole wire for plotting.
-        Then remove this method.
-        """
-        for seg, side  in self.segments():
-            if not seg.is_dendrite():
-                yield (seg, side)
+    # def outer_segments(self):
+    #     """
+    #     :return: List of boundary componencts without tails. Single component is list of segments (with orientation)
+    #     that forms outer boundary, i.e. excluding internal tails, i.e. segments appearing just once.
+    #     TODO: This is not reliable for dendrites with holes. We should use whole wire for plotting.
+    #     Then remove this method.
+    #     """
+    #     for seg, side  in self.segments():
+    #         if not seg.is_dendrite():
+    #             yield (seg, side)
 
 
     def contains_point(self, xy):
