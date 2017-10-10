@@ -68,12 +68,12 @@ class TestWire:
 
 class TestPolygons:
     def plot_polygon(self, polygon):
-        if polygon is None or polygon.displayed or polygon.outer_wire == None:
+        if polygon is None or polygon.displayed or polygon.outer_wire.is_root():
             return []
-        if polygon.outer_wire.parent is not None:
-            patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
-        else:
-            patches = []
+
+        # recursion
+        assert polygon.outer_wire.parent.polygon != polygon
+        patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
         pts = [ pt.xy for pt in polygon.vertices() ]
 
         patches.append(mp.Polygon(pts))
@@ -369,8 +369,26 @@ class TestPolygons:
         decomp.add_line((1, 1), (2, 1))
         decomp.add_line((1, 1), (1, 2))
         decomp.add_line((1, 2), (2, 1))
+        self.plot_polygons(decomp)
 
         decomp.add_line((1, 1), (0, 0))
         decomp.add_line((2, 1), (3, 0))
-        #decomp.add_line((1, 2), (0, 3))
+        decomp.add_line((1, 2), (0, 3))
+        self.plot_polygons(decomp)
+
+    def test_polygon_childs(self):
+        decomp = PolygonDecomposition()
+        decomp.add_line((0, 0), (4, 0))
+        decomp.add_line((0, 0), (0, 4))
+        decomp.add_line((0, 4), (4, 0))
+        decomp.add_line((1, 1), (2, 1))
+        decomp.add_line((1, 1), (1, 2))
+        decomp.add_line((1, 2), (2, 1))
         #self.plot_polygons(decomp)
+        lst = list(decomp.get_childs(1))
+        assert lst == [1,2,3]
+
+        decomp.add_line((1, 1), (0, 0))
+        decomp.add_line((2, 1), (4, 0))
+        decomp.add_line((1, 2), (0, 4))
+        self.plot_polygons(decomp)

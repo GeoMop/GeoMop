@@ -273,10 +273,9 @@ class PolygonDecomposition:
 
     def get_childs(self, polygon_id):
         """
-        Retunr list of child ploygons.
+        Return list of child ploygons (including itself).
         :param polygon_id:
-        :return:
-        TODO: ...
+        :return: List of polygon IDs.
         """
         root_poly = self.polygons[polygon_id]
         for poly in  root_poly.child_polygons():
@@ -1370,6 +1369,7 @@ class Wire(IdObject):
             seg, side  = child.segment
             other_wire = seg.wire[1 - side]
             if not other_wire == child:
+                yield other_wire
                 yield from other_wire.child_wires()
 
 
@@ -1415,6 +1415,6 @@ class Polygon(IdObject):
         Yield all child polygons, i.e. polygons inside the self.outer_wire.
         """
         yield self
-        for wire in self.outer_wire.child_wires:
+        for wire in self.outer_wire.child_wires():
             if wire == wire.polygon.outer_wire:
                 yield wire.polygon
