@@ -22,6 +22,15 @@ in_vtx = left_side = 1
 out_vtx = right_side = 0
 # vertex where edge comes out; side where next segment is connected through the out_vtx
 
+
+class IdObject:
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+
 class IdMap(dict):
     id = 0
 
@@ -287,11 +296,12 @@ class PolygonDecomposition:
 
 
 
-    def check_displacment(self, points, displacement):
+    def check_displacment(self, points, displacement, margin):
         """
         LAYERS
         param: points: List of Points to move.
         param: displacement: Numpy array, 2D vector of displacement to add to the points.
+        param: margin: float between (0, 1), displacement margin as a fraction of maximal displacement
         :return: Shortened displacement to not cross any segment.
         """
         # Collect fixed sides of segments connecting fixed and moving point.
@@ -313,14 +323,14 @@ class PolygonDecomposition:
                 e_seg, e_side = e_seg_side
                 envelope.add(e_seg)
 
-        new_displ = displacement
+        new_displ = np.array(displacement)
         for seg in envelope:
             for pt in points:
                 (t0, t1) = seg.intersection(pt.xy, pt.xy + new_displ)
                 # TODO: Treat case of vector and segment in line.
                 # TODO: Check bound checks in intersection.
                 if t0 is not None:
-                    new_displ *= t1
+                    new_displ *= (1.0 - margin) * t1
         return new_displ
 
 
@@ -435,13 +445,10 @@ class PolygonDecomposition:
 
     def _split_segment(self, seg, t_point):
         """
-
-
         Split a segment into two segments. Original keeps the start point.
         :param seg:
         :param t_point:
         :return:
-        TODO: replace by del_segment and 2x new_segment
         """
         if t_point < self.tolerance:
             return seg.vtxs[out_vtx]
@@ -496,7 +503,11 @@ class PolygonDecomposition:
         seg1.disconnect_vtx(seg1_out_vtx)
         seg0.disconnect_vtx(seg0_in_vtx)
         seg0.vtxs[seg0_in_vtx] = seg1.vtxs[seg1_in_vtx]
-        seg0.connect_vtx(seg0_in_vtx, b_seg1_insert)
+        if b_seg1_insert is None:
+            assert seg0.is_dendrite()
+            seg0.connect_free_vtx(seg0_in_vtx, seg0.wire[out_vtx])
+        else:
+            seg0.connect_vtx(seg0_in_vtx, b_seg1_insert)
 
         # fix possible polygon references
         for side in [left_side, right_side]:
@@ -716,12 +727,12 @@ class PolygonDecomposition:
             self.last_polygon_change = (PolygonChange.add, orig_poly, new_poly)
 
         # split free points
-        for pt in orig_poly.free_points.values():
+        for pt in list(orig_poly.free_points.values()):
             if new_poly.outer_wire.contains_point(pt.xy):
                 new_poly.free_points[pt.id] = orig_poly.free_points.pop(pt.id)
 
         # split holes
-        for hole in orig_poly.holes.values():
+        for hole in list(orig_poly.holes.values()):
             if new_poly.outer_wire.contains_wire(hole):
                 new_poly.holes[hole.id] = orig_poly.holes.pop(hole.id)
         return new_seg
@@ -782,7 +793,7 @@ class PolygonDecomposition:
         :return: None
         """
         for collection in [self.points, self.segments, self.polygons]:
-            for idx, obj in enumerate(collection):
+            for idx, obj in enumerate(collection.values()):
                 obj.index = idx
 
 
@@ -873,17 +884,14 @@ class PolygonDecomposition:
 
 
 # Data classes contains no modification methods, all modifications are through reversible atomic operations.
-class Point:
+class Point(IdObject):
+
     def __init__(self, point, poly):
         self.xy = np.array(point)
         self.poly = poly
         # Containing polygon for free-nodes. None for others.
         self.segment = (None, None)
         # (seg, vtx_side) One of segments joined to the Point and local idx of the segment (out_vtx, in_vtx).
-
-
-    def __eq__(self, other):
-        return self.id == other.id
 
     def __repr__(self):
         return "Pt({}) {}".format(self.id, self.xy)
@@ -980,7 +988,8 @@ class Point:
         """
         return la.norm(self.xy - xy_pt) < tol
 
-class Segment:
+class Segment(IdObject):
+
     def __init__(self, vtxs):
         self.vtxs = list(vtxs)
         # tuple (out_vtx, in_vtx) of point objects; segment is oriented from out_vtx to in_vtx
@@ -988,9 +997,6 @@ class Segment:
         # (left_wire, right_wire) - wires on left and right side
         self.next = [None, None]
         # (left_next, right_next); next edge for left and right side;
-
-    def __eq__(self, other):
-        return self.id == other.id
 
     def __repr__(self):
         next = [ self._half_seg_repr(right_side), self._half_seg_repr(left_side) ]
@@ -1025,6 +1031,7 @@ class Segment:
         :param vtx_idx: out_idx / in_idx; specification of the segment's endpoint to connect.
         :param insert_info: (prev_side, next_side, wire)
                 ... as returned by Point.insert_segment and self.vtx_insert_info
+        TODO: merge with connect_free_vtx ... common notation fo insert info.
         """
         self.vtxs[vtx_idx].join_segment(self, vtx_idx)
         prev, next, wire = insert_info
@@ -1140,7 +1147,7 @@ class Segment:
         Dy = vtxs[1, 1] - vtxs[0, 1]
         magnitude = np.max(vtxs[:, 1])
         # require at least 4 decimal digit remaining precision of the Dy
-        if np.abs(Dy) < 1e-12 * (1.0 + magnitude):
+        if np.abs(Dy) < tol:
             # horizontal edge
             min_y, max_y = np.sort(vtxs[:, 1])
             if min_y - tol <= xy[1] <= max_y + tol:
@@ -1149,12 +1156,13 @@ class Segment:
                 return []
         else:
             t = (xy[1] - vtxs[0, 1]) / Dy
-            if 0 < t <= 1:
+            if 0 - tol < t < 1 + tol:
                 Dx = vtxs[1, 0] - vtxs[0, 0]
                 isec_x = t * Dx + vtxs[0, 0]
                 return [isec_x]
             else:
                 return []
+
 
     def is_on_x_line(self, xy):
         """
@@ -1164,8 +1172,16 @@ class Segment:
         :param xy:
         :return:
         """
-        x_isec = self.x_line_isec(xy)
-        if x_isec and min( x_isec )  > xy[0]:
+        yy = [self.vtxs[out_vtx].xy[1], self.vtxs[in_vtx].xy[1]]
+
+        if yy[0] < yy[1]:
+            min_y, max_y = yy
+        else:
+            max_y, min_y = yy
+
+        if min_y <= xy[1] < max_y:
+            min_x = min([self.vtxs[out_vtx].xy[0], self.vtxs[in_vtx].xy[0]])
+            if min_x > xy[0]:
                 return True
         return False
 
@@ -1204,11 +1220,13 @@ class Segment:
         else:
             return None
 
-class Wire:
+class Wire(IdObject):
+
     def __init__(self):
         self.parent = None
         # Wire that contains this wire. None for the global outer boundary.
         # Parent relations are independent of polygons.
+        self.childs=set()
         self.polygon = None
         # Polygon of this wire
         self.segment = (None, None)
@@ -1219,6 +1237,9 @@ class Wire:
         if self is None or other is None:
             return False
         return self.id == other.id
+
+    def __hash__(self):
+        return self.id
 
     def __repr__(self):
         return "Wire({}) seg: {} poly: {} parent: {}".format(self.id, (self.segment[0].id, self.segment[1]), self.polygon.id, self.parent)
@@ -1231,7 +1252,10 @@ class Wire:
 
     def set_parent(self, parent_wire):
         self.parent = parent_wire
-        parent_wire.childs.add(self)
+        if parent_wire is not None:
+            parent_wire.childs.add(self)
+
+
     def segments(self, start = (None, None), end = (None, None)):
         """
         Yields all (segmnet, side) of the same wire as the 'start' segment side,
@@ -1305,7 +1329,8 @@ class Wire:
         inner_point = seg.vtxs[out_vtx].xy + 0.5 * tang  + eps * norm
         return self.contains_point(inner_point)
 
-class Polygon:
+class Polygon(IdObject):
+
     def __init__(self, outer_wire):
         self.outer_wire = outer_wire
         # outer boundary wire
@@ -1314,8 +1339,6 @@ class Polygon:
         self.free_points = {}
         # Dict ID->pt of free points inside the polygon.
 
-    def __eq__(self, other):
-        return self.id == other.id
 
     def __repr__(self):
         if self.outer_wire is None:
