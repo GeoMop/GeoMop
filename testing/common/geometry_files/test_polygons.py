@@ -63,7 +63,7 @@ class TestWire:
 
         sg4, = decomp.add_line((.5,.5), (0.6,0.6))
         decomp.new_segment(sg4.vtxs[0], pt0)
-        assert len(decomp.wires) == 2
+        assert len(decomp.wires) == 3
 
 
 class TestPolygons:
@@ -131,7 +131,7 @@ class TestPolygons:
         # test new_segment, new_wire
         sg_c = decomp.new_segment(pt_a, pt_b)
         assert len(decomp.polygons) == 1
-        assert len(decomp.outer_polygon.holes) == 1
+        assert len(decomp.outer_polygon.outer_wire.childs) == 1
         assert decomp.get_last_polygon_changes() == (PolygonChange.none, None, None)
 
 
@@ -154,7 +154,7 @@ class TestPolygons:
         res = decomp.add_line( (2,0), (3,1) )
         sg_x, = res
         assert len(decomp.polygons) == 1
-        assert len(decomp.outer_polygon.holes) == 2
+        assert len(decomp.outer_polygon.outer_wire.childs) == 2
 
 
         # test snap point - snap to line
@@ -201,7 +201,7 @@ class TestPolygons:
         decomp.add_line( (2,0.5), (2,-0.5))
 
         # test new_segment - join_wires
-        assert len(decomp.wires) == 3
+        assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
 
         print(decomp)
@@ -210,7 +210,7 @@ class TestPolygons:
 
 
 
-        assert len(decomp.wires) == 2
+        assert len(decomp.wires) == 3
         assert len(decomp.polygons) == 2
         assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
 
@@ -218,7 +218,7 @@ class TestPolygons:
 
         # delete segment - split wire
         decomp.delete_segment(sg_m)
-        assert len(decomp.wires) == 3
+        assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
         #self.plot_polygons(decomp)
         assert decomp.get_last_polygon_changes() == (PolygonChange.shape, outer.id, None)
@@ -226,7 +226,7 @@ class TestPolygons:
         # other split wire
         pt_op = sg_p.vtxs[out_vtx]
         decomp.delete_segment(sg_f)
-        assert len(decomp.wires) == 4
+        assert len(decomp.wires) == 5
         assert len(decomp.polygons) == 2
         #self.plot_polygons(decomp)
 
@@ -267,7 +267,7 @@ class TestPolygons:
         assert sg_c.next == [ (sg_b, 0), (sg_d, 1)]
         assert sg_d.next == [ (sg_c, 0), (sg_a, 1)]
 
-        external_wire = list(decomp.outer_polygon.holes.values())[0]
+        external_wire = list(decomp.outer_polygon.outer_wire.childs)[0]
         assert sg_a.wire[right_side] == external_wire
         assert sg_b.wire[right_side] == external_wire
         assert sg_c.wire[right_side] == external_wire

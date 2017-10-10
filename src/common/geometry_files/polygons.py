@@ -77,8 +77,11 @@ class PolygonDecomposition:
         # Closed loops possibly degenerated) of segment sides. Single wire can be tracked through segment.next links.
         self.polygons = IdMap()
         # Polygon dictionary ID -> Polygon
-        self.outer_polygon = Polygon(None)
+        outer_wire = self.wires.append(Wire())
+        outer_wire.parent = None
+        self.outer_polygon = Polygon(outer_wire)
         self.polygons.append(self.outer_polygon)
+        outer_wire.polygon = self.outer_polygon
 
 
         self.last_polygon_change=(PolygonChange.add, self.outer_polygon, self.outer_polygon)
@@ -533,7 +536,7 @@ class PolygonDecomposition:
         seg.connect_free_vtx(out_vtx, wire)
         seg.connect_free_vtx(in_vtx, wire)
         wire.segment = (seg, right_side)
-        polygon.holes[wire.id] = wire
+        polygon.outer_wire.add_child(wire)
         return seg
 
     def _rm_wire(self, segment):
@@ -545,7 +548,7 @@ class PolygonDecomposition:
         assert segment.is_dendrite()
         wire = segment.wire[left_side]
         polygon = wire.polygon
-        del polygon.holes[wire.id]
+        polygon.outer_wire.childs.remove(wire)
         del self.wires[wire.id]
         self._destroy_segment(segment)
 
@@ -613,7 +616,7 @@ class PolygonDecomposition:
         if a_wire.polygon.outer_wire == b_wire:
             a_wire.polygon.outer_wire = a_wire
         else:
-            del a_wire.polygon.holes[b_wire.id]
+            a_wire.polygon.outer_wire.childs.remove(b_wire)
         del self.wires[b_wire.id]
 
         return new_seg
@@ -651,13 +654,13 @@ class PolygonDecomposition:
             polygon.outer_wire = outer_wire
             outer_wire.set_parent(a_wire.parent)  # outer keep parent of original wire
             inner_wire.set_parent(outer_wire)
-            polygon.holes[inner_wire.id] = inner_wire
+            polygon.outer_wire.add_child(inner_wire)
             self._update_wire_parents(a_wire, outer_wire, inner_wire)
 
         else:
             # both wires are holes
             b_wire.set_parent(a_wire.parent)
-            polygon.holes[b_wire.id] = b_wire
+            polygon.outer_wire.add_child(b_wire)
             self._update_wire_parents(a_wire, a_wire, b_wire)
 
         # remove segment
@@ -721,9 +724,9 @@ class PolygonDecomposition:
             new_poly.outer_wire = inner_wire
             outer_wire.set_parent( orig_wire.parent)
             inner_wire.set_parent( outer_wire )
-            if inner_wire.id in orig_poly.holes:
-                del orig_poly.holes[inner_wire.id]
-                orig_poly.holes[outer_wire.id] = outer_wire
+            if inner_wire in orig_poly.outer_wire.childs:
+                orig_poly.outer_wire.childs.remove(inner_wire)
+                orig_poly.outer_wire.add_child(outer_wire)
             self.last_polygon_change = (PolygonChange.add, orig_poly, new_poly)
 
         # split free points
@@ -732,9 +735,10 @@ class PolygonDecomposition:
                 new_poly.free_points[pt.id] = orig_poly.free_points.pop(pt.id)
 
         # split holes
-        for hole in list(orig_poly.holes.values()):
-            if new_poly.outer_wire.contains_wire(hole):
-                new_poly.holes[hole.id] = orig_poly.holes.pop(hole.id)
+        for hole_wire in list(orig_poly.outer_wire.childs):
+            if new_poly.outer_wire.contains_wire(hole_wire):
+                orig_poly.outer_wire.childs.remove(hole_wire)
+                new_poly.outer_wire.add_child(hole_wire)
         return new_seg
 
 
@@ -766,13 +770,13 @@ class PolygonDecomposition:
             self.last_polygon_change = (PolygonChange.remove, orig_polygon, new_polygon)
 
         # Join holes and free points
-        orig_polygon.holes.update(new_polygon.holes)
+        orig_polygon.outer_wire.childs.update(new_polygon.outer_wire.childs)
         orig_polygon.free_points.update(new_polygon.free_points)
 
         # remove outer wire from holes add right_wire == orig_wire
-        if left_wire.id in orig_polygon.holes:
-            del orig_polygon.holes[left_wire.id]
-            orig_polygon.holes[right_wire.id] = right_wire
+        if left_wire in orig_polygon.outer_wire.childs:
+            orig_polygon.outer_wire.childs.remove(left_wire)
+            orig_polygon.outer_wire.add_child(right_wire)
 
         # fix wire links for
         for seg, side in left_wire.segments():
@@ -845,7 +849,7 @@ class PolygonDecomposition:
                 seg.vtxs[side].segment = (seg, side)
             assert None not in seg.wire
             assert None not in seg.next
-        self.set_wire_parents(self.outer_polygon, None)
+        self.set_wire_parents(self.outer_polygon, self.outer_polygon.outer_wire)
 
     def set_wire_parents(self, polygon, parent_wire):
         """
@@ -854,7 +858,7 @@ class PolygonDecomposition:
         :param parent_wire: parent wire to set to holes.
         :return: None
         """
-        for hole_wire in polygon.holes.values():
+        for hole_wire in polygon.outer_wire.childs:
             hole_wire.set_parent(parent_wire)
             seg, side  = hole_wire.segment
             other_wire = seg.wire[1 - side]
@@ -1223,7 +1227,7 @@ class Segment(IdObject):
 class Wire(IdObject):
 
     def __init__(self):
-        self.parent = None
+        self.parent = self
         # Wire that contains this wire. None for the global outer boundary.
         # Parent relations are independent of polygons.
         self.childs=set()
@@ -1242,13 +1246,22 @@ class Wire(IdObject):
         return self.id
 
     def __repr__(self):
-        return "Wire({}) seg: {} poly: {} parent: {}".format(self.id, (self.segment[0].id, self.segment[1]), self.polygon.id, self.parent)
+        if self.is_root():
+            return "Wire({}) root, poly: {}, childs: {}".\
+            format(self.id, self.polygon.id, [ch.id for ch in self.childs])
+        return "Wire({}) seg: {} poly: {} parent: {} childs: {}".\
+            format(self.id, (self.segment[0].id, self.segment[1]),
+                   self.polygon.id, self.parent.id, [ch.id for ch in self.childs])
 
     def repr_id(self):
-        if self is None:
-            return None
-        else:
-            return self.id
+        return self.id
+
+    def is_root(self):
+        return self.parent is None
+
+    def add_child(self, wire):
+        assert type(wire) == Wire
+        self.childs.add(wire)
 
     def set_parent(self, parent_wire):
         self.parent = parent_wire
@@ -1313,9 +1326,9 @@ class Wire(IdObject):
         Translates to call of 'contains_point' for carefully selected point.
         TODO: use tolerance.
         """
-        if self is None:
+        if self.is_root():
             return True
-        if wire is None:
+        if wire.is_root():
             return False
 
         # test if a point of wire is inside 'self'
@@ -1334,18 +1347,13 @@ class Polygon(IdObject):
     def __init__(self, outer_wire):
         self.outer_wire = outer_wire
         # outer boundary wire
-        self.holes = {}
-        # Wires of holes.
         self.free_points = {}
         # Dict ID->pt of free points inside the polygon.
 
 
     def __repr__(self):
-        if self.outer_wire is None:
-            outer = None
-        else:
-            outer = self.outer_wire.id
-        return "Poly({}) out wire: {} holes: {}".format(self.id, outer, [ w.id for w in self.holes.values()])
+        outer = self.outer_wire.id
+        return "Poly({}) out wire: {}".format(self.id, outer)
 
     def depth(self):
         """
@@ -1355,7 +1363,7 @@ class Polygon(IdObject):
         """
         depth=0
         wire = self.outer_wire
-        while (wire is not None):
+        while (not wire.is_root()):
             depth += 1
             wire = wire.parent
 
@@ -1365,7 +1373,7 @@ class Polygon(IdObject):
         Return list of polygon vertices (point objects) in counter clockwise direction.
         :return:
         """
-        if self.outer_wire is None:
+        if self.outer_wire.is_root():
             return []
         return [seg.vtxs[side] for seg, side in self.outer_wire.segments()]
 
