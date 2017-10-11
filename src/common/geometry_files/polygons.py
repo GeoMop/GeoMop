@@ -1393,8 +1393,7 @@ class Wire(IdObject):
             if not other_wire == child:
                 yield other_wire
                 yield from other_wire.child_wires()
-
-
+                
 
 class Polygon(IdObject):
 

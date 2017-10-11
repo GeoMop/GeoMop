@@ -4,7 +4,6 @@ from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
 from .polygon_operation import PolygonOperation
-import polygons
 
 __next_id__ = 1
 __next_diagram_uid__ = 1
@@ -94,7 +93,6 @@ class Point():
         return Diagram.regions.get_regions(0, self.id)
 
 
-
 class Line():
     """
     Class for graphic presentation of line
@@ -113,10 +111,8 @@ class Line():
         """This line instance is use for these polygon"""
         self.polygon2 = None
         """This line instance is use for these polygon"""
-        self.in_polygon = None
+        self.segment = None
         """This line instance is in these polygon"""
-        self.bundled = False
-        """This line instance is bundled to some polygon"""
  
         if id is None:            
             self.id = __next_id__
@@ -208,8 +204,12 @@ class Polygon():
             line.in_polygon = None
         self.object = None
         """Graphic object"""
+        self.helpid = None
+        """Id in polygon from decomposition"""
         self.id = id
         """Polygon history id"""
+        self.qtpolygon = None
+        """Qt polygon for point localization"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -532,11 +532,6 @@ class Diagram():
         """history"""
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
-        self.decomposition = polygons.PolygonDecomposition()
-        change, outer_polygon_id, pp = self.decomposition.get_last_change()
-        assert change == polygons.PolygonChange.add
-        # TODO: Use outer polygon id.
-        """ Decomposition of the a plane into polygons."""
         
     def join(self):
         """Add diagram to topologies"""
@@ -626,6 +621,16 @@ class Diagram():
             if line.id==id:
                 return line
         return None
+        
+    def find_line(self, p1_id, p2_id):
+        """Find line accoding points index"""
+        p1 = self.points[p1_id]
+        p2 = self.points[p2_id]
+        for line in p1.lines:
+            if line in p2.lines:
+                return line
+        return None
+        
         
     def add_file(self, file):
         """Add new shapefile"""
@@ -744,7 +749,7 @@ class Diagram():
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)        
-        self.po.add_line(self, line) 
+        self.po.add_line(self, line, None, not_history) 
         if not not_history:
             self.regions.add_regions(1, line.id, not not_history)
         return line

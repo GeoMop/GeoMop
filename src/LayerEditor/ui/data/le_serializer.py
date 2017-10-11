@@ -187,7 +187,7 @@ class LESerializer():
                 
     def _read_ns(self, diagram, ns_idx, gf):
         """read  one node set from geometry file structure to diagram structure"""
-        return self._read_decomposition(diagram, ns_idx, gf)
+        # return self._read_decomposition(diagram, ns_idx, gf)
 
         nodes = gf.get_nodes(ns_idx)
         for node in nodes:
