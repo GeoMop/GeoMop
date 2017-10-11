@@ -573,6 +573,8 @@ class PolygonDecomposition:
         # it should have treatment of the single segment pint , i.e. tip
         seg_tip_insert = ( (seg, left_side), (seg, right_side), seg.wire[right_side])
         seg.disconnect_vtx(in_vtx)
+        del self.pt_to_seg[(seg.vtxs[0].id, seg.vtxs[1].id)]
+        self.pt_to_seg[(seg.vtxs[0].id, mid_pt.id)] = seg
 
         new_seg = self._make_segment((mid_pt, seg.vtxs[in_vtx]))
         seg.vtxs[in_vtx] = mid_pt
