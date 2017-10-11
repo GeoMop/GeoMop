@@ -208,6 +208,8 @@ class Polygon():
         """Id in polygon from decomposition"""
         self.id = id
         """Polygon history id"""
+        self.qtpolygon = None
+        """Qt polygon for point localization"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -620,6 +622,16 @@ class Diagram():
                 return line
         return None
         
+    def find_line(self, p1_id, p2_id):
+        """Find line accoding points index"""
+        p1 = self.points[p1_id]
+        p2 = self.points[p2_id]
+        for line in p1.lines:
+            if line in p2.lines:
+                return line
+        return None
+        
+        
     def add_file(self, file):
         """Add new shapefile"""
         disp = self.shp.add_file(file)
@@ -737,7 +749,7 @@ class Diagram():
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)        
-        self.po.add_line(self, line) 
+        self.po.add_line(self, line, None, not_history) 
         if not not_history:
             self.regions.add_regions(1, line.id, not not_history)
         return line

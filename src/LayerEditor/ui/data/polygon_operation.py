@@ -1,7 +1,7 @@
 from geometry_files import PolygonDecomposition, PolygonChange
 import PyQt5.QtCore as QtCore
+import PyQt5.QtGui as QtGui
 
-#import PyQt5.QtGui as QtGui
 #import abc
 #from enum import IntEnum
 #from copy import copy
@@ -1784,13 +1784,13 @@ class PolygonOperation():
 
     def add_point(self, diagram, point):
         """Add new point to decomposition"""
-        self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), 1)
+        self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), self.outer_id)
 
     def remove_point(self, diagram, point):
         """remove set point from decomposition"""
         self.decomposition.remove_free_point(diagram.points.index(point))
         
-    def add_line(self, diagram, line):
+    def add_line(self, diagram, line, label=None, not_history=True):
         """Add new point to decomposition"""
         segment = self.decomposition.new_segment_ids(diagram.points.index(line.p1), diagram.points.index(line.p2))
         line.segment = segment 
@@ -1798,7 +1798,7 @@ class PolygonOperation():
         if res[0] == PolygonChange.shape:
             self._reload_boundary(diagram, res[1])
         elif res[0] == PolygonChange.add:
-            self._add_polygon(diagram, res[2])
+            self._add_polygon(diagram, res[2], label, not_history)
     
     def split_line(self, diagram, line, point):
         """remove and move line"""
@@ -1806,7 +1806,7 @@ class PolygonOperation():
         segment = self.decompositon.new_segment_ids(diagram.points.index(line.p1), diagram.points.index(line.p2))
         line.segment = segment 
         
-    def remove_line(self, diagram, line):
+    def remove_line(self, diagram, line, label=None, not_history=True):
         """remove set point from decomposition"""
         self.decomposition.delete_segment(line.segment)
         
@@ -1814,10 +1814,24 @@ class PolygonOperation():
         """reload set polygon boundary"""
         pass
         
-    def _add_polygon(self, diagram, polygon_id):
+    def _add_polygon(self, diagram, polygon_id, label, not_history):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
         children = self.decomposition.get_childs(polygon_id)
+        points = polygon.vertices()        
+        
+        qtpolygon = QtGui.QPolygonF()
+        lines = []        
+        for i in range(0, len(points)):            
+            qtpolygon.append(QtCore.QPointF(points[i].xy[0], points[i].xy[1]))
+            if i==0:
+                lines.append(diagram.find_line(points[-1].id, points[0].id))
+            else:
+                lines.append(diagram.find_line(points[i-1].id, points[i].id))
+        qtpolygon.append(QtCore.QPointF(points[0].xy[0], points[0].xy[1]))
+        
+        polygon = diagram.add_polygon(lines, label, not_history)
+        polygon.qtpolygon = qtpolygon
         
         
     

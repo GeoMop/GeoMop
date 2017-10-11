@@ -10,7 +10,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     STANDART_ZVALUE = -11
     
     def __init__(self, polygon, parent=None):
-        super(Polygon, self).__init__(polygon.spolygon.gtpolygon)
+        super(Polygon, self).__init__(polygon.qtpolygon)
         self.polygon = polygon 
         polygon.object = self
         """polygon data object"""
