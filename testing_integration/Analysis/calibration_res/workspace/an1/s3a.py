@@ -13,7 +13,7 @@ Flow123d_3 = Flow123dAction(
     Inputs=[
         Workflow_2.input()
     ],
-    YAMLFile='V7_jb_par3.yaml'
+    YAMLFile='V7_jb_par4.yaml'
 )
 conn_out = Connector()
 conn_out.set_inputs([Flow123d_3])
@@ -70,6 +70,9 @@ Calibration_4 = Calibration(
     ),
     MinimizationMethod="SLSQP"
 )
+print_action = PrintDTTAction(
+    Inputs=[Calibration_4],
+    OutputFile="output.txt")
 Pipeline_5 = Pipeline(
-    ResultActions=[Calibration_4]
+    ResultActions=[print_action]
 )

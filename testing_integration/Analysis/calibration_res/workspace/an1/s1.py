@@ -53,6 +53,9 @@ Calibration_4 = Calibration(
     ),
     MinimizationMethod="SLSQP"
 )
+print_action = PrintDTTAction(
+    Inputs=[Calibration_4],
+    OutputFile="output.txt")
 Pipeline_5 = Pipeline(
-    ResultActions=[Calibration_4]
+    ResultActions=[print_action]
 )
