@@ -3,7 +3,7 @@ import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
-from .polygon_operation import PolygonOperation, SimplePolygon, Outside
+from .polygon_operation import PolygonOperation
 
 __next_id__ = 1
 __next_diagram_uid__ = 1
@@ -93,7 +93,6 @@ class Point():
         return Diagram.regions.get_regions(0, self.id)
 
 
-
 class Line():
     """
     Class for graphic presentation of line
@@ -112,10 +111,8 @@ class Line():
         """This line instance is use for these polygon"""
         self.polygon2 = None
         """This line instance is use for these polygon"""
-        self.in_polygon = None
+        self.segment = None
         """This line instance is in these polygon"""
-        self.bundled = False
-        """This line instance is bundled to some polygon"""
  
         if id is None:            
             self.id = __next_id__
@@ -207,10 +204,10 @@ class Polygon():
             line.in_polygon = None
         self.object = None
         """Graphic object"""
+        self.helpid = None
+        """Id in polygon from decomposition"""
         self.id = id
         """Polygon history id"""
-        self.spolygon = SimplePolygon()
-        """Poligon work instance in polygon operation"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -251,19 +248,14 @@ class Area():
         self.ymax = None
         """boundary rect"""
         
-    def serialize(self, data):
+    def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
         for i in range(0, len(self.gtpolygon)-1):
-            data.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
+            points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
-    def deserialize(self, data):
+    def deserialize(self, points):
         """Set inicialization arrea from polygon coordinates"""
-        px = []
-        py = []
-        for point in data:
-            (x, y) = point
-            px.append(x)
-            py.append(y)
+        px, py = zip(*points)
         self.set_area(px, py)
         
     def set_area(self, pxs, pys):
@@ -273,16 +265,12 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for i in range(0, len(pxs)):
-            self.gtpolygon.append(QtCore.QPointF(pxs[i], -pys[i]))
-            if self.xmin > pxs[i]:
-                self.xmin = pxs[i]
-            if self.xmax < pxs[i]:
-                self.xmax = pxs[i]
-            if self.ymin > -pys[i]:
-                self.ymin = -pys[i]
-            if self.ymax < -pys[i]:
-                self.ymax = -pys[i]
+        for x, y in zip(pxs, pxs):
+            self.gtpolygon.append(QtCore.QPointF(x, -y))
+            self.xmin = min(self.xmin, x)
+            self.xmax = max(self.xmax, x)
+            self.ymin = min(self.ymin, -y)
+            self.ymax = max(self.ymax, -y)
         self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
  
 class Diagram():
@@ -311,6 +299,7 @@ class Diagram():
     """List of regions"""
     area = Area()
     """diagram area"""
+
     
     @classmethod
     def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
@@ -539,7 +528,7 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
-        self.outside = Outside()
+        self.po = PolygonOperation()
         """Help variable for polygons structures"""
         
     def join(self):
@@ -672,7 +661,8 @@ class Diagram():
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
         point = Point(x, y, id)
-        self.points.append(point)        
+        self.points.append(point) 
+        self.po.add_point(self, point) 
         #save revert operations to history
         if not not_history:
             self.regions.add_regions(0, point.id)
@@ -722,6 +712,7 @@ class Diagram():
         if not trimed.contains(p.qpointf()) :
             need_recount = True
         # remove point
+        self.po.remove_point(self, p) 
         self.points.remove(p)
         if not not_history:
             self.regions.del_regions(0, p.id, not not_history)
@@ -746,7 +737,7 @@ class Diagram():
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)        
-        PolygonOperation.update_polygon_add_line(self, line, None, not_history) 
+        self.po.add_line(self, line) 
         if not not_history:
             self.regions.add_regions(1, line.id, not not_history)
         return line
@@ -770,15 +761,15 @@ class Diagram():
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
-        l.p2.lines.remove(l)        
+        l.p2.lines.remove(l)
+        self.po.remove_line(self, l)
         #save revert operations to history
         if not not_history:
             self._history.add_line(l.id, l.p1.id, l.p2.id, label)
-            self.regions.del_regions(1, l.id, not not_history)
-        PolygonOperation.update_polygon_del_line(self, l, None, not_history)        
+            self.regions.del_regions(1, l.id, not not_history)        
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
-        """Call if point is moved by another way and need save history"""
+        """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
         self._history.move_point(p.id, x_old, y_old)
         # compute recount params
@@ -801,7 +792,6 @@ class Diagram():
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
-        PolygonOperation.next_split_line(line) 
         l2 = self.join_line(point2, line.p2, None)
         #save revert operations to history        
         self._history.add_line(line.id, line.p1, point2, None)

@@ -312,7 +312,7 @@ class JsonData:
                     if value is not None:
                         l.append(value)
             else:
-                print("Warning: Overwriting default list content:\n {}\n path:\n {}.".format(temp, path))
+                # print("Warning: Overwriting default list content:\n {}\n path:\n {}.".format(temp, path))
                 l=value
             return l
 

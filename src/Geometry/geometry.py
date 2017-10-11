@@ -16,20 +16,16 @@ sys.path.append(geomop_src)
 import json_data as js
 import geometry_files.geometry_structures as gs
 import gmsh_io
-#import point_grid
 import numpy as np
 import numpy.linalg as la
 import math
 
-
-#from submodules.intersections.src import brep_writer as bw
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
-import bspline_plot as bs_plot
+#import bspline_plot as bs_plot
 import brep_writer as bw
 
-import matplotlib.pyplot as plt
 
 ###
 #netgen_install_prefix="/home/jb/local/"
@@ -181,7 +177,7 @@ class Surface(gs.Surface):
             self.make_bumpy_surface()
             uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
             for i, uv in enumerate(uv_nodes):
-                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[0] < 1.0 ):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
                     raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
         else:
             nod = np.array(nodes)
@@ -265,17 +261,38 @@ class Topology(gs.Topology):
     TODO:
     - support for polygons with holes, here and in creation of faces and solids
     """
-    def init(self):
-        node_id_set = { nid for segment in self.segments for nid in segment.node_ids }
+    def check(self, nodeset):
+        """
+        Check that topology is compatible with given nodeset.
+        Check and possibly fix orientation of polygons during first call.
+        :param nodeset:
+        :return:
+        """
+        if hasattr(self, 'n_nodes'):
+            # already checked with other nodeset, just check nodeset size
+            assert len(nodeset.nodes) == self.n_nodes, \
+                "Nodeset (id: {}) size {} is not compatible with topology (id: {}) with size {}"\
+                .format(nodeset.id, len(nodeset.nodes), self.id, self.n_nodes)
+            return
 
-        self.n_nodes =  len(node_id_set)
-        assert self.n_nodes == max(node_id_set) + 1
-        self.n_segments  = len(self.segments)
+        nodes = nodeset.nodes
+        self.n_nodes = len(nodes)
+        self.n_segments = len(self.segments)
+        for segment in self.segments:
+            for nid in segment.node_ids:
+                assert 0 <= nid < len(nodes), "Node ID: {} of topology (id: {}) is out of nodeset (id: {}".format(nid, self.id, nodeset.id)
 
         for poly in self.polygons:
             self.orient_polygon(poly)
 
+
     def orient_polygon(self, poly):
+        """
+        Find orientation of polygon segments so that they have same orientation within the polygon.
+        TODO: Make orientation counter clock wise.
+        :param poly:
+        :return:
+        """
         last_node = None
         first_node = poly.segment_ids
         oriented_ids = []
@@ -293,10 +310,21 @@ class Topology(gs.Topology):
 
 
     def code_oriented_segment(self, id_seg, reversed):
+        """
+        Coded segment id with orientation.
+        :param id_seg:
+        :param reversed:
+        :return:
+        """
         return id_seg + reversed*self.n_segments
 
 
     def orient_segment(self, id_seg):
+        """
+        Decode segment_id withi polygon to the true segment ID end orientation.
+        :param id_seg:
+        :return:
+        """
         if id_seg >= len(self.segments):
             return id_seg - self.n_segments, True
         else:
@@ -369,6 +397,7 @@ class SurfaceNodeSet(gs.SurfaceNodeSet):
         self.surface = lg.surfaces[self.surface_id]
         self.nodeset = lg.node_sets[self.nodeset_id]
         self.topology = lg.topologies[self.nodeset.topology_id]
+        self.topology.check(self.nodeset)
 
     def make_interface(self, lg ):
         if lg.interfaces[self.surface_id] is not None:
@@ -413,6 +442,16 @@ class Region(gs.Region):
             assert self.dim == topo_dim + extrude, "dim: %d tdim: %d ext: %d"%(self.dim, topo_dim, extrude)
         else:
             self.dim = topo_dim + extrude
+
+        # fix names of boundary regions
+        if self.boundary:
+            if self.name[0] != '.':
+                self.name = '.' + self.name
+        else:
+            while len(self.name) > 0 and self.name[0] == '.':
+                self.name = self.name[1:]
+            assert len(self.name) > 0, "Empty name of region after removing leading dots."
+                
 
     def is_active(self, dim):
         active = not self.not_used
@@ -496,10 +535,14 @@ class StratumLayer(gs.StratumLayer):
 
         top_curve = si_top.vert_curve(v_to_z)
         uv_v_top = top_curve.eval_array(np.array([0, 1]))
+        assert np.all( 0 < uv_v_top ) and np.all( uv_v_top < 1), \
+            "Top surface under bottom surface for layer id = {}.".format(self.id)
         xyz_v_top = surf.eval_array(uv_v_top)
 
         bot_curve = si_bot.vert_curve(v_to_z)
         uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
+        assert np.all( 0 < uv_v_bot) and np.all(uv_v_bot < 1), \
+            "Top surface under bottom surface for layer id = {}.".format(self.id)
         xyz_v_bot = surf.eval_array(uv_v_bot)
 
         # check precision of corners
@@ -536,7 +579,7 @@ class StratumLayer(gs.StratumLayer):
             if self.regions[i_reg].is_active(1):
                 edge_info.set( i_reg, self.i_top, self.i_bot)
             shapes.append(edge_info)
-        assert len(vert_edges) == self.topology.n_nodes, "n_vert_faces: %d n_nodes: %d"%(len(vert_faces), self.topology.n_nodes)
+        assert len(vert_edges) == self.topology.n_nodes, "n_vert_edges: %d n_nodes: %d"%(len(vert_edges), self.topology.n_nodes)
         assert len(vert_edges) == len(self.node_region_ids)
 
         vert_faces = []
@@ -632,12 +675,10 @@ class LayerGeometry(gs.LayerGeometry):
         for surf in self.surfaces:
             surf.set_file(self.filename_base)
 
-        # orient polygons
-        for topo in self.topologies:
-            topo.init()
 
         # initialize layers, neigboring layers refer to common interface
-        for layer in self.layers:
+        for id, layer in enumerate(self.layers):
+            layer.id = id
             layer.init(self)
 
 
@@ -707,7 +748,9 @@ class LayerGeometry(gs.LayerGeometry):
 
 
         # ignore shapes without ID - not part of the output
-        self.all_shapes = [ shp for si in self.all_shapes if hasattr(si.shape,  'id') ]
+        self.all_shapes = [ si for si in self.all_shapes if hasattr(si.shape,  'id') ]
+        self.compute_bounding_box()
+
         # prepare dict: (dim, shape_id) : shape info
         self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
         shape_by_dim=[[] for i in range(4)]
@@ -742,18 +785,25 @@ class LayerGeometry(gs.LayerGeometry):
         blocks.append(block)
         self.blocks=blocks
 
-    def mesh_step_estimate(self):
+    def compute_bounding_box(self):
         min_vtx = np.ones(3) * (np.inf)
         max_vtx = np.ones(3) * (-np.inf)
+        assert len(self.all_shapes) > 0, "Empty list of shapes to mesh."
         for si in self.all_shapes:
             if hasattr(si.shape, 'point'):
                 min_vtx = np.minimum(min_vtx, si.shape.point)
                 max_vtx = np.maximum(max_vtx, si.shape.point)
         assert np.all(min_vtx < np.inf)
         assert np.all(max_vtx > -np.inf)
-        char_length = np.max(max_vtx - min_vtx)
-        print("Char length: {}", char_length)
-        return char_length / 20
+        self.aabb = [ min_vtx, max_vtx ]
+
+
+    def mesh_step_estimate(self):
+        char_length = np.max(self.aabb[1] - self.aabb[0])
+        mesh_step = char_length / 20
+        print("Char length: {} mesh step: {}", char_length, mesh_step)
+        return mesh_step
+
 
     def call_gmsh(self, mesh_step):
         if mesh_step == 0.0:

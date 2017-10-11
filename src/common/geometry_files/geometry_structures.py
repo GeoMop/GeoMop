@@ -102,7 +102,11 @@ class Polygon(JsonData):
     """Polygon object"""
     def __init__(self, config={}):
         self.segment_ids = [ int ]
-        """List of segments index"""
+        """List of segments index of the outer wire."""
+        self.holes = [ [int] ]
+        """List of lists of segments of hole's wires"""
+        self.free_points = [ int ]
+        """List of free points in polygon."""
         self.surface_id = None
         """Surface index"""
         super().__init__(config)
@@ -247,7 +251,7 @@ class UserSupplement(JsonData):
     def __init__(self, config={}):
         self.last_node_set = 0
         """Last edited node set"""
-        self.init_area = [(float, float)]
+        self.init_area = [(0.0, 0.0), (1.0, 1.0)]
         """Initialization area (polygon x,y coordinates)"""
         
         super().__init__(config)
