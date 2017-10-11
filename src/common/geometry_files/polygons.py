@@ -109,8 +109,9 @@ class PolygonDecomposition:
         :param: point: (X,Y)
         :return: Point instance
         """
+        #print("add_free_point", point_id, xy, polygon_id)
         polygon = self.polygons[polygon_id]
-        self._add_free_point(xy, polygon, id = point_id)
+        return self._add_free_point(xy, polygon, id = point_id)
 
 
     def remove_free_point(self, point_id):
@@ -123,6 +124,7 @@ class PolygonDecomposition:
         self._remove_free_point(point)
 
     def new_segment_ids(self, a_pt_id, b_pt_id):
+        #print("new_segment", a_pt_id, b_pt_id)
         a_pt = self.points[a_pt_id]
         b_pt = self.points[b_pt_id]
         self.new_segment(a_pt, b_pt)
@@ -324,14 +326,21 @@ class PolygonDecomposition:
         # i ...  x_axis_segs[i-1] < x_pt <= x_axis_segs[i]
 
         assert i <= len(x_axis_segs)
-        idx_set = [ (max(i-1, 0), False), (min(i, len(x_axis_segs)-1), True) ]
-        for j, up in idx_set:
-            px, id, seg = x_axis_segs[j]
-            snapped = self._snap_to_segment(seg, point, up_is_left=up)
+        if i-1 >= 0:
+            px, id, seg = x_axis_segs[i - 1]
+            snapped = self._snap_to_segment(seg, point, up_is_left=False)
+            if snapped[0] < 2:
+                return snapped
+            wire = snapped[1]
+
+        if i < len(x_axis_segs):
+            px, id, seg = x_axis_segs[i]
+            snapped = self._snap_to_segment(seg, point, up_is_left=True)
             if snapped[0] < 2:
                 return snapped
             wire = snapped[1]
         return self._snap_to_polygon(wire.polygon, point)
+
 
 
     def _snap_to_segment(self, segment, point, up_is_left ):
@@ -376,6 +385,7 @@ class PolygonDecomposition:
 
         This operation translates to atomic operations: add_free_point and split_line_by_point.
         """
+        point = np.array(point, dtype=float)
         dim, obj, t = self.snap_point(point)
         if dim == 0:
             # nothing to add
@@ -655,7 +665,7 @@ class PolygonDecomposition:
         free_pt = points[1-root_idx]
         polygon = free_pt.poly
         r_prev, r_next, wire = r_insert
-        assert wire.polygon == free_pt.poly
+        assert wire.polygon == free_pt.poly, "point poly: {} insert: {}".format(free_pt.poly, r_insert)
         #del polygon.free_points[free_pt.id]
 
         seg = self._make_segment( points)
@@ -1209,23 +1219,32 @@ class Segment(IdObject):
 
     def is_on_x_line(self, xy):
         """
-        Returns true if the segment is on the right horizontal halfline. startign in given point.
+        Returns true if the segment is on the right horizontal halfline. starting in given point.
         TODO: Careful test of numerical stability when x_axis goes through
         a point or a segment is on it.
-        :param xy:
+        :param xy: (x, y) left tip of the horizontal half line
         :return:
         """
-        yy = [self.vtxs[out_vtx].xy[1], self.vtxs[in_vtx].xy[1]]
+        def min_max(aa):
+            if aa[0] > aa[1]:
+                return (aa[1], aa[0])
+            return aa
 
-        if yy[0] < yy[1]:
-            min_y, max_y = yy
-        else:
-            max_y, min_y = yy
+        xx, yy = zip(self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy)
 
+        min_y, max_y = min_max(yy)
         if min_y <= xy[1] < max_y:
-            min_x = min([self.vtxs[out_vtx].xy[0], self.vtxs[in_vtx].xy[0]])
-            if min_x > xy[0]:
+            min_x, max_x = min_max(xx)
+            x, y = xy
+            if min_x > x:
                 return True
+            if max_x < x:
+                return False
+            is_on_line = (y - yy[0]) * (xx[1] - xx[0]) > (x - xx[0]) * (yy[1] - yy[0])
+            if yy[1] < yy[0]:
+                is_on_line = not is_on_line
+            return is_on_line
+
         return False
 
 
