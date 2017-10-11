@@ -641,12 +641,13 @@ class Calibration(WrapperActionType):
                 tpar.append(par)
         opar = []
         while len(tpar) > 0:
+            f = False
             for i in range(len(tpar)):
                 p = tpar.pop(0)
                 d = False
                 for r in p.tied_params:
                     for s in tpar:
-                        if r == tpar.name:
+                        if r == s.name:
                             d = True
                             break
                     if d:
@@ -655,8 +656,10 @@ class Calibration(WrapperActionType):
                     tpar.append(p)
                 else:
                     opar.append(p.name)
+                    f = True
                     break
-            return None
+            if not f:
+                return None
         return opar
 
     def validate(self):
@@ -719,6 +722,10 @@ class Calibration(WrapperActionType):
         else:
             self._scipy_res = min_slsqp(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
                                          disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
+
+        # if result differ from last iteration create last iteration from it
+        if not np.all(self._scipy_res.x == self._scipy_iterations[-1][0]):
+            self._scipy_callback(self._scipy_res.x)
 
         self._set_scipy_state(self.ScipyState.finished)
 
