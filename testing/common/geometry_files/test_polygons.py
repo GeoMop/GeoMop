@@ -7,36 +7,57 @@ from geometry_files.polygons import *
 
 
 class TestPoint:
-    def test_insert_segment(self):
+    def test_insert_segment_0(self):
         decomp = PolygonDecomposition()
-        pt0 = decomp.points.append(Point( [0.0, 0.0], None))
+        # insert to free point
+        pt0 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
         assert pt0.insert_segment(np.array([10, 1])) == None
 
-        pt1 = decomp.points.append(Point( [0.0, 1.0], None))
-        seg0 = decomp.segments.append(Segment( (pt0, pt1)))
-        seg0.next = [ (seg0, left_side), (seg0, right_side)]
-        pt0.segment = (seg0, out_vtx)
-        pt1.segment = (seg0, in_vtx)
+    def test_insert_segment_1(self):
+        decomp = PolygonDecomposition()
+        # insert to single segment point
+        pt1 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
+        pt2 = decomp._add_free_point([1.0, 1.0], decomp.outer_polygon)
+        sg1 = decomp.new_segment(pt1, pt2)
+        assert sg1.is_dendrite()
+        assert pt1.insert_segment(np.array([0, 1.0])) == ( (sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_segment(np.array([0, -1.0])) == ((sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
 
-        assert pt0.insert_segment(np.array([10, 1])) == ( (seg0, right_side), (seg0, left_side), None)
-        assert pt0.insert_segment(np.array([-10, -1])) == ((seg0, right_side), (seg0, left_side), None)
+    def test_insert_segment_2(self):
+        decomp = PolygonDecomposition()
+        # insert to two segment point
+        pt1 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
+        pt2 = decomp._add_free_point([1.0, 1.0], decomp.outer_polygon)
+        pt3 = decomp._add_free_point([-1.0, -0.1], decomp.outer_polygon)
+        sg1 = decomp.new_segment(pt1, pt2)
+        sg2 = decomp.new_segment(pt1, pt3)
 
-        pt2 = decomp.points.append(Point([0.0, -1], None))
-        seg1 = decomp.segments.append(Segment( (pt2, pt0) ))
-        pt2.segment = (seg1, out_vtx)
-        pt3 = decomp.points.append(Point([-1, 0], None))
-        seg2 = decomp.segments.append(Segment( (pt0, pt3) ))
-        pt2.segment = (seg1, in_vtx)
-        seg0.next[right_side] = (seg1, right_side)
-        seg1.next[right_side] = (seg1, left_side)
-        seg1.next[left_side] = (seg2, left_side)
-        seg2.next[left_side] = (seg2, right_side)
-        seg2.next[right_side] = (seg0, left_side)
+        assert sg1.is_dendrite()
+        assert sg2.is_dendrite()
+        assert sg1.wire[out_vtx] == sg2.wire[out_vtx]
 
-        assert pt0.insert_segment(np.array([10, 1])) == ((seg0, right_side), (seg1, right_side), None)
-        assert pt0.insert_segment(np.array([-10, -1])) == ((seg1, left_side), (seg2, left_side), None)
-        assert pt0.insert_segment(np.array([-10, +1])) == ((seg2, right_side), (seg0, left_side), None)
+        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
 
+        # close polygon
+        sg3 = decomp.new_segment(pt3, pt2)
+        print(decomp)
+        assert sg3.wire[right_side] == decomp.wires[2]
+        assert sg3.wire[left_side] == decomp.wires[3]
+        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), decomp.wires[2])
+        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), decomp.wires[3])
+        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), decomp.wires[2])
+
+
+class TestSegment:
+    def test_is_on_x_line(self):
+        sg = Segment(( Point([0.0, -0.001], None), Point([2.0, +0.001], None) ))
+        assert sg.is_on_x_line([1.0 - 1e-4, 0.0])
+        assert not sg.is_on_x_line([1.0, 0.0011])
+
+        sg = Segment((Point([0.0, 1.0], None), Point([1.0, 0.0], None)))
+        assert not sg.is_on_x_line([0.5 + 1e-1, 0.5 + 1e-1])
 
 class TestWire:
     def test_contains(self):
@@ -205,6 +226,7 @@ class TestPolygons:
         assert len(decomp.polygons) == 2
 
         print(decomp)
+        self.plot_polygons(decomp)
         sg_m, = decomp.add_line((0, 1), (2, 1))
         print(decomp)
 
@@ -392,3 +414,17 @@ class TestPolygons:
         # decomp.add_line((2, 1), (4, 0))
         # decomp.add_line((1, 2), (0, 4))
         # self.plot_polygons(decomp)
+
+
+    def test_add_dendrite(self):
+       decomp = PolygonDecomposition()
+       pt0 = decomp.add_point( (31.6, -40) )
+       pt1 = decomp.add_point( (32.4, -62.8) )
+       pt2 = decomp.add_point( (57.7, -37.4) )
+       decomp.new_segment(pt0, pt1)
+       decomp.new_segment(pt0, pt2)
+       decomp.new_segment(pt1, pt2)
+       print(decomp)
+       pt3 = decomp.add_free_point(4, (75.7, -39), 1 )
+       decomp.new_segment(pt2, pt3)
+       self.plot_polygons(decomp)
