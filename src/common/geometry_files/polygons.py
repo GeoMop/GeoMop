@@ -693,23 +693,38 @@ class PolygonDecomposition:
         new_seg.connect_vtx(out_vtx, a_insert)
         new_seg.connect_vtx(in_vtx, b_insert)
 
-        #set wire links
-        for seg, side in b_wire.segments(start= (new_seg, in_vtx), end= (new_seg, out_vtx)):
-            assert seg.wire[side] == b_wire, "wire: {} bwire: {} awire{}".format(seg.wire[side], b_wire, a_wire)
-            seg.wire[side] = a_wire
-        new_seg.wire[out_vtx] = a_wire
 
-        # update parent lins of the child wires
-        for wire in self.wires.values():
-            if wire.parent == b_wire:
-                wire.set_parent(a_wire)
+        ############################
+        if polygon.outer_wire == a_wire:
+            rm_wire = b_wire
+            keep_wire = a_wire
+            parent_wire = keep_wire.parent  # parent wire to set for childs of rm_wire
+            polygon.outer_wire = keep_wire
 
-        # remove b_wire
-        if a_wire.polygon.outer_wire == b_wire:
-            a_wire.polygon.outer_wire = a_wire
+        elif polygon.outer_wire == b_wire:
+            rm_wire = b_wire
+            keep_wire = a_wire
+            parent_wire = keep_wire.parent
+            polygon.outer_wire = keep_wire
         else:
-            a_wire.polygon.outer_wire.childs.remove(b_wire)
-        del self.wires[b_wire.id]
+            rm_wire = b_wire
+            keep_wire = a_wire
+            parent_wire = keep_wire
+
+        # update segment links to rm_wire
+        for seg, side in b_wire.segments(start= (new_seg, in_vtx), end= (new_seg, out_vtx)):
+            assert seg.wire[side] == rm_wire, "wire: {} bwire: {} awire{}".format(seg.wire[side], b_wire, a_wire)
+            seg.wire[side] = keep_wire
+        new_seg.wire[out_vtx] = keep_wire
+
+        # update child links to rm_wire
+        for child in list(rm_wire.childs):
+             child.set_parent(parent_wire)
+
+        # update parent link to rm_wire
+        rm_wire.parent.childs.remove(rm_wire)
+        #####################
+        del self.wires[rm_wire.id]
 
         return new_seg
 
@@ -718,6 +733,9 @@ class PolygonDecomposition:
         """
         Remove segment that connects two wires.
         """
+        """
+         Remove segment that connects two wires.
+         """
         assert segment.is_dendrite()
         a_wire = segment.wire[left_side]
         polygon = a_wire.polygon
@@ -746,7 +764,7 @@ class PolygonDecomposition:
             polygon.outer_wire = outer_wire
             outer_wire.set_parent(a_wire.parent)  # outer keep parent of original wire
             inner_wire.set_parent(outer_wire)
-            self._update_wire_parents(a_wire, outer_wire, inner_wire)
+            self._update_wire_parents(a_wire.parent, a_wire.parent, inner_wire)
 
         else:
             # both wires are holes
@@ -758,7 +776,7 @@ class PolygonDecomposition:
         self._destroy_segment(segment)
 
     def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
-        # Auxiliary method of split and join wires.
+        # Auxiliary method of _split_wires.
         # update all wires having orig wire as parent
         for wire in self.wires.values():
             if wire.parent == orig_wire:
