@@ -111,6 +111,7 @@ class PolygonDecomposition:
         """
         #print("add_free_point", point_id, xy, polygon_id)
         polygon = self.polygons[polygon_id]
+        assert polygon.contains_point(xy), "Point {} not in polygon: {}.\nDecomp: {}".format(xy, polygon, self)
         return self._add_free_point(xy, polygon, id = point_id)
 
 
@@ -283,10 +284,13 @@ class PolygonDecomposition:
         :param polygon_id:
         :return: List of polygon IDs.
         """
+        # TODO: remove after problem with infinite recursion is solved
+        for w in self.wires.values():
+            w._get_child_passed = False
+
         root_poly = self.polygons[polygon_id]
         for poly in  root_poly.child_polygons():
             yield poly.id
-
     ########################################
     # Other public methods.
 
@@ -1334,6 +1338,8 @@ class Wire(IdObject):
         Yields all (segmnet, side) of the same wire as the 'start' segment side,
         up to end segment side.
         """
+        if self.is_root():
+            return
         if start[0] is None:
             start = self.segment
         if end[0] is None:
@@ -1372,6 +1378,8 @@ class Wire(IdObject):
         :param xy:
         :return:
         """
+        if self.is_root():
+            return True
         n_isec = 0
         for seg, side in self.segments():
             n_isec += int(seg.is_on_x_line(xy))
@@ -1407,13 +1415,14 @@ class Wire(IdObject):
         Yields all child wires recursively.
         :return:
         """
+        if self._get_child_passed:
+            assert False, "Cyclic wire links."
+        self._get_child_passed = True
+
+        yield self
         for child in self.childs:
-            yield child
-            seg, side  = child.segment
-            other_wire = seg.wire[1 - side]
-            if not other_wire == child:
-                yield other_wire
-                yield from other_wire.child_wires()
+            yield from child.child_wires()
+
                 
 
 class Polygon(IdObject):
@@ -1460,3 +1469,11 @@ class Polygon(IdObject):
         for wire in self.outer_wire.child_wires():
             if wire == wire.polygon.outer_wire:
                 yield wire.polygon
+
+    def contains_point(self, xy):
+        if not self.outer_wire.contains_point(xy):
+            return False
+        for wire in self.outer_wire.childs:
+            if wire.contains_point(xy):
+                return False
+        return True
