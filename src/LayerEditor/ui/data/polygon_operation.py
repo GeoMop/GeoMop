@@ -1784,7 +1784,8 @@ class PolygonOperation():
 
     def add_point(self, diagram, point):
         """Add new point to decomposition"""
-        self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), self.outer_id)
+        polygon_id = self._find_in_polygon(diagram, point)
+        self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), polygon_id)
 
     def remove_point(self, diagram, point):
         """remove set point from decomposition"""
@@ -1809,7 +1810,20 @@ class PolygonOperation():
     def remove_line(self, diagram, line, label=None, not_history=True):
         """remove set point from decomposition"""
         self.decomposition.delete_segment(line.segment)
+    
+    def _find_in_polygon(self, diagram, point, polygon_id=None):
+        """Find polygon for set point"""
+        if polygon_id is None:
+            polygon_id = self.outer_id
+        childs = self.decomposition.get_childs(polygon_id)
+        for id in childs:
+            if id!=polygon_id:
+                children = self.decomposition.polygons[id].qtpolygon
+                if children.containsPoint(point.qpointf(), QtCore.Qt.OddEvenFill):
+                    return self._find_in_polygon(diagram, point, id)
+        return polygon_id
         
+    
     def _reload_boundary(self, diagram, polygon):
         """reload set polygon boundary"""
         pass
@@ -1817,7 +1831,7 @@ class PolygonOperation():
     def _add_polygon(self, diagram, polygon_id, label, not_history):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
-        children = self.decomposition.get_childs(polygon_id)
+        childs = self.decomposition.get_childs(polygon_id)
         points = polygon.vertices()        
         
         qtpolygon = QtGui.QPolygonF()
@@ -1830,8 +1844,11 @@ class PolygonOperation():
                 lines.append(diagram.find_line(points[i-1].id, points[i].id))
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], points[0].xy[1]))
         
-        polygon = diagram.add_polygon(lines, label, not_history)
+        spolygon = diagram.add_polygon(lines, label, not_history)
+        spolygon.qtpolygon = qtpolygon
         polygon.qtpolygon = qtpolygon
+        spolygon.helpid = polygon_id
+        spolygon.depth = polygon.depth()
         
         
     
