@@ -368,7 +368,7 @@ class PolygonDecomposition:
             return (2, wire, None)
 
     def _snap_to_polygon(self, polygon, point):
-        for pt in polygon.free_points.values():
+        for pt in polygon.free_points:
             if pt.colocated(point, self.tolerance):
                 return (0, pt, None)
         return (2, polygon, None)
@@ -541,14 +541,14 @@ class PolygonDecomposition:
             self.points.append(pt)
         else:
             self.points.append(pt, id)
-        poly.free_points[pt.id] = pt
+        poly.free_points.add(pt)
         return pt
 
 
     def _remove_free_point(self, point):
         assert point.poly is not None
         assert point.segment[0] is None
-        del point.poly.free_points[point.id]
+        point.poly.free_points.remove(point)
         del self.points[point.id]
 
 
@@ -634,8 +634,6 @@ class PolygonDecomposition:
         return the new_segment
         """
 
-        #del polygon.free_points[a_pt.id]
-        #del polygon.free_points[b_pt.id]
         wire = self.wires.append(Wire())
         wire.polygon = polygon
         wire.set_parent(polygon.outer_wire)
@@ -670,7 +668,6 @@ class PolygonDecomposition:
         polygon = free_pt.poly
         r_prev, r_next, wire = r_insert
         assert wire.polygon == free_pt.poly, "point poly: {} insert: {}".format(free_pt.poly, r_insert)
-        #del polygon.free_points[free_pt.id]
 
         seg = self._make_segment( points)
         seg.connect_vtx(root_idx, r_insert)
@@ -686,8 +683,9 @@ class PolygonDecomposition:
         root_vtx = 1 - tip_vtx
         assert segment.is_dendrite()
         polygon = segment.wire[out_vtx].polygon
-        segment.disconnect_vtx(root_vtx)
         segment.disconnect_wires()
+        segment.disconnect_vtx(root_vtx)
+
         self._destroy_segment(segment)
         self.last_polygon_change = (PolygonChange.shape, [polygon], None)
 
@@ -763,9 +761,10 @@ class PolygonDecomposition:
             assert seg.wire[side] == a_wire
             seg.wire[side] = b_wire
 
+        segment.disconnect_wires()
         segment.disconnect_vtx(out_vtx)
         segment.disconnect_vtx(in_vtx)
-        segment.disconnect_wires()
+
 
         # setup new b_wire
         b_wire.segment = b_next_seg
@@ -850,7 +849,7 @@ class PolygonDecomposition:
             self.last_polygon_change = (PolygonChange.add, orig_poly, new_poly)
 
         # split free points
-        for pt in list(orig_poly.free_points.values()):
+        for pt in list(orig_poly.free_points):
             if new_poly.outer_wire.contains_point(pt.xy):
                 pt.set_polygon(new_poly)
 
@@ -910,9 +909,10 @@ class PolygonDecomposition:
             assert seg.wire[side] == rm_wire
             seg.wire[side] = keep_wire
 
+        segment.disconnect_wires()
         segment.disconnect_vtx(out_vtx)
         segment.disconnect_vtx(in_vtx)
-        segment.disconnect_wires()
+
         self._destroy_segment(segment)
         del self.wires[rm_wire.id]
         del self.polygons[new_polygon.id]
@@ -951,6 +951,9 @@ class Point(IdObject):
 
     def __repr__(self):
         return "Pt({}) {}".format(self.id, self.xy)
+
+    def __hash__(self):
+        return self.id
 
     def is_free(self):
         """
@@ -1019,7 +1022,7 @@ class Point(IdObject):
         """
         if self.is_free():
             if self.poly is not None:
-                del self.poly.free_points[self.id]
+                self.poly.free_points.remove(self)
             self.poly = None
             self.segment = (seg, vtx)
 
@@ -1037,9 +1040,9 @@ class Point(IdObject):
 
     def set_polygon(self, polygon):
         if self.poly is not None:
-            self.poly.free_points.pop(self.id)
+            self.poly.free_points.remove(self)
         self.poly = polygon
-        polygon.free_points[self.id] = self
+        polygon.free_points.add(self)
         self.segment = (None, None)
 
 
@@ -1158,7 +1161,10 @@ class Segment(IdObject):
             wire = self.wire[side]
             if wire.segment == (self, side):
                 wire.segment = self.next[side]
-                assert wire.segment[0].wire[wire.segment[1]] == wire
+                if wire.segment[0] == self:
+                    wire.segment = self.next[wire.segment[1]]
+                assert wire.segment[0].wire[wire.segment[1]] == wire, "wire.segment: {}, wire: {}".format(wire.segment, wire)
+                assert not wire.segment[0] == self
 
     def contains_point(self, pt, tol):
         """
@@ -1435,7 +1441,7 @@ class Polygon(IdObject):
     def __init__(self, outer_wire):
         self.outer_wire = outer_wire
         # outer boundary wire
-        self.free_points = {}
+        self.free_points = set()
         # Dict ID->pt of free points inside the polygon.
 
 

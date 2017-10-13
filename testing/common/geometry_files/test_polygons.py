@@ -274,6 +274,78 @@ class TestPolygons:
         decomp.add_free_point(100, (3.0, 0.3), decomp.outer_polygon.id)
         decomp.remove_free_point(100)
 
+    def check_consistency(self, decomp):
+        for p in decomp.polygons.values():
+            assert p.outer_wire.id in decomp.wires
+            assert p.outer_wire.polygon == p
+            for pt in p.free_points:
+                assert pt.polygon.id in decomp.polygons
+                assert pt.polygon == p
+                assert pt.segment == (None, None)
+
+        for w in decomp.wires.values():
+
+            for child in w.childs:
+                assert child.id in decomp.wires
+                child.parent == w
+            assert w.polygon.id in decomp.polygons
+            assert w == w.polygon.outer_wire or w in w.polygon.outer_wire.childs
+            if w.is_root():
+                assert w == decomp.outer_polygon.outer_wire
+            else:
+                seg, side = w.segment
+                assert seg.id in decomp.segments
+                assert seg.wire[side] == w
+                assert w in w.parent.childs
+
+        for sg in decomp.segments.values():
+            for side in [right_side, left_side]:
+                assert sg.vtxs[side].id in decomp.points
+                assert sg.wire[side].id in decomp.wires
+                assert sg.next[side][0].id in decomp.segments
+
+                assert sg in [ seg for seg, side in sg.vtxs[side].segments()]
+                w_seg, w_side = sg.wire[side].segment
+                assert sg.wire[side] == w_seg.wire[w_side]
+                n_seg, n_side = sg.next[side]
+                assert sg.wire[side] == n_seg.wire[n_side]
+
+        for pt in decomp.points.values():
+            if pt.is_free():
+                assert pt.polygon.id in decomp.polygons
+                assert pt in pt.polygon.free_points
+            else:
+                seg, side = pt.segment
+                assert seg.id in decomp.segments
+                assert seg.vtxs[side] == pt
+
+    def check_split_poly_structure(self, decomp, out_square, in_square):
+        self.check_consistency(decomp)
+
+        sg_a, sg_b, sg_c, sg_d = out_square
+        sg_e, sg_f, sg_g, sg_h = in_square
+
+        assert sg_b.wire == sg_a.wire
+        assert sg_c.wire == sg_a.wire
+        assert sg_d.wire == sg_a.wire
+
+        assert sg_f.wire == sg_e.wire
+        assert sg_g.wire == sg_e.wire
+        assert sg_h.wire == sg_e.wire
+
+        wire1 = decomp.outer_polygon.outer_wire
+        wire2 = list(wire1.childs)[0]
+        wire3 = list(wire2.childs)[0]
+        assert sg_a.wire == [wire2, wire3]
+        wire4 = list(wire3.childs)[0]
+        wire5 = list(wire4.childs)[0]
+        assert sg_e.wire == [wire4, wire5]
+        assert len(wire5.childs) == 0
+
+
+
+
+
     def test_split_poly(self):
 
         decomp = PolygonDecomposition()
@@ -296,28 +368,54 @@ class TestPolygons:
         assert sg_d.wire[right_side] == external_wire
         #self.plot_polygons(decomp)
 
-
         assert len(decomp.polygons) == 2
-        sg_e, =decomp.add_line((0.5, 0.5), (1, 0.5))
-        decomp.add_line((1, 0.5), (1, 1))
-        decomp.add_line((1, 1), (0.5, 1))
-        seg_in_x, = decomp.add_line((0.5, 1), (0.5, 0.5))
+        sg_e, = decomp.add_line((0.5, 0.5), (1, 0.5))
+        sg_f, = decomp.add_line((1, 0.5), (1, 1))
+        sg_g, = decomp.add_line((1, 1), (0.5, 1))
+        sg_h, = decomp.add_line((0.5, 1), (0.5, 0.5))
         # closed inner polygon
         print("Decomp:\n", decomp)
-
-
+        out_square = sg_a, sg_b, sg_c, sg_d
+        in_square = sg_e, sg_f, sg_g, sg_h
+        self.check_split_poly_structure(decomp, out_square, in_square)
 
         # join nested wires
         sg_x = decomp.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
-        #self.plot_polygons(decomp)
-        print("Decomp:\n", decomp)
-        decomp.delete_segment(sg_x)
 
+        # split nested wires
+        decomp.delete_segment(sg_x)
+        self.check_split_poly_structure(decomp, out_square, in_square)
+
+
+        # split polygon - balanced
+        seg_y, = decomp.add_line((0.5, 0.5), (1,1))
+
+        # join polygons - balanced
+        decomp.delete_segment(seg_y)
+        self.check_split_poly_structure(decomp, out_square, in_square)
+
+        # join nested polygons
+        decomp.delete_segment(sg_h)
         #self.plot_polygons(decomp)
-        print("Decomp:\n", decomp)
-        # join polygons - nested case
-        decomp.delete_segment(seg_in_x)
-        #self.plot_polygons(decomp)
+        assert sg_b.wire == sg_a.wire
+        assert sg_c.wire == sg_a.wire
+        assert sg_d.wire == sg_a.wire
+
+        assert sg_f.wire == sg_e.wire
+        assert sg_g.wire == sg_e.wire
+        assert sg_h.wire == sg_e.wire
+        we_r, we_l = sg_e.wire
+        assert we_r == we_l
+
+        wire1 = decomp.outer_polygon.outer_wire
+        wire2 = list(wire1.childs)[0]
+        wire3 = list(wire2.childs)[0]
+        assert sg_a.wire == [wire2, wire3]
+        wire4 = list(wire3.childs)[0]
+        assert we_r == wire4
+        assert len(wire4.childs) == 0
+
+
 
     def test_split_poly_1(self):
         # Test splitting of points and holes.
@@ -383,7 +481,9 @@ class TestPolygons:
         decomp._join_segments(sg0.vtxs[1], sg0, sg1)
         decomp._join_segments(sg0.vtxs[1], sg0, sg2)
 
-    def test_join_polygons(self):
+
+
+    def test_join_polygons_embedded(self):
         decomp = PolygonDecomposition()
         decomp.add_line((0, 0), (3, 0))
         decomp.add_line((0, 0), (0, 3))
@@ -392,6 +492,7 @@ class TestPolygons:
         assert len(decomp.outer_polygon.outer_wire.childs) == 1
         wire = list(decomp.outer_polygon.outer_wire.childs)[0]
         assert len(wire.childs) == 0
+
 
     def test_polygon_childs_degenerate(self):
         decomp = PolygonDecomposition()
