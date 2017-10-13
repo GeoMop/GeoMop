@@ -107,6 +107,20 @@ class Regions():
                 layer_region[layer_id][shape_id] = self.regions.index(region)
                 if to_history:
                     self._history.change_shape_region(shape_id, layer_id, dim, None, label)
+
+    def copy_regions(self, dim, shape_id, copy_id, to_history=False, label=None):
+        """Shape region for all layers in current topology is added to 
+        current value"""
+        if dim==0:
+            layer_region = self.layer_region_0D
+        elif dim==1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
+        for layer_id in self.layers_topology[self.current_topology_id]:
+            layer_region[layer_id][shape_id] = layer_region[layer_id][copy_id]
+            if to_history:
+                self._history.change_shape_region(shape_id, layer_id, dim, None, label)
         
     def set_regions(self, dim, shape_id, to_history=False, label=None):
         """Shape region for all layers in current topology is set to 

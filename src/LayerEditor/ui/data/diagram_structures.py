@@ -212,10 +212,6 @@ class Polygon():
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
-            
-    def refresh(self, diagram):
-        """Some polygon points is moved"""
-        self.spolygon.reload_shape_boundary(self, True)
         
     def get_color(self):
         """Return region color"""
@@ -351,7 +347,7 @@ class Diagram():
             for i in range(0, len(diagram.lines)):
                 map[top_id][1][i] = diagram.lines[i].id
             for i in range(0, len(diagram.polygons)):
-                map[top_id][2][i] = diagram.polygons[i].id
+                map[top_id][2][i] = diagram.polygons[i].id                
                 
     def region_color_changed(self, region_idx):
         """Region collor was changed"""
@@ -407,7 +403,11 @@ class Diagram():
                 for line in polygon.lines:
                     idxs.append(line.id)
                 return idxs
-                
+
+    def update_moving_points(self, points):
+        """Update moving point for polygon operations"""
+        return self.po.move_points(self, points)        
+
     def find_polygon(self, line_idxs):
         """Try find poligon accoding to lines indexes"""
         for polygon in self.polygons:
@@ -653,12 +653,15 @@ class Diagram():
                 if self._rect.bottom()<p.y:
                     self._rect.setBottom(p.y)
                     
-    def add_polygon(self, lines, label=None, not_history=True):
+    def add_polygon(self, lines, label=None, not_history=True, copy=None):
         """Add polygon to list"""
         polygon = Polygon(lines)
         self.polygons.append(polygon)
         if not not_history:
-            self.regions.add_regions(2, polygon.id, not not_history, label)
+            if copy is not None:
+                self.regions.copy_regions(2, polygon.id, copy.id, not not_history, label)
+            else:
+                self.regions.add_regions(2, polygon.id, not not_history, label)
         self.new_polygons.append(polygon)        
         return polygon
         

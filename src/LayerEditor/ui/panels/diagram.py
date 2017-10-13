@@ -460,9 +460,11 @@ class Diagram(QtWidgets.QGraphicsScene):
         if below_item==self._point_moving:
             # moved point with small zorder value is below cursor             
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            if not cfg.diagram.update_moving_points([self._point_moving.point]):
+                self._point_moving.object.move_point()  
             cfg.diagram.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line):
+        elif isinstance(below_item, Line) and len(self._point_moving.lines)==1:
             cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Move point to Line')
             new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line, 
@@ -472,33 +474,22 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point):
+        elif isinstance(below_item, Point)  and len(self._point_moving.lines)==1:
             cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point, self._point_moving.point, None)
             self._point_moving.release_point()
             self.removeItem(self._point_moving)
             self.update_changes([], [],  [], [], removed_lines)            
-            below_item.move_point(event.scenePos(), ItemStates.standart)
+            below_item.move_point(event.scenePos(), ItemStates.standart)           
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            if not cfg.diagram.update_moving_points([self._point_moving.point]):
+                self._point_moving.object.move_point()  
+            cfg.diagram.move_point_after(self._point_moving.point, 
+                self._point_moving_old.x(), self._point_moving_old.y())
         self._add_polygons()
-        self._del_polygons()
-        self.update_related_diagrams(self._point_moving)
-            
-    def update_related_diagrams(self, points):
-        """Update all polynoms related to set points"""
-        polygons =  []
-        for point in cfg.diagram.points:
-            for line in point.lines:
-                if line.polygon1 is not None:
-                    if not line.polygon1 in polygons:
-                        polygons.append(line.polygon1)
-                        if line.polygon2 is not None:
-                            if not line.polygon2 in polygons:
-                                polygons.append(line.polygon2)
-        for polygon in polygons:
-            polygon.refresh(cfg.diagram)
+        self._del_polygons()        
             
     def mouseReleaseEvent(self,event):
         event.gobject = None

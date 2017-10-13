@@ -123,13 +123,7 @@ class PolygonDecomposition:
         """
         point = self.points[point_id]
         self._remove_free_point(point)
-
-    def new_segment_ids(self, a_pt_id, b_pt_id):
-        #print("new_segment", a_pt_id, b_pt_id)
-        a_pt = self.points[a_pt_id]
-        b_pt = self.points[b_pt_id]
-        self.new_segment(a_pt, b_pt)
-
+ 
     def new_segment(self, a_pt, b_pt):
         """
         LAYERS

@@ -33,7 +33,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         
     def refresh_polygon(self):
         """reload polygon.spolygon.gtpolygon"""
-        self.setPolygon(self.polygon.spolygon.gtpolygon)
+        self.setPolygon(self.polygon.qtpolygon)
         
     def mousePressEvent(self,event):
         """Standart mouse event"""

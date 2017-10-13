@@ -1,6 +1,7 @@
 from geometry_files import PolygonDecomposition, PolygonChange
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+import numpy as np
 
 #import abc
 #from enum import IntEnum
@@ -1781,11 +1782,41 @@ class PolygonOperation():
         self.outer_id = res[1]
         """ Decomposition of the a plane into polygons."""
 
-
     def add_point(self, diagram, point):
         """Add new point to decomposition"""
         polygon_id = self._find_in_polygon(diagram, point)
         self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), polygon_id)
+
+    def move_points(self, diagram, points):
+        """move set point in decomposition, return if all moving is possible"""
+        ret = True
+        if len(points)<1:
+            return True
+        p0 =  self.decomposition.points[diagram.points.index(points[0])]
+        dx = points[0].x - p0.xy[0]
+        dy = points[0].y - p0.xy[1]
+        displacement = np.array([dx, dy])
+        spoints = []
+        margin = (dx+dy)/10000
+        if margin > 1:
+            margin = 0.99
+        for point in points:
+            spoints.append(self.decomposition.points[diagram.points.index(point)])
+        new_displ = self.decomposition.check_displacment(spoints, displacement, margin)
+        if new_displ[0]!=displacement[0] or new_displ[1]!=displacement[1]:
+            ret = False
+            for point in points:
+                point.x += new_displ[0]-displacement[0]
+                point.y -= new_displ[1]-displacement[1]
+        self.decomposition.move_points(spoints, new_displ)
+        res = self.decomposition.get_last_polygon_changes()
+        if res[0]==PolygonChange.shape:
+            for polygon_id in res[1]:
+                if polygon_id!=self.outer_id:
+                    self._reload_boundary(diagram, polygon_id)
+        elif res[0]!=PolygonChange.none:
+            raise Exception("Invalid polygon change during move point.")
+        return ret
 
     def remove_point(self, diagram, point):
         """remove set point from decomposition"""
@@ -1793,13 +1824,21 @@ class PolygonOperation():
         
     def add_line(self, diagram, line, label=None, not_history=True):
         """Add new point to decomposition"""
-        segment = self.decomposition.new_segment_ids(diagram.points.index(line.p1), diagram.points.index(line.p2))
+        segment = self.decomposition.new_segment(
+            self.decomposition.points[diagram.points.index(line.p1)], 
+            self.decomposition.points[diagram.points.index(line.p2)])
         line.segment = segment 
         res = self.decomposition.get_last_polygon_changes()
-        if res[0] == PolygonChange.shape:
-            self._reload_boundary(diagram, res[1])
-        elif res[0] == PolygonChange.add:
+        if res[0]==PolygonChange.shape:
+            for polygon_id in res[1]:
+                if polygon_id!=self.outer_id:
+                    self._reload_boundary(diagram, polygon_id)
+        elif res[0]==PolygonChange.add:
             self._add_polygon(diagram, res[2], label, not_history)
+        elif res[0]==PolygonChange.split:
+            self._split_polygon(diagram, res[2], res[1], label, not_history)
+        elif res[0]!=PolygonChange.none:
+            raise Exception("Invalid polygon change during add line.")
     
     def split_line(self, diagram, line, point):
         """remove and move line"""
@@ -1821,19 +1860,63 @@ class PolygonOperation():
                 children = self.decomposition.polygons[id].qtpolygon
                 if children.containsPoint(point.qpointf(), QtCore.Qt.OddEvenFill):
                     return self._find_in_polygon(diagram, point, id)
-        return polygon_id
-        
+        return polygon_id        
     
-    def _reload_boundary(self, diagram, polygon):
+    def _reload_boundary(self, diagram, polygon_id):
         """reload set polygon boundary"""
-        pass
-        
-    def _add_polygon(self, diagram, polygon_id, label, not_history):
-        """Add polygon to boundary"""
+        spolygon = self._get_spolygon(diagram, polygon_id)
         polygon = self.decomposition.polygons[polygon_id]
-        childs = self.decomposition.get_childs(polygon_id)
-        points = polygon.vertices()        
+        lines, qtpolygon = self._get_lines_and_qtpoly(diagram, polygon)
+        for line in lines:
+            if not line in spolygon.lines:
+                line.add_polygon(spolygon)
+                spolygon.lines.append(line)
+        rem_lines = []
+        for line in spolygon.lines:
+            if not line in lines:
+                rem_lines.append(line)
+        for line in rem_lines:
+            spolygon.lines.remove(line)
+            line.del_polygon(spolygon)
+        spolygon.qtpolygon = qtpolygon
+        polygon.qtpolygon = qtpolygon
+        spolygon.helpid = polygon_id
+        spolygon.depth = polygon.depth()
+        spolygon.object.refresh_polygon()
+      
+    def _get_spolygon(self, diagram, polygon_id):  
+        spolygon = None
+        for spoly in diagram.polygons:
+            if spoly.helpid==polygon_id:
+                spolygon = spoly
+                break
+        return spolygon
         
+    def _fix_lines(self, diagram, polygon_id, polygon_old_id):
+        """delete reference to old polygon in polygon lines"""
+        polygon = self.decomposition.polygons[polygon_id]
+        old_spolygon = self._get_spolygon(diagram, polygon_old_id)
+        points = polygon.vertices()
+        for i in range(0, len(points)):            
+            if i==0:
+                line = diagram.find_line(points[-1].id, points[0].id)
+            else:
+                line = diagram.find_line(points[i-1].id, points[i].id)
+            line.del_polygon(old_spolygon)        
+        
+    def _reload_depth(self, diagram, polygon_id):
+        """reload polygon depth recursivly"""
+        spolygon = self._get_spolygon(diagram, polygon_id)
+        polygon = self.decomposition.polygons[polygon_id]
+        spolygon.depth = polygon.depth()
+        childs = self.decomposition.get_childs(polygon_id)
+        for children in childs:
+            if children!=polygon_id:
+                self._reload_depth(diagram, children)
+        
+    def _get_lines_and_qtpoly(self, diagram, polygon):
+        """Return lines and qt polygon"""
+        points = polygon.vertices()
         qtpolygon = QtGui.QPolygonF()
         lines = []        
         for i in range(0, len(points)):            
@@ -1843,14 +1926,27 @@ class PolygonOperation():
             else:
                 lines.append(diagram.find_line(points[i-1].id, points[i].id))
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], points[0].xy[1]))
+        return lines, qtpolygon
         
+    def _add_polygon(self, diagram, polygon_id, label, not_history):
+        """Add polygon to boundary"""
+        polygon = self.decomposition.polygons[polygon_id]
+        childs = self.decomposition.get_childs(polygon_id)
+        for children in childs:
+            if children!=polygon_id:
+                self._reload_depth(diagram, children)
+        lines, qtpolygon = self._get_lines_and_qtpoly(diagram, polygon)
         spolygon = diagram.add_polygon(lines, label, not_history)
         spolygon.qtpolygon = qtpolygon
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
-        
-        
+
+    def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):
+        """Add polygon to boundary"""
+        self._reload_boundary(diagram, polygon_old_id)
+        self._fix_lines(diagram, polygon_id, polygon_old_id)
+        self._add_polygon(diagram, polygon_id, label, not_history)
     
 #    @classmethod    
 #    def next_split_line(cls, line):
