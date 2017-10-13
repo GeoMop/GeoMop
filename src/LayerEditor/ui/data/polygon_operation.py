@@ -1920,6 +1920,7 @@ class PolygonOperation():
         spolygon = self._get_spolygon(diagram, polygon_id)
         polygon = self.decomposition.polygons[polygon_id]
         spolygon.depth = polygon.depth()
+        spolygon.object.update_depth()
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children!=polygon_id:

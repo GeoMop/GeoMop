@@ -7,7 +7,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         Represents a join of nodes in the diagram
     """
     
-    STANDART_ZVALUE = -11
+    MIN_ZVALUE = -999
     
     def __init__(self, polygon, parent=None):
         super(Polygon, self).__init__(polygon.qtpolygon)
@@ -16,9 +16,11 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         """polygon data object"""
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
         self.color = polygon.get_color()
+        self.depth = polygon.depth
+        
         brush = QtGui.QBrush(QtGui.QColor(self.color))
         self.setBrush(brush)
-        self.setZValue(self.STANDART_ZVALUE) 
+        self.setZValue(self.MIN_ZVALUE+self.depth) 
         
     def update_color(self):
         color = self.polygon.get_color()
@@ -27,6 +29,12 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
             brush = QtGui.QBrush(QtGui.QColor(color))
             self.setBrush(brush)
             self.update()
+            
+    def update_depth(self):
+        """Check and set polygon depth"""
+        if self.depth != self.polygon.depth:
+            self.depth = self.polygon.depth
+            self.setZValue(self.MIN_ZVALUE+self.depth)
         
     def release_polygon(self):
         self.polygon.object = None
