@@ -668,6 +668,8 @@ class Diagram():
     def del_polygon(self, polygon, label=None, not_history=True):
         """Remove polygon from list"""
         self.polygons.remove(polygon)
+        for line in polygon.lines:
+            line.del_polygon(polygon)
         if not not_history:
             self.regions.del_regions(2, polygon.id, not not_history, label)
         self.deleted_polygons.append(polygon)

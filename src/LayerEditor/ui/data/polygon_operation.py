@@ -1849,6 +1849,17 @@ class PolygonOperation():
     def remove_line(self, diagram, line, label=None, not_history=True):
         """remove set point from decomposition"""
         self.decomposition.delete_segment(line.segment)
+        res = self.decomposition.get_last_polygon_changes()
+        if res[0]==PolygonChange.shape:
+            for polygon_id in res[1]:
+                if polygon_id!=self.outer_id:
+                    self._reload_boundary(diagram, polygon_id)
+        elif res[0]==PolygonChange.remove:
+            self._remove_polygon(diagram, res[2], res[1], label, not_history)
+        elif res[0]==PolygonChange.join:
+            self._join_polygon(diagram, res[2], res[1], label, not_history)
+        elif res[0]!=PolygonChange.none:
+            raise Exception("Invalid polygon change during remove line.")
     
     def _find_in_polygon(self, diagram, point, polygon_id=None):
         """Find polygon for set point"""
@@ -1941,6 +1952,15 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
+        
+    def _remove_polygon(self, diagram, polygon_id, parent_id, label, not_history):
+        """Add polygon to boundary"""
+        childs = self.decomposition.get_childs(parent_id)
+        for children in childs:
+            if children!=parent_id:
+                self._reload_depth(diagram, children) 
+        spolygon = self._get_spolygon(diagram, polygon_id)               
+        diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):
         """Add polygon to boundary"""
