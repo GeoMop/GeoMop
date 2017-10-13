@@ -1857,7 +1857,7 @@ class PolygonOperation():
         elif res[0]==PolygonChange.remove:
             self._remove_polygon(diagram, res[2], res[1], label, not_history)
         elif res[0]==PolygonChange.join:
-            self._join_polygon(diagram, res[2], res[1], label, not_history)
+            self._join_polygon(diagram, res[1], res[2], label, not_history)
         elif res[0]!=PolygonChange.none:
             raise Exception("Invalid polygon change during remove line.")
     
@@ -1933,9 +1933,12 @@ class PolygonOperation():
         for i in range(0, len(points)):            
             qtpolygon.append(QtCore.QPointF(points[i].xy[0], points[i].xy[1]))
             if i==0:
-                lines.append(diagram.find_line(points[-1].id, points[0].id))
+                line = diagram.find_line(points[-1].id, points[0].id)
             else:
-                lines.append(diagram.find_line(points[i-1].id, points[i].id))
+                line = diagram.find_line(points[i-1].id, points[i].id)
+            if line is None:
+                raise Exception("Can't find polygon line in diagram")
+            lines.append(line)
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], points[0].xy[1]))
         return lines, qtpolygon
         
@@ -1963,10 +1966,16 @@ class PolygonOperation():
         diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):
-        """Add polygon to boundary"""
+        """split poligon"""
         self._reload_boundary(diagram, polygon_old_id)
         self._fix_lines(diagram, polygon_id, polygon_old_id)
         self._add_polygon(diagram, polygon_id, label, not_history)
+        
+    def _join_polygon(self, diagram, polygon_id, del_polygon_id, label, not_history):
+        """Join to polygons"""
+        spolygon = self._get_spolygon(diagram, del_polygon_id)
+        diagram.del_polygon(spolygon, label, not_history)
+        self._reload_boundary(diagram, polygon_id)
     
 #    @classmethod    
 #    def next_split_line(cls, line):

@@ -259,7 +259,7 @@ class PolygonDecomposition:
         (PolygonChange.add, orig_poly_id, new_poly_id) - new polygon inside other polygon
         (PolygonChange.remove, orig_poly_id, new_poly_id) - deleted polygon inside other polygon
         (PolygonChange.split, orig_poly_id, new_poly_id) - split new_poly from orig_poly
-        (PolygonChange.join, orig_poly_id, new_poly_id) - join both polygons into orig_poly
+        (PolygonChange.join, orig_poly_id, del_poly_id) - join both polygons into orig_poly
 
         After init of PolygonDecomposition this method returns:
         (PolygonChange.add, outer_polygon_id, outer_polygon_id)
