@@ -282,9 +282,13 @@ class PolygonDecomposition:
         for w in self.wires.values():
             w._get_child_passed = False
 
+        #print(self)
+        child_poly_id_set = set()
         root_poly = self.polygons[polygon_id]
         for poly in  root_poly.child_polygons():
-            yield poly.id
+            child_poly_id_set.add(poly.id)
+        return child_poly_id_set
+
     ########################################
     # Other public methods.
 
@@ -872,38 +876,45 @@ class PolygonDecomposition:
             orig_polygon = right_wire.polygon
             new_polygon = left_wire.polygon
             self.last_polygon_change = (PolygonChange.join, orig_polygon, new_polygon)
+            keep_wire = right_wire
         else:
             if left_wire.parent == right_wire:
                 # right is outer
                 orig_polygon = right_wire.polygon
                 new_polygon = left_wire.polygon
+                keep_wire = right_wire
             else:
                 assert right_wire.parent == left_wire
                 # left is outer
                 orig_polygon = left_wire.polygon
                 new_polygon = right_wire.polygon
+                keep_wire = left_wire
             self.last_polygon_change = (PolygonChange.remove, orig_polygon, new_polygon)
 
+        rm_wire = new_polygon.outer_wire
+
         # Join holes and free points
-        for child in new_polygon.outer_wire.childs:
-            child.set_parent(orig_polygon.outer_wire)
+        for child in rm_wire.childs:
+            child.set_parent(keep_wire)
 
         for pt in new_polygon.free_points:
             pt.set_polygon(orig_polygon)
 
         # set parent for keeped wire
-        right_wire.set_parent(orig_polygon.outer_wire)
+        #right_wire.set_parent(orig_polygon.outer_wire)
+
+        rm_wire.set_parent(rm_wire) # disconnect
 
         # fix wire links for
-        for seg, side in left_wire.segments():
-            assert seg.wire[side] == left_wire
-            seg.wire[side] = right_wire
+        for seg, side in rm_wire.segments():
+            assert seg.wire[side] == rm_wire
+            seg.wire[side] = keep_wire
 
         segment.disconnect_vtx(out_vtx)
         segment.disconnect_vtx(in_vtx)
         segment.disconnect_wires()
         self._destroy_segment(segment)
-        del self.wires[left_wire.id]
+        del self.wires[rm_wire.id]
         del self.polygons[new_polygon.id]
 
 

@@ -310,11 +310,11 @@ class TestPolygons:
         # join nested wires
         sg_x = decomp.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
         #self.plot_polygons(decomp)
-        #print("Decomp:\n", decomp)
+        print("Decomp:\n", decomp)
         decomp.delete_segment(sg_x)
 
         #self.plot_polygons(decomp)
-        #print("Decomp:\n", decomp)
+        print("Decomp:\n", decomp)
         # join polygons - nested case
         decomp.delete_segment(seg_in_x)
         #self.plot_polygons(decomp)
@@ -383,6 +383,16 @@ class TestPolygons:
         decomp._join_segments(sg0.vtxs[1], sg0, sg1)
         decomp._join_segments(sg0.vtxs[1], sg0, sg2)
 
+    def test_join_polygons(self):
+        decomp = PolygonDecomposition()
+        decomp.add_line((0, 0), (3, 0))
+        decomp.add_line((0, 0), (0, 3))
+        sg3, = decomp.add_line((0, 3), (3, 0))
+        decomp.delete_segment(sg3)
+        assert len(decomp.outer_polygon.outer_wire.childs) == 1
+        wire = list(decomp.outer_polygon.outer_wire.childs)[0]
+        assert len(wire.childs) == 0
+
     def test_polygon_childs_degenerate(self):
         decomp = PolygonDecomposition()
         decomp.add_line((0, 0), (3, 0))
@@ -391,12 +401,12 @@ class TestPolygons:
         decomp.add_line((1, 1), (2, 1))
         decomp.add_line((1, 1), (1, 2))
         decomp.add_line((1, 2), (2, 1))
-        self.plot_polygons(decomp)
+        #self.plot_polygons(decomp)
 
         decomp.add_line((1, 1), (0, 0))
         decomp.add_line((2, 1), (3, 0))
         decomp.add_line((1, 2), (0, 3))
-        self.plot_polygons(decomp)
+        #self.plot_polygons(decomp)
 
     def test_polygon_childs(self):
         decomp = PolygonDecomposition()
@@ -425,6 +435,6 @@ class TestPolygons:
        decomp.new_segment(pt0, pt2)
        decomp.new_segment(pt1, pt2)
        # print(decomp)
-       pt3 = decomp.add_free_point(4, (75.7, -39), 1 )
+       pt3 = decomp.add_free_point(4, (75.7, -35), 1 )
        decomp.new_segment(pt2, pt3)
-       # self.plot_polygons(decomp)
+       #self.plot_polygons(decomp)
