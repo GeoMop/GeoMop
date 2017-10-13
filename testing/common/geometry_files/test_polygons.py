@@ -87,7 +87,28 @@ class TestWire:
         assert len(decomp.wires) == 3
 
 
-class TestPolygons:
+class TestPolygon:
+    def test_polygon_depth(self):
+        decomp = PolygonDecomposition()
+
+        # outer square
+        sg_a, = decomp.add_line((0,0), (2,0))
+        sg_b, = decomp.add_line((2, 0), (2, 2))
+        sg_c, = decomp.add_line((2, 2), (0, 2))
+        sg_d, = decomp.add_line((0, 2), (0, 0))
+
+        # inner square
+        sg_e, = decomp.add_line((0.5, 0.5), (1, 0.5))
+        sg_f, = decomp.add_line((1, 0.5), (1, 1))
+        sg_g, = decomp.add_line((1, 1), (0.5, 1))
+        sg_h, = decomp.add_line((0.5, 1), (0.5, 0.5))
+
+        assert decomp.polygons[1].depth() == 0
+        assert decomp.polygons[2].depth() == 2
+        assert decomp.polygons[3].depth() == 4
+
+class TestDecomposition:
+
     def plot_polygon(self, polygon):
         if polygon is None or polygon.displayed or polygon.outer_wire.is_root():
             return []
@@ -539,3 +560,4 @@ class TestPolygons:
        pt3 = decomp.add_free_point(4, (75.7, -35), 1 )
        decomp.new_segment(pt2, pt3)
        #self.plot_polygons(decomp)
+
