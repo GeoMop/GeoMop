@@ -461,7 +461,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             # moved point with small zorder value is below cursor             
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
             if not cfg.diagram.update_moving_points([self._point_moving.point]):
-                self._point_moving.object.move_point()  
+                self._point_moving.move_point(QtCore.QPointF(
+                    self._point_moving.point.x, self._point_moving.point.y)) 
             cfg.diagram.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
         elif isinstance(below_item, Line) and len(self._point_moving.lines)==1:
@@ -485,7 +486,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
             if not cfg.diagram.update_moving_points([self._point_moving.point]):
-                self._point_moving.object.move_point()  
+                self._point_moving.move_point(QtCore.QPointF(
+                    self._point_moving.point.x, self._point_moving.point.y))  
             cfg.diagram.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
         self._add_polygons()

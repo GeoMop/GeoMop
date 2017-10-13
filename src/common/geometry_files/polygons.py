@@ -1460,6 +1460,7 @@ class Polygon(IdObject):
         while (not wire.is_root()):
             depth += 1
             wire = wire.parent
+        return depth
 
     def vertices(self):
         """

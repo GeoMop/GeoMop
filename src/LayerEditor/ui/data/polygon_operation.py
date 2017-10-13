@@ -1797,17 +1797,14 @@ class PolygonOperation():
         dy = points[0].y - p0.xy[1]
         displacement = np.array([dx, dy])
         spoints = []
-        margin = (dx+dy)/10000
-        if margin > 1:
-            margin = 0.99
         for point in points:
             spoints.append(self.decomposition.points[diagram.points.index(point)])
-        new_displ = self.decomposition.check_displacment(spoints, displacement, margin)
+        new_displ = self.decomposition.check_displacment(spoints, displacement, 0.01)
         if new_displ[0]!=displacement[0] or new_displ[1]!=displacement[1]:
             ret = False
             for point in points:
                 point.x += new_displ[0]-displacement[0]
-                point.y -= new_displ[1]-displacement[1]
+                point.y += new_displ[1]-displacement[1]
         self.decomposition.move_points(spoints, new_displ)
         res = self.decomposition.get_last_polygon_changes()
         if res[0]==PolygonChange.shape:
@@ -1920,6 +1917,7 @@ class PolygonOperation():
         spolygon = self._get_spolygon(diagram, polygon_id)
         polygon = self.decomposition.polygons[polygon_id]
         spolygon.depth = polygon.depth()
+        spolygon.object.update_depth()
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children!=polygon_id:
