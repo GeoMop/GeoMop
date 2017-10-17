@@ -32,7 +32,7 @@ class IdObject:
 
 
 class IdMap(dict):
-    id = 0
+    #id = 0
 
     def get_new_id(self):
         if not hasattr(self, '_next_id'):
@@ -447,7 +447,6 @@ class PolygonDecomposition:
             self.delete_segment(seg)
         self._remove_free_point(point)
 
-
     def make_indices(self):
         """
         Asign index to every node, segment and ppolygon.
@@ -458,6 +457,16 @@ class PolygonDecomposition:
                 obj.index = idx
 
 
+    def make_segment(self, node_ids):
+        v_out_id, v_in_id = node_ids
+        vtxs = (self.points[v_out_id], self.points[v_in_id])
+        seg = self.segments.append( Segment(vtxs))
+        for i_vtx in [out_vtx, in_vtx]:
+            seg.vtxs[i_vtx].segment = (seg, i_vtx)
+
+        # TODO: update pt_to_seg consistently
+        #self.pt_to_seg[]
+        return seg
 
     def make_wire_from_segments(self, seg_ids, polygon):
         """
@@ -466,65 +475,130 @@ class PolygonDecomposition:
         :param polygon: Polygon the wire is part of.
         :return: None
         """
-        assert len(seg_ids) >= 2
+        assert len(seg_ids) >= 2, "segments: {}".format(seg_ids)
         wire = Wire()
         self.wires.append(wire)
 
         # detect orientation of the first segment
-        seg0 = self.segments[seg_ids[0]]
-        seg1 = self.segments[seg_ids[1]]
-        vtx0_side = seg1.point_side(seg0.vtxs[out_vtx])
+        last_seg = self.segments[seg_ids[0] + 1]
+        seg1 = self.segments[seg_ids[1] + 1]
+        last_side = out_vtx
+        vtx0_side = seg1.point_side(last_seg.vtxs[last_side])
         if vtx0_side is None:
-            assert seg1.point_side(seg0.vtxs[in_vtx]) is not None, "Can not connect segments: {} {}".format(seg0.id, seg1.id)
-            side0 = in_vtx
-        else:
-            side0 = out_vtx
-        seg_side_0 = (seg0, side0)
+            last_side = in_vtx
+            assert seg1.point_side(last_seg.vtxs[last_side]) is not None, "Can not connect segments: {} {}".format(last_seg, seg1)
+        start_seg_side = (last_seg, last_side)
 
         # set segment sides along the wire
-        for id in seg_ids:
-            seg = self.segments[id]
-            side = seg.point_side(seg0.vtxs[side0])
-            assert side is not None, "Can not connect segments: {} {}".format(seg0.id, seg.id)
-            seg0.next[side0] = (seg, side)
-            seg0.wire[side0] = wire
-            seg0, side0 = seg, side
-        seg0.next[side0] = seg_side_0
-        seg0.wire[side0] = wire
-        wire.segment = seg_side_0
+        for id in seg_ids[1:]:
+            seg = self.segments[id + 1]
+            side = seg.point_side(last_seg.vtxs[last_side])
+            assert side is not None, "Can not connect segments: {} {}".format(last_seg, seg)
+            seg_side = (seg, 1 - side)
+            last_seg.next[last_side] = seg_side
+            last_seg.wire[last_side] = wire
+            last_seg, last_side = seg_side
+        last_seg.next[last_side] = start_seg_side
+        last_seg.wire[last_side] = wire
+        wire.segment = start_seg_side
         wire.polygon = polygon
+        return wire
 
-    def finish_setup(self):
-        """
-        - set back links from points to segments or polygons
-        - check that all segments are set.
-        - set parent links of all wires
-        :return:
-        """
-        for seg in self.segments.values():
-            for side in [out_vtx, in_vtx]:
-                seg.vtxs[side].segment = (seg, side)
-            assert None not in seg.wire
-            assert None not in seg.next
-        self.set_wire_parents(self.outer_polygon, self.outer_polygon.outer_wire)
+    def make_polygon(self, outer_segments, holes, free_points):
 
-    def set_wire_parents(self, polygon, parent_wire):
+        if len(outer_segments) != 0:
+            p = self.polygons.append(Polygon(None))
+            p.outer_wire = self.make_wire_from_segments(outer_segments, p)
+        else:
+            p = self.outer_polygon
+
+        for hole in holes:
+            wire = self.make_wire_from_segments(hole, p)
+            wire.set_parent(p.outer_wire)
+        for free_pt_id in free_points:
+            pt = self.points[free_pt_id]
+            p.free_points[pt.id] = pt
+        return p
+
+    # def finish_setup(self):
+    #     """
+    #     - set back links from points to segments or polygons
+    #     - check that all segments are set.
+    #     - set parent links of all wires
+    #     TODO: use check consistency from test_polygons
+    #     :return:
+    #     """
+    #
+    #     self.
+    #     for pt in self.points.values():
+    #         assert pt.poly is not None or pt.segment[0] is not None
+    #     for seg in self.segments.values():
+    #         for side in [out_vtx, in_vtx]:
+    #             seg.vtxs[side].segment = (seg, side)
+    #         assert None not in seg.wire
+    #         assert None not in seg.next
+
+
+    def set_wire_parents(self):
         """
         Recursively set parent wire links from holes.
         :param polygon: Which polygon's holes to set.
         :param parent_wire: parent wire to set to holes.
         :return: None
         """
-        for hole_wire in polygon.outer_wire.childs:
-            hole_wire.set_parent(parent_wire)
-            seg, side  = hole_wire.segment
-            other_wire = seg.wire[1 - side]
-            if not other_wire == hole_wire:
-                other_poly = other_wire.polygon
-                other_poly.outer_wire = hole_wire
-                self.set_polygon_parents(other_poly, hole_wire)
+        for poly in self.polygons.values():
+            outer = poly.outer_wire
+            if outer.is_root():
+                continue
+            # TODO: guarntee that  wire.segment is not dendrite
+            seg, side  = outer.segment
+            parent_wire = seg.wire[1 - side]
+            outer.set_parent(parent_wire)
 
+    def check_consistency(self):
+        print(self)
+        for p in self.polygons.values():
+            assert p.outer_wire.id in self.wires
+            assert p.outer_wire.polygon == p
+            for pt in p.free_points:
+                assert pt.polygon.id in self.polygons
+                assert pt.polygon == p
+                assert pt.segment == (None, None)
 
+        for w in self.wires.values():
+            for child in w.childs:
+                assert child.id in self.wires
+                child.parent == w
+            assert w.polygon.id in self.polygons
+            assert w == w.polygon.outer_wire or w in w.polygon.outer_wire.childs
+            if w.is_root():
+                assert w == self.outer_polygon.outer_wire
+            else:
+                seg, side = w.segment
+                assert seg.id in self.segments
+                assert seg.wire[side] == w
+                assert w in w.parent.childs
+
+        for sg in self.segments.values():
+            for side in [right_side, left_side]:
+                assert sg.vtxs[side].id in self.points
+                assert sg.wire[side].id in self.wires
+                assert sg.next[side][0].id in self.segments
+
+                assert sg in [seg for seg, side in sg.vtxs[side].segments()]
+                w_seg, w_side = sg.wire[side].segment
+                assert sg.wire[side] == w_seg.wire[w_side]
+                n_seg, n_side = sg.next[side]
+                assert sg.wire[side] == n_seg.wire[n_side]
+
+        for pt in self.points.values():
+            if pt.is_free():
+                assert pt.polygon.id in self.polygons
+                assert pt in pt.polygon.free_points
+            else:
+                seg, side = pt.segment
+                assert seg.id in self.segments
+                assert seg.vtxs[side] == pt
 
 
     # Reversible atomic change operations.
@@ -791,6 +865,7 @@ class PolygonDecomposition:
     def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
         # Auxiliary method of _split_wires.
         # update all wires having orig wire as parent
+        # TODO: use wire childs
         for wire in self.wires.values():
             if wire.parent == orig_wire:
                 if inner_wire.contains_wire(wire):
@@ -893,10 +968,10 @@ class PolygonDecomposition:
         rm_wire = new_polygon.outer_wire
 
         # Join holes and free points
-        for child in rm_wire.childs:
+        for child in list(rm_wire.childs):
             child.set_parent(keep_wire)
 
-        for pt in new_polygon.free_points:
+        for pt in list(new_polygon.free_points):
             pt.set_polygon(orig_polygon)
 
         # set parent for keeped wire
