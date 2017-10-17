@@ -75,13 +75,9 @@ class Surface(JsonData):
         
     def __eq__(self, other):
         """operators for comparation"""
-        if self.depth != other.depth:
-            return False
-        if self.transform_z != other.transform_z:
-            return False
-        if self.transform_xy != other.transform_xy:
-            return False
-        return True
+        return self.depth == other.depth \
+            and self.transform_z == other.transform_z \
+            and self.transform_xy != other.transform_xy
 
 
 
@@ -96,6 +92,9 @@ class Segment(JsonData):
         """Surface index"""
         super().__init__(config)
 
+    def __eq__(self, other):
+        return self.node_ids == other.node.ids \
+            and self.surface_id == other.surface_id
 
 class Polygon(JsonData):
 
@@ -111,6 +110,12 @@ class Polygon(JsonData):
         """Surface index"""
         super().__init__(config)
 
+    def __eq__(self, other):
+        return self.segment_ids == other.segment_ids \
+            and self.holes == other.holes \
+            and self.free_points == other.free_points \
+            and self.surface_id == other.surface_id
+
 
 class Topology(JsonData):
     """Topological presentation of geometry objects"""
@@ -121,6 +126,10 @@ class Topology(JsonData):
         self.polygons = [ ClassFactory(Polygon) ]
         """List of topology polygons"""
         super().__init__(config)
+
+    def __eq__(self, other):
+        return self.segments == other.segments \
+            and self.polygons == other.polygons \
 
 
 

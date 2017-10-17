@@ -782,8 +782,8 @@ class Diagram():
         
     def join_line_import(self,p1_id, p2_id, segment):
         """Import line from point p1 to p2"""
-        p1 = self.points(p1_id)
-        p2 = self.points(p2_id)
+        p1 = self.points[p1_id]
+        p2 = self.points[p2_id]
         if p1>p2:
             pom = p1
             p1 = p2

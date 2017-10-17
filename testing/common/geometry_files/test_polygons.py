@@ -295,53 +295,9 @@ class TestDecomposition:
         decomp.add_free_point(100, (3.0, 0.3), decomp.outer_polygon.id)
         decomp.remove_free_point(100)
 
-    def check_consistency(self, decomp):
-        for p in decomp.polygons.values():
-            assert p.outer_wire.id in decomp.wires
-            assert p.outer_wire.polygon == p
-            for pt in p.free_points:
-                assert pt.polygon.id in decomp.polygons
-                assert pt.polygon == p
-                assert pt.segment == (None, None)
-
-        for w in decomp.wires.values():
-
-            for child in w.childs:
-                assert child.id in decomp.wires
-                child.parent == w
-            assert w.polygon.id in decomp.polygons
-            assert w == w.polygon.outer_wire or w in w.polygon.outer_wire.childs
-            if w.is_root():
-                assert w == decomp.outer_polygon.outer_wire
-            else:
-                seg, side = w.segment
-                assert seg.id in decomp.segments
-                assert seg.wire[side] == w
-                assert w in w.parent.childs
-
-        for sg in decomp.segments.values():
-            for side in [right_side, left_side]:
-                assert sg.vtxs[side].id in decomp.points
-                assert sg.wire[side].id in decomp.wires
-                assert sg.next[side][0].id in decomp.segments
-
-                assert sg in [ seg for seg, side in sg.vtxs[side].segments()]
-                w_seg, w_side = sg.wire[side].segment
-                assert sg.wire[side] == w_seg.wire[w_side]
-                n_seg, n_side = sg.next[side]
-                assert sg.wire[side] == n_seg.wire[n_side]
-
-        for pt in decomp.points.values():
-            if pt.is_free():
-                assert pt.polygon.id in decomp.polygons
-                assert pt in pt.polygon.free_points
-            else:
-                seg, side = pt.segment
-                assert seg.id in decomp.segments
-                assert seg.vtxs[side] == pt
 
     def check_split_poly_structure(self, decomp, out_square, in_square):
-        self.check_consistency(decomp)
+        decomp.check_consistency()
 
         sg_a, sg_b, sg_c, sg_d = out_square
         sg_e, sg_f, sg_g, sg_h = in_square
@@ -560,4 +516,5 @@ class TestDecomposition:
        pt3 = decomp.add_free_point(4, (75.7, -35), 1 )
        decomp.new_segment(pt2, pt3)
        #self.plot_polygons(decomp)
+
 

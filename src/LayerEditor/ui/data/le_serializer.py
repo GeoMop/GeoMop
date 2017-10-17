@@ -2,6 +2,7 @@ from geometry_files import GeometryFactory, GeometrySer, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface, Surface
 import geometry_files.polygons as polygons
+import geometry_files.polygons_io as polygons_io
 
 class LESerializer():
     """Class for diagram data serialization"""
@@ -69,9 +70,11 @@ class LESerializer():
             cfg.diagrams.append(Diagram(curr_block, cfg.history))
             self._read_ns(cfg.diagrams[-1], i, gf)
         Diagram.make_revert_map()
-        for i in range(0, len(gf.geometry.node_sets)):
-            self._fix_polygon_map(cfg, i, gf)        
-        ns_idx = 0   
+
+        # for i in range(0, len(gf.geometry.node_sets)):
+        #     self._fix_polygon_map(cfg, i, gf)
+
+        ns_idx = 0
         last_fracture = None
         last_stratum = None
         layer_id=0
@@ -187,43 +190,27 @@ class LESerializer():
                 
     def _read_ns(self, diagram, ns_idx, gf):
         """read  one node set from geometry file structure to diagram structure"""
-        # return self._read_decomposition(diagram, ns_idx, gf)
+        geometry = gf.geometry
+        ns = geometry.node_sets[ns_idx]
+        nodes = ns.nodes
+        topo_id = ns.topology_id
+        topology = geometry.topologies[topo_id]
 
-        nodes = gf.get_nodes(ns_idx)
-        for node in nodes:
+        input_id_to_node = {}
+        for input_id, node in enumerate(nodes):
             x, y = node
-            diagram.add_point(x, -y, 'Import point', None, True)
-            
-        segments = gf.get_segments(ns_idx)
-        for segment in segments:
-            n1_idx, n2_idx = segment.node_ids
-            diagram.join_line(diagram.points[n1_idx],
-                              diagram.points[n2_idx], "Import line", None, True)
+            node_id = diagram.add_point_id(x, -y)
+            input_id_to_node[input_id] = (node_id, node)
+
+        decomp = polygons_io.deserialize(input_id_to_node, topology)
+        diagram.import_decomposition(decomp)
 
 
-    def _read_decomposition(self, diagram, ns_idx, gf):
-        """write one node set from diagram structure to geometry file structure"""
-        decomp = diagram.decomp = polygons.Decomp()
-        for pt in gf.get_nodes(ns_idx):
-            decomp.points.append(polygons.Point(pt))
-        for seg in gf.get_segments(ns_idx):
-            decomp.segments.append(polygons.Segment(seg.node_ids))
-        for poly in gf.get_polygons(ns_idx):
-            p = decomp.polygons.append(polygons.Polygon(None))
-            p.outer_wire = decomp.make_wire_from_segments(poly.segment_ids, p)
-            for hole in poly.holes:
-                wire = decomp.make_wire_from_segments(hole, p)
-                p.holes[wire.id] = wire
-            for free_pt_id in poly.free_points:
-                pt = decomp.points[free_pt_id]
-                p.free_points[pt.id] = pt
-        decomp.finish_setup()
-
-    def _fix_polygon_map(self, cfg, ns_idx, gf):
-        """read  one node set from geometry file structure to diagram structure"""
-        polygons = gf.get_polygons(ns_idx)
-        for i, poly in enumerate(polygons):
-            cfg.diagrams[ns_idx].fix_polygon_map(i, poly.segment_ids)
+    # def _fix_polygon_map(self, cfg, ns_idx, gf):
+    #     """read  one node set from geometry file structure to diagram structure"""
+    #     polygons = gf.get_polygons(ns_idx)
+    #     for i, poly in enumerate(polygons):
+    #         cfg.diagrams[ns_idx].fix_polygon_map(i, poly.segment_ids)
 
 
     def save(self, cfg, path):
@@ -242,27 +229,15 @@ class LESerializer():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         # layers
         layers_info = cfg.layers.get_first_layer_info()
-        last_ns_idx = -1
 
-        block_ids = set()
+        self._written_diagram_ids = set()
+        self._tp_idx_to_out_tp_idx = {}
         while not layers_info.end:
-            if layers_info.block_idx not in block_ids:
-                tp_idx = gf.add_topology()
+            # if layers_info.block_idx not in block_ids:
+            #     tp_idx = gf.add_topology()
 
-            if layers_info.diagram_id1 is not None and \
-                            layers_info.diagram_id1 > last_ns_idx:
-                # TODO: use some relation between diagram_id1 and ns_index, absolutely not clear if diagram_id1
-                # is diagram index or not. Same for later calls of _write_ns
-                last_ns_idx += 1
-                d_idx = last_ns_idx
-                diagram = cfg.diagrams[d_idx]
-                self._write_ns(tp_idx, diagram, gf)
-            if layers_info.diagram_id2 is not None and \
-                            layers_info.diagram_id2 > last_ns_idx:
-                last_ns_idx += 1
-                d_idx = last_ns_idx
-                diagram = cfg.diagrams[d_idx]
-                self._write_ns(tp_idx, diagram, gf)
+            self._write_ns(layers_info.diagram_id1, cfg, gf)
+            self._write_ns(layers_info.diagram_id2, cfg, gf)
 
             if layers_info.stype1 is TopologyType.interpolated:
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
@@ -310,12 +285,7 @@ class LESerializer():
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx + 1)
                 gf.add_GL(layers_info.fracture_after.name, LayerType.fracture, regions, ns2_type, ns2)
             if layers_info.fracture_own is not None:
-                gf.add_topologies_to_count(layers_info.block_idx + 1)
-                if layers_info.fracture_own.fracture_diagram_id > last_ns_idx:
-                    last_ns_idx += 1
-                    d_idx = last_ns_idx
-                    diagram = cfg.diagrams[d_idx]
-                    self._write_ns(tp_idx + 1, diagram, gf)
+                self._write_ns(layers_info.fracture_own.fracture_diagram_id, cfg, gf)
                 surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
                 ns = gf.get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx + 1)
@@ -331,35 +301,28 @@ class LESerializer():
             raise LESerializerException("Some file consistency errors occure", errors)
         return gf.geometry
 
-    def _write_ns(self, tp_idx, diagram, gf):
+    def _write_ns(self, diagram_id, cfg, gf):
         """write one node set from diagram structure to geometry file structure"""
-        return self._write_decomposition(tp_idx, diagram, gf)
+        if diagram_id is None or diagram_id in self._written_diagram_ids:
+            return
 
-        ns_idx = gf.add_node_set(tp_idx)
-        ns = gf.geometry.node_sets[ns_idx]
-        for point in diagram.points:
-            gf.add_node(ns_idx, point.x, -point.y)
+        diagram = cfg.diagrams[diagram_id]
+        self._written_diagram_ids.add(diagram_id)
+
+        decomp = diagram.po.decomposition
+        nodes, topology = polygons_io.serialize(decomp)
         if diagram.topology_owner:
-            for line in diagram.lines:
-                gf.add_segment(ns.topology_id, diagram.points.index(line.p1),
-                               diagram.points.index(line.p2))
-            for polygon in diagram.polygons:
-                p_idxs = []
-                for line in polygon.lines:
-                    p_idxs.append(diagram.lines.index(line))
-                gf.add_polygon(ns.topology_id, p_idxs)
+            out_tp_idx = gf.add_topology(topology)
+            self._tp_idx_to_out_tp_idx[diagram.topology_idx] = out_tp_idx
+        else:
+            out_tp_idx = self._tp_idx_to_out_tp_idx[diagram.topology_idx]
+        gf.add_node_set(out_tp_idx, nodes)
 
-                gf.add_polygon(ns.topology_id, p_idxs)
 
 
 
     def _write_decomposition(self, tp_idx, diagram, gf):
         """write one node set from diagram structure to geometry file structure"""
-        decomp = diagram.decomp
-        decomp.make_indices()
-        out_points = [pt.xy for pt in decomp.points.values()]
-        gf.add_node_set(tp_idx, out_points)
-        gf.set_topology(tp_idx, decomp)
 
 
 class LESerializerException(Exception):
