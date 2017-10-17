@@ -10,6 +10,9 @@
    user/linux_installation_guide
    user/model_editor
    user/me_panels
+   user/analysis_data_types
+   user/analysis_converters
+   user/analysis_actions
    user/analysis_pipeline_example
 
 .. toctree::
