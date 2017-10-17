@@ -696,6 +696,28 @@ class Diagram():
             if self._rect.bottom()<y:
                 self._rect.setBottom(y)
         return point
+        
+    def add_point_id(self, x, y):
+        """Add point to canvas and return index"""
+        point = Point(x, y, id)
+        self.points.append(point) 
+        # recount canvas size
+        if self._rect is None:
+            self._rect = QtCore.QRectF(x, y, 0, 0)        
+        else:
+            if self._rect.left()>x:
+                self._rect.setLeft(x)
+            if self._rect.right()<x:
+                self._rect.setRight(x)
+            if self._rect.top()>y:
+                self._rect.setTop(y)            
+            if self._rect.bottom()<y:
+                self._rect.setBottom(y)
+        return self.points.index(point)
+        
+    def import_decomposition(self, decomposition):
+        """Save decomposition and reload lines and polygons"""
+        self.po.set_new_decomposition(self, decomposition)
     
     def move_point(self, p, x, y, label='Move point', not_history=False):
         """Add point to canvas"""
@@ -758,6 +780,21 @@ class Diagram():
             self.regions.add_regions(1, line.id, not not_history)
         return line
         
+    def join_line_import(self,p1_id, p2_id, segment):
+        """Import line from point p1 to p2"""
+        p1 = self.points(p1_id)
+        p2 = self.points(p2_id)
+        if p1>p2:
+            pom = p1
+            p1 = p2
+            p2 = pom        
+        line = Line(p1, p2)
+        line.segment = segment
+        p1.lines.append(line)
+        p2.lines.append(line)
+        self.lines.append(line)        
+        return line
+        
     def join_line_intersection(self, p1, p2, label=None):
         """
         As Join line, but try add lines created by intersection
@@ -803,6 +840,7 @@ class Diagram():
     def add_new_point_to_line(self, line, x, y, label='Add new point to line'):
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
+        self.po.split_line(self, line)
         p = self.add_point(xn, yn, label)
         p.lines.append(line)
         line.p2.lines.remove(line)
