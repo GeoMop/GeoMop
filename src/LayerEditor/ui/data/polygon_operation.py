@@ -30,9 +30,9 @@ class PolygonOperation():
     def set_new_decomposition(self, diagram, decomposition):
         """set new decomposition"""
         self.decomposition = decomposition
-        for segment in self.decomposition.segments:
-            diagram.join_line_import(segment.vtxs[0].id, segment.vtxs[1].id)
-        for polygon in self.decomposition.polygons:
+        for segment in self.decomposition.segments.values():
+            diagram.join_line_import(segment.vtxs[0].id, segment.vtxs[1].id, segment)
+        for polygon in self.decomposition.polygons.values():
             self._add_polygon(diagram, polygon.id, None, True)
 
     def add_point(self, diagram, point):
@@ -241,6 +241,8 @@ class PolygonOperation():
     def _add_polygon(self, diagram, polygon_id, label, not_history):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
+        if polygon == self.decomposition.outer_polygon:
+            return
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children!=polygon_id:
