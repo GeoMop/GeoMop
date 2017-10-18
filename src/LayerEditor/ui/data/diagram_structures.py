@@ -846,6 +846,7 @@ class Diagram():
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
+        line.object.refresh_line()
         l2 = self.join_line(point2, line.p2, None)
         #save revert operations to history        
         self._history.add_line(line.id, line.p1, point2, None)
@@ -863,8 +864,9 @@ class Diagram():
         self.move_point(point, xn, yn, label)
         point.lines.append(line)
         line.p2.lines.remove(line)
-        point2 = line.p2
+        point2 = line.p2        
         line.p2 = point
+        line.object.refresh_line()
         l2 = self.join_line(point, point2)        
         #save revert operations to history
         self._history.add_line(line.id, line.p1.id, point2.id, None)

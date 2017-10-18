@@ -85,7 +85,8 @@ class PolygonOperation():
             self.tmp_line.segment = segment 
             res = self.decomposition.get_last_polygon_changes()
             if res[0]!=PolygonChange.shape and res[0]!=PolygonChange.none:
-                raise Exception("Invalid polygon change during split line.")           
+                raise Exception("Invalid polygon change during split line.")  
+            self.tmp_line = None
         segment = self.decomposition.new_segment(
             self.decomposition.points[diagram.points.index(line.p1)], 
             self.decomposition.points[diagram.points.index(line.p2)])
