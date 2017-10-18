@@ -196,13 +196,12 @@ class LESerializer():
         topo_id = ns.topology_id
         topology = geometry.topologies[topo_id]
 
-        input_id_to_node = {}
         for input_id, node in enumerate(nodes):
             x, y = node
             node_id = diagram.add_point_id(x, -y)
-            input_id_to_node[input_id] = (node_id, node)
+            assert node_id == input_id
 
-        decomp = polygons_io.deserialize(input_id_to_node, topology)
+        decomp = polygons_io.deserialize(nodes, topology)
         diagram.import_decomposition(decomp)
 
 

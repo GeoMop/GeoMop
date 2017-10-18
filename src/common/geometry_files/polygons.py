@@ -36,7 +36,7 @@ class IdMap(dict):
 
     def get_new_id(self):
         if not hasattr(self, '_next_id'):
-            self._next_id = 0
+            self._next_id = -1
         self._next_id += 1
         return self._next_id
 
@@ -480,8 +480,8 @@ class PolygonDecomposition:
         self.wires.append(wire)
 
         # detect orientation of the first segment
-        last_seg = self.segments[seg_ids[0] + 1]
-        seg1 = self.segments[seg_ids[1] + 1]
+        last_seg = self.segments[seg_ids[0]]
+        seg1 = self.segments[seg_ids[1]]
         last_side = out_vtx
         vtx0_side = seg1.point_side(last_seg.vtxs[last_side])
         if vtx0_side is None:
@@ -491,7 +491,7 @@ class PolygonDecomposition:
 
         # set segment sides along the wire
         for id in seg_ids[1:]:
-            seg = self.segments[id + 1]
+            seg = self.segments[id]
             side = seg.point_side(last_seg.vtxs[last_side])
             assert side is not None, "Can not connect segments: {} {}".format(last_seg, seg)
             seg_side = (seg, 1 - side)
