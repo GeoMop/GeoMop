@@ -8,17 +8,21 @@ from .geometry_structures import FractureLayer, ShadowLayer
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
     
-    def __init__(self, geometry=None):
-        self.geometry =  geometry
-        """Geometry data object"""
-        if  geometry is None:
-            default_regions = [
-                Region(dict( color="#ffffff", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
-                Region(dict( color="#000000", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
-                Region(dict( color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
-                ]
-            self.geometry = LayerGeometry( dict(regions=default_regions) )
-            
+    def __init__(self, geometry = None):
+        if geometry is None:
+            self.geometry =  LayerGeometry()
+        else:
+            self.geometry = geometry
+
+    def set_default(self):
+        default_regions = [
+            Region(dict(color="#ffffff", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
+            Region(dict(color="#000000", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
+            Region(dict(color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
+        ]
+        for reg in default_regions:
+            self.geometry.regions.append(reg)
+
     def add_topology(self, topology=Topology()):
         """Add new topology and return its idx"""
         self.geometry.topologies.append( topology)

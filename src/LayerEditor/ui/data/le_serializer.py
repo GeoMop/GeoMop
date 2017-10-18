@@ -25,6 +25,8 @@ class LESerializer():
     def _get_first_geometry(self):
         lname = "Layer 1"
         gf = GeometryFactory()
+        gf.set_default()
+
         regions = ([], [], []) # No node, segment, polygon or regions.
         ns_top = gf.get_surface_ns(0, gf.add_surface_plane(0.0))
         ns_bot = gf.get_interpolated_ns(0, 0, gf.add_surface_plane(100.0))
