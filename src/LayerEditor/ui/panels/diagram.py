@@ -465,7 +465,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._point_moving.point.x, self._point_moving.point.y)) 
             cfg.diagram.move_point_after(self._point_moving.point, 
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line) and len(self._point_moving.lines)==1:
+        elif isinstance(below_item, Line) and len(self._point_moving.point.lines)==1:
             cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Move point to Line')
             new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line, 
@@ -475,7 +475,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point)  and len(self._point_moving.lines)==1:
+        elif isinstance(below_item, Point)  and len(self._point_moving.point.lines)==1:
             cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point, self._point_moving.point, None)

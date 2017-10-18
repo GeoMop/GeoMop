@@ -85,7 +85,8 @@ class PolygonOperation():
             self.tmp_line.segment = segment 
             res = self.decomposition.get_last_polygon_changes()
             if res[0]!=PolygonChange.shape and res[0]!=PolygonChange.none:
-                raise Exception("Invalid polygon change during split line.")           
+                raise Exception("Invalid polygon change during split line.")  
+            self.tmp_line = None
         segment = self.decomposition.new_segment(
             self.decomposition.points[diagram.points.index(line.p1)], 
             self.decomposition.points[diagram.points.index(line.p2)])
@@ -140,6 +141,10 @@ class PolygonOperation():
             self._join_polygon(diagram, res[1], res[2], label, not_history)
         elif res[0]!=PolygonChange.none:
             raise Exception("Invalid polygon change during remove line.")
+            
+    def get_polygon_origin_id(self, polygon):
+        """Return polygon id in origin structure"""
+        return self.decomposition.polygons[polygon.helpid].orig_id
     
     def _find_in_polygon(self, diagram, point, polygon_id=None):
         """Find polygon for set point"""
