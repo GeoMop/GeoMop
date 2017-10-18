@@ -347,7 +347,7 @@ class Diagram():
             for i in range(0, len(diagram.lines)):
                 map[top_id][1][i] = diagram.lines[i].id
             for i in range(0, len(diagram.polygons)):
-                map[top_id][2][i] = diagram.polygons[i].id                
+                map[top_id][2][i] = diagram.po.get_polygon_origin_id(diagram.polygons[i])                
                 
     def region_color_changed(self, region_idx):
         """Region collor was changed"""

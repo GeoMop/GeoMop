@@ -1,7 +1,6 @@
 from geometry_files import GeometryFactory, GeometrySer, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface, Surface
-import geometry_files.polygons as polygons
 import geometry_files.polygons_io as polygons_io
 
 class LESerializer():
@@ -21,9 +20,7 @@ class LESerializer():
         cfg.release_all()
         cfg.diagrams = []
         cfg.layers.delete()
-        cfg.diagrams = [Diagram(0, cfg.history)]
-        cfg.diagram = cfg.diagrams[0]
-
+        cfg.diagram = None
 
     def _get_first_geometry(self):
         lname = "Layer 1"
@@ -39,12 +36,10 @@ class LESerializer():
         gf.geometry.supplement.last_node_set = ns_idx
         return gf.geometry
 
-
     def load(self, cfg, path):
         reader = GeometrySer(path)
         geometry =  reader.read()
         self.geometry_to_cfg(geometry, cfg)
-
 
     def geometry_to_cfg(self, geometry, cfg):
         """Load diagram data from set file"""
@@ -60,7 +55,7 @@ class LESerializer():
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
         for region in gf.get_regions():
-            cfg.diagram.add_region(region.color, region.name, region.topo_dim, region.mesh_step,
+            Diagram.add_region(region.color, region.name, region.topo_dim, region.mesh_step,
                 region.boundary, region.not_used)
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_id
@@ -68,11 +63,10 @@ class LESerializer():
                 new_top == curr_topology
                 curr_block += 1                
             cfg.diagrams.append(Diagram(curr_block, cfg.history))
+            if len(cfg.diagrams)==1:
+                cfg.diagram = cfg.diagrams[0]
             self._read_ns(cfg.diagrams[-1], i, gf)
         Diagram.make_revert_map()
-
-        # for i in range(0, len(gf.geometry.node_sets)):
-        #     self._fix_polygon_map(cfg, i, gf)
 
         ns_idx = 0
         last_fracture = None
@@ -317,13 +311,6 @@ class LESerializer():
         else:
             out_tp_idx = self._tp_idx_to_out_tp_idx[diagram.topology_idx]
         gf.add_node_set(out_tp_idx, nodes)
-
-
-
-
-    def _write_decomposition(self, tp_idx, diagram, gf):
-        """write one node set from diagram structure to geometry file structure"""
-
 
 class LESerializerException(Exception):
     def __init__(self, message, errors):
