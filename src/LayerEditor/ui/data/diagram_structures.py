@@ -296,7 +296,6 @@ class Diagram():
     """List of regions"""
     area = Area()
     """diagram area"""
-
     
     @classmethod
     def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
@@ -306,48 +305,36 @@ class Diagram():
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        cls.regions.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        mapped_regions = [{}, {}, {}]
+        diagram = cls.topologies[topology_idx][0]
+        for point_id in range(0, len(diagram.points)):
+            mapped_regions[0][diagram.points[point_id].id] = regions[0][diagram.po.get_point_origin_id(point_id)]
+        for line in diagram.lines:
+            mapped_regions[1][line.id] = regions[1][diagram.po.get_line_origin_id(line)]
+        for polygon in diagram.polygons:
+            mapped_regions[2][polygon.id] = regions[2][diagram.po.get_polygon_origin_id(polygon)]    
+        cls.regions.add_shapes_to_region(
+            is_fracture, layer_id, layer_name, topology_idx, mapped_regions)
 
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return cls.regions.get_shapes_from_region(is_fracture, layer_id)
+        regions = cls.regions.get_shapes_from_region(is_fracture, layer_id)        
+        remapped_regions = [[], [], []]
+        diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
+        tmp = {}
+        for point_id in range(0, len(diagram.points)):
+            tmp[diagram.po.get_point_origin_id(point_id)]=regions[0][diagram.points[point_id].id]
+        remapped_regions[0] = [value for (key, value) in sorted(tmp.items())]  
+        tmp = {}
+        for line in diagram.lines:
+            tmp[diagram.po.get_line_origin_id(line)]=regions[1][line.id]
+        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
+        for polygon in diagram.polygons:
+            tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
+        remapped_regions[2] = [value for (key, value) in sorted(tmp.items())]    
         
-    @classmethod
-    def make_map(cls):
-        """Make map for conversion from global object id to local"""
-        map = Regions.diagram_map = {}
-        for top_id in cls.topologies:
-            diagram = None
-            for d in cls.topologies[top_id]:
-                if d.topology_owner:
-                    diagram = d
-                    break
-            map[top_id] = [{}, {}, {}]
-            for i in range(0, len(diagram.points)):
-                map[top_id][0][diagram.points[i].id] = i
-            for i in range(0, len(diagram.lines)):
-                map[top_id][1][diagram.lines[i].id] = i
-            for i in range(0, len(diagram.polygons)):
-                map[top_id][2][diagram.polygons[i].id] = i
-                
-    @classmethod
-    def make_revert_map(cls):
-        """Make map for conversion from local object id to global"""
-        map = Regions.diagram_map = {}
-        for top_id in cls.topologies:
-            diagram = None
-            for d in cls.topologies[top_id]:
-                if d.topology_owner:
-                    diagram = d
-                    break
-            map[top_id] = [{}, {}, {}]
-            for i in range(0, len(diagram.points)):
-                map[top_id][0][i] = diagram.points[i].id
-            for i in range(0, len(diagram.lines)):
-                map[top_id][1][i] = diagram.lines[i].id
-            for i in range(0, len(diagram.polygons)):
-                map[top_id][2][i] = diagram.po.get_polygon_origin_id(diagram.polygons[i])                
+        return remapped_regions
                 
     def region_color_changed(self, region_idx):
         """Region collor was changed"""
@@ -419,11 +406,6 @@ class Diagram():
                         break
                 if ok:                    
                     return polygon.id
-    
-    @classmethod
-    def delete_map(cls):
-        """Delete mapa for conversion from global object id to local""" 
-        Regions.diagram_map = None
     
     @classmethod
     def release_all(cls, history):

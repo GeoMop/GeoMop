@@ -294,8 +294,7 @@ class LEConfig:
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
-        cls.le_serializer.set_new(cls)
-        cls.main_window.refresh_all()
+        cls.le_serializer.set_new(cls)        
         
     @classmethod
     def save_file(cls, file=None):

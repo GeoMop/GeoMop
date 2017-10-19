@@ -50,7 +50,6 @@ class LESerializer():
         curr_topology = 0
         curr_block = 0
         # curr_topology and curr_block is for mapping topology to consistent line
-
         gf = GeometryFactory(geometry)
         errors = gf.check_file_consistency()        
         if len(errors)>0:
@@ -68,8 +67,6 @@ class LESerializer():
             if len(cfg.diagrams)==1:
                 cfg.diagram = cfg.diagrams[0]
             self._read_ns(cfg.diagrams[-1], i, gf)
-        Diagram.make_revert_map()
-
         ns_idx = 0
         last_fracture = None
         last_stratum = None
@@ -178,7 +175,6 @@ class LESerializer():
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
-        Diagram.delete_map()
         cfg.diagram = cfg.diagrams[ns_idx]    
         cfg.diagram.fix_topologies(cfg.diagrams)
         cfg.layers.compute_composition()
@@ -200,14 +196,6 @@ class LESerializer():
         decomp = polygons_io.deserialize(nodes, topology)
         diagram.import_decomposition(decomp)
 
-
-    # def _fix_polygon_map(self, cfg, ns_idx, gf):
-    #     """read  one node set from geometry file structure to diagram structure"""
-    #     polygons = gf.get_polygons(ns_idx)
-    #     for i, poly in enumerate(polygons):
-    #         cfg.diagrams[ns_idx].fix_polygon_map(i, poly.segment_ids)
-
-
     def save(self, cfg, path):
         geometry = self.cfg_to_geometry(cfg)
         reader = GeometrySer(path)
@@ -215,11 +203,7 @@ class LESerializer():
 
     def cfg_to_geometry(self, cfg):
         """Save diagram data to set file"""
-        # diagrams
         gf = GeometryFactory()
-        # gf.reset()
-        Diagram.make_map()
-        # regions
         for reg in cfg.diagram.regions.regions:
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         # layers
@@ -228,9 +212,6 @@ class LESerializer():
         self._written_diagram_ids = set()
         self._tp_idx_to_out_tp_idx = {}
         while not layers_info.end:
-            # if layers_info.block_idx not in block_ids:
-            #     tp_idx = gf.add_topology()
-
             self._write_ns(layers_info.diagram_id1, cfg, gf)
             self._write_ns(layers_info.diagram_id2, cfg, gf)
 
@@ -290,7 +271,6 @@ class LESerializer():
         gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
         gf.geometry.supplement.init_area = []
         Diagram.area.serialize(gf.geometry.supplement.init_area)
-        Diagram.delete_map()
         errors = gf.check_file_consistency()
         if len(errors) > 0:
             raise LESerializerException("Some file consistency errors occure", errors)
@@ -300,7 +280,6 @@ class LESerializer():
         """write one node set from diagram structure to geometry file structure"""
         if diagram_id is None or diagram_id in self._written_diagram_ids:
             return
-
         diagram = cfg.diagrams[diagram_id]
         self._written_diagram_ids.add(diagram_id)
 

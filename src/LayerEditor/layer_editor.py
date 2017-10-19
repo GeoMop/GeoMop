@@ -56,6 +56,8 @@ class LayerEditor:
         ret = init_dlg.exec_()
         if ret!=QtWidgets.QDialog.Accepted:
             self.open_file()
+        else:
+            self.mainwindow.refresh_all()
  
     def open_file(self):
         """open file menu action"""

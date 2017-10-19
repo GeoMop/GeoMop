@@ -44,8 +44,6 @@ class Regions():
     label.
     """
     
-    diagram_map = None
-    
     def __init__(self, global_history):
         self.regions = []
         """List of regions"""
@@ -615,8 +613,8 @@ class Regions():
             i += 1
         return None, None
         
-    def _find(self, id):
-        """return topology id"""
+    def find_top_id(self, id):
+        """return topology id for set layer id"""
         for top_id in self.layers_topology:
             if id in self.layers_topology[top_id]:
                 return top_id
@@ -646,44 +644,25 @@ class Regions():
         if not layer_id in self.layers:
             self.layers[layer_id] = layer_name
             
-        top_id = self._find(layer_id) 
-        self.layer_region_0D[layer_id]={}
-        self.layer_region_1D[layer_id]={}
-        self.layer_region_2D[layer_id]={}
-            
-        for i in range(0, len(regions[0])):
-            self.layer_region_0D[layer_id][self.diagram_map[top_id][0][i]] = regions[0][i] 
-        for i in range(0, len(regions[1])):
-            self.layer_region_1D[layer_id][self.diagram_map[top_id][1][i]] = regions[1][i] 
-        for i in range(0, len(regions[2])):
-            self.layer_region_2D[layer_id][self.diagram_map[top_id][2][i]] = regions[2][i]
+        self.layer_region_0D[layer_id] = regions[0]
+        self.layer_region_1D[layer_id] = regions[1]
+        self.layer_region_2D[layer_id] = regions[2]
         
     def get_shapes_from_region(self, is_fracture, layer_id):
         """
         Get shapes from region
         Call diagram static function make_map before this function
         """
-        regions = [[], [], []]
+        regions = [{}, {}, {}]
         if is_fracture:
             layer_id = -layer_id-1
         else:
             layer_id = layer_id
         
-        top_id = self._find(layer_id)
+        if layer_id in self.layer_region_0D:
+            regions[0] = self.layer_region_0D[layer_id]
         if layer_id in self.layer_region_1D:
-            tmp = {}
-            for id, reg in self.layer_region_0D[layer_id].items():
-                tmp[self.diagram_map[top_id][0][id]] = reg 
-            regions[0] = [value for (key, value) in sorted(tmp.items())]
-        if layer_id in self.layer_region_1D:
-            tmp = {}
-            for id, reg in self.layer_region_1D[layer_id].items():
-                tmp[self.diagram_map[top_id][1][id]] = reg 
-            regions[1] = [value for (key, value) in sorted(tmp.items())]
+            regions[1] = self.layer_region_1D[layer_id]
         if layer_id in self.layer_region_2D:
-            tmp = {}
-            for id, reg in self.layer_region_2D[layer_id].items():
-                tmp[self.diagram_map[top_id][2][id]] = reg 
-            regions[2] = [value for (key, value) in sorted(tmp.items())]
-
+            regions[2] = self.layer_region_2D[layer_id]
         return regions

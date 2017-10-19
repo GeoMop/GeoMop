@@ -42,7 +42,7 @@ class PolygonOperation():
             self.rest_polygon_id = None
         else:
             polygon_id = self._find_in_polygon(diagram, point)
-        self.decomposition.add_free_point(diagram.points.index(point), (point.x, point.y), polygon_id)        
+        self.decomposition.add_free_point(diagram.points.index(point), (point.x, -point.y), polygon_id)        
 
     def move_points(self, diagram, points):
         """move set point in decomposition, return if all moving is possible"""
@@ -144,7 +144,15 @@ class PolygonOperation():
             
     def get_polygon_origin_id(self, polygon):
         """Return polygon id in origin structure"""
-        return self.decomposition.polygons[polygon.helpid].orig_id
+        return self.decomposition.polygons[polygon.helpid].index
+    
+    def get_line_origin_id(self, line):
+        """Return line id in origin structure"""
+        return line.segment.index
+        
+    def get_point_origin_id(self, point_id):
+        """Return point id in origin structure"""
+        return self.decomposition.points[point_id].index
     
     def _find_in_polygon(self, diagram, point, polygon_id=None):
         """Find polygon for set point"""
@@ -232,7 +240,7 @@ class PolygonOperation():
         qtpolygon = QtGui.QPolygonF()
         lines = []        
         for i in range(0, len(points)):            
-            qtpolygon.append(QtCore.QPointF(points[i].xy[0], points[i].xy[1]))
+            qtpolygon.append(QtCore.QPointF(points[i].xy[0], -points[i].xy[1]))
             if i==0:
                 line = diagram.find_line(points[-1].id, points[0].id)
             else:
@@ -240,7 +248,7 @@ class PolygonOperation():
             if line is None:
                 raise Exception("Can't find polygon line in diagram")
             lines.append(line)
-        qtpolygon.append(QtCore.QPointF(points[0].xy[0], points[0].xy[1]))
+        qtpolygon.append(QtCore.QPointF(points[0].xy[0], -points[0].xy[1]))
         return lines, qtpolygon
         
     def _add_polygon(self, diagram, polygon_id, label, not_history):
