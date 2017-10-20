@@ -556,7 +556,7 @@ class PolygonDecomposition:
             outer.set_parent(parent_wire)
 
     def check_consistency(self):
-        print(self)
+        #print(self)
         for p in self.polygons.values():
             assert p.outer_wire.id in self.wires
             assert p.outer_wire.polygon == p

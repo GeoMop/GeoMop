@@ -72,7 +72,6 @@ def deserialize(nodes, topology):
         p.index = id
         assert p.id == id
 
-    #print(decomp)
     decomp.set_wire_parents()
     decomp.check_consistency()
 
