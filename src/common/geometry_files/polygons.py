@@ -916,6 +916,11 @@ class PolygonDecomposition:
                 inner_wire, outer_wire = left_wire, right_wire
             else:
                 inner_wire, outer_wire = right_wire, left_wire
+
+            # fix childs of orig_wire
+            for child in list(orig_wire.childs):
+                child.set_parent(outer_wire)
+
             outer_wire.polygon = orig_poly
             inner_wire.polygon = new_poly
             new_poly.outer_wire = inner_wire
