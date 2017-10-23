@@ -66,6 +66,10 @@ class Regions():
         """Id of selected topology in region panel"""
         self.current_regions = {}
         """Map all layers in current topology, and its regions"""
+        self.remap_reg_from = {}
+        """If this variable is set, remap in move topology shapes id from set diagram"""
+        self.remap_reg_to = {}
+        """If this variable is set, remap in move topology shapes id to values in set diagram"""
         
     # region panels functions
     
@@ -504,7 +508,7 @@ class Regions():
                     self.layer_region_0D[shadow] = []
                     self.layer_region_1D[shadow] = []
                     self.layer_region_2D[shadow] = []
-                    self._history.copy_data(id, old_name)
+                    self._history.rename_layer(False, id, old_name)
                     self._history.load_data(id, r0D, r1D, r2D)
                     remove_shadow = False
         
@@ -573,7 +577,7 @@ class Regions():
                 break
         self.layers_topology[-1].append(id)
         if to_history:
-            self._history.copy_data(id, old_name)
+            self._history.rename_layer(False, id, old_name)
             self._history.load_data(id, r0D, r1D, r2D)
         
     def _move_dim(self, id, layer_region):

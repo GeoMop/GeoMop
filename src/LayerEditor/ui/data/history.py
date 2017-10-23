@@ -943,14 +943,14 @@ class RegionHistory(History):
         
     def delete_data(self, id, label=None):
         """
-        Add copy related to history operation. 
+        Add delete related to history operation. 
         """
         self.global_history.add_label(self.id, label)
         self.steps.append(HistoryStep(self._delete_data, [id],label))
         
     def _delete_data(self, id):
         """
-        Copy data to layers from related layers.
+        Delete data to layers from related layers.
         
         Return invert operation
         """

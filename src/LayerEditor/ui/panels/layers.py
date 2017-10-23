@@ -250,10 +250,10 @@ class Layers(QtWidgets.QWidget):
             layers, interfaces = cfg.layers.get_group_copy(idx, 1)
             if cfg.layers.add_layer_to_shadow(idx, name, surface, dup):                
                 self._history.change_group(layers, interfaces, idx, 1, TopologyOperations.insert)
-                cfg.diagram.regions.add_layer(idx, name)
+                cfg.diagram.regions.add_layer(idx, name, TopologyOperations.insert)
             else:                
                 self._history.change_group(layers, interfaces, idx, 2)
-                cfg.diagram.regions.copy_related(idx, name)
+                cfg.diagram.regions.copy_related(idx, name, TopologyOperations.none)
             self.topologyChanged.emit()
             self.change_size()
     
@@ -389,8 +389,7 @@ class Layers(QtWidgets.QWidget):
         elif layers==0:
             cfg.diagram.regions.delete_data(i)
         else:
-            cfg.diagram.regions.delete_layer(i)    
-            
+            cfg.diagram.regions.delete_layer(i) 
             
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):

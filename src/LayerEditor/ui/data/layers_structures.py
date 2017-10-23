@@ -765,7 +765,6 @@ class Layers():
                     fractures += 1
                     ret +=1
                 if self.interfaces[idx].diagram_id2 is not None:
-                    first = True
                     ret += 1
                 if self.interfaces[idx+1].diagram_id1  is not None:
                     ret += 1                    

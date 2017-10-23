@@ -359,29 +359,6 @@ class Diagram():
 #           for i in range(0, len(diagram.points)):
 #                map[top_id][0][i] = diagram.points[i].id
                 
-    def fix_polygon_map(self, polygon_idx, line_idxs):
-        """Check and fix polygon map for region assignation"""
-        if len(line_idxs)==len(self.polygons[polygon_idx].lines):
-            ok = True
-            for line in self.polygons[polygon_idx].lines:
-                idx = self.lines.index(line)
-                if not idx in line_idxs:
-                    ok = False
-                    break
-            if ok:
-                return
-        for polygon in self.polygons:
-            if len(line_idxs)==len(polygon.lines):
-                ok = True
-                for line in polygon.lines:
-                    idx = self.lines.index(line)
-                    if not idx in line_idxs:
-                        ok = False
-                        break
-                if ok:
-                    Regions.diagram_map[self.topology_idx][2][polygon_idx] = polygon.id
-                    return
-                    
     def get_polygon_lines(self, id):
         """Return polygon lines ndexes"""
         for polygon in self.polygons:
@@ -436,6 +413,8 @@ class Diagram():
         cls.map_id = {}
         for i in range(0, len(diagrams)):        
             cls.map_id[diagrams[i].uid]=i
+        cls.regions.remap_reg_from[id-1] = diagrams[id-1]
+        cls.regions.remap_reg_to[id-1] = diagrams[id]
 
     @classmethod
     def fix_topologies(cls, diagrams):
