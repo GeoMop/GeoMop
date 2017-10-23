@@ -15,6 +15,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import icon
 from ui.dialogs.set_diagram import SetDiagramDlg
+from ui.dialogs.make_mesh import MakeMeshDlg
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -77,6 +78,13 @@ class LayerEditor:
         if shp_file[0]:
             if cfg.open_shape_file( shp_file[0]):
                 self.mainwindow.refresh_diagram_shp()
+
+    def make_mesh(self):
+        """open Make mesh dialog"""
+        self.save_file()
+
+        dlg = MakeMeshDlg(self.mainwindow)
+        dlg.exec()
 
     def open_recent(self, action):
         """open recent file menu action"""

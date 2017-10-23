@@ -50,6 +50,13 @@ class MainFileMenu(QMenu):
 
         self.addSeparator()
 
+        self._make_mesh_action = QAction('Make &mesh ...', self)
+        self._make_mesh_action.setStatusTip('Make mesh')
+        self._make_mesh_action.triggered.connect(self._layer_editor.make_mesh)
+        self.addAction(self._make_mesh_action)
+
+        self.addSeparator()
+
         self._about_action = QAction('About', self)
         self._about_action.triggered.connect(self._on_about_action_clicked)
         self.addAction(self._about_action)
