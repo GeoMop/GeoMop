@@ -2,7 +2,7 @@
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
 from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface
-from .geometry_structures import Region, Polygon, TopologyDim, StratumLayer
+from .geometry_structures import Region, Polygon, RegionDim, StratumLayer
 from .geometry_structures import FractureLayer, ShadowLayer
 
 class GeometryFactory:
@@ -15,10 +15,11 @@ class GeometryFactory:
             self.geometry = geometry
 
     def set_default(self):
-        default_regions = [
-            Region(dict(color="#ffffff", name="NONE_0D", not_used=True, topo_dim=TopologyDim.node)),
-            Region(dict(color="#000000", name="NONE_1D", not_used=True, topo_dim=TopologyDim.segment)),
-            Region(dict(color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=TopologyDim.polygon))
+        default_regions = [                                                                                # Stratum layer
+            Region(dict(color="#ffffff", name="NONE_0D", not_used=True, topo_dim=RegionDim.point)),
+            Region(dict(color="#000000", name="NONE_1D", not_used=True, topo_dim=RegionDim.well)),        # TopologyDim.node
+            Region(dict(color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=RegionDim.fracture)),        # TopologyDim.segment
+            Region(dict(color="#f0f0e8", name="NONE_3D", not_used=True, topo_dim=RegionDim.bulk))         # TopologyDim.polygon
         ]
         for reg in default_regions:
             self.geometry.regions.append(reg)

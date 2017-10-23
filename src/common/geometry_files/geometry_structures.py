@@ -23,6 +23,8 @@ class TopologyType(IntEnum):
 
 
 class RegionDim(IntEnum):
+    invalid = -1
+    point = 0
     well = 1
     fracture = 2
     bulk = 3
@@ -197,7 +199,7 @@ class Region(JsonData):
         """8-bite region color"""
         self.name = ""
         """region name"""
-        self.topo_dim = TopologyDim
+        self.topo_dim = RegionDim
         """dimension (0,1,2) in Stratum layer: well, fracture, bulk"""
         self.boundary = False
         """Is boundary region"""
