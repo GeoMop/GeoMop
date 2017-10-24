@@ -5,9 +5,8 @@ import os
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.append(geomop_src)
 
+import json
 from json_data import *
-
-
 
 
 class LayerType(IntEnum):
@@ -286,4 +285,19 @@ class LayerGeometry(JsonData):
         self.supplement = UserSupplement()
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
+
+
+def read_geometry(file_name):
+    """return LayerGeometry data"""
+    with open(file_name) as f:
+        contents = f.read()
+    obj = json.loads(contents, encoding="utf-8")
+    lg = LayerGeometry(obj)
+    return lg
+
+
+def write_geometry(file_name, lg):
+    """Write LayerGeometry data to file"""
+    with open(file_name, 'w') as f:
+        json.dump(lg.serialize(), f, indent=4, sort_keys=True)
 
