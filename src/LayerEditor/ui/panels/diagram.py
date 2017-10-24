@@ -633,3 +633,5 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Standart key press event"""
         if event.key() == QtCore.Qt.Key_Escape:
             self._remove_last()
+        elif event.key() == QtCore.Qt.Key_Delete:
+            self.delete_selected()

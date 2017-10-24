@@ -9,6 +9,8 @@ from ui import panels
 from leconfig import cfg
 from ui.menus.edit import EditMenu
 from ui.menus.file import MainFileMenu
+from ui.menus.analysis import AnalysisMenu
+from ui.menus.settings import MainSettingsMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -58,11 +60,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._menu = self.menuBar()
         self._edit_menu = EditMenu(self, self.diagramScene)
         self._file_menu = MainFileMenu(self, layer_editor)
+        self._analysis_menu = AnalysisMenu(self, cfg.config)
+        self._settings_menu = MainSettingsMenu(self, layer_editor)
         self.update_recent_files(0)
         
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
-        
+        self._menu.addMenu(self._analysis_menu)
+        self._menu.addMenu(self._settings_menu)
+
         # status bar
         self._column = QtWidgets.QLabel(self)
         self._column.setFrameStyle(QtWidgets.QFrame.StyledPanel)
@@ -73,8 +79,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload_icon_timer = QtCore.QTimer(self)
         self._reload_icon_timer.timeout.connect(lambda: self._reload_icon.setVisible(False))
 
+        self._analysis_label = QtWidgets.QLabel(self)
+        cfg.config.observers.append(self)
+
         self._status = self.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
+        self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
@@ -89,6 +99,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
+
+        # initialize components
+        self.config_changed()
 
     def release_data(self, diagram):
         """Release all diagram graphic object"""
@@ -228,5 +241,7 @@ class MainWindow(QtWidgets.QMainWindow):
             region = cfg.diagram.lines[shape_idx].get_point_region()
         self.regions.select_current_region(region)
             
-        
-        
+    def config_changed(self):
+        """Handle changes of config."""
+        analysis = cfg.config.analysis or '(No Analysis)'
+        self._analysis_label.setText(analysis)

@@ -18,21 +18,25 @@ class MainFileMenu(QMenu):
         self._about_dialog = GMAboutDialog(parent, 'GeoMop LayerEditor')
 
         self._new_file_action = QAction('&New File ...', self)
+        self._new_file_action.setShortcut(cfg.get_shortcut('new_file').key_sequence)
         self._new_file_action.setStatusTip('New layer data file')
         self._new_file_action.triggered.connect(self._layer_editor.new_file)
         self.addAction(self._new_file_action)
 
         self._open_file_action = QAction('&Open File ...', self)
+        self._open_file_action.setShortcut(cfg.get_shortcut('open_file').key_sequence)
         self._open_file_action.setStatusTip('Open layer data file')
         self._open_file_action.triggered.connect(self._layer_editor.open_file)
         self.addAction(self._open_file_action)
         
         self._save_file_action = QAction('&Save File', self)
+        self._save_file_action.setShortcut(cfg.get_shortcut('save_file').key_sequence)
         self._save_file_action.setStatusTip('Save layer data file')
         self._save_file_action.triggered.connect(self._layer_editor.save_file)
         self.addAction(self._save_file_action)
 
         self._save_as_action = QAction('Save &As ...', self)
+        self._save_as_action.setShortcut(cfg.get_shortcut('save_file_as').key_sequence)
         self._save_as_action.setStatusTip('Save layer data file as')
         self._save_as_action.triggered.connect(self._layer_editor.save_as)
         self.addAction(self._save_as_action)
@@ -64,6 +68,7 @@ class MainFileMenu(QMenu):
         self.addSeparator()
 
         self._exit_action = QAction('E&xit', self)
+        self._exit_action.setShortcut(cfg.get_shortcut('exit').key_sequence)
         self._exit_action.setStatusTip('Exit application')
         self._exit_action.triggered.connect(qApp.quit)
         self.addAction(self._exit_action)
