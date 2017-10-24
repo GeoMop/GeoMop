@@ -27,6 +27,9 @@ class LayerEditor:
         
         # load config        
         cfg.init()
+
+        # set default font to layers
+        cfg.layers.font = self._app.font()
         
         if init_dialog:
             init_dlg = SetDiagramDlg()

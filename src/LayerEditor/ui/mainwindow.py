@@ -49,6 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
+        self.diagramView.setMouseTracking(True)
         self._hsplitter.addWidget(self.diagramView) 
         
         self._hsplitter.setSizes([300, 760])
