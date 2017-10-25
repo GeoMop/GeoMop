@@ -13,11 +13,13 @@ class EditMenu(QMenu):
         self.parent = parent
         
         self._undo_action = QAction('&Undo', self)
+        self._undo_action.setShortcut(cfg.get_shortcut('undo').key_sequence)
         self._undo_action.setStatusTip('Revert last operation')
         self._undo_action.triggered.connect(self._undo)
         self.addAction(self._undo_action)
         
         self._redo_action = QAction('&Redo', self)
+        self._redo_action.setShortcut(cfg.get_shortcut('redo').key_sequence)
         self._redo_action.setStatusTip('Put last reverted operation back')
         self._redo_action.triggered.connect(self._redo)
         self.addAction(self._redo_action)        
@@ -44,6 +46,7 @@ class EditMenu(QMenu):
         self.addAction(self._deselect_action)
         
         self._select_action = QAction('&Select All', self)
+        self._select_action.setShortcut(cfg.get_shortcut('select_all').key_sequence)
         self._select_action.setStatusTip('Select all items')
         self._select_action.triggered.connect(self._select)
         self.addAction(self._select_action)
