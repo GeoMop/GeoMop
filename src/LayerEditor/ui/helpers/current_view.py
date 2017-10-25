@@ -52,14 +52,23 @@ class CurrentView():
         
     def set_view(self):
         """Set current view"""   
-        self.diagram_id = self.cfg.diagram_id()
-        """Current diagram id"""
-        old_id =  self.cfg.diagram_id()
+        if self.diagram_id == self.cfg.diagram_id():
+            return
+        """Current diagram id"""        
         self.cfg.diagrams[self.diagram_id].zoom = self.diagram_zoom
         self.cfg.diagrams[self.diagram_id].x = self.diagram_pos_x
-        self.cfg.diagrams[self.diagram_id].y = self.diagram_pos_y
-        self.cfg.layers.set_edited_diagram(self.diagram_id)
-        self.cfg.set_curr_diagram(self.diagram_id)
-        self.cfg.main_window.layers.update()
-        self.cfg.main_window.refresh_curr_data(old_id, self.diagram_id)
+        self.cfg.diagrams[self.diagram_id].y = self.diagram_pos_y  
+        self.set_view_id(id, self.cfg)
+       
+    @staticmethod
+    def set_view_id(id, cfg):
+        """Set id view"""
+        old_id =  cfg.diagram_id()
+        cfg.layers.set_edited_diagram(id)        
+        cfg.set_curr_diagram(id)
+        cfg.main_window.layers.update()
+        cfg.main_window.set_topology()
+        cfg.main_window.refresh_curr_data(old_id, id)
+        
+        
         

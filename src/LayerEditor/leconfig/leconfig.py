@@ -202,6 +202,8 @@ class LEConfig:
     @classmethod
     def diagram_id(cls):
         """Return current diagram id"""
+        if not cls.diagram in cls.diagrams:
+            return None
         return cls.diagrams.index(cls.diagram)
     
     @classmethod

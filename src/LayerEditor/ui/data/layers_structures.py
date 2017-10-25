@@ -695,19 +695,27 @@ class Layers():
             self.interfaces[idx].diagram_id1=self.interfaces[idx+1].diagram_id1
             count_res = self._add_shadow(idx)
             return [self.interfaces[idx].diagram_id1+1], count_res
-        count_res = self._add_shadow(idx)
-        if removed_res[0]==0:
-            return [], count_res
+        diagrams = []
         if removed_res[0]==1:
             self._move_diagram_idx(idx, -1)
             if self.interfaces[idx+1].diagram_id1 is not None:
-                return [self.interfaces[idx+1].diagram_id1], count_res
+                diagrams.append(self.interfaces[idx+1].diagram_id1)
             else:
-                return [self.interfaces[idx].diagram_id1], count_res
+                if self.interfaces[idx].diagram_id2 is not None:
+                    diagrams.append(self.interfaces[idx].diagram_id2)
+                else:
+                    diagrams.append(self.interfaces[idx].diagram_id1)
         if removed_res[0]==2:
-            self._move_diagram_idx(idx, -2)
-            return [self.interfaces[idx+1].diagram_id1, self.interfaces[idx].diagram_id1], count_res
-        raise Exception("Invalid remove layer {0} operation".format(str(idx)))
+            diagrams.append(self.interfaces[idx+1].diagram_id1)
+            if self.interfaces[idx].diagram_id2 is not None:
+                diagrams.append(self.interfaces[idx].diagram_id2)
+            else:
+                diagrams.append(self.interfaces[idx].diagram_id1)            
+        if removed_res[0]>2:
+            raise Exception("Invalid remove layer {0} operation".format(str(idx)))
+        count_res = self._add_shadow(idx)
+        return diagrams, count_res
+        
         
     def remove_interface(self, idx, removed_res):
         """Remove interface and merge layers. Variable removed_res is one, that is

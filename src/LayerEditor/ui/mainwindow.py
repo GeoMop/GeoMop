@@ -99,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
-        self.update_panel()
+        self.update_layers_panel()
         self.display_all()
 
     def paint_new_data(self):
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.removeItem(obj)
         del cfg.diagram.shp.datas[idx_item]
         
-    def update_panel(self):
+    def update_layers_panel(self):
         """Update layers panel"""
         self.layers.change_size()
         

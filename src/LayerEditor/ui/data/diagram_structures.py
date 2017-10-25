@@ -413,8 +413,8 @@ class Diagram():
         cls.map_id = {}
         for i in range(0, len(diagrams)):        
             cls.map_id[diagrams[i].uid]=i
-        cls.regions.remap_reg_from[id-1] = diagrams[id-1]
-        cls.regions.remap_reg_to[id-1] = diagrams[id]
+        cls.regions.remap_reg_from = diagrams[id-1]
+        cls.regions.remap_reg_to = diagrams[id]
 
     @classmethod
     def fix_topologies(cls, diagrams):

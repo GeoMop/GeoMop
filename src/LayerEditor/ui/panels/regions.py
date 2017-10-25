@@ -26,23 +26,25 @@ class Regions(QtWidgets.QToolBox):
         """Last edited layer in topology (topology_id:layer_name)"""        
         self.last_region = {}
         """Last edited region in topology (layer_name:region_name)"""
+        self.removing_items = False
+        """Items is during removing"""
         self._show_layers()        
         self.currentChanged.connect(self._layer_changed)
         
     def release_all(self):
         """Remove all items"""
+        self.removing_items = True
         for i in range(self.count()-1, -1, -1):
             widget = self.widget(i)
             self.removeItem(i)            
-            widget.setParent(None)            
+            widget.setParent(None)
+        self.removing_items = False
     
     def set_topology(self, top_idx):
         """Set current topology, and refresh layer view"""
         self.release_all()
         self.topology_idx = top_idx
         self._show_layers()
-        data = cfg.diagram.regions
-        data.current_layer_id
         
     def select_current_regions(self, regions):
         """Select current regions in topology"""
@@ -297,9 +299,13 @@ class Regions(QtWidgets.QToolBox):
         
     def _layer_changed(self):
         """Next layer tab is selected"""
+        if self.removing_items:
+            return
         data = cfg.diagram.regions
         index = self.currentIndex()
         layer_id = self.layers_id[index]
+        if layer_id == -1:
+           return 
         data.current_layer_id = layer_id
         self.last_layer[self.topology_idx] = index
         cfg.diagram.layer_region_changed()

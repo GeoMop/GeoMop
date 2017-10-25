@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMenu, QAction
+from ui.helpers import CurrentView
 from leconfig import cfg
 
 class EditMenu(QMenu):
@@ -59,14 +60,16 @@ class EditMenu(QMenu):
                     self._diagram.update_changes(
                         ops["added_points"], ops["removed_points"], 
                         ops["moved_points"], ops["added_lines"], ops["removed_lines"])
-                elif ops["type"]=="Layers":                    
-                    if ops["check_viewed"]: 
-                        cfg.main_window.diagramScene.update_views()
+                elif ops["type"]=="Layers":  
                     if ops["edit_first"]: 
-                        cfg.layer.set_edited_diagram(0)
-                        cfg.set_curr_diagram(0)               
+                        CurrentView.set_view_id(0, cfg)
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()                                
                     if ops["refresh_panel"]: 
-                        cfg.main_window.update_panel()
+                        cfg.main_window.update_layers_panel()
+                elif ops["type"]=="Regions":  
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.set_topology()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()
@@ -88,17 +91,16 @@ class EditMenu(QMenu):
                     self._diagram.update_changes(
                         ops["added_points"], ops["removed_points"], 
                         ops["moved_points"], ops["added_lines"], ops["removed_lines"])
-                elif ops["type"]=="Layers":                    
-                    if ops["check_viewed"]: 
-                        cfg.main_window.diagramScene.update_views()
+                elif ops["type"]=="Layers":
                     if ops["edit_first"]: 
-                        cfg.layer.set_edited_diagram(0)
-                        cfg.set_curr_diagram(0)               
+                        CurrentView.set_view_id(0, cfg)                        
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()                                   
                     if ops["refresh_panel"]: 
-                        cfg.main_window.update_panel()
+                        cfg.main_window.update_layers_panel()
                 elif ops["type"]=="Regions": 
                     if ops["refresh_panel"]: 
-                        cfg.main_window.set_region(view.tab_id, view.region_id)
+                        cfg.main_window.set_topology()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()
