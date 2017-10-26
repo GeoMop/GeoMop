@@ -758,7 +758,7 @@ class RegionHistory(History):
     def __init__(self, global_history): 
         super(RegionHistory, self).__init__(global_history) 
         self._refresh_panel = False
-        """Refresh region panel"""      
+        """Refresh region panel"""
         
     def add_layer(self, id, name, insert, label=None):
         """
@@ -917,16 +917,16 @@ class RegionHistory(History):
         revert =  HistoryStep(self._load_data, [id, r0D, r1D, r2D, lines_idxs])        
         return revert
 
-    def change_data(self, diagram_from, diagram_to, id, r0D, r1D, r2D, label=None):
+    def change_data(self, diagram_to, id, r0D, r1D, r2D, label=None):
         """
         Add change layer data operation. 
         """
         self.global_history.add_label(self.id, label)
         lines_idxs = {}
         diagram_id = self.global_history.cfg.diagrams.index(diagram_to)
-        for shape_id in r2D:
+        for shape_id in self.global_history.cfg.diagram.regions.layer_region_2D[id]:
             line_idxs = []
-            line_idxs = diagram_from.get_polygon_lines(shape_id)
+            line_idxs = diagram_to.get_polygon_lines(shape_id)
             lines_idxs[shape_id] = line_idxs
         self.steps.append(HistoryStep(self._change_data, [diagram_id, id, r0D, r1D, r2D, lines_idxs, False],label))
         
@@ -966,7 +966,7 @@ class RegionHistory(History):
         
     def load_data(self, id, r0D, r1D, r2D, label=None):
         """
-        Add save layer data operation. 
+        Add load layer data operation. 
         """
         self.global_history.add_label(self.id, label)
         lines_idxs = {}
@@ -978,7 +978,7 @@ class RegionHistory(History):
         
     def _load_data(self, id, r0D, r1D, r2D, lines_idxs):
         """
-        Save layer data
+        Load saved layer data
         
         Return invert operation
         """
@@ -1043,7 +1043,8 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.insert_region(id, region, False)
-        revert =  HistoryStep(self._delete_region, [id])        
+        revert =  HistoryStep(self._delete_region, [id]) 
+        self._refresh_panel = True
         return revert
 
     def delete_region(self, id, label=None):
@@ -1060,6 +1061,7 @@ class RegionHistory(History):
         Return invert operation
         """        
         region = self.global_history.cfg.diagram.regions.delete_region(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._insert_region, [id, region])        
         return revert
         
@@ -1114,11 +1116,28 @@ class RegionHistory(History):
             del layer_region[layer_id][shape_id]
         else:
             layer_region[layer_id][shape_id] = region_id
+            self._update_shape_region(dim, shape_id)
         revert =  HistoryStep(self._change_shape_region, [shape_id, layer_id, dim, old_region_id, line_idxs])        
         return revert
         
+    def _update_shape_region(self, dim, shape_idx):
+        """If id region is in current diagram update it"""
+        shape = None
+        if dim==2:
+            shape = self.global_history.cfg.diagram.get_polygon_by_id(shape_idx)
+            if shape is not None and shape.object is not None:
+                shape.object.update_color()
+            return
+        elif dim==1:
+            shape = self.global_history.cfg.diagram.get_line_by_id(shape_idx)
+        elif dim==0:
+            shape = self.global_history.cfg.diagram.get_point_by_id(shape_idx)
+        if shape is not None:
+            shape.object.update()
+            
     def return_op(self):
         """return nedded check """
         ret = {"type":"Regions", "refresh_panel":self._refresh_panel}
         self._refresh_panel = False
+        self.updated_shapes={}
         return ret

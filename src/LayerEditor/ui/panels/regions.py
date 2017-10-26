@@ -28,6 +28,8 @@ class Regions(QtWidgets.QToolBox):
         """Last edited region in topology (layer_name:region_name)"""
         self.removing_items = False
         """Items is during removing"""
+        self.update_region_data = False
+        """Region data are during updating"""
         self._show_layers()        
         self.currentChanged.connect(self._layer_changed)
         
@@ -198,11 +200,13 @@ class Regions(QtWidgets.QToolBox):
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
         icon = QtGui.QIcon(pixmap)
+        self.update_region_data = True
         self.color_button[layer_id].setIcon(icon)
         self.boundary[layer_id].setChecked(region.boundary) 
         self.boundary[layer_id].setEnabled(not read_only)
         self.notused[layer_id].setChecked(region.not_used)
         self.notused[layer_id].setEnabled(not read_only)
+        self.update_region_data = False
         
     def _add_disply_region(self, region):
         """Add new region to all combo and display it"""
@@ -229,6 +233,8 @@ class Regions(QtWidgets.QToolBox):
             
     def _name_set(self, layer_id):
         """Name is changed"""
+        if self.update_region_data:
+            return
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]        
@@ -256,6 +262,8 @@ class Regions(QtWidgets.QToolBox):
             
     def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
+        if self.update_region_data:
+            return
         region_id = self.regions[layer_id].currentData()
         region = cfg.diagram.regions.regions[region_id]
         color_dia = QtWidgets.QColorDialog(QtGui.QColor(region.color))
@@ -275,7 +283,7 @@ class Regions(QtWidgets.QToolBox):
             cfg.diagram.region_color_changed(region_id)
         
     def _region_set(self, layer_id):
-        """Region in combo box was changed"""
+        """Region in combo box was changed"""        
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]
@@ -285,6 +293,8 @@ class Regions(QtWidgets.QToolBox):
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""
+        if self.update_region_data:
+            return
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         data.set_region_not_used(region_id, self.notused[layer_id].isChecked(), 
@@ -292,6 +302,8 @@ class Regions(QtWidgets.QToolBox):
 
     def _boundary_set(self, layer_id):
         """Region boundary property is changed"""
+        if self.update_region_data:
+            False
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         data.set_region_boundary(region_id, self.boundary[layer_id].isChecked(), 
@@ -315,8 +327,3 @@ class Regions(QtWidgets.QToolBox):
         index = self.currentIndex()
         layer_id = self.layers_id[index]
         return self.regions[layer_id].currentData()
-        
-    def set_region(self, tab_index, region_id):
-        """Slowly set region and display history changes"""
-        # TODO:
-        pass
