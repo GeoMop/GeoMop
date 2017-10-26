@@ -16,10 +16,10 @@ class GeometryFactory:
 
     def set_default(self):
         default_regions = [                                                                                # Stratum layer
-            Region(dict(color="#ffffff", name="NONE_0D", not_used=True, topo_dim=RegionDim.point)),
-            Region(dict(color="#000000", name="NONE_1D", not_used=True, topo_dim=RegionDim.well)),        # TopologyDim.node
-            Region(dict(color="#f0f0e8", name="NONE_2D", not_used=True, topo_dim=RegionDim.fracture)),        # TopologyDim.segment
-            Region(dict(color="#f0f0e8", name="NONE_3D", not_used=True, topo_dim=RegionDim.bulk))         # TopologyDim.polygon
+            Region(dict(color="#ffffff", name="NONE_0D", not_used=True, dim=RegionDim.point)),
+            Region(dict(color="#000000", name="NONE_1D", not_used=True, dim=RegionDim.well)),        # TopologyDim.node
+            Region(dict(color="#f0f0e8", name="NONE_2D", not_used=True, dim=RegionDim.fracture)),        # TopologyDim.segment
+            Region(dict(color="#f0f0e8", name="NONE_3D", not_used=True, dim=RegionDim.bulk))         # TopologyDim.polygon
         ]
         for reg in default_regions:
             self.geometry.regions.append(reg)
@@ -35,7 +35,7 @@ class GeometryFactory:
         
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
-        region = Region(dict(color=color, name=name, topo_dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
+        region = Region(dict(color=color, name=name, dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
 
     def get_topology(self, node_set_idx):

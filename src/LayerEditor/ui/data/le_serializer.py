@@ -56,7 +56,7 @@ class LESerializer():
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
         for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.topo_dim, region.mesh_step,
+            Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_id
@@ -84,9 +84,9 @@ class LESerializer():
                 continue
             layer_id += 1
             # add interface
-            surface_ = gf.geometry.surfaces[layer.top.surface_id]
-            surface = Surface(surface_.depth, surface_.transform_xy, 
-                surface_.transform_z, surface_.grid_file)
+            surface = gf.geometry.surfaces[layer.top.surface_id]
+            #surface = Surface(surface_.depth, surface_.transform_xy,
+            #    surface_.transform_z, surface_.grid_file)
             if last_stratum is None:
                 # first surface
                 name = None

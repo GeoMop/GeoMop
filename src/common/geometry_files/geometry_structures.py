@@ -103,7 +103,7 @@ class Polygon(JsonData):
     def __init__(self, config={}):
         self.segment_ids = [ int ]
         """List of segments index of the outer wire."""
-        self.holes = [ [int] ]
+        self.holes = []
         """List of lists of segments of hole's wires"""
         self.free_points = [ int ]
         """List of free points in polygon."""
@@ -198,8 +198,10 @@ class Region(JsonData):
         """8-bite region color"""
         self.name = ""
         """region name"""
-        self.topo_dim = RegionDim
-        """dimension (0,1,2) in Stratum layer: well, fracture, bulk"""
+        self.dim = RegionDim.invalid
+        """ Real dimension of the region. (0,1,2,3)"""
+        self.topo_dim = TopologyDim.invalid
+        """For backward compatibility. Dimension (0,1,2) in Stratum layer: node, segment, polygon"""
         self.boundary = False
         """Is boundary region"""
         self.not_used = False
@@ -209,6 +211,18 @@ class Region(JsonData):
         self.brep_shape_ids = [ ]
         """List of shape indexes - in BREP geometry """
         super().__init__(config)
+
+    def fix_dim(self, extruded):
+
+        if self.topo_dim != TopologyDim.invalid:
+            # old format
+            if self.dim == RegionDim.invalid:
+                self.dim = RegionDim(self.topo_dim + extruded)
+            if self.not_used:
+                return
+            assert self.dim.value == self.topo_dim + extruded, "Region {} , dimension mismatch."
+        assert self.dim != RegionDim.invalid
+
 
 class GeoLayer(JsonData):
     """Geological layers"""
@@ -228,6 +242,12 @@ class GeoLayer(JsonData):
         super().__init__(config)
         self.layer_type = LayerType.shadow
 
+    def fix_region_dim(self, regions):
+        extruded = (self.layer_type == LayerType.stratum)
+        for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
+            for reg_idx in  reg_list:
+                reg = regions[reg_idx]
+                reg.fix_dim(extruded)
 
 
 
@@ -250,7 +270,6 @@ class StratumLayer(GeoLayer):
         self.layer_type = LayerType.stratum
         self.top_type = self.top.interface_type
         self.bottom_type = self.bottom.interface_type
-
 
 class ShadowLayer(GeoLayer):
     def __init__(self, config={}):
@@ -286,6 +305,8 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
+        for layer in self.layers:
+            layer.fix_region_dim(self.regions)
 
 def read_geometry(file_name):
     """return LayerGeometry data"""
