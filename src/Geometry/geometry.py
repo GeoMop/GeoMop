@@ -988,11 +988,9 @@ if __name__ == "__main__":
     parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
     args = parser.parse_args()
 
-    from geometry_files.geometry import GeometrySer
     layers_file = args.layers_file
     filename_base = os.path.splitext(layers_file)[0]
-    geom_serializer = GeometrySer(layers_file)
-    gs_lg = geom_serializer.read()
+    gs_lg = gs.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
     lg.filename_base = filename_base
 
