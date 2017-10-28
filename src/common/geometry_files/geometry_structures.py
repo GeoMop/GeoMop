@@ -245,7 +245,7 @@ class GeoLayer(JsonData):
     def fix_region_dim(self, regions):
         extruded = (self.layer_type == LayerType.stratum)
         for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
-            for reg_idx in  reg_list:
+            for reg_idx in reg_list:
                 reg = regions[reg_idx]
                 reg.fix_dim(extruded)
 
@@ -289,6 +289,8 @@ class UserSupplement(JsonData):
 class LayerGeometry(JsonData):
 
     def __init__(self, config={}):
+        self.version = [0,4,0]
+        """Version of the file format."""
         self.regions = [ ClassFactory(Region) ]
         """List of regions"""
         self.layers = [ ClassFactory( [StratumLayer, FractureLayer] ) ]
@@ -305,8 +307,17 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
-        for layer in self.layers:
-            layer.fix_region_dim(self.regions)
+        if self.version < [0, 5, 0]:
+            # 0.4.0 to 0.5.0 conversion
+            for layer in self.layers:
+                # add None region for outer polygon, always with index 0
+                assert self.regions[2].not_used
+                layer.polygon_region_ids.insert(0, 2)
+                layer.fix_region_dim(self.regions)
+            # conversion of decomposistions is done when decompositions are reconstructed
+
+            self.version = [0, 5, 0]
+
 
 def read_geometry(file_name):
     """return LayerGeometry data"""

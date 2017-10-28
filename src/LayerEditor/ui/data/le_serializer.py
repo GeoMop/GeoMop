@@ -41,6 +41,7 @@ class LESerializer():
 
     def load(self, cfg, path):
         geometry =  gs.read_geometry(path)
+        assert geometry.version == [0, 5, 0]
         self.geometry_to_cfg(geometry, cfg)
 
     def geometry_to_cfg(self, geometry, cfg):

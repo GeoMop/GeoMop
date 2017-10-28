@@ -98,6 +98,11 @@ class PolygonDecomposition:
                 stream += str(obj) + "\n"
         return stream
 
+    def __eq__(self, other):
+        return len(self.points) == len(other.points) \
+            and len(self.segments) == len(other.segments) \
+            and len(self.polygons) == len(other.polygons)
+
 
     ##################################################################
     # Interface for LayerEditor.
@@ -558,11 +563,15 @@ class PolygonDecomposition:
     def check_consistency(self):
         #print(self)
         for p in self.polygons.values():
+            #print(p)
+            #print(p.free_points)
             assert p.outer_wire.id in self.wires
             assert p.outer_wire.polygon == p
             for pt in p.free_points:
-                assert pt.polygon.id in self.polygons
-                assert pt.polygon == p
+                #print(pt)
+                #print(pt.polygon)
+                assert pt.poly.id in self.polygons
+                assert pt.poly == p
                 assert pt.segment == (None, None)
 
         for w in self.wires.values():
@@ -593,8 +602,8 @@ class PolygonDecomposition:
 
         for pt in self.points.values():
             if pt.is_free():
-                assert pt.polygon.id in self.polygons
-                assert pt in pt.polygon.free_points
+                assert pt.poly.id in self.polygons
+                assert pt in pt.poly.free_points
             else:
                 seg, side = pt.segment
                 assert seg.id in self.segments

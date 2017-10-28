@@ -11,6 +11,7 @@ class GeometryFactory:
     def __init__(self, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
+            self.geometry.version = [0, 5, 0]
         else:
             self.geometry = geometry
 

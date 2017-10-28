@@ -83,12 +83,17 @@ def deserialize(nodes, topology):
 
 
 def reconstruction_from_old_input(decomp, topology):
+    # Set points free
+    for pt in decomp.points.values():
+        pt.set_polygon(decomp.outer_polygon)
+
     for id, seg in enumerate(topology.segments):
-        vtxs_ids = seg.node_ids
-        s = decomp.new_segment(vtxs_ids[0], vtxs_ids[1])
+        vtxs = [decomp.points[pt_id] for pt_id in seg.node_ids]
+        s = decomp.new_segment(vtxs[0], vtxs[1])
         s.index = id
         assert s.id == id
 
+    decomp.outer_polygon.index  = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []
@@ -100,6 +105,6 @@ def reconstruction_from_old_input(decomp, topology):
                 candidates.append(p)
 
         assert len(candidates) == 1
-        candidates[0].index = id
-
+        candidates[0].index = id + 1
+    decomp.check_consistency()
     return decomp
