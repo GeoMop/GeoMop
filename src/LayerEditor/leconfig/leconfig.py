@@ -5,8 +5,11 @@
 
 import logging
 import os
+from copy import deepcopy
 import config as cfg
+from helpers import keyboard_shortcuts as shortcuts
 from geomop_util.logging import LOGGER_PREFIX
+from geomop_util import Serializable
 from geomop_dialogs import GMErrorDialog
 from geomop_analysis import Analysis, InvalidAnalysis
 import ui.data
@@ -15,6 +18,10 @@ from ui.helpers import CurrentView
 
 class _Config:
     """Class for Analyzis serialization"""
+
+    __serializable__ = Serializable(
+        excluded=['observers']
+    )
 
     DEBUG_MODE = False
     """debug mode changes the behaviour"""
@@ -36,6 +43,8 @@ class _Config:
             return kwargs[key] if key in kwargs else default
 
         from os.path import expanduser
+        self.observers = []
+        """objects to be notified of changes"""
         self._analysis = None
         self._workspace = None
 
@@ -47,7 +56,11 @@ class _Config:
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
- 
+
+        self.shortcuts = kw_or_def('shortcuts',
+                                   deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+        """user customizable keyboard shortcuts"""
+
     def save(self):
         """Save config data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
@@ -143,7 +156,12 @@ class _Config:
                 Analysis.current = analysis
         self.notify_all()
     
-        
+    def notify_all(self):
+        """Notify all observers about changes."""
+        for observer in self.observers:
+            observer.config_changed()
+
+
 class LEConfig:
     """Static data class"""
     config = _Config.open()
@@ -202,6 +220,8 @@ class LEConfig:
     @classmethod
     def diagram_id(cls):
         """Return current diagram id"""
+        if not cls.diagram in cls.diagrams:
+            return None
         return cls.diagrams.index(cls.diagram)
     
     @classmethod
@@ -375,4 +395,19 @@ class LEConfig:
                 raise err
         return False
 
-        
+    @classmethod
+    def get_shortcut(cls, name):
+        """Locate a keyboard shortcut by its action name.
+
+        :param str name: name of the shortcut
+        :return: the assigned shortcut
+        :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
+        """
+        shortcut = None
+        if name in shortcuts.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        elif name in cls.config.shortcuts:
+            shortcut = cls.config.shortcuts[name]
+        if shortcut:
+            return shortcuts.get_shortcut(shortcut)
+        return None

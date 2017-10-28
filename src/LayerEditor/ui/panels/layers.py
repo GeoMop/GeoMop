@@ -245,15 +245,15 @@ class Layers(QtWidgets.QWidget):
             name = dlg.layer_name.text()
             surface = dlg.fill_surface(Surface(0.0))
             dup = cfg.layers.get_diagram_dup_before(idx)            
-            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, "Add layer to shadow")
+            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
             layers, interfaces = cfg.layers.get_group_copy(idx, 1)
             if cfg.layers.add_layer_to_shadow(idx, name, surface, dup):                
                 self._history.change_group(layers, interfaces, idx, 1, TopologyOperations.insert)
-                cfg.diagram.regions.add_layer(idx, name)
+                cfg.diagram.regions.add_layer(idx, name, TopologyOperations.insert)
             else:                
                 self._history.change_group(layers, interfaces, idx, 2)
-                cfg.diagram.regions.copy_related(idx, name)
+                cfg.diagram.regions.copy_related(idx, name, TopologyOperations.none)
             self.topologyChanged.emit()
             self.change_size()
     
@@ -318,8 +318,8 @@ class Layers(QtWidgets.QWidget):
                 if split_type is LayerSplitType.split:
                     dup.count = 2
                     oper = TopologyOperations.insert_next
-                cfg.insert_diagrams_copies(dup, oper)
                 self._history.delete_diagrams(dup.insert_id, dup.count, oper, label)
+                cfg.insert_diagrams_copies(dup, oper)                
                 label = None
             layers, interfaces = cfg.layers.get_group_copy(i, 1)    
             cfg.layers.split_layer(i, name, surface, split_type, dup)            
@@ -389,8 +389,7 @@ class Layers(QtWidgets.QWidget):
         elif layers==0:
             cfg.diagram.regions.delete_data(i)
         else:
-            cfg.diagram.regions.delete_layer(i)    
-            
+            cfg.diagram.regions.delete_layer(i) 
             
         for diagram in diagrams:
             if cfg.remove_and_save_diagram(diagram):
@@ -444,8 +443,8 @@ class Layers(QtWidgets.QWidget):
                 position = dlg.fracture_position.currentData()
             if position is FractureInterface.own:
                 dup = cfg.layers.get_diagram_dup(i)
-                cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
                 self._history.delete_diagrams(dup.insert_id, 1, TopologyOperations.insert, label)
+                cfg.insert_diagrams_copies(dup, TopologyOperations.insert)                
                 label = None
             cfg.layers.add_fracture(i, name, position, dup)            
             self._history.delete_fracture(i, position, label)
@@ -467,9 +466,9 @@ class Layers(QtWidgets.QWidget):
             if ret!=QtWidgets.QMessageBox.Ok:                
                 return
         if type is ChangeInterfaceActions.split:
-            dup = cfg.layers.get_diagram_dup(i)            
-            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)
-            self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, label)
+            dup = cfg.layers.get_diagram_dup(i)
+            self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.insert, label)            
+            cfg.insert_diagrams_copies(dup, TopologyOperations.insert)            
             label = None
             cfg.diagram.regions.move_topology(i)
             cfg.layers.split_interface(i, dup)
@@ -484,14 +483,14 @@ class Layers(QtWidgets.QWidget):
                 label = None
         elif ChangeInterfaceActions.top_editable:
             dup = cfg.layers.get_diagram_dup(i-1)
-            cfg.insert_diagrams_copies(dup, TopologyOperations.none)
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.none, label)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.none)           
             label = None
             cfg.layers.change_to_editable(i,type, dup)
         else: 
             dup = cfg.layers.get_diagram_dup(i)
-            cfg.insert_diagrams_copies(dup, TopologyOperations.none)
             self._history.delete_diagrams(dup.insert_id, dup.count, TopologyOperations.none, label)
+            cfg.insert_diagrams_copies(dup, TopologyOperations.none)            
             label = None
             cfg.layers.change_to_editable(i,type, dup)
         self._history.change_interface(old_interface, i, label)

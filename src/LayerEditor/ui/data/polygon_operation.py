@@ -50,8 +50,8 @@ class PolygonOperation():
         if len(points)<1:
             return True
         p0 =  self.decomposition.points[diagram.points.index(points[0])]
-        dx = points[0].x - p0.xy[0]
-        dy = points[0].y - p0.xy[1]
+        dx = points[0].x-p0.xy[0]
+        dy = -points[0].y-p0.xy[1]
         displacement = np.array([dx, dy])
         spoints = []
         for point in points:
@@ -61,7 +61,7 @@ class PolygonOperation():
             ret = False
             for point in points:
                 point.x += new_displ[0]-displacement[0]
-                point.y += new_displ[1]-displacement[1]
+                point.y -= new_displ[1]-displacement[1]
         self.decomposition.move_points(spoints, new_displ)
         res = self.decomposition.get_last_polygon_changes()
         if res[0]==PolygonChange.shape:

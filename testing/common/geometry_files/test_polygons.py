@@ -43,11 +43,11 @@ class TestPoint:
         # close polygon
         sg3 = decomp.new_segment(pt3, pt2)
         print(decomp)
-        assert sg3.wire[right_side] == decomp.wires[2]
-        assert sg3.wire[left_side] == decomp.wires[3]
-        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), decomp.wires[2])
-        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), decomp.wires[3])
-        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), decomp.wires[2])
+        assert sg3.wire[right_side] == decomp.wires[1]
+        assert sg3.wire[left_side] == decomp.wires[2]
+        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
+        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), decomp.wires[2])
+        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
 
 
 class TestSegment:
@@ -103,9 +103,9 @@ class TestPolygon:
         sg_g, = decomp.add_line((1, 1), (0.5, 1))
         sg_h, = decomp.add_line((0.5, 1), (0.5, 0.5))
 
-        assert decomp.polygons[1].depth() == 0
-        assert decomp.polygons[2].depth() == 2
-        assert decomp.polygons[3].depth() == 4
+        assert decomp.polygons[0].depth() == 0
+        assert decomp.polygons[1].depth() == 2
+        assert decomp.polygons[2].depth() == 4
 
 class TestDecomposition:
 
@@ -237,7 +237,7 @@ class TestDecomposition:
 
         # test new_segment - split polygon
         decomp.add_line( (-0.5, 1), (0.5, 0))
-        assert decomp.get_last_polygon_changes() == (PolygonChange.add, outer.id, 2)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.add, outer.id, 1)
 
         # test split_segment in vertex
         decomp.add_line( (2,0.5), (2,-0.5))
@@ -275,7 +275,7 @@ class TestDecomposition:
 
         #test split_segment connected on both sides; split non outer polygon
         seg_y, = decomp.add_line( (0,0.25), (0.25, 0.25))
-        assert decomp.get_last_polygon_changes() == (PolygonChange.split, 2, 3)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.split, 1, 2)
 
         # test _join_segments - _split_segment inversion
         seg1 = sg_e
@@ -289,7 +289,7 @@ class TestDecomposition:
 
         # test join polygons
         decomp.delete_segment(seg_y)
-        assert decomp.get_last_polygon_changes() == (PolygonChange.join, 2, 3)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.join, 1, 2)
 
         # test add_free_point
         decomp.add_free_point(100, (3.0, 0.3), decomp.outer_polygon.id)
@@ -393,6 +393,21 @@ class TestDecomposition:
         assert len(wire4.childs) == 0
 
 
+    def test_seg_add_remove(self):
+        decomp = PolygonDecomposition()
+        decomp.add_line((0, 1), (0,0))
+        decomp.add_line((0, 0), (1, 0))
+        seg_c, = decomp.add_line((1, 0), (0, 1))
+
+        decomp.add_line((1, 0), (2, 0))
+        decomp.add_line((2, 0), (2, 1))
+        decomp.add_line((1, 0), (2, 1) )
+        #self.plot_polygons(decomp)
+        assert len(decomp.outer_polygon.outer_wire.childs) == 1
+        assert len(decomp.outer_polygon.outer_wire.childs.pop().childs) == 2
+
+        decomp.delete_segment(seg_c)
+        self.plot_polygons(decomp)
 
     def test_split_poly_1(self):
         # Test splitting of points and holes.
@@ -424,8 +439,8 @@ class TestDecomposition:
         sg2, = decomp.add_line((0, 2), (2, 0))
         decomp.make_indices()
         assert sg2.index == 2
-        assert decomp.polygons[1].index == 0
-        assert decomp.polygons[2].index == 1
+        assert decomp.polygons[0].index == 0
+        assert decomp.polygons[1].index == 1
 
     def test_check_displacement(self):
         decomp = PolygonDecomposition()
@@ -440,13 +455,13 @@ class TestDecomposition:
 
         step = decomp.check_displacment([pt0, pt], (1.0, 1.0), 0.1)
         assert la.norm( step - np.array([0.45, 0.45]) ) < 1e-6
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [1,2,3,4], None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [0,1,2,3], None)
 
         decomp.move_points([pt], step)
         assert la.norm( pt.xy - np.array([0.95, 0.95]) ) < 1e-6
 
         step = decomp.check_displacment([pt], (1.0, 1.0), 0.1)
-        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [2,3,4], None)
+        assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [1,2,3], None)
 
 
     def test_join_segments(self):
@@ -495,8 +510,8 @@ class TestDecomposition:
         decomp.add_line((1, 1), (1, 2))
         decomp.add_line((1, 2), (2, 1))
         #self.plot_polygons(decomp)
-        lst = list(decomp.get_childs(1))
-        assert lst == [1,2,3]
+        lst = list(decomp.get_childs(0))
+        assert lst == [0,1,2]
 
         decomp.add_line((1, 1), (0, 0))
         decomp.add_line((2, 1), (4, 0))
@@ -513,7 +528,7 @@ class TestDecomposition:
        decomp.new_segment(pt0, pt2)
        decomp.new_segment(pt1, pt2)
        # print(decomp)
-       pt3 = decomp.add_free_point(4, (75.7, -35), 1 )
+       pt3 = decomp.add_free_point(4, (75.7, -35), 0 )
        decomp.new_segment(pt2, pt3)
        #self.plot_polygons(decomp)
 

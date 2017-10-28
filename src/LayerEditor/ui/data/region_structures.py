@@ -66,7 +66,11 @@ class Regions():
         """Id of selected topology in region panel"""
         self.current_regions = {}
         """Map all layers in current topology, and its regions"""
-        
+        self.remap_reg_from = None
+        """If this variable is set, remap in move topology shapes id from set diagram"""
+        self.remap_reg_to = None
+        """If this variable is set, remap in move topology shapes id to values in set diagram"""
+
     # region panels functions
     
     def set_default_region(self, dim, shape_id, topology_id, to_history=False, label=None):
@@ -382,12 +386,37 @@ class Regions():
                             self.layers_topology[i-del_row].append(layer_id)
         return del_row
         
+    def remap_region_shapes(self, top_id, to_history=True):
+        """Remap all shapes id in set topology to new diagram"""
+        for id in self.layers_topology[top_id]:
+            new_reg = {}
+            for i in range(0, len(self.remap_reg_from.points)):
+                new_reg[self.remap_reg_to.points[i].id] = self.layer_region_0D[id][self.remap_reg_from.points[i].id]
+            r0D = self.layer_region_0D[id]    
+            self.layer_region_0D[id] = new_reg
+            new_reg = {}
+            for i in range(0, len(self.remap_reg_from.lines)):
+                new_reg[self.remap_reg_to.lines[i].id] = self.layer_region_1D[id][self.remap_reg_from.lines[i].id]
+            r1D = self.layer_region_1D[id]    
+            self.layer_region_1D[id] = new_reg
+            new_reg = {}
+            for i in range(0, len(self.remap_reg_from.polygons)):
+                new_reg[self.remap_reg_to.polygons[i].id] = self.layer_region_2D[id][self.remap_reg_from.polygons[i].id]
+            r2D = self.layer_region_2D[id]    
+            self.layer_region_2D[id] = new_reg
+            if to_history:
+                self._history.change_data(self.remap_reg_from, self.remap_reg_to, id, r0D, r1D, r2D)                
+        self.remap_reg_from = None
+        self.remap_reg_to = None
+            
     def move_topology(self, id, to_history=True):
         """increment layers id topology and bigger."""
         max_topology_key = max(self.layers_topology)
+        new_top = None
         for i in range(max_topology_key, -1, -1):
             if id in self.layers_topology[i]:
                 #split rest
+                new_top = i+1
                 self.layers_topology[i+1] = []
                 for layer_id in self.layers_topology[i]:
                     if layer_id>=id or id<=-layer_id-1:
@@ -396,14 +425,16 @@ class Regions():
                     self.layers_topology[i].remove(layer_id)
                 break
             # move bigger            
-            self.layers_topology[i+1] = max_topology_key[i]
+            self.layers_topology[i+1] = self.layers_topology[1]
+        if self.remap_reg_from is not None:
+            self.remap_region_shapes(new_top, to_history)
         if to_history:
             self._history.unmove_topology(id)
 
     def unmove_topology(self, id, to_history=True):
         """decrement layers id topology and bigger."""
         max_topology_key = max(self.layers_topology)
-        move_all = False
+        move_all = False        
         for i in range(0, max_topology_key+1):
             if move_all: 
                 # move bigger            
@@ -504,7 +535,7 @@ class Regions():
                     self.layer_region_0D[shadow] = []
                     self.layer_region_1D[shadow] = []
                     self.layer_region_2D[shadow] = []
-                    self._history.copy_data(id, old_name)
+                    self._history.rename_layer(False, id, old_name)
                     self._history.load_data(id, r0D, r1D, r2D)
                     remove_shadow = False
         
@@ -573,7 +604,7 @@ class Regions():
                 break
         self.layers_topology[-1].append(id)
         if to_history:
-            self._history.copy_data(id, old_name)
+            self._history.rename_layer(False, id, old_name)
             self._history.load_data(id, r0D, r1D, r2D)
         
     def _move_dim(self, id, layer_region):
