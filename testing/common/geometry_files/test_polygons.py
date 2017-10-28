@@ -518,3 +518,20 @@ class TestDecomposition:
        #self.plot_polygons(decomp)
 
 
+class TestDecompositionIntersection:
+    def test_simple_intersections(self):
+        da = PolygonDecomposition()
+        da.add_line((0, 0), (1,0))
+        da.add_line((0, 0), (0, 1))
+        da.add_line((1, 1), (1, 0))
+        da.add_line((1, 1), (0, 1))
+        da.add_line((0, 0), (1, 1))
+
+        db = PolygonDecomposition()
+        db.add_line((0, 0), (1,0))
+        db.add_line((0, 0), (0, 1))
+        db.add_line((1, 1), (1, 0))
+        db.add_line((1, 1), (0, 1))
+        db.add_line((1, 0), (0, 1))
+
+        (dc, map_a, map_b) = da.intersection(db)

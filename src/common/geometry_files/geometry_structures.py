@@ -147,7 +147,7 @@ class NodeSet(JsonData):
         self.linked_node_set_id = None
         """node_set_idx of pair interface node set or None"""
         self.linked_node_ids = [ ]
-        """If linked_node_set is not None there is list od pair indexes of nodes or none
+        """List of node IDs that match node ids in other nodesets on the same interface. I.e. arbitrary number of nodesets can be linkedIf linked_node_set is not None there is list od pair indexes of nodes or none
         if node has not pair"""
         super().__init__(config)
 
