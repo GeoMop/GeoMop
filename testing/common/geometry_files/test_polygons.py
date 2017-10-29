@@ -407,7 +407,7 @@ class TestDecomposition:
         assert len(decomp.outer_polygon.outer_wire.childs.pop().childs) == 2
 
         decomp.delete_segment(seg_c)
-        self.plot_polygons(decomp)
+        #self.plot_polygons(decomp)
 
     def test_split_poly_1(self):
         # Test splitting of points and holes.
@@ -533,7 +533,6 @@ class TestDecomposition:
        #self.plot_polygons(decomp)
 
 
-class TestDecompositionIntersection:
     def test_simple_intersections(self):
         da = PolygonDecomposition()
         da.add_line((0, 0), (1,0))
@@ -550,3 +549,7 @@ class TestDecompositionIntersection:
         db.add_line((1, 0), (0, 1))
 
         (dc, map_a, map_b) = da.intersection(db)
+        #print(dc)
+        #self.plot_polygons(dc)
+        assert map_a == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
+        assert map_b == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}

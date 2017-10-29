@@ -34,16 +34,19 @@ class IdObject:
 
 class IdMap(dict):
     #id = 0
+    def __init__(self):
+        self._next_id = -1
+        super().__init__()
 
     def get_new_id(self):
-        if not hasattr(self, '_next_id'):
-            self._next_id = -1
         self._next_id += 1
         return self._next_id
 
     def append(self, obj, id = None):
         if id is None:
             id = self.get_new_id()
+        else:
+            self._next_id = max(self._next_id, id)
         obj.id = id
         self[obj.id] = obj
         return obj
@@ -57,6 +60,13 @@ class PolygonChange(enum.Enum):
     split=4
     join=5
 
+
+def id_list(obj_list):
+    """
+    :param obj_list: List/tuple of IdObjects.
+    :return: List of their ids.
+    """
+    return [obj.id for obj in obj_list]
 
 class PolygonDecomposition:
     """
@@ -103,6 +113,7 @@ class PolygonDecomposition:
         return len(self.points) == len(other.points) \
             and len(self.segments) == len(other.segments) \
             and len(self.polygons) == len(other.polygons)
+
 
 
     ##################################################################
@@ -272,7 +283,7 @@ class PolygonDecomposition:
         """
         type, p0, p1 = self.last_polygon_change
         if type == PolygonChange.shape:
-            poly_ids = [ p.id for p in p0 ]
+            poly_ids = id_list(p0)
             return (type, poly_ids, None)
         id0 = None if p0 is None else p0.id
         id1 = None if p1 is None else p1.id
@@ -429,7 +440,7 @@ class PolygonDecomposition:
         self._add_line_split_segments = []
         for seg, t0, t1 in seg_list:
             mid_pt = self._split_segment(seg, t0)
-            self._add_line_split_segments.append(seg, seg.next[out_vtx][0])
+            self._add_line_split_segments.append( (seg, seg.next[in_vtx][0]) )
             t_list.append( (t1, mid_pt) )
 
         t_list.sort()   # sort by t1
@@ -470,15 +481,10 @@ class PolygonDecomposition:
 
 
     def make_segment(self, node_ids):
+        # TODO: use _make_segment
         v_out_id, v_in_id = node_ids
         vtxs = (self.points[v_out_id], self.points[v_in_id])
-        seg = self.segments.append( Segment(vtxs))
-        for i_vtx in [out_vtx, in_vtx]:
-            seg.vtxs[i_vtx].segment = (seg, i_vtx)
-
-        # TODO: update pt_to_seg consistently
-        #self.pt_to_seg[]
-        return seg
+        return self._make_segment(vtxs)
 
     def make_wire_from_segments(self, seg_ids, polygon):
         """
@@ -596,6 +602,7 @@ class PolygonDecomposition:
                 assert w in w.parent.childs
 
         for sg in self.segments.values():
+            assert tuple(id_list(sg.vtxs)) in self.pt_to_seg
             for side in [right_side, left_side]:
                 assert sg.vtxs[side].id in self.points
                 assert sg.wire[side].id in self.wires
@@ -606,6 +613,12 @@ class PolygonDecomposition:
                 assert sg.wire[side] == w_seg.wire[w_side]
                 n_seg, n_side = sg.next[side]
                 assert sg.wire[side] == n_seg.wire[n_side]
+
+        for points, seg in self.pt_to_seg.items():
+            assert seg.id in self.segments
+            x_seg = self.segments[seg.id]
+            assert tuple(id_list(x_seg.vtxs)) == points
+
 
         for pt in self.points.values():
             if pt.is_free():
@@ -665,7 +678,7 @@ class PolygonDecomposition:
         # it should have treatment of the single segment pint , i.e. tip
         seg_tip_insert = ( (seg, left_side), (seg, right_side), seg.wire[right_side])
         seg.disconnect_vtx(in_vtx)
-        del self.pt_to_seg[(seg.vtxs[0].id, seg.vtxs[1].id)]
+        del self.pt_to_seg[tuple(id_list(seg.vtxs))]
         self.pt_to_seg[(seg.vtxs[0].id, mid_pt.id)] = seg
 
         new_seg = self._make_segment((mid_pt, seg.vtxs[in_vtx]))
@@ -1014,8 +1027,6 @@ class PolygonDecomposition:
         del self.polygons[new_polygon.id]
 
 
-
-
     ###################################
     # Helper change operations.
     def _make_segment(self, points):
@@ -1033,6 +1044,39 @@ class PolygonDecomposition:
         self.pt_to_seg.pop( (a, b), None )
         self.pt_to_seg.pop( (b, a), None)
         del self.segments[seg.id]
+
+    def deep_copy(self):
+        """
+        Perform deep copy of polygon decomposition without preserving object IDs.
+        :return: (copy_decomp, (point_map, segment_map, polygon_map)), decomposition copy, new id to old id maps
+        """
+        # TODO: use ID maps to map segment and polygon ids.
+        id_maps = ({}, {}, {})
+        decomp = PolygonDecomposition()
+
+        for pt in self.points.values():
+            decomp.points.append(Point(pt.xy, poly=None), id=pt.id)
+            id_maps[0][pt.id] = pt.id
+
+        for seg in self.segments.values():
+            vtxs_ids = [pt.id for pt in seg.vtxs]
+            new_seg = decomp.make_segment(vtxs_ids)
+            id_maps[1][new_seg.id] = seg.id
+
+        for poly in self.polygons.values():
+            outer_wire = [seg.id for seg, side in poly.outer_wire.segments()]
+            holes = []
+            for hole in poly.outer_wire.childs:
+                wire = [seg.id for seg, side in hole.segments()]
+                holes.append(wire)
+            free_points = [pt.id for pt in poly.free_points]
+            new_poly = decomp.make_polygon(outer_wire, holes, free_points)
+            id_maps[2][new_poly.id] = poly.id
+
+        decomp.set_wire_parents()
+
+        decomp.check_consistency()
+        return decomp, id_maps
 
 
     def intersection(self, other):
@@ -1062,11 +1106,13 @@ class PolygonDecomposition:
         - Color rest of polygons in the same component using DFS or BFS.
         """
 
-        decomp = copy.deepcopy(self)
-        seg_map_self = {seg.id: seg.id for seg in decomp.segments.values()}
+        decomp, id_maps = self.deep_copy()
+        seg_map_self = id_maps[1]
         seg_map_other = {seg.id: None for seg in decomp.segments.values()}
         for seg in other.segments.values():
             a, b = [pt.xy for pt in seg.vtxs]
+            print(decomp)
+            print('add line {} {}'.format(a, b))
             decomp.add_line(a, b)
             for seg_a, seg_b in decomp._add_line_split_segments:
                 seg_map_self[seg_b.id] = seg_map_self[seg_a.id]
@@ -1078,6 +1124,7 @@ class PolygonDecomposition:
             # generators here, as well as in the add_line wrapper
             for new_seg, change in decomp._add_line_new_segments:
                 seg_map_other[new_seg.id] = seg.id
+                seg_map_self.setdefault(new_seg.id, None)
 
         poly_map_self = decomp._parent_polygon_graph(self, seg_map_self)
         poly_map_other = decomp._parent_polygon_graph(other, seg_map_other)
@@ -1108,12 +1155,12 @@ class PolygonDecomposition:
 
         for fine_seg_id, coarse_seg_id in segment_map.items():
             fine_seg = self.segments[fine_seg_id]
+            pa, pb = fine_seg.polygons()
             if coarse_seg_id is None:
-                pa, pb = fine_seg.polygons
                 add_edge( (0, pa.id), (0, pb.id) )
             else:
-                coarse_seg = self.segments[coarse_seg_id]
-                Pa, Pb = coarse_seg.polygons
+                coarse_seg = parent_decomp.segments[coarse_seg_id]
+                Pa, Pb = coarse_seg.polygons()
                 add_edge( (0, pa.id), (1, Pa.id) )
                 add_edge( (0, pb.id), (1, Pb.id) )
 
