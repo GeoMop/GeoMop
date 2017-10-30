@@ -785,7 +785,7 @@ class Diagram():
     def move_point_after(self, p, x_old, y_old, label='Move point'):
         """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
-        self._history.move_point(p.id, x_old, y_old)
+        self._history.move_point(p.id, x_old, y_old, label)
         # compute recount params
         small = (self._rect.width()+self._rect.height())/1000000
         trimed = self._rect - QtCore.QMarginsF(small, small, small, small)
