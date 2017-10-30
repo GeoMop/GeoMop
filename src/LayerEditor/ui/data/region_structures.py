@@ -225,7 +225,7 @@ class Regions():
         region = Region(color, name, dim)
         self.regions.append(region)
         if to_history:
-            self._history.delete_region(id, label)
+            self._history.delete_region(len(self.regions)-1, label)
         return region   
   
     def insert_region(self, id, region, to_history=True, label=None):
@@ -405,7 +405,7 @@ class Regions():
             r2D = self.layer_region_2D[id]    
             self.layer_region_2D[id] = new_reg
             if to_history:
-                self._history.change_data(self.remap_reg_from, self.remap_reg_to, id, r0D, r1D, r2D)                
+                self._history.change_data(self.remap_reg_to, id, r0D, r1D, r2D)                
         self.remap_reg_from = None
         self.remap_reg_to = None
             

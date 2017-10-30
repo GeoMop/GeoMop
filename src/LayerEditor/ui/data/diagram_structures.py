@@ -582,6 +582,13 @@ class Diagram():
                 return line
         return None
         
+    def get_polygon_by_id(self, id):
+        """return line or None if not exist"""
+        for polygon in self.polygons:
+            if polygon.id==id:
+                return polygon
+        return None
+        
     def find_line(self, p1_id, p2_id):
         """Find line accoding points index"""
         p1 = self.points[p1_id]
@@ -623,16 +630,18 @@ class Diagram():
                 self.regions.copy_regions(2, polygon.id, copy.id, not not_history, label)
             else:
                 self.regions.add_regions(2, polygon.id, not not_history, label)
+        else:
+            self.regions.add_regions(2, polygon.id, not not_history, label)
         self.new_polygons.append(polygon)        
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):
         """Remove polygon from list"""
-        self.polygons.remove(polygon)
-        for line in polygon.lines:
-            line.del_polygon(polygon)
         if not not_history:
             self.regions.del_regions(2, polygon.id, not not_history, label)
+        self.polygons.remove(polygon)
+        for line in polygon.lines:
+            line.del_polygon(polygon)        
         self.deleted_polygons.append(polygon)
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
@@ -776,11 +785,11 @@ class Diagram():
         self.lines.remove(l)
         l.p1.lines.remove(l)
         l.p2.lines.remove(l)
-        self.po.remove_line(self, l)
+        self.po.remove_line(self, l, label, not_history)        
         #save revert operations to history
         if not not_history:
-            self._history.add_line(l.id, l.p1.id, l.p2.id, label)
-            self.regions.del_regions(1, l.id, not not_history)        
+            self._history.add_line(l.id, l.p1.id, l.p2.id, None)
+            self.regions.del_regions(1, l.id, not not_history)
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
         """Call if point is moved by another way and need save history and update polygons"""

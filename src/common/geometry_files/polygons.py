@@ -547,13 +547,13 @@ class PolygonDecomposition:
         :return: None
         """
         for poly in self.polygons.values():
-            outer = poly.outer_wire
-            if outer.is_root():
-                continue
-            # TODO: guarntee that  wire.segment is not dendrite
-            seg, side  = outer.segment
-            parent_wire = seg.wire[1 - side]
-            outer.set_parent(parent_wire)
+            for hole in poly.outer_wire.childs:
+                hole_childs = {}
+                for seg, side in hole.segments():
+                    inner_wire = seg.wire[1 - side]
+                    hole_childs[inner_wire.id] = (inner_wire, hole)
+                for inner, outer in hole_childs.values():
+                    inner.set_parent(outer)
 
     def check_consistency(self):
         #print(self)
@@ -916,6 +916,11 @@ class PolygonDecomposition:
                 inner_wire, outer_wire = left_wire, right_wire
             else:
                 inner_wire, outer_wire = right_wire, left_wire
+
+            # fix childs of orig_wire
+            for child in list(orig_wire.childs):
+                child.set_parent(outer_wire)
+
             outer_wire.polygon = orig_poly
             inner_wire.polygon = new_poly
             new_poly.outer_wire = inner_wire
