@@ -14,6 +14,15 @@ class TopologyOperations(IntEnum):
     """First added diagram have topology index
     copy_top_id, next added diagrams have topology 
     index copy_top_id+1 and next is move about 1"""
+    
+class ShapeDim(IntEnum):
+    """Type of shape"""
+    point = 0
+    """Point"""
+    line = 1
+    """Line"""
+    poly = 2
+    """Polygon"""
 
 class Region():
     """
