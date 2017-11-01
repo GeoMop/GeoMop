@@ -4,9 +4,14 @@ TODO:
   seems that it number object per dimension by the IN time in DFS from solids down to Vtx,
   just ignoring main compound, not sure how numbering works for free standing surfaces.
 
+- finish usage of polygon decomposition (without split)
+- implement intersection in interface_finish_init
+- tests
+
 """
 import os
 import sys
+
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 #intersections_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "intersections","src")
@@ -20,6 +25,8 @@ import numpy as np
 import numpy.linalg as la
 import math
 
+import geometry_files.polygons as polygons
+import geometry_files.polygons_io as polygons_io
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
@@ -75,7 +82,7 @@ class ShapeInfo:
             self.bot_iface = bot
             self.free = True
 
-    def set(self, i_reg, top, bot):
+    def set_shape(self, i_reg, top, bot):
         assert not self.free
         self.i_reg = i_reg
         self.top_iface = top
@@ -263,138 +270,161 @@ class Polygon(gs.Polygon):
     pass
 
 class Topology(gs.Topology):
-    """
-    TODO:
-    - support for polygons with holes, here and in creation of faces and solids
-    """
-    def check(self, nodeset):
-        """
-        Check that topology is compatible with given nodeset.
-        Check and possibly fix orientation of polygons during first call.
-        :param nodeset:
-        :return:
-        """
-        if hasattr(self, 'n_nodes'):
-            # already checked with other nodeset, just check nodeset size
-            assert len(nodeset.nodes) == self.n_nodes, \
-                "Nodeset (id: {}) size {} is not compatible with topology (id: {}) with size {}"\
-                .format(nodeset.id, len(nodeset.nodes), self.id, self.n_nodes)
-            return
-
-        nodes = nodeset.nodes
-        self.n_nodes = len(nodes)
-        self.n_segments = len(self.segments)
-        for segment in self.segments:
-            for nid in segment.node_ids:
-                assert 0 <= nid < len(nodes), "Node ID: {} of topology (id: {}) is out of nodeset (id: {}".format(nid, self.id, nodeset.id)
-
-        for poly in self.polygons:
-            self.orient_polygon(poly)
-
-
-    def orient_polygon(self, poly):
-        """
-        Find orientation of polygon segments so that they have same orientation within the polygon.
-        TODO: Make orientation counter clock wise.
-        :param poly:
-        :return:
-        """
-        last_node = None
-        first_node = poly.segment_ids
-        oriented_ids = []
-        segs = poly.segment_ids
-        for i_seg, i_seg_next in zip(segs, segs[1:] + segs[:1]):
-            segment = self.segments[i_seg]
-            next_segment = self.segments[i_seg_next]
-            nodes = segment.node_ids
-            if nodes[1] in next_segment.node_ids:
-                oriented_ids.append( self.code_oriented_segment(i_seg, False) )
-            else:
-                assert nodes[0] in next_segment.node_ids, "Wrong order of polygon edges."
-                oriented_ids.append(self.code_oriented_segment(i_seg, True))
-        poly.segment_ids = oriented_ids
-
-
-    def code_oriented_segment(self, id_seg, reversed):
-        """
-        Coded segment id with orientation.
-        :param id_seg:
-        :param reversed:
-        :return:
-        """
-        return id_seg + reversed*self.n_segments
-
-
-    def orient_segment(self, id_seg):
-        """
-        Decode segment_id withi polygon to the true segment ID end orientation.
-        :param id_seg:
-        :return:
-        """
-        if id_seg >= len(self.segments):
-            return id_seg - self.n_segments, True
-        else:
-            return id_seg, False
+    pass
+    # """
+    # TODO:
+    # - support for polygons with holes, here and in creation of faces and solids
+    # """
+    # def check(self, nodeset):
+    #     """
+    #     Check that topology is compatible with given nodeset.
+    #     Check and possibly fix orientation of polygons during first call.
+    #     :param nodeset:
+    #     :return:
+    #     """
+    #     if hasattr(self, 'n_nodes'):
+    #         # already checked with other nodeset, just check nodeset size
+    #         assert len(nodeset.nodes) == self.n_nodes, \
+    #             "Nodeset (id: {}) size {} is not compatible with topology (id: {}) with size {}"\
+    #             .format(nodeset.id, len(nodeset.nodes), self.id, self.n_nodes)
+    #         return
+    #
+    #     nodes = nodeset.nodes
+    #     self.n_nodes = len(nodes)
+    #     self.n_segments = len(self.segments)
+    #     for segment in self.segments:
+    #         for nid in segment.node_ids:
+    #             assert 0 <= nid < len(nodes), "Node ID: {} of topology (id: {}) is out of nodeset (id: {}".format(nid, self.id, nodeset.id)
+    #
+    #     for poly in self.polygons:
+    #         self.orient_polygon(poly)
+    #
+    #
+    # def orient_polygon(self, poly):
+    #     """
+    #     Find orientation of polygon segments so that they have same orientation within the polygon.
+    #     TODO: Make orientation counter clock wise.
+    #     :param poly:
+    #     :return:
+    #     """
+    #     last_node = None
+    #     first_node = poly.segment_ids
+    #     oriented_ids = []
+    #     segs = poly.segment_ids
+    #     for i_seg, i_seg_next in zip(segs, segs[1:] + segs[:1]):
+    #         segment = self.segments[i_seg]
+    #         next_segment = self.segments[i_seg_next]
+    #         nodes = segment.node_ids
+    #         if nodes[1] in next_segment.node_ids:
+    #             oriented_ids.append( self.code_oriented_segment(i_seg, False) )
+    #         else:
+    #             assert nodes[0] in next_segment.node_ids, "Wrong order of polygon edges."
+    #             oriented_ids.append(self.code_oriented_segment(i_seg, True))
+    #     poly.segment_ids = oriented_ids
+    #
+    #
+    # def code_oriented_segment(self, id_seg, reversed):
+    #     """
+    #     Coded segment id with orientation.
+    #     :param id_seg:
+    #     :param reversed:
+    #     :return:
+    #     """
+    #     return id_seg + reversed*self.n_segments
+    #
+    #
+    # def orient_segment(self, id_seg):
+    #     """
+    #     Decode segment_id withi polygon to the true segment ID end orientation.
+    #     :param id_seg:
+    #     :return:
+    #     """
+    #     if id_seg >= len(self.segments):
+    #         return id_seg - self.n_segments, True
+    #     else:
+    #         return id_seg, False
 
 class NodeSet(gs.NodeSet):
     pass
 
 
 class Interface:
-    def __init__(self, surface, nodes, topology):
+    def __init__(self, surface):
         self.surface = surface
-        self.topology = topology
-        self.surface.check_nodes(nodes)
-        if nodes is not None:
-            self.nodes = [ (X[0], X[1], self.surface.approx_eval_z(X[0], X[1])) for X in nodes]
-        self.make_shapes()
+        self.common_decomp = None
+        self.decompositions = {}
+
+    def add_decomposition(self, nodes, topology):
+        if not topology.id in self.decompositions:
+            decomp = polygons_io.deserialize(nodes, topology)
+            self.decompositions[topology.id] = decomp
+        return self.decompositions[topology.id]
+
+    def _finish_init(self):
+        # TODO: make decomposition intersection
+        decomps = list(self.decompositions.values())
+        assert len(decomps) == 1
+        self.common_decomp = decomps[0]
+        nodes_xy = { pt.id: pt.xy for pt in self.common_decomp.points.values() }
+        self.surface.check_nodes(list(nodes_xy.values()))
+        self.nodes = { id: (x, y, self.surface.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
 
 
     def make_shapes(self):
+        if self.common_decomp is None:
+            self._finish_init()
 
+        decomp = self.common_decomp
+        # TODO: compute Z
+        self.vertices = { id: ShapeInfo(bw.Vertex(node)) for id, node in self.nodes.items() }
 
-        self.vertices = [ ShapeInfo(bw.Vertex(node)) for node in self.nodes]
-
-        self.edges = []
-        for segment in self.topology.segments:
+        self.edges = {}
+        for segment in decomp.segments.values():
             #nodes_id, surface_id = segment
-            na, nb = segment.node_ids
-            edge = bw.Edge( [self.vertices[na].shape, self.vertices[nb].shape] )
+            pa, pb = segment.vtxs
+            edge = bw.Edge( [self.vertices[pa.id].shape, self.vertices[pb.id].shape] )
             curve_z = self.surface.add_curve_to_edge(edge)
             si = ShapeInfo(edge)
             si.curve_z = curve_z
-            self.edges.append( si )
+            self.edges[segment.id] =  si
 
-        self.faces = []
-        n_segments = len(self.topology.segments)
-        for poly in self.topology.polygons:
+        self.faces = {}
+        #n_segments = len(self.topology.segments)
+        for poly in decomp.polygons.values():
             #segment_ids, surface_id = poly      # segment_id > n_segments .. reversed edge
-            edges = []
-            for id_seg in poly.segment_ids:
-                i_seg, reversed = self.topology.orient_segment(id_seg)
-                edge = self.edges[i_seg].shape
-                if reversed:
-                    edges.append(edge.m())
-                else:
-                    edges.append(edge)
-            wire = bw.Wire(edges)
-            face = bw.Face([wire], surface = self.surface.bw_surface)
-            self.faces.append( ShapeInfo(face) )
+            wires = [self._make_bw_wire(poly.outer_wire)]
+            for hole in poly.outer_wire.childs:
+                wires.append(self._make_bw_wire(hole).m())
+
+            face = bw.Face(wires, surface = self.surface.bw_surface)
+            self.faces[poly.id] = ShapeInfo(face)
+
+    def _make_bw_wire(self, decomp_wire):
+        edges = []
+        for seg, side in decomp_wire.segments():
+            reversed = (side == polygons.right_side)
+            edge = self.edges[seg.id].shape
+            if reversed:
+                edges.append(edge.m())
+            else:
+                edges.append(edge)
+        return bw.Wire(edges)
 
 
-    def interpolate_interface(self, a_surface, a_nodes, b_surface, b_nodes):
+    def interpolate_nodes(self, a_surface, a_nodes, b_surface, b_nodes):
         assert len(a_nodes) == len(b_nodes)
-        self.nodes=[]
+        nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
             az = a_surface.depth
             bz = b_surface.depth
             line = ( (ax, ay, az), (bx,by,bz) )
             x,y,z = self.surface.line_intersect( *line )
-            self.nodes.append( (x,y,z) )
+            nodes.append( (x,y,z) )
+        return nodes
 
     def iter_shapes(self):
         for s_list in [ self.vertices, self.edges, self.faces ]:
-            for shp in s_list:
+            for shp in s_list.values():
                 yield shp
 
 class SurfaceNodeSet(gs.SurfaceNodeSet):
@@ -403,51 +433,41 @@ class SurfaceNodeSet(gs.SurfaceNodeSet):
         self.surface = lg.surfaces[self.surface_id]
         self.nodeset = lg.node_sets[self.nodeset_id]
         self.topology = lg.topologies[self.nodeset.topology_id]
-        self.topology.check(self.nodeset)
+        #self.topology.check(self.nodeset)
 
     def make_interface(self, lg ):
-        if lg.interfaces[self.surface_id] is not None:
-            return lg.interfaces[self.surface_id]
-
         self.init(lg)
-        iface = Interface(self.surface, self.nodeset.nodes, self.topology)
+        interface = lg.interfaces[self.surface_id]
+        self.decomp = interface.add_decomposition(self.nodeset.nodes, self.topology)
+        return interface
 
-        lg.interfaces[self.surface_id] = iface
-        return iface
 
 class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 
     def make_interface(self, lg):
-        if lg.interfaces[self.surface_id] is not None:
-            return lg.interfaces[self.surface_id]
-
+        interface = lg.interfaces[self.surface_id]
         surface = lg.surfaces[self.surface_id]
         a, b = self.surf_nodesets
         a.init(lg)
         b.init(lg)
         assert a.topology.id == b.topology.id
-        topology = a.topology
+        self.topology = a.topology
         if a.nodeset_id == b.nodeset_id:
-            iface = Interface(surface, a.nodeset.nodes, topology)
+            self.nodes = a.nodeset.nodes
         else:
             assert a.surface_id != b.surface_id
-            iface = Interface(surface, None, topology)
-            iface.interpolate_interface(a.surface, a.nodeset.nodes, b.surface, b.nodeset.nodes)
-
-        lg.interfaces[self.surface_id] = iface
-        return iface
+            self.nodes = interface.interpolate_nodes(a.surface, a.nodeset.nodes, b.surface, b.nodeset.nodes)
+        self.decomp = interface.add_decomposition(self.nodes, self.topology)
+        return interface
 
 
 class Region(gs.Region):
 
     def init(self, topo_dim, extrude):
-        assert topo_dim == self.topo_dim, "Region ('{}') topology dimension ({})  do not match layer dimension ({}).".format( self.name, self.topo_dim, topo_dim)
+        #assert topo_dim == self.topo_dim, "Region ('{}') topology dimension ({})  do not match layer dimension ({}).".format( self.name, self.topo_dim, topo_dim)
         if self.not_used:
             return
-        if hasattr(self, 'dim'):
-            assert self.dim == topo_dim + extrude, "dim: %d tdim: %d ext: %d"%(self.dim, topo_dim, extrude)
-        else:
-            self.dim = topo_dim + extrude
+        assert self.dim == topo_dim + extrude, "dim: %d tdim: %d ext: %d"%(self.dim, topo_dim, extrude)
 
         # fix names of boundary regions
         if self.boundary:
@@ -468,14 +488,31 @@ class Region(gs.Region):
 #class GeoLayer(gs.GeoLayer):
 #    pass
 
+def make_layer_region_maps(layer, regions, extrude):
+    top_decomp = layer.top.decomp
+    #bot_decomp = layer.bottom.decomp
+    #assert top_decomp == bot_decomp
+
+    id_to_region = []
+    region_id_lists = [layer.node_region_ids, layer.segment_region_ids, layer.polygon_region_ids]
+    top_objs = [top_decomp.points.values(), top_decomp.segments.values(), top_decomp.polygons.values()]
+    for dim, (reg_list, obj_list) in enumerate(zip(region_id_lists, top_objs)):
+        reg_map={}
+        for reg, obj in zip(reg_list, obj_list):
+            i_reg = reg_list[obj.index]
+            regions[i_reg].init(topo_dim=dim, extrude=extrude)
+            reg_map[obj.id] = regions[i_reg]
+        id_to_region.append(reg_map)
+    return id_to_region
+
 class FractureLayer(gs.FractureLayer):
     def init(self, lg):
         self.i_top = self.top.make_interface(lg)
-        self.topology = self.i_top.topology
-        self.regions = lg.regions
-        for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
-            for i_reg in reg_list:
-                self.regions[i_reg].init(topo_dim=dim, extrude = False)
+        self.topology = self.top.topology
+        self.regions = make_layer_region_maps(self, lg.regions, False)
+        #for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
+        #    for i_reg in reg_list:
+        #        self.regions[i_reg].init(topo_dim=dim, extrude = False)
 
     def make_shapes(self):
         """
@@ -487,27 +524,28 @@ class FractureLayer(gs.FractureLayer):
         #for i, i_reg in enumerate(self.node_region_ids):
         #    if self.regions[i_reg].is_active(0):
         #        shapes.append( (self.i_top.vertices[i], i_reg) )
+        decomp = self.top.decomp
+        for seg in decomp.segments.values():
+            reg = self.regions[1][seg.id]
+            if reg.is_active(1):
+                self.i_top.edges[seg.id].set_shape(reg.id, self.i_top, self.i_top)
 
-        for i, i_reg in enumerate(self.segment_region_ids):
-            if self.regions[i_reg].is_active(1):
-                self.i_top.edges[i].set(i_reg, self.i_top, self.i_top)
-
-        for i, i_reg in enumerate(self.polygon_region_ids):
-            if self.regions[i_reg].is_active(2):
-                self.i_top.faces[i].set(i_reg, self.i_top, self.i_top)
-
+        for poly in decomp.polygons.values():
+            reg = self.regions[2][poly.id]
+            if reg.is_active(2):
+                self.i_top.faces[poly.id].set_shape(reg.id, self.i_top, self.i_top)
         return []
 
 class StratumLayer(gs.StratumLayer):
     def init(self, lg):
         self.i_top = self.top.make_interface(lg)
         self.i_bot = self.bottom.make_interface(lg)
-        assert self.i_top.topology.id == self.i_bot.topology.id
-        self.topology = self.i_top.topology
-        self.regions = lg.regions
-        for tdim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
-            for i_reg in reg_list:
-                self.regions[i_reg].init(topo_dim=tdim, extrude = True)
+        assert self.top.topology.id == self.bottom.topology.id
+        self.topology = self.top.topology
+        self.regions = make_layer_region_maps(self, lg.regions, True)
+        #for tdim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
+        #    for i_reg in reg_list:
+        #        self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
     def plot_vert_face(self, v_to_z, si_top, si_bot):
         import_plotting()
@@ -578,29 +616,31 @@ class StratumLayer(gs.StratumLayer):
     def make_shapes(self):
         shapes = []
 
-        vert_edges=[]
+        vert_edges={}
 
-        for i, i_reg in enumerate(self.node_region_ids):
-            edge = bw.Edge( [self.i_bot.vertices[i].shape, self.i_top.vertices[i].shape] )
+        # TODO: vertical edges and faces
+        for id, pt in self.top.decomp.points.items():
+            edge = bw.Edge( [self.i_bot.vertices[id].shape, self.i_top.vertices[id].shape] )
             edge.implicit_curve()
             edge_info = ShapeInfo(edge)
-            vert_edges.append(edge_info)
-            if self.regions[i_reg].is_active(1):
-                edge_info.set( i_reg, self.i_top, self.i_bot)
+            vert_edges[id] = edge_info
+            reg = self.regions[0][id]
+            if reg.is_active(1):
+                edge_info.set_shape( reg.id, self.i_top, self.i_bot)
             shapes.append(edge_info)
-        assert len(vert_edges) == self.topology.n_nodes, "n_vert_edges: %d n_nodes: %d"%(len(vert_edges), self.topology.n_nodes)
+
+        assert len(vert_edges) == len(self.top.decomp.points) #, "n_vert_edges: %d n_nodes: %d"%(len(vert_edges), self.topology.n_nodes)
         assert len(vert_edges) == len(self.node_region_ids)
 
-        vert_faces = []
-        for i, i_reg in enumerate(self.segment_region_ids):
-            segment = self.topology.segments[i]
+        vert_faces = {}
+        for id, segment in self.top.decomp.segments.items():
             # make face oriented to the right side of the segment when looking from top
 
-            edge_start = vert_edges[segment.node_ids[0]].shape
-            si_bot = self.i_bot.edges[i]
+            edge_start = vert_edges[segment.vtxs[0].id].shape
+            si_bot = self.i_bot.edges[id]
             edge_bot = si_bot.shape
-            edge_end = vert_edges[segment.node_ids[1]].shape
-            si_top = self.i_top.edges[i]
+            edge_end = vert_edges[segment.vtxs[1].id].shape
+            si_top = self.i_top.edges[id]
             edge_top = si_top.shape
 
             # make planar surface
@@ -612,34 +652,37 @@ class StratumLayer(gs.StratumLayer):
             wire = bw.Wire([edge_start.m(), edge_bot, edge_end, edge_top.m()])
             face = bw.Face([wire], surface = vert_surface)
             face_info = ShapeInfo(face)
-            vert_faces.append(face_info)
-            if self.regions[i_reg].is_active(2):
-                face_info.set(i_reg, self.i_top, self.i_bot)
+            vert_faces[id] = face_info
+            reg = self.regions[1][id]
+            if reg.is_active(2):
+                face_info.set_shape(reg.id, self.i_top, self.i_bot)
             shapes.append(face_info)
-        assert len(vert_faces) == len(self.topology.segments)
+
+        assert len(vert_faces) == len(self.top.decomp.segments)
         assert len(vert_faces) == len(self.segment_region_ids)
 
-        for i, i_reg in enumerate(self.polygon_region_ids):
+        for id, polygon in self.top.decomp.polygons.items():
 
-            polygon = self.topology.polygons[i]
-            segment_ids = polygon.segment_ids  # segment_id > n_segments .. reversed edge
+            #segment_ids = polygon.segment_ids  # segment_id > n_segments .. reversed edge
 
             # we orient all faces inwards (assuming normal oriented up for counter clockwise edges, right hand rule)
             # assume polygons oriented upwards
             faces = []
-            for id_seg in segment_ids:
-                i_seg, reversed = self.topology.orient_segment(id_seg)
-                if reversed:
-                    faces.append( vert_faces[i_seg].shape.m() )
-                else:
-                    faces.append( vert_faces[i_seg].shape )
-            faces.append( self.i_top.faces[i].shape )
-            faces.append( self.i_bot.faces[i].shape.m() )
+            wires = [ polygon.outer_wire ] + list(polygon.outer_wire.childs)
+            for wire in wires:
+                for seg, side in wire.segments():
+                    if side == polygons.right_side:
+                        faces.append( vert_faces[seg.id].shape.m() )
+                    else:
+                        faces.append( vert_faces[seg.id].shape )
+            faces.append( self.i_top.faces[id].shape )
+            faces.append( self.i_bot.faces[id].shape.m() )
             shell = bw.Shell( faces )
             solid = bw.Solid([shell])
             solid_info = ShapeInfo(solid)
-            if self.regions[i_reg].is_active(3):
-                solid_info.set(i_reg, self.i_top, self.i_bot)
+            reg = self.regions[2][id]
+            if reg.is_active(3):
+                solid_info.set_shape(reg.id, self.i_top, self.i_bot)
             shapes.append(solid_info)
 
         return shapes
@@ -673,10 +716,11 @@ class LayerGeometry(gs.LayerGeometry):
 
     def init(self):
         # keep unique interface per surface
-        self.interfaces = len(self.surfaces) * [None]
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
 
         self.set_ids(self.surfaces)
+        self.set_ids(self.regions)
+        self.interfaces = [ Interface(surface) for surface in self.surfaces ]
         self.set_ids(self.topologies)
         #self.set_ids(self.nodesets)
 
@@ -726,6 +770,9 @@ class LayerGeometry(gs.LayerGeometry):
                     make compoud of subdivision BREP shapes
 
         """
+        for iface in self.interfaces:
+            iface.make_shapes()
+
         self.split_to_blocks()
 
         #self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
@@ -988,11 +1035,9 @@ if __name__ == "__main__":
     parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
     args = parser.parse_args()
 
-    from geometry_files.geometry import GeometrySer
     layers_file = args.layers_file
     filename_base = os.path.splitext(layers_file)[0]
-    geom_serializer = GeometrySer(layers_file)
-    gs_lg = geom_serializer.read()
+    gs_lg = gs.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
     lg.filename_base = filename_base
 
