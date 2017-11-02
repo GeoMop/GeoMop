@@ -14,6 +14,15 @@ class TopologyOperations(IntEnum):
     """First added diagram have topology index
     copy_top_id, next added diagrams have topology 
     index copy_top_id+1 and next is move about 1"""
+    
+class ShapeDim(IntEnum):
+    """Type of shape"""
+    point = 0
+    """Point"""
+    line = 1
+    """Line"""
+    poly = 2
+    """Polygon"""
 
 class Region():
     """
@@ -280,20 +289,20 @@ class Regions():
         """insert layer to structure and copy regions"""
         self.layers[-id-1] = name        
         move_id = None
-        if (not is_top):
+        if (not is_top and not is_own):
             move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
         self.layer_region_0D[-id-1]=deepcopy(self.layer_region_0D[move_id])
         self.layer_region_1D[-id-1]=deepcopy(self.layer_region_1D[move_id])
-        self.layer_region_2D[-id-1]=deepcopy(self.layer_region_2D[move_id])
+        self.layer_region_2D[-id-1]=deepcopy(self.layer_region_2D[move_id])        
         for top_id in self.layers_topology:
             if move_id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].append(-id-1)
         if is_own:
             self.move_topology(id, False)
         if to_history:
-            self._history.delete_fracture(-id-1)            
+            self._history.delete_fracture(id)            
             self._history.save_data(-id-1, self.layer_region_0D[-id-1], self.layer_region_1D[-id-1], 
                 self.layer_region_2D[-id-1])
             
@@ -419,7 +428,7 @@ class Regions():
                 new_top = i+1
                 self.layers_topology[i+1] = []
                 for layer_id in self.layers_topology[i]:
-                    if layer_id>=id or id<=-layer_id-1:
+                    if layer_id>=id or id<-layer_id-1:
                         self.layers_topology[i+1].append(layer_id)
                 for layer_id in self.layers_topology[i+1]:
                     self.layers_topology[i].remove(layer_id)
