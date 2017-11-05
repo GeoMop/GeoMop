@@ -7,7 +7,8 @@ import logging
 import os
 from copy import deepcopy
 import config as cfg
-from helpers import keyboard_shortcuts as shortcuts
+from geomop_shortcuts import shortcuts
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
 from geomop_dialogs import GMErrorDialog
@@ -58,7 +59,7 @@ class _Config:
         """a list of recently opened files"""
 
         self.shortcuts = kw_or_def('shortcuts',
-                                   deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+                                   deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
         """user customizable keyboard shortcuts"""
 
     def save(self):
@@ -411,8 +412,8 @@ class LEConfig:
         :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
         """
         shortcut = None
-        if name in shortcuts.SYSTEM_SHORTCUTS:
-            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        if name in shortcuts_definition.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
         elif name in cls.config.shortcuts:
             shortcut = cls.config.shortcuts[name]
         if shortcut:

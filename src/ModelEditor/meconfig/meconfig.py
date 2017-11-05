@@ -11,7 +11,9 @@ from copy import deepcopy
 
 import config as cfg
 from data import Transformator, TransformationFileFormatError
-from helpers import AutocompleteHelper, StructureAnalyzer, shortcuts
+from helpers import AutocompleteHelper, StructureAnalyzer
+from geomop_shortcuts import shortcuts
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from ist import InfoTextGenerator
 from util import constants
 
@@ -64,10 +66,10 @@ class _Config:
         self.symbol_completion = kw_or_def('symbol_completion', False)
         """whether to automatically complete brackets and array symbols"""
         self.shortcuts = kw_or_def('shortcuts',
-                                           deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+                                           deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
         if not 'open_window' in self.shortcuts:
             # added to version 1.0.0
-            self.shortcuts['open_window'] = shortcuts.DEFAULT_USER_SHORTCUTS['open_window']
+            self.shortcuts['open_window'] = shortcuts_definition.DEFAULT_USER_SHORTCUTS['open_window']
         
         """user customizable keyboard shortcuts"""
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
@@ -748,8 +750,8 @@ class MEConfig:
         :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
         """
         shortcut = None
-        if name in shortcuts.SYSTEM_SHORTCUTS:
-            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        if name in shortcuts_definition.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
         elif name in cls.config.shortcuts:
             shortcut = cls.config.shortcuts[name]
         if shortcut:
