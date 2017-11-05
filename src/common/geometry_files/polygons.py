@@ -416,6 +416,8 @@ class PolygonDecomposition:
             return self._add_free_point(point, poly)
 
 
+
+
     def add_line(self, a, b):
         """
         Try to add new line from point A to point B. Check intersection with any other line and
@@ -430,33 +432,48 @@ class PolygonDecomposition:
         a_point = self.add_point(a)
         b_point = self.add_point(b)
 
+        return self.add_line_for_points(a_point, b_point)
 
-        seg_list = []
-        for seg in self.segments.values():
-            (t0, t1) = seg.intersection(a, b)
+
+    def add_line_for_points(self, a_pt, b_pt):
+        """
+        Same as add_line, but for known end points.
+        :param a_pt:
+        :param b_pt:
+        :return:
+        """
+        t_list = list(self._add_line_seg_intersections(a_pt, b_pt))
+        return [seg    for seg, change in self._add_line_new_segments(a_pt, b_pt, t_list)]
+
+    def _add_line_seg_intersections(self, a_pt, b_pt):
+        """
+        Generator for intersections of a new line with existing segments.
+        Every segment is split and intersection point is yield.
+        :param a_pt, b_pt: End points of the new line.
+        :yields: (t_line, isec_pt, seg0, seg1),
+            - parameter of the intersection on the new line
+            - the Point object of the intersection point.
+            - old and new subsegments of the segment split
+        """
+        segments = list(self.segments.values()) # need copy since we change self.segments
+        for seg in segments:
+            (t0, t1) = seg.intersection(a_pt.xy, b_pt.xy)
             if t1 is not None:
-                seg_list.append((seg, t0, t1))
-        t_list = []
-        self._add_line_split_segments = []
-        for seg, t0, t1 in seg_list:
-            mid_pt = self._split_segment(seg, t0)
-            self._add_line_split_segments.append( (seg, seg.next[in_vtx][0]) )
-            t_list.append( (t1, mid_pt) )
+                mid_pt = self._split_segment(seg, t0)
+                yield (t1, mid_pt, seg, seg.next[in_vtx][0])
 
+    def _add_line_new_segments(self, a_pt, b_pt, t_list):
+        """
+        Generator for added new segments of the new line.
+        """
         t_list.sort()   # sort by t1
-        start_pt = a_point
-        result = []
-        self._add_line_new_segments = []
-        for t1, mid_pt in t_list:
-            result.append( self.new_segment(start_pt, mid_pt) )
-            self._add_line_new_segments.append((result[-1], self.last_polygon_change))
+        start_pt = a_pt
+        for t1, mid_pt, seg0, seg1 in t_list:
+            new_seg = self.new_segment(start_pt, mid_pt)
+            yield (new_seg, self.last_polygon_change)
             start_pt = mid_pt
-        result.append( self.new_segment(start_pt, b_point) )
-        self._add_line_new_segments.append((result[-1], self.last_polygon_change))
-        return result
-
-
-
+        new_seg = self.new_segment(start_pt, b_pt)
+        yield (new_seg, self.last_polygon_change)
 
 
     def delete_point(self, point):
@@ -628,7 +645,7 @@ class PolygonDecomposition:
                 seg, side = pt.segment
                 assert seg.id in self.segments
                 assert seg.vtxs[side] == pt
-
+        return True
 
     # Reversible atomic change operations.
     # TODO: Add history notifiers to the return point.
@@ -1107,28 +1124,41 @@ class PolygonDecomposition:
         """
 
         decomp, id_maps = self.deep_copy()
-        seg_map_self = id_maps[1]
-        seg_map_other = {seg.id: None for seg in decomp.segments.values()}
+        maps_self = 3*[None]
+        maps_other = 3*[None]
+        maps_self[0] = id_maps[0]
+        maps_other[0] = {pt.id: None for pt in decomp.points.values()}
+        maps_self[1] = id_maps[1]
+        maps_other[1] = {seg.id: None for seg in decomp.segments.values()}
+
+        other_point_map={}
+        for pt in other.points.values():
+            new_pt = decomp.add_point(pt.xy)
+            maps_other[0][new_pt.id] = pt.id
+            other_point_map[pt.id] = new_pt.id
+            maps_self[0].setdefault(new_pt.id,  None)
+
         for seg in other.segments.values():
-            a, b = [pt.xy for pt in seg.vtxs]
-            print(decomp)
-            print('add line {} {}'.format(a, b))
-            decomp.add_line(a, b)
-            for seg_a, seg_b in decomp._add_line_split_segments:
-                seg_map_self[seg_b.id] = seg_map_self[seg_a.id]
-                seg_map_other[seg_b.id] = seg_map_other[seg_a.id]
+            new_a_pt, new_b_pt = [decomp.points[other_point_map[pt.id]] for pt in seg.vtxs]
+
+            #print(decomp)
+            #print('add line {} {}'.format(a, b))
+            t_list =  list( decomp._add_line_seg_intersections(new_a_pt, new_b_pt) )
+            for t, mid_pt, seg_a, seg_b in t_list:
+                maps_self[1][seg_b.id] = maps_self[1][seg_a.id]
+                maps_other[1][seg_b.id] = maps_other[1][seg_a.id]
 
             # TODO:
-            # - remove, passing polygon change
-            # - split add_line into generator for line splitting and generator for new lines, use these internal
-            # generators here, as well as in the add_line wrapper
-            for new_seg, change in decomp._add_line_new_segments:
-                seg_map_other[new_seg.id] = seg.id
-                seg_map_self.setdefault(new_seg.id, None)
+            # - remove, yeilding polygon change
+            for new_seg, change in decomp._add_line_new_segments(new_a_pt, new_b_pt, t_list):
+                maps_other[1][new_seg.id] = seg.id
+                maps_self[1].setdefault(new_seg.id, None)
 
-        poly_map_self = decomp._parent_polygon_graph(self, seg_map_self)
-        poly_map_other = decomp._parent_polygon_graph(other, seg_map_other)
-        return (decomp, poly_map_self, poly_map_other)
+        maps_self[2] = decomp._parent_polygon_graph(self, maps_self[1])
+        maps_other[2] = decomp._parent_polygon_graph(other, maps_other[1])
+        
+        assert decomp.check_consistency()
+        return (decomp, maps_self, maps_other)
 
 
     def _parent_polygon_graph(self, parent_decomp, segment_map):
@@ -1744,3 +1774,24 @@ class Polygon(IdObject):
 
 
 
+
+def intersect_decompositions(decomps):
+    """
+    Intersection of any number of decompositions.
+    :param decomps:
+    :return: (common_decomp, poly_maps) - intersection decomposition, and for every original decomposition
+    a dict mapping polygon ids in intersection to original decomposition polygon ids.
+    TODO: For larger number of intersectiong decompositions, it would be better to
+    use a binary tree instead of linear pass to have n log(n) complexity of map updating.
+    """
+    common_decomp = PolygonDecomposition()
+    poly_maps = []
+    for decomp in decomps:
+        common_decomp, decomp_map, common_map = decomp.intersection(common_decomp)
+        new_poly_maps = []
+        for map in poly_maps:
+            new_map = { new_poly_id: map[orig_poly_id] for new_poly_id, orig_poly_id in common_map.items() }
+            new_poly_maps.append(new_map)
+        new_poly_maps.append(decomp_map)
+        poly_maps = new_poly_maps
+    return common_decomp, poly_maps

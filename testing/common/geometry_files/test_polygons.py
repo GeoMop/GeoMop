@@ -1,9 +1,10 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import collections  as mc
-from matplotlib import patches as mp
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from matplotlib import collections  as mc
+# from matplotlib import patches as mp
 
 from geometry_files.polygons import *
+from geometry_files.plot_polygons import *
 
 
 class TestPoint:
@@ -108,45 +109,45 @@ class TestPolygon:
         assert decomp.polygons[2].depth() == 4
 
 class TestDecomposition:
-
-    def plot_polygon(self, polygon):
-        if polygon is None or polygon.displayed or polygon.outer_wire.is_root():
-            return []
-
-        # recursion
-        assert polygon.outer_wire.parent.polygon != polygon
-        patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
-        pts = [ pt.xy for pt in polygon.vertices() ]
-
-        patches.append(mp.Polygon(pts))
-        return patches
-
-    def plot_polygons(self, decomp):
-        fig, ax = plt.subplots()
-
-        # polygons
-        for poly in decomp.polygons.values():
-            poly.displayed = False
-
-        patches = []
-        for poly in decomp.polygons.values():
-            patches.extend( self.plot_polygon(poly) )
-        p = mc.PatchCollection(patches, color='blue', alpha=0.2)
-
-        ax.add_collection(p)
-
-
-        for s in decomp.segments.values():
-            ax.plot((s.vtxs[0].xy[0], s.vtxs[1].xy[0]), (s.vtxs[0].xy[1], s.vtxs[1].xy[1]), color='green')
-
-        x_pts = []
-        y_pts = []
-        for pt in decomp.points.values():
-            x_pts.append(pt.xy[0])
-            y_pts.append(pt.xy[1])
-        ax.plot(x_pts, y_pts, 'bo', color = 'red')
-
-        plt.show()
+    #
+    # def plot_polygon(self, polygon):
+    #     if polygon is None or polygon.displayed or polygon.outer_wire.is_root():
+    #         return []
+    #
+    #     # recursion
+    #     assert polygon.outer_wire.parent.polygon != polygon
+    #     patches = self.plot_polygon( polygon.outer_wire.parent.polygon )
+    #     pts = [ pt.xy for pt in polygon.vertices() ]
+    #
+    #     patches.append(mp.Polygon(pts))
+    #     return patches
+    #
+    # def plot_polygons(self, decomp):
+    #     fig, ax = plt.subplots()
+    #
+    #     # polygons
+    #     for poly in decomp.polygons.values():
+    #         poly.displayed = False
+    #
+    #     patches = []
+    #     for poly in decomp.polygons.values():
+    #         patches.extend( self.plot_polygon(poly) )
+    #     p = mc.PatchCollection(patches, color='blue', alpha=0.2)
+    #
+    #     ax.add_collection(p)
+    #
+    #
+    #     for s in decomp.segments.values():
+    #         ax.plot((s.vtxs[0].xy[0], s.vtxs[1].xy[0]), (s.vtxs[0].xy[1], s.vtxs[1].xy[1]), color='green')
+    #
+    #     x_pts = []
+    #     y_pts = []
+    #     for pt in decomp.points.values():
+    #         x_pts.append(pt.xy[0])
+    #         y_pts.append(pt.xy[1])
+    #     ax.plot(x_pts, y_pts, 'bo', color = 'red')
+    #
+    #     plt.show()
 
 
     def test_decomp(self):
@@ -232,7 +233,7 @@ class TestDecomposition:
 
         # test add_point on segment
         decomp.add_point((2.25, 0.75))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
 
         # test new_segment - split polygon
@@ -247,7 +248,7 @@ class TestDecomposition:
         assert len(decomp.polygons) == 2
 
         print(decomp)
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         sg_m, = decomp.add_line((0, 1), (2, 1))
         print(decomp)
 
@@ -257,13 +258,13 @@ class TestDecomposition:
         assert len(decomp.polygons) == 2
         assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
         # delete segment - split wire
         decomp.delete_segment(sg_m)
         assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
         # other split wire
@@ -271,7 +272,7 @@ class TestDecomposition:
         decomp.delete_segment(sg_f)
         assert len(decomp.wires) == 5
         assert len(decomp.polygons) == 2
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
         #test split_segment connected on both sides; split non outer polygon
         seg_y, = decomp.add_line( (0,0.25), (0.25, 0.25))
@@ -285,7 +286,7 @@ class TestDecomposition:
 
         # print("Decomp:\n", decomp)
         decomp.delete_point(pt_op)
-        # self.plot_polygons(decomp)
+        # plot_polygon_decomposition(decomp)
 
         # test join polygons
         decomp.delete_segment(seg_y)
@@ -343,7 +344,7 @@ class TestDecomposition:
         assert sg_b.wire[right_side] == external_wire
         assert sg_c.wire[right_side] == external_wire
         assert sg_d.wire[right_side] == external_wire
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
         assert len(decomp.polygons) == 2
         sg_e, = decomp.add_line((0.5, 0.5), (1, 0.5))
@@ -351,6 +352,7 @@ class TestDecomposition:
         sg_g, = decomp.add_line((1, 1), (0.5, 1))
         sg_h, = decomp.add_line((0.5, 1), (0.5, 0.5))
         # closed inner polygon
+        #plot_polygon_decomposition(decomp)
         print("Decomp:\n", decomp)
         out_square = sg_a, sg_b, sg_c, sg_d
         in_square = sg_e, sg_f, sg_g, sg_h
@@ -373,7 +375,7 @@ class TestDecomposition:
 
         # join nested polygons
         decomp.delete_segment(sg_h)
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         assert sg_b.wire == sg_a.wire
         assert sg_c.wire == sg_a.wire
         assert sg_d.wire == sg_a.wire
@@ -402,12 +404,12 @@ class TestDecomposition:
         decomp.add_line((1, 0), (2, 0))
         decomp.add_line((2, 0), (2, 1))
         decomp.add_line((1, 0), (2, 1) )
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         assert len(decomp.outer_polygon.outer_wire.childs) == 1
         assert len(decomp.outer_polygon.outer_wire.childs.pop().childs) == 2
 
         decomp.delete_segment(seg_c)
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
     def test_split_poly_1(self):
         # Test splitting of points and holes.
@@ -420,9 +422,9 @@ class TestDecomposition:
         decomp.add_point( (0.8, 0.2))
         decomp.add_line((0.2, 0.6), (0.3,0.6))
         decomp.add_line((0.8, 0.6), (0.7, 0.6))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         decomp.add_line((0.5,0), (0.5,1))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
 
     def test_join_poly(self):
@@ -494,12 +496,12 @@ class TestDecomposition:
         decomp.add_line((1, 1), (2, 1))
         decomp.add_line((1, 1), (1, 2))
         decomp.add_line((1, 2), (2, 1))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
         decomp.add_line((1, 1), (0, 0))
         decomp.add_line((2, 1), (3, 0))
         decomp.add_line((1, 2), (0, 3))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
     def test_polygon_childs(self):
         decomp = PolygonDecomposition()
@@ -509,14 +511,14 @@ class TestDecomposition:
         decomp.add_line((1, 1), (2, 1))
         decomp.add_line((1, 1), (1, 2))
         decomp.add_line((1, 2), (2, 1))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
         lst = list(decomp.get_childs(0))
         assert lst == [0,1,2]
 
         decomp.add_line((1, 1), (0, 0))
         decomp.add_line((2, 1), (4, 0))
         decomp.add_line((1, 2), (0, 4))
-        #self.plot_polygons(decomp)
+        #plot_polygon_decomposition(decomp)
 
 
     def test_add_dendrite(self):
@@ -530,7 +532,7 @@ class TestDecomposition:
        # print(decomp)
        pt3 = decomp.add_free_point(4, (75.7, -35), 0 )
        decomp.new_segment(pt2, pt3)
-       #self.plot_polygons(decomp)
+       #plot_polygon_decomposition(decomp)
 
 
     def test_simple_intersections(self):
@@ -540,6 +542,7 @@ class TestDecomposition:
         da.add_line((1, 1), (1, 0))
         da.add_line((1, 1), (0, 1))
         da.add_line((0, 0), (1, 1))
+        print("da:\n", da)
 
         db = PolygonDecomposition()
         db.add_line((0, 0), (1,0))
@@ -547,9 +550,14 @@ class TestDecomposition:
         db.add_line((1, 1), (1, 0))
         db.add_line((1, 1), (0, 1))
         db.add_line((1, 0), (0, 1))
+        print("db:\n", db)
 
-        (dc, map_a, map_b) = da.intersection(db)
-        #print(dc)
-        #self.plot_polygons(dc)
-        assert map_a == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
-        assert map_b == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
+        (dc, maps_a, maps_b) = da.intersection(db)
+        print("dc\n", dc)
+        #plot_polygon_decomposition(dc)
+        assert maps_a[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
+        assert maps_b[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
+        assert maps_a[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5:4, 6:None, 7:None}
+        assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: None, 5:None, 6:4, 7:4}
+        assert maps_a[2] == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
+        assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
