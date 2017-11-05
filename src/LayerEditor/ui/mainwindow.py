@@ -134,13 +134,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.release_data(old_i)
         self.diagramScene.set_data()
         
-        view_rect = self.diagramView.rect()
-        rect = QtCore.QRectF(cfg.diagram.x-100, 
-            cfg.diagram.y-100, 
-            view_rect.width()/cfg.diagram.zoom+200, 
-            view_rect.height()/cfg.diagram.zoom+200)
-            
-        self.diagramScene.blink_start(rect)
+        if not cfg.diagram.spreaded:
+            self.display_all()
+        else:
+            view_rect = self.diagramView.rect()
+            rect = QtCore.QRectF(cfg.diagram.x-100, 
+                cfg.diagram.y-100, 
+                view_rect.width()/cfg.diagram.zoom+200, 
+                view_rect.height()/cfg.diagram.zoom+200)
+                
+            self.diagramScene.blink_start(rect)
         
     def update_recent_files(self, from_row=1):
         """Update recently opened files."""
@@ -190,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg.diagram.x = rect.left()
             cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
         self._display(view_rect)
+        cfg.diagram.spreaded = True
         
     def _display(self, view_rect):
         """moving"""

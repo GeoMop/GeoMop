@@ -44,7 +44,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         super(Line, self).paint(painter, option, widget)            
         if self.state==ItemStates.standart:
             color = self.line.get_color()
-            if color != "#000000":
+            if color != "##":
                 old_pen = self.pen()
                 pen = QtGui.QPen(cfg.diagram.pen)
                 pen.setColor(QtGui.QColor(color))

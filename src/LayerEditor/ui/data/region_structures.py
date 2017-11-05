@@ -34,13 +34,19 @@ class Region():
         self.color = color
         """Region color"""
         self.dim = dim
-        """dimension (dim=0 point, dim=1 segment, dim=2 polygon)"""
+        """dimension (point = 0, well = 1, fracture = 2, bulk = 3)"""
         self.boundary = boundary
         """Is boundary region"""
         self.not_used = not_used     
         """is used"""
         self.mesh_step = step
         """mesh step"""
+        
+    def get_shape_dim(self, layer_id):
+        """Return real shape dimension for set layer"""
+        if layer_id<0:
+            return self.dim.value
+        return self.dim.value-1
 
 
 class Regions():
@@ -87,14 +93,9 @@ class Regions():
         if not topology_id in self.layers_topology:
             return
         for layer_id in self.layers_topology[topology_id]:
-            if dim==0:
-                self.layer_region_0D[layer_id][shape_id]=0
-            elif dim==1:
-                self.layer_region_1D[layer_id][shape_id]=1
-            else:
-                self.layer_region_2D[layer_id][shape_id]=2
+            self.layer_region_0D[layer_id][shape_id]=0
             if to_history:
-                self._history.change_shape_region(shape_id, layer_id, dim-1, None, label)
+                self._history.change_shape_region(shape_id, layer_id, 0, None, label)
     
     def add_regions(self, dim, shape_id, to_history=False, label=None):
         """Shape region for all layers in current topology is added to 
@@ -108,11 +109,11 @@ class Regions():
         else:
             layer_region = self.layer_region_2D
         for layer_id in self.layers_topology[self.current_topology_id]:
-            if dim!=self.current_regions[layer_id].dim:
+            if dim!=self.current_regions[layer_id].get_shape_dim(layer_id):
                 # default region
-                layer_region[layer_id][shape_id] = dim
+                layer_region[layer_id][shape_id] = 0
                 if to_history:
-                    self._history.change_shape_region(shape_id, layer_id, dim, None, label)
+                    self._history.change_shape_region(shape_id, layer_id, 0, None, label)
             else:
                 region = self.current_regions[layer_id]
                 layer_region[layer_id][shape_id] = self.regions.index(region)
@@ -146,7 +147,7 @@ class Regions():
             region = self.current_regions[layer_id]            
             old_region_id = layer_region[layer_id][shape_id]
             if old_region_id!=self.regions.index(region) and \
-                region.dim.value==dim:
+                region.get_shape_dim(layer_id)==dim:
                 layer_region[layer_id][shape_id] = self.regions.index(region)
                 if to_history:
                     self._history.change_shape_region(shape_id, layer_id, dim, old_region_id, label)
@@ -162,7 +163,7 @@ class Regions():
         region = self.current_regions[self.current_layer_id]            
         old_region_id = layer_region[self.current_layer_id][shape_id]
         if old_region_id!=self.regions.index(region) and \
-            region.dim.value==dim:
+            region.get_shape_dim(self.current_layer_id)==dim:
             layer_region[self.current_layer_id][shape_id] = self.regions.index(region)
             if to_history:
                 self._history.change_shape_region(shape_id, self.current_layer_id, dim, old_region_id, label)
@@ -293,9 +294,7 @@ class Regions():
             move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
-        self.layer_region_0D[-id-1]=deepcopy(self.layer_region_0D[move_id])
-        self.layer_region_1D[-id-1]=deepcopy(self.layer_region_1D[move_id])
-        self.layer_region_2D[-id-1]=deepcopy(self.layer_region_2D[move_id])        
+        self._copy_regions_to_default(self, -id-1, move_id)
         for top_id in self.layers_topology:
             if move_id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].append(-id-1)
@@ -305,6 +304,13 @@ class Regions():
             self._history.delete_fracture(id)            
             self._history.save_data(-id-1, self.layer_region_0D[-id-1], self.layer_region_1D[-id-1], 
                 self.layer_region_2D[-id-1])
+                
+    def _copy_regions_to_default(self, id, move_id):
+        """for set layer copy regions and set theirs value to default"""
+        for layer_region in [self.layer_region_0D, self.layer_region_1D, self.layer_region_2D]:
+            layer_region[id]=deepcopy(layer_region[move_id])
+            for shape_id in layer_region[id]:
+                layer_region[id][shape_id] = 0
             
     def add_layer_history(self, id, name, insert):
         """Add layer for reverse history operation"""
@@ -585,9 +591,12 @@ class Regions():
         self.move_topology(move_id)
         self.layers_topology[-1].remove(id)
         self.layers_topology[topology_id].append(id)
-        self.layer_region_0D[id]=deepcopy(self.layer_region_0D[copy_id])
-        self.layer_region_1D[id]=deepcopy(self.layer_region_1D[copy_id])
-        self.layer_region_2D[id]=deepcopy(self.layer_region_2D[copy_id])
+        if id<0:
+            self._copy_regions_to_default(self, 1, copy_id)
+        else:
+            self.layer_region_0D[id]=deepcopy(self.layer_region_0D[copy_id])
+            self.layer_region_1D[id]=deepcopy(self.layer_region_1D[copy_id])
+            self.layer_region_2D[id]=deepcopy(self.layer_region_2D[copy_id])
         if to_history:
             self._history.delete_data(id)
         
