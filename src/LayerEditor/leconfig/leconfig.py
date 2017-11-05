@@ -187,7 +187,7 @@ class LEConfig:
     Timestamp of opened file, if editor text is 
     imported or new timestamp is None
     """
-    path = None
+    #path = None
     """Current geometry data file path"""
 
     @classmethod
@@ -314,7 +314,9 @@ class LEConfig:
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
-        cls.le_serializer.set_new(cls)        
+        cls.le_serializer.set_new(cls)
+        cls.curr_file = None
+        cls.curr_file_timestamp = None
         
     @classmethod
     def save_file(cls, file=None):
@@ -325,7 +327,12 @@ class LEConfig:
         cls.history.saved()
         cls.config.update_last_data_dir(file)
         cls.config.add_recent_file(file)
-        
+        cls.curr_file = file
+        try:
+            cls.curr_file_timestamp = os.path.getmtime(file)
+        except OSError:
+            cls.curr_file_timestamp = None
+
     @classmethod
     def open_file(cls, file):
         """

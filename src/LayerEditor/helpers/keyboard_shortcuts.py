@@ -187,7 +187,7 @@ SYSTEM_SHORTCUTS = {
     'cut': 'Ctrl+X',
     'select_all': 'Ctrl+A',
     #'unindent': 'Shift+Tab',
-    #'delete': 'Delete',
+    'delete': 'Delete',
     #'tab': 'Tab',
     #'backspace': 'Backspace',
     #'escape': 'Esc',

@@ -62,6 +62,7 @@ class LayerEditor:
             self.open_file()
         else:
             self.mainwindow.refresh_all()
+        self._update_document_name()
  
     def open_file(self):
         """open file menu action"""
@@ -72,6 +73,7 @@ class LayerEditor:
             cfg.config.data_dir, "Json Files (*.json)")
         if file[0]:
             cfg.open_file(file[0])
+            self._update_document_name()
             
     def add_shape_file(self):
         """open set file"""
@@ -84,7 +86,8 @@ class LayerEditor:
 
     def make_mesh(self):
         """open Make mesh dialog"""
-        self.save_file()
+        if self.save_file() is False:
+            return
 
         dlg = MakeMeshDlg(self.mainwindow)
         dlg.exec()
@@ -97,7 +100,7 @@ class LayerEditor:
             return
         cfg.open_recent_file(action.text())
         self.mainwindow.update_recent_files()
-#        self._update_document_name()
+        self._update_document_name()
 #        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
 
     def save_file(self):
@@ -128,7 +131,7 @@ class LayerEditor:
             file_name = dialog.selectedFiles()[0]
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
-#            self._update_document_name()
+            self._update_document_name()
 #            self.mainwindow.show_status_message("File is saved")
             return True
         return False
@@ -164,10 +167,10 @@ class LayerEditor:
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
-        if cfg.path is None:
+        if cfg.curr_file is None:
             title += " - New File"
         else:
-            title += " - " + cfg.path
+            title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
 
 
