@@ -59,4 +59,4 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
     def fill_surface(self, surface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, self.grid, surface)
+        return LayersHelpers.fill_surface(self, surface)

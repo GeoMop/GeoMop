@@ -97,7 +97,7 @@ class GeometryFactory:
 
     def add_surface_plane(self, depth):
         """Add new main layer"""
-        surface = Surface({"depth": depth})
+        surface = Surface.make_surface(depth)
         return self._reuse_surface(surface)
 
 

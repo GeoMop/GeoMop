@@ -69,6 +69,7 @@ class Surface(JsonData):
         surf.transform_z = [1.0, -depth]
         surf.approximation = None
         surf.grid_file = None
+        return surf
 
     def get_depth(self):
         """Return surface depth in 0"""
