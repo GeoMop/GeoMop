@@ -710,10 +710,10 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
             
-    def delete_point(self, p, label='Delete point', not_history=False):
-        assert len(p.lines)==0
+    def delete_point(self, p, label='Delete point', not_history=False):        
         #save revert operations to history
         if not not_history:
+            assert len(p.lines)==0
             self._history.add_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
@@ -813,16 +813,21 @@ class Diagram():
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
         self.po.split_line(self, line)
-        p = self.add_point(xn, yn, label)
+        p = self.add_point(xn, yn, label, None, True)
         p.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
         line.object.refresh_line()
-        l2 = self.join_line(point2, line.p2, None)
-        #save revert operations to history        
-        self._history.add_line(line.id, line.p1, point2, None)
-        self._history.delete_line(line.id, None)        
+        
+        #save revert operations to history 
+        self._history.add_line(line.id, line.p1.id, point2.id, None)        
+        self.regions.add_regions(0, p.id)
+        self._history.delete_point(p.id, None)
+        self._history.delete_line(line.id, None)  
+        
+        
+        l2 = self.join_line(point2, line.p2, label)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):

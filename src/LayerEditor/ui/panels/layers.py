@@ -324,7 +324,7 @@ class Layers(QtWidgets.QWidget):
             layers, interfaces = cfg.layers.get_group_copy(i, 1)    
             cfg.layers.split_layer(i, name, surface, split_type, dup)            
             self._history.change_group(layers, interfaces, i, 2, label)
-            cfg.diagram.regions.add_layer(i, name, oper)
+            cfg.diagram.regions.add_layer(i+1, name, oper)
             
             self.topologyChanged.emit()
             self.change_size()
