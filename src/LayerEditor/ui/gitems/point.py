@@ -47,7 +47,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         if self.state==ItemStates.standart:
             color = self.point.get_color()
-            if color != "#ffffff":
+            if color != "##":
                 old_pen = self.pen()
                 pen = QtGui.QPen(cfg.diagram.pen)
                 pen.setColor(QtGui.QColor(color))

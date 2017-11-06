@@ -3,7 +3,7 @@ import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
 from .region_structures import Regions
-from .polygon_operation import PolygonOperation, SimplePolygon, Outside
+from .polygon_operation import PolygonOperation
 
 __next_id__ = 1
 __next_diagram_uid__ = 1
@@ -93,7 +93,6 @@ class Point():
         return Diagram.regions.get_regions(0, self.id)
 
 
-
 class Line():
     """
     Class for graphic presentation of line
@@ -112,10 +111,8 @@ class Line():
         """This line instance is use for these polygon"""
         self.polygon2 = None
         """This line instance is use for these polygon"""
-        self.in_polygon = None
+        self.segment = None
         """This line instance is in these polygon"""
-        self.bundled = False
-        """This line instance is bundled to some polygon"""
  
         if id is None:            
             self.id = __next_id__
@@ -203,21 +200,18 @@ class Polygon():
                 line.polygon1 = self
             else:
                 line.polygon2 = self
-            line.bundled = True
             line.in_polygon = None
         self.object = None
         """Graphic object"""
+        self.helpid = None
+        """Id in polygon from decomposition"""
         self.id = id
         """Polygon history id"""
-        self.spolygon = SimplePolygon()
-        """Poligon work instance in polygon operation"""
+        self.qtpolygon = None
+        """Qt polygon for point localization"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
-            
-    def refresh(self, diagram):
-        """Some polygon points is moved"""
-        self.spolygon.reload_shape_boundary(self, True)
         
     def get_color(self):
         """Return region color"""
@@ -251,19 +245,14 @@ class Area():
         self.ymax = None
         """boundary rect"""
         
-    def serialize(self, data):
+    def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
         for i in range(0, len(self.gtpolygon)-1):
-            data.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
+            points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
-    def deserialize(self, data):
+    def deserialize(self, points):
         """Set inicialization arrea from polygon coordinates"""
-        px = []
-        py = []
-        for point in data:
-            (x, y) = point
-            px.append(x)
-            py.append(y)
+        px, py = zip(*points)
         self.set_area(px, py)
         
     def set_area(self, pxs, pys):
@@ -273,16 +262,12 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for i in range(0, len(pxs)):
-            self.gtpolygon.append(QtCore.QPointF(pxs[i], -pys[i]))
-            if self.xmin > pxs[i]:
-                self.xmin = pxs[i]
-            if self.xmax < pxs[i]:
-                self.xmax = pxs[i]
-            if self.ymin > -pys[i]:
-                self.ymin = -pys[i]
-            if self.ymax < -pys[i]:
-                self.ymax = -pys[i]
+        for x, y in zip(pxs, pys):
+            self.gtpolygon.append(QtCore.QPointF(x, -y))
+            self.xmin = min(self.xmin, x)
+            self.xmax = max(self.xmax, x)
+            self.ymin = min(self.ymin, -y)
+            self.ymax = max(self.ymax, -y)
         self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
  
 class Diagram():
@@ -320,48 +305,36 @@ class Diagram():
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        cls.regions.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        mapped_regions = [{}, {}, {}]
+        diagram = cls.topologies[topology_idx][0]
+        for point_id in range(0, len(diagram.points)):
+            mapped_regions[0][diagram.points[point_id].id] = regions[0][diagram.po.get_point_origin_id(point_id)]
+        for line in diagram.lines:
+            mapped_regions[1][line.id] = regions[1][diagram.po.get_line_origin_id(line)]
+        for polygon in diagram.polygons:
+            mapped_regions[2][polygon.id] = regions[2][diagram.po.get_polygon_origin_id(polygon)]    
+        cls.regions.add_shapes_to_region(
+            is_fracture, layer_id, layer_name, topology_idx, mapped_regions)
 
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return cls.regions.get_shapes_from_region(is_fracture, layer_id)
+        regions = cls.regions.get_shapes_from_region(is_fracture, layer_id)        
+        remapped_regions = [[], [], []]
+        diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
+        tmp = {}
+        for point_id in range(0, len(diagram.points)):
+            tmp[diagram.po.get_point_origin_id(point_id)]=regions[0][diagram.points[point_id].id]
+        remapped_regions[0] = [value for (key, value) in sorted(tmp.items())]  
+        tmp = {}
+        for line in diagram.lines:
+            tmp[diagram.po.get_line_origin_id(line)]=regions[1][line.id]
+        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
+        for polygon in diagram.polygons:
+            tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
+        remapped_regions[2] = [value for (key, value) in sorted(tmp.items())]    
         
-    @classmethod
-    def make_map(cls):
-        """Make map for conversion from global object id to local"""
-        map = Regions.diagram_map = {}
-        for top_id in cls.topologies:
-            diagram = None
-            for d in cls.topologies[top_id]:
-                if d.topology_owner:
-                    diagram = d
-                    break
-            map[top_id] = [{}, {}, {}]
-            for i in range(0, len(diagram.points)):
-                map[top_id][0][diagram.points[i].id] = i
-            for i in range(0, len(diagram.lines)):
-                map[top_id][1][diagram.lines[i].id] = i
-            for i in range(0, len(diagram.polygons)):
-                map[top_id][2][diagram.polygons[i].id] = i
-                
-    @classmethod
-    def make_revert_map(cls):
-        """Make map for conversion from local object id to global"""
-        map = Regions.diagram_map = {}
-        for top_id in cls.topologies:
-            diagram = None
-            for d in cls.topologies[top_id]:
-                if d.topology_owner:
-                    diagram = d
-                    break
-            map[top_id] = [{}, {}, {}]
-            for i in range(0, len(diagram.points)):
-                map[top_id][0][i] = diagram.points[i].id
-            for i in range(0, len(diagram.lines)):
-                map[top_id][1][i] = diagram.lines[i].id
-            for i in range(0, len(diagram.polygons)):
-                map[top_id][2][i] = diagram.polygons[i].id
+        return remapped_regions
                 
     def region_color_changed(self, region_idx):
         """Region collor was changed"""
@@ -386,29 +359,6 @@ class Diagram():
 #           for i in range(0, len(diagram.points)):
 #                map[top_id][0][i] = diagram.points[i].id
                 
-    def fix_polygon_map(self, polygon_idx, line_idxs):
-        """Check and fix polygon map for region assignation"""
-        if len(line_idxs)==len(self.polygons[polygon_idx].lines):
-            ok = True
-            for line in self.polygons[polygon_idx].lines:
-                idx = self.lines.index(line)
-                if not idx in line_idxs:
-                    ok = False
-                    break
-            if ok:
-                return
-        for polygon in self.polygons:
-            if len(line_idxs)==len(polygon.lines):
-                ok = True
-                for line in polygon.lines:
-                    idx = self.lines.index(line)
-                    if not idx in line_idxs:
-                        ok = False
-                        break
-                if ok:
-                    Regions.diagram_map[self.topology_idx][2][polygon_idx] = polygon.id
-                    return
-                    
     def get_polygon_lines(self, id):
         """Return polygon lines ndexes"""
         for polygon in self.polygons:
@@ -417,7 +367,11 @@ class Diagram():
                 for line in polygon.lines:
                     idxs.append(line.id)
                 return idxs
-                
+
+    def update_moving_points(self, points):
+        """Update moving point for polygon operations"""
+        return self.po.move_points(self, points)        
+
     def find_polygon(self, line_idxs):
         """Try find poligon accoding to lines indexes"""
         for polygon in self.polygons:
@@ -429,11 +383,6 @@ class Diagram():
                         break
                 if ok:                    
                     return polygon.id
-    
-    @classmethod
-    def delete_map(cls):
-        """Delete mapa for conversion from global object id to local""" 
-        Regions.diagram_map = None
     
     @classmethod
     def release_all(cls, history):
@@ -464,6 +413,8 @@ class Diagram():
         cls.map_id = {}
         for i in range(0, len(diagrams)):        
             cls.map_id[diagrams[i].uid]=i
+        cls.regions.remap_reg_from = diagrams[id-1]
+        cls.regions.remap_reg_to = diagrams[id]
 
     @classmethod
     def fix_topologies(cls, diagrams):
@@ -539,8 +490,10 @@ class Diagram():
         """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
-        self.outside = Outside()
+        self.po = PolygonOperation()
         """Help variable for polygons structures"""
+        self.spreaded = False
+        """If duagram start position is set"""
         
     def join(self):
         """Add diagram to topologies"""
@@ -631,6 +584,23 @@ class Diagram():
                 return line
         return None
         
+    def get_polygon_by_id(self, id):
+        """return line or None if not exist"""
+        for polygon in self.polygons:
+            if polygon.id==id:
+                return polygon
+        return None
+        
+    def find_line(self, p1_id, p2_id):
+        """Find line accoding points index"""
+        p1 = self.points[p1_id]
+        p2 = self.points[p2_id]
+        for line in p1.lines:
+            if line in p2.lines:
+                return line
+        return None
+        
+        
     def add_file(self, file):
         """Add new shapefile"""
         disp = self.shp.add_file(file)
@@ -653,26 +623,34 @@ class Diagram():
                 if self._rect.bottom()<p.y:
                     self._rect.setBottom(p.y)
                     
-    def add_polygon(self, lines, label=None, not_history=True):
+    def add_polygon(self, lines, label=None, not_history=True, copy=None):
         """Add polygon to list"""
         polygon = Polygon(lines)
         self.polygons.append(polygon)
         if not not_history:
+            if copy is not None:
+                self.regions.copy_regions(2, polygon.id, copy.id, not not_history, label)
+            else:
+                self.regions.add_regions(2, polygon.id, not not_history, label)
+        else:
             self.regions.add_regions(2, polygon.id, not not_history, label)
         self.new_polygons.append(polygon)        
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):
         """Remove polygon from list"""
-        self.polygons.remove(polygon)
         if not not_history:
             self.regions.del_regions(2, polygon.id, not not_history, label)
+        self.polygons.remove(polygon)
+        for line in polygon.lines:
+            line.del_polygon(polygon)        
         self.deleted_polygons.append(polygon)
         
     def add_point(self, x, y, label='Add point', id=None, not_history=False):
         """Add point to canvas"""
         point = Point(x, y, id)
-        self.points.append(point)        
+        self.points.append(point) 
+        self.po.add_point(self, point) 
         #save revert operations to history
         if not not_history:
             self.regions.add_regions(0, point.id)
@@ -690,6 +668,28 @@ class Diagram():
             if self._rect.bottom()<y:
                 self._rect.setBottom(y)
         return point
+        
+    def add_point_id(self, x, y):
+        """Add point to canvas and return index"""
+        point = Point(x, y, id)
+        self.points.append(point) 
+        # recount canvas size
+        if self._rect is None:
+            self._rect = QtCore.QRectF(x, y, 0, 0)        
+        else:
+            if self._rect.left()>x:
+                self._rect.setLeft(x)
+            if self._rect.right()<x:
+                self._rect.setRight(x)
+            if self._rect.top()>y:
+                self._rect.setTop(y)            
+            if self._rect.bottom()<y:
+                self._rect.setBottom(y)
+        return self.points.index(point)
+        
+    def import_decomposition(self, decomposition):
+        """Save decomposition and reload lines and polygons"""
+        self.po.set_new_decomposition(self, decomposition)
     
     def move_point(self, p, x, y, label='Move point', not_history=False):
         """Add point to canvas"""
@@ -710,10 +710,10 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
             
-    def delete_point(self, p, label='Delete point', not_history=False):
-        assert len(p.lines)==0
+    def delete_point(self, p, label='Delete point', not_history=False):        
         #save revert operations to history
         if not not_history:
+            assert len(p.lines)==0
             self._history.add_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
@@ -722,6 +722,7 @@ class Diagram():
         if not trimed.contains(p.qpointf()) :
             need_recount = True
         # remove point
+        self.po.remove_point(self, p) 
         self.points.remove(p)
         if not not_history:
             self.regions.del_regions(0, p.id, not not_history)
@@ -746,9 +747,24 @@ class Diagram():
         #save revert operations to history
         if not not_history:
             self._history.delete_line(line.id, label)        
-        PolygonOperation.update_polygon_add_line(self, line, None, not_history) 
+        self.po.add_line(self, line, None, not_history) 
         if not not_history:
             self.regions.add_regions(1, line.id, not not_history)
+        return line
+        
+    def join_line_import(self,p1_id, p2_id, segment):
+        """Import line from point p1 to p2"""
+        p1 = self.points[p1_id]
+        p2 = self.points[p2_id]
+        if p1>p2:
+            pom = p1
+            p1 = p2
+            p2 = pom        
+        line = Line(p1, p2)
+        line.segment = segment
+        p1.lines.append(line)
+        p2.lines.append(line)
+        self.lines.append(line)        
         return line
         
     def join_line_intersection(self, p1, p2, label=None):
@@ -770,17 +786,17 @@ class Diagram():
         """remove set line from lines end points"""
         self.lines.remove(l)
         l.p1.lines.remove(l)
-        l.p2.lines.remove(l)        
+        l.p2.lines.remove(l)
+        self.po.remove_line(self, l, label, not_history)        
         #save revert operations to history
         if not not_history:
-            self._history.add_line(l.id, l.p1.id, l.p2.id, label)
+            self._history.add_line(l.id, l.p1.id, l.p2.id, None)
             self.regions.del_regions(1, l.id, not not_history)
-        PolygonOperation.update_polygon_del_line(self, l, None, not_history)        
     
     def move_point_after(self, p, x_old, y_old, label='Move point'):
-        """Call if point is moved by another way and need save history"""
+        """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
-        self._history.move_point(p.id, x_old, y_old)
+        self._history.move_point(p.id, x_old, y_old, label)
         # compute recount params
         small = (self._rect.width()+self._rect.height())/1000000
         trimed = self._rect - QtCore.QMarginsF(small, small, small, small)
@@ -796,16 +812,22 @@ class Diagram():
     def add_new_point_to_line(self, line, x, y, label='Add new point to line'):
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
-        p = self.add_point(xn, yn, label)
+        self.po.split_line(self, line)
+        p = self.add_point(xn, yn, label, None, True)
         p.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
-        PolygonOperation.next_split_line(line) 
-        l2 = self.join_line(point2, line.p2, None)
-        #save revert operations to history        
-        self._history.add_line(line.id, line.p1, point2, None)
-        self._history.delete_line(line.id, None)        
+        line.object.refresh_line()
+        
+        #save revert operations to history 
+        self._history.add_line(line.id, line.p1.id, point2.id, None)        
+        self.regions.add_regions(0, p.id)
+        self._history.delete_point(p.id, None)
+        self._history.delete_line(line.id, None)  
+        
+        
+        l2 = self.join_line(point2, line.p2, label)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):
@@ -819,8 +841,9 @@ class Diagram():
         self.move_point(point, xn, yn, label)
         point.lines.append(line)
         line.p2.lines.remove(line)
-        point2 = line.p2
+        point2 = line.p2        
         line.p2 = point
+        line.object.refresh_line()
         l2 = self.join_line(point, point2)        
         #save revert operations to history
         self._history.add_line(line.id, line.p1.id, point2.id, None)

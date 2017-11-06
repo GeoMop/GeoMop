@@ -1,4 +1,5 @@
 from enum import IntEnum
+import copy
 
 class EventLocation(IntEnum):
     """Location where event happen"""
@@ -395,7 +396,7 @@ class LayersHistory(History):
             
     def __init__(self, global_history): 
         super(LayersHistory, self).__init__(global_history)       
-        self._refresh_panel = True
+        self._refresh_panel = False
         """Refresh layer panel"""
         self._check_viewed = False
         """Check interfaces set as viewed for existance"""
@@ -577,7 +578,8 @@ class LayersHistory(History):
         """
         layers = self.global_history.cfg.layers
         del_interface = layers.delete_interface(id)
-        layers.strip_edited(del_interface)
+        if layers.strip_edited(del_interface):
+            self._edit_first = True
         
         revert =  HistoryStep(self._insert_interface, [del_interface, id])
         self._refresh_panel = True
@@ -603,7 +605,8 @@ class LayersHistory(History):
         """
         layers = self.global_history.cfg.layers
         old_interface = layers.change_interface(interface, id)
-        layers.strip_edited(old_interface)
+        if layers.strip_edited(old_interface):
+            self._edit_first = True
         
         revert =  HistoryStep(self._change_interface, [old_interface, id])
         self._refresh_panel = True
@@ -630,7 +633,8 @@ class LayersHistory(History):
         layers = self.global_history.cfg.layers
         old_layers, old_interfaces = layers.switch_group_copy(id, old_count, new_layers, new_interfaces)
         for interface in old_interfaces:
-            layers.strip_edited(interface)
+            if layers.strip_edited(interface):
+                self._edit_first = True
             
         revert =  HistoryStep(self._change_group, [old_layers, old_interfaces, id, len(new_layers)])
         self._refresh_panel = True
@@ -698,8 +702,7 @@ class LayersHistory(History):
         """
         cfg = self.global_history.cfg
         for i in range(0, count):
-            if cfg.remove_and_save_diagram(id):
-                self._edit_first = True
+            cfg.remove_and_save_diagram(id)                
         diagrams = self.global_history.removed_diagrams
         self.global_history.removed_diagrams = []
         
@@ -755,7 +758,7 @@ class RegionHistory(History):
     def __init__(self, global_history): 
         super(RegionHistory, self).__init__(global_history) 
         self._refresh_panel = False
-        """Refresh region panel"""      
+        """Refresh region panel"""
         
     def add_layer(self, id, name, insert, label=None):
         """
@@ -771,7 +774,7 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.add_layer_history(id, name, insert)
-        
+        self._refresh_panel = True
         revert =  HistoryStep(self._delete_layer, [id])        
         return revert
 
@@ -790,6 +793,7 @@ class RegionHistory(History):
         """
         name = self.global_history.cfg.diagram.regions.layers[id]
         insert = self.global_history.cfg.diagram.regions.delete_layer(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._add_layer, [id, name, insert])        
         return revert
 
@@ -807,7 +811,7 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.add_fracture(id, name, is_own, is_top, False)
-        
+        self._refresh_panel = True
         revert =  HistoryStep(self._delete_fracture, [id])        
         return revert
 
@@ -824,10 +828,11 @@ class RegionHistory(History):
         
         Return invert operation
         """
-        name = self.global_history.cfg.diagram.regions.layers[-id]
-        is_top = self.global_history.cfg.diagram.regions.get_topology(-id) == \
+        name = self.global_history.cfg.diagram.regions.layers[-id-1]
+        is_top = self.global_history.cfg.diagram.regions.get_topology(-id-1) == \
             self.global_history.cfg.diagram.regions.get_topology(id)
         is_own = self.global_history.cfg.diagram.regions.delete_fracture(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._add_fracture, [id, name, is_own, is_top])        
         return revert
 
@@ -846,6 +851,7 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.move_topology(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._unmove_topology, [id])        
         return revert
 
@@ -864,6 +870,7 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.unmove_topology(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._move_topology, [id])        
         return revert
         
@@ -885,6 +892,7 @@ class RegionHistory(History):
         else:
             old_name = self.global_history.cfg.diagram.regions.layers[id]
         self.global_history.cfg.diagram.regions.rename_layer(is_fracture, id, name, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._rename_layer, [is_fracture, id, old_name])        
         return revert
     
@@ -893,35 +901,97 @@ class RegionHistory(History):
         Add save layer data operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._save_data, [id, r0D, r1D, r2D],label))
+        lines_idxs = {}
+        for shape_id in r2D:
+            line_idxs = []
+            line_idxs = self.global_history.cfg.diagram.get_polygon_lines(shape_id)
+            lines_idxs[shape_id] = line_idxs
+        self.steps.append(HistoryStep(self._save_data, [id, r0D, r1D, r2D, lines_idxs],label))
         
-    def _save_data(self, id, r0D, r1D, r2D):
+    def _save_data(self, id, r0D, r1D, r2D, lines_idxs):
         """
         Save layer data
         
         Return invert operation
         """        
-        revert =  HistoryStep(self._load_data, [id, r0D, r1D, r2D])        
+        revert =  HistoryStep(self._load_data, [id, r0D, r1D, r2D, lines_idxs])        
         return revert
-        
-    def load_data(self, id, r0D, r1D, r2D, label=None):
+
+    def change_data(self, diagram_to, id, r0D, r1D, r2D, label=None):
         """
-        Add save layer data operation. 
+        Add change layer data operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._load_data, [id, r0D, r1D, r2D],label))
+        lines_idxs = {}
+        diagram_id = self.global_history.cfg.diagrams.index(diagram_to)
+        for shape_id in self.global_history.cfg.diagram.regions.layer_region_2D[id]:
+            line_idxs = []
+            line_idxs = diagram_to.get_polygon_lines(shape_id)
+            lines_idxs[shape_id] = line_idxs
+        self.steps.append(HistoryStep(self._change_data, [diagram_id, id, r0D, r1D, r2D, lines_idxs, False],label))
         
-    def _load_data(self, id, r0D, r1D, r2D):
+    def _change_data(self, diagram_id, id, r0D, r1D, r2D, lines_idxs, redo):
         """
         Save layer data
         
         Return invert operation
         """
+        r0D_old = self.global_history.cfg.diagram.regions.layer_region_0D[id]
+        r1D_old = self.global_history.cfg.diagram.regions.layer_region_1D[id]
+        r2D_old = self.global_history.cfg.diagram.regions.layer_region_2D[id]
+        lines_idxs_old = {}
+        if redo:
+            redo = False
+            for shape_id in r2D:
+                line_idxs = []
+                line_idxs = self.global_history.cfg.diagrams[diagram_id].get_polygon_lines(shape_id)
+                lines_idxs_old[shape_id] = line_idxs
+        else:
+            for shape_id in r2D_old:
+                line_idxs = []
+                line_idxs = self.global_history.cfg.diagrams[diagram_id].get_polygon_lines(shape_id)
+                lines_idxs_old[shape_id] = line_idxs
+            redo = True
         self.global_history.cfg.diagram.regions.layer_region_0D[id]=r0D
         self.global_history.cfg.diagram.regions.layer_region_1D[id]=r1D
-        self.global_history.cfg.diagram.regions.layer_region_2D[id]=r2D
+        for lid in lines_idxs:
+            shape_id =  self.global_history.cfg.diagrams[diagram_id].find_polygon(lines_idxs[lid])
+            if lid!=shape_id:
+                r2D[shape_id] = r2D[lid]
+                del r2D[lid]
+        self.global_history.cfg.diagram.regions.layer_region_2D[id] = r2D        
         
-        revert =  HistoryStep(self._save_data, [id, r0D, r1D, r0D])        
+        revert =  HistoryStep(self._change_data, [diagram_id, id, r0D_old, r1D_old, r2D_old, lines_idxs_old, redo])        
+        return revert
+        
+    def load_data(self, id, r0D, r1D, r2D, label=None):
+        """
+        Add load layer data operation. 
+        """
+        self.global_history.add_label(self.id, label)
+        lines_idxs = {}
+        for shape_id in r2D:
+            line_idxs = []
+            line_idxs = self.global_history.cfg.diagram.get_polygon_lines(shape_id)
+            lines_idxs[shape_id] = line_idxs
+        self.steps.append(HistoryStep(self._load_data, [id, r0D, r1D, r2D, lines_idxs],label))
+        
+    def _load_data(self, id, r0D, r1D, r2D, lines_idxs):
+        """
+        Load saved layer data
+        
+        Return invert operation
+        """
+        self.global_history.cfg.diagram.regions.layer_region_0D[id]=r0D
+        self.global_history.cfg.diagram.regions.layer_region_1D[id]=r1D
+        copy_r2D = copy.copy(r2D)
+        for lid in lines_idxs:
+            shape_id =  self.global_history.cfg.diagram.find_polygon(lines_idxs[lid])
+            if lid!=shape_id:
+                r2D[shape_id] = r2D[lid]
+                del r2D[lid]
+        self.global_history.cfg.diagram.regions.layer_region_2D[id] = r2D        
+        revert =  HistoryStep(self._save_data, [id, r0D, r1D, copy_r2D, lines_idxs])        
         return revert
 
     def copy_related(self, id, name, label=None):
@@ -943,14 +1013,14 @@ class RegionHistory(History):
         
     def delete_data(self, id, label=None):
         """
-        Add copy related to history operation. 
+        Add delete related to history operation. 
         """
         self.global_history.add_label(self.id, label)
         self.steps.append(HistoryStep(self._delete_data, [id],label))
         
     def _delete_data(self, id):
         """
-        Copy data to layers from related layers.
+        Delete data to layers from related layers.
         
         Return invert operation
         """
@@ -973,7 +1043,8 @@ class RegionHistory(History):
         Return invert operation
         """
         self.global_history.cfg.diagram.regions.insert_region(id, region, False)
-        revert =  HistoryStep(self._delete_region, [id])        
+        revert =  HistoryStep(self._delete_region, [id]) 
+        self._refresh_panel = True
         return revert
 
     def delete_region(self, id, label=None):
@@ -990,6 +1061,7 @@ class RegionHistory(History):
         Return invert operation
         """        
         region = self.global_history.cfg.diagram.regions.delete_region(id, False)
+        self._refresh_panel = True
         revert =  HistoryStep(self._insert_region, [id, region])        
         return revert
         
@@ -1044,11 +1116,28 @@ class RegionHistory(History):
             del layer_region[layer_id][shape_id]
         else:
             layer_region[layer_id][shape_id] = region_id
+            self._update_shape_region(dim, shape_id)
         revert =  HistoryStep(self._change_shape_region, [shape_id, layer_id, dim, old_region_id, line_idxs])        
         return revert
         
+    def _update_shape_region(self, dim, shape_idx):
+        """If id region is in current diagram update it"""
+        shape = None
+        if dim==2:
+            shape = self.global_history.cfg.diagram.get_polygon_by_id(shape_idx)
+            if shape is not None and shape.object is not None:
+                shape.object.update_color()
+            return
+        elif dim==1:
+            shape = self.global_history.cfg.diagram.get_line_by_id(shape_idx)
+        elif dim==0:
+            shape = self.global_history.cfg.diagram.get_point_by_id(shape_idx)
+        if shape is not None:
+            shape.object.update()
+            
     def return_op(self):
         """return nedded check """
-        ret = {"type":"Region", "refresh_panel":self._refresh_panel}
+        ret = {"type":"Regions", "refresh_panel":self._refresh_panel}
         self._refresh_panel = False
+        self.updated_shapes={}
         return ret

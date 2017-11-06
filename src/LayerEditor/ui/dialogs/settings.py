@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QM
                              QGroupBox, QComboBox)
 
 from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from meconfig import cfg
+from leconfig import cfg
 from geomop_shortcuts import KeyboardShortcutPicker
-from geomop_widgets import WorkspaceSelectorWidget, FontSelectorWidget
+from geomop_widgets import WorkspaceSelectorWidget
 
 
 class SettingsDialog(QDialog):
@@ -46,12 +46,8 @@ class SettingsDialog(QDialog):
 
     def accept(self):
         """Handles a confirmation."""
-        cfg.config.font = self.general_tab.font_selector.value.toString()
         cfg.config.workspace = self.general_tab.workspace_selector.value
-        cfg.config.display_autocompletion = self.general_tab.autocompletion_checkbox.isChecked()
-        cfg.config.symbol_completion = self.general_tab.symbol_completion_checkbox.isChecked()
         cfg.config.shortcuts = self.keyboard_shortcuts_tab.get_shortcuts()
-        cfg.config.line_endings = self.general_tab.line_ends_combo_box.currentText()
         cfg.config.save()
         super(SettingsDialog, self).accept()
 
@@ -62,43 +58,9 @@ class GeneralTab(QWidget):
         super(GeneralTab, self).__init__(parent)
 
         self.workspace_selector = WorkspaceSelectorWidget(self, cfg.config.workspace)
-        self.font_selector = FontSelectorWidget(self, cfg.config.font)
-
-        self.line_ends_label = QLabel('Line Endings')
-        self.line_ends_combo_box = QComboBox()
-        self.line_ends_combo_box.addItems([
-            cfg.config.LINE_ENDINGS_LF,
-            cfg.config.LINE_ENDINGS_CRLF
-        ])
-        index = self.line_ends_combo_box.findText(cfg.config.line_endings)
-        index = index if index >= 0 else 0
-        self.line_ends_combo_box.setCurrentIndex(index)
-        self.line_ends_combo_box.setMinimumWidth(180)
-        self.line_endings_layout = QHBoxLayout()
-        self.line_endings_layout.addWidget(self.line_ends_label)
-        self.line_endings_layout.addStretch(1)
-        self.line_endings_layout.addWidget(self.line_ends_combo_box)
-        self.line_endings_layout.setContentsMargins(0,0,0,0)
-
-        self.autocompletion_checkbox = QCheckBox("Display completicion automaticaly")
-        if cfg.config.display_autocompletion:
-            self.autocompletion_checkbox.setChecked(True)
-
-        self.symbol_completion_checkbox = QCheckBox("CComplete bracked and braces")
-        if cfg.config.symbol_completion:
-            self.symbol_completion_checkbox.setChecked(True)
-
-        autocompletion_group = QGroupBox('Autocompletion')
-        autocompletion_layout = QVBoxLayout()
-        autocompletion_layout.addWidget(self.autocompletion_checkbox)
-        autocompletion_layout.addWidget(self.symbol_completion_checkbox)
-        autocompletion_group.setLayout(autocompletion_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.workspace_selector)
-        main_layout.addWidget(self.font_selector)
-        main_layout.addLayout(self.line_endings_layout)
-        main_layout.addWidget(autocompletion_group)
         main_layout.addStretch(1)
         self.setLayout(main_layout)
 

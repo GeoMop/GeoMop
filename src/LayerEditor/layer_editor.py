@@ -15,6 +15,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import icon
 from ui.dialogs.set_diagram import SetDiagramDlg
+from ui.dialogs.make_mesh import MakeMeshDlg
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -26,6 +27,9 @@ class LayerEditor:
         
         # load config        
         cfg.init()
+
+        # set default font to layers
+        cfg.layers.font = self._app.font()
         
         if init_dialog:
             init_dlg = SetDiagramDlg()
@@ -56,6 +60,9 @@ class LayerEditor:
         ret = init_dlg.exec_()
         if ret!=QtWidgets.QDialog.Accepted:
             self.open_file()
+        else:
+            self.mainwindow.refresh_all()
+        self._update_document_name()
  
     def open_file(self):
         """open file menu action"""
@@ -66,6 +73,7 @@ class LayerEditor:
             cfg.config.data_dir, "Json Files (*.json)")
         if file[0]:
             cfg.open_file(file[0])
+            self._update_document_name()
             
     def add_shape_file(self):
         """open set file"""
@@ -76,6 +84,14 @@ class LayerEditor:
             if cfg.open_shape_file( shp_file[0]):
                 self.mainwindow.refresh_diagram_shp()
 
+    def make_mesh(self):
+        """open Make mesh dialog"""
+        if self.save_file() is False:
+            return
+
+        dlg = MakeMeshDlg(self.mainwindow)
+        dlg.exec()
+
     def open_recent(self, action):
         """open recent file menu action"""
         if action.text() == cfg.curr_file:
@@ -84,7 +100,7 @@ class LayerEditor:
             return
         cfg.open_recent_file(action.text())
         self.mainwindow.update_recent_files()
-#        self._update_document_name()
+        self._update_document_name()
 #        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
 
     def save_file(self):
@@ -115,7 +131,7 @@ class LayerEditor:
             file_name = dialog.selectedFiles()[0]
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
-#            self._update_document_name()
+            self._update_document_name()
 #            self.mainwindow.show_status_message("File is saved")
             return True
         return False
@@ -151,10 +167,10 @@ class LayerEditor:
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
-        if cfg.path is None:
+        if cfg.curr_file is None:
             title += " - New File"
         else:
-            title += " - " + cfg.path
+            title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
 
 

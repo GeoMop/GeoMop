@@ -44,7 +44,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         super(Line, self).paint(painter, option, widget)            
         if self.state==ItemStates.standart:
             color = self.line.get_color()
-            if color != "#000000":
+            if color != "##":
                 old_pen = self.pen()
                 pen = QtGui.QPen(cfg.diagram.pen)
                 pen.setColor(QtGui.QColor(color))
@@ -68,6 +68,10 @@ class Line(QtWidgets.QGraphicsLineItem):
             super(Line, self).mouseReleaseEvent(event)
         else:
             event.gobject = self
+            
+    def refresh_line(self):
+        """Refresh line after point changes"""
+        self.setLine(self.line.p1.x, self.line.p1.y, self.line.p2.x, self.line.p2.y)
             
     def select_line(self):
         """set selected and repaint line"""

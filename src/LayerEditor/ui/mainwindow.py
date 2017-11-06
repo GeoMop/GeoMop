@@ -9,6 +9,8 @@ from ui import panels
 from leconfig import cfg
 from ui.menus.edit import EditMenu
 from ui.menus.file import MainFileMenu
+from ui.menus.analysis import AnalysisMenu
+from ui.menus.settings import MainSettingsMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -49,6 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
+        self.diagramView.setMouseTracking(True)
         self._hsplitter.addWidget(self.diagramView) 
         
         self._hsplitter.setSizes([300, 760])
@@ -57,11 +60,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._menu = self.menuBar()
         self._edit_menu = EditMenu(self, self.diagramScene)
         self._file_menu = MainFileMenu(self, layer_editor)
+        self._analysis_menu = AnalysisMenu(self, cfg.config)
+        self._settings_menu = MainSettingsMenu(self, layer_editor)
         self.update_recent_files(0)
         
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
-        
+        self._menu.addMenu(self._analysis_menu)
+        self._menu.addMenu(self._settings_menu)
+
         # status bar
         self._column = QtWidgets.QLabel(self)
         self._column.setFrameStyle(QtWidgets.QFrame.StyledPanel)
@@ -72,8 +79,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload_icon_timer = QtCore.QTimer(self)
         self._reload_icon_timer.timeout.connect(lambda: self._reload_icon.setVisible(False))
 
+        self._analysis_label = QtWidgets.QLabel(self)
+        cfg.config.observers.append(self)
+
         self._status = self.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
+        self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
@@ -89,6 +100,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
 
+        # initialize components
+        self.config_changed()
+
     def release_data(self, diagram):
         """Release all diagram graphic object"""
         self.diagramScene.release_data(diagram)
@@ -99,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
-        self.update_panel()
+        self.update_layers_panel()
         self.display_all()
 
     def paint_new_data(self):
@@ -120,13 +134,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.release_data(old_i)
         self.diagramScene.set_data()
         
-        view_rect = self.diagramView.rect()
-        rect = QtCore.QRectF(cfg.diagram.x-100, 
-            cfg.diagram.y-100, 
-            view_rect.width()/cfg.diagram.zoom+200, 
-            view_rect.height()/cfg.diagram.zoom+200)
-            
-        self.diagramScene.blink_start(rect)
+        if not cfg.diagram.spreaded:
+            self.display_all()
+        else:
+            view_rect = self.diagramView.rect()
+            rect = QtCore.QRectF(cfg.diagram.x-100, 
+                cfg.diagram.y-100, 
+                view_rect.width()/cfg.diagram.zoom+200, 
+                view_rect.height()/cfg.diagram.zoom+200)
+                
+            self.diagramScene.blink_start(rect)
         
     def update_recent_files(self, from_row=1):
         """Update recently opened files."""
@@ -176,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg.diagram.x = rect.left()
             cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
         self._display(view_rect)
+        cfg.diagram.spreaded = True
         
     def _display(self, view_rect):
         """moving"""
@@ -199,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.removeItem(obj)
         del cfg.diagram.shp.datas[idx_item]
         
-    def update_panel(self):
+    def update_layers_panel(self):
         """Update layers panel"""
         self.layers.change_size()
         
@@ -227,5 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
             region = cfg.diagram.lines[shape_idx].get_point_region()
         self.regions.select_current_region(region)
             
-        
-        
+    def config_changed(self):
+        """Handle changes of config."""
+        analysis = cfg.config.analysis or '(No Analysis)'
+        self._analysis_label.setText(analysis)

@@ -69,6 +69,9 @@ class Chicken(Animal):
         def.wing = 1 # not serialized
 
 TODO:
+- Need to separate data validation and serialization/deserialization, default values. E.g.
+  I need validation against [[int]], but default value []. But otherwise the default could be [[]], or None, ...
+
 - Is __init__ the best place to specify types and do deserialization as well?
   We have no way to initialize private attributes (not accesible from input, but known at construction time of the class
   - object created dynamicaly at run time.
@@ -178,7 +181,7 @@ class ClassFactory:
                 except TypeError:
                     raise TypeError("Non-standard JsonData constructor for class: {}\npath: {}".format(c, path))
                 except:
-                    raise Exception("Failed initizlization of type: {}\npath: {}".format(c, path))
+                    raise Exception("Failed initialization of type: {}\npath: {}".format(c, path))
         assert False, "Input class: {} not in the factory list: {}\npath: {} ".format(class_name, self.class_list, path)
 
 # class ClassFromList(ClassFactory):
@@ -312,7 +315,7 @@ class JsonData:
                     if value is not None:
                         l.append(value)
             else:
-                print("Warning: Overwriting default list content:\n {}\n path:\n {}.".format(temp, path))
+                # print("Warning: Overwriting default list content:\n {}\n path:\n {}.".format(temp, path))
                 l=value
             return l
 

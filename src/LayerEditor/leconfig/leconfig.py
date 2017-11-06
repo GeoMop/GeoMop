@@ -5,16 +5,24 @@
 
 import logging
 import os
+from copy import deepcopy
 import config as cfg
+from geomop_shortcuts import shortcuts
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from geomop_util.logging import LOGGER_PREFIX
+from geomop_util import Serializable
 from geomop_dialogs import GMErrorDialog
 from geomop_analysis import Analysis, InvalidAnalysis
-import ui.data as data
+import ui.data
 from ui.helpers import CurrentView
 
 
 class _Config:
     """Class for Analyzis serialization"""
+
+    __serializable__ = Serializable(
+        excluded=['observers']
+    )
 
     DEBUG_MODE = False
     """debug mode changes the behaviour"""
@@ -36,6 +44,8 @@ class _Config:
             return kwargs[key] if key in kwargs else default
 
         from os.path import expanduser
+        self.observers = []
+        """objects to be notified of changes"""
         self._analysis = None
         self._workspace = None
 
@@ -47,7 +57,11 @@ class _Config:
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
- 
+
+        self.shortcuts = kw_or_def('shortcuts',
+                                   deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
+        """user customizable keyboard shortcuts"""
+
     def save(self):
         """Save config data"""
         cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
@@ -143,7 +157,12 @@ class _Config:
                 Analysis.current = analysis
         self.notify_all()
     
-        
+    def notify_all(self):
+        """Notify all observers about changes."""
+        for observer in self.observers:
+            observer.config_changed()
+
+
 class LEConfig:
     """Static data class"""
     config = _Config.open()
@@ -154,11 +173,11 @@ class LEConfig:
     """List of diagram data"""
     history = None
     """History for current geometry data"""
-    layers = data.Layers()
+    layers = ui.data.Layers()
     """Layers structure"""
     diagram =  None
     """Current diagram data"""
-    data = None    
+    le_serializer = None
     """Data from geometry file"""    
     main_window = None    
     """parent of dialogs"""
@@ -169,7 +188,7 @@ class LEConfig:
     Timestamp of opened file, if editor text is 
     imported or new timestamp is None
     """
-    path = None
+    #path = None
     """Current geometry data file path"""
 
     @classmethod
@@ -180,17 +199,17 @@ class LEConfig:
     @classmethod
     def add_region(cls, color, name, dim, step,  boundary, not_used):
         """Add region"""
-        data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
+        ui.data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        ui.data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
     
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return data.Diagram.get_shapes_from_region(is_fracture, layer_id)
+        return ui.data.Diagram.get_shapes_from_region(is_fracture, layer_id)
         
     @classmethod
     def set_curr_diagram(cls, i):
@@ -202,6 +221,8 @@ class LEConfig:
     @classmethod
     def diagram_id(cls):
         """Return current diagram id"""
+        if not cls.diagram in cls.diagrams:
+            return None
         return cls.diagrams.index(cls.diagram)
     
     @classmethod
@@ -218,9 +239,9 @@ class LEConfig:
                 cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
                 cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))
-        if oper is data.TopologyOperations.insert:
+        if oper is ui.data.TopologyOperations.insert:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
-        elif oper is data.TopologyOperations.insert_next:
+        elif oper is ui.data.TopologyOperations.insert_next:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
             
     @classmethod
@@ -230,8 +251,8 @@ class LEConfig:
         for i in range(0, len(diagrams)):
             cls.diagrams.insert(id+i, diagrams[i])
             cls.diagrams[id+i].join()
-        if oper is data.TopologyOperations.insert or \
-            oper is data.TopologyOperations.insert_next:
+        if oper is ui.data.TopologyOperations.insert or \
+            oper is ui.data.TopologyOperations.insert_next:
             cls.diagrams[id].move_diagram_topologies(id+len(diagrams), cls.diagrams)
             
     @classmethod
@@ -241,7 +262,7 @@ class LEConfig:
         cls.history.removed_diagrams.append(cls.diagrams[idx])
         curr_id = cls.diagram_id()
         del cls.diagrams[idx]
-        data.Diagram.fix_topologies(cls.diagrams)
+        ui.data.Diagram.fix_topologies(cls.diagrams)
         return curr_id == idx
         
     @classmethod
@@ -253,14 +274,14 @@ class LEConfig:
     @classmethod
     def release_all(cls):
         """Release all diagram data"""
-        data.Diagram.release_all(cls.history)
+        ui.data.Diagram.release_all(cls.history)
     
     @classmethod
     def init(cls):
         """Init class with static method"""
-        cls.history = data.GlobalHistory(cls)
-        data.Diagram.release_all(cls.history)
-        cls.data = data.LESerializer(cls)
+        cls.history = ui.data.GlobalHistory(cls)
+        ui.data.Diagram.release_all(cls.history)
+        cls.le_serializer = ui.data.LESerializer(cls)
         
     @staticmethod
     def get_current_view(location):
@@ -294,19 +315,25 @@ class LEConfig:
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
-        cls.data.set_new(cls)
-        cls.main_window.refresh_all()
+        cls.le_serializer.set_new(cls)
+        cls.curr_file = None
+        cls.curr_file_timestamp = None
         
     @classmethod
     def save_file(cls, file=None):
         """save to json file"""
         if file is None:
             file = cls.curr_file
-        cls.data.save(cls, file)
+        cls.le_serializer.save(cls, file)
         cls.history.saved()
         cls.config.update_last_data_dir(file)
         cls.config.add_recent_file(file)
-        
+        cls.curr_file = file
+        try:
+            cls.curr_file_timestamp = os.path.getmtime(file)
+        except OSError:
+            cls.curr_file_timestamp = None
+
     @classmethod
     def open_file(cls, file):
         """
@@ -323,7 +350,7 @@ class LEConfig:
             except OSError:
                 cls.curr_file_timestamp = None
         cls.history.remove_all()        
-        cls.data.load(cls, file)        
+        cls.le_serializer.load(cls, file)
         cls.main_window.refresh_all()
         cls.config.add_recent_file(file)
         
@@ -376,4 +403,19 @@ class LEConfig:
                 raise err
         return False
 
-        
+    @classmethod
+    def get_shortcut(cls, name):
+        """Locate a keyboard shortcut by its action name.
+
+        :param str name: name of the shortcut
+        :return: the assigned shortcut
+        :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
+        """
+        shortcut = None
+        if name in shortcuts_definition.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
+        elif name in cls.config.shortcuts:
+            shortcut = cls.config.shortcuts[name]
+        if shortcut:
+            return shortcuts.get_shortcut(shortcut)
+        return None

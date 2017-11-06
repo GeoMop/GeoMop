@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMenu, QAction
+from ui.helpers import CurrentView
 from leconfig import cfg
 
 class EditMenu(QMenu):
@@ -12,11 +13,13 @@ class EditMenu(QMenu):
         self.parent = parent
         
         self._undo_action = QAction('&Undo', self)
+        self._undo_action.setShortcut(cfg.get_shortcut('undo').key_sequence)
         self._undo_action.setStatusTip('Revert last operation')
         self._undo_action.triggered.connect(self._undo)
         self.addAction(self._undo_action)
         
         self._redo_action = QAction('&Redo', self)
+        self._redo_action.setShortcut(cfg.get_shortcut('redo').key_sequence)
         self._redo_action.setStatusTip('Put last reverted operation back')
         self._redo_action.triggered.connect(self._redo)
         self.addAction(self._redo_action)        
@@ -33,6 +36,7 @@ class EditMenu(QMenu):
         self.addSeparator()
 
         self._delete_action = QAction('&Delete', self)
+        self._delete_action.setShortcut(cfg.get_shortcut('delete').key_sequence)
         self._delete_action.setStatusTip('Delete selected items')
         self._delete_action.triggered.connect(self._delete)
         self.addAction(self._delete_action)
@@ -43,6 +47,7 @@ class EditMenu(QMenu):
         self.addAction(self._deselect_action)
         
         self._select_action = QAction('&Select All', self)
+        self._select_action.setShortcut(cfg.get_shortcut('select_all').key_sequence)
         self._select_action.setStatusTip('Select all items')
         self._select_action.triggered.connect(self._select)
         self.addAction(self._select_action)
@@ -59,14 +64,16 @@ class EditMenu(QMenu):
                     self._diagram.update_changes(
                         ops["added_points"], ops["removed_points"], 
                         ops["moved_points"], ops["added_lines"], ops["removed_lines"])
-                elif ops["type"]=="Layers":                    
-                    if ops["check_viewed"]: 
-                        cfg.main_window.diagramScene.update_views()
+                elif ops["type"]=="Layers":  
                     if ops["edit_first"]: 
-                        cfg.layer.set_edited_diagram(0)
-                        cfg.set_curr_diagram(0)               
+                        CurrentView.set_view_id(0, cfg)
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()                                
                     if ops["refresh_panel"]: 
-                        cfg.main_window.update_panel()
+                        cfg.main_window.update_layers_panel()
+                elif ops["type"]=="Regions":  
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.set_topology()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()
@@ -88,17 +95,16 @@ class EditMenu(QMenu):
                     self._diagram.update_changes(
                         ops["added_points"], ops["removed_points"], 
                         ops["moved_points"], ops["added_lines"], ops["removed_lines"])
-                elif ops["type"]=="Layers":                    
-                    if ops["check_viewed"]: 
-                        cfg.main_window.diagramScene.update_views()
+                elif ops["type"]=="Layers":
                     if ops["edit_first"]: 
-                        cfg.layer.set_edited_diagram(0)
-                        cfg.set_curr_diagram(0)               
+                        CurrentView.set_view_id(0, cfg)                        
+                    if ops["check_viewed"]: 
+                        cfg.main_window.diagramScene.update_views()                                   
                     if ops["refresh_panel"]: 
-                        cfg.main_window.update_panel()
+                        cfg.main_window.update_layers_panel()
                 elif ops["type"]=="Regions": 
                     if ops["refresh_panel"]: 
-                        cfg.main_window.set_region(view.tab_id, view.region_id)
+                        cfg.main_window.set_topology()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()
