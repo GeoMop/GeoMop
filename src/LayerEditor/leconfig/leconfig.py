@@ -7,7 +7,8 @@ import logging
 import os
 from copy import deepcopy
 import config as cfg
-from helpers import keyboard_shortcuts as shortcuts
+from geomop_shortcuts import shortcuts
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
 from geomop_dialogs import GMErrorDialog
@@ -58,7 +59,7 @@ class _Config:
         """a list of recently opened files"""
 
         self.shortcuts = kw_or_def('shortcuts',
-                                   deepcopy(shortcuts.DEFAULT_USER_SHORTCUTS))
+                                   deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
         """user customizable keyboard shortcuts"""
 
     def save(self):
@@ -187,7 +188,7 @@ class LEConfig:
     Timestamp of opened file, if editor text is 
     imported or new timestamp is None
     """
-    path = None
+    #path = None
     """Current geometry data file path"""
 
     @classmethod
@@ -314,7 +315,9 @@ class LEConfig:
         """Open new empty file"""
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
-        cls.le_serializer.set_new(cls)        
+        cls.le_serializer.set_new(cls)
+        cls.curr_file = None
+        cls.curr_file_timestamp = None
         
     @classmethod
     def save_file(cls, file=None):
@@ -325,7 +328,12 @@ class LEConfig:
         cls.history.saved()
         cls.config.update_last_data_dir(file)
         cls.config.add_recent_file(file)
-        
+        cls.curr_file = file
+        try:
+            cls.curr_file_timestamp = os.path.getmtime(file)
+        except OSError:
+            cls.curr_file_timestamp = None
+
     @classmethod
     def open_file(cls, file):
         """
@@ -404,8 +412,8 @@ class LEConfig:
         :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
         """
         shortcut = None
-        if name in shortcuts.SYSTEM_SHORTCUTS:
-            shortcut = shortcuts.SYSTEM_SHORTCUTS[name]
+        if name in shortcuts_definition.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
         elif name in cls.config.shortcuts:
             shortcut = cls.config.shortcuts[name]
         if shortcut:

@@ -262,7 +262,7 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for x, y in zip(pxs, pxs):
+        for x, y in zip(pxs, pys):
             self.gtpolygon.append(QtCore.QPointF(x, -y))
             self.xmin = min(self.xmin, x)
             self.xmax = max(self.xmax, x)
@@ -492,6 +492,8 @@ class Diagram():
         """history"""
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
+        self.spreaded = False
+        """If duagram start position is set"""
         
     def join(self):
         """Add diagram to topologies"""

@@ -22,11 +22,13 @@ class TopologyType(IntEnum):
 
 
 class RegionDim(IntEnum):
-    invalid = -1
+    invalid = -2
+    none = -1
     point = 0
     well = 1
     fracture = 2
     bulk = 3
+    
 
 class TopologyDim(IntEnum):
     invalid = -1

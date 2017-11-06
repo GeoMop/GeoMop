@@ -6,9 +6,9 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QM
                              QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QHBoxLayout,
                              QGroupBox, QComboBox)
 
-from helpers import keyboard_shortcuts as shortcuts
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from leconfig import cfg
-from ui.components.keyboard_shortcut_picker import KeyboardShortcutPicker
+from geomop_shortcuts import KeyboardShortcutPicker
 from geomop_widgets import WorkspaceSelectorWidget
 
 
@@ -89,7 +89,7 @@ class KeyboardShortcutsTab(QWidget):
         self.shortcuts_layout = QFormLayout()
         self.shortcuts_widgets = {}
 
-        for name, label in sorted(shortcuts.SHORTCUT_LABELS.items(), key=lambda t: t[1]):
+        for name, label in sorted(shortcuts_definition.SHORTCUT_LABELS.items(), key=lambda t: t[1]):
             shortcut = cfg.config.shortcuts[name]
             widget = KeyboardShortcutPicker(shortcut, self)
             self.shortcuts_widgets[name] = widget
@@ -114,7 +114,7 @@ class KeyboardShortcutsTab(QWidget):
 
         if msg_box.exec_() == QMessageBox.Yes:
             for name, widget in self.shortcuts_widgets.items():
-                widget.shortcut = shortcuts.DEFAULT_USER_SHORTCUTS[name]
+                widget.shortcut = shortcuts_definition.DEFAULT_USER_SHORTCUTS[name]
 
 
 if __name__ == '__main__':
