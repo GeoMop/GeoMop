@@ -986,8 +986,8 @@ class Layers():
             else:
                 self.interfaces[i].edited1 = False
                 self.interfaces[i].edited2 = False
-                if self.interfaces[idx].fracture is not None:
-                    self.interfaces[idx].fracture.edited = False
+                if self.interfaces[i].fracture is not None:
+                    self.interfaces[i].fracture.edited = False
         return True
         
     def get_diagram_idx(self, idx, second, fracture=False):

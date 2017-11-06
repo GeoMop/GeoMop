@@ -19,7 +19,8 @@ import PyQt5.QtWidgets as QtWidgets
 from meconfig import cfg
 from model_data import DataNode, Notification
 from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
-                     NodeAnalyzer, StructureAnalyzer, shortcuts)
+                     NodeAnalyzer, StructureAnalyzer)
+from helpers import keyboard_shortcuts_definition as shortcuts_definition
 from ui.dialogs import FindReplaceDialog
 from ui.menus import EditMenu
 from ui.template import EditorAppearance as appearance
@@ -146,7 +147,7 @@ class YamlEditorWidget(QsciScintilla):
         cfg.autocomplete_helper.set_editor(self)
 
         # disable QScintilla keyboard shortcuts to handle them in Qt
-        for shortcut_name in shortcuts.SCINTILLA_DISABLE:
+        for shortcut_name in shortcuts_definition.SCINTILLA_DISABLE:
             shortcut = cfg.get_shortcut(shortcut_name)
             if shortcut.scintilla_code is not None:
                 self.SendScintilla(QsciScintilla.SCI_ASSIGNCMDKEY, shortcut.scintilla_code, 0)

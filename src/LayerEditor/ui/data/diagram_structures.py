@@ -262,7 +262,7 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for x, y in zip(pxs, pxs):
+        for x, y in zip(pxs, pys):
             self.gtpolygon.append(QtCore.QPointF(x, -y))
             self.xmin = min(self.xmin, x)
             self.xmax = max(self.xmax, x)
@@ -492,6 +492,8 @@ class Diagram():
         """history"""
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
+        self.spreaded = False
+        """If duagram start position is set"""
         
     def join(self):
         """Add diagram to topologies"""
@@ -794,7 +796,7 @@ class Diagram():
     def move_point_after(self, p, x_old, y_old, label='Move point'):
         """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
-        self._history.move_point(p.id, x_old, y_old)
+        self._history.move_point(p.id, x_old, y_old, label)
         # compute recount params
         small = (self._rect.width()+self._rect.height())/1000000
         trimed = self._rect - QtCore.QMarginsF(small, small, small, small)

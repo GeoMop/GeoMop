@@ -828,8 +828,8 @@ class RegionHistory(History):
         
         Return invert operation
         """
-        name = self.global_history.cfg.diagram.regions.layers[-id]
-        is_top = self.global_history.cfg.diagram.regions.get_topology(-id) == \
+        name = self.global_history.cfg.diagram.regions.layers[-id-1]
+        is_top = self.global_history.cfg.diagram.regions.get_topology(-id-1) == \
             self.global_history.cfg.diagram.regions.get_topology(id)
         is_own = self.global_history.cfg.diagram.regions.delete_fracture(id, False)
         self._refresh_panel = True
