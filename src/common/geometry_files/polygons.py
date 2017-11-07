@@ -552,7 +552,7 @@ class PolygonDecomposition:
             wire.set_parent(p.outer_wire)
         for free_pt_id in free_points:
             pt = self.points[free_pt_id]
-            p.free_points[pt.id] = pt
+            pt.set_polygon(p)
         return p
 
     # def finish_setup(self):
@@ -576,19 +576,19 @@ class PolygonDecomposition:
 
     def set_wire_parents(self):
         """
-        Recursively set parent wire links from holes.
-        :param polygon: Which polygon's holes to set.
-        :param parent_wire: parent wire to set to holes.
-        :return: None
+        Set parent wire links from holes.
         """
         for poly in self.polygons.values():
             for hole in poly.outer_wire.childs:
-                hole_childs = {}
-                for seg, side in hole.segments():
-                    inner_wire = seg.wire[1 - side]
-                    hole_childs[inner_wire.id] = (inner_wire, hole)
-                for inner, outer in hole_childs.values():
-                    inner.set_parent(outer)
+                child_queue = hole.neighbors()
+                # BFS for inner wires of the hole
+                while child_queue:
+                    inner_wire = child_queue.pop(0)
+                    if inner_wire.parent == inner_wire:
+                        inner_wire.set_parent(hole)
+                        for wire in inner_wire.neighbors():
+                            child_queue.append(wire)
+
 
     def check_consistency(self):
         #print(self)
@@ -1663,6 +1663,13 @@ class Wire(IdObject):
     #         if not seg.is_dendrite():
     #             yield (seg, side)
 
+    def neighbors(self):
+        """
+        Return list of all neighoring wires with same depth.
+        :return:
+        """
+        return [ seg.wire[1 - side] for seg, side in self.segments() ]
+
 
     def contains_point(self, xy):
         """
@@ -1730,6 +1737,9 @@ class Polygon(IdObject):
     def __repr__(self):
         outer = self.outer_wire.id
         return "Poly({}) out wire: {}".format(self.id, outer)
+
+    def is_outer_polygon(self):
+        return self.outer_wire.is_root()
 
     def depth(self):
         """
