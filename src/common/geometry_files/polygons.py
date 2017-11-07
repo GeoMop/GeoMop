@@ -1099,18 +1099,15 @@ class PolygonDecomposition:
     def intersection(self, other):
         """
         Make new decomposition that is intersection of 'self' and 'other', that is polygons of
-        both 'self' and 'other' are further splitted to polygons of resulting decomposition.
+        both 'self' and 'other' are further split into polygons of resulting decomposition.
         A copy of 'self' is used as starting point, adding incrementaly segments of 'other'.
-        Resulting decompositionAdd all segments of 'other; decomposition to 'self', splitting polygons of 'self'.
 
         TODO: Add information about linked nodes.
 
         :param other: PolygonDecomposition.
-        :return: (decomp, polygon_map_self, polygon_map_other)
+        :return: (decomp, maps_self, maps_other)
         Returns 'decomp' the intersection decomposition and maps that
-        maps id of a polygon P of the intersection decomposition to the pair
-        (self_id, other_id) of polygons in 'self' and 'other' respectively to which
-        P belongs.
+        maps objects of the new decompositioon to objects of original decomposition or to None.
 
         Algorithm:
         - add segments of 'other' to 'self' keeping map from segments of new_decomp to
@@ -1795,13 +1792,16 @@ def intersect_decompositions(decomps):
     use a binary tree instead of linear pass to have n log(n) complexity of map updating.
     """
     common_decomp = PolygonDecomposition()
-    poly_maps = []
+    all_maps = []
     for decomp in decomps:
-        common_decomp, decomp_map, common_map = decomp.intersection(common_decomp)
-        new_poly_maps = []
-        for map in poly_maps:
-            new_map = { new_poly_id: map[orig_poly_id] for new_poly_id, orig_poly_id in common_map.items() }
-            new_poly_maps.append(new_map)
-        new_poly_maps.append(decomp_map)
-        poly_maps = new_poly_maps
-    return common_decomp, poly_maps
+        common_decomp, decomp_maps, common_maps = decomp.intersection(common_decomp)
+        new_all_maps = []
+        for one_decomp_maps in all_maps:
+            new_decomp_maps = []
+            for one_dim_map, common_map in zip(one_decomp_maps, common_maps):
+                new_map = { new_id: one_dim_map[orig_id] for new_id, orig_id in common_map.items() if orig_id is not None }
+                new_decomp_maps.append(new_map)
+            new_all_maps.append(new_decomp_maps)
+        new_all_maps.append(decomp_maps)
+        all_maps = new_all_maps
+    return common_decomp, all_maps
