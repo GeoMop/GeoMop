@@ -1,6 +1,9 @@
 Analysis - Calibration
 ======================
 
+Calibrating a generic model for given data, ie identifying model parameters so that
+the result of the model was in some sense the closest measured data.
+
 Configuration
 -------------
 
@@ -79,7 +82,9 @@ TerminationCriteria
 
     n_param_change, tol_rel_param_change
         Stop if max relative change of parameter form last n_param_change is lower than tol_rel_param_change
-        (must be satisfied for all parameters)
+        (must be satisfied for all parameters).
+        If parameter is log transformed relative change is measured on log10 its value
+        (this will be changed in future versions).
 
     n_max_steps
         Maximum number of iterations to perform
@@ -163,3 +168,9 @@ result
 
     residual
         Criterial function after calibration
+
+Objective function
+------------------
+
+As objective function is used sum over individual observation of square of difference between measured value
+and modeled value multiplied by square of observation weight.
