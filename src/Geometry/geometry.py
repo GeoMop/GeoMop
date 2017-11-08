@@ -9,8 +9,11 @@ TODO:
 - tests
 
 """
+
+
 import os
 import sys
+
 
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
@@ -27,16 +30,24 @@ import math
 
 import geometry_files.polygons as polygons
 import geometry_files.polygons_io as polygons_io
+
+
+print("Start")
+
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
+#def import_plotting():
+#global plt
+#global bs_plot
 
-def import_plotting():
-    global plt
-    global bs_plot
-    import matplotlib.pyplot as plt
-    import bspline_plot as bs_plot
+#import geometry_files.plot_polygons as plot_polygons
+
+#import matplotlib
+#import matplotlib.pyplot as plt
+
+#import bspline_plot as bs_plot
 
 
 ###
@@ -46,7 +57,6 @@ def import_plotting():
 
 #import netgen.csg as ngcsg
 #import netgen.meshing as ngmesh
-
 
 
 def check_point_tol(A, B, tol):
@@ -92,11 +102,22 @@ class ShapeInfo:
     def dim(self):
         return self._shapes_dim.get(type(self.shape).__name__, None)
 
-    def vert_curve(self, v_to_z):
+    def vert_curve(self, v_to_z, xy_to_u):
+        """
+        Make top/bot boundary of a vertical face in its UV coordinates from
+        the self.curve_z, which is the full 3d curve of the edge set in Interface.make_shapes.
+        TODO: set curve_z through a method.
+        :param v_to_z: (min_z, max_z) ... bounds of the vertical face
+        :param u_to_xy: (min_u, max_u)
+        :return: Curve for U or V parameter.
+        """
         z_min, z_max = v_to_z
+        u_min, u_max = xy_to_u
         poles_uv = self.curve_z.poles.copy()
         poles_uv[:, 1] -= z_min
         poles_uv[:, 1] /= (z_max - z_min)
+        poles_uv[:, 0] *= (u_max - u_min)
+        poles_uv[:, 0] += u_min
         return bs.Curve(self.curve_z.basis, poles_uv)
 
 class Curve(gs.Curve):
@@ -222,6 +243,11 @@ class Surface(gs.Surface):
 
 
     def add_curve_to_edge(self, edge):
+        """
+        Make the projection curve for an edge on the surface.
+        :param edge: BRepWriter Edge object
+        :return:
+        """
         axyz, bxyz = edge.points()
 
         n_points = 16
@@ -245,7 +271,16 @@ class Surface(gs.Surface):
         edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
 
         # vertical curve
-        poles_tz = curve_xyz.poles[:, 1:3].copy()
+        poles_z = curve_xyz.poles[:, 2].copy()
+        x_diff, y_diff, z_diff = np.abs(bxyz - axyz)
+        if x_diff > y_diff:
+            axis = 0
+        else:
+            axis = 1
+        poles_t = curve_xyz.poles[:, axis].copy()
+        poles_t -= axyz[axis]
+        poles_t /= (bxyz[axis] - axyz[axis])
+        poles_tz = np.stack( (poles_t, poles_z), axis=1 )
         # overhang = 0.1
         # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
         # poles_tz[:, 0] -= axyz[1]
@@ -253,10 +288,8 @@ class Surface(gs.Surface):
         # poles_tz[:, 0] += overhang
 
 
-        poles_tz[:, 0] -= axyz[1]
-        poles_tz[:, 0] /= (bxyz[1] - axyz[1])
-
-
+        #poles_tz[:, 0] -= axyz[1]
+        #poles_tz[:, 0] /= (bxyz[1] - axyz[1])
 
         return bs.Curve(curve_xyz.basis, poles_tz)
 
@@ -349,34 +382,97 @@ class NodeSet(gs.NodeSet):
 
 
 class Interface:
+    """
+    Interfaceis a gluing object between layers joined to a common surface.
+    It maps nodes onto surface, create complete decompositions and their intersection, and produce all
+    shapes laying on the surface.
+    """
     def __init__(self, surface):
+        """
+        Interface is bounded to a single surface.
+        :param surface:
+        """
         self.surface = surface
         self.common_decomp = None
         self.decompositions = {}
 
     def add_decomposition(self, nodes, topology):
+        """
+        Related layers (at most two stratum layers and one fracture layer) bound their decompositions given as nodeset
+        and topology to the interface.
+        :param nodes: 2d Nodes
+        :param topology: Topology object.
+        :return: Id of the decomposition within interface. Necessary to get right polygon map later on.
+        """
         if not topology.id in self.decompositions:
             decomp = polygons_io.deserialize(nodes, topology)
             self.decompositions[topology.id] = decomp
-        return self.decompositions[topology.id]
+        else:
+            decomp = self.decompositions[topology.id]
+        return decomp
 
     def _finish_init(self):
-        # TODO: make decomposition intersection
+        """
+        Finalize interface initialization after decompositions are added.
+        """
+        if self.common_decomp is not None:
+            return
+
         decomps = list(self.decompositions.values())
-        assert len(decomps) == 1
-        self.common_decomp = decomps[0]
+        decomp_ids = list(self.decompositions.keys())
+        self.common_decomp, all_maps = polygons.intersect_decompositions(decomps)
+        #plot_polygons.plot_polygon_decomposition(self.common_decomp)
+        # make subpolygon lists
+        self.subobj_lists={}
+        for decomp_idx, one_decomp_maps in enumerate(all_maps):
+            subobjs=[{}, {}, {}]
+            for dim, one_dim_map in enumerate(one_decomp_maps):
+                for new_id, orig_id in one_dim_map.items():
+                    subobjs[dim].setdefault(orig_id, list())    # make new instance every time
+                    subobjs[dim][orig_id].append(new_id)
+
+            # sort subsegment lists
+            orig_decomp = decomps[decomp_idx]
+            for orig_seg_id, seg_list in subobjs[1].items():
+                if orig_seg_id is None:
+                    continue
+                pt_to_seg={}
+                for seg_id in seg_list:
+                    seg = self.common_decomp.segments[seg_id]
+                    pt_id = seg.vtxs[polygons.out_vtx].id
+                    pt_to_seg[pt_id] = seg
+                new_seg_list = []
+                pt_id = orig_decomp.segments[orig_seg_id].vtxs[polygons.out_vtx].id
+                new_pt_id = subobjs[0][pt_id]
+                assert len(new_pt_id) == 1
+                new_pt_id = new_pt_id[0]
+                while new_pt_id in pt_to_seg:
+                    seg = pt_to_seg[new_pt_id]
+                    new_seg_list.append(seg.id)
+                    new_pt_id = seg.vtxs[polygons.in_vtx].id
+                subobjs[1][orig_seg_id] = new_seg_list
+            self.subobj_lists[decomp_ids[decomp_idx]] = subobjs
+
+
+        #self.common_decomp = decomps[0]
         nodes_xy = { pt.id: pt.xy for pt in self.common_decomp.points.values() }
         self.surface.check_nodes(list(nodes_xy.values()))
         self.nodes = { id: (x, y, self.surface.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
 
 
     def make_shapes(self):
-        if self.common_decomp is None:
-            self._finish_init()
+        """
+        Make dictionaries of shapes for points, segments, polygons in common decomposition.
+        :return:
+        """
+        self._finish_init()
 
         decomp = self.common_decomp
-        # TODO: compute Z
+        # TODO: compute Z (use intersections for inclined vertical segments)
         self.vertices = { id: ShapeInfo(bw.Vertex(node)) for id, node in self.nodes.items() }
+
+        for id, vert in self.vertices.items():
+            vert.shape.dbg_id = id
 
         self.edges = {}
         for segment in decomp.segments.values():
@@ -400,6 +496,9 @@ class Interface:
             self.faces[poly.id] = ShapeInfo(face)
 
     def _make_bw_wire(self, decomp_wire):
+        """
+        Make shape Wire from decomposition wire.
+        """
         edges = []
         for seg, side in decomp_wire.segments():
             reversed = (side == polygons.right_side)
@@ -410,8 +509,21 @@ class Interface:
                 edges.append(edge)
         return bw.Wire(edges)
 
+    def get_polygon_division(self, decomp_id, poly_id):
+        """
+        For given decomposition_id (returned by add_decomposition) and polygon_id
+        withing that decomposition, return a list of polygon ids from common decomposition
+        that form a subdivision of the given polygon. These polygon IDs match shape ids in self.faces.
+        :param decomp_id: Original decomposition ID.
+        :param poly_id: Polygon ID within original deocmposition.
+        :return: Subpolygons ids in common decomposition.
+        """
+        return self.subpoly_lists[decomp_id][poly_id]
 
     def interpolate_nodes(self, a_surface, a_nodes, b_surface, b_nodes):
+        """
+        Used by InterpolatedNodeSet.
+        """
         assert len(a_nodes) == len(b_nodes)
         nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
@@ -423,9 +535,13 @@ class Interface:
         return nodes
 
     def iter_shapes(self):
+        """
+        Generator of all shapes on the interface.
+        """
         for s_list in [ self.vertices, self.edges, self.faces ]:
             for shp in s_list.values():
                 yield shp
+
 
 class SurfaceNodeSet(gs.SurfaceNodeSet):
 
@@ -464,10 +580,11 @@ class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 class Region(gs.Region):
 
     def init(self, topo_dim, extrude):
-        #assert topo_dim == self.topo_dim, "Region ('{}') topology dimension ({})  do not match layer dimension ({}).".format( self.name, self.topo_dim, topo_dim)
+        #assert topo_dim == self.topo_dim,
         if self.not_used:
             return
-        assert self.dim == topo_dim + extrude, "dim: %d tdim: %d ext: %d"%(self.dim, topo_dim, extrude)
+        assert self.dim == topo_dim + extrude,\
+            "Region ('{}') dimension ({})  do not match layer dimension ({}).".format( self.name, self.dim, topo_dim + extrude)
 
         # fix names of boundary regions
         if self.boundary:
@@ -525,15 +642,18 @@ class FractureLayer(gs.FractureLayer):
         #    if self.regions[i_reg].is_active(0):
         #        shapes.append( (self.i_top.vertices[i], i_reg) )
         decomp = self.top.decomp
+        obj_maps = self.i_top.subobj_lists[self.top.topology.id]
         for seg in decomp.segments.values():
             reg = self.regions[1][seg.id]
             if reg.is_active(1):
-                self.i_top.edges[seg.id].set_shape(reg.id, self.i_top, self.i_top)
+                for sub_seg_id in obj_maps[1][seg.id]:
+                    self.i_top.edges[sub_seg_id].set_shape(reg.id, self.i_top, self.i_top)
 
         for poly in decomp.polygons.values():
             reg = self.regions[2][poly.id]
             if reg.is_active(2):
-                self.i_top.faces[poly.id].set_shape(reg.id, self.i_top, self.i_top)
+                for sub_poly_id in obj_maps[2][poly.id]:
+                    self.i_top.faces[sub_poly_id].set_shape(reg.id, self.i_top, self.i_top)
         return []
 
 class StratumLayer(gs.StratumLayer):
@@ -548,7 +668,7 @@ class StratumLayer(gs.StratumLayer):
         #        self.regions[i_reg].init(topo_dim=tdim, extrude = True)
 
     def plot_vert_face(self, v_to_z, si_top, si_bot):
-        import_plotting()
+        #import_plotting()
         top_curve = si_top.vert_curve(v_to_z)
         bot_curve = si_bot.vert_curve(v_to_z)
         bs_plot.plot_curve_2d(top_curve, poles=True)
@@ -557,15 +677,20 @@ class StratumLayer(gs.StratumLayer):
 
 
 
-    def make_vert_bw_surface(self, si_top, si_bot, edge_start, edge_end):
-        top_box = si_top.curve_z.aabb()
-        bot_box = si_bot.curve_z.aabb()
-        top_z = top_box[1][1] + 1.0 # max
-        bot_z = bot_box[0][1] - 1.0# min
+    def make_vert_bw_surface(self, top_edges, bot_edges, edge_start, edge_end):
+        # vertical edges (edge_start, edge_end) are oriented from bottom to top
+
+        top_boxes = [edg_si.curve_z.aabb() for edg_si in top_edges]
+        bot_boxes = [edg_si.curve_z.aabb() for edg_si in bot_edges]
+
+        top_z = max([ box[:, 1].max() for box in top_boxes]) + 1.0
+        bot_z = min([ box[:, 1].min() for box in bot_boxes]) - 1.0
 
         # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
-        v00, v10 = np.array(si_bot.shape.points()).copy()
-        v01, v11 = np.array(si_top.shape.points()).copy()
+        edg_start_vtxs = np.array(edge_start.shape.points())
+        edg_end_vtxs = np.array(edge_end.shape.points())
+        v00, v01 = edg_start_vtxs.copy()
+        v10, v11 = edg_end_vtxs.copy()
         v00[2] = v10[2] = bot_z
         v11[2] = v01[2] = top_z
 
@@ -578,49 +703,78 @@ class StratumLayer(gs.StratumLayer):
         v_to_z = [bot_z, top_z]
         #self.plot_vert_face(v_to_z, si_top, si_bot)
 
-        top_curve = si_top.vert_curve(v_to_z)
-        uv_v_top = top_curve.eval_array(np.array([0, 1]))
-        assert np.all( 0 <= uv_v_top ) and np.all( uv_v_top <= 1), \
-            "Top point < bottom point, for layer id = {}. Top range:{}. Bot range {}. UV: {}"\
-            .format(self.id, (top_box[0][1], top_box[1][1]), (bot_box[0][1], bot_box[1][1]), uv_v_top)
-        xyz_v_top = surf.eval_array(uv_v_top)
-
-        bot_curve = si_bot.vert_curve(v_to_z)
-        uv_v_bot = bot_curve.eval_array(np.array([0, 1]))
-        assert np.all( 0 <= uv_v_bot ) and np.all( uv_v_bot <= 1), \
-            "Top point < bottom point, for layer id = {}. Top range:{}. Bot range {}."\
-            .format(self.id, (top_box[0][1], top_box[1][1]), (bot_box[0][1], bot_box[1][1]), uv_v_bot)
-        xyz_v_bot = surf.eval_array(uv_v_bot)
-
-        # check precision of corners
-        v00, v10 = si_bot.shape.points()
-        v01, v11 = si_top.shape.points()
-        for new, orig in zip( list(xyz_v_bot) + list(xyz_v_top), [v00, v10, v01, v11]):
-            check_point_tol(new, orig, 1e-3)
+        v00, v01 = edg_start_vtxs.copy()
+        v10, v11 = edg_end_vtxs.copy()
 
         # attach 2D curves to horizontal edges
-        si_top.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(top_curve), bw_surf )
-        si_bot.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(bot_curve), bw_surf )
+        xy_vtxs = (v00[0:2], v10[0:2])
+        self._curve_for_horizontal_edges(top_edges, v_to_z, xy_vtxs, bw_surf)
+        self._curve_for_horizontal_edges(bot_edges, v_to_z, xy_vtxs, bw_surf)
+
+
+        # check precision of corners
+        # xyz_v_top = surf.eval_array(uv_v_top)
+        # xyz_v_bot = surf.eval_array(uv_v_bot)
+        # v00, v10 = si_bot.shape.points()
+        # v01, v11 = si_top.shape.points()
+        # for new, orig in zip( list(xyz_v_bot) + list(xyz_v_top), [v00, v10, v01, v11]):
+        #     check_point_tol(new, orig, 1e-3)
+
 
         # attach 2D and 3D curves to vertical edges
-        curve = bs_approx.line( [v00, v01] )
-        edge_start.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
-        edge_start.attach_to_plane(bw_surf, uv_v_bot[0], uv_v_top[0])
-
-        curve = bs_approx.line( [v10, v11] )
-        edge_end.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
-        edge_end.attach_to_plane(bw_surf, uv_v_bot[1], uv_v_top[1])
+        self._curve_for_vertical_edge(edge_start, 0.0,  v_to_z, bw_surf)
+        self._curve_for_vertical_edge(edge_end, 1.0, v_to_z, bw_surf)
 
         return bw_surf
 
+    def _curve_for_horizontal_edges(self, edge_list, v_to_z, xy_vtxs, bw_surf):
+        axis = np.argmax(np.abs(xy_vtxs[1] - xy_vtxs[0]))
+        axis_diff = xy_vtxs[1][axis] - xy_vtxs[0][axis]
+        for edg_si in edge_list:
+            # Compute U range of the sub-edge, edg_si relative to the original edge
+            # with endpoints xy_vtxs
+            pts = edg_si.shape.points()
+            xy_to_u = [ (pt[axis] - xy_vtxs[0][axis]) / axis_diff for pt in pts]
+            assert 0.0 <= xy_to_u[0] <= 1.0
+            assert 0.0 <= xy_to_u[1] <= 1.0
+            boundary_curve = edg_si.vert_curve(v_to_z, xy_to_u)
+            uv_vtx = boundary_curve.eval_array(np.array([0, 1]))
+
+            if not (np.all( 0 <= uv_vtx ) and np.all( uv_vtx <= 1)):
+                raise Exception("Top point < bottom point, for layer id = {}. Z-range: {}. {}"\
+                .format(self.id, v_to_z, uv_vtx))
+            print("H-UV: ", uv_vtx)
+            #xyz_v_bot = surf.eval_array(uv_v_bot)
+
+            edg_si.shape.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(boundary_curve), bw_surf )
+
+    def _curve_for_vertical_edge(self, v_edge, u_coord, v_to_z, bw_surf):
+        edg_vtxs = np.array(v_edge.shape.points())
+        v0, v1 = edg_vtxs
+        curve = bs_approx.line( [v0, v1] )
+        v_edge.shape.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve))
+        v_vtxs = (edg_vtxs[:, 2] - v_to_z[0]) / (v_to_z[1] - v_to_z[0])
+
+        #print("V-UV: ", list(zip(u_vtxs, v_vtxs)))
+        v_edge.shape.attach_to_plane(bw_surf, [u_coord, v_vtxs[0]], [u_coord, v_vtxs[1]])
+
+
     def make_shapes(self):
         shapes = []
+        top_subobjs = self.i_top.subobj_lists[self.top.topology.id]
+        bot_subobjs = self.i_bot.subobj_lists[self.bottom.topology.id]
 
         vert_edges={}
 
         # TODO: vertical edges and faces
         for id, pt in self.top.decomp.points.items():
-            edge = bw.Edge( [self.i_bot.vertices[id].shape, self.i_top.vertices[id].shape] )
+            assert len(top_subobjs[0][id]) == 1
+            assert len(bot_subobjs[0][id]) == 1
+            top_new_pt = self.i_top.vertices[top_subobjs[0][id][0]]
+            bot_new_pt = self.i_bot.vertices[bot_subobjs[0][id][0]]
+
+
+            edge = bw.Edge( [bot_new_pt.shape, top_new_pt.shape] )
             edge.implicit_curve()
             edge_info = ShapeInfo(edge)
             vert_edges[id] = edge_info
@@ -635,21 +789,29 @@ class StratumLayer(gs.StratumLayer):
         vert_faces = {}
         for id, segment in self.top.decomp.segments.items():
             # make face oriented to the right side of the segment when looking from top
+            edge_start = vert_edges[segment.vtxs[0].id]
+            edge_end = vert_edges[segment.vtxs[1].id]
 
-            edge_start = vert_edges[segment.vtxs[0].id].shape
-            si_bot = self.i_bot.edges[id]
-            edge_bot = si_bot.shape
-            edge_end = vert_edges[segment.vtxs[1].id].shape
-            si_top = self.i_top.edges[id]
-            edge_top = si_top.shape
+            wire_edges = [edge_start.shape.m()]
+            bot_edges = []
+            for sub_edge_id in bot_subobjs[1][segment.id]:
+                edge = self.i_bot.edges[sub_edge_id]
+                wire_edges.append(edge.shape)
+                bot_edges.append(edge)
+            wire_edges.append(edge_end.shape)
+            top_edges = []
+            for sub_edge_id in reversed(top_subobjs[1][segment.id]):
+                edge = self.i_top.edges[sub_edge_id]
+                wire_edges.append(edge.shape.m())
+                top_edges.append(edge)
 
             # make planar surface
             # attach curves to top and bot edges
-            vert_surface = self.make_vert_bw_surface(si_top, si_bot, edge_start, edge_end)
+            vert_surface = self.make_vert_bw_surface(top_edges, bot_edges, edge_start, edge_end)
 
 
             # edges oriented counter clockwise = positively oriented face
-            wire = bw.Wire([edge_start.m(), edge_bot, edge_end, edge_top.m()])
+            wire = bw.Wire(wire_edges)
             face = bw.Face([wire], surface = vert_surface)
             face_info = ShapeInfo(face)
             vert_faces[id] = face_info
@@ -662,7 +824,8 @@ class StratumLayer(gs.StratumLayer):
         assert len(vert_faces) == len(self.segment_region_ids)
 
         for id, polygon in self.top.decomp.polygons.items():
-
+            if polygon.is_outer_polygon():
+                continue
             #segment_ids = polygon.segment_ids  # segment_id > n_segments .. reversed edge
 
             # we orient all faces inwards (assuming normal oriented up for counter clockwise edges, right hand rule)
@@ -675,8 +838,12 @@ class StratumLayer(gs.StratumLayer):
                         faces.append( vert_faces[seg.id].shape.m() )
                     else:
                         faces.append( vert_faces[seg.id].shape )
-            faces.append( self.i_top.faces[id].shape )
-            faces.append( self.i_bot.faces[id].shape.m() )
+
+            for subpoly_id in top_subobjs[2][polygon.id]:
+                faces.append( self.i_top.faces[subpoly_id].shape )
+            for subpoly_id in bot_subobjs[2][polygon.id]:
+                faces.append( self.i_bot.faces[subpoly_id].shape.m() )
+
             shell = bw.Shell( faces )
             solid = bw.Solid([shell])
             solid_info = ShapeInfo(solid)
@@ -770,6 +937,7 @@ class LayerGeometry(gs.LayerGeometry):
                     make compoud of subdivision BREP shapes
 
         """
+
         for iface in self.interfaces:
             iface.make_shapes()
 
@@ -837,7 +1005,7 @@ class LayerGeometry(gs.LayerGeometry):
             else:
                 last_id = layer.topology.id
                 blocks.append(block)
-                block=[]
+                block=[layer]
         blocks.append(block)
         self.blocks=blocks
 

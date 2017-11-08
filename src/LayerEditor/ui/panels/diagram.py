@@ -99,6 +99,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         """list of selected points"""
         self._selected_lines = []
         """list of selected lines"""
+        self._selected_polygons = []
+        """list of selected polygons"""
         # control object
         self._control_object = None
         """object, that is below cursor, if button press event is emited"""
@@ -409,6 +411,15 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if not line.line.p2.object in self._selected_points:
                     self._deselect_point(line.line.p2.object)
         
+    def _select_polygon(self, polygon):
+        """set polygon as selected"""
+        if not polygon in self._selected_polygons:
+            self._selected_polygons.append(polygon)
+            polygon.select_polygon()
+        else:
+            self._selected_polygons.remove(polygon)
+            polygon.deselect_polygon()
+
     def delete_selected(self):
         """delete selected"""
         first = True
@@ -441,19 +452,27 @@ class Diagram(QtWidgets.QGraphicsScene):
     def select_all(self): 
         """select all items"""
         for line in cfg.diagram.lines:
-            self._select_line(line.object, False)
+            if line.object not in self._selected_lines:
+                self._select_line(line.object, False)
         for point in cfg.diagram.points:
-            self._select_point(point.object)
-    
+            if point.object not in self._selected_points:
+                self._select_point(point.object)
+        for polygon in cfg.diagram.polygons:
+            if polygon.object not in self._selected_polygons:
+                self._select_polygon(polygon.object)
+
     def deselect_selected(self):
         """deselect all items"""
         for line in self._selected_lines:
            line.deselect_line()
         for point in self._selected_points:
             point.deselect_point()
+        for polygon in self._selected_polygons:
+            polygon.deselect_polygon()
         self._selected_points = []
         self._selected_lines = []
-        
+        self._selected_polygons = []
+
     def _anchor_moved_point(self, event):
         """Test if point colide with other and move it"""
         below_item = self.itemAt(event.scenePos(), QtGui.QTransform())        
@@ -535,12 +554,16 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._select_line(event.gobject, True)
                     elif isinstance(event.gobject, Point):
                         self._select_point(event.gobject)
+                    elif isinstance(event.gobject, Polygon):
+                        self._select_polygon(event.gobject)
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
                         self._select_line(event.gobject, True)
                     elif isinstance(event.gobject, Point):
                         self._select_point(event.gobject)
+                    elif isinstance(event.gobject, Polygon):
+                        self._select_polygon(event.gobject)
             if event.modifiers()==QtCore.Qt.ControlModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):

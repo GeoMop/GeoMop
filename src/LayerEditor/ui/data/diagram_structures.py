@@ -489,6 +489,10 @@ class Diagram():
         """pen for highlighted object paintings"""
         self.pen_changed = True
         """pen need be changed"""
+        self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
+        """brush for object paintings"""
+        self.brush_selected = QtGui.QBrush(QtCore.Qt.Dense4Pattern)
+        """brush for selected object paintings"""
         self._recount_zoom = 1.0
         """pen need be changed"""
         self.x = 0
@@ -558,7 +562,7 @@ class Diagram():
         
     @zoom.setter
     def zoom(self, value):
-        """zoom property, if zoom is too different, recount pen width"""        
+        """zoom property, if zoom is too different, recount pen width, set brush transform"""
         self._zoom = value
         ratio = self._recount_zoom/value
         if ratio>1.2 or ratio<0.8:
@@ -566,6 +570,13 @@ class Diagram():
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
             self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
             self._recount_zoom = value
+
+            square_size = 20
+            self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
+
+    @property
+    def recount_zoom(self):
+        return self._recount_zoom
             
     def first_shp_object(self):
         """return if is only one shp object in diagram"""
