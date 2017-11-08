@@ -252,6 +252,7 @@ class Calibration(WrapperActionType):
         """scipy state"""
         self._scipy_x = None
         self._scipy_y = None
+        self._scipy_log_transform = []
         self._scipy_lb = []
         self._scipy_ub = []
         self._scipy_diff_inc_rel = []
@@ -301,49 +302,60 @@ class Calibration(WrapperActionType):
         if self._is_state(ActionStateType.finished):
             opt = Sequence(SingleIterationInfo.create_type(
                 self._variables['Parameters'], self._variables['Observations']))
+
+            # vector of weights
+            obs_num = len(self._variables['Observations'])
+            weights = np.zeros((obs_num, 1))
+            for i in range(obs_num):
+                weights[i] = self._variables['Observations'][i].weight
+
             for i in range(len(self._scipy_iterations)):
                 # find output
-                output = None
-                for o in self._scipy_x_output_log:
-                    if np.all(o[0] == self._scipy_iterations[i][0]):
-                        output = o[1]
-                        break
+                output = self._find_output_from_x(self._scipy_iterations[i][0])
 
                 # get input from x
                 input = self._scipy_x_to_wrapped_input(self._scipy_iterations[i][0])
 
-                # find jacobian
-                jac = None
-                for j in self._scipy_xj_log:
-                    if np.all(j[0] == self._scipy_iterations[i][0]):
-                        jac = j[1]
-                        break
+                # find jacobian matrix
+                jac_matrix = self._find_jac_matrix_from_x(self._scipy_iterations[i][0])
 
                 par = Struct()
                 sen_ind = 0
                 for p in self._variables['Parameters']:
-                    sen = 0.0
+                    value = (getattr(input, p.name).value - p.offset) / p.scale
+                    sen = np.nan
+                    rel_sen = np.nan
                     if p.fixed:
                         pt = "Fixed"
                     else:
                         pt = "Free"
-                        if p.tied_expression is None and jac is not None:
-                            sen = jac[sen_ind]
+                        if p.tied_expression is None and jac_matrix is not None:
+                            sen = np.linalg.norm(jac_matrix[:, sen_ind] * weights) / obs_num
+                            if p.log_transform:
+                                rel_sen = sen * math.fabs(math.log10(value))
+                            else:
+                                rel_sen = sen * math.fabs(value)
                             sen_ind += 1
                     spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
-                                 value=getattr(input, p.name),
+                                 value=Float(value),
                                  interval_estimate=Tuple(Float(0.0), Float(0.0)),
                                  sensitivity=Float(sen),
-                                 relative_sensitivity=Float(0.0))
+                                 relative_sensitivity=Float(rel_sen))
                     setattr(par, p.name, spo)
                 obs = Struct()
+                sen_ind = 0
                 for o in self._variables['Observations']:
                     m = getattr(self.get_input_val(0).observations, o.name).value
                     mv = getattr(output, o.name).value
+                    if jac_matrix is not None:
+                        sen = np.linalg.norm(jac_matrix[sen_ind, :]) * weights[sen_ind, 0] / self._scipy_x.shape[0]
+                    else:
+                        sen = np.nan
+                    sen_ind += 1
                     soo = Struct(measured_value=Float(m),
                                  model_value=Float(mv),
                                  residual=Float(m - mv),
-                                 sensitivity=Float(0.0))
+                                 sensitivity=Float(sen))
                     setattr(obs, o.name, soo)
                 opt.add_item(Struct(iteration=Int(i + 1),
                                     cumulative_n_evaluation=Int(self._scipy_iterations[i][2]),
@@ -522,6 +534,17 @@ class Calibration(WrapperActionType):
                     if isinstance(self._variables['Parameters'][i], CalibrationParameter):
                         if self._variables['Parameters'][i].bounds[0] > self._variables['Parameters'][i].bounds[1]:
                             self._add_error(err, "Parameter 'Parameters[{0}]': Upper bound must be greater or equal to lower bound".format(str(i)))
+                        if self._variables['Parameters'][i].init_value < self._variables['Parameters'][i].bounds[0]:
+                            self._add_error(err, "Parameter 'Parameters[{0}]': Init value must be greater or equal to lower bound".format(str(i)))
+                        if self._variables['Parameters'][i].init_value > self._variables['Parameters'][i].bounds[1]:
+                            self._add_error(err, "Parameter 'Parameters[{0}]': Init value must be lower or equal to upper bound".format(str(i)))
+                        if self._variables['Parameters'][i].log_transform:
+                            if self._variables['Parameters'][i].init_value <= 0:
+                                self._add_error(err, "Parameter 'Parameters[{0}]': Init value must be positive, if log transform is chosen".format(str(i)))
+                            if self._variables['Parameters'][i].bounds[0] <= 0:
+                                self._add_error(err, "Parameter 'Parameters[{0}]': Lower bound must be positive, if log transform is chosen".format(str(i)))
+                            if self._variables['Parameters'][i].bounds[1] <= 0:
+                                self._add_error(err, "Parameter 'Parameters[{0}]': Upper bound must be positive, if log transform is chosen".format(str(i)))
                     else:
                         self._add_error(err, "Type of parameter 'Parameters[{0}]' must be CalibrationParameter".format(str(i)))
                 self._extend_error(err, self.__check_tied_parameters(self._variables['Parameters']))
@@ -696,9 +719,15 @@ class Calibration(WrapperActionType):
             alg_par[par.group] = par
         for par in self._variables['Parameters']:
             if not par.fixed:
-                init_values.append(par.init_value)
-                self._scipy_lb.append(par.bounds[0])
-                self._scipy_ub.append(par.bounds[1])
+                self._scipy_log_transform.append(par.log_transform)
+                if par.log_transform:
+                    init_values.append(math.log10(par.init_value))
+                    self._scipy_lb.append(math.log10(par.bounds[0]))
+                    self._scipy_ub.append(math.log10(par.bounds[1]))
+                else:
+                    init_values.append(par.init_value)
+                    self._scipy_lb.append(par.bounds[0])
+                    self._scipy_ub.append(par.bounds[1])
                 self._scipy_diff_inc_rel.append(alg_par[par.group].diff_inc_rel)
                 self._scipy_diff_inc_abs.append(alg_par[par.group].diff_inc_abs)
         x0 = np.array(init_values)
@@ -745,13 +774,40 @@ class Calibration(WrapperActionType):
         """jacobian function called by scipy"""
         #print("_scipy_jac enter")
         fx = self._scipy_model_eval(x)
+
+        # observations in x
+        obs_num = len(self._variables['Observations'])
+        obs_x = np.zeros((obs_num, 1))
+        output = self._find_output_from_x(x)
+        ind = 0
+        for obs in self._variables['Observations']:
+            obs_x[ind] = getattr(output, obs.name).value
+            ind += 1
+
         jac = np.zeros_like(x)
+        jac_matrix = np.zeros((obs_num, x.shape[0]))
         for i in range(x.shape[0]):
-            h = self._scipy_diff_inc_rel[i] * x[i] + self._scipy_diff_inc_abs[i]
-            xh = x.copy()
-            xh[i] += h
-            jac[i] = (self._scipy_model_eval(xh) - fx) / h
-        self._scipy_xj_log.append((x.copy(), jac.copy()))
+            if self._scipy_log_transform[i]:
+                h = self._scipy_diff_inc_rel[i] * math.fabs(math.pow(10.0, x[i])) + self._scipy_diff_inc_abs[i]
+                xh = x.copy()
+                xh[i] = math.log10(math.pow(10.0, xh[i]) + h)
+                jac[i] = (self._scipy_model_eval(xh) - fx) / (xh[i] - x[i])
+            else:
+                h = self._scipy_diff_inc_rel[i] * math.fabs(x[i]) + self._scipy_diff_inc_abs[i]
+                xh = x.copy()
+                xh[i] += h
+                jac[i] = (self._scipy_model_eval(xh) - fx) / h
+
+            # observations in xh
+            obs_xh = np.zeros((obs_num, 1))
+            output = self._find_output_from_x(xh)
+            ind = 0
+            for obs in self._variables['Observations']:
+                obs_xh[ind] = getattr(output, obs.name).value
+                ind += 1
+
+            jac_matrix[:, i] = ((obs_xh - obs_x) / (xh[i] - x[i])).reshape(obs_num)
+        self._scipy_xj_log.append((x.copy(), jac_matrix))
         return jac
 
     def _scipy_callback(self, xk):
@@ -792,9 +848,9 @@ class Calibration(WrapperActionType):
             else:
                 v = x[ind]
                 ind += 1
+                if par.log_transform:
+                    v = math.pow(10.0, v)
             par_dict[par.name] = v
-            if par.log_transform:
-                v = math.exp(v)
             v = par.scale * v + par.offset
             setattr(ret, par.name, Float(v))
 
@@ -810,8 +866,6 @@ class Calibration(WrapperActionType):
                         break
                 v = eval(par.tied_expression, globals(), par_dict)
                 par_dict[par.name] = v
-                if par.log_transform:
-                    v = math.exp(v)
                 v = par.scale * v + par.offset
                 setattr(ret, par.name, Float(v))
 
@@ -845,3 +899,21 @@ class Calibration(WrapperActionType):
                     ret += ((x[i] - ub[i]) / (ub[i] - lb[i]))**2 * c
 
         return ret
+
+    def _find_output_from_x(self, x):
+        """find output from x"""
+        output = None
+        for o in self._scipy_x_output_log:
+            if np.all(o[0] == x):
+                output = o[1]
+                break
+        return output
+
+    def _find_jac_matrix_from_x(self, x):
+        """find jacobian matrix from x"""
+        jac = None
+        for j in self._scipy_xj_log:
+            if np.all(j[0] == x):
+                jac = j[1]
+                break
+        return jac

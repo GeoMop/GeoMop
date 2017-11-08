@@ -166,12 +166,14 @@ class LayersHelpers():
         
         def _compute_depth():
             """Compute depth for grid file"""
-            try:
-                z=float(dialog.zshift.text())
-            except:
-                z=0
-            depth = dialog.depth_value + z
-            dialog.depth.setText(str(depth))
+            if surface is not None and surface.grid_file is not None and \
+                len(surface.grid_file) and not surface.grid_file.isspace():
+                try:
+                    z=float(dialog.zshift.text())
+                except:
+                    z=0
+                depth = dialog.depth_value + z
+                dialog.depth.setText(str(depth))
 
         d_zshift = QtWidgets.QLabel("Z shift:", dialog)
         dialog.zshift = QtWidgets.QLineEdit()
@@ -189,7 +191,7 @@ class LayersHelpers():
         grid.addWidget(dialog.zshift, row+4, 5)
         
         if surface is not None and surface.grid_file is not None and \
-            len(surface.grid_file) and  not surface.grid_file.isspace():
+            len(surface.grid_file) and not surface.grid_file.isspace():
             dialog.grid.setChecked(True)
             gs = bs.GridSurface.load(surface.grid_file)
             center = gs.center()

@@ -447,6 +447,13 @@ class Diagram():
             if key<=copy_to:
                 raise Exception("Empty topology inside structure")
             del cls.topologies[key]
+            
+    @classmethod
+    def get_owner_diagram(cls, layer_id):
+        """Find owner diagram for set layer"""
+        top_id = cls.regions.find_top_id(layer_id)
+        return cls.topologies[top_id][0]
+        
 
     def __init__(self, topology_idx, global_history): 
         global __next_diagram_uid__
@@ -482,6 +489,10 @@ class Diagram():
         """pen for highlighted object paintings"""
         self.pen_changed = True
         """pen need be changed"""
+        self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
+        """brush for object paintings"""
+        self.brush_selected = QtGui.QBrush(QtCore.Qt.Dense4Pattern)
+        """brush for selected object paintings"""
         self._recount_zoom = 1.0
         """pen need be changed"""
         self.x = 0
@@ -551,7 +562,7 @@ class Diagram():
         
     @zoom.setter
     def zoom(self, value):
-        """zoom property, if zoom is too different, recount pen width"""        
+        """zoom property, if zoom is too different, recount pen width, set brush transform"""
         self._zoom = value
         ratio = self._recount_zoom/value
         if ratio>1.2 or ratio<0.8:
@@ -559,6 +570,13 @@ class Diagram():
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
             self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
             self._recount_zoom = value
+
+            square_size = 20
+            self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
+
+    @property
+    def recount_zoom(self):
+        return self._recount_zoom
             
     def first_shp_object(self):
         """return if is only one shp object in diagram"""
@@ -598,8 +616,7 @@ class Diagram():
         for line in p1.lines:
             if line in p2.lines:
                 return line
-        return None
-        
+        return None        
         
     def add_file(self, file):
         """Add new shapefile"""
@@ -710,10 +727,10 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
             
-    def delete_point(self, p, label='Delete point', not_history=False):
-        assert len(p.lines)==0
+    def delete_point(self, p, label='Delete point', not_history=False):        
         #save revert operations to history
         if not not_history:
+            assert len(p.lines)==0
             self._history.add_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
@@ -730,7 +747,7 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
 
-    def join_line(self,p1, p2, label=None, id=None, not_history=False):
+    def join_line(self,p1, p2, label=None, id=None, not_history=False, copy=None):
         """Add line from point p1 to p2"""
         assert p1 != p2
         if p1>p2:
@@ -749,7 +766,10 @@ class Diagram():
             self._history.delete_line(line.id, label)        
         self.po.add_line(self, line, None, not_history) 
         if not not_history:
-            self.regions.add_regions(1, line.id, not not_history)
+            if copy is not None:
+                self.regions.copy_regions(1, line.id, copy.id, not not_history)
+            else:
+                self.regions.add_regions(1, line.id, not not_history)
         return line
         
     def join_line_import(self,p1_id, p2_id, segment):
@@ -813,16 +833,20 @@ class Diagram():
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
         self.po.split_line(self, line)
-        p = self.add_point(xn, yn, label)
+        p = self.add_point(xn, yn, label, None, True)
         p.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
         line.object.refresh_line()
-        l2 = self.join_line(point2, line.p2, None)
-        #save revert operations to history        
-        self._history.add_line(line.id, line.p1, point2, None)
-        self._history.delete_line(line.id, None)        
+        
+        #save revert operations to history 
+        self._history.add_line(line.id, line.p1.id, point2.id, None)        
+        self.regions.add_regions(0, p.id)
+        self._history.delete_point(p.id, None)
+        self._history.delete_line(line.id, None)
+        
+        l2 = self.join_line(point2, line.p2, label, None, False, line)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):
@@ -922,6 +946,6 @@ class Diagram():
         """Compute point on line"""
         dx = line.p2.x-line.p1.x
         dy = line.p2.y-line.p1.y 
-        if dx>dy:
+        if abs(dx)>abs(dy):
             return px, line.p1.y + (px-line.p1.x)*dy/dx
         return line.p1.x + (py-line.p1.y)*dx/dy, py

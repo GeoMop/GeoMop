@@ -95,7 +95,10 @@ class Flow123dAction(ParametrizedActionType):
         """
         runner = Runner(self)
         runner.name = self._get_instance_name()
-        runner.command = ["flow123d", "-s", params[0], "-o", os.path.join("output", self._store_id)]
+
+        runner.command = ["flow123d", "-s", params[0], "-o", "output" + "/" + self._store_id]
+        # we need "/" as separator because flow runs in docker
+
         return runner
         
     def _update(self):    
