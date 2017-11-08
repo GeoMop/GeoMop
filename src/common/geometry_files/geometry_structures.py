@@ -22,11 +22,13 @@ class TopologyType(IntEnum):
 
 
 class RegionDim(IntEnum):
-    invalid = -1
+    invalid = -2
+    none = -1
     point = 0
     well = 1
     fracture = 2
     bulk = 3
+    
 
 class TopologyDim(IntEnum):
     invalid = -1
@@ -69,6 +71,7 @@ class Surface(JsonData):
         surf.transform_z = [1.0, -depth]
         surf.approximation = None
         surf.grid_file = None
+        return surf
 
     def get_depth(self):
         """Return surface depth in 0"""

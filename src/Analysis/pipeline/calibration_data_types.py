@@ -13,10 +13,10 @@ class CalibrationParameter():
         :param string group: parameter group
         :param (float, float) bounds: lower and upper parameter bounds
         :param float init_value: initial value of parameter
-        :param float offset:
+        :param float offset: body param. = scale * tuned param. + offset
         :param float scale:
         :param bool fixed: if True then parameter is fixed in init value
-        :param bool log_transform: if True the body parameter is scale * exp( tuned parameter ) + offset
+        :param bool log_transform: if True with parameter is internally operated as log10(parameter value)
         :param list of string tied_params: parameters used in tied_expression
         :param string tied_expression: python expression, may use other parameters (defined in tied_params),
             this parameter is not calibrated

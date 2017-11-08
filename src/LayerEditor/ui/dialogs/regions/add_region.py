@@ -1,7 +1,7 @@
 """
 Dialog for adding region to interface.
 """
-from geometry_files import TopologyDim
+from geometry_files import RegionDim
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
@@ -27,6 +27,22 @@ class AddRegionDlg(QtWidgets.QDialog):
             QtGui.QColor("#f3ffb3"), #yelow3
             QtGui.QColor("#8effff") #blue4
         ]
+        
+    REGION_DESCRIPTION = {
+        RegionDim.none: "None (default)",
+        RegionDim.point: "Point (0D)",
+        RegionDim.well: "Well (1D)",
+        RegionDim.fracture: "Fracture (2D)", 
+        RegionDim.bulk: "Bulk (3D)"
+    }
+    
+    REGION_DESCRIPTION_SHORT = {
+        RegionDim.none: "default",
+        RegionDim.point: "point",
+        RegionDim.well: "well",
+        RegionDim.fracture: "fracture", 
+        RegionDim.bulk: "bulk"
+    }
 
 
     def __init__(self, parent=None):
@@ -43,10 +59,11 @@ class AddRegionDlg(QtWidgets.QDialog):
         
         d_region_dim = QtWidgets.QLabel("Region Dimension:", self)
         self.region_dim = QtWidgets.QComboBox()            
-        self.region_dim.addItem("0D", TopologyDim.node)
-        self.region_dim.addItem("1D", TopologyDim.segment)
-        self.region_dim.addItem("2D", TopologyDim.polygon)
-        self.region_dim.setCurrentIndex(2) 
+        self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.point], RegionDim.point)
+        self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.well], RegionDim.well)
+        self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
+        self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
+        self.region_dim.setCurrentIndex(3) 
         grid.addWidget(d_region_dim , 1, 0)
         grid.addWidget(self.region_dim , 1, 1)
 

@@ -262,7 +262,7 @@ class Area():
         self.xmax = pxs[0]
         self.ymin = -pys[0]
         self.ymax = -pys[0]
-        for x, y in zip(pxs, pxs):
+        for x, y in zip(pxs, pys):
             self.gtpolygon.append(QtCore.QPointF(x, -y))
             self.xmin = min(self.xmin, x)
             self.xmax = max(self.xmax, x)
@@ -482,6 +482,10 @@ class Diagram():
         """pen for highlighted object paintings"""
         self.pen_changed = True
         """pen need be changed"""
+        self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
+        """brush for object paintings"""
+        self.brush_selected = QtGui.QBrush(QtCore.Qt.Dense4Pattern)
+        """brush for selected object paintings"""
         self._recount_zoom = 1.0
         """pen need be changed"""
         self.x = 0
@@ -492,6 +496,8 @@ class Diagram():
         """history"""
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
+        self.spreaded = False
+        """If duagram start position is set"""
         
     def join(self):
         """Add diagram to topologies"""
@@ -549,7 +555,7 @@ class Diagram():
         
     @zoom.setter
     def zoom(self, value):
-        """zoom property, if zoom is too different, recount pen width"""        
+        """zoom property, if zoom is too different, recount pen width, set brush transform"""
         self._zoom = value
         ratio = self._recount_zoom/value
         if ratio>1.2 or ratio<0.8:
@@ -557,6 +563,13 @@ class Diagram():
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
             self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
             self._recount_zoom = value
+
+            square_size = 20
+            self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
+
+    @property
+    def recount_zoom(self):
+        return self._recount_zoom
             
     def first_shp_object(self):
         """return if is only one shp object in diagram"""
@@ -708,10 +721,10 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
             
-    def delete_point(self, p, label='Delete point', not_history=False):
-        assert len(p.lines)==0
+    def delete_point(self, p, label='Delete point', not_history=False):        
         #save revert operations to history
         if not not_history:
+            assert len(p.lines)==0
             self._history.add_point(p.id, p.x, p.y, label)
         # compute recount params
         need_recount = False
@@ -794,7 +807,7 @@ class Diagram():
     def move_point_after(self, p, x_old, y_old, label='Move point'):
         """Call if point is moved by another way and need save history and update polygons"""
         #save revert operations to history
-        self._history.move_point(p.id, x_old, y_old)
+        self._history.move_point(p.id, x_old, y_old, label)
         # compute recount params
         small = (self._rect.width()+self._rect.height())/1000000
         trimed = self._rect - QtCore.QMarginsF(small, small, small, small)
@@ -811,16 +824,21 @@ class Diagram():
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
         self.po.split_line(self, line)
-        p = self.add_point(xn, yn, label)
+        p = self.add_point(xn, yn, label, None, True)
         p.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
         line.p2 = p
         line.object.refresh_line()
-        l2 = self.join_line(point2, line.p2, None)
-        #save revert operations to history        
-        self._history.add_line(line.id, line.p1, point2, None)
-        self._history.delete_line(line.id, None)        
+        
+        #save revert operations to history 
+        self._history.add_line(line.id, line.p1.id, point2.id, None)        
+        self.regions.add_regions(0, p.id)
+        self._history.delete_point(p.id, None)
+        self._history.delete_line(line.id, None)  
+        
+        
+        l2 = self.join_line(point2, line.p2, label)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):
