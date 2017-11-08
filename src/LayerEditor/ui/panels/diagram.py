@@ -452,11 +452,14 @@ class Diagram(QtWidgets.QGraphicsScene):
     def select_all(self): 
         """select all items"""
         for line in cfg.diagram.lines:
-            self._select_line(line.object, False)
+            if line.object not in self._selected_lines:
+                self._select_line(line.object, False)
         for point in cfg.diagram.points:
-            self._select_point(point.object)
+            if point.object not in self._selected_points:
+                self._select_point(point.object)
         for polygon in cfg.diagram.polygons:
-            self._select_polygon(polygon.object)
+            if polygon.object not in self._selected_polygons:
+                self._select_polygon(polygon.object)
 
     def deselect_selected(self):
         """deselect all items"""

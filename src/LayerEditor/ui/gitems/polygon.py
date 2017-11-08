@@ -54,9 +54,9 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
 
     def update_brush(self):
         if self.state == ItemStates.selected:
-            brush = cfg.diagram.brush_selected
+            brush = QtGui.QBrush(cfg.diagram.brush_selected)
         else:
-            brush = cfg.diagram.brush
+            brush = QtGui.QBrush(cfg.diagram.brush)
 
         if self.color == "##":
             color = self.DEFAUT_COLOR
