@@ -447,6 +447,13 @@ class Diagram():
             if key<=copy_to:
                 raise Exception("Empty topology inside structure")
             del cls.topologies[key]
+            
+    @classmethod
+    def get_owner_diagram(cls, layer_id):
+        """Find owner diagram for set layer"""
+        top_id = cls.regions.find_top_id(layer_id)
+        return cls.topologies[top_id][0]
+        
 
     def __init__(self, topology_idx, global_history): 
         global __next_diagram_uid__
