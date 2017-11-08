@@ -667,8 +667,7 @@ class Regions():
         for top_id in self.layers_topology:
             if id in self.layers_topology[top_id]:
                 return top_id
-        return None
-        
+        return None        
         
     # serialize functions    
         

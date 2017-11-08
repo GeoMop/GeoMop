@@ -985,8 +985,9 @@ class RegionHistory(History):
         self.global_history.cfg.diagram.regions.layer_region_0D[id]=r0D
         self.global_history.cfg.diagram.regions.layer_region_1D[id]=r1D
         copy_r2D = copy.copy(r2D)
+        diagram = self.global_history.cfg.diagram.get_owner_diagram(id)
         for lid in lines_idxs:
-            shape_id =  self.global_history.cfg.diagram.find_polygon(lines_idxs[lid])
+            shape_id =  diagram.find_polygon(lines_idxs[lid])
             if lid!=shape_id:
                 r2D[shape_id] = r2D[lid]
                 del r2D[lid]
@@ -1106,7 +1107,8 @@ class RegionHistory(History):
             layer_region = self.global_history.cfg.diagram.regions.layer_region_1D
         else:
             layer_region = self.global_history.cfg.diagram.regions.layer_region_2D
-            shape_id =  self.global_history.cfg.diagram.find_polygon(line_idxs)
+            diagram = self.global_history.cfg.diagram.get_owner_diagram(layer_id)
+            shape_id =  diagram.find_polygon(line_idxs)
             
         if shape_id in layer_region[layer_id]:
             old_region_id = layer_region[layer_id][shape_id]
