@@ -197,7 +197,7 @@ class PolygonOperation():
         self.tmp_polygon_id = None
         
     def _assign_split(self, diagram, added_id, old_id):
-        """Assign added polzgon to existing polygon in diagram"""
+        """Assign added polygon to existing polygon in diagram"""
         spolygon = self._get_spolygon(diagram, self.tmp_polygon_id)
         spolygon.helpid = added_id
         self._reload_boundary(diagram, added_id)
@@ -253,7 +253,7 @@ class PolygonOperation():
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], -points[0].xy[1]))
         return lines, qtpolygon
         
-    def _add_polygon(self, diagram, polygon_id, label, not_history):
+    def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
         if polygon == self.decomposition.outer_polygon:
@@ -262,8 +262,11 @@ class PolygonOperation():
         for children in childs:
             if children!=polygon_id:
                 self._reload_depth(diagram, children)
+        copy = None
+        if copy_id is not None:
+            copy = self._get_spolygon(diagram, copy_id)
         lines, qtpolygon = self._get_lines_and_qtpoly(diagram, polygon)
-        spolygon = diagram.add_polygon(lines, label, not_history)
+        spolygon = diagram.add_polygon(lines, label, not_history, copy)
         spolygon.qtpolygon = qtpolygon
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
@@ -282,7 +285,7 @@ class PolygonOperation():
         """split poligon"""
         self._reload_boundary(diagram, polygon_old_id)
         self._fix_lines(diagram, polygon_id, polygon_old_id)
-        self._add_polygon(diagram, polygon_id, label, not_history)
+        self._add_polygon(diagram, polygon_id, label, not_history, polygon_old_id)
         
     def _join_polygon(self, diagram, polygon_id, del_polygon_id, label, not_history):
         """Join to polygons"""

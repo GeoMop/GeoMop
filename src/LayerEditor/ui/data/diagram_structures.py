@@ -605,8 +605,7 @@ class Diagram():
         for line in p1.lines:
             if line in p2.lines:
                 return line
-        return None
-        
+        return None        
         
     def add_file(self, file):
         """Add new shapefile"""
@@ -737,7 +736,7 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
 
-    def join_line(self,p1, p2, label=None, id=None, not_history=False):
+    def join_line(self,p1, p2, label=None, id=None, not_history=False, copy=None):
         """Add line from point p1 to p2"""
         assert p1 != p2
         if p1>p2:
@@ -756,7 +755,10 @@ class Diagram():
             self._history.delete_line(line.id, label)        
         self.po.add_line(self, line, None, not_history) 
         if not not_history:
-            self.regions.add_regions(1, line.id, not not_history)
+            if copy is not None:
+                self.regions.copy_regions(1, line.id, copy.id, not not_history)
+            else:
+                self.regions.add_regions(1, line.id, not not_history)
         return line
         
     def join_line_import(self,p1_id, p2_id, segment):
@@ -831,10 +833,9 @@ class Diagram():
         self._history.add_line(line.id, line.p1.id, point2.id, None)        
         self.regions.add_regions(0, p.id)
         self._history.delete_point(p.id, None)
-        self._history.delete_line(line.id, None)  
+        self._history.delete_line(line.id, None)
         
-        
-        l2 = self.join_line(point2, line.p2, label)                
+        l2 = self.join_line(point2, line.p2, label, None, False, line)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):
@@ -934,6 +935,6 @@ class Diagram():
         """Compute point on line"""
         dx = line.p2.x-line.p1.x
         dy = line.p2.y-line.p1.y 
-        if dx>dy:
+        if abs(dx)>abs(dy):
             return px, line.p1.y + (px-line.p1.x)*dy/dx
         return line.p1.x + (py-line.p1.y)*dx/dy, py

@@ -55,5 +55,3 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     def mouseReleaseEvent(self,event):
         """Standart mouse event"""
         event.gobject = self
-
-    
