@@ -1005,7 +1005,7 @@ class LayerGeometry(gs.LayerGeometry):
             else:
                 last_id = layer.topology.id
                 blocks.append(block)
-                block=[]
+                block=[layer]
         blocks.append(block)
         self.blocks=blocks
 
