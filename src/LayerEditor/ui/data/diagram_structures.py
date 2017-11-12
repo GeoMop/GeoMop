@@ -153,10 +153,6 @@ class Line():
         if self.polygon2 is None:
             return 1
         return 2
-
-    def qrectf(self):
-        """return QRectF coordinates"""
-        return QtCore.QRectF(self.p1.qpointf(), self.p2.qpointf())
         
     def qlinef(self):
         """return QLineF object"""
@@ -220,6 +216,10 @@ class Polygon():
     def set_current_region(self):
         """Set polygon region to current region"""
         Diagram.regions.set_region(2, self.id, True, "Set Region")
+        
+    def set_default_region(self, topology_id, label, not_history):
+        """Set polygon region to current region"""
+        Diagram.regions.set_default_region(2, self.id, topology_id, not not_history, label)
         
     def set_current_regions(self):
         """Set polygon region to current region"""
