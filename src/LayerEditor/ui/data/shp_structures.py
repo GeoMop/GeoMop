@@ -342,3 +342,16 @@ class ShpFiles():
         """Delete existing shapefile according to file index"""
         del self.datas[idx]
         self.boundrect = self._shp_rect()
+        
+    def serialize(self, shps):
+        """Set shp persistent variable to dictionary"""
+        shps.clear()
+        for disp in self.datas:
+            shp = {}
+            shp['file'] = disp.file
+            shps.append(shp)
+        
+    def deserialize(self, shps):
+        """Get shp persistent variable from dictionary"""
+        for shp in self.datas:
+            shp.add_file(shp['file'])

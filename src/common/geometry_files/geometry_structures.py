@@ -283,9 +283,12 @@ class UserSupplement(JsonData):
     def __init__(self, config={}):
         self.last_node_set = 0
         """Last edited node set"""
-        self.init_area = [(0.0, 0.0), (1.0, 1.0)]
+        self.init_area = [(0.0, 0.0),  (1.0, 0.0),  (1.0, 1.0),  (0.0, 1.0)]
         """Initialization area (polygon x,y coordinates)"""
-        
+        self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0}  
+        """Zoom and position for zoom diagram class""" 
+        self.shps = [] 
+        """Zoom and position for zoom diagram class""" 
         super().__init__(config)
 
 

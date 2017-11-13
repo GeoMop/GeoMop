@@ -176,6 +176,8 @@ class LESerializer():
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
+        Diagram.zooming.deserialize(gf.geometry.supplement.zoom)
+        Diagram.shp.deserialize(gf.geometry.supplement.shps)
         cfg.diagram = cfg.diagrams[ns_idx]    
         cfg.diagram.fix_topologies(cfg.diagrams)
         cfg.layers.compute_composition()
@@ -269,8 +271,9 @@ class LESerializer():
                 layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
         gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
-        gf.geometry.supplement.init_area = []
         Diagram.area.serialize(gf.geometry.supplement.init_area)
+        Diagram.zooming.serialize(gf.geometry.supplement.zoom)
+        Diagram.shp.serialize(gf.geometry.supplement.shps)
         errors = gf.check_file_consistency()
         if len(errors) > 0:
             raise LESerializerException("Some file consistency errors occure", errors)

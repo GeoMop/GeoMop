@@ -82,9 +82,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         """last y-coordinates for moving"""
         self._moving_counter = 0
         """counter for moving"""
-        # zoom variables
-        self._recount_zoom = 1
-        """zoom affected displayed items"""        
         # added operation        
         self._last_line = None
         """last added shapes"""
@@ -326,7 +323,6 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if polygon.object is None:
                     p = Polygon(polygon)
                     self.addItem(p)  
-        self._recount_zoom = cfg.diagram.zoom
         self._add_polygons()
         
     def blink_start(self, rect):

@@ -256,17 +256,25 @@ class JsonData:
     @staticmethod
     def _deserialize_dict(template_dict, config_dict, filter_attrs, path):
         result_dict = {}
+        remove = []
         for key, temp in template_dict.items():
             if key in filter_attrs:
                 continue
             value = config_dict.get(key, temp)
-            config_dict.pop(key, 0)
+            remove.append(key)            
 
             assert not inspect.isclass(value), "Missing value for obligatory key '{}' of type: {}.".format(key, temp)
             filled_template = JsonData._deserialize_item(temp, value, path + [key])
             result_dict[key] = filled_template
 
+        for key in remove:
+            config_dict.pop(key, 0)
+
+        remove = []
         for key in ['__class__']:
+            remove.append(key) 
+            
+        for key in remove:
             config_dict.pop(key, 0)
 
         if config_dict.keys():

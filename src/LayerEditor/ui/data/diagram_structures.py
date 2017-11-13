@@ -247,6 +247,7 @@ class Area():
         
     def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
+        points.clear()
         for i in range(0, len(self.gtpolygon)-1):
             points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
@@ -269,7 +270,66 @@ class Area():
             self.ymin = min(self.ymin, -y)
             self.ymax = max(self.ymax, -y)
         self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
+        
+        
+class Zoom():
+    """Zooming class"""
+    
+    def __init__(self): 
+        self._zoom = 1.0
+        """zoom"""
+        self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
+        """pen for object paintings"""        
+        self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5)
+        """pen for highlighted object paintings"""
+        self.pen_changed = True
+        """pen need be changed"""
+        self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
+        """brush for object paintings"""
+        self.brush_selected = QtGui.QBrush(QtCore.Qt.Dense4Pattern)
+        """brush for selected object paintings"""
+        self._recount_zoom = 1.0
+        """pen need be changed"""
+        self.x = 0
+        """x vew possition"""
+        self.y = 0 
+        """y viw possition"""
+        
+    @property
+    def zoom(self):
+        return self._zoom 
+        
+    @zoom.setter
+    def zoom(self, value):
+        """zoom property, if zoom is too different, recount pen width, set brush transform"""
+        self._zoom = value
+        ratio = self._recount_zoom/value
+        if ratio>1.2 or ratio<0.8:
+            self.pen_changed = True
+            self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
+            self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
+            self._recount_zoom = value
+
+            square_size = 20
+            self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
  
+    @property
+    def recount_zoom(self):
+        return self._recount_zoom 
+        
+    def serialize(self, zoom):
+        """Set zoom persistent variable to dictionary"""
+        zoom['zoom'] = self.zoom
+        zoom['x'] = self.x
+        zoom['y'] = self.y
+        
+    def deserialize(self, zoom):
+        """Get zoom persistent variable from dictionary"""
+        self.zoom = zoom['zoom']
+        self.x = zoom['x']
+        self.y = zoom['y']
+         
+         
 class Diagram():
     """
     Layer diagram
@@ -295,7 +355,9 @@ class Diagram():
     regions = None
     """List of regions"""
     area = Area()
-    """diagram area"""
+    """diagram area"""    
+    zooming = Zoom()
+    """zoom variable"""
     
     @classmethod
     def add_region(cls, color, name, dim, step=0.01, boundary=False, not_used=False):
@@ -481,30 +543,10 @@ class Diagram():
         """list of polygons that has not still graphic object"""
         self.deleted_polygons = []
         """list of polygons that should be remove from graphic object"""
-        self._zoom = 1.0
-        """zoom"""
-        self.pen = QtGui.QPen(QtCore.Qt.black, 1.4)
-        """pen for object paintings"""        
-        self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5)
-        """pen for highlighted object paintings"""
-        self.pen_changed = True
-        """pen need be changed"""
-        self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
-        """brush for object paintings"""
-        self.brush_selected = QtGui.QBrush(QtCore.Qt.Dense4Pattern)
-        """brush for selected object paintings"""
-        self._recount_zoom = 1.0
-        """pen need be changed"""
-        self.x = 0
-        """x vew possition"""
-        self.y = 0 
-        """y viw possition"""
         self._history = DiagramHistory(self, global_history)
         """history"""
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
-        self.spreaded = False
-        """If duagram start position is set"""
         
     def join(self):
         """Add diagram to topologies"""
@@ -558,26 +600,58 @@ class Diagram():
             
     @property
     def zoom(self):
-        return self._zoom 
+        """Get static zoom variable"""
+        return self.zooming.zoom 
         
     @zoom.setter
     def zoom(self, value):
-        """zoom property, if zoom is too different, recount pen width, set brush transform"""
-        self._zoom = value
-        ratio = self._recount_zoom/value
-        if ratio>1.2 or ratio<0.8:
-            self.pen_changed = True
-            self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
-            self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
-            self._recount_zoom = value
+        """zoom property, set static variable"""
+        self.zooming.zoom = value
+        
+    @property
+    def x(self):
+        """Get static x-coordinate of left top corner"""
+        return self.zooming.x 
+        
+    @x.setter
+    def x(self, value):
+        """x property, set static variable"""
+        self.zooming.x = value
 
-            square_size = 20
-            self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
+    @property
+    def y(self):
+        """Get static y-coordinate of left top corner"""
+        return self.zooming.y 
+        
+    @y.setter
+    def y(self,  value):
+        """y property, set static variable"""
+        self.zooming.y = value
 
     @property
     def recount_zoom(self):
-        return self._recount_zoom
-            
+        return self.zooming.recount_zoom
+        
+    @property
+    def pen(self):    
+        return self.zooming.pen
+        
+    @property
+    def bpen(self):    
+        return self.zooming.bpen
+        
+    @property
+    def pen_changed(self):    
+        return self.zooming.pen_changed
+        
+    @property
+    def brush(self):    
+        return self.zooming.brush
+        
+    @property
+    def brush_selected(self):    
+        return self.zooming.brush_selected
+        
     def first_shp_object(self):
         """return if is only one shp object in diagram"""
         if len( self.points)>0:
