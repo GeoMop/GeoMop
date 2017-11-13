@@ -2,6 +2,7 @@
 Dialog for making mesh.
 """
 
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from leconfig import cfg
 
@@ -99,8 +100,13 @@ class MakeMeshDlg(QtWidgets.QDialog):
             self._step_edit.setEnabled(False)
 
     def _start(self):
-        cmd = "python3"
-        args = ["../Geometry/geometry.py"]
+        args = []
+        geometry_bat = os.path.join(cfg.geomop_root, "bin", "geometry.bat")
+        if os.path.exists(geometry_bat):
+            cmd = geometry_bat
+        else:
+            cmd = "python3"
+            args.append(os.path.join(cfg.geomop_root, "Geometry", "geometry.py"))
         if self._step_checkbox.isChecked():
             args.append("--mesh-step")
             args.append(self._step_edit.text())

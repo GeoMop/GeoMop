@@ -30,6 +30,9 @@ class LayerEditor:
 
         # set default font to layers
         cfg.layers.font = self._app.font()
+
+        # set geomop root dir
+        cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         
         if init_dialog:
             init_dlg = SetDiagramDlg()

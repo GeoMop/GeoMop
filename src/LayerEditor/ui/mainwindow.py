@@ -11,6 +11,7 @@ from ui.menus.edit import EditMenu
 from ui.menus.file import MainFileMenu
 from ui.menus.analysis import AnalysisMenu
 from ui.menus.settings import MainSettingsMenu
+from ui.menus.mesh import MeshMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -62,12 +63,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self._file_menu = MainFileMenu(self, layer_editor)
         self._analysis_menu = AnalysisMenu(self, cfg.config)
         self._settings_menu = MainSettingsMenu(self, layer_editor)
+        self._mesh_menu = MeshMenu(self, layer_editor)
         self.update_recent_files(0)
         
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
         self._menu.addMenu(self._analysis_menu)
         self._menu.addMenu(self._settings_menu)
+        self._menu.addMenu(self._mesh_menu)
 
         # status bar
         self._column = QtWidgets.QLabel(self)

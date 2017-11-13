@@ -190,6 +190,8 @@ class LEConfig:
     """
     #path = None
     """Current geometry data file path"""
+    geomop_root = ""
+    """Path to the root directory of the GeoMop installation."""
 
     @classmethod
     def changed(cls):
