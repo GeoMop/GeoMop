@@ -289,8 +289,15 @@ class PolygonOperation():
         
     def _join_polygon(self, diagram, polygon_id, del_polygon_id, label, not_history):
         """Join to polygons"""
-        spolygon = self._get_spolygon(diagram, del_polygon_id)
-        diagram.del_polygon(spolygon, label, not_history)
+        set_default = False
+        spolygon = self._get_spolygon(diagram, polygon_id)
+        del_spolygon = self._get_spolygon(diagram, del_polygon_id)
+        if spolygon.get_polygon_region()!=del_spolygon.get_polygon_region():
+            set_default = True
+        diagram.del_polygon(del_spolygon, label, not_history)
+        if set_default:
+            spolygon.set_default_region(diagram.topology_idx, None, not_history)
+            spolygon.object.update_color()
         self._reload_boundary(diagram, polygon_id)
         
     @classmethod
