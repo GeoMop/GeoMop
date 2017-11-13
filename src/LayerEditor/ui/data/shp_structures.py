@@ -3,6 +3,7 @@ import PyQt5.QtGui as QtGui
 import shapefile
 import struct
 import os
+import os.path
 
 class ShpLine():
     """
@@ -342,3 +343,19 @@ class ShpFiles():
         """Delete existing shapefile according to file index"""
         del self.datas[idx]
         self.boundrect = self._shp_rect()
+        
+    def serialize(self, shps):
+        """Set shp persistent variable to dictionary"""
+        shps.clear()
+        for disp in self.datas:
+            shp = {}
+            shp['file'] = disp.file
+            shp['attr'] = disp.attr
+            shps.append(shp)
+        
+    def deserialize(self, shps):
+        """Get shp persistent variable from dictionary"""
+        for shp in shps:            
+            if os.path.exists(shp['file']):
+                disp = self.add_file(shp['file'])
+                disp.set_attr(self, attr)

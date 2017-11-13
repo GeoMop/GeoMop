@@ -43,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter.addWidget(self.shp) 
         if cfg.diagram.shp.is_empty():
             self.shp.hide()   
-
+        
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._hsplitter)
@@ -54,6 +54,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         self.diagramView.setMouseTracking(True)
         self._hsplitter.addWidget(self.diagramView) 
+        if not cfg.diagram.shp.is_empty():
+            self.refresh_diagram_shp()
         
         self._hsplitter.setSizes([300, 760])
         
@@ -112,12 +114,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_all(self):
         """For new data"""
-        self.set_topology()
+        if not cfg.diagram.shp.is_empty():
+            # refresh deserialized shapefile 
+            cfg.diagram.recount_canvas()
+            self.refresh_diagram_shp()
+        self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
-        self.display_all()
+        
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
@@ -137,16 +143,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramScene.release_data(old_i)
         self.diagramScene.set_data()
         
-        if not cfg.diagram.spreaded:
-            self.display_all()
-        else:
-            view_rect = self.diagramView.rect()
-            rect = QtCore.QRectF(cfg.diagram.x-100, 
-                cfg.diagram.y-100, 
-                view_rect.width()/cfg.diagram.zoom+200, 
-                view_rect.height()/cfg.diagram.zoom+200)
-                
-            self.diagramScene.blink_start(rect)
+        view_rect = self.diagramView.rect()
+        rect = QtCore.QRectF(cfg.diagram.x-100, 
+            cfg.diagram.y-100, 
+            view_rect.width()/cfg.diagram.zoom+200, 
+            view_rect.height()/cfg.diagram.zoom+200)
+            
+        self.diagramScene.blink_start(rect)
         
     def update_recent_files(self, from_row=1):
         """Update recently opened files."""
@@ -196,7 +199,6 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg.diagram.x = rect.left()
             cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
         self._display(view_rect)
-        cfg.diagram.spreaded = True
         
     def _display(self, view_rect):
         """moving"""

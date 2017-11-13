@@ -65,6 +65,7 @@ class LayerEditor:
             self.open_file()
         else:
             self.mainwindow.refresh_all()
+            self.mainwindow.display_all()
         self._update_document_name()
  
     def open_file(self):

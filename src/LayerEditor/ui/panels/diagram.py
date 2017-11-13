@@ -82,9 +82,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         """last y-coordinates for moving"""
         self._moving_counter = 0
         """counter for moving"""
-        # zoom variables
-        self._recount_zoom = 1
-        """zoom affected displayed items"""        
         # added operation        
         self._last_line = None
         """last added shapes"""
@@ -326,7 +323,6 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if polygon.object is None:
                     p = Polygon(polygon)
                     self.addItem(p)  
-        self._recount_zoom = cfg.diagram.zoom
         self._add_polygons()
         
     def blink_start(self, rect):
@@ -534,6 +530,15 @@ class Diagram(QtWidgets.QGraphicsScene):
             elif self._line_moving is not None:
                 if  self._line_moving_counter>1:
                     self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
+                    if not cfg.diagram.update_moving_points([self._line_moving.line.p1, self._line_moving.line.p2]):
+                        self._line_moving.line.p1.object.move_point(QtCore.QPointF(
+                            self._line_moving.line.p1.x, self._line_moving.line.p1.y)) 
+                        self._line_moving.line.p2.object.move_point(QtCore.QPointF(
+                            self._line_moving.line.p2.x, self._line_moving.line.p2.y)) 
+                    cfg.diagram.move_point_after(self._line_moving.line.p1, 
+                       self._line_moving_old[0].x(), self._line_moving_old[0].y(), "Move line")        
+                    cfg.diagram.move_point_after(self._line_moving.line.p2, 
+                       self._line_moving_old[1].x(), self._line_moving_old[1].y(), None)                            
                 else:
                     self._add_line(event.gobject, event.scenePos())
                 self._line_moving = None
@@ -628,7 +633,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._line_moving_counter = 0
                     self._line_moving = event.gobject
                     self._line_moving_pos = event.scenePos()
-                    self._line_moving_old = event.gobject.line.qrectf()
+                    self._line_moving_old = (event.gobject.line.p1.qpointf(), event.gobject.line.p2.qpointf())
                 elif isinstance(event.gobject, Point):
                     # point
                     self._point_moving_counter = 0

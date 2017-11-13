@@ -92,8 +92,14 @@ class Regions():
         """Set default region in set object."""
         if not topology_id in self.layers_topology:
             return
+        if dim==0:
+            layer_region = self.layer_region_0D
+        elif dim==1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
         for layer_id in self.layers_topology[topology_id]:
-            self.layer_region_0D[layer_id][shape_id]=0
+            layer_region[layer_id][shape_id]=0
             if to_history:
                 self._history.change_shape_region(shape_id, layer_id, dim, None, label)
     
@@ -294,7 +300,7 @@ class Regions():
             move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
-        self._copy_regions_to_default(self, -id-1, move_id)
+        self._copy_regions_to_default(-id-1, move_id)
         for top_id in self.layers_topology:
             if move_id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].append(-id-1)

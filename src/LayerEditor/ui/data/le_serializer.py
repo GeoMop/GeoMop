@@ -42,9 +42,9 @@ class LESerializer():
     def load(self, cfg, path):
         geometry =  gs.read_geometry(path)
         assert geometry.version == [0, 5, 0]
-        self.geometry_to_cfg(geometry, cfg)
+        self.geometry_to_cfg(geometry, cfg, path)
 
-    def geometry_to_cfg(self, geometry, cfg):
+    def geometry_to_cfg(self, geometry, cfg, path=""):
         """Load diagram data from set file"""
         self.cfg_reset(cfg)
 
@@ -55,7 +55,7 @@ class LESerializer():
         errors = gf.check_file_consistency()        
         if len(errors)>0:
             raise LESerializerException(
-                "Some file consistency errors occure in {0}".format(self.diagram.path), errors)
+                "Some file consistency errors occure in {0}".format(path), errors)
         for region in gf.get_regions():
             Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
@@ -176,7 +176,9 @@ class LESerializer():
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
-        cfg.diagram = cfg.diagrams[ns_idx]    
+        Diagram.zooming.deserialize(gf.geometry.supplement.zoom)
+        Diagram.shp.deserialize(gf.geometry.supplement.shps)        
+        cfg.diagram = cfg.diagrams[ns_idx]         
         cfg.diagram.fix_topologies(cfg.diagrams)
         cfg.layers.compute_composition()
         cfg.layers.set_edited_diagram(ns_idx)
@@ -269,8 +271,9 @@ class LESerializer():
                 layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
         gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
-        gf.geometry.supplement.init_area = []
         Diagram.area.serialize(gf.geometry.supplement.init_area)
+        Diagram.zooming.serialize(gf.geometry.supplement.zoom)
+        Diagram.shp.serialize(gf.geometry.supplement.shps)
         errors = gf.check_file_consistency()
         if len(errors) > 0:
             raise LESerializerException("Some file consistency errors occure", errors)

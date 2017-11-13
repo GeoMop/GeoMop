@@ -86,6 +86,9 @@ class _Config:
             self.save()
             return
         # init for
+        if self.recent_files[0] == file_name:
+            self.save()
+            return        
         last_file = self.recent_files[0]
         self.recent_files[0] = file_name
 
