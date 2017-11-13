@@ -294,7 +294,7 @@ class Regions():
             move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
-        self._copy_regions_to_default(self, -id-1, move_id)
+        self._copy_regions_to_default(-id-1, move_id)
         for top_id in self.layers_topology:
             if move_id in self.layers_topology[top_id]:
                 self.layers_topology[top_id].append(-id-1)
