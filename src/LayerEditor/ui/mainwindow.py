@@ -111,11 +111,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_all(self):
         """For new data"""
-        self.set_topology()
+        if not cfg.diagram.shp.is_empty():
+            # refresh deserialized shapefile 
+            cfg.diagram.recount_canvas()
+            self.refresh_diagram_shp()
+        self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
+        
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
