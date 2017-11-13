@@ -237,7 +237,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif dim==1:
             regions = cfg.diagram.lines[shape_idx].get_line_regions()
         elif dim==0:
-            regions = cfg.diagram.lines[shape_idx].get_point_regions()
+            regions = cfg.diagram.points[shape_idx].get_point_regions()
         self.regions.select_current_regions(regions)
         
     def _update_region(self, dim, shape_idx):
@@ -247,7 +247,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif dim==1:
             region = cfg.diagram.lines[shape_idx].get_line_region()
         elif dim==0:
-            region = cfg.diagram.lines[shape_idx].get_point_region()
+            region = cfg.diagram.points[shape_idx].get_point_region()
         self.regions.select_current_region(region)
             
     def config_changed(self):

@@ -22,7 +22,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
         self.color = polygon.get_color()
         self.depth = polygon.depth
-        self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.MIN_ZVALUE+self.depth)
 
         # last brush parameters

@@ -443,9 +443,59 @@ class Diagram(QtWidgets.QGraphicsScene):
                 removed.append(point)
         for point in removed:
             self._selected_points.remove(point)
-        self._del_polygons()       
-    
-    def select_all(self): 
+        self._del_polygons()
+
+    def selection_changed(self):
+        """navrh, asi na smazani"""
+        if len(self._selected_points) > 0 and \
+                len(self._selected_lines) == 0 and \
+                len(self._selected_polygons) == 0:
+            region = None
+            selected_point = None
+            for point in cfg.diagram.points:
+                if point.object in self._selected_points:
+                    reg = point.get_point_region()
+                    if region is None:
+                        region = reg
+                        selected_point = point
+                    elif reg != region:
+                        print("vychozi")
+                        return
+            self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(selected_point))
+        elif len(self._selected_points) == 0 and \
+                len(self._selected_lines) > 0 and \
+                len(self._selected_polygons) == 0:
+            region = None
+            selected_line = None
+            for line in cfg.diagram.lines:
+                if line.object in self._selected_lines:
+                    reg = line.get_line_region()
+                    if region is None:
+                        region = reg
+                        selected_line = line
+                    elif reg != region:
+                        print("vychozi")
+                        return
+            self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(selected_line))
+        elif len(self._selected_points) == 0 and \
+                len(self._selected_lines) == 0 and \
+                len(self._selected_polygons) > 0:
+            region = None
+            selected_polygon = None
+            for polygon in cfg.diagram.polygons:
+                if polygon.object in self._selected_polygons:
+                    reg = polygon.get_polygon_region()
+                    if region is None:
+                        region = reg
+                        selected_polygon = polygon
+                    elif reg != region:
+                        print("vychozi")
+                        return
+            self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(selected_polygon))
+        else:
+            print("vychozi")
+
+    def select_all(self):
         """select all items"""
         for line in cfg.diagram.lines:
             if line.object not in self._selected_lines:
@@ -519,7 +569,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                 self.possChanged.emit()
                 end_moving = True
-        if event.button()==QtCore.Qt.RightButton and \
+        if event.button()==QtCore.Qt.LeftButton and \
             event.modifiers()==QtCore.Qt.NoModifier:
             if self._point_moving is not None:
                 if  self._point_moving_counter>1:
@@ -544,14 +594,14 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self._line_moving = None
             else:
                 self._add_line(event.gobject, event.scenePos())
-        if event.button()==QtCore.Qt.RightButton and \
+        if event.button()==QtCore.Qt.LeftButton and \
             event.modifiers()==QtCore.Qt.ControlModifier:
             if self._last_line is not None:                 
                 self._add_line(event.gobject, event.scenePos(), False)                
             else:
                 self._add_point(event.gobject, event.scenePos())
                 
-        if event.button()==QtCore.Qt.LeftButton:
+        if event.button()==QtCore.Qt.RightButton:
             if event.modifiers()==QtCore.Qt.NoModifier and not end_moving:
                 self.deselect_selected()
                 if event.gobject is not None:
@@ -570,16 +620,31 @@ class Diagram(QtWidgets.QGraphicsScene):
                     elif isinstance(event.gobject, Polygon):
                         self._select_polygon(event.gobject)
             if event.modifiers()==QtCore.Qt.ControlModifier:
-                if event.gobject is not None:
-                    if isinstance(event.gobject, Polygon):
-                        event.gobject.polygon.set_current_region()
-                        event.gobject.update_color()
-                    elif isinstance(event.gobject, Line):
-                        event.gobject.line.set_current_region()
-                        event.gobject.update()
-                    elif isinstance(event.gobject, Point):
-                        event.gobject.point.set_current_region()
-                        event.gobject.update()
+                if len(self._selected_points) == 0 and \
+                        len(self._selected_lines) == 0 and \
+                        len(self._selected_polygons) == 0:
+                    regions = cfg.diagram.regions
+                    region = regions.current_regions[regions.current_layer_id]
+                    reg_ind = regions.regions.index(region)
+                    for line in cfg.diagram.lines:
+                        if line.get_line_region() == reg_ind:
+                            self._select_line(line.object, False)
+                    for point in cfg.diagram.points:
+                        if point.get_point_region() == reg_ind:
+                            self._select_point(point.object)
+                    for polygon in cfg.diagram.polygons:
+                        if polygon.get_polygon_region() == reg_ind:
+                            self._select_polygon(polygon.object)
+                # if event.gobject is not None:
+                #     if isinstance(event.gobject, Polygon):
+                #         event.gobject.polygon.set_current_region()
+                #         event.gobject.update_color()
+                #     elif isinstance(event.gobject, Line):
+                #         event.gobject.line.set_current_region()
+                #         event.gobject.update()
+                #     elif isinstance(event.gobject, Point):
+                #         event.gobject.point.set_current_region()
+                #         event.gobject.update()
             if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
@@ -620,13 +685,13 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._moving = False
             if event.gobject is None:
                 return
-        if event.button()==QtCore.Qt.LeftButton and \
+        if event.button()==QtCore.Qt.RightButton and \
             event.modifiers()==QtCore.Qt.NoModifier:
             self._moving_counter = 0
             self._moving = True
             self._moving_x = event.screenPos().x()
             self._moving_y = event.screenPos().y()                
-        if event.button()==QtCore.Qt.RightButton and \
+        if event.button()==QtCore.Qt.LeftButton and \
             event.modifiers()==QtCore.Qt.NoModifier:
             if event.gobject is not None:
                 if isinstance(event.gobject, Line):
