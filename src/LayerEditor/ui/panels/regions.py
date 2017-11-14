@@ -77,8 +77,9 @@ class Regions(QtWidgets.QToolBox):
         data.current_regions = {}
         for layer_id in self.layers:
             self.layers_id.append(layer_id) 
-            widget = self._add_region_panel(layer_id, self._get_last_region(layer_id))
-            self.addItem(widget, self.layers[layer_id])
+            widget = self._add_region_panel(layer_id, self._get_last_region(layer_id))            
+            i = self.addItem(widget, self.layers[layer_id]) 
+            self._set_box_title(i, layer_id)
         index = self._get_last_layer()
         self.setCurrentIndex(index)
         data.current_layer_id = self.layers_id[self.currentIndex()]
@@ -119,7 +120,7 @@ class Regions(QtWidgets.QToolBox):
         for i in range(0, len(data.regions)):            
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
-            data.current_regions[layer_id] = region
+            data.current_regions[layer_id] = region            
         curr_index = self.regions[layer_id].findData(data.regions.index(region)) 
         self.regions[layer_id].setCurrentIndex(curr_index) 
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
@@ -238,8 +239,10 @@ class Regions(QtWidgets.QToolBox):
             name = dlg.region_name.text()
             dim = dlg.region_dim.currentData()
             color = dlg.get_some_color(len(data.regions)).name()
-            region = data.add_new_region(color, name, dim, True, "Add Region")
+            region = data.add_new_region(color, name, dim, True, "Add Region")            
             self._add_disply_region(region)
+            layer_id = self.layers_id[self.currentIndex()]
+            self._set_box_title(self.currentIndex(), layer_id)
             
     def _name_set(self, layer_id):
         """Name is changed"""
@@ -269,6 +272,18 @@ class Regions(QtWidgets.QToolBox):
             combo_text = self.name[layer_id].text()+" ("+str(data.regions[region_id].dim.value)+"D)"
             self.regions[layer_id].setItemText(
                 self.regions[layer_id].currentIndex(), combo_text)
+                
+    def _set_box_title(self, id, layer_id):
+        region_id = self.regions[layer_id].currentData()
+        region = cfg.diagram.regions.regions[region_id]
+        pixmap = QtGui.QPixmap(16, 16)
+        color = QtGui.QColor("#f0f0e8")
+        if region.color!="##":
+            color = QtGui.QColor(region.color)
+        pixmap.fill(color)
+        icon = QtGui.QIcon(pixmap)
+        self.setItemText(id, self.layers[layer_id] + " (" + region.name + ")")
+        self.setItemIcon(id, icon)
             
     def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
@@ -291,7 +306,8 @@ class Regions(QtWidgets.QToolBox):
             cfg.diagram.regions.set_region_color(region_id, 
                 selected_color.name(), True, "Set Color")
             cfg.diagram.region_color_changed(region_id)
-        
+            self._set_box_title(self.currentIndex(), layer_id)
+            
     def _region_set(self, layer_id):
         """Region in combo box was changed"""        
         data = cfg.diagram.regions
@@ -300,6 +316,7 @@ class Regions(QtWidgets.QToolBox):
         self._update_layer_controls(region)
         self.last_region[self.layers[layer_id]] = region.name
         data.current_regions[layer_id] = region
+        self._set_box_title(self.currentIndex(), layer_id)
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""

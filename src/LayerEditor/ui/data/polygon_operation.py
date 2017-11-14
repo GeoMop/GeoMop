@@ -296,7 +296,7 @@ class PolygonOperation():
             set_default = True
         diagram.del_polygon(del_spolygon, label, not_history)
         if set_default:
-            spolygon.set_default_region(diagram.topology_idx, None, not_history)
+            spolygon.set_default_regions(diagram.topology_idx, None, not_history)
             spolygon.object.update_color()
         self._reload_boundary(diagram, polygon_id)
         

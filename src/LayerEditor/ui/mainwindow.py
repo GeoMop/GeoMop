@@ -97,7 +97,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # signals        
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
-        self.diagramScene.regionUpdateRequired.connect(self._update_region)
         self.diagramScene.regionsUpdateRequired.connect(self._update_regions)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
@@ -230,25 +229,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """Current topology or its structure is changed"""
         self.regions.set_topology(cfg.diagram.topology_idx)
         
-    def _update_regions(self, dim, shape_idx):
+    def _update_regions(self):
         """Update region for set shape"""
-        if dim==2:
-            regions = cfg.diagram.polygons[shape_idx].get_polygon_regions()
-        elif dim==1:
-            regions = cfg.diagram.lines[shape_idx].get_line_regions()
-        elif dim==0:
-            regions = cfg.diagram.points[shape_idx].get_point_regions()
+        regions =self.diagramScene.selection.get_selected_regions(cfg.diagram)
         self.regions.select_current_regions(regions)
-        
-    def _update_region(self, dim, shape_idx):
-        """Update region for set shape"""
-        if dim==2:
-            region = cfg.diagram.polygons[shape_idx].get_polygon_region()
-        elif dim==1:
-            region = cfg.diagram.lines[shape_idx].get_line_region()
-        elif dim==0:
-            region = cfg.diagram.points[shape_idx].get_point_region()
-        self.regions.select_current_region(region)
             
     def config_changed(self):
         """Handle changes of config."""

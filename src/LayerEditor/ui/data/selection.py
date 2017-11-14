@@ -73,3 +73,23 @@ class Selection():
         self.selected_points = []
         self.selected_lines = []
         self.selected_polygons = []
+        
+    def get_selected_regions(self, diagram):
+        """ For all layers of set diagram return: 
+            - selected region, if selected shapes have same regions
+            - or None region if regions is different
+        """
+        ret = None
+        default = diagram.get_default_regions()
+        for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
+            for shape in selected:
+                next =  shape.get_regions()
+                if ret is None:
+                    ret = next
+                else:
+                    for i in range (0, len(default)):
+                        if ret[i]!=next[i]:
+                            ret[i]=default[i]
+        if ret is None:
+            return default
+        return ret
