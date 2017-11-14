@@ -1188,7 +1188,7 @@ def construct_derived_geometry(gs_obj):
         geo_obj = gs_obj.__class__(new_item)
     elif isinstance(gs_obj, dict):
         for k, v in gs_obj.items():
-            gs_obj[k] = construct_derived_geometry(value)
+            gs_obj[k] = construct_derived_geometry(v)
         geo_obj = gs_obj
     else:
         geo_obj = gs_obj

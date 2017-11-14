@@ -18,9 +18,22 @@ import os.path
 #     return str
 
 
+def check_file(filename):
+    file_path = list(os.path.split(filename))
+    file_path.insert(-1, 'ref')
+    ref_file = os.path.join(*file_path)
+    return filecmp.cmp(filename, ref_file)
+
 def run_geometry(in_file):
     full_in_file = os.path.join('test_data', in_file)
     subprocess.call(['python3', '../../src/Geometry/geometry.py', full_in_file])
+    filename_base = os.path.splitext(full_in_file)[0]
+    geom_file = filename_base + '.brep'
+    assert check_file(geom_file)
+
+    msh_file = filename_base + '.msh'
+    assert check_file(msh_file)
+
 
 
 

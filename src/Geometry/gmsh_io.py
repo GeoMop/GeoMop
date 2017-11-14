@@ -137,17 +137,20 @@ class GmshIO:
 
         print('$MeshFormat\n2.2 0 8\n$EndMeshFormat', file=mshfile)
         print('$PhysicalNames\n%d'%len(self.physical), file=mshfile)
-        for name, value in self.physical.items():
+        for name in sorted(self.physical.keys()):
+            value = self.physical[name]
             region_id, dim = value
             print('%d %d "%s"'%(dim, region_id, name), file=mshfile)
         print('$EndPhysicalNames', file=mshfile)
         print('$Nodes\n%d'%len(self.nodes), file=mshfile)
-        for node_id, coord in self.nodes.items():
+        for node_id in sorted(self.nodes.keys()):
+            coord = self.nodes[node_id]
             print(node_id,' ',' '.join([str(c) for c in  coord]), sep="",
                   file=mshfile)
         print('$EndNodes',file=mshfile)
         print('$Elements\n%d'%len(self.elements),file=mshfile)
-        for ele_id, elem in self.elements.items():
+        for ele_id in sorted(self.elements.keys()):
+            elem = self.elements[ele_id]
             (ele_type, tags, nodes) = elem
             print(ele_id,' ',ele_type,' ',len(tags),' ',
                   ' '.join([str(c) for c in tags]),' ',
