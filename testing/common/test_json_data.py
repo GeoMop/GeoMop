@@ -243,3 +243,14 @@ def test_json_data():
     assert json.dumps(i.serialize(), sort_keys=True) == '{"__class__": "I", "a": 2, "b": "test", "c": "E2"}'
 
 
+def test_dict_modification():
+    class A(JsonData):
+        def __init__(self, config={}):
+            self.a = 1
+            self.c = {'x':1, 'y':2}
+
+            super().__init__(config)
+
+    a = A(dict(a=2))
+    assert a.a == 2
+    assert a.c == {'x':1, 'y':2}
