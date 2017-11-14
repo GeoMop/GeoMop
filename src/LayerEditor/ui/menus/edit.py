@@ -119,11 +119,11 @@ class EditMenu(QMenu):
  
     def _deselect(self):
         """deselect selected items"""
-        self._diagram.deselect_selected() 
+        self._diagram.selection.deselect_selected()
         
     def _select(self):
         """select all items"""
-        self._diagram.select_all() 
+        self._diagram.selection.select_all()
         
     def _show_init_area(self):
         """Show initialization area menu action"""

@@ -3,6 +3,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
+from ui.data.selection import Selection
 from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea
 from ui.gitems import ItemStates
 from leconfig import cfg
@@ -92,12 +93,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         self._last_counter = 0
         """counter for last line"""
         # selected operation
-        self._selected_points = []
-        """list of selected points"""
-        self._selected_lines = []
-        """list of selected lines"""
-        self._selected_polygons = []
-        """list of selected polygons"""
+        self.selection = Selection()
+        """selection operations"""
         # control object
         self._control_object = None
         """object, that is below cursor, if button press event is emited"""
@@ -379,145 +376,84 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
     
-    def _select_point(self, point):
-        """set point as selected"""
-        if not point in self._selected_points:
-            self._selected_points.append(point)
-            point.select_point()
-        else:
-            self._selected_points.remove(point)
-            point.deselect_point()
-    
-    def _select_line(self, line, with_points):
-        """set line as selected"""
-        if not line in self._selected_lines:
-            self._selected_lines.append(line)
-            line.select_line()        
-            if with_points:
-                if not line.line.p1.object in self._selected_points:
-                    self._select_point(line.line.p1.object)
-                if not line.line.p2.object in self._selected_points:
-                    self._select_point(line.line.p2.object)
-        else:
-            self._selected_lines.remove(line)
-            line.deselect_line()
-            if with_points:
-                if line.line.p1.object in self._selected_points:
-                    self._deselect_point(line.line.p1.object)
-                if not line.line.p2.object in self._selected_points:
-                    self._deselect_point(line.line.p2.object)
-        
-    def _select_polygon(self, polygon):
-        """set polygon as selected"""
-        if not polygon in self._selected_polygons:
-            self._selected_polygons.append(polygon)
-            polygon.select_polygon()
-        else:
-            self._selected_polygons.remove(polygon)
-            polygon.deselect_polygon()
-
     def delete_selected(self):
         """delete selected"""
         first = True
-        for line in self._selected_lines:
-            l = line.line
-            line.release_line()
-            self.removeItem(line)
+        for line in self.selection.selected_lines:
+            line_object = line.object
+            line_object.release_line()
+            self.removeItem(line_object)
             if first:
-                cfg.diagram.delete_line(l, "Delete selected")
+                cfg.diagram.delete_line(line, "Delete selected")
                 first = False
             else:
-                cfg.diagram.delete_line(l, None)
-        self._selected_lines = []
+                cfg.diagram.delete_line(line, None)
+        self.selection.selected_lines = []
         removed = []
-        for point in self._selected_points:            
-            p = point.point
+        for point in self.selection.selected_points:
             if first:
                 label = "Delete selected"
                 first = False
             else:
                 label = None
-            if cfg.diagram.try_delete_point(p, label):
-                point.release_point()
-                self.removeItem(point)
+            if cfg.diagram.try_delete_point(point, label):
+                point_object = point.object
+                point_object.release_point()
+                self.removeItem(point_object)
                 removed.append(point)
         for point in removed:
-            self._selected_points.remove(point)
+            self.selection.selected_points.remove(point)
         self._del_polygons()
 
-    def selection_changed(self):
-        """navrh, asi na smazani"""
-        if len(self._selected_points) > 0 and \
-                len(self._selected_lines) == 0 and \
-                len(self._selected_polygons) == 0:
-            region = None
-            selected_point = None
-            for point in cfg.diagram.points:
-                if point.object in self._selected_points:
-                    reg = point.get_point_region()
-                    if region is None:
-                        region = reg
-                        selected_point = point
-                    elif reg != region:
-                        print("vychozi")
-                        return
-            self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(selected_point))
-        elif len(self._selected_points) == 0 and \
-                len(self._selected_lines) > 0 and \
-                len(self._selected_polygons) == 0:
-            region = None
-            selected_line = None
-            for line in cfg.diagram.lines:
-                if line.object in self._selected_lines:
-                    reg = line.get_line_region()
-                    if region is None:
-                        region = reg
-                        selected_line = line
-                    elif reg != region:
-                        print("vychozi")
-                        return
-            self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(selected_line))
-        elif len(self._selected_points) == 0 and \
-                len(self._selected_lines) == 0 and \
-                len(self._selected_polygons) > 0:
-            region = None
-            selected_polygon = None
-            for polygon in cfg.diagram.polygons:
-                if polygon.object in self._selected_polygons:
-                    reg = polygon.get_polygon_region()
-                    if region is None:
-                        region = reg
-                        selected_polygon = polygon
-                    elif reg != region:
-                        print("vychozi")
-                        return
-            self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(selected_polygon))
-        else:
-            print("vychozi")
-
-    def select_all(self):
-        """select all items"""
-        for line in cfg.diagram.lines:
-            if line.object not in self._selected_lines:
-                self._select_line(line.object, False)
-        for point in cfg.diagram.points:
-            if point.object not in self._selected_points:
-                self._select_point(point.object)
-        for polygon in cfg.diagram.polygons:
-            if polygon.object not in self._selected_polygons:
-                self._select_polygon(polygon.object)
-
-    def deselect_selected(self):
-        """deselect all items"""
-        for line in self._selected_lines:
-           line.deselect_line()
-        for point in self._selected_points:
-            point.deselect_point()
-        for polygon in self._selected_polygons:
-            polygon.deselect_polygon()
-        self._selected_points = []
-        self._selected_lines = []
-        self._selected_polygons = []
+    # def selection_changed(self):
+    #     """navrh, asi na smazani"""
+    #     if len(self._selected_points) > 0 and \
+    #             len(self._selected_lines) == 0 and \
+    #             len(self._selected_polygons) == 0:
+    #         region = None
+    #         selected_point = None
+    #         for point in cfg.diagram.points:
+    #             if point.object in self._selected_points:
+    #                 reg = point.get_point_region()
+    #                 if region is None:
+    #                     region = reg
+    #                     selected_point = point
+    #                 elif reg != region:
+    #                     print("vychozi")
+    #                     return
+    #         self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(selected_point))
+    #     elif len(self._selected_points) == 0 and \
+    #             len(self._selected_lines) > 0 and \
+    #             len(self._selected_polygons) == 0:
+    #         region = None
+    #         selected_line = None
+    #         for line in cfg.diagram.lines:
+    #             if line.object in self._selected_lines:
+    #                 reg = line.get_line_region()
+    #                 if region is None:
+    #                     region = reg
+    #                     selected_line = line
+    #                 elif reg != region:
+    #                     print("vychozi")
+    #                     return
+    #         self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(selected_line))
+    #     elif len(self._selected_points) == 0 and \
+    #             len(self._selected_lines) == 0 and \
+    #             len(self._selected_polygons) > 0:
+    #         region = None
+    #         selected_polygon = None
+    #         for polygon in cfg.diagram.polygons:
+    #             if polygon.object in self._selected_polygons:
+    #                 reg = polygon.get_polygon_region()
+    #                 if region is None:
+    #                     region = reg
+    #                     selected_polygon = polygon
+    #                 elif reg != region:
+    #                     print("vychozi")
+    #                     return
+    #         self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(selected_polygon))
+    #     else:
+    #         print("vychozi")
 
     def _anchor_moved_point(self, event):
         """Test if point colide with other and move it"""
@@ -603,38 +539,38 @@ class Diagram(QtWidgets.QGraphicsScene):
                 
         if event.button()==QtCore.Qt.RightButton:
             if event.modifiers()==QtCore.Qt.NoModifier and not end_moving:
-                self.deselect_selected()
+                self.selection.deselect_selected()
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
-                        self._select_line(event.gobject, True)
+                        self.selection.select_line(event.gobject.line, True)
                     elif isinstance(event.gobject, Point):
-                        self._select_point(event.gobject)
+                        self.selection.select_point(event.gobject.point)
                     elif isinstance(event.gobject, Polygon):
-                        self._select_polygon(event.gobject)
+                        self.selection.select_polygon(event.gobject.polygon)
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
-                        self._select_line(event.gobject, True)
+                        self.selection.select_line(event.gobject.line, True)
                     elif isinstance(event.gobject, Point):
-                        self._select_point(event.gobject)
+                        self.selection.select_point(event.gobject.point)
                     elif isinstance(event.gobject, Polygon):
-                        self._select_polygon(event.gobject)
+                        self.selection.select_polygon(event.gobject.polygon)
             if event.modifiers()==QtCore.Qt.ControlModifier:
-                if len(self._selected_points) == 0 and \
-                        len(self._selected_lines) == 0 and \
-                        len(self._selected_polygons) == 0:
+                if len(self.selection.selected_points) == 0 and \
+                        len(self.selection.selected_lines) == 0 and \
+                        len(self.selection.selected_polygons) == 0:
                     regions = cfg.diagram.regions
                     region = regions.current_regions[regions.current_layer_id]
                     reg_ind = regions.regions.index(region)
                     for line in cfg.diagram.lines:
                         if line.get_line_region() == reg_ind:
-                            self._select_line(line.object, False)
+                            self.selection.select_line(line, False)
                     for point in cfg.diagram.points:
                         if point.get_point_region() == reg_ind:
-                            self._select_point(point.object)
+                            self.selection.select_point(point)
                     for polygon in cfg.diagram.polygons:
                         if polygon.get_polygon_region() == reg_ind:
-                            self._select_polygon(polygon.object)
+                            self.selection.select_polygon(polygon)
                 # if event.gobject is not None:
                 #     if isinstance(event.gobject, Polygon):
                 #         event.gobject.polygon.set_current_region()
