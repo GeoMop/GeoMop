@@ -118,7 +118,7 @@ class Regions():
         """Shape region for all layers in current topology is added to 
         current value"""
         if len(self.current_regions)==0 :
-            return self.set_default_region( dim, shape_id, self.current_topology_id, to_history, label)
+            return self.set_default_regions( dim, shape_id, self.current_topology_id, to_history, label)
         if dim==0:
             layer_region = self.layer_region_0D
         elif dim==1:

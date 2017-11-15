@@ -403,7 +403,8 @@ class LEConfig:
             return True
         except (RuntimeError, IOError) as err:
             if cls.main_window is not None:
-                cls._report_error("Can't open file", err)
+                err_dialog = GMErrorDialog(cls.main_window)
+                err_dialog.open_error_dialog("Can't open file", err)
             else:
                 raise err
         return False

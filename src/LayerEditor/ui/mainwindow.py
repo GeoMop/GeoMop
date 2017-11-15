@@ -126,7 +126,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
-        self.diagramScene.set_data()
         self.display_all()
         self.layers.change_size()
         self.diagramScene.show_init_area(True)
