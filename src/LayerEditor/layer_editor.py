@@ -191,33 +191,33 @@ def main():
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
-    if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
-
-        def on_unhandled_exception(type_, exception, tback):
-            """Unhandled exception callback."""
-            # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
-            if layer_editor is not None:
-                err_dialog = None
-                # display message box with the exception
-                if layer_editor.mainwindow is not None:
-                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-
-                # try to reload editor to avoid inconsistent state
-                if callable(layer_editor.mainwindow.reload):
-                    try:
-                        layer_editor.mainwindow.reload()
-                    except:
-                        if err_dialog is not None:
-                            err_dialog.open_error_dialog("Application performed invalid operation!",
-                                                         error=exception)
-                            sys.exit(1)
-
-                if err_dialog is not None:
-                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-
-        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+#    if not args.debug:
+#        from geomop_util.logging import log_unhandled_exceptions
+#
+#        def on_unhandled_exception(type_, exception, tback):
+#            """Unhandled exception callback."""
+#            # pylint: disable=unused-argument
+#            from geomop_dialogs import GMErrorDialog
+#            if layer_editor is not None:
+#                err_dialog = None
+#                # display message box with the exception
+#                if layer_editor.mainwindow is not None:
+#                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
+#
+#                # try to reload editor to avoid inconsistent state
+#                if callable(layer_editor.mainwindow.reload):
+#                    try:
+#                        layer_editor.mainwindow.reload()
+#                    except:
+#                        if err_dialog is not None:
+#                            err_dialog.open_error_dialog("Application performed invalid operation!",
+#                                                         error=exception)
+#                            sys.exit(1)
+#
+#                if err_dialog is not None:
+#                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+#
+#        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
