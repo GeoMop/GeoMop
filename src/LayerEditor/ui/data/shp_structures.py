@@ -352,10 +352,19 @@ class ShpFiles():
             shp['file'] = disp.file
             shp['attr'] = disp.attr
             shps.append(shp)
+            shp['show'] = []
+            shp['highlight'] = []
+            for i in range(0, len(disp.av_show)):
+                shp['show'] .append(disp.av_show[i])
+                shp['highlight'] .append(disp.av_highlight[i])
         
     def deserialize(self, shps):
         """Get shp persistent variable from dictionary"""
         for shp in shps:            
             if os.path.exists(shp['file']):
                 disp = self.add_file(shp['file'])
-                disp.set_attr(self, attr)
+                disp.set_attr(shp['attr'])
+                for i in range(0, len(disp.av_show)):
+                    if i<len(shp['show'] ):
+                        disp.set_show(i, shp['show'] [i])
+                        disp.set_highlight(i, shp['highlight'][i])

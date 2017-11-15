@@ -33,20 +33,17 @@ class Diagram(QtWidgets.QGraphicsScene):
     New coordinates is set in _data variable and parent view should connect
     to signal and change visualisation.
     """
-    regionUpdateRequired = QtCore.pyqtSignal(int, int)
-    """
-    Shape was clicked and region update in region panel is required
-    
-    :param int dimension: shape dimension
-    :param int idx: shape index in diagram structure
-    """
-    regionsUpdateRequired = QtCore.pyqtSignal(int, int)
+#    regionUpdateRequired = QtCore.pyqtSignal(int, int)
+#    """
+#    Shape was clicked and region update in region panel is required
+#    
+#    :param int dimension: shape dimension
+#    :param int idx: shape index in diagram structure
+#    """
+    regionsUpdateRequired = QtCore.pyqtSignal()
     """
     Shape was clicked and all regions in current topology update 
     in region panel is required
-    
-    :param int dimension: shape dimension
-    :param int idx: shape index in diagram structure
     """
     BLINK_INTERVAL = 500
     """blink interval in ms"""
@@ -563,13 +560,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                     region = regions.current_regions[regions.current_layer_id]
                     reg_ind = regions.regions.index(region)
                     for line in cfg.diagram.lines:
-                        if line.get_line_region() == reg_ind:
+                        if line.get_region() == reg_ind:
                             self.selection.select_line(line, False)
                     for point in cfg.diagram.points:
-                        if point.get_point_region() == reg_ind:
+                        if point.get_region() == reg_ind:
                             self.selection.select_point(point)
                     for polygon in cfg.diagram.polygons:
-                        if polygon.get_polygon_region() == reg_ind:
+                        if polygon.get_region() == reg_ind:
                             self.selection.select_polygon(polygon)
                 # if event.gobject is not None:
                 #     if isinstance(event.gobject, Polygon):
@@ -592,22 +589,22 @@ class Diagram(QtWidgets.QGraphicsScene):
                     elif isinstance(event.gobject, Point):
                         event.gobject.point.set_current_regions()
                         event.gobject.update()
-            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
-                if event.gobject is not None:
-                    if isinstance(event.gobject, Polygon):
-                        self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-                    elif isinstance(event.gobject, Line):
-                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-                    elif isinstance(event.gobject, Point):
-                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
-            if event.modifiers()==(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
-                if event.gobject is not None:
-                    if isinstance(event.gobject, Polygon):
-                        self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-                    elif isinstance(event.gobject, Line):
-                        self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-                    elif isinstance(event.gobject, Point):
-                        self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
+#            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
+#                if event.gobject is not None:
+#                    if isinstance(event.gobject, Polygon):
+#                        self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+#                    elif isinstance(event.gobject, Line):
+#                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
+#                    elif isinstance(event.gobject, Point):
+#                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
+#            if event.modifiers()==(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
+#                if event.gobject is not None:
+#                    if isinstance(event.gobject, Polygon):
+#                        self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
+#                    elif isinstance(event.gobject, Line):
+#                        self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
+#                    elif isinstance(event.gobject, Point):
+#                        self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
                 
             
     def mousePressEvent(self,event):

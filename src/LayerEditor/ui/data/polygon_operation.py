@@ -33,7 +33,8 @@ class PolygonOperation():
         for segment in self.decomposition.segments.values():
             diagram.join_line_import(segment.vtxs[0].id, segment.vtxs[1].id, segment)
         for polygon in self.decomposition.polygons.values():
-            self._add_polygon(diagram, polygon.id, None, True)
+            if polygon.id!=self.outer_id:
+                self._add_polygon(diagram, polygon.id, None, True)
 
     def add_point(self, diagram, point):
         """Add new point to decomposition"""
@@ -296,7 +297,7 @@ class PolygonOperation():
             set_default = True
         diagram.del_polygon(del_spolygon, label, not_history)
         if set_default:
-            spolygon.set_default_region(diagram.topology_idx, None, not_history)
+            spolygon.set_default_regions(diagram.topology_idx, None, not_history)
             spolygon.object.update_color()
         self._reload_boundary(diagram, polygon_id)
         
