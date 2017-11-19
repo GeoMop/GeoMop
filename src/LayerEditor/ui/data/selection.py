@@ -28,18 +28,28 @@ class Selection():
             self.selected_lines.append(line)
             line.object.select_line()
             if with_points:
-                if not line.p1 in self.selected_points:
-                    self.select_point(line.p1)
-                if not line.p2 in self.selected_points:
-                    self.select_point(line.p2)
+                self._select_point_if_lines_selected(line.p1)
+                self._select_point_if_lines_selected(line.p2)
         else:
             self.selected_lines.remove(line)
             line.object.deselect_line()
             if with_points:
-                if line.p1 in self.selected_points:
-                    self.deselect_point(line.p1)
-                if not line.p2 in self.selected_points:
-                    self.deselect_point(line.p2)
+                self._select_point_if_lines_selected(line.p1)
+                self._select_point_if_lines_selected(line.p2)
+
+    def _select_point_if_lines_selected(self, point):
+        """select point if neighboring lines are selected"""
+        all = True
+        for line in point.lines:
+            if line not in self.selected_lines:
+                all = False
+                break
+        if all:
+            if point not in self.selected_points:
+                self.select_point(point)
+        else:
+            if point in self.selected_points:
+                self.select_point(point)
 
     def select_polygon(self, polygon):
         """set polygon as selected"""
@@ -60,6 +70,21 @@ class Selection():
                 self.select_point(point)
         for polygon in cfg.diagram.polygons:
             if polygon not in self.selected_polygons:
+                self.select_polygon(polygon)
+
+    def select_current_region(self):
+        """select items which have set current region"""
+        regions = cfg.diagram.regions
+        region = regions.current_regions[regions.current_layer_id]
+        reg_ind = regions.regions.index(region)
+        for line in cfg.diagram.lines:
+            if line.get_region() == reg_ind:
+                self.select_line(line, False)
+        for point in cfg.diagram.points:
+            if point.get_region() == reg_ind:
+                self.select_point(point)
+        for polygon in cfg.diagram.polygons:
+            if polygon.get_region() == reg_ind:
                 self.select_polygon(polygon)
 
     def deselect_selected(self):
@@ -93,3 +118,45 @@ class Selection():
         if ret is None:
             return default
         return ret
+
+    def delete_selected(self):
+        """
+        delete selected,
+        returns list of objects to remove from diagram panel,
+        if some objects in selection have associated region only sets all objects to None region
+        """
+        with_region = False
+        for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
+            for shape in selected:
+                if shape.set_default_region():
+                    with_region = True
+        if with_region:
+            return []
+
+        objects_to_remove = []
+        first = True
+        for line in self.selected_lines:
+            line_object = line.object
+            line_object.release_line()
+            objects_to_remove.append(line_object)
+            if first:
+                cfg.diagram.delete_line(line, "Delete selected")
+                first = False
+            else:
+                cfg.diagram.delete_line(line, None)
+        self.selected_lines = []
+        removed = []
+        for point in self.selected_points:
+            if first:
+                label = "Delete selected"
+                first = False
+            else:
+                label = None
+            if cfg.diagram.try_delete_point(point, label):
+                point_object = point.object
+                point_object.release_point()
+                objects_to_remove.append(point_object)
+                removed.append(point)
+        for point in removed:
+            self.selected_points.remove(point)
+        return objects_to_remove
