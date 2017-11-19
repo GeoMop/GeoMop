@@ -33,7 +33,8 @@ class PolygonOperation():
         for segment in self.decomposition.segments.values():
             diagram.join_line_import(segment.vtxs[0].id, segment.vtxs[1].id, segment)
         for polygon in self.decomposition.polygons.values():
-            self._add_polygon(diagram, polygon.id, None, True)
+            if polygon.id!=self.outer_id:
+                self._add_polygon(diagram, polygon.id, None, True)
 
     def add_point(self, diagram, point):
         """Add new point to decomposition"""
