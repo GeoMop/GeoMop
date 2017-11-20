@@ -94,7 +94,7 @@ class Regions():
         """Return default region"""       
         default = [] 
         for layer_id in self.layers_topology[self.current_topology_id]:
-            default.append(self.regions[0])
+            default.append(0)
         return default
 
     # region panels functions

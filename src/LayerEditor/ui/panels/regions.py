@@ -54,7 +54,7 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions
         for i in range(0, len(regions)):
             layer_id = data.layers_topology[self.topology_idx][i]
-            new_index = self.regions[layer_id].findData(regions[i])            
+            new_index = self.regions[layer_id].findData(regions[i])          
             self.regions[layer_id].setCurrentIndex(new_index)
         
     def _show_layers(self):
@@ -199,10 +199,9 @@ class Regions(QtWidgets.QToolBox):
         self.notused_label[layer_id].setVisible(visible)
         self.notused[layer_id].setVisible(visible)
         
-    def _update_layer_controls(self, region):
+    def _update_layer_controls(self, region, layer_id):
         """Update set region data in layers controls"""
-        data = cfg.diagram.regions
-        layer_id = self.layers_id[self.currentIndex()]        
+        data = cfg.diagram.regions                
         region_id = data.regions.index(region)
         curr_index = self.regions[layer_id].findData(region_id)
         self.regions[layer_id].setCurrentIndex(curr_index) 
@@ -225,9 +224,9 @@ class Regions(QtWidgets.QToolBox):
         label = region.name + " (" + str(region.dim.value) + "D)"
         region_len = len(data.regions)
         for layer_id in self.layers:
-            self.regions[layer_id].addItem( label, region_len-1)  
-        self._update_layer_controls(region)
+            self.regions[layer_id].addItem( label, region_len-1) 
         layer_id = self.layers_id[self.currentIndex()]
+        self._update_layer_controls(region, layer_id)
         self.last_region[self.layers[layer_id]] = region.name        
             
     def _add_region(self):
@@ -313,10 +312,11 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]
-        self._update_layer_controls(region)
+        self._update_layer_controls(region, layer_id)
         self.last_region[self.layers[layer_id]] = region.name
         data.current_regions[layer_id] = region
-        self._set_box_title(self.currentIndex(), layer_id)
+        tab_id = self.layers_id.index(layer_id)
+        self._set_box_title(tab_id, layer_id)
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""

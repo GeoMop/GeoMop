@@ -29,6 +29,7 @@ class Point():
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
+        assert(isinstance(self.id,int))
             
     def qpointf(self):
         """return QPointF coordinates"""
@@ -73,7 +74,7 @@ class Point():
         return False       
        
     def get_color(self):
-        """Return line color"""
+        """Return line color"""       
         return Diagram.regions.get_region_color(0, self.id)
 
     def set_current_region(self):
@@ -677,7 +678,7 @@ class Diagram():
         
     def get_default_regions(self):
         """Get default regions list"""
-        return self.regions.get_default_region(self.topology_idx)    
+        return self.regions.get_default_regions(self.topology_idx)    
     
     def get_point_by_id(self, id):
         """return point or None if not exist"""
@@ -779,7 +780,7 @@ class Diagram():
         
     def add_point_id(self, x, y):
         """Add point to canvas and return index"""
-        point = Point(x, y, id)
+        point = Point(x, y)
         self.points.append(point) 
         # recount canvas size
         if self._rect is None:
