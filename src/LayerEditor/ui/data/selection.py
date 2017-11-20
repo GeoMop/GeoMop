@@ -126,10 +126,18 @@ class Selection():
         if some objects in selection have associated region only sets all objects to None region
         """
         with_region = False
-        for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
-            for shape in selected:
-                if shape.set_default_region():
-                    with_region = True
+        for point in self.selected_points:
+            if point.set_default_region():
+                point.object.update()
+                with_region = True
+        for line in self.selected_lines:
+            if line.set_default_region():
+                line.object.update()
+                with_region = True
+        for polygon in self.selected_polygons:
+            if polygon.set_default_region():
+                polygon.object.update_color()
+                with_region = True
         if with_region:
             return []
 
@@ -160,3 +168,30 @@ class Selection():
         for point in removed:
             self.selected_points.remove(point)
         return objects_to_remove
+
+    def set_current_region(self):
+        """
+        set current region to selected shapes of appropriate dimension,
+        restricts selection to this shapes
+        """
+        for point in self.selected_points:
+            if point.set_current_region():
+                point.object.update()
+            else:
+                self.select_point(point)
+        for line in self.selected_lines:
+            if line.set_current_region():
+                line.object.update()
+            else:
+                self.select_line(line, False)
+        for polygon in self.selected_polygons:
+            if polygon.set_current_region():
+                polygon.object.update_color()
+            else:
+                self.select_polygon(polygon)
+
+    def is_empty(self):
+        """returns True if no shape selected"""
+        return len(self.selected_points) == 0 and \
+            len(self.selected_lines) == 0 and \
+            len(self.selected_polygons) == 0

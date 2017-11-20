@@ -170,6 +170,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if obj is not None:                    
                     obj.release_polygon()
                     self.removeItem(obj)
+                if polygon in self.selection.selected_polygons:
+                    self.selection.selected_polygons.remove(polygon)
             cfg.diagram.deleted_polygons = []
             
     def _add_line(self, gobject, p,  add_last=True):
@@ -371,14 +373,21 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         else:
             self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
-    
+
+    def select_all(self):
+        """select all items"""
+        self.selection.select_all()
+        self.regionsUpdateRequired.emit()
+
     def delete_selected(self):
         """delete selected"""
         objects_to_remove = self.selection.delete_selected()
-        for obj in objects_to_remove:
-            self.removeItem(obj)
-        self._del_polygons()
-        self.regionsUpdateRequired.emit()
+        if len(objects_to_remove) > 0:
+            for obj in objects_to_remove:
+                self.removeItem(obj)
+            self._del_polygons()
+        else:
+            self.regionsUpdateRequired.emit()
 
     def _anchor_moved_point(self, event):
         """Test if point colide with other and move it"""
@@ -472,7 +481,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self.selection.select_point(event.gobject.point)
                     elif isinstance(event.gobject, Polygon):
                         self.selection.select_polygon(event.gobject.polygon)
-                self.regionsUpdateRequired.emit()
+                    self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
@@ -481,11 +490,10 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self.selection.select_point(event.gobject.point)
                     elif isinstance(event.gobject, Polygon):
                         self.selection.select_polygon(event.gobject.polygon)
-                    self.regionsUpdateRequired.emit()
+                    if not self.selection.is_empty():
+                        self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ControlModifier:
-                if len(self.selection.selected_points) == 0 and \
-                        len(self.selection.selected_lines) == 0 and \
-                        len(self.selection.selected_polygons) == 0:
+                if self.selection.is_empty():
                     self.selection.select_current_region()
                 # if event.gobject is not None:
                 #     if isinstance(event.gobject, Polygon):
