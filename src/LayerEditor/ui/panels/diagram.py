@@ -551,19 +551,20 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._moving = True
             self._moving_x = event.screenPos().x()
             self._moving_y = event.screenPos().y()                
-        if event.button()==QtCore.Qt.LeftButton and \
-            event.modifiers()==QtCore.Qt.NoModifier:
-            if event.gobject is not None:
-                if isinstance(event.gobject, Line):
-                    self._line_moving_counter = 0
-                    self._line_moving = event.gobject
-                    self._line_moving_pos = event.scenePos()
-                    self._line_moving_old = (event.gobject.line.p1.qpointf(), event.gobject.line.p2.qpointf())
-                elif isinstance(event.gobject, Point):
-                    # point
-                    self._point_moving_counter = 0
-                    self._point_moving = event.gobject
-                    self._point_moving_old = event.gobject.point.qpointf()
+        if event.button()==QtCore.Qt.LeftButton:
+            self.selection.deselect_selected()
+            if event.modifiers()==QtCore.Qt.NoModifier:
+                if event.gobject is not None:
+                    if isinstance(event.gobject, Line):
+                        self._line_moving_counter = 0
+                        self._line_moving = event.gobject
+                        self._line_moving_pos = event.scenePos()
+                        self._line_moving_old = (event.gobject.line.p1.qpointf(), event.gobject.line.p2.qpointf())
+                    elif isinstance(event.gobject, Point):
+                        # point
+                        self._point_moving_counter = 0
+                        self._point_moving = event.gobject
+                        self._point_moving_old = event.gobject.point.qpointf()
 
     def wheelEvent(self, event):
         """wheel event for zooming"""

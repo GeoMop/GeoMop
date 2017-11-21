@@ -54,6 +54,8 @@ class EditMenu(QMenu):
         
     def _undo(self):
         """Revert last diagram operation"""
+        self._deselect()
+
         view = cfg.history.get_undo_view()
         if view is not None:
             view.set_view()
@@ -84,6 +86,8 @@ class EditMenu(QMenu):
 
     def _redo(self):
         """Put last diagram reverted operation back"""
+        self._deselect()
+
         view = cfg.history.get_redo_view()
         if view is not None:
             view.set_view()
