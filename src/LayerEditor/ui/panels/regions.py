@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 from leconfig import cfg
 import PyQt5.QtGui as QtGui
+import PyQt5.QtCore as QtCore
 from geomop_dialogs import GMErrorDialog
 from ui.dialogs.regions import AddRegionDlg
 from geometry_files import RegionDim
@@ -9,7 +10,12 @@ from geometry_files import RegionDim
 class Regions(QtWidgets.QToolBox):
     """
     GeoMop regions panel
+
+    pyqtSignals:
+        * :py:attr:`regionChanged() <regionChanged>`
     """
+    regionChanged = QtCore.pyqtSignal()
+    """Signal is sent when region in combobox has changed."""
 
     def __init__(self, parent=None):
         """
@@ -33,6 +39,8 @@ class Regions(QtWidgets.QToolBox):
         """Region data are during updating"""
         self._show_layers()        
         self.currentChanged.connect(self._layer_changed)
+        self._emit_regionChanged = True
+        """If True regionChanged is emitted"""
         
     def release_all(self):
         """Remove all items"""
@@ -52,10 +60,12 @@ class Regions(QtWidgets.QToolBox):
     def select_current_regions(self, regions):
         """Select current regions in topology"""
         data = cfg.diagram.regions
+        self._emit_regionChanged = False
         for i in range(0, len(regions)):
             layer_id = data.layers_topology[self.topology_idx][i]
             new_index = self.regions[layer_id].findData(regions[i])          
             self.regions[layer_id].setCurrentIndex(new_index)
+        self._emit_regionChanged = True
         
     def _show_layers(self):
         """Refresh layers view"""
@@ -121,8 +131,10 @@ class Regions(QtWidgets.QToolBox):
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
             data.current_regions[layer_id] = region            
-        curr_index = self.regions[layer_id].findData(data.regions.index(region)) 
-        self.regions[layer_id].setCurrentIndex(curr_index) 
+        curr_index = self.regions[layer_id].findData(data.regions.index(region))
+        self._emit_regionChanged = False
+        self.regions[layer_id].setCurrentIndex(curr_index)
+        self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
         self.add_button[layer_id] = QtWidgets.QPushButton("Add Region")
         self.add_button[layer_id].clicked.connect(self._add_region)            
@@ -204,7 +216,12 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions                
         region_id = data.regions.index(region)
         curr_index = self.regions[layer_id].findData(region_id)
-        self.regions[layer_id].setCurrentIndex(curr_index) 
+
+        # old_emit_regionChanged is used due to recursive call of _update_layer_controls
+        old_emit_regionChanged = self._emit_regionChanged
+        self._emit_regionChanged = False
+        self.regions[layer_id].setCurrentIndex(curr_index)
+        self._emit_regionChanged = old_emit_regionChanged
 
         self.name[layer_id].setText(region.name)
         self.dims[layer_id].setText(str(region.dim.value) + "D")
@@ -317,6 +334,8 @@ class Regions(QtWidgets.QToolBox):
         data.current_regions[layer_id] = region
         tab_id = self.layers_id.index(layer_id)
         self._set_box_title(tab_id, layer_id)
+        if self._emit_regionChanged:
+            self.regionChanged.emit()
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""
