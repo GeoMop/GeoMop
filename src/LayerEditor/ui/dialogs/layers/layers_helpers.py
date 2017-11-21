@@ -46,15 +46,16 @@ class LayersHelpers():
         """Return surface"""
         try:
             surface.depth = float(dialog.depth.text())
-            surface.grid_file = dialog.file_name.text()
-            surface.transform_xy[0][0] = float(dialog.xyscale11.text())
-            surface.transform_xy[0][1] = float(dialog.xyscale12.text())
-            surface.transform_xy[1][0] = float(dialog.xyscale21.text())
-            surface.transform_xy[1][1] = float(dialog.xyscale22.text())
-            surface.transform_xy[0][2] = float(dialog.xyshift1.text())
-            surface.transform_xy[1][2] = float(dialog.xyshift2.text())
-            surface.transform_z[0] = float(dialog.zscale.text())
-            surface.transform_z[1] = float(dialog.zshift.text())
+            if (dialog.grid.isChecked()):
+                surface.grid_file = dialog.file_name.text()
+            else:
+                surface.grid_file = None
+            surface.transform_xy = ((float(dialog.xyscale11.text()), 
+                float(dialog.xyscale12.text()), float(dialog.xyscale21.text())), 
+                (float(dialog.xyscale22.text()), float(dialog.xyshift1.text()), 
+                float(dialog.xyshift2.text())))
+            surface.transform_z = (float(dialog.zscale.text()), 
+                float(dialog.zshift.text()))
             return surface
         except:
             raise ValueError("Invalid surface type")
@@ -166,8 +167,9 @@ class LayersHelpers():
         
         def _compute_depth():
             """Compute depth for grid file"""
-            if surface is not None and surface.grid_file is not None and \
-                len(surface.grid_file) and not surface.grid_file.isspace():
+            grid_file = dialog.file_name.text()
+            if dialog.grid.isChecked() and \
+                len(grid_file)>0 and not grid_file.isspace():
                 try:
                     z=float(dialog.zshift.text())
                 except:

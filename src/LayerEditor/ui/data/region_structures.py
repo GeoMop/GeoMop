@@ -343,11 +343,11 @@ class Regions():
         return region        
     # layer panel functions
 
-    def add_fracture(self, id, name, is_own, is_top, to_history=True):
+    def add_fracture(self, id, name, is_own, is_bottom, to_history=True):
         """insert layer to structure and copy regions"""
         self.layers[-id-1] = name        
         move_id = None
-        if (not is_top and not is_own):
+        if (not is_bottom and not is_own):
             move_id, topology_id = self._find_less(id)
         if move_id is None:
             move_id = id
@@ -532,7 +532,7 @@ class Regions():
     def delete_fracture(self, id, to_history=True):    
         """delete fracture from structure"""
         topology_removed = False
-        is_top = self.get_topology(-id-1) == self.get_topology(id)
+        is_bottom = self.get_topology(-id-1) == self.get_topology(id)
         name = self.layers[-id-1]
         
         del self.layers[-id-1]
@@ -552,7 +552,7 @@ class Regions():
                         topology_removed = True
                 break
         if to_history:            
-            self._history.add_fracture(id, name, is_top, topology_removed) 
+            self._history.add_fracture(id, name, is_bottom, topology_removed) 
             self._history.load_data(-id-1, r0D, r1D, r2D)
         return topology_removed
         

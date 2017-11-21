@@ -342,9 +342,9 @@ class Regions(QtWidgets.QToolBox):
             return
         data = cfg.diagram.regions
         index = self.currentIndex()
-        layer_id = self.layers_id[index]
-        if layer_id == -1:
+        if index == -1:
            return 
+        layer_id = self.layers_id[index]
         data.current_layer_id = layer_id
         self.last_layer[self.topology_idx] = index
         cfg.diagram.layer_region_changed()

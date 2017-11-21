@@ -448,7 +448,7 @@ class Layers(QtWidgets.QWidget):
                 label = None
             cfg.layers.add_fracture(i, name, position, dup)            
             self._history.delete_fracture(i, position, label)
-            cfg.diagram.regions.add_fracture(i, name, position is FractureInterface.own, position is FractureInterface.top)
+            cfg.diagram.regions.add_fracture(i, name, position is FractureInterface.own, position is FractureInterface.bottom)
             self.topologyChanged.emit()
             self.change_size()
         

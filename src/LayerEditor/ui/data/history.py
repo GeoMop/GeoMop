@@ -797,20 +797,20 @@ class RegionHistory(History):
         revert =  HistoryStep(self._add_layer, [id, name, insert])        
         return revert
 
-    def add_fracture(self, id, name, is_own, is_top, label=None):
+    def add_fracture(self, id, name, is_own, is_bottom, label=None):
         """
         Add add fracture to history operation. 
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._add_fracture, [id, name, is_own, is_top],label))
+        self.steps.append(HistoryStep(self._add_fracture, [id, name, is_own, is_bottom],label))
         
-    def _add_fracture(self, id, name, is_own, is_top):
+    def _add_fracture(self, id, name, is_own, is_bottom):
         """
         Insert fracture to regions
         
         Return invert operation
         """
-        self.global_history.cfg.diagram.regions.add_fracture(id, name, is_own, is_top, False)
+        self.global_history.cfg.diagram.regions.add_fracture(id, name, is_own, is_bottom, False)
         self._refresh_panel = True
         revert =  HistoryStep(self._delete_fracture, [id])        
         return revert
@@ -829,11 +829,11 @@ class RegionHistory(History):
         Return invert operation
         """
         name = self.global_history.cfg.diagram.regions.layers[-id-1]
-        is_top = self.global_history.cfg.diagram.regions.get_topology(-id-1) == \
+        is_bottom = self.global_history.cfg.diagram.regions.get_topology(-id-1) == \
             self.global_history.cfg.diagram.regions.get_topology(id)
         is_own = self.global_history.cfg.diagram.regions.delete_fracture(id, False)
         self._refresh_panel = True
-        revert =  HistoryStep(self._add_fracture, [id, name, is_own, is_top])        
+        revert =  HistoryStep(self._add_fracture, [id, name, is_own, is_bottom])        
         return revert
 
     def move_topology(self, id, label=None):
