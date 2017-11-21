@@ -62,6 +62,8 @@ class Regions():
     that worked with regions value and si not used by layer panel, should contain
     label.
     """
+
+    DEFAULT_REGION = 0
     
     def __init__(self, global_history):
         self.regions = []
@@ -94,7 +96,7 @@ class Regions():
         """Return default region"""       
         default = [] 
         for layer_id in self.layers_topology[self.current_topology_id]:
-            default.append(self.regions[0])
+            default.append(self.DEFAULT_REGION)
         return default
 
     # region panels functions
@@ -221,7 +223,7 @@ class Regions():
         old_region_id = layer_region[self.current_layer_id][shape_id]            
         if old_region_id==0:
             return False
-        layer_region[self.current_layer_id][shape_id] = self.regions[0]
+        layer_region[self.current_layer_id][shape_id] = self.DEFAULT_REGION
         if to_history:
             self._history.change_shape_region(shape_id, self.current_layer_id, dim, old_region_id, label)
         return True

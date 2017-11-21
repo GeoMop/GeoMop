@@ -103,6 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
+        self.regions.regionChanged.connect(self._region_changed)
 
         # initialize components
         self.config_changed()
@@ -237,3 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Handle changes of config."""
         analysis = cfg.config.analysis or '(No Analysis)'
         self._analysis_label.setText(analysis)
+
+    def _region_changed(self):
+        """Region in regions panel was changed."""
+        self.diagramScene.selection.set_current_region()
