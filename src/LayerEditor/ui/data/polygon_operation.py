@@ -100,15 +100,18 @@ class PolygonOperation():
         elif res[0]==PolygonChange.add:
             if self.tmp_polygon_id is None:
                 self._add_polygon(diagram, res[2], label, not_history)
+                return True
             else:
                 self._assign_add(diagram, res[2])                
         elif res[0]==PolygonChange.split:
             if self.tmp_polygon_id is None:
-                self._split_polygon(diagram, res[2], res[1], label, not_history)
+                self._split_polygon(diagram, res[2], res[1], label, not_history)                
+                return True
             else:
-                self._assign_split(diagram, res[2], res[1])
+                self._assign_split(diagram, res[2], res[1])                
         elif res[0]!=PolygonChange.none:
             raise Exception("Invalid polygon change during add line.")
+        return False
     
     def split_line(self, diagram, line):
         """remove and move line"""

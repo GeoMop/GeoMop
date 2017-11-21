@@ -2,7 +2,6 @@ import numpy as np
 import bisect
 import numpy.linalg as la
 import enum
-import copy
 
 # TODO: rename point - > node
 # TODO: Change points, segments, wires, polygons, holes, free_points to sets where it is appropriate.

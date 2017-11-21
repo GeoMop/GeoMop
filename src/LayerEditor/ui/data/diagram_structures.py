@@ -866,6 +866,11 @@ class Diagram():
         p2.lines.append(line)
         self.lines.append(line)        
         #save revert operations to history
+ # TODO:      
+ #        if self.po.add_line(self, line, label, not_history) :
+ #           label = None
+        
+        
         if not not_history:
             self._history.delete_line(line.id, label)        
         self.po.add_line(self, line, None, not_history) 
