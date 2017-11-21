@@ -99,7 +99,7 @@ class Regions():
 
     # region panels functions
     
-    def set_default_regions(self, dim, shape_id, topology_id, to_history=False, label=None):
+    def _set_default_regions(self, dim, shape_id, topology_id, to_history=False, label=None):
         """Set default region in set object."""
         if not topology_id in self.layers_topology:
             return
@@ -118,7 +118,7 @@ class Regions():
         """Shape region for all layers in current topology is added to 
         current value"""
         if len(self.current_regions)==0 :
-            return self.set_default_regions( dim, shape_id, self.current_topology_id, to_history, label)
+            return self._set_default_regions( dim, shape_id, self.current_topology_id, to_history, label)
         if dim==0:
             layer_region = self.layer_region_0D
         elif dim==1:
@@ -172,6 +172,23 @@ class Regions():
                 else:
                     ret = False
         return ret
+        
+    def set_regions_from_list(self, dim, shape_id, topology_id, list, to_history=False, label=None):
+        """Shape region for all layers in current topology is set to 
+        current value"""
+        if not topology_id in self.layers_topology:
+            return
+        if dim==0:
+            layer_region = self.layer_region_0D
+        elif dim==1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
+        for i in range(0, len(self.layers_topology[topology_id])):
+            layer_id = self.layers_topology[topology_id][i]
+            layer_region[layer_id][shape_id]=list[i]
+            if to_history:
+                self._history.change_shape_region(shape_id, layer_id, dim, None, label)
                     
     def set_region(self, dim, shape_id, to_history=False, label=None):
         """Shape region for current layer is set to current value"""

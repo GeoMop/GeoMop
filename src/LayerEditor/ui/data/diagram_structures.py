@@ -241,9 +241,21 @@ class Polygon():
         """Return polygon regions"""
         return Diagram.regions.get_region(2, self.id)
         
-    def set_default_regions(self, topology_id, label, not_history):
-        """Set polygon region to default region"""
-        Diagram.regions.set_default_regions(2, self.id, topology_id, not not_history, label)
+    def cmp_polygon_regions(self, diagram, del_spolygon):
+        """Compare regions. if regions is different, return new regions for seetings, lse none"""
+        ret = None
+        default = diagram.get_default_regions()
+        reg1 = self.get_regions()
+        reg2 = del_spolygon.get_regions()
+        for i in range (0, len(default)):
+            if reg1[i]==reg2[i]:
+                default[i] = reg1[i]
+                ret = default
+        return ret
+        
+    def set_regions(self, diagram, regions, label, not_history):
+        """Set diagram regions in polygon topology""" 
+        Diagram.regions.set_regions_from_list(2,  self.id, diagram.topology_idx, regions, not not_history, label)
 
  
 class Area():
@@ -677,7 +689,7 @@ class Diagram():
         
     def get_default_regions(self):
         """Get default regions list"""
-        return self.regions.get_default_region(self.topology_idx)    
+        return self.regions.get_default_regions(self.topology_idx)    
     
     def get_point_by_id(self, id):
         """return point or None if not exist"""
