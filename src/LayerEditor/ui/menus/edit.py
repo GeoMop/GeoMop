@@ -123,7 +123,7 @@ class EditMenu(QMenu):
         
     def _select(self):
         """select all items"""
-        self._diagram.selection.select_all()
+        self._diagram.select_all()
         
     def _show_init_area(self):
         """Show initialization area menu action"""
