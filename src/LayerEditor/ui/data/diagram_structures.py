@@ -320,6 +320,8 @@ class Zoom():
         """x vew possition"""
         self.y = 0 
         """y viw possition"""
+        self.position_set = False
+        """If possition is set"""
         
     @property
     def zoom(self):
@@ -338,6 +340,7 @@ class Zoom():
 
             square_size = 20
             self.brush_selected.setTransform(QtGui.QTransform(square_size / value, 0, 0, square_size / value, 0, 0))
+        self.position_set = True
  
     @property
     def recount_zoom(self):
@@ -348,12 +351,15 @@ class Zoom():
         zoom['zoom'] = self.zoom
         zoom['x'] = self.x
         zoom['y'] = self.y
+        zoom['y'] = self.y
+        zoom['position_set'] = self.position_set
         
     def deserialize(self, zoom):
         """Get zoom persistent variable from dictionary"""
         self.zoom = zoom['zoom']
         self.x = zoom['x']
         self.y = zoom['y']
+        self.position_set = zoom['position_set']
          
          
 class Diagram():
@@ -463,6 +469,15 @@ class Diagram():
     def find_polygon(self, line_idxs):
         """Try find poligon accoding to lines indexes"""
         for polygon in self.polygons:
+            if len(line_idxs)==len(polygon.lines):
+                ok = True
+                for line in polygon.lines:
+                    if not line.id in line_idxs:
+                        ok = False
+                        break
+                if ok:                    
+                    return polygon.id
+        for polygon in self.deleted_polygons:
             if len(line_idxs)==len(polygon.lines):
                 ok = True
                 for line in polygon.lines:
@@ -656,27 +671,37 @@ class Diagram():
 
     @property
     def recount_zoom(self):
+        """Zoom class intermediary"""
         return self.zooming.recount_zoom
         
     @property
-    def pen(self):    
+    def pen(self):
+        """Zoom class intermediary"""
         return self.zooming.pen
         
     @property
-    def bpen(self):    
+    def bpen(self):
+        """Zoom class intermediary"""    
         return self.zooming.bpen
         
     @property
-    def pen_changed(self):    
+    def pen_changed(self):
+        """Zoom class intermediary"""
         return self.zooming.pen_changed
         
     @property
-    def brush(self):    
+    def brush(self):
+        """Zoom class intermediary"""    
         return self.zooming.brush
         
     @property
-    def brush_selected(self):    
+    def brush_selected(self): 
+        """Zoom class intermediary"""   
         return self.zooming.brush_selected
+        
+    def position_set(self):
+        """Zoom class intermediary"""
+        return self.zooming.position_set
         
     def first_shp_object(self):
         """return if is only one shp object in diagram"""
@@ -774,7 +799,7 @@ class Diagram():
         self.po.add_point(self, point) 
         #save revert operations to history
         if not not_history:
-            self.regions.add_regions(0, point.id)
+            self.regions.add_regions(0, point.id, not not_history)
             self._history.delete_point(point.id, label)
         # recount canvas size
         if self._rect is None:
@@ -864,16 +889,12 @@ class Diagram():
         line = Line(p1, p2, id)
         p1.lines.append(line)
         p2.lines.append(line)
-        self.lines.append(line)        
-        #save revert operations to history
- # TODO:      
- #        if self.po.add_line(self, line, label, not_history) :
- #           label = None
-        
-        
+        self.lines.append(line) 
+        if self.po.add_line(self, line, label, not_history) :
+            label = None       
+        #save revert operations to history        
         if not not_history:
-            self._history.delete_line(line.id, label)        
-        self.po.add_line(self, line, None, not_history) 
+            self._history.delete_line(line.id, label)
         if not not_history:
             if copy is not None:
                 self.regions.copy_regions(1, line.id, copy.id, not not_history)
@@ -901,7 +922,7 @@ class Diagram():
         As Join line, but try add lines created by intersection
         return added_points, moved_points, added_lines
         """
-        new_points, new_lines = PolygonOperation.try_intersection(self, p1, p2, label)
+        new_points, new_lines, label = PolygonOperation.try_intersection(self, p1, p2, label)
         lines = []
         temp_p = p1
         for p in new_points:
@@ -942,7 +963,8 @@ class Diagram():
         """Add new point to line and split it """
         xn, yn = self.get_point_on_line(line, x, y)
         self.po.split_line(self, line)
-        p = self.add_point(xn, yn, label, None, True)
+        # history is not call in next function, but on the end
+        p = self.add_point(xn, yn, "", None, True)
         p.lines.append(line)
         line.p2.lines.remove(line)
         point2 = line.p2
@@ -950,12 +972,12 @@ class Diagram():
         line.object.refresh_line()
         
         #save revert operations to history 
-        self._history.add_line(line.id, line.p1.id, point2.id, None)        
-        self.regions.add_regions(0, p.id)
+        self._history.add_line(line.id, line.p1.id, point2.id, label)        
+        self.regions.add_regions(0, p.id, True)
         self._history.delete_point(p.id, None)
         self._history.delete_line(line.id, None)
         
-        l2 = self.join_line(point2, line.p2, label, None, False, line)                
+        l2 = self.join_line(point2, line.p2, None, None, False, line)                
         return p, l2
         
     def add_point_to_line(self, line, point, label='Add point to line'):

@@ -34,35 +34,43 @@ class LayerEditor:
         # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         
+        self.exit = False
         if init_dialog:
             init_dlg = SetDiagramDlg()
             ret = init_dlg.exec_()
+            if init_dlg.closed:
+                self.exit = True
+                return
         else:
             ret = QtWidgets.QDialog.Accepted
             cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
-        
+            
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
         
-        if ret!=QtWidgets.QDialog.Accepted:
-            self.open_file()
-        
-        # set default values
-        self._update_document_name()
-
         # show
         self.mainwindow.show()
         self.mainwindow.paint_new_data()
         
+        if ret!=QtWidgets.QDialog.Accepted:
+            if not self.open_file():
+                self.new_file()
+        
+        # set default values
+        self._update_document_name()        
+        
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
-            return        
-        cfg.new_file()
+            return
         init_dlg = SetDiagramDlg()
         ret = init_dlg.exec_()
+        if init_dlg.closed:
+            return
+        cfg.new_file()        
         if ret!=QtWidgets.QDialog.Accepted:
-            self.open_file()
+            if not self.open_file():
+                self.new_file()
         else:
             self.mainwindow.refresh_all()
             self.mainwindow.display_all()
@@ -71,13 +79,15 @@ class LayerEditor:
     def open_file(self):
         """open file menu action"""
         if not self.save_old_file():
-            return
+            return False
         file = QtWidgets.QFileDialog.getOpenFileName(
             self.mainwindow, "Choose Json Geometry File",
             cfg.config.data_dir, "Json Files (*.json)")
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            return True
+        return False
             
     def add_shape_file(self):
         """open set file"""
@@ -98,14 +108,14 @@ class LayerEditor:
 
     def open_recent(self, action):
         """open recent file menu action"""
-        if action.text() == cfg.curr_file:
+        if action.data() == cfg.curr_file:
             return
         if not self.save_old_file():
             return
-        cfg.open_recent_file(action.text())
+        cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
-#        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
+#        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
         """save file menu action"""
@@ -224,7 +234,8 @@ def main():
 
     # launch the application
     layer_editor = LayerEditor()
-    layer_editor.main()
+    if not layer_editor.exit:
+        layer_editor.main()
     sys.exit(0)
 
 

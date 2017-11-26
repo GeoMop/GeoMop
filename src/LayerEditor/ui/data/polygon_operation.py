@@ -321,7 +321,9 @@ class PolygonOperation():
                 new_points.append(new_point)
                 res_lines.append(line)
                 
-        for i in range(0, len(res_lines)):      
+        for i in range(0, len(res_lines)):   
+            if label == "Add line":
+                label = "Add intersected line"
             p, l = diagram.add_new_point_to_line(res_lines[i], new_points[i].x(), 
                 new_points[i].y(), label)
             label = None
@@ -334,4 +336,4 @@ class PolygonOperation():
             else:
                 new_points.sort(key=lambda p: p.x, reverse=True)               
         
-        return new_points, new_lines
+        return new_points, new_lines, label

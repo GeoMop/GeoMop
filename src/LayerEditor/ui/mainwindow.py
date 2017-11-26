@@ -123,7 +123,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.reload_layers(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
-        
+        if not cfg.diagram.position_set:
+            self.display_all()        
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""

@@ -285,7 +285,7 @@ class UserSupplement(JsonData):
         """Last edited node set"""
         self.init_area = [(0.0, 0.0),  (1.0, 0.0),  (1.0, 1.0),  (0.0, 1.0)]
         """Initialization area (polygon x,y coordinates)"""
-        self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0}  
+        self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0, 'position_set':False}  
         """Zoom and position for zoom diagram class""" 
         self.shps = [] 
         """Zoom and position for zoom diagram class""" 
