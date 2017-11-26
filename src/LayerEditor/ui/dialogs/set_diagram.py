@@ -16,6 +16,9 @@ class SetDiagramDlg(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(SetDiagramDlg, self).__init__(parent)
         self.setWindowTitle("Set Slice Inicialization Method")
+        
+        self.closed = False
+        """Dialog was closed"""
 
         grid = QtWidgets.QGridLayout(self)
         
@@ -126,6 +129,11 @@ class SetDiagramDlg(QtWidgets.QDialog):
         
         self.shp_file_name.setEnabled(self.shp.isChecked())
         self.shp_file_button.setEnabled(self.shp.isChecked())
+        
+    def closeEvent(self, event):
+        """Standart close event"""
+        self.closed = True
+        super(SetDiagramDlg, self).closeEvent(event)
             
     def accept(self):
         """
