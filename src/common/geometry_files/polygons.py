@@ -219,8 +219,13 @@ class PolygonDecomposition:
         param: displacement: Numpy array, 2D vector of displacement to add to the points.
         param: margin: float between (0, 1), displacement margin as a fraction of maximal displacement
         :return: Shortened displacement to not cross any segment.
+
+        TODO:
+        - checking just points against envelope is not enough for non-convex envelope.
+        - must check moving segments against envelope
+        - must somehow check intersection with holes inside of envelope
         """
-        # Collect fixed sides of segments connecting fixed and moving point.
+        # Collect fixed sides of segments connecting one fixed and one moving point.
         segment_set = set()
         changed_polygons = set()
         for pt in points:
@@ -229,11 +234,12 @@ class PolygonDecomposition:
                 changed_polygons.add(seg.wire[in_vtx].polygon)
                 opposite = (seg, 1-side)
                 if opposite in segment_set:
+                    # segments with both vertices moving
                     segment_set.remove(opposite)
                 else:
                     segment_set.add((seg, side))
 
-        # collect segments fomring envelope(s) of the moving points
+        # collect segments forming envelope(s) of the moving points
         envelope = set()
         for seg, side in segment_set:
             for e_seg_side in seg.wire[side].segments(start = seg.next[side]):

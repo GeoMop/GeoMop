@@ -32,7 +32,6 @@ import geometry_files.polygons as polygons
 import geometry_files.polygons_io as polygons_io
 
 
-print("Start")
 
 import b_spline
 import bspline as bs
