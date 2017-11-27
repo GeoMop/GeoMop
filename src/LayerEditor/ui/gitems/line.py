@@ -34,25 +34,65 @@ class Line(QtWidgets.QGraphicsLineItem):
 
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
+        # don't paint if line is null line
+        if super().line().isNull():
+            return
+
+        # width
         if cfg.diagram.pen.widthF() != self.pen().widthF():
             self.setPen(cfg.diagram.pen)
-        if self.pen().color()!=get_state_color(self.state):
+
+        # color
+        color = get_state_color(self.state)
+        if self.state != ItemStates.added:
+            c = self.line.get_color()
+            if c != "##":
+                color = c
+        if self.pen().color() != color:
             pen = QtGui.QPen(cfg.diagram.pen)
-            pen.setColor(get_state_color(self.state))
-            self.setPen(pen)            
-        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing) 
-        super(Line, self).paint(painter, option, widget)            
-        if self.state==ItemStates.standart:
-            color = self.line.get_color()
-            if color != "##":
-                old_pen = self.pen()
-                pen = QtGui.QPen(cfg.diagram.pen)
-                pen.setColor(QtGui.QColor(color))
-                pen.setStyle(QtCore.Qt.DotLine)
-                pen.setWidthF(1.5*self.pen().widthF())
-                self.setPen(pen)
-                super(Line, self).paint(painter, option, widget)
-                self.setPen(old_pen)
+            pen.setColor(QtGui.QColor(color))
+            self.setPen(pen)
+
+        # style
+        style = QtCore.Qt.SolidLine
+        if self.state == ItemStates.selected or self.state == ItemStates.moved:
+            style = QtCore.Qt.CustomDashLine
+        if self.pen().style() != style:
+            pen = self.pen()
+            pen.setStyle(style)
+            if style == QtCore.Qt.CustomDashLine:
+                pen.setDashPattern([10, 5])
+            self.setPen(pen)
+
+        # bold
+        if self.state != ItemStates.added and self.line.get_color() != "##":
+            pen = self.pen()
+            pen.setWidthF(3*pen.widthF())
+            self.setPen(pen)
+
+        # paint
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
+        super().paint(painter, option, widget)
+
+        # if cfg.diagram.pen.widthF() != self.pen().widthF():
+        #     self.setPen(cfg.diagram.pen)
+        # if self.pen().color()!=get_state_color(self.state):
+        #     pen = QtGui.QPen(cfg.diagram.pen)
+        #     pen.setColor(get_state_color(self.state))
+        #     self.setPen(pen)
+        # painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
+        # super(Line, self).paint(painter, option, widget)
+        # if self.state==ItemStates.standart:
+        #     color = self.line.get_color()
+        #     if color != "##":
+        #         old_pen = self.pen()
+        #         pen = QtGui.QPen(cfg.diagram.pen)
+        #         pen.setColor(QtGui.QColor(color))
+        #         pen.setStyle(QtCore.Qt.DotLine)
+        #         pen.setWidthF(1.5*self.pen().widthF())
+        #         self.setPen(pen)
+        #         super(Line, self).paint(painter, option, widget)
+        #         self.setPen(old_pen)
         
         
     def mousePressEvent(self,event):
