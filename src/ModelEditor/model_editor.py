@@ -108,15 +108,15 @@ class ModelEditor:
 
     def open_recent(self, action):
         """open recent file menu action"""
-        if action.text() == cfg.curr_file:
+        if action.data() == cfg.curr_file:
             return
         if not self.save_old_file():
             return
-        cfg.open_recent_file(action.text())
+        cfg.open_recent_file(action.data())
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
-        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
+        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
         """save file menu action"""

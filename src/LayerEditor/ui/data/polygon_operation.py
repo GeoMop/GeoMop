@@ -100,15 +100,18 @@ class PolygonOperation():
         elif res[0]==PolygonChange.add:
             if self.tmp_polygon_id is None:
                 self._add_polygon(diagram, res[2], label, not_history)
+                return True
             else:
                 self._assign_add(diagram, res[2])                
         elif res[0]==PolygonChange.split:
             if self.tmp_polygon_id is None:
-                self._split_polygon(diagram, res[2], res[1], label, not_history)
+                self._split_polygon(diagram, res[2], res[1], label, not_history)                
+                return True
             else:
-                self._assign_split(diagram, res[2], res[1])
+                self._assign_split(diagram, res[2], res[1])                
         elif res[0]!=PolygonChange.none:
             raise Exception("Invalid polygon change during add line.")
+        return False
     
     def split_line(self, diagram, line):
         """remove and move line"""
@@ -290,14 +293,12 @@ class PolygonOperation():
         
     def _join_polygon(self, diagram, polygon_id, del_polygon_id, label, not_history):
         """Join to polygons"""
-        set_default = False
         spolygon = self._get_spolygon(diagram, polygon_id)
         del_spolygon = self._get_spolygon(diagram, del_polygon_id)
-        if spolygon.get_polygon_region()!=del_spolygon.get_polygon_region():
-            set_default = True
+        regions = spolygon.cmp_polygon_regions(diagram, del_spolygon)
         diagram.del_polygon(del_spolygon, label, not_history)
-        if set_default:
-            spolygon.set_default_regions(diagram.topology_idx, None, not_history)
+        if regions is not None:
+            spolygon.set_regions(diagram, regions, None, not_history)
             spolygon.object.update_color()
         self._reload_boundary(diagram, polygon_id)
         
@@ -320,7 +321,9 @@ class PolygonOperation():
                 new_points.append(new_point)
                 res_lines.append(line)
                 
-        for i in range(0, len(res_lines)):      
+        for i in range(0, len(res_lines)):   
+            if label == "Add line":
+                label = "Add intersected line"
             p, l = diagram.add_new_point_to_line(res_lines[i], new_points[i].x(), 
                 new_points[i].y(), label)
             label = None
@@ -333,4 +336,4 @@ class PolygonOperation():
             else:
                 new_points.sort(key=lambda p: p.x, reverse=True)               
         
-        return new_points, new_lines
+        return new_points, new_lines, label

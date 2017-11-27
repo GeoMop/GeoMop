@@ -34,35 +34,43 @@ class LayerEditor:
         # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         
+        self.exit = False
         if init_dialog:
             init_dlg = SetDiagramDlg()
             ret = init_dlg.exec_()
+            if init_dlg.closed:
+                self.exit = True
+                return
         else:
             ret = QtWidgets.QDialog.Accepted
             cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
-        
+            
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
         
-        if ret!=QtWidgets.QDialog.Accepted:
-            self.open_file()
-        
-        # set default values
-        self._update_document_name()
-
         # show
         self.mainwindow.show()
         self.mainwindow.paint_new_data()
         
+        if ret!=QtWidgets.QDialog.Accepted:
+            if not self.open_file():
+                self.new_file()
+        
+        # set default values
+        self._update_document_name()        
+        
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
-            return        
-        cfg.new_file()
+            return
         init_dlg = SetDiagramDlg()
         ret = init_dlg.exec_()
+        if init_dlg.closed:
+            return
+        cfg.new_file()        
         if ret!=QtWidgets.QDialog.Accepted:
-            self.open_file()
+            if not self.open_file():
+                self.new_file()
         else:
             self.mainwindow.refresh_all()
             self.mainwindow.display_all()
@@ -71,13 +79,15 @@ class LayerEditor:
     def open_file(self):
         """open file menu action"""
         if not self.save_old_file():
-            return
+            return False
         file = QtWidgets.QFileDialog.getOpenFileName(
             self.mainwindow, "Choose Json Geometry File",
             cfg.config.data_dir, "Json Files (*.json)")
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            return True
+        return False
             
     def add_shape_file(self):
         """open set file"""
@@ -98,14 +108,14 @@ class LayerEditor:
 
     def open_recent(self, action):
         """open recent file menu action"""
-        if action.text() == cfg.curr_file:
+        if action.data() == cfg.curr_file:
             return
         if not self.save_old_file():
             return
-        cfg.open_recent_file(action.text())
+        cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
-#        self.mainwindow.show_status_message("File '" + action.text() + "' is opened")
+#        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
         """save file menu action"""
@@ -191,40 +201,41 @@ def main():
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
-    if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
-
-        def on_unhandled_exception(type_, exception, tback):
-            """Unhandled exception callback."""
-            # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
-            if layer_editor is not None:
-                err_dialog = None
-                # display message box with the exception
-                if layer_editor.mainwindow is not None:
-                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-
-                # try to reload editor to avoid inconsistent state
-                if callable(layer_editor.mainwindow.reload):
-                    try:
-                        layer_editor.mainwindow.reload()
-                    except:
-                        if err_dialog is not None:
-                            err_dialog.open_error_dialog("Application performed invalid operation!",
-                                                         error=exception)
-                            sys.exit(1)
-
-                if err_dialog is not None:
-                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-
-        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+#    if not args.debug:
+#        from geomop_util.logging import log_unhandled_exceptions
+#
+#        def on_unhandled_exception(type_, exception, tback):
+#            """Unhandled exception callback."""
+#            # pylint: disable=unused-argument
+#            from geomop_dialogs import GMErrorDialog
+#            if layer_editor is not None:
+#                err_dialog = None
+#                # display message box with the exception
+#                if layer_editor.mainwindow is not None:
+#                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
+#
+#                # try to reload editor to avoid inconsistent state
+#                if callable(layer_editor.mainwindow.reload):
+#                    try:
+#                        layer_editor.mainwindow.reload()
+#                    except:
+#                        if err_dialog is not None:
+#                            err_dialog.open_error_dialog("Application performed invalid operation!",
+#                                                         error=exception)
+#                            sys.exit(1)
+#
+#                if err_dialog is not None:
+#                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+#
+#        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # launch the application
     layer_editor = LayerEditor()
-    layer_editor.main()
+    if not layer_editor.exit:
+        layer_editor.main()
     sys.exit(0)
 
 
