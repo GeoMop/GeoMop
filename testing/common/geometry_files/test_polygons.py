@@ -248,7 +248,7 @@ class TestDecomposition:
         assert len(decomp.polygons) == 2
 
         print(decomp)
-        #plot_polygon_decomposition(decomp)
+        plot_polygon_decomposition(decomp)
         sg_m, = decomp.add_line((0, 1), (2, 1))
         print(decomp)
 
@@ -561,3 +561,26 @@ class TestDecomposition:
         assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: None, 5:None, 6:4, 7:4}
         assert maps_a[2] == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
         assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
+
+    def test_complex_wire_remove(self):
+        da = PolygonDecomposition()
+        # outer triangle
+        da.add_line((0, 4), (0,0))
+        da.add_line((0, 0), (4, 0))
+        da.add_line((4, 0), (0, 4))
+
+        # inner triangle
+        da.add_line((1, 2), (1, 1))
+        da.add_line((1, 1), (2, 1))
+        da.add_line((2, 1), (1, 2))
+
+        # rugs
+        sa, = da.add_line((2, 1), (4, 0))
+        sb, = da.add_line((1, 2), (0, 4))
+
+        print("initial dc:\n", da)
+        #plot_polygon_decomposition(da)
+
+        da.delete_segment(sb)
+        da.delete_segment(sa)
+        print("final dc:\n", da)

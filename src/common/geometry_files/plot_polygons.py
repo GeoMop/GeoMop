@@ -15,7 +15,7 @@ def _plot_polygon(polygon):
         return []
 
     # recursion
-    assert polygon.outer_wire.parent.polygon != polygon
+    assert polygon.outer_wire.parent.polygon != polygon, polygon.id
     patches = _plot_polygon(polygon.outer_wire.parent.polygon)
     pts = [pt.xy for pt in polygon.vertices()]
     X, Y = zip(*pts)

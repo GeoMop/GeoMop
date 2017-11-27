@@ -826,24 +826,27 @@ class PolygonDecomposition:
 
 
         ############################
+        keep_wire_side = None
         if polygon.outer_wire == a_wire:
-            rm_wire = b_wire
-            keep_wire = a_wire
+            keep_wire_side = out_vtx # a_wire
+        elif polygon.outer_wire == b_wire:
+            keep_wire_side = in_vtx  # b_wire
+
+
+        if keep_wire_side is None:
+            # connect two holes
+            keep_wire_side = in_vtx
+            keep_wire = new_seg.wire[keep_wire_side]
+            rm_wire = new_seg.wire[ 1 - keep_wire_side]
+            parent_wire = keep_wire
+        else:
+            keep_wire = new_seg.wire[keep_wire_side]
+            rm_wire = new_seg.wire[ 1 - keep_wire_side]
             parent_wire = keep_wire.parent  # parent wire to set for childs of rm_wire
             polygon.outer_wire = keep_wire
 
-        elif polygon.outer_wire == b_wire:
-            rm_wire = b_wire
-            keep_wire = a_wire
-            parent_wire = keep_wire.parent
-            polygon.outer_wire = keep_wire
-        else:
-            rm_wire = b_wire
-            keep_wire = a_wire
-            parent_wire = keep_wire
-
         # update segment links to rm_wire
-        for seg, side in b_wire.segments(start= (new_seg, in_vtx), end= (new_seg, out_vtx)):
+        for seg, side in rm_wire.segments(start= (new_seg, 1 - keep_wire_side), end= (new_seg, keep_wire_side)):
             assert seg.wire[side] == rm_wire, "wire: {} bwire: {} awire{}".format(seg.wire[side], b_wire, a_wire)
             seg.wire[side] = keep_wire
         new_seg.wire[out_vtx] = keep_wire
