@@ -142,7 +142,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         elif isinstance(gobject, Line): 
             if label=='Add point':
                 label='Add new point to line'
-            point, l2 = cfg.diagram.add_new_point_to_line(gobject.line, p1.x(), p1.y(), label)
+            point, l2 = cfg.diagram.add_new_point_to_line(gobject.line_data, p1.x(), p1.y(), label)
             l = Line(l2)
             self.addItem(l) 
             p = Point(point)
@@ -187,12 +187,12 @@ class Diagram(QtWidgets.QGraphicsScene):
             elif isinstance(gobject, Point):
                 self._last_p1_real = gobject
                 self._last_p1_on_line = None
-                px = gobject.point.x
-                py = gobject.point.y
+                px = gobject.point_data.x
+                py = gobject.point_data.y
             elif isinstance(gobject, Line):
                 self._last_p1_real = None
                 self._last_p1_on_line = gobject
-                px, py =  struc.Diagram.get_point_on_line(gobject.line, p.x(), p.y())
+                px, py =  struc.Diagram.get_point_on_line(gobject.line_data, p.x(), p.y())
         else:
             label = "Add line"
             if self._last_p1_real is not None:
@@ -211,7 +211,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             px = p.x()
             py = p.y()
             added_points, moved_points, added_lines = cfg.diagram.join_line_intersection(
-                p1.point, p2.point, label)
+                p1.point_data, p2.point_data, label)
             self.update_changes(added_points, [], moved_points, added_lines, [])            
             self._last_p1_real = p2
             self._last_p1_on_line = None
@@ -395,35 +395,35 @@ class Diagram(QtWidgets.QGraphicsScene):
         if below_item==self._point_moving:
             # moved point with small zorder value is below cursor             
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            if not cfg.diagram.update_moving_points([self._point_moving.point]):
+            if not cfg.diagram.update_moving_points([self._point_moving.point_data]):
                 self._point_moving.move_point(QtCore.QPointF(
-                    self._point_moving.point.x, self._point_moving.point.y)) 
-            cfg.diagram.move_point_after(self._point_moving.point, 
+                    self._point_moving.point_data.x, self._point_moving.point_data.y))
+            cfg.diagram.move_point_after(self._point_moving.point_data,
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line) and len(self._point_moving.point.lines)==1:
-            cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines)==1:
+            cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Move point to Line')
-            new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line, 
-                self._point_moving.point, None)
+            new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line_data,
+                self._point_moving.point_data, None)
             l = Line(new_line)
             self.addItem(l) 
             self._point_moving.move_point(QtCore.QPointF(
-                self._point_moving.point.x, self._point_moving.point.y), ItemStates.standart)
+                self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point)  and len(self._point_moving.point.lines)==1:
-            cfg.diagram.move_point_after(self._point_moving.point,self._point_moving_old.x(), 
+        elif isinstance(below_item, Point)  and len(self._point_moving.point_data.lines)==1:
+            cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Merge points')
-            removed_lines = cfg.diagram.merge_point(below_item.point, self._point_moving.point, None)
+            removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
             self._point_moving.release_point()
             self.removeItem(self._point_moving)
             self.update_changes([], [],  [], [], removed_lines)            
             below_item.move_point(event.scenePos(), ItemStates.standart)           
         else:
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
-            if not cfg.diagram.update_moving_points([self._point_moving.point]):
+            if not cfg.diagram.update_moving_points([self._point_moving.point_data]):
                 self._point_moving.move_point(QtCore.QPointF(
-                    self._point_moving.point.x, self._point_moving.point.y))  
-            cfg.diagram.move_point_after(self._point_moving.point, 
+                    self._point_moving.point_data.x, self._point_moving.point_data.y))
+            cfg.diagram.move_point_after(self._point_moving.point_data,
                 self._point_moving_old.x(), self._point_moving_old.y())
         self._add_polygons()
         self._del_polygons()        
@@ -450,14 +450,14 @@ class Diagram(QtWidgets.QGraphicsScene):
             elif self._line_moving is not None:
                 if  self._line_moving_counter>1:
                     self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
-                    if not cfg.diagram.update_moving_points([self._line_moving.line.p1, self._line_moving.line.p2]):
-                        self._line_moving.line.p1.object.move_point(QtCore.QPointF(
-                            self._line_moving.line.p1.x, self._line_moving.line.p1.y)) 
-                        self._line_moving.line.p2.object.move_point(QtCore.QPointF(
-                            self._line_moving.line.p2.x, self._line_moving.line.p2.y)) 
-                    cfg.diagram.move_point_after(self._line_moving.line.p1, 
+                    if not cfg.diagram.update_moving_points([self._line_moving.line_data.p1, self._line_moving.line_data.p2]):
+                        self._line_moving.line_data.p1.object.move_point(QtCore.QPointF(
+                            self._line_moving.line_data.p1.x, self._line_moving.line_data.p1.y))
+                        self._line_moving.line_data.p2.object.move_point(QtCore.QPointF(
+                            self._line_moving.line_data.p2.x, self._line_moving.line_data.p2.y))
+                    cfg.diagram.move_point_after(self._line_moving.line_data.p1,
                        self._line_moving_old[0].x(), self._line_moving_old[0].y(), "Move line")        
-                    cfg.diagram.move_point_after(self._line_moving.line.p2, 
+                    cfg.diagram.move_point_after(self._line_moving.line_data.p2,
                        self._line_moving_old[1].x(), self._line_moving_old[1].y(), None)                            
                 else:
                     self._add_line(event.gobject, event.scenePos())
@@ -476,20 +476,20 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.selection.deselect_selected()
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
-                        self.selection.select_line(event.gobject.line, True)
+                        self.selection.select_line(event.gobject.line_data, True)
                     elif isinstance(event.gobject, Point):
-                        self.selection.select_point(event.gobject.point)
+                        self.selection.select_point(event.gobject.point_data)
                     elif isinstance(event.gobject, Polygon):
-                        self.selection.select_polygon(event.gobject.polygon)
+                        self.selection.select_polygon(event.gobject.polygon_data)
                     self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Line):
-                        self.selection.select_line(event.gobject.line, True)
+                        self.selection.select_line(event.gobject.line_data, True)
                     elif isinstance(event.gobject, Point):
-                        self.selection.select_point(event.gobject.point)
+                        self.selection.select_point(event.gobject.point_data)
                     elif isinstance(event.gobject, Polygon):
-                        self.selection.select_polygon(event.gobject.polygon)
+                        self.selection.select_polygon(event.gobject.polygon_data)
                     if not self.selection.is_empty():
                         self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ControlModifier:
@@ -508,13 +508,13 @@ class Diagram(QtWidgets.QGraphicsScene):
             if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
-                        event.gobject.polygon.set_current_regions()
+                        event.gobject.polygon_data.set_current_regions()
                         event.gobject.update_color()
                     elif isinstance(event.gobject, Line):
-                        event.gobject.line.set_current_regions()
+                        event.gobject.line_data.set_current_regions()
                         event.gobject.update()
                     elif isinstance(event.gobject, Point):
-                        event.gobject.point.set_current_regions()
+                        event.gobject.point_data.set_current_regions()
                         event.gobject.update()
 #            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
 #                if event.gobject is not None:
@@ -559,12 +559,12 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._line_moving_counter = 0
                         self._line_moving = event.gobject
                         self._line_moving_pos = event.scenePos()
-                        self._line_moving_old = (event.gobject.line.p1.qpointf(), event.gobject.line.p2.qpointf())
+                        self._line_moving_old = (event.gobject.line_data.p1.qpointf(), event.gobject.line_data.p2.qpointf())
                     elif isinstance(event.gobject, Point):
                         # point
                         self._point_moving_counter = 0
                         self._point_moving = event.gobject
-                        self._point_moving_old = event.gobject.point.qpointf()
+                        self._point_moving_old = event.gobject.point_data.qpointf()
 
     def wheelEvent(self, event):
         """wheel event for zooming"""

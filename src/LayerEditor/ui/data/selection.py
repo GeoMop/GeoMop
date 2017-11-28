@@ -174,17 +174,17 @@ class Selection():
         set current region to selected shapes of appropriate dimension,
         restricts selection to this shapes
         """
-        for point in self.selected_points:
+        for point in self.selected_points.copy():
             if point.set_current_region():
                 point.object.update()
             else:
                 self.select_point(point)
-        for line in self.selected_lines:
+        for line in self.selected_lines.copy():
             if line.set_current_region():
                 line.object.update()
             else:
                 self.select_line(line, False)
-        for polygon in self.selected_polygons:
+        for polygon in self.selected_polygons.copy():
             if polygon.set_current_region():
                 polygon.object.update_color()
             else:

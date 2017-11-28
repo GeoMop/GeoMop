@@ -17,11 +17,11 @@ class Point(QtWidgets.QGraphicsEllipseItem):
 
     white_brush = QtGui.QBrush(QtGui.QColor(QtCore.Qt.white))
    
-    def __init__(self, point, parent=None):
+    def __init__(self, point_data, parent=None):
         """if item is selected"""
-        self.point = point
+        self.point_data = point_data
         self._tmp = False
-        point.object = self
+        point_data.object = self
         self.state = ItemStates.standart
         """Item state"""
         self.bold = False
@@ -37,8 +37,8 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         ps = self.POINT_SIZE
         if self.bold:
             ps = self.POINT_BOLD_SIZE
-        self.setRect(self.point.x - ps / cfg.diagram.zoom,
-                     self.point.y - ps / cfg.diagram.zoom,
+        self.setRect(self.point_data.x - ps / cfg.diagram.zoom,
+                     self.point_data.y - ps / cfg.diagram.zoom,
                      2 * ps / cfg.diagram.zoom,
                      2 * ps / cfg.diagram.zoom)
 
@@ -53,7 +53,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         """Redefination of standart paint function, that change line with accoding zoom"""
         # size
         bold = False
-        if self.state != ItemStates.added and self.point.get_color() != "##":
+        if self.state != ItemStates.added and self.point_data.get_color() != "##":
             bold = True
         if cfg.diagram.pen.widthF() != self.pen().widthF() or bold != self.bold:
             self.bold = bold
@@ -64,7 +64,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         # color
         color = get_state_color(self.state)
         if self.state != ItemStates.added:
-            c = self.point.get_color()
+            c = self.point_data.get_color()
             if c != "##":
                 color = c
         if self.pen().color() != color:
@@ -119,15 +119,15 @@ class Point(QtWidgets.QGraphicsEllipseItem):
                 self.setZValue(self.STANDART_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor)) 
         if pos is not None:
-            self.point.x = pos.x()
-            self.point.y = pos.y()
+            self.point_data.x = pos.x()
+            self.point_data.y = pos.y()
             self.set_size()
-        for line in self.point.lines:
+        for line in self.point_data.lines:
             line.object.move_line(new_state)
             
     def shift_point(self, shift, new_state=None):
         """Move point to new pos and move all affected lines"""        
-        pos = QtCore.QPointF(self.point.x, self.point.y) + shift
+        pos = QtCore.QPointF(self.point_data.x, self.point_data.y) + shift
         self.move_point(pos, new_state)
         
     def select_point(self):
@@ -157,4 +157,4 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             event.gobject = self
         
     def release_point(self):
-        self.point.object = None
+        self.point_data.object = None

@@ -12,16 +12,16 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     MIN_ZVALUE = -999
     DEFAUT_COLOR = "#f0f0e8"
     
-    def __init__(self, polygon, parent=None):
-        super(Polygon, self).__init__(polygon.qtpolygon)
-        self.polygon = polygon 
-        polygon.object = self
+    def __init__(self, polygon_data, parent=None):
+        super().__init__(polygon_data.qtpolygon)
+        self.polygon_data = polygon_data
+        polygon_data.object = self
         """polygon data object"""
         self.state = ItemStates.standart
         """Item state"""
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        self.color = polygon.get_color()
-        self.depth = polygon.depth
+        self.color = polygon_data.get_color()
+        self.depth = polygon_data.depth
         #self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.MIN_ZVALUE+self.depth)
 
@@ -41,15 +41,15 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         super().paint(painter, option, widget)
 
     def update_color(self):
-        color = self.polygon.get_color()
+        color = self.polygon_data.get_color()
         if self.color != color:
             self.color = color
             self.update()
             
     def update_depth(self):
         """Check and set polygon depth"""
-        if self.depth != self.polygon.depth:
-            self.depth = self.polygon.depth
+        if self.depth != self.polygon_data.depth:
+            self.depth = self.polygon_data.depth
             self.setZValue(self.MIN_ZVALUE+self.depth)
 
     def update_brush(self):
@@ -70,11 +70,11 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.last_brush_state = self.state
 
     def release_polygon(self):
-        self.polygon.object = None
+        self.polygon_data.object = None
         
     def refresh_polygon(self):
         """reload polygon.spolygon.gtpolygon"""
-        self.setPolygon(self.polygon.qtpolygon)
+        self.setPolygon(self.polygon_data.qtpolygon)
 
     def select_polygon(self):
         """set selected and repaint polygon"""

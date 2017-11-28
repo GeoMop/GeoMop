@@ -172,7 +172,7 @@ class Line():
         
     def set_current_region(self):
         """Set polygon region to current region"""
-        Diagram.regions.set_region(1, self.id, True, "Set Region")
+        return Diagram.regions.set_region(1, self.id, True, "Set Region")
         
     def get_region(self):
         """Return polygon regions"""
@@ -180,7 +180,7 @@ class Line():
         
     def set_current_regions(self):
         """Set polygon region to current region"""
-        Diagram.regions.set_regions(1, self.id, True, "Set Regions")
+        return Diagram.regions.set_regions(1, self.id, True, "Set Regions")
     
     def set_default_region(self):
         """Set line region to default region"""
@@ -308,6 +308,8 @@ class Zoom():
         """pen for object paintings"""        
         self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5)
         """pen for highlighted object paintings"""
+        self.no_pen = QtGui.QPen(QtCore.Qt.black, 5, QtCore.Qt.NoPen)
+        """pen for object grabbing"""
         self.pen_changed = True
         """pen need be changed"""
         self.brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
@@ -336,6 +338,7 @@ class Zoom():
             self.pen_changed = True
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
             self.bpen = QtGui.QPen(QtCore.Qt.black, 3.5/value)
+            self.no_pen = QtGui.QPen(QtCore.Qt.black, 5/value, QtCore.Qt.NoPen)
             self._recount_zoom = value
 
             square_size = 20
@@ -683,7 +686,12 @@ class Diagram():
     def bpen(self):
         """Zoom class intermediary"""    
         return self.zooming.bpen
-        
+
+    @property
+    def no_pen(self):
+        """Zoom class intermediary"""
+        return self.zooming.no_pen
+
     @property
     def pen_changed(self):
         """Zoom class intermediary"""

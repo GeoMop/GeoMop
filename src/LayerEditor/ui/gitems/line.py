@@ -12,16 +12,19 @@ class Line(QtWidgets.QGraphicsLineItem):
     STANDART_ZVALUE = 110
     MOVE_ZVALUE = 10
     TMP_ZVALUE = 0
+    DASH_PATTERN = [10, 5]
+    DASH_PATTERN_BOLD = [5, 2.5]
     
-    def __init__(self, line, parent=None):
-        super(Line, self).__init__(line.p1.x, line.p1.y, line.p2.x, line.p2.y, parent)
-        self.line = line
+    def __init__(self, line_data, parent=None):
+        super().__init__(line_data.p1.x, line_data.p1.y, line_data.p2.x, line_data.p2.y, parent)
+        self.line_data = line_data
         self._tmp = False
-        line.object = self
+        line_data.object = self
         """Line data object"""
         self.state = ItemStates.standart
         """Item state"""
-        self.setPen(cfg.diagram.pen)
+        self.setPen(cfg.diagram.no_pen)
+        self.real_pen = QtGui.QPen(cfg.diagram.pen)
         self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.STANDART_ZVALUE) 
         
@@ -35,44 +38,43 @@ class Line(QtWidgets.QGraphicsLineItem):
     def paint(self, painter, option, widget):
         """Redefination of standart paint function, that change line with accoding zoom"""
         # don't paint if line is null line
-        if super().line().isNull():
+        if self.line().isNull():
             return
 
         # width
-        if cfg.diagram.pen.widthF() != self.pen().widthF():
-            self.setPen(cfg.diagram.pen)
+        if cfg.diagram.pen.widthF() != self.real_pen.widthF():
+            self.real_pen = QtGui.QPen(cfg.diagram.pen)
+            self.setPen(cfg.diagram.no_pen)
 
         # color
         color = get_state_color(self.state)
         if self.state != ItemStates.added:
-            c = self.line.get_color()
+            c = self.line_data.get_color()
             if c != "##":
                 color = c
-        if self.pen().color() != color:
-            pen = QtGui.QPen(cfg.diagram.pen)
-            pen.setColor(QtGui.QColor(color))
-            self.setPen(pen)
+        if self.real_pen.color() != color:
+            self.real_pen = QtGui.QPen(cfg.diagram.pen)
+            self.real_pen.setColor(QtGui.QColor(color))
 
         # style
         style = QtCore.Qt.SolidLine
         if self.state == ItemStates.selected or self.state == ItemStates.moved:
             style = QtCore.Qt.CustomDashLine
-        if self.pen().style() != style:
-            pen = self.pen()
-            pen.setStyle(style)
+        if self.real_pen.style() != style:
+            self.real_pen.setStyle(style)
             if style == QtCore.Qt.CustomDashLine:
-                pen.setDashPattern([10, 5])
-            self.setPen(pen)
+                self.real_pen.setDashPattern(self.DASH_PATTERN)
 
         # bold
-        if self.state != ItemStates.added and self.line.get_color() != "##":
-            pen = self.pen()
-            pen.setWidthF(3*pen.widthF())
-            self.setPen(pen)
+        if self.state != ItemStates.added and self.line_data.get_color() != "##":
+            self.real_pen.setWidthF(3*self.real_pen.widthF())
+            if style == QtCore.Qt.CustomDashLine:
+                self.real_pen.setDashPattern(self.DASH_PATTERN_BOLD)
 
         # paint
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
-        super().paint(painter, option, widget)
+        painter.setPen(self.real_pen)
+        painter.drawLine(self.line())
 
         # if cfg.diagram.pen.widthF() != self.pen().widthF():
         #     self.setPen(cfg.diagram.pen)
@@ -111,7 +113,7 @@ class Line(QtWidgets.QGraphicsLineItem):
             
     def refresh_line(self):
         """Refresh line after point changes"""
-        self.setLine(self.line.p1.x, self.line.p1.y, self.line.p2.x, self.line.p2.y)
+        self.setLine(self.line_data.p1.x, self.line_data.p1.y, self.line_data.p2.x, self.line_data.p2.y)
             
     def select_line(self):
         """set selected and repaint line"""
@@ -135,12 +137,12 @@ class Line(QtWidgets.QGraphicsLineItem):
             else:
                 self.setZValue(self.STANDART_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor)) 
-        self.setLine(self.line.p1.x, self.line.p1.y, self.line.p2.x, self.line.p2.y)
+        self.setLine(self.line_data.p1.x, self.line_data.p1.y, self.line_data.p2.x, self.line_data.p2.y)
         
     def shift_line(self, shift, new_state=None):
         """shift line"""
-        self.line.p1.object.shift_point(shift, new_state)
-        self.line.p2.object.shift_point(shift, new_state)
+        self.line_data.p1.object.shift_point(shift, new_state)
+        self.line_data.p2.object.shift_point(shift, new_state)
         
     def release_line(self):
-        self.line.object = None
+        self.line_data.object = None
