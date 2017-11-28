@@ -249,8 +249,17 @@ class GeoLayer(JsonData):
         extruded = (self.layer_type == LayerType.stratum)
         for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
             for reg_idx in reg_list:
-                reg = regions[reg_idx]
-                reg.fix_dim(extruded)
+                if reg_idx>0:
+                    reg = regions[reg_idx]
+                    reg.fix_dim(extruded)
+                
+    def fix_region_id(self):
+        for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
+            for i in range(0, len(reg_list)):
+                if reg_list[i]>2:
+                    reg_list[i] -= 2
+                else:
+                    reg_list[i] = 0
 
 
 
@@ -313,15 +322,24 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
-        if self.version < [0, 5, 0]:
-            # 0.4.0 to 0.5.0 conversion
-            for layer in self.layers:
-                # add None region for outer polygon, always with index 0
+        if self.version < [0, 5, 0]:            
+            if len(self.regions)>0:
+                # 0.4.0 to 0.5.0 conversion
+                assert self.regions[0].not_used
+                assert self.regions[1].not_used
                 assert self.regions[2].not_used
-                layer.polygon_region_ids.insert(0, 2)
-                layer.fix_region_dim(self.regions)
-            # conversion of decomposistions is done when decompositions are reconstructed
-
+                del self.regions[2]
+                del self.regions[1]                
+                self.regions[0].dim = RegionDim.none
+                self.regions[0].name = "NONE"
+                self.regions[0].color = "##"
+                
+                for layer in self.layers:
+                    # add None region for outer polygon, always with index 0                
+                    layer.polygon_region_ids.insert(0, 0)
+                    layer.fix_region_id()
+                    layer.fix_region_dim(self.regions)
+                # conversion of decomposistions is done when decompositions are reconstructed
             self.version = [0, 5, 0]
 
 

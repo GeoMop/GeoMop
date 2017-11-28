@@ -54,7 +54,8 @@ class LayerEditor:
         
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
-                self.new_file()
+                self.mainwindow.close()
+                self.exit = True
         
         # set default values
         self._update_document_name()        
