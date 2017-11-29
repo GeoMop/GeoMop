@@ -438,11 +438,12 @@ class Diagram():
         for polygon in self.polygons:
             if self.regions.get_region_id(2, polygon.id)==region_idx:
                 polygon.object.update_color()
-# TODO: Lines and points
-#            for i in range(0, len(diagram.lines)):                
-#                map[top_id][1][i] = diagram.lines[i].id
-#           for i in range(0, len(diagram.points)):
-#                map[top_id][0][i] = diagram.points[i].id
+        for line in self.lines:
+            if self.regions.get_region_id(1, line.id)==region_idx:
+                line.object.update()
+        for point in self.points:
+            if self.regions.get_region_id(0, point.id)==region_idx:
+                point.object.update()
 
     def layer_region_changed(self):
         """Layer color is changed, refresh all region collors"""
