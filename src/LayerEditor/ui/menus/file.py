@@ -63,7 +63,7 @@ class MainFileMenu(QMenu):
         self._exit_action = QAction('E&xit', self)
         self._exit_action.setShortcut(cfg.get_shortcut('exit').key_sequence)
         self._exit_action.setStatusTip('Exit application')
-        self._exit_action.triggered.connect(qApp.quit)
+        self._exit_action.triggered.connect(self._exit_clicked)
         self.addAction(self._exit_action)
 
     def update_recent_files(self, from_row=1):
@@ -88,4 +88,11 @@ class MainFileMenu(QMenu):
     def _on_about_action_clicked(self):
         """Displays about dialog."""
         if not self._about_dialog.isVisible():
-            self._about_dialog.show()
+            self._about_dialog.show()        
+            
+    def _exit_clicked(self):
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._layer_editor.mainwindow.close():
+            return
+        qApp.quit()
