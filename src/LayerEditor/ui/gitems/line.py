@@ -141,8 +141,8 @@ class Line(QtWidgets.QGraphicsLineItem):
         
     def shift_line(self, shift, new_state=None):
         """shift line"""
-        self.line_data.p1.object.shift_point(shift, new_state)
-        self.line_data.p2.object.shift_point(shift, new_state)
+        self.line_data.p1.object.shift_point(shift, new_state, False)
+        self.line_data.p2.object.shift_point(shift, new_state, False)
         
     def release_line(self):
         self.line_data.object = None
