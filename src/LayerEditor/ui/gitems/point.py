@@ -107,14 +107,15 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         #         self.setPen(old_pen)
         # super(Point, self).paint(painter, option, widget)
         
-    def move_point(self, pos=None, new_state=None):
+    def move_point(self, pos=None, new_state=None, ungrab=True):
         """Move point to new pos and move all affected lines"""
         if new_state is not None:
             self.state = new_state
             if new_state is ItemStates.moved:
                 self.setZValue(self.MOVE_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
-                self.ungrabMouse()
+                if ungrab:
+                    self.ungrabMouse()
             else:
                 self.setZValue(self.STANDART_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor)) 
@@ -125,10 +126,10 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         for line in self.point_data.lines:
             line.object.move_line(new_state)
             
-    def shift_point(self, shift, new_state=None):
+    def shift_point(self, shift, new_state=None, ungrab=True):
         """Move point to new pos and move all affected lines"""        
         pos = QtCore.QPointF(self.point_data.x, self.point_data.y) + shift
-        self.move_point(pos, new_state)
+        self.move_point(pos, new_state, ungrab)
         
     def select_point(self):
         """set selected and repaint point"""

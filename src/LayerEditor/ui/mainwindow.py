@@ -243,3 +243,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _region_changed(self):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
+        
+    def closeEvent(self, event):
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._layer_editor.save_old_file():
+            return event.ignore()
+        super(MainWindow, self).closeEvent(event)
