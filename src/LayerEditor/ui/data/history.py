@@ -1135,7 +1135,7 @@ class RegionHistory(History):
         elif dim==0:
             shape = self.global_history.cfg.diagram.get_point_by_id(shape_idx)
         if shape is not None:
-            shape.object.update()
+            shape.object.update_color()
             
     def return_op(self):
         """return nedded check """

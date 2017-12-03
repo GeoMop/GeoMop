@@ -128,11 +128,11 @@ class Selection():
         with_region = False
         for point in self.selected_points:
             if point.set_default_region():
-                point.object.update()
+                point.object.update_color()
                 with_region = True
         for line in self.selected_lines:
             if line.set_default_region():
-                line.object.update()
+                line.object.update_color()
                 with_region = True
         for polygon in self.selected_polygons:
             if polygon.set_default_region():
@@ -176,12 +176,12 @@ class Selection():
         """
         for point in self.selected_points.copy():
             if point.set_current_region():
-                point.object.update()
+                point.object.update_color()
             else:
                 self.select_point(point)
         for line in self.selected_lines.copy():
             if line.set_current_region():
-                line.object.update()
+                line.object.update_color()
             else:
                 self.select_line(line, False)
         for polygon in self.selected_polygons.copy():
