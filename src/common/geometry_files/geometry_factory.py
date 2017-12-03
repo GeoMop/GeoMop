@@ -1,7 +1,7 @@
 """Structures for Layer Geometry File"""
 
 from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
-from .geometry_structures import InterpolatedNodeSet, SurfaceNodeSet, Surface
+from .geometry_structures import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
 from .geometry_structures import Region, Polygon, RegionDim, StratumLayer
 from .geometry_structures import FractureLayer, ShadowLayer
 
@@ -69,7 +69,7 @@ class GeometryFactory:
         """Get gl topology idx"""
         if type(gl.top) == InterpolatedNodeSet:
             return self.get_topology(gl.top.surf_nodesets[0].nodeset_id)
-        elif type(gl.top) == SurfaceNodeSet:
+        elif type(gl.top) == InterfaceNodeSet:
             return self.get_topology(gl.top.nodeset_id)
 
     def add_topologies_to_count(self, i):
@@ -78,42 +78,43 @@ class GeometryFactory:
             self.add_topology()
         return self.geometry.topologies[i]
         
-    def get_interpolated_ns(self, ns1_idx, ns2_idx, surface_idx, surface_idx_1=None, surface_idx_2= None):
+    def get_interpolated_ns(self, ns1_idx, ns2_idx, interface_idx, interface_idx_1=None, interface_idx_2= None):
         """Create and return interpolated node set"""
-        surface_idx_1 = surface_idx
-        surface_idx_2 = surface_idx
+        interface_idx_1 = interface_idx
+        interface_idx_2 = interface_idx
         # TODO: make real surface nodesets and take them as parameters
-        surf_nodesets = ( dict( nodeset_id=ns1_idx, surface_id=surface_idx_1 ), dict( nodeset_id=ns2_idx, surface_id=surface_idx_2 ) )
-        ns = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, surface_id=surface_idx) )
+        surf_nodesets = ( dict( nodeset_id=ns1_idx, interface_id=interface_idx_1 ), dict( nodeset_id=ns2_idx, interface_id=interface_idx_2 ) )
+        ns = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, interface_id=interface_idx) )
         return ns
         
-    def get_surface_ns(self, ns_idx, surface_idx):
-        """Create and return surface node set"""
-        ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
+    def get_interface_ns(self, ns_idx, interface_idx):
+        """Create and return interface node set"""
+        ns = InterfaceNodeSet(dict( nodeset_id=ns_idx, interface_id=interface_idx ))
         return ns
 
-    def add_surface_plane(self, depth):
+    def add_interface_plane(self, depth):
         """Add new main layer"""
-        surface = Surface.make_surface(depth)
-        return self._reuse_surface(surface)
+        interface = Interface.make_interface(depth)
+        return self._reuse_interface(interface)
 
 
-    def add_surface(self, surface):
-        """Add new main layer"""        
-        surface = Surface({
-            "depth":surface.depth, 
-            "transform_xy":surface.transform_xy, 
-            "grid_file":surface.grid_file, 
-            "transform_z":surface.transform_z})
-        return self._reuse_surface(surface)
+    def add_interface(self, interface):
+        """Add new main layer""" 
+        #TODO: make surface->interface transformation
+        interface = Interface({
+            "depth":interface.depth, 
+            "transform_xy":interface.transform_xy, 
+            "grid_file":interface.grid_file, 
+            "transform_z":interface.transform_z})
+        return self._reuse_interface(interface)
 
 
-    def _reuse_surface(self, surface):
-        for old_surface in self.geometry.surfaces:
-            if surface==old_surface:
-                return self.geometry.surfaces.index(old_surface)
-        self.geometry.surfaces.append(surface)
-        return len(self.geometry.surfaces)-1
+    def _reuse_interface(self, interface):
+        for old_interface in self.geometry.interfaces:
+            if interface==old_interface:
+                return self.geometry.interfaces.index(old_interface)
+        self.geometry.interfaces.append(interface)
+        return len(self.geometry.interfaces)-1
 
 
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
@@ -121,7 +122,7 @@ class GeometryFactory:
         layer_class = [ StratumLayer, FractureLayer, ShadowLayer ][type]
 
 
-        iface_classes = [ SurfaceNodeSet, InterpolatedNodeSet ]
+        iface_classes = [ InterfaceNodeSet, InterpolatedNodeSet ]
         top_interface = iface_classes[top_type]
         assert isinstance(top, top_interface)
         layer_config = dict(name=name, top=top)
@@ -149,6 +150,7 @@ class GeometryFactory:
         self.geometry.node_sets = []
         self.geometry.topologies = []
         self.geometry.surfaces = []
+        self.geometry.interfaces = []
         self.geometry.regions = []
         self.geometry.layers = []
         self.geometry.curves = []

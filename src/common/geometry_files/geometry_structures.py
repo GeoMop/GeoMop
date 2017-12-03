@@ -52,36 +52,51 @@ class Surface(JsonData):
     def __init__(self, config={}):
         self.transform_xy = 2*(3*(float,), )
         """Transformation matrix and shift in XY plane."""
-        self.transform_z = 2*(float,)
-        """Transformation in Z direction (scale and shift)."""
-        self.depth = float
-        """ Representative Z coord of the surface."""
         self.grid_file = ""
         """List of input grid 3DPoints. None for plane"""
         self.grid_polygon = 4*(2*(float,))
         """Vertices of the boundary polygon of the grid."""
         self.approximation = ClassFactory(SurfaceApproximation)
         super().__init__(config)
-
+        
     @staticmethod
     def make_surface(depth):
-        surf = Surface(dict(depth=depth))
+        surf = Surface()
         surf.transform_xy = 2*[3*[0.0]]
         surf.transform_xy[0][0] = surf.transform_xy[1][1] = 1.0
-        surf.transform_z = [1.0, -depth]
         surf.approximation = None
         surf.grid_file = None
         return surf
 
+class Interface(JsonData):
+    
+    def __init__(self, config={}):
+        self.surface_id = int
+        """Surface index"""
+        self.transform_z = 2*(float,)
+        """Transformation in Z direction (scale and shift)."""
+        self.depth = float
+        """ Representative Z coord of the surface."""
+        self.grid_polygon = 4*(2*(float,))
+        """Vertices of the boundary polygon of the grid."""
+        super().__init__(config)
+
+    @staticmethod
+    def make_interface(depth):
+        inter = Interface(dict(depth=depth))
+        inter.transform_z = [1.0, -depth]
+        inter.surface_id = None
+        return inter
+
     def get_depth(self):
-        """Return surface depth in 0"""
+        """Return interface depth in 0"""
         return self.depth
         
     def __eq__(self, other):
         """operators for comparation"""
         return self.depth == other.depth \
             and self.transform_z == other.transform_z \
-            and self.transform_xy != other.transform_xy
+            and self.surface_id != other.surface_id
 
 
 
@@ -92,8 +107,8 @@ class Segment(JsonData):
         self.node_ids  = ( int, int )
         """First point index"""
         """Second point index"""
-        self.surface_id = None
-        """Surface index"""
+        self.interface_id = None
+        """Interface index"""
         super().__init__(config)
 
     def __eq__(self, other):
@@ -110,8 +125,8 @@ class Polygon(JsonData):
         """List of lists of segments of hole's wires"""
         self.free_points = [ int ]
         """List of free points in polygon."""
-        self.surface_id = None
-        """Surface index"""
+        self.interface_id = None
+        """Interface index"""
         super().__init__(config)
 
     def __eq__(self, other):
@@ -165,15 +180,15 @@ class NodeSet(JsonData):
 
 
 
-class SurfaceNodeSet(JsonData):
+class InterfaceNodeSet(JsonData):
     """Node set in space for transformation(x,y) ->(u,v). 
     Only for GL"""
     _not_serialized_attrs_ = ['interface_type']
     def __init__(self, config={}):
         self.nodeset_id = int
         """Node set index"""
-        self.surface_id = int
-        """Surface index"""
+        self.interface_id = int
+        """Interface index"""
         super().__init__(config)
         self.interface_type = TopologyType.given
 
@@ -184,10 +199,10 @@ class InterpolatedNodeSet(JsonData):
     Only for GL"""
     _not_serialized_attrs_ = ['interface_type']
     def __init__(self, config={}):
-        self.surf_nodesets = ( ClassFactory([SurfaceNodeSet]), ClassFactory([SurfaceNodeSet]) )
+        self.surf_nodesets = ( ClassFactory([InterfaceNodeSet]), ClassFactory([InterfaceNodeSet]) )
         """Top and bottom node set index"""
-        self.surface_id = int
-        """Surface index"""
+        self.interface_id = int
+        """Interface index"""
         super().__init__(config)
         self.interface_type = TopologyType.interpolated
 
@@ -234,8 +249,8 @@ class GeoLayer(JsonData):
         self.name =  ""
         """Layer Name"""
 
-        self.top =  ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
-        """Accoding topology type surface node set or interpolated node set"""
+        self.top =  ClassFactory( [InterfaceNodeSet, InterpolatedNodeSet] )
+        """Accoding topology type interface node set or interpolated node set"""
         
         # assign regions to every topology object
         self.polygon_region_ids = [ int ]
@@ -274,9 +289,9 @@ class StratumLayer(GeoLayer):
     _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
     def __init__(self, config={}):
 
-        self.bottom = ClassFactory( [SurfaceNodeSet, InterpolatedNodeSet] )
+        self.bottom = ClassFactory( [InterfaceNodeSet, InterpolatedNodeSet] )
         """ optional, only for stratum type, accoding bottom topology
-        type surface node set or interpolated node set"""
+        type interface node set or interpolated node set"""
 
         super().__init__(config)
         self.layer_type = LayerType.stratum
@@ -312,6 +327,8 @@ class LayerGeometry(JsonData):
         """List of geological layers"""
         self.surfaces = [ ClassFactory(Surface) ]
         """List of B-spline surfaces"""
+        self.interfaces = [ ClassFactory(Interface) ]
+        """List of interfaces"""
         self.curves = [ ClassFactory(Curve) ]
         """List of B-spline curves,"""
         self.topologies = [ ClassFactory(Topology) ]

@@ -101,6 +101,9 @@ class Fracture():
         self.edited = False
         """fracture diagram is  edited"""
         
+class Surfaces():
+    """List of surfaces"""
+        
 class Surface():
     """Surface structure class"""
     
