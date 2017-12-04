@@ -220,15 +220,12 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
-            p1 = Point(line.p1)
-            p1.set_tmp()
-            self.addItem(p1)             
-            p2 = Point(line.p2)
-            p2.set_tmp()
-            self.addItem(p2) 
-            l = Line(line)
-            l.set_tmp()
-            self.addItem(l) 
+            p1 = Point(line.p1, tmp=True)
+            self.addItem(p1)
+            p2 = Point(line.p2, tmp=True)
+            self.addItem(p2)
+            l = Line(line, tmp=True)
+            self.addItem(l)
             self._last_line = line
             self._add_polygons()
         

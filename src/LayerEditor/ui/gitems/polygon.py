@@ -13,7 +13,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     DEFAUT_COLOR = "#f0f0e8"
     
     def __init__(self, polygon_data, parent=None):
-        super().__init__(polygon_data.qtpolygon)
+        super().__init__(polygon_data.qtpolygon, parent)
         self.polygon_data = polygon_data
         polygon_data.object = self
         """polygon data object"""

@@ -17,7 +17,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
 
     white_brush = QtGui.QBrush(QtGui.QColor(QtCore.Qt.white))
    
-    def __init__(self, point_data, parent=None):
+    def __init__(self, point_data, parent=None, tmp=False):
         """if item is selected"""
         self.point_data = point_data
         self._tmp = False
@@ -25,12 +25,14 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         self.state = ItemStates.standart
         """Item state"""
         self.bold = False
-        super().__init__()
+        super().__init__(parent)
         self.set_size()
         self.setPen(cfg.diagram.pen)
         self.setBrush(QtGui.QBrush(self.pen().color()))
         self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))    
         self.setZValue(self.STANDART_ZVALUE)
+        if tmp:
+            self.set_tmp()
         self.update_color()
 
     def set_size(self):
