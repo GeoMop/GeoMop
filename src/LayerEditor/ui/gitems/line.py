@@ -15,7 +15,7 @@ class Line(QtWidgets.QGraphicsLineItem):
     DASH_PATTERN = [10, 5]
     DASH_PATTERN_BOLD = [5, 2.5]
     
-    def __init__(self, line_data, parent=None):
+    def __init__(self, line_data, parent=None, tmp=False):
         super().__init__(line_data.p1.x, line_data.p1.y, line_data.p2.x, line_data.p2.y, parent)
         self.line_data = line_data
         self._tmp = False
@@ -28,6 +28,8 @@ class Line(QtWidgets.QGraphicsLineItem):
         self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.STANDART_ZVALUE)
         self.bold = False
+        if tmp:
+            self.set_tmp()
         self.update_color()
 
     def set_tmp(self):
