@@ -254,7 +254,7 @@ class Regions(QtWidgets.QToolBox):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.region_name.text()
             dim = dlg.region_dim.currentData()
-            color = dlg.get_some_color(len(data.regions)).name()
+            color = dlg.get_some_color(len(data.regions) - 1).name()
             region = data.add_new_region(color, name, dim, True, "Add Region")            
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]
