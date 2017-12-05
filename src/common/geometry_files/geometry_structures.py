@@ -83,9 +83,8 @@ class Interface(JsonData):
 
     @staticmethod
     def make_interface(depth):
-        inter = Interface(dict(depth=depth))
+        inter = Interface(dict(depth=depth, surface_id=None))
         inter.transform_z = [1.0, -depth]
-        inter.surface_id = None
         return inter
 
     def get_depth(self):
