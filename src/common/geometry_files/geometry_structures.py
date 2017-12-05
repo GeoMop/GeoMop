@@ -42,9 +42,19 @@ class Curve(JsonData):
         super().__init__(config)
 
 class SurfaceApproximation(JsonData):
+    """
+    Serialization class for Z_Surface.
+    """
     def __init__(self, config={}):
-        self.b_spline = None
-        """B-spline,None for plane"""
+        self.u_knots = [int]
+        self.v_knots = [int]
+        self.u_degree = 2
+        self.v_degree = 2
+        self.rational = False
+        self.poles = [ [ [float] ] ]
+        self.quad = [[float]]
+        self.z_transform = [float]
+        super().__init__(config)
 
 
 class Surface(JsonData):
@@ -53,7 +63,7 @@ class Surface(JsonData):
         self.transform_xy = 2*(3*(float,), )
         """Transformation matrix and shift in XY plane."""
         self.grid_file = ""
-        """List of input grid 3DPoints. None for plane"""
+        """File with approximated points (grid of 3D points). None for plane"""
         self.grid_polygon = 4*(2*(float,))
         """Vertices of the boundary polygon of the grid."""
         self.approximation = ClassFactory(SurfaceApproximation)
@@ -77,7 +87,10 @@ class Interface(JsonData):
         """Transformation in Z direction (scale and shift)."""
         self.depth = float
         """ Representative Z coord of the surface."""
-        self.grid_polygon = 4*(2*(float,))
+
+        # Grid polygon should be in SurfaceApproximation, however
+        # what for the case of planar interfaces without surface reference.
+        #self.grid_polygon = 4*(2*(float,))
         """Vertices of the boundary polygon of the grid."""
         super().__init__(config)
 

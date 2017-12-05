@@ -1,16 +1,6 @@
 import bspline as bs
+import geometry_structures as gs
 
-class ZSurfaceIO(JsonData):
-    def __init__(self, config={}):
-        self.u_knots = [int]
-        self.v_knots = [int]
-        self.u_degree = 2
-        self.v_degree = 2
-        self.rational = False
-        self.poles = [ [ [float] ] ]
-        self.quad = [[float]]
-        self.z_transform = [float]
-        super().__init__(config)
 
 
 def bs_zsurface_read(z_surface_io):
@@ -35,4 +25,4 @@ def bs_zsurface_write(z_surf):
         quad = z_surf.quad,
         z_transform = z_surf.get_z_transform()  #TODO
     )
-    return ZSurfaceIO(config)
+    return gs.SurfaceApproximation(config)
