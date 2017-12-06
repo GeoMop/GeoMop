@@ -322,7 +322,7 @@ class JsonData:
         # tuple,
         elif isinstance(temp, tuple):
             assert isinstance(value, (list, tuple)), "Expecting list, get class: {}\,path: {}".format(value.__class__, path)
-            assert len(temp) == len(value)
+            assert len(temp) == len(value), "Length of tuple do not match: {} != {}".format(len(temp), len(value))
             l = []
             for i, tmp, val in zip(range(len(value)), temp, value):
                 l.append(JsonData._deserialize_item(tmp, val, path + [str(i)]))

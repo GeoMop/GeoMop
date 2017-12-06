@@ -46,14 +46,13 @@ class SurfaceApproximation(JsonData):
     Serialization class for Z_Surface.
     """
     def __init__(self, config={}):
-        self.u_knots = [int]
-        self.v_knots = [int]
+        self.u_knots = [float]
+        self.v_knots = [float]
         self.u_degree = 2
         self.v_degree = 2
         self.rational = False
         self.poles = [ [ [float] ] ]
-        self.quad = [[float]]
-        self.z_transform = [float]
+        self.quad = 4*(2*(float,),)
         super().__init__(config)
 
 
@@ -62,7 +61,10 @@ class Surface(JsonData):
     def __init__(self, config={}):
         self.grid_file = ""
         """File with approximated points (grid of 3D points). None for plane"""
+        self.xy_transform = 2*(3*(float,),)
+        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
         self.approximation = ClassFactory(SurfaceApproximation)
+        """Serialization of the  Z_Surface."""
         super().__init__(config)
         
     @staticmethod

@@ -1,5 +1,5 @@
 import bspline as bs
-import geometry_structures as gs
+import geometry_files.geometry_structures as gs
 
 
 
@@ -10,19 +10,19 @@ def bs_zsurface_read(z_surface_io):
 
     z_surf = bs.Surface( (u_basis, v_basis), io.poles, io.rational)
     surf = bs.Z_Surface(io.quad, z_surf)
-    if io.z_transform is not None:
-        surf.transform(None, io.z_transform)
+    #surf.transform(io.xy_transform)
+    return surf
 
 def bs_zsurface_write(z_surf):
 
     config = dict(
         u_degree = z_surf.u_basis.degree,
-        u_knots = z_surf.u_basis.knots,
+        u_knots = z_surf.u_basis.knots.tolist(),
         v_degree = z_surf.v_basis.degree,
-        v_knots = z_surf.v_basis.knots,
+        v_knots = z_surf.v_basis.knots.tolist(),
         rational = z_surf.z_surface.rational,
-        poles = z_surf.z_surface.poles,
-        quad = z_surf.quad,
-        z_transform = z_surf.get_z_transform()  #TODO
+        poles = z_surf.z_surface.poles.tolist(),
+        quad = z_surf.quad.tolist()
+        #xy_transform = z_surf.get_xy_matrix().tolist(),
     )
     return gs.SurfaceApproximation(config)
