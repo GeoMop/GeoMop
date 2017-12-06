@@ -30,6 +30,10 @@ class GeometryFactory:
     def get_regions(self):
         """Get list of regions"""
         return self.geometry.regions
+    
+    def get_surfaces(self):
+        """Get list of regions"""
+        return self.geometry.surfaces
         
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
