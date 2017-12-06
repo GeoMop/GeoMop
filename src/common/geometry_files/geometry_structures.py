@@ -68,7 +68,7 @@ class Surface(JsonData):
         super().__init__(config)
         
     @staticmethod
-    def make_surface(depth):
+    def make_surface():
         surf = Surface()
         surf.approximation = None
         return surf

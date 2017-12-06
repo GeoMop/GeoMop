@@ -1,6 +1,6 @@
 from geometry_files import GeometryFactory, LayerType, TopologyType
 from .diagram_structures import Diagram
-from .layers_structures import FractureInterface, Surfaces
+from .layers_structures import FractureInterface
 import geometry_files.polygons_io as polygons_io
 import geometry_files.geometry_structures as gs
 

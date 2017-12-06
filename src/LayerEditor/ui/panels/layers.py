@@ -211,7 +211,7 @@ class Layers(QtWidgets.QWidget):
 
     def append_layer(self):
         """Append layer to the end"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].surface.depth)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].depth)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -225,7 +225,7 @@ class Layers(QtWidgets.QWidget):
 
     def prepend_layer(self):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].surface.depth, True)
+        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].depth, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -239,7 +239,7 @@ class Layers(QtWidgets.QWidget):
             
     def add_layer_to_shadow(self, idx):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].surface.depth,cfg.layers.interfaces[idx+1].surface.depth, False, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].depth,cfg.layers.interfaces[idx+1].depth, False, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -297,10 +297,10 @@ class Layers(QtWidgets.QWidget):
     
     def add_interface(self, i):
         """Split layer by new interface"""
-        min = cfg.layers.interfaces[i].surface.depth
+        min = cfg.layers.interfaces[i].depth
         max = None
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].surface.depth
+            max = cfg.layers.interfaces[i+1].depth
             
         dlg = SplitLayerDlg(min, max, __COPY_BLOCK__, cfg.main_window)
         ret = dlg.exec_()
@@ -502,9 +502,9 @@ class Layers(QtWidgets.QWidget):
         min = None
         max = None
         if i>0:
-            min = cfg.layers.interfaces[i-1].surface.depth
+            min = cfg.layers.interfaces[i-1].depth
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].surface.depth
+            max = cfg.layers.interfaces[i+1].depth
         old_surface = deepcopy(cfg.layers.interfaces[i].surface)
 
         dlg = SetSurfaceDlg(cfg.layers.interfaces[i].surface,  cfg.main_window, min, max)
