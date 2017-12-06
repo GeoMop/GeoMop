@@ -50,22 +50,15 @@ class SurfaceApproximation(JsonData):
 class Surface(JsonData):
     
     def __init__(self, config={}):
-        self.transform_xy = 2*(3*(float,), )
-        """Transformation matrix and shift in XY plane."""
         self.grid_file = ""
         """List of input grid 3DPoints. None for plane"""
-        self.grid_polygon = 4*(2*(float,))
-        """Vertices of the boundary polygon of the grid."""
         self.approximation = ClassFactory(SurfaceApproximation)
         super().__init__(config)
         
     @staticmethod
     def make_surface(depth):
         surf = Surface()
-        surf.transform_xy = 2*[3*[0.0]]
-        surf.transform_xy[0][0] = surf.transform_xy[1][1] = 1.0
         surf.approximation = None
-        surf.grid_file = None
         return surf
 
 class Interface(JsonData):

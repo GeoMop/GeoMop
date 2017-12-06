@@ -103,25 +103,20 @@ class Fracture():
         
 class Surfaces():
     """List of surfaces"""
+    def __init__(self):
+        self.surfaces = []
+        """List"""
+        
+    def add(self, aproximation, grid_file):
+        """Add new surface"""
+        self.surfaces.append(Surface(aproximation, grid_file))
         
 class Surface():
-    """Surface structure class"""
+    """Surface structure class"""    
     
-    def __init__(self, depth, transform_xy=None, transform_z=None, grid_file=None): 
-        self.depth = 0.0
-        """Float depth description"""
-        try:
-            self.depth = float(depth)            
-        except:
-            raise ValueError("Invalid depth type")
-        self.transform_xy = transform_xy
-        """Transformation matrix and shift in XY plane.""" 
-        if self.transform_xy is None:
-            self.transform_xy = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        self.transform_z = transform_z
-        """Transformation in Z direction (scale and shift)."""
-        if self.transform_z is None:
-            self.transform_z = [1.0, 0.0]
+    def __init__(self, aproximation, grid_file):
+        self.aproximation = aproximation
+        """Approximation class""" 
         self.grid_file = grid_file
         """List of input grid 3DPoints. None for plane"""
 
@@ -129,12 +124,23 @@ class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
     is None"""
 
-    def __init__(self, surface, splited, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_interface=FractureInterface.none, fracture_diagram_id=None):
-        
-        self.surface = surface
+    def __init__(self, surface_id, splited, depth, transform_z=None, fracture_name=None, 
+        diagram_id1=None, diagram_id2=None, fracture_interface=FractureInterface.none, 
+        fracture_diagram_id=None):
+        self.depth = 0.0
+        """Float depth description"""
+        try:
+            self.depth = float(depth)            
+        except:
+            raise ValueError("Invalid depth type")
+        self.surface_id = surface_id
         """Surface structure"""
         self.splited = splited
         """Interface have two independent surfaces"""
+        self.transform_z = transform_z
+        """Transformation in Z direction (scale and shift)."""
+        if self.transform_z is None:
+            self.transform_z = [1.0, 0.0]
         self.fracture = None
         """Fracture object or None if fracture is not on interface"""
         if fracture_name is not None:
@@ -172,7 +178,7 @@ class Interface():
     @property
     def str_depth(self):
         """Retuen depth in string format"""
-        return str(self.surface.depth)
+        return str(self.depth)
     
     def get_fracture_position(self):
         """Return dictionry with string description of fracture possitions -> FractureInterface enum
@@ -226,6 +232,8 @@ class Layers():
         """Coordinate of the longest interface name end"""
         self.y_font = 0
         """Font height"""
+        self.surfaces = Surfaces()
+        """Class with list of surfaces"""
         
     def delete(self):
         """delete all data structure"""
@@ -408,9 +416,9 @@ class Layers():
                 data.fracture_after = self.interfaces[i+1].fracture
         return data
         
-    def add_interface(self, surface, splited, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):
+    def add_interface(self, surface_id, splited, depth, transform_z=None, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):
         """add new interface"""
-        self.interfaces.append(Interface(surface, splited, fracture_name, diagram_id1, diagram_id2,fracture_interface, fracture_id))
+        self.interfaces.append(Interface(surface_id, splited, depth, transform_z, fracture_name, diagram_id1, diagram_id2,fracture_interface, fracture_id))
         return len(self.interfaces)-1
         
     def add_layer(self, name, shadow=False):
@@ -423,23 +431,23 @@ class Layers():
         self.add_layer(name)
         self.add_interface(surface, False)
         
-    def prepend_layer(self, name, surface):
+    def prepend_layer(self, name, surface_id, depth):
         """Prepend layer to the start"""
         self.layers.insert(0, Layer(name))
-        self.interfaces.insert(0, Interface(surface, False)) 
+        self.interfaces.insert(0, Interface(surface_id, False, depth)) 
  
-    def add_layer_to_shadow(self, idx, name, surface, dup):
+    def add_layer_to_shadow(self, idx, name, surface_id, depth, dup):
         """Append new layer to shadow block, return True if 
         shadow block is replaces"""
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx+1, 1)  
-        if float(surface.depth)==self.interfaces[idx+1].surface.depth:
+        if float(depth)==self.interfaces[idx+1].depth:
             self.layers[idx].shadow=False
             self.layers[idx].name=name
             return True
         else:
             self.layers.insert(idx, Layer(name))
-            self.interfaces.insert(idx+1, Interface(Surface(surface.depth), True))
+            self.interfaces.insert(idx+1, Interface(surface_id, True, depth))
         return False       
        
     def add_fracture(self, idx, name, position, dup):
@@ -911,18 +919,18 @@ class Layers():
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx, 1)
         
-    def split_layer(self, idx, name, surface, split_type, dup):
+    def split_layer(self, idx, name, surface_id, depth, split_type, dup):
         """Split set layer by interface with split_type type in set surface
         
         Variable dup is returned by get_diagram_dup and new diagrams was added
         outside this function"""
         new_layer = Layer(name)
         if split_type is LayerSplitType.interpolated:
-            new_interface = Interface(surface, False)
+            new_interface = Interface(surface_id, False, depth)
         elif split_type is LayerSplitType.editable:
-            new_interface = Interface(surface, False, None, dup.insert_id)
+            new_interface = Interface(surface_id, False, depth, None, dup.insert_id)
         elif split_type is LayerSplitType.split:
-            new_interface = Interface(surface, True, None, dup.insert_id, dup.insert_id+1)
+            new_interface = Interface(surface_id, True, depth, None, dup.insert_id, dup.insert_id+1)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
         if dup is not None:
