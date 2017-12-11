@@ -61,6 +61,12 @@ class Surface(JsonData):
     def __init__(self, config={}):
         self.grid_file = ""
         """File with approximated points (grid of 3D points). None for plane"""
+        self.name = ""
+        """Surface name"""
+        self.xy_transform = 2*(3*(float,),)
+        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
+        self.quad = 4*(2*(float,),)
+        """Bounding polygon"""        
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         super().__init__(config)

@@ -200,8 +200,8 @@ class Surfaces(QtWidgets.QWidget):
                 self.zs = None
             else:
                 self._enable_approx(True)
-                self.gs = bs.GridSurface.load(file)
-                self.gs.transform([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], gs)
+#                self.gs = bs.GridSurface.load(file)
+ #               self.gs.transform([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], gs)
                 # TODO get default params                
             
     def _name_exist(self, name):
