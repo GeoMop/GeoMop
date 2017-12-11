@@ -22,27 +22,24 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self._layer_editor = layer_editor
 
-        self.setMinimumSize(960, 660)
+        self.setMinimumSize(1060, 660)
 
        # splitters
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
         self.setCentralWidget(self._hsplitter)
-        self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self._vsplitter.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
-
-        # left pannels
-        self.scroll_area = QtWidgets.QScrollArea()
-        # self._scroll_area.setWidgetResizable(True)  
-        self.layers = panels.Layers(self.scroll_area)
-        self.scroll_area.setWidget(self.layers)
         
-        self._vsplitter.addWidget(self.scroll_area)        
+        # left pannels
+        self._vsplitter1 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
+        self._vsplitter1.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+
+        self.scroll_area1 = QtWidgets.QScrollArea()
+        # self._scroll_area.setWidgetResizable(True)  
+        self.layers = panels.Layers(self.scroll_area1)
+        self.scroll_area1.setWidget(self.layers)        
+        self._vsplitter1.addWidget(self.scroll_area1)        
+        
         self.regions = panels.Regions()        
-        self._vsplitter.addWidget(self.regions)     
-        self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
-        self._vsplitter.addWidget(self.shp) 
-        if cfg.diagram.shp.is_empty():
-            self.shp.hide()   
+        self._vsplitter1.addWidget(self.regions)  
         
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
@@ -58,6 +55,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.refresh_diagram_shp()
         
         self._hsplitter.setSizes([300, 760])
+        
+        # right pannels  
+        self._vsplitter2 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
+        self._vsplitter2.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+       
+        self.scroll_area2 = QtWidgets.QScrollArea()
+        self.scroll_area2.setWidgetResizable(True) 
+        self.surfaces = panels.Surfaces(self.scroll_area2)
+        self.scroll_area2.setWidget(self.surfaces)
+        self._vsplitter2.addWidget(self.scroll_area2)
+        
+        self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter2)
+        self._vsplitter2.addWidget(self.shp) 
+        if cfg.diagram.shp.is_empty():
+            self.shp.hide()   
         
         # Menu bar
         self._menu = self.menuBar()
