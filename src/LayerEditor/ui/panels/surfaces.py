@@ -3,6 +3,10 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from leconfig import cfg
 import PyQt5.QtCore as QtCore
+import os
+import b_spline
+import bspline as bs
+import numpy as np
 
 class Surfaces(QtWidgets.QWidget):
     """
@@ -31,7 +35,10 @@ class Surfaces(QtWidgets.QWidget):
         """
         super(Surfaces, self).__init__(parent)
         surfaces = cfg.layers.surfaces
-        
+        self.qs = None
+        """Help variable of GridSurface type from bspline library. If this variable is None
+        , valid approximation is not loaded"""
+                
         grid = QtWidgets.QGridLayout(self)
         
         # surface cobobox
@@ -72,35 +79,20 @@ class Surfaces(QtWidgets.QWidget):
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
         self.xyscale11 = QtWidgets.QLineEdit()
-        self.xyscale11.setValidator(QtGui.QDoubleValidator())
-        self.xyscale11.setText("1.0")
+        self.xyscale11.setValidator(QtGui.QDoubleValidator())        
         self.xyscale12 = QtWidgets.QLineEdit()
-        self.xyscale12.setValidator(QtGui.QDoubleValidator())
-        self.xyscale12.setText("0.0")
+        self.xyscale12.setValidator(QtGui.QDoubleValidator())        
         self.xyscale21 = QtWidgets.QLineEdit()
         self.xyscale21.setValidator(QtGui.QDoubleValidator())
-        self.xyscale21.setText("0.0")
         self.xyscale22 = QtWidgets.QLineEdit()
-        self.xyscale22.setValidator(QtGui.QDoubleValidator())
-        self.xyscale22.setText("1.0")
-        
-#        if surface is not None:
-#            self.xyscale11.setText(str(surface.transform_xy[0][0]))
-#            self.xyscale12.setText(str(surface.transform_xy[0][1]))
-#            self.xyscale21.setText(str(surface.transform_xy[1][0]))
-#            self.xyscale22.setText(str(surface.transform_xy[1][1]))
+        self.xyscale22.setValidator(QtGui.QDoubleValidator())        
         
         self.d_xyshift = QtWidgets.QLabel("XY shift:", self)        
         self.xyshift1 = QtWidgets.QLineEdit()
         self.xyshift1.setValidator(QtGui.QDoubleValidator())
-        self.xyshift1.setText("0.0")
-        self.xyshift2 = QtWidgets.QLineEdit()
-        self.xyshift2.setValidator(QtGui.QDoubleValidator())
-        self.xyshift2.setText("0.0")
         
-#        if surface is not None:
-#            self.xyshift1.setText(str(surface.transform_xy[0][2]))
-#            self.xyshift2.setText(str(surface.transform_xy[1][2]))        
+        self.xyshift2 = QtWidgets.QLineEdit()
+        self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
         grid.addWidget(self.d_xyscale, 5, 0, 1, 2)
         grid.addWidget(self.d_xyshift, 5, 2)
@@ -111,16 +103,16 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(self.xyscale22, 7, 1)
         grid.addWidget(self.xyshift2, 7, 2)
         
-        # aproximation points
-        self.d_aprox = QtWidgets.QLabel("Aproximation points (u,v):", self)        
-        self.u_aprox = QtWidgets.QLineEdit()
-        self.u_aprox.setValidator(QtGui.QIntValidator())
-        self.v_aprox = QtWidgets.QLineEdit()
-        self.v_aprox.setValidator(QtGui.QIntValidator())
+        # approximation points
+        self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
+        self.u_approx = QtWidgets.QLineEdit()
+        self.u_approx.setValidator(QtGui.QIntValidator())
+        self.v_approx = QtWidgets.QLineEdit()
+        self.v_approx.setValidator(QtGui.QIntValidator())
         
-        grid.addWidget(self.d_aprox, 8, 0, 1, 3)
-        grid.addWidget(self.u_aprox, 9, 0)
-        grid.addWidget(self.v_aprox, 9, 1)
+        grid.addWidget(self.d_approx, 8, 0, 1, 3)
+        grid.addWidget(self.u_approx, 9, 0)
+        grid.addWidget(self.v_approx, 9, 1)
         
         self.delete = QtWidgets.QPushButton("Delete")
         self.delete.clicked.connect(self._delete)
@@ -152,6 +144,8 @@ class Surfaces(QtWidgets.QWidget):
         grid.addItem(sp1, 14, 0, 1, 3)
         
         self.setLayout(grid)
+        
+        self._set_default_approx(None) 
     
     def _apply(self):
         """Save changes to file and compute new depth and error"""
@@ -175,4 +169,70 @@ class Surfaces(QtWidgets.QWidget):
         file = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", home,"File (*.*)")
         if file[0]:
-            self.grid_file_name.setText(file[0])    
+            self.grid_file_name.setText(file[0])   
+            self._set_default_approx(file[0]) 
+
+    def _set_default_approx(self, file):
+        """Set default scales, aprox points and Name"""
+        self.xyscale11.setText("1.0")        
+        self.xyscale12.setText("0.0")
+        self.xyscale21.setText("0.0")
+        self.xyscale22.setText("1.0")
+        self.xyshift1.setText("0.0")
+        self.xyshift2.setText("0.0")
+        self.depth.setText("")
+        self.error.setText("")        
+        
+        if file is None or len(file)==0 or file.isspace():
+            self._enable_approx(False)
+            self.zs = None
+        else:
+            name = os.path.splitext(file)[0]
+            s_i = ""
+            i = 2
+            while self._name_exist(name+s_i):
+                s_i = "_"+str(i)
+                i += 1
+            name = name+s_i
+            self.name.setText(name)  
+            if not os.path.exists(file):
+                self._enable_approx(False)
+                self.zs = None
+            else:
+                self._enable_approx(True)
+                self.gs = bs.GridSurface.load(file)
+                self.gs.transform([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], gs)
+                # TODO get default params                
+            
+    def _name_exist(self, name):
+        """Test if set surface name exist"""
+        surfaces = cfg.layers.surfaces
+        for surface in surfaces.surfaces:
+            if surface.name==name:
+                return True
+        return False
+            
+    def _enable_approx(self, enable):
+        """Enable approx controls"""
+        # surface name
+        self.d_name.setEnabled(enable)
+        self.name.setEnabled(enable)
+        self.d_xyscale.setEnabled(enable)
+        self.xyscale11.setEnabled(enable)
+        self.xyscale12.setEnabled(enable)
+        self.xyscale21.setEnabled(enable)
+        self.xyscale22.setEnabled(enable)
+        self.d_xyshift.setEnabled(enable)
+        self.xyshift1.setEnabled(enable)
+        self.xyshift2.setEnabled(enable)
+        self.d_approx.setEnabled(enable)
+        self.u_approx.setEnabled(enable)
+        self.v_approx.setEnabled(enable)
+        self.delete.setEnabled(enable)  
+        self.apply.setEnabled(enable) 
+        
+    def _load_approximation(self):
+        """Load approximation from file and refresh error and depth"""
+        
+    def _save_approximation(self):
+        """Save approximation from file and refresh error and depth"""

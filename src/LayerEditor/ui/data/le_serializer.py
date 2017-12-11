@@ -60,7 +60,7 @@ class LESerializer():
             Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for surface in gf.get_surfaces():
-            cfg.layers.surfaces.add(surface.aproximation, surface.grid_file)
+            cfg.layers.surfaces.add(surface.approximation, surface.grid_file)
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_id
             if new_top != curr_topology:

@@ -107,15 +107,15 @@ class Surfaces():
         self.surfaces = []
         """List"""
         
-    def add(self, aproximation, grid_file):
+    def add(self, approximation, grid_file):
         """Add new surface"""
-        self.surfaces.append(Surface(aproximation, grid_file))
+        self.surfaces.append(Surface(approximation, grid_file))
         
 class Surface():
     """Surface structure class"""    
     
-    def __init__(self, aproximation, grid_file):
-        self.aproximation = aproximation
+    def __init__(self, approximation, grid_file):
+        self.approximation = approximation
         """Approximation class""" 
         self.grid_file = grid_file
         """List of input grid 3DPoints. None for plane"""
