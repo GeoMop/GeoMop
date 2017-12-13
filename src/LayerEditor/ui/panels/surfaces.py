@@ -62,19 +62,29 @@ class Surfaces(QtWidgets.QWidget):
         # frid file
         self.d_grid_file = QtWidgets.QLabel("Grid File:")
         self.grid_file_name = QtWidgets.QLineEdit()
+        self.grid_file_name.setReadOnly(True)
         self.grid_file_button = QtWidgets.QPushButton("...")
         self.grid_file_button.clicked.connect(self._add_grid_file)
+        self.grid_file_refresh_button = QtWidgets.QPushButton("Refresh")
+        self.grid_file_refresh_button.clicked.connect(self._refresh_grid_file)
         
         grid.addWidget(self.d_grid_file, 2, 0, 1, 2)        
         grid.addWidget(self.grid_file_button , 2, 2)
         grid.addWidget(self.grid_file_name, 3, 0, 1, 3)
+        grid.addWidget(self.grid_file_refresh_button , 4, 2)
+        
+        # sepparator
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        grid.addWidget(line, 5, 0, 1, 3)
         
         # surface name
         self.d_name = QtWidgets.QLabel("Name:")
         self.name = QtWidgets.QLineEdit()
         
-        grid.addWidget(self.d_name, 4, 0)        
-        grid.addWidget(self.name, 4, 1, 1, 2)
+        grid.addWidget(self.d_name, 6, 0)        
+        grid.addWidget(self.name, 6, 1, 1, 2)
         
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
@@ -94,14 +104,14 @@ class Surfaces(QtWidgets.QWidget):
         self.xyshift2 = QtWidgets.QLineEdit()
         self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
-        grid.addWidget(self.d_xyscale, 5, 0, 1, 2)
-        grid.addWidget(self.d_xyshift, 5, 2)
-        grid.addWidget(self.xyscale11, 6, 0)
-        grid.addWidget(self.xyscale21, 6, 1)        
-        grid.addWidget(self.xyshift1, 6, 2)        
-        grid.addWidget(self.xyscale12, 7, 0)
-        grid.addWidget(self.xyscale22, 7, 1)
-        grid.addWidget(self.xyshift2, 7, 2)
+        grid.addWidget(self.d_xyscale, 7, 0, 1, 2)
+        grid.addWidget(self.d_xyshift, 7, 2)
+        grid.addWidget(self.xyscale11, 8, 0)
+        grid.addWidget(self.xyscale21, 8, 1)        
+        grid.addWidget(self.xyshift1, 8, 2)        
+        grid.addWidget(self.xyscale12, 9, 0)
+        grid.addWidget(self.xyscale22, 9, 1)
+        grid.addWidget(self.xyshift2, 9, 2)
         
         # approximation points
         self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
@@ -110,38 +120,42 @@ class Surfaces(QtWidgets.QWidget):
         self.v_approx = QtWidgets.QLineEdit()
         self.v_approx.setValidator(QtGui.QIntValidator())
         
-        grid.addWidget(self.d_approx, 8, 0, 1, 3)
-        grid.addWidget(self.u_approx, 9, 0)
-        grid.addWidget(self.v_approx, 9, 1)
+        grid.addWidget(self.d_approx, 10, 0, 1, 3)
+        grid.addWidget(self.u_approx, 11, 0)
+        grid.addWidget(self.v_approx, 11, 1)
         
         self.delete = QtWidgets.QPushButton("Delete")
         self.delete.clicked.connect(self._delete)
         self.apply = QtWidgets.QPushButton("Apply")
         self.apply.clicked.connect(self._apply)            
               
-        grid.addWidget(self.delete, 10, 0)
-        grid.addWidget(self.apply, 10, 1, 1, 2)
+        grid.addWidget(self.delete, 12, 0)
+        grid.addWidget(self.apply, 12, 1, 1, 2)
         
         # sepparator
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        grid.addWidget(line, 11, 0, 1, 3)
+        grid.addWidget(line, 13, 0, 1, 3)
 
         self.d_depth = QtWidgets.QLabel("Depth:", self)        
         self.depth = QtWidgets.QLineEdit()
         self.depth.setValidator(QtGui.QDoubleValidator())
-        grid.addWidget(self.d_depth, 12, 0, 1, 2)
-        grid.addWidget(self.depth, 12, 2)
+        grid.addWidget(self.d_depth, 14, 0, 1, 2)
+        grid.addWidget(self.depth, 14, 2)
 
         self.d_error = QtWidgets.QLabel("Approximation error:", self)        
         self.error = QtWidgets.QLineEdit()
         self.error.setValidator(QtGui.QDoubleValidator())
-        grid.addWidget(self.d_error, 13, 0, 1, 2)
-        grid.addWidget(self.error, 13, 2)   
+        grid.addWidget(self.d_error, 15, 0, 1, 2)
+        grid.addWidget(self.error, 15, 2) 
+      
+        self.d_message = QtWidgets.QLabel("", self)
+        self.d_message.setVisible(False)
+        grid.addWidget(self.d_message, 16, 0, 1, 3)
  
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 14, 0, 1, 3)
+        grid.addItem(sp1, 17, 0, 1, 3)
         
         self.setLayout(grid)
         
@@ -161,6 +175,10 @@ class Surfaces(QtWidgets.QWidget):
         
     def _add_surface(self):
         """New surface is added"""
+        pass
+        
+    def _refresh_grid_file(self):
+        """Reload grid file"""
         pass
         
     def _add_grid_file(self):
