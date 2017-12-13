@@ -4,6 +4,7 @@ from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
 from .geometry_structures import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
 from .geometry_structures import Region, Polygon, RegionDim, StratumLayer
 from .geometry_structures import FractureLayer, ShadowLayer
+from .bspline_io import bs_zsurface_read, bs_zsurface_write
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -33,12 +34,25 @@ class GeometryFactory:
     
     def get_surfaces(self):
         """Get list of regions"""
-        return self.geometry.surfaces
+        surfaces = []
+        for surface in self.geometry.surfaces:
+            s = surface.__dict__
+            s['approximation'] = bs_zsurface_read(s['approximation'])                                                                  
+            surfaces.append(s)
+        return surfaces
         
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
         region = Region(dict(color=color, name=name, dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
+        
+    def add_surface(self, approximation, grid_file, name, xy_transform, quad):
+        """Get list of regions"""
+        
+        surface = Surface(dict(approximation=bs_zsurface_write(approximation), 
+            name=name, grid_file=grid_file, 
+            xy_transform=xy_transform, quad=quad))
+        return self.geometry.surfaces.append(surface)
 
     def get_topology(self, node_set_idx):
         """Get node set topology idx"""
@@ -104,11 +118,9 @@ class GeometryFactory:
 
     def add_interface(self, interface):
         """Add new main layer""" 
-        #TODO: make surface->interface transformation
         interface = Interface({
             "depth":interface.depth, 
-            "transform_xy":interface.transform_xy, 
-            "grid_file":interface.grid_file, 
+            "surface_id":interface.surface_id, 
             "transform_z":interface.transform_z})
         return self._reuse_interface(interface)
 
