@@ -6,7 +6,7 @@ import PyQt5.QtCore as QtCore
 import os
 import b_spline
 import bspline as bs
-import numpy as np
+import bspline_approx as ba
 
 class Surfaces(QtWidgets.QWidget):
     """
@@ -35,9 +35,11 @@ class Surfaces(QtWidgets.QWidget):
         """
         super(Surfaces, self).__init__(parent)
         surfaces = cfg.layers.surfaces
-        self.qs = None
-        """Help variable of GridSurface type from bspline library. If this variable is None
+        self.zs = None
+        """Help variable of Z-Surface type from bspline library. If this variable is None
         , valid approximation is not loaded"""
+        self.quad = None
+        """Display rect for mesh"""
                 
         grid = QtWidgets.QGridLayout(self)
         
@@ -200,6 +202,17 @@ class Surfaces(QtWidgets.QWidget):
                 self.zs = None
             else:
                 self._enable_approx(True)
+                approx = ba.SurfaceApprox.approx_from_file(file)
+                self.quad = approx.transformed_quad([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+                nuv = approx.compute_default_nuv()
+                self.u_approx.setText(str(nuv[0]))
+                self.v_approx.setText(str(nuv[1]))                
+                self.zs = approx.compute_approximation()
+                if approx.error is not None:
+                    self.error.setText(str(approx.error) )
+                center = self.zs.center()
+                self.depth.setText(str(center[2]))
+                
 #                self.gs = bs.GridSurface.load(file)
  #               self.gs.transform([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], gs)
                 # TODO get default params                
