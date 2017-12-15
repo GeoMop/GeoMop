@@ -107,18 +107,26 @@ class Surfaces():
         self.surfaces = []
         """List"""
         
-    def add(self, approximation, grid_file):
+    def add(self, approximation, grid_file, name, transform, quad):
         """Add new surface"""
-        self.surfaces.append(Surface(approximation, grid_file))
+        surface = Surface(approximation, grid_file, name, transform, quad)
+        self.surfaces.append(surface)
+        return surface
         
 class Surface():
     """Surface structure class"""    
     
-    def __init__(self, approximation, grid_file):
+    def __init__(self, approximation, grid_file, name, transform, quad):
         self.approximation = approximation
         """Approximation class""" 
         self.grid_file = grid_file
         """List of input grid 3DPoints. None for plane"""
+        self.name = name
+        """Surface name"""
+        self.xy_transform = transform
+        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
+        self.quad = quad
+        """Bounding polygon""" 
 
 class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
@@ -284,7 +292,7 @@ class Layers():
             while self.interfaces[i].diagram_id1 is None:
                 i += 1
             data.diagram_id1 = self.interfaces[i].diagram_id1
-            data.surface1 = self.interfaces[i].surface
+            data.surface1 = self.interfaces[i].surface_id
             data.stype1 = TopologyType.interpolated
             data.diagram_id2 = None
             data.surface2 = None
@@ -294,7 +302,7 @@ class Layers():
                 data.stype2 = TopologyType.interpolated
         else:
             data.diagram_id1 = self.interfaces[0].diagram_id1
-            data.surface1 = self.interfaces[0].surface
+            data.surface1 = self.interfaces[0].surface_id
             data.stype1 = TopologyType.given
             i=1
             if self.interfaces[1].diagram_id1 is None:
@@ -305,13 +313,13 @@ class Layers():
                     i += 1
                 if len(self.interfaces)>i and self.interfaces[i].diagram_id1 is not None:
                     data.diagram_id2 = self.interfaces[i].diagram_id1
-                    data.surface2 = self.interfaces[i].surface
+                    data.surface2 = self.interfaces[i].surface_id
                 else:
                     data.diagram_id2 = None
                     data.surface2 = None
             else:
                 data.diagram_id2 = self.interfaces[1].diagram_id1
-                data.surface2 = self.interfaces[1].surface
+                data.surface2 = self.interfaces[1].surface_id
                 data.stype2 = TopologyType.given
             if self.interfaces[0].fracture:
                 data.fracture_before = self.interfaces[0].fracture
@@ -345,7 +353,7 @@ class Layers():
                         while self.interfaces[j].diagram_id1 is None:
                             j += 1
                         data.diagram_id1 = self.interfaces[j].diagram_id1
-                        data.surface1 = self.interfaces[i].surface
+                        data.surface1 = self.interfaces[i].surface_id
                         data.stype1 = TopologyType.interpolated
                         data.diagram_id2 = None
                         data.surface2 = None
@@ -355,7 +363,7 @@ class Layers():
                             data.stype2 = TopologyType.interpolated
                     else:
                         data.diagram_id1 = self.interfaces[i].diagram_id2
-                        data.surface1 = self.interfaces[i].surface
+                        data.surface1 = self.interfaces[i].surface_id
                         data.stype1 = TopologyType.given
                         j=i+1
                         if self.interfaces[j].diagram_id1 is None:
@@ -368,13 +376,13 @@ class Layers():
                                 j += 1
                             if len(self.interfaces)>j and self.interfaces[j].diagram_id1 is not None:
                                 data.diagram_id2 = self.interfaces[j].diagram_id1
-                                data.surface2 = self.interfaces[j].surface
+                                data.surface2 = self.interfaces[j].surface_id
                             else:
                                 data.diagram_id2 = None
                                 data.surface2 = None
                         else:
                             data.diagram_id2 = self.interfaces[i+1].diagram_id1
-                            data.surface2 = self.interfaces[i+1].surface
+                            data.surface2 = self.interfaces[i+1].surface_id
                             data.stype2 = TopologyType.given
                 else:
                     if self.interfaces[i].diagram_id1 is not None:                    
@@ -393,9 +401,9 @@ class Layers():
                     if next:
                         if self.interfaces[i].diagram_id1 is not None:
                             data.diagram_id1 = self.interfaces[i].diagram_id1
-                            data.surface1 = self.interfaces[i].surface
+                            data.surface1 = self.interfaces[i].surface_id
                             data.diagram_id2 = self.interfaces[i].diagram_id2
-                            data.surface2 = self.interfaces[i].surface
+                            data.surface2 = self.interfaces[i].surface_id
                         if j==i+1:
                             data.stype2 = TopologyType.given
                         else:
