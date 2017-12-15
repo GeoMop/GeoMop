@@ -210,6 +210,8 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg.diagram.zoom = view_rect.width()/rect.width()
             cfg.diagram.x = rect.left()
             cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
+        if cfg.diagram.pen_changed:
+            self.diagramScene.update_geometry()
         self._display(view_rect)
         
     def _display(self, view_rect):

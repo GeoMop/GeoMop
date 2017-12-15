@@ -220,15 +220,12 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._del_polygons()
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
-            p1 = Point(line.p1)
-            p1.set_tmp()
-            self.addItem(p1)             
-            p2 = Point(line.p2)
-            p2.set_tmp()
-            self.addItem(p2) 
-            l = Line(line)
-            l.set_tmp()
-            self.addItem(l) 
+            p1 = Point(line.p1, tmp=True)
+            self.addItem(p1)
+            p2 = Point(line.p2, tmp=True)
+            self.addItem(p2)
+            l = Line(line, tmp=True)
+            self.addItem(l)
             self._last_line = line
             self._add_polygons()
         
@@ -332,6 +329,15 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.removeItem(self.blink)        
         self.blink = None
             
+    def update_geometry(self):
+        """Update geometry of shapes according to actual zoom"""
+        for line in cfg.diagram.lines:
+            line.object.update_geometry()
+        for point in cfg.diagram.points:
+            point.object.update_geometry()
+        for polygon in cfg.diagram.polygons:
+            polygon.object.update_geometry()
+
     def mouseMoveEvent(self, event):
         """Standart mouse event"""
         event.gobject = None
@@ -512,10 +518,10 @@ class Diagram(QtWidgets.QGraphicsScene):
                         event.gobject.update_color()
                     elif isinstance(event.gobject, Line):
                         event.gobject.line_data.set_current_regions()
-                        event.gobject.update()
+                        event.gobject.update_color()
                     elif isinstance(event.gobject, Point):
                         event.gobject.point_data.set_current_regions()
-                        event.gobject.update()
+                        event.gobject.update_color()
 #            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
 #                if event.gobject is not None:
 #                    if isinstance(event.gobject, Polygon):
@@ -580,6 +586,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         cfg.diagram.y += (event.scenePos().y() - cfg.diagram.y) * delta
         # repair zoom
         cfg.diagram.zoom *= (1.0 + delta)
+        if cfg.diagram.pen_changed:
+            self.update_geometry()
         # send signal
         self.possChanged.emit()
         

@@ -333,10 +333,8 @@ class Zoom():
     def zoom(self, value):
         """zoom property, if zoom is too different, recount pen width, set brush transform"""
         self._zoom = value
-        if value==0:
-            ratio = 1
-        else:    
-            ratio = self._recount_zoom/value
+        ratio = self._recount_zoom/value
+        self.pen_changed = False
         if ratio>1.2 or ratio<0.8:
             self.pen_changed = True
             self.pen = QtGui.QPen(QtCore.Qt.black, 1.4/value)
@@ -443,10 +441,10 @@ class Diagram():
                 polygon.object.update_color()
         for line in self.lines:
             if self.regions.get_region_id(1, line.id)==region_idx:
-                line.object.update()
+                line.object.update_color()
         for point in self.points:
             if self.regions.get_region_id(0, point.id)==region_idx:
-                point.object.update()
+                point.object.update_color()
 
     def layer_region_changed(self):
         """Layer color is changed, refresh all region collors"""
