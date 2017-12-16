@@ -1043,7 +1043,7 @@ class LayerGeometry(gs.LayerGeometry):
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
-        call([gmsh_path, "-3", self.geo_file])
+        call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
 
 
 
@@ -1195,15 +1195,11 @@ def construct_derived_geometry(gs_obj):
     return geo_obj
 
 
-if __name__ == "__main__":
-    import argparse
+def make_geometry(**kwargs):
+    layers_file = kwargs.get("layers_file", None)
+    mesh_step = kwargs.get("mesh_step", 0.0)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('layers_file', help="Input Layers file (JSON).")
-    parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
-    args = parser.parse_args()
-
-    layers_file = args.layers_file
+    layers_file = layers_file
     filename_base = os.path.splitext(layers_file)[0]
     gs_lg = gs.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
@@ -1215,6 +1211,17 @@ if __name__ == "__main__":
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-    lg.call_gmsh(args.mesh_step)
+    lg.call_gmsh(mesh_step)
     lg.modify_mesh()
 
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('layers_file', help="Input Layers file (JSON).")
+    parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
+    args = parser.parse_args()
+
+    make_geometry(layers_file=args.layers_file, mesh_step=args.mesh_step)
