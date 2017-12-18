@@ -881,7 +881,9 @@ class LayerGeometry(gs.LayerGeometry):
         for i, item in enumerate(xlist):
             item.id = i
 
-    def init(self):
+    def init(self, config_dict):
+        self.mesh_params = config_dict
+
         # keep unique interface per surface
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
 
@@ -1029,11 +1031,15 @@ class LayerGeometry(gs.LayerGeometry):
         return mesh_step
 
 
-    def call_gmsh(self, mesh_step):
+    def call_gmsh(self):
+        mesh_step = self.mesh_params.get('mesh_step', 0.0)
+        rand_factor = self.mesh_params.get('rand_factor', None)
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"
         with open(self.geo_file, "w") as f:
+            if rand_factor is not None:
+                print('Mesh.RandomFactor = %f;\n'%(rand_factor))
             print('Merge "%s";\n'%(self.brep_file), file=f)
             print('Field[1] = MathEval;\n', file=f)
             print('Field[1].F = "%f";\n'%(mesh_step), file=f)
@@ -1205,13 +1211,13 @@ def make_geometry(**kwargs):
     lg = construct_derived_geometry(gs_lg)
     lg.filename_base = filename_base
 
-    lg.init()   # initialize the tree with ids and references where necessary
+    lg.init(kwargs)   # initialize the tree with ids and references where necessary
 
     lg.construct_brep_geometry()
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-    lg.call_gmsh(mesh_step)
+    lg.call_gmsh()
     lg.modify_mesh()
 
 
