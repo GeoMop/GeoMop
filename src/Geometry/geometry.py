@@ -38,9 +38,9 @@ import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
-#def import_plotting():
-#global plt
-#global bs_plot
+# def import_plotting():
+# global plt
+# global bs_plot
 
 #import geometry_files.plot_polygons as plot_polygons
 
@@ -66,23 +66,21 @@ def check_point_tol(A, B, tol):
         raise Exception("Points too far: {} - {} = {}, norm: {}".format(A,B,diff, norm))
 
 
-
-
 class ShapeInfo:
-    #count_by_dim = [0,0,0,0]
+    # count_by_dim = [0,0,0,0]
     """
     Class to capture information about individual shapes finally meshed by GMSH as independent objects.
     """
 
-    _shapes_dim ={'Vertex':0, 'Edge':1, 'Face':2, 'Solid':3}
+    _shapes_dim ={'Vertex': 0, 'Edge': 1, 'Face': 2, 'Solid': 3}
 
     def __init__(self, shape, i_reg=None, top=None, bot=None):
         self.shape = shape
-        #self.dim = shapes_dim.get(type(shape).__name__)
-        #assert self.dim is not None
+        # self.dim = shapes_dim.get(type(shape).__name__)
+        # assert self.dim is not None
 
-        #self.dim_spec_id = self.count_by_dim[dim]
-        #self.count_by_dim += 1
+        # self.dim_spec_id = self.count_by_dim[dim]
+        # self.count_by_dim += 1
 
         if i_reg is None:
             self.free = False
@@ -108,7 +106,7 @@ class ShapeInfo:
         the self.curve_z, which is the full 3d curve of the edge set in Interface.make_shapes.
         TODO: set curve_z through a method.
         :param v_to_z: (min_z, max_z) ... bounds of the vertical face
-        :param u_to_xy: (min_u, max_u)
+        :param xy_to_u: (min_u, max_u)
         :return: Curve for U or V parameter.
         """
         z_min, z_max = v_to_z
@@ -119,6 +117,7 @@ class ShapeInfo:
         poles_uv[:, 0] *= (u_max - u_min)
         poles_uv[:, 0] += u_min
         return bs.Curve(self.curve_z.basis, poles_uv)
+
 
 class Curve(gs.Curve):
     pass
