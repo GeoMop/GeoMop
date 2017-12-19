@@ -264,3 +264,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self._layer_editor.save_old_file():
             return event.ignore()
         super(MainWindow, self).closeEvent(event)
+        
+    def show_status_message(self, message, duration=5000):
+        """Show a message in status bar for the given duration (in ms)."""
+        self._status.showMessage(message, duration)

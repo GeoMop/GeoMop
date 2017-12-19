@@ -113,6 +113,10 @@ class Surfaces():
         self.surfaces.append(surface)
         return surface
         
+    def delete(self, id):
+        """Delete surface"""
+        del self.surfaces[id]
+        
 class Surface():
     """Surface structure class"""    
     
@@ -1107,7 +1111,18 @@ class Layers():
             move += 1
         if move>0:
             self._move_diagram_idx(idx, -move)
-        return ret 
+        return ret
+       
+    def delete_surface(self, id):
+        """Delete surface if is not used or return False"""
+        id = self.surface.currentIndex()
+        for interface in self.interfaces:
+            if interface.surface_id == id:
+                return False
+        for interface in self.interfaces:
+            if interface.surface_id>id:
+                interface.surface_id -= 1
+        self.surfaces.delete(id)
 
     def change_interface(self, interface, idx):
         """Switch idx layer to set layer"""

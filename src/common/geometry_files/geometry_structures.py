@@ -323,7 +323,9 @@ class UserSupplement(JsonData):
         self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0, 'position_set':False}  
         """Zoom and position for zoom diagram class""" 
         self.shps = [] 
-        """Zoom and position for zoom diagram class""" 
+        """Zoom and position for zoom diagram class"""
+        self.surface_idx = None
+        """Surface idx displayed surface panel""" 
         super().__init__(config)
 
 
