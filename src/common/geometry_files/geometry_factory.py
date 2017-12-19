@@ -83,12 +83,15 @@ class GeometryFactory:
         surface_idx_1 = surface_idx
         surface_idx_2 = surface_idx
         # TODO: make real surface nodesets and take them as parameters
+        assert ns1_idx is not None
+        assert ns2_idx is not None
         surf_nodesets = ( dict( nodeset_id=ns1_idx, surface_id=surface_idx_1 ), dict( nodeset_id=ns2_idx, surface_id=surface_idx_2 ) )
         ns = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, surface_id=surface_idx) )
         return ns
         
     def get_surface_ns(self, ns_idx, surface_idx):
         """Create and return surface node set"""
+        assert ns_idx is not None
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
 
