@@ -105,19 +105,25 @@ class Surfaces(QtWidgets.QWidget):
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
         self.xyscale11 = QtWidgets.QLineEdit()
+        self.xyscale11.textChanged.connect(self._refresh_grid)
         self.xyscale11.setValidator(QtGui.QDoubleValidator())        
         self.xyscale12 = QtWidgets.QLineEdit()
+        self.xyscale12.textChanged.connect(self._refresh_grid)
         self.xyscale12.setValidator(QtGui.QDoubleValidator())        
         self.xyscale21 = QtWidgets.QLineEdit()
+        self.xyscale21.textChanged.connect(self._refresh_grid)
         self.xyscale21.setValidator(QtGui.QDoubleValidator())
         self.xyscale22 = QtWidgets.QLineEdit()
+        self.xyscale22.textChanged.connect(self._refresh_grid)
         self.xyscale22.setValidator(QtGui.QDoubleValidator())        
         
         self.d_xyshift = QtWidgets.QLabel("XY shift:", self)        
         self.xyshift1 = QtWidgets.QLineEdit()
+        self.xyshift1.textChanged.connect(self._refresh_grid)
         self.xyshift1.setValidator(QtGui.QDoubleValidator())
         
         self.xyshift2 = QtWidgets.QLineEdit()
+        self.xyshift2.textChanged.connect(self._refresh_grid)
         self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
         grid.addWidget(self.d_xyscale, 8, 0, 1, 2)
@@ -132,8 +138,10 @@ class Surfaces(QtWidgets.QWidget):
         # approximation points
         self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
         self.u_approx = QtWidgets.QLineEdit()
+        self.u_approx.textChanged.connect(self._refresh_mash)
         self.u_approx.setValidator(QtGui.QIntValidator())
         self.v_approx = QtWidgets.QLineEdit()
+        self.v_approx.textChanged.connect(self._refresh_mash)
         self.v_approx.setValidator(QtGui.QIntValidator())
         
         grid.addWidget(self.d_approx, 11, 0, 1, 3)
@@ -209,8 +217,6 @@ class Surfaces(QtWidgets.QWidget):
         """Save changes to file and compute new depth and error"""
         surfaces = cfg.layers.surfaces
         
-        u = int(self.u_approx.text())
-        v = int(self.v_approx.text())
         file = self.grid_file_name.text()
         
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
@@ -246,6 +252,32 @@ class Surfaces(QtWidgets.QWidget):
             err_dialog.open_error_dialog(error)
             return
         self.reload_surfaces(id)
+        
+    def _refresh_grid(self, new_str):
+        """Grid parameters is changet"""
+        if self.zs is None:
+            return
+        self.zs.reset_transform()
+        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        self.quad = self.zs.quad.tolist()
+        center = self.zs.center()
+        self.depth.setText(str(center[2]))
+        self.showMash.emit()
+        
+    def _refresh_mash(self, new_str):
+        """Mash parameters is changet"""
+        if self.zs is None:
+            return
+        u = int(self.u_approx.text())
+        v = int(self.v_approx.text())
+        file = self.grid_file_name.text()
+        approx = ba.SurfaceApprox.approx_from_file(file) 
+        self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        self.quad = self.zs.quad.tolist()
+        center = self.zs.center()
+        self.depth.setText(str(center[2]))
+        self.showMash.emit()
         
     def _serface_set(self):
         """Surface in combo box was changed"""
@@ -287,7 +319,7 @@ class Surfaces(QtWidgets.QWidget):
             self.grid_file_refresh_button.setEnabled(True)
             self._enable_approx(True)
             approx = ba.SurfaceApprox.approx_from_file(file) 
-            zs = approx.compute_approximation(nuv=np.array(u, v))
+            zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
             self.quad = surfaces[id].quad            
             if not self.cmp_quad(quad, surfaces[id].quad):

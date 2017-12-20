@@ -119,10 +119,9 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.mash = Mash(quad, u, v)
             self.addItem(self.mash)
         else:
-            self.mash.quad = quad
             self.mash.u = u
             self.mash.v = v
-        self.mash.update()            
+            self.mash.set_quad(quad)
         
     def hide_mash(self):
         """hide mash"""
@@ -319,8 +318,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         for polygon in cfg.diagrams[old_diagram].polygons:
             obj = polygon.object
             obj.release_polygon()
-            self.removeItem(obj)
-            
+            self.removeItem(obj)            
         
     def set_data(self):        
         """set new shapes data"""

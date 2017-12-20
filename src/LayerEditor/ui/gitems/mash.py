@@ -22,6 +22,16 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         self.v = v
         self.setZValue(self.STANDART_ZVALUE)
         
+    def set_quad(self, quad):
+        """Set quad"""
+        self.quad = quad
+        polygon = QtGui.QPolygonF()
+        for point in quad:
+            polygon.append(QtCore.QPointF(point[0], -point[1]))
+        polygon.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
+        self.setPolygon(polygon)
+        
+        
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
         # don't paint if line is null line        
