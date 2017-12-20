@@ -116,6 +116,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
         self.regions.regionChanged.connect(self._region_changed)
+        self.surfaces.showMash.connect(self._show_mash)
+        self.surfaces.hideMash.connect(self._hide_mash)
+        self.surfaces.refreshArrea.connect(self._refresh_arrea)
 
         # initialize components
         self.config_changed()
@@ -257,6 +260,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def _region_changed(self):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
+        
+    def _show_mash(self):
+        """Show mash"""
+        quad, u, v = self.surfaces.get_curr_mash()
+        self.diagramScene.show_mash(quad, u, v)
+        
+    def _hide_mash(self):
+        """hide mash"""
+        self.diagramScene.hide_mash()
+        
+    def _refresh_arrea(self):
+        """Refresh init area"""
+        pass
         
     def closeEvent(self, event):
         """Performs actions before app is closed."""

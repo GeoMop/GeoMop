@@ -41,6 +41,7 @@ class Surfaces(QtWidgets.QWidget):
         super(Surfaces, self).__init__(parent)
         surfaces = cfg.layers.surfaces
         self.zs = None
+        self.zs_id = None
         """Help variable of Z-Surface type from bspline library. If this variable is None
         , valid approximation is not loaded"""
         self.quad = None
@@ -104,19 +105,25 @@ class Surfaces(QtWidgets.QWidget):
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
         self.xyscale11 = QtWidgets.QLineEdit()
+        self.xyscale11.textChanged.connect(self._refresh_grid)
         self.xyscale11.setValidator(QtGui.QDoubleValidator())        
         self.xyscale12 = QtWidgets.QLineEdit()
+        self.xyscale12.textChanged.connect(self._refresh_grid)
         self.xyscale12.setValidator(QtGui.QDoubleValidator())        
         self.xyscale21 = QtWidgets.QLineEdit()
+        self.xyscale21.textChanged.connect(self._refresh_grid)
         self.xyscale21.setValidator(QtGui.QDoubleValidator())
         self.xyscale22 = QtWidgets.QLineEdit()
+        self.xyscale22.textChanged.connect(self._refresh_grid)
         self.xyscale22.setValidator(QtGui.QDoubleValidator())        
         
         self.d_xyshift = QtWidgets.QLabel("XY shift:", self)        
         self.xyshift1 = QtWidgets.QLineEdit()
+        self.xyshift1.textChanged.connect(self._refresh_grid)
         self.xyshift1.setValidator(QtGui.QDoubleValidator())
         
         self.xyshift2 = QtWidgets.QLineEdit()
+        self.xyshift2.textChanged.connect(self._refresh_grid)
         self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
         grid.addWidget(self.d_xyscale, 8, 0, 1, 2)
@@ -131,8 +138,10 @@ class Surfaces(QtWidgets.QWidget):
         # approximation points
         self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
         self.u_approx = QtWidgets.QLineEdit()
+        self.u_approx.textChanged.connect(self._refresh_mash)
         self.u_approx.setValidator(QtGui.QIntValidator())
         self.v_approx = QtWidgets.QLineEdit()
+        self.v_approx.textChanged.connect(self._refresh_mash)
         self.v_approx.setValidator(QtGui.QIntValidator())
         
         grid.addWidget(self.d_approx, 11, 0, 1, 3)
@@ -179,6 +188,13 @@ class Surfaces(QtWidgets.QWidget):
             self.delete.setEnabled(False) 
             self._set_default_approx(None) 
             
+    def get_curr_mash(self):
+        """Return quad, u, v for mash constraction"""
+        u = int(self.u_approx.text())
+        v = int(self.v_approx.text())
+        return self.quad, u, v
+        
+            
     def get_surface_id(self):
         return self.surface.currentIndex()
             
@@ -201,12 +217,8 @@ class Surfaces(QtWidgets.QWidget):
         """Save changes to file and compute new depth and error"""
         surfaces = cfg.layers.surfaces
         
-        u = int(self.u_approx.text())
-        v = int(self.v_approx.text())
         file = self.grid_file_name.text()
         
-        approx = ba.SurfaceApprox.approx_from_file(file) 
-        self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
         center = self.zs.center()
@@ -214,10 +226,11 @@ class Surfaces(QtWidgets.QWidget):
         
         if self.new:
             surfaces.add(self.zs, file, 
-                self.name.text(), self._get_transform(), self.quad)           
+                self.name.text(), self._get_transform(), self.quad) 
+            self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
             self.surface.setCurrentIndex(len(surfaces.surfaces)-1)
-            self.new = False
+            self.new = False            
         else:
             surface = surfaces.surfaces[self.surface.currentData()]
             surface.grid_file = self.grid_file_name.text()
@@ -240,12 +253,40 @@ class Surfaces(QtWidgets.QWidget):
             return
         self.reload_surfaces(id)
         
+    def _refresh_grid(self, new_str):
+        """Grid parameters is changet"""
+        if self.zs is None:
+            return
+        self.zs.reset_transform()
+        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        self.quad = self.zs.quad.tolist()
+        center = self.zs.center()
+        self.depth.setText(str(center[2]))
+        self.showMash.emit()
+        
+    def _refresh_mash(self, new_str):
+        """Mash parameters is changet"""
+        if self.zs is None:
+            return
+        u = int(self.u_approx.text())
+        v = int(self.v_approx.text())
+        file = self.grid_file_name.text()
+        approx = ba.SurfaceApprox.approx_from_file(file) 
+        self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        self.quad = self.zs.quad.tolist()
+        center = self.zs.center()
+        self.depth.setText(str(center[2]))
+        self.showMash.emit()
+        
     def _serface_set(self):
         """Surface in combo box was changed"""
         id = self.surface.currentIndex()
         if id == -1:
             self.delete.setEnabled(False) 
-            return 
+            return
+        if self.zs_id==id:
+            return
         self.delete.setEnabled(True) 
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
@@ -271,21 +312,24 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(False)
             self.quad = surfaces[id].quad
             self.zs = surfaces[id].approximation
+            self.zs_id = id
             self.d_message.setText("Set grid file not found.")
             self.d_message.setVisible(True)
         else:
             self.grid_file_refresh_button.setEnabled(True)
             self._enable_approx(True)
             approx = ba.SurfaceApprox.approx_from_file(file) 
-            zs = approx.compute_approximation(nuv=np.array(u, v))
+            zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
             self.quad = surfaces[id].quad            
             if not self.cmp_quad(quad, surfaces[id].quad):
                 self.zs = surfaces[id].approximation
+                self.zs_id = id
                 self.d_message.setText("Set grid file get different approximation.")                
                 self.d_message.setVisible(True)
             else:
                 self.zs = zs
+                self.zs_id = id
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()
@@ -314,6 +358,7 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(True)
             approx = ba.SurfaceApprox.approx_from_file(file)                
             self.zs = approx.compute_approximation()
+            self.zs_id = self.surface.currentIndex()
             if approx.error is not None:
                 self.error.setText(str(approx.error) )
             center = self.zs.center()
@@ -374,7 +419,7 @@ class Surfaces(QtWidgets.QWidget):
                 nuv = approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
                 self.v_approx.setText(str(nuv[1]))                
-                self.zs = approx.compute_approximation()
+                self.zs = approx.compute_approximation()                
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()

@@ -46,7 +46,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, i, 3, 1, 3)
+        grid.addWidget(button_box, i, 1, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
@@ -57,6 +57,6 @@ class SplitLayerDlg(QtWidgets.QDialog):
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
             super(SplitLayerDlg, self).accept()
 
-    def fill_surface(self, surface):
+    def fill_surface(self, interface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, surface)
+        return LayersHelpers.fill_surface(self, interface)

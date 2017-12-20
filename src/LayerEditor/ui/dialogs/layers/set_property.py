@@ -34,7 +34,7 @@ class SetNameDlg(QtWidgets.QDialog):
 
 class SetSurfaceDlg(QtWidgets.QDialog):
 
-    def __init__(self, surface,  parent=None, min=None, max=None):
+    def __init__(self, iterface,  parent=None, min=None, max=None):
         super(SetSurfaceDlg, self).__init__(parent)
         self.setWindowTitle("Set Surface")
 
@@ -63,7 +63,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, i, 3, 1, 3)
+        grid.addWidget(button_box, i, 1, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
@@ -74,6 +74,6 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
              super(SetSurfaceDlg, self).accept()
              
-    def fill_surface(self, surface):
+    def fill_surface(self, interface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, surface)
+        return LayersHelpers.fill_surface(self, interface)
