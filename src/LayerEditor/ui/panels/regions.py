@@ -212,8 +212,8 @@ class Regions(QtWidgets.QToolBox):
         self._set_visibility(layer_id, region.dim!=RegionDim.none)
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         sp2 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 6, 0)
-        grid.addItem(sp2, 6, 1)
+        grid.addItem(sp1, 7, 0)
+        grid.addItem(sp2, 7, 1)
         
         widget = QtWidgets.QWidget(self)        
         widget.setLayout(grid)
