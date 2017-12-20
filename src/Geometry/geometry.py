@@ -1042,7 +1042,8 @@ class LayerGeometry(gs.LayerGeometry):
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
-        call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
+        #call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
+        call([gmsh_path, "-3",  self.geo_file])
 
 
 
