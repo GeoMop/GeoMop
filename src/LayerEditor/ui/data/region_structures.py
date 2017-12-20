@@ -29,7 +29,7 @@ class Region():
     """
     Class for graphic presentation of region
     """
-    def __init__(self, color, name, dim, step=0.01,  boundary=False, not_used=False):
+    def __init__(self, color, name, dim, step,  boundary=False, not_used=False):
         self.name = name
         """Region name"""
         self.color = color
@@ -292,7 +292,7 @@ class Regions():
         
     def add_new_region(self, color, name, dim, to_history=False, label=None):
         """Add region"""
-        region = Region(color, name, dim)
+        region = Region(color, name, dim, step = 0.0)
         self.regions.append(region)
         if to_history:
             self._history.delete_region(len(self.regions)-1, label)
@@ -328,6 +328,14 @@ class Regions():
         if to_history:
             self._history.change_region(id, region, label)         
         return region 
+
+    def set_region_mesh_step(self, id, step, to_history=False, label=None):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].mesh_step = step
+        if to_history:
+            self._history.change_region(id, region, label)
+        return region
 
     def set_region_not_used(self, id, not_used, to_history=False, label=None):
         """Add region"""
@@ -730,7 +738,7 @@ class Regions():
         
     # serialize functions    
         
-    def add_region(self, color, name, dim, step=0.01,  boundary=False, not_used=False):
+    def add_region(self, color, name, dim, step,  boundary=False, not_used=False):
         """Add region"""
         region = Region(color, name, dim, step, boundary, not_used)
         self.regions.append(region)
