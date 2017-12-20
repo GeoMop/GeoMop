@@ -232,6 +232,12 @@ class PolygonOperation():
         """reload polygon depth recursivly"""
         spolygon = self._get_spolygon(diagram, polygon_id)
         polygon = self.decomposition.polygons[polygon_id]
+
+        # Temorary fix.
+        # TODO: Do not call _reload_depth
+        if spolygon is None:
+            return
+
         spolygon.depth = polygon.depth()
         if spolygon.object is not None:
             spolygon.object.update_depth()
