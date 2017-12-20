@@ -66,6 +66,6 @@ class AppendLayerDlg(QtWidgets.QDialog):
         if LayersHelpers.validate_depth(self.depth, self.validator, self):
             super(AppendLayerDlg, self).accept()
             
-    def fill_surface(self, surface):
+    def fill_surface(self, interface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, surface)
+        return LayersHelpers.fill_surface(self, interface)

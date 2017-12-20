@@ -438,28 +438,30 @@ class Layers():
         self.layers.append(Layer(name, shadow))
         return len(self.layers)-1
         
-    def append_layer(self, name, surface):
+    def append_layer(self, name):
         """Append layer to the end"""
         self.add_layer(name)
-        self.add_interface(surface, False)
+        id = self.add_interface(None, False, 0.0)
+        return self.interfaces[id]
         
-    def prepend_layer(self, name, surface_id, depth):
+    def prepend_layer(self, name):
         """Prepend layer to the start"""
         self.layers.insert(0, Layer(name))
-        self.interfaces.insert(0, Interface(surface_id, False, depth)) 
+        self.interfaces.insert(0, Interface(None, False, 0.0)) 
+        return self.interfaces[0]
  
-    def add_layer_to_shadow(self, idx, name, surface_id, depth, dup):
+    def add_layer_to_shadow(self, idx, name, interface, depth, dup):
         """Append new layer to shadow block, return True if 
         shadow block is replaces"""
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx+1, 1)  
-        if float(depth)==self.interfaces[idx+1].depth:
+        if interface.depth==self.interfaces[idx+1].depth:
             self.layers[idx].shadow=False
             self.layers[idx].name=name
             return True
         else:
             self.layers.insert(idx, Layer(name))
-            self.interfaces.insert(idx+1, Interface(surface_id, True, depth))
+            self.interfaces.insert(idx+1, interface)
         return False       
        
     def add_fracture(self, idx, name, position, dup):
@@ -931,24 +933,25 @@ class Layers():
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx, 1)
         
-    def split_layer(self, idx, name, surface_id, depth, split_type, dup):
+    def split_layer(self, idx, name, split_type, dup):
         """Split set layer by interface with split_type type in set surface
         
         Variable dup is returned by get_diagram_dup and new diagrams was added
         outside this function"""
         new_layer = Layer(name)
         if split_type is LayerSplitType.interpolated:
-            new_interface = Interface(surface_id, False, depth)
+            new_interface = Interface(None, False, 0.0)
         elif split_type is LayerSplitType.editable:
-            new_interface = Interface(surface_id, False, depth, None, dup.insert_id)
+            new_interface = Interface(None, False, 0.0, None, dup.insert_id)
         elif split_type is LayerSplitType.split:
-            new_interface = Interface(surface_id, True, depth, None, dup.insert_id, dup.insert_id+1)
+            new_interface = Interface(None, True, 0.0, None, dup.insert_id, dup.insert_id+1)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
         if dup is not None:
             self._move_diagram_idx(idx, dup.count)
         self.layers.insert(idx+1, new_layer)
         self.interfaces.insert(idx+1, new_interface)
+        return self.interfaces[idx+1]
 
     def set_edited_diagram(self, diagram_id):
         """Find interface accoding to diagram id, and set id as
@@ -1060,11 +1063,11 @@ class Layers():
         del self.layers[idx]
         return ret
         
-    def change_layer(self, layer, idx):
-        """Switch idx layer to set layer"""
-        old = self.layers[idx]
-        self.layers[idx] = layer
-        return old
+#    def change_layer(self, layer, idx):
+#        """Switch idx layer to set layer"""
+#        old = self.layers[idx]
+#        self.layers[idx] = layer
+#        return old
         
     def strip_edited(self, interface):
         """If some of interface diagram editing is set to true, 

@@ -4,7 +4,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import ui.data.diagram_structures as struc
 from ui.data.selection import Selection
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea
+from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
 from ui.gitems import ItemStates
 from leconfig import cfg
     
@@ -102,6 +102,9 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.init_area=None
         """Initialization area"""
         self.blink_timer.setSingleShot(True) 
+        #mash
+        self.mash=None
+        """Surface mash"""        
         
         super(Diagram, self).__init__(parent)
         self.blink_timer.timeout.connect(self.blink_end)
@@ -109,6 +112,22 @@ class Diagram(QtWidgets.QGraphicsScene):
   
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
+        
+    def show_mash(self, quad, u, v):
+        """Show mash"""
+        if self.mash is None:
+            self.mash = Mash(quad, u, v)
+            self.addItem(self.mash)
+        else:
+            self.mash.quad = quad
+            self.mash.u = u
+            self.mash.v = v
+        self.mash.update()            
+        
+    def hide_mash(self):
+        """hide mash"""
+        self.removeItem(self.mash)
+        self.mash = None
         
     def  show_init_area(self, state):
         """Show initialization area"""

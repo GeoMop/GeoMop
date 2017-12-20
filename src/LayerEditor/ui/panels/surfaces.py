@@ -41,6 +41,7 @@ class Surfaces(QtWidgets.QWidget):
         super(Surfaces, self).__init__(parent)
         surfaces = cfg.layers.surfaces
         self.zs = None
+        self.zs_id = None
         """Help variable of Z-Surface type from bspline library. If this variable is None
         , valid approximation is not loaded"""
         self.quad = None
@@ -179,6 +180,13 @@ class Surfaces(QtWidgets.QWidget):
             self.delete.setEnabled(False) 
             self._set_default_approx(None) 
             
+    def get_curr_mash(self):
+        """Return quad, u, v for mash constraction"""
+        u = int(self.u_approx.text())
+        v = int(self.v_approx.text())
+        return self.quad, u, v
+        
+            
     def get_surface_id(self):
         return self.surface.currentIndex()
             
@@ -205,8 +213,6 @@ class Surfaces(QtWidgets.QWidget):
         v = int(self.v_approx.text())
         file = self.grid_file_name.text()
         
-        approx = ba.SurfaceApprox.approx_from_file(file) 
-        self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
         center = self.zs.center()
@@ -214,10 +220,11 @@ class Surfaces(QtWidgets.QWidget):
         
         if self.new:
             surfaces.add(self.zs, file, 
-                self.name.text(), self._get_transform(), self.quad)           
+                self.name.text(), self._get_transform(), self.quad) 
+            self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
             self.surface.setCurrentIndex(len(surfaces.surfaces)-1)
-            self.new = False
+            self.new = False            
         else:
             surface = surfaces.surfaces[self.surface.currentData()]
             surface.grid_file = self.grid_file_name.text()
@@ -245,7 +252,9 @@ class Surfaces(QtWidgets.QWidget):
         id = self.surface.currentIndex()
         if id == -1:
             self.delete.setEnabled(False) 
-            return 
+            return
+        if self.zs_id==id:
+            return
         self.delete.setEnabled(True) 
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
@@ -271,6 +280,7 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(False)
             self.quad = surfaces[id].quad
             self.zs = surfaces[id].approximation
+            self.zs_id = id
             self.d_message.setText("Set grid file not found.")
             self.d_message.setVisible(True)
         else:
@@ -282,10 +292,12 @@ class Surfaces(QtWidgets.QWidget):
             self.quad = surfaces[id].quad            
             if not self.cmp_quad(quad, surfaces[id].quad):
                 self.zs = surfaces[id].approximation
+                self.zs_id = id
                 self.d_message.setText("Set grid file get different approximation.")                
                 self.d_message.setVisible(True)
             else:
                 self.zs = zs
+                self.zs_id = id
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()
@@ -314,6 +326,7 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(True)
             approx = ba.SurfaceApprox.approx_from_file(file)                
             self.zs = approx.compute_approximation()
+            self.zs_id = self.surface.currentIndex()
             if approx.error is not None:
                 self.error.setText(str(approx.error) )
             center = self.zs.center()
@@ -374,7 +387,7 @@ class Surfaces(QtWidgets.QWidget):
                 nuv = approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
                 self.v_approx.setText(str(nuv[1]))                
-                self.zs = approx.compute_approximation()
+                self.zs = approx.compute_approximation()                
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()

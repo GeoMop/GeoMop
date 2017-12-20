@@ -8,7 +8,7 @@ import PyQt5.QtWidgets as QtWidgets
 from ui.data import LayerSplitType
 from leconfig import cfg
 import b_spline
-import bspline as bs
+import numpy as np
 
 class LayersHelpers():
 
@@ -42,123 +42,76 @@ class LayersHelpers():
         return combo
        
     @staticmethod
-    def fill_surface(dialog, surface):
+    def fill_surface(dialog, interface):
         """Return surface"""
         try:
-            surface.depth = float(dialog.depth.text())
+            interface.depth = float(dialog.depth.text())
             if (dialog.grid.isChecked()):
-                surface.grid_file = dialog.file_name.text()
+                interface.transform_z = (float(dialog.zscale.text()), 
+                    float(dialog.zshift.text()))
+                interface.surface_id = dialog.surface.currentIndex()
             else:
-                surface.grid_file = None
-            surface.transform_xy = ((float(dialog.xyscale11.text()), 
-                float(dialog.xyscale12.text()), float(dialog.xyscale21.text())), 
-                (float(dialog.xyscale22.text()), float(dialog.xyshift1.text()), 
-                float(dialog.xyshift2.text())))
-            surface.transform_z = (float(dialog.zscale.text()), 
-                float(dialog.zshift.text()))
-            return surface
+                interface.transform_z = None
+                interface.surface_id = None
+                
         except:
             raise ValueError("Invalid surface type")
       
     @staticmethod
-    def add_surface_to_grid(dialog, grid, row, surface=None):
+    def add_surface_to_grid(dialog, grid, row, interface=None):
         """Add surface structure to grid"""
         
         def _enable_controls():
             """Disable all not used controls"""
             dialog.depth.setEnabled(dialog.zcoo.isChecked())
             
-            dialog.file_name.setEnabled(dialog.grid.isChecked())
-            dialog.file_button.setEnabled(dialog.grid.isChecked())
-            dialog.xyscale11.setEnabled(dialog.grid.isChecked())
-            dialog.xyscale12.setEnabled(dialog.grid.isChecked())
-            dialog.xyscale21.setEnabled(dialog.grid.isChecked())
-            dialog.xyscale22.setEnabled(dialog.grid.isChecked())
-            dialog.xyshift1.setEnabled(dialog.grid.isChecked())
-            dialog.xyshift2.setEnabled(dialog.grid.isChecked())
+            dialog.surface.setEnabled(dialog.grid.isChecked())
             dialog.zscale.setEnabled(dialog.grid.isChecked())
             dialog.zshift.setEnabled(dialog.grid.isChecked())
+            
+            if dialog.grid.isChecked():
+                _change_surface()
             
         dialog.zcoo = QtWidgets.QRadioButton("Z-Coordinate:")
         dialog.zcoo.clicked.connect(_enable_controls)
         d_depth = QtWidgets.QLabel("Depth:", dialog)
         dialog.depth = QtWidgets.QLineEdit() 
-        if surface is not None:
-            dialog.depth.setText(str(surface.depth))
+        if interface is not None:
+            dialog.depth.setText(str(interface.depth))
         
         grid.addWidget(dialog.zcoo, row, 0)
         grid.addWidget(d_depth, row, 1)
         grid.addWidget(dialog.depth, row, 2)
         
-        def _add_file():
-            """Clicked event for _file_button"""
-            home = cfg.config.data_dir
-            file = QtWidgets.QFileDialog.getOpenFileName(
-                dialog, "Choose grif file", home,"File (*.*)")
-            if file[0]:
-                gs = bs.GridSurface.load(file[0])
-                center = gs.center()
-                dialog.depth_value = -center[2]
-                dialog.file_name.setText(file[0])
-                _compute_depth()
-        
+        def _change_surface():
+            """Changed event for surface ComboBox"""
+            id = dialog.surface.currentIndex()
+            dialog.zs = surfaces[id].approximation
+            _compute_depth()
+                
+        surfaces = cfg.layers.surfaces.surfaces
+        is_surface = len(surfaces)>0
         dialog.grid = QtWidgets.QRadioButton("Grid")
         dialog.grid.clicked.connect(_enable_controls)
-        d_file = QtWidgets.QLabel("File:")
-        dialog.file_name = QtWidgets.QLineEdit()
-        dialog.file_name.setReadOnly(True)
-        dialog.file_button = QtWidgets.QPushButton("...")
-        dialog.file_button.clicked.connect(_add_file)
-        if surface is not None:
-            dialog.file_name.setText(surface.grid_file)
+        if not is_surface:
+            dialog.grid.setEnabled(False)
+            error = QtWidgets.QLabel("Any surface is not defined")
+            grid.addWidget(dialog.grid, row+1, 0)
+            grid.addWidget(error, row+1, 1, 1, 2)
+            return row+2        
+        d_surface = QtWidgets.QLabel("Surface:")
+        dialog.surface = QtWidgets.QComboBox()            
+        for i in range(0, len(surfaces)):            
+            label = surfaces[i].name 
+            dialog.surface.addItem( label,  i) 
+        dialog.surface.currentIndexChanged.connect(_change_surface)
+        if interface is not None and interface.surface_id is not None:
+            dialog.self.surface.setCurrentIndex(interface.surface_id)
 
         grid.addWidget(dialog.grid, row+1, 0)
-        grid.addWidget(d_file, row+1, 1)
-        grid.addWidget(dialog.file_name, row+1, 2, 1, 3)        
-        grid.addWidget(dialog.file_button, row+1, 5)
-        
-        d_xyscale = QtWidgets.QLabel("XY scale:", dialog)
-        dialog.xyscale11 = QtWidgets.QLineEdit()
-        dialog.xyscale11.setValidator(QtGui.QDoubleValidator())
-        dialog.xyscale11.setText("1.0")
-        dialog.xyscale12 = QtWidgets.QLineEdit()
-        dialog.xyscale12.setValidator(QtGui.QDoubleValidator())
-        dialog.xyscale12.setText("0.0")
-        dialog.xyscale21 = QtWidgets.QLineEdit()
-        dialog.xyscale21.setValidator(QtGui.QDoubleValidator())
-        dialog.xyscale21.setText("0.0")
-        dialog.xyscale22 = QtWidgets.QLineEdit()
-        dialog.xyscale22.setValidator(QtGui.QDoubleValidator())
-        dialog.xyscale22.setText("1.0")
-        
-        if surface is not None:
-            dialog.xyscale11.setText(str(surface.transform_xy[0][0]))
-            dialog.xyscale12.setText(str(surface.transform_xy[0][1]))
-            dialog.xyscale21.setText(str(surface.transform_xy[1][0]))
-            dialog.xyscale22.setText(str(surface.transform_xy[1][1]))
-        
-        d_xyshift = QtWidgets.QLabel("XY shift:", dialog)        
-        dialog.xyshift1 = QtWidgets.QLineEdit()
-        dialog.xyshift1.setValidator(QtGui.QDoubleValidator())
-        dialog.xyshift1.setText("0.0")
-        dialog.xyshift2 = QtWidgets.QLineEdit()
-        dialog.xyshift2.setValidator(QtGui.QDoubleValidator())
-        dialog.xyshift2.setText("0.0")
-        
-        if surface is not None:
-            dialog.xyshift1.setText(str(surface.transform_xy[0][2]))
-            dialog.xyshift2.setText(str(surface.transform_xy[1][2]))        
-        
-        grid.addWidget(d_xyscale, row+2, 1)
-        grid.addWidget(dialog.xyscale11, row+2, 2)
-        grid.addWidget(dialog.xyscale21, row+2, 3)
-        grid.addWidget(d_xyshift, row+2, 4)
-        grid.addWidget(dialog.xyshift1, row+2, 5)
-        
-        grid.addWidget(dialog.xyscale12, row+3, 2)
-        grid.addWidget(dialog.xyscale22, row+3, 3)
-        grid.addWidget(dialog.xyshift2, row+3, 5)
-        
+        grid.addWidget(d_surface, row+1, 1)
+        grid.addWidget(dialog.surface, row+1, 2)
+
         d_zscale = QtWidgets.QLabel("Z scale:", dialog)
         dialog.zscale = QtWidgets.QLineEdit()
         dialog.zscale.setValidator(QtGui.QDoubleValidator())
@@ -167,40 +120,31 @@ class LayersHelpers():
         
         def _compute_depth():
             """Compute depth for grid file"""
-            grid_file = dialog.file_name.text()
-            if dialog.grid.isChecked() and \
-                len(grid_file)>0 and not grid_file.isspace():
-                try:
-                    z=float(dialog.zshift.text())
-                except:
-                    z=0
-                depth = dialog.depth_value + z
-                dialog.depth.setText(str(depth))
+            z1 = float(dialog.zscale.text())
+            z2 = float(dialog.zshift.text())
+            dialog.zs.transform(None, np.array([z1, z2], dtype=float))
+            center = dialog.zs.center()
+            dialog.depth.setText(str(center[2]))
 
         d_zshift = QtWidgets.QLabel("Z shift:", dialog)
         dialog.zshift = QtWidgets.QLineEdit()
         dialog.zshift.setValidator(QtGui.QDoubleValidator())
-        dialog.zshift.setText("1.0")
+        dialog.zshift.setText("0.0")
         dialog.zshift.textChanged.connect(_compute_depth)        
         
-        if surface is not None:
-            dialog.zscale.setText(str(surface.transform_z[0]))
-            dialog.zshift.setText(str(surface.transform_z[1]))
+        if interface is not None:
+            dialog.zscale.setText(str(interface.transform_z[0]))
+            dialog.zshift.setText(str(interface.transform_z[1]))
         
-        grid.addWidget(d_zscale, row+4, 1)
-        grid.addWidget(dialog.zscale, row+4, 2)
-        grid.addWidget(d_zshift, row+4, 4)
-        grid.addWidget(dialog.zshift, row+4, 5)
+        grid.addWidget(d_zscale, row+2, 1)
+        grid.addWidget(dialog.zscale, row+2, 2)
+        grid.addWidget(d_zshift, row+3, 1)
+        grid.addWidget(dialog.zshift, row+3, 2)
         
-        if surface is not None and surface.grid_file is not None and \
-            len(surface.grid_file) and not surface.grid_file.isspace():
+        if interface is not None and interface.surface_id is not None:
             dialog.grid.setChecked(True)
-            gs = bs.GridSurface.load(surface.grid_file)
-            center = gs.center()
-            dialog.depth_value = -center[2]
-            _compute_depth()
         else:
             dialog.zcoo.setChecked(True)
         _enable_controls()
         
-        return row+5
+        return row+4
