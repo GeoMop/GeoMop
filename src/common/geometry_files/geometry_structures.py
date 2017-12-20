@@ -234,9 +234,9 @@ class Region(JsonData):
         self.boundary = False
         """Is boundary region"""
         self.not_used = False
-        """is used - TODO: do we need it??"""
-        self.mesh_step = 1.0
-        """mesh step"""
+        """is used """
+        self.mesh_step = 0.0
+        """mesh step - 0.0 is automatic choice"""
         self.brep_shape_ids = [ ]
         """List of shape indexes - in BREP geometry """
         super().__init__(config)
