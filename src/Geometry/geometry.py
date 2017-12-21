@@ -1,4 +1,12 @@
 """
+This file contains algorithms for
+1. constructing a 3D geometry in the BREP format
+   (see https://docs.google.com/document/d/1qWq1XKfHTD-xz8vpINxpfQh4k6l1upeqJNjTJxeeOwU/edit#)
+   from the Layer File format (see geometry_structures.py).
+2. meshing the 3D geometry (e.g. using GMSH)
+3. setting regions to the elements of the resulting mesh and other mesh postprocessing
+
+
 TODO:
 - check how GMSH number surfaces standing alone,
   seems that it number object per dimension by the IN time in DFS from solids down to Vtx,
@@ -995,6 +1003,7 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
+        # TODO, mesh step
         # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
         # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
 
@@ -1047,7 +1056,7 @@ class LayerGeometry(gs.LayerGeometry):
         :param mesh_step:
         :return:
 
-         TODO:
+         TODO, mesh step:
          - replace Merge by shapefromfile
          - replace global mesh step field by array of char lenght:
          Characteristic Length {ID} = step;
