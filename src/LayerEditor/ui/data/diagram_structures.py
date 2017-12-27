@@ -25,10 +25,11 @@ class Point():
         """Graphic object""" 
         self.id = id
         """Point history id"""
-        
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
+        self.de_id = self.id
+        """Decomposition id"""
         assert(isinstance(self.id,int))
             
     def qpointf(self):
@@ -405,8 +406,8 @@ class Diagram():
         """Add shape to region"""
         mapped_regions = [{}, {}, {}]
         diagram = cls.topologies[topology_idx][0]
-        for point_id in range(0, len(diagram.points)):
-            mapped_regions[0][diagram.points[point_id].id] = regions[0][diagram.po.get_point_origin_id(point_id)]
+        for point in diagram.points:
+            mapped_regions[0][point.id] = regions[0][diagram.po.get_point_origin_id(point.de_id)]
         for line in diagram.lines:
             mapped_regions[1][line.id] = regions[1][diagram.po.get_line_origin_id(line)]
         for polygon in diagram.polygons:
@@ -421,8 +422,8 @@ class Diagram():
         remapped_regions = [[], [], []]
         diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
         tmp = {}
-        for point_id in range(0, len(diagram.points)):
-            tmp[diagram.po.get_point_origin_id(point_id)]=regions[0][diagram.points[point_id].id]
+        for point in diagram.points:
+            tmp[diagram.po.get_point_origin_id(point.de_id)]=regions[0][point.id]
         remapped_regions[0] = [value for (key, value) in sorted(tmp.items())]  
         tmp = {}
         for line in diagram.lines:
@@ -733,6 +734,13 @@ class Diagram():
             if point.id==id:
                 return point
         return None
+        
+    def get_point_by_de_id(self, id):
+        """return point or None if not exist"""
+        for point in self.points:
+            if point.de_id==id:
+                return point
+        return None
 
     def get_line_by_id(self, id):
         """return line or None if not exist"""
@@ -750,8 +758,8 @@ class Diagram():
         
     def find_line(self, p1_id, p2_id):
         """Find line accoding points index"""
-        p1 = self.points[p1_id]
-        p2 = self.points[p2_id]
+        p1 = self.get_point_by_de_id(p1_id)
+        p2 = self.get_point_by_de_id(p2_id)
         for line in p1.lines:
             if line in p2.lines:
                 return line
@@ -825,9 +833,10 @@ class Diagram():
                 self._rect.setBottom(y)
         return point
         
-    def add_point_id(self, x, y):
+    def add_point_id(self, x, y, input_id):
         """Add point to canvas and return index"""
         point = Point(x, y)
+        point.de_id = input_id
         self.points.append(point) 
         # recount canvas size
         if self._rect is None:
@@ -840,8 +849,8 @@ class Diagram():
             if self._rect.top()>y:
                 self._rect.setTop(y)            
             if self._rect.bottom()<y:
-                self._rect.setBottom(y)
-        return self.points.index(point)
+                self._rect.setBottom(y) 
+        return point.id
         
     def import_decomposition(self, decomposition):
         """Save decomposition and reload lines and polygons"""
@@ -914,8 +923,8 @@ class Diagram():
         
     def join_line_import(self,p1_id, p2_id, segment):
         """Import line from point p1 to p2"""
-        p1 = self.points[p1_id]
-        p2 = self.points[p2_id]
+        p1 = self.get_point_by_de_id(p1_id)
+        p2 = self.get_point_by_de_id(p2_id)
         if p1>p2:
             pom = p1
             p1 = p2
