@@ -8,6 +8,14 @@ TODO:
 - implement intersection in interface_finish_init
 - tests
 
+Heterogeneous mesh step:
+
+- storing mesh step from regions into shape info objects
+- ( brep created )
+-
+- add include
+
+
 """
 
 
@@ -986,6 +994,10 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
+        # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
+        # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
+
+
         # debug listing
         #xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
         #xx.sort(key=lambda x: x[0])
@@ -1029,6 +1041,16 @@ class LayerGeometry(gs.LayerGeometry):
 
 
     def call_gmsh(self, mesh_step):
+        """
+
+        :param mesh_step:
+        :return:
+
+         TODO:
+         - replace Merge by shapefromfile
+         - replace global mesh step field by array of char lenght:
+         Characteristic Length {ID} = step;
+        """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"

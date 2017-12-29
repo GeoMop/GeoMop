@@ -29,7 +29,7 @@ class Region():
     """
     Class for graphic presentation of region
     """
-    def __init__(self, color, name, dim, step=0.01,  boundary=False, not_used=False):
+    def __init__(self, color, name, dim, step,  boundary=False, not_used=False):
         self.name = name
         """Region name"""
         self.color = color
@@ -292,7 +292,7 @@ class Regions():
         
     def add_new_region(self, color, name, dim, to_history=False, label=None):
         """Add region"""
-        region = Region(color, name, dim)
+        region = Region(color, name, dim, step = 0.0)
         self.regions.append(region)
         if to_history:
             self._history.delete_region(len(self.regions)-1, label)
@@ -328,6 +328,14 @@ class Regions():
         if to_history:
             self._history.change_region(id, region, label)         
         return region 
+
+    def set_region_mesh_step(self, id, step, to_history=False, label=None):
+        """Add region"""
+        region = deepcopy(self.regions[id])
+        self.regions[id].mesh_step = step
+        if to_history:
+            self._history.change_region(id, region, label)
+        return region
 
     def set_region_not_used(self, id, not_used, to_history=False, label=None):
         """Add region"""
@@ -400,9 +408,12 @@ class Regions():
         max_layer_key = max(self.layers)
         for i in range(max_layer_key, id-1, -1):
             self.layers[i+1] = self.layers[i]
-            if i!=id and -i in self.layers:
-               self.layers[-i-1] = self.layers[-i]
-               del self.layers[-i]
+            if (-i-2) in self.layers:
+               self.layers[-i-3] = self.layers[-i-2]
+               del self.layers[-i-2]
+        if (-id-1) in self.layers:
+               self.layers[-id-2] = self.layers[-id-1]
+               del self.layers[-id-1]
         self.layers[id]=name
         if to_history:
             self._history.delete_layer(id)
@@ -421,7 +432,7 @@ class Regions():
             old = deepcopy(self.layers_topology[i])
             self.layers_topology[i] = []
             for layer_id in old:
-                if layer_id<=id and id>=-layer_id-1:
+                if layer_id<=id and id>-layer_id-1:
                     if not end:
                         self.layers_topology[i].append(id)
                     end = True
@@ -429,7 +440,7 @@ class Regions():
                         self.layers_topology[i].append(layer_id)
                 if layer_id>=id:
                     self.layers_topology[i].append(layer_id+1)
-                elif id<-layer_id-1:
+                elif id<=-layer_id-1:
                     self.layers_topology[i].append(layer_id-1)
             if end:
                 break
@@ -689,15 +700,24 @@ class Regions():
         max_layer_key = max(self.layers)
         for i in range(max_layer_key, id-1, -1):
             layer_region[i+1] = layer_region[i]
-            if i!=id and -i in layer_region:
-               layer_region[-i-1] = layer_region[-i]
-               del layer_region[-i]
+            if (-i-2) in layer_region:
+               layer_region[-i-3] = layer_region[-i-2]
+               del layer_region[-i-2]
+        if (-id-1) in layer_region:
+               layer_region[-id-2] = layer_region[-id-1]
+               del layer_region[-id-1]
                
     def _unmove_dim(self, id, layer_region):
         """UnMove topology structure from index id"""
         max_layer_key = max(self.layers)
         for i in range(id, max_layer_key):
             layer_region[i] = layer_region[i+1]
+            if (-i-2) in layer_region:
+               layer_region[-i-1] = layer_region[-i-2]
+               del layer_region[-i-2]
+        if (-max_layer_key-2) in layer_region:
+           layer_region[-max_layer_key-1] = layer_region[-max_layer_key-2]
+           del layer_region[-max_layer_key-2]
     
     def _find_less(self, id):
         """Find less layer and return its id and topology id"""
@@ -730,7 +750,7 @@ class Regions():
         
     # serialize functions    
         
-    def add_region(self, color, name, dim, step=0.01,  boundary=False, not_used=False):
+    def add_region(self, color, name, dim, step,  boundary=False, not_used=False):
         """Add region"""
         region = Region(color, name, dim, step, boundary, not_used)
         self.regions.append(region)
