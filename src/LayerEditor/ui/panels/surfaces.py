@@ -48,6 +48,10 @@ class Surfaces(QtWidgets.QWidget):
         """Display rect for mesh"""
         self.new = False
         """New surface is set"""
+        self.last_u = 10
+        """Last u"""
+        self.last_v = 10
+        """Last v"""
                 
         grid = QtWidgets.QGridLayout(self)
         
@@ -184,15 +188,31 @@ class Surfaces(QtWidgets.QWidget):
         if len(surfaces.surfaces)>0:
             self.surface.setCurrentIndex(0)            
         else:
-            self.new = True
-            self.delete.setEnabled(False) 
-            self._set_default_approx(None) 
+            self._set_new_edit(True)             
+            
+    def _set_new_edit(self, new):
+        """Set or unset new surface editing"""
+        if self.new==new:
+            return
+        self.delete.setEnabled(not new)
+        self.add_surface.setEnabled(not new)
+        if new:
+            self.zs = None
+            self.zs_id = None
+            self.quad = None
+            self.grid_file_name.setText("")
+            self._set_default_approx(None)            
+            self.apply.setText("Add Surface")            
+            self.grid_file_refresh_button.setEnabled(False)
+            self.surface.setCurrentIndex(-1)
+        else:            
+            self.apply.setText("Apply")            
+        self.new = new
             
     def get_curr_mash(self):
         """Return quad, u, v for mash constraction"""
         u, v = self.get_uv()
-        return self.quad, u, v
-        
+        return self.quad, u, v        
             
     def get_surface_id(self):
         return self.surface.currentIndex()
@@ -206,14 +226,15 @@ class Surfaces(QtWidgets.QWidget):
             self.surface.addItem( label,  i)
         if id is None or len(surfaces.surfaces)>=id:
             if len(surfaces.surfaces)>0:
-                self.surface.setCurrentIndex(0)
+                self._set_new_edit(False)
             else:
-                self.new = True
+                self._set_new_edit(True)
         else:
-            self.surface.setCurrentIndex(id)
+            self._set_new_edit(False)
     
     def _apply(self):
         """Save changes to file and compute new depth and error"""
+        # TODO: chatch and highlite duplicit item error 
         surfaces = cfg.layers.surfaces
         
         file = self.grid_file_name.text()
@@ -229,15 +250,15 @@ class Surfaces(QtWidgets.QWidget):
             self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
             self.surface.setCurrentIndex(len(surfaces.surfaces)-1)
-            self.new = False            
+            self._set_new_edit(False)           
         else:
             surface = surfaces.surfaces[self.surface.currentData()]
             surface.grid_file = self.grid_file_name.text()
-            surface.name = self.name.text()    
+            if surface.name!=self.name.text():
+                surface.name = self.name.text()    
+                self.surface.setItemText(self.surface.currentIndex(), surface.name)
             surface.xy_transform = self._get_transform()
             surface.quad = self.quad
-        
-        self.showMash.emit()
         self.refreshArrea.emit()
        
     def _delete(self):
@@ -264,12 +285,18 @@ class Surfaces(QtWidgets.QWidget):
         self.showMash.emit()
         
     def get_uv(self):
+        """Check and return uv"""
+        # TODO: highlite error 
         try:
             u = int(self.u_approx.text())
+            if u<10:
+                u = 10
         except:
             u = 10
         try:
             v = int(self.v_approx.text())
+            if v<10:
+                v = 10
         except:
             v = 10
         return u, v
@@ -279,6 +306,11 @@ class Surfaces(QtWidgets.QWidget):
         if self.zs is None:
             return
         u, v = self.get_uv()
+        if u!=self.last_u or v!=self.last_v:
+            self.last_u = u
+            self.last_v = v
+        else:
+            return
         file = self.grid_file_name.text()
         approx = ba.SurfaceApprox.approx_from_file(file) 
         self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
@@ -292,11 +324,10 @@ class Surfaces(QtWidgets.QWidget):
         """Surface in combo box was changed"""
         id = self.surface.currentIndex()
         if id == -1:
-            self.delete.setEnabled(False) 
-            return
+            return        
         if self.zs_id==id:
             return
-        self.delete.setEnabled(True) 
+        self._set_new_edit(True)
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
@@ -311,6 +342,8 @@ class Surfaces(QtWidgets.QWidget):
         v = surfaces[id].approximation.v_basis.n_intervals
         self.u_approx.setText(str(u))
         self.v_approx.setText(str(v))
+        self.last_u = u
+        self.last_v = v  
         self.depth.setText("")
         self.error.setText("")
         self.d_message.setText("")
@@ -357,8 +390,7 @@ class Surfaces(QtWidgets.QWidget):
     
     def _add_surface(self):
         """New surface is added"""
-        self._set_default_approx(None) 
-        self.surface.setCurrentIndex(-1)
+        self._set_new_edit(True)       
         
     def _refresh_grid_file(self):
         """Reload grid file"""        
@@ -403,6 +435,10 @@ class Surfaces(QtWidgets.QWidget):
         self.error.setText("") 
         self.d_message.setText("")
         self.d_message.setVisible(False)
+        self.last_u = 10
+        self.last_v = 10
+        self.u_approx.setText("10")
+        self.v_approx.setText("10")        
         
         if file is None or len(file)==0 or file.isspace():
             self._enable_approx(False)
@@ -427,7 +463,9 @@ class Surfaces(QtWidgets.QWidget):
                 approx = ba.SurfaceApprox.approx_from_file(file)                
                 nuv = approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
-                self.v_approx.setText(str(nuv[1]))                
+                self.v_approx.setText(str(nuv[1]))   
+                self.last_u = nuv[0]
+                self.last_v = nuv[1]            
                 self.zs = approx.compute_approximation()                
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )

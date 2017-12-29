@@ -22,14 +22,17 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         self.v = v
         self.setZValue(self.STANDART_ZVALUE)
         
-    def set_quad(self, quad):
+    def set_quad(self, quad, u, v):
         """Set quad"""
         self.quad = quad
         polygon = QtGui.QPolygonF()
         for point in quad:
             polygon.append(QtCore.QPointF(point[0], -point[1]))
         polygon.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
+        self.u = u
+        self.v = v
         self.setPolygon(polygon)
+        self.update()
         
         
     def paint(self, painter, option, widget):
@@ -47,11 +50,11 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         painter.setPen(bold_pen)
         painter.drawLine(QtCore.QLineF(self.quad[0][0], -self.quad[0][1], 
             self.quad[1][0], -self.quad[1][1]))
-        painter.drawLine(QtCore.QLineF(self.quad[0][0], -self.quad[0][1], 
-            self.quad[-1][0], -self.quad[-1][1]))    
+        painter.drawLine(QtCore.QLineF(self.quad[1][0], -self.quad[1][1], 
+            self.quad[2][0], -self.quad[2][1]))    
         painter.setPen(dash_pen)
         for i in range(1, self.u+1):
-            for j in range(1, self.v+1):
+            for j in range(0, self.v):
                 painter.drawLine(self._make_point(self.quad[0],self.quad[-1], i, self.u),
                     self._make_point(self.quad[1],self.quad[2], i, self.u))
                 painter.drawLine(self._make_point(self.quad[0],self.quad[1], j, self.v),

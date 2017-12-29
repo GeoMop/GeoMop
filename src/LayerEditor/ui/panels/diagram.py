@@ -121,7 +121,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             self.mash.u = u
             self.mash.v = v
-            self.mash.set_quad(quad)
+            self.mash.set_quad(quad, u, v)
         
     def hide_mash(self):
         """hide mash"""
