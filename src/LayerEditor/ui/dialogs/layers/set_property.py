@@ -34,7 +34,7 @@ class SetNameDlg(QtWidgets.QDialog):
 
 class SetSurfaceDlg(QtWidgets.QDialog):
 
-    def __init__(self, iterface,  parent=None, min=None, max=None):
+    def __init__(self, interface,  parent=None, min=None, max=None):
         super(SetSurfaceDlg, self).__init__(parent)
         self.setWindowTitle("Set Surface")
 
@@ -42,7 +42,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         
         d_surface = QtWidgets.QLabel("Set Interface Surface:", self)
         grid.addWidget(d_surface, 0, 0)
-        i = LayersHelpers.add_surface_to_grid(self, grid, 1, surface)
+        i = LayersHelpers.add_surface_to_grid(self, grid, 1, interface)
         
         self.validator = QtGui.QDoubleValidator()
         

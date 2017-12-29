@@ -83,6 +83,8 @@ class Regions(QtWidgets.QToolBox):
         self.boundary_label = {}
         self.notused = {}
         self.notused_label = {}
+        self.mesh_step_label = {}
+        self.mesh_step = {}
         self.layers_id = []
         data.current_regions = {}
         for layer_id in self.layers:
@@ -187,12 +189,31 @@ class Regions(QtWidgets.QToolBox):
         self.notused[layer_id].stateChanged.connect(pom_lamda(layer_id)) 
         grid.addWidget(self.notused_label[layer_id], 5, 0)
         grid.addWidget(self.notused[layer_id], 5, 1)
-        
+
+        # mesh step
+        action = lambda l_id: lambda: self._mesh_step_set(l_id)
+        mesh_step_label = QtWidgets.QLabel("Mesh step:", self)
+        mesh_step_edit = QtWidgets.QLineEdit()
+        mesh_step_edit.setMinimumWidth(80)
+        mesh_step_edit.setMaximumWidth(80)
+
+        mesh_step_edit.setText(str(region.mesh_step))
+        validator = QtGui.QDoubleValidator()
+        validator.setRange(0.0, 1e+7, 7)     # assuming unit in meters and dimesion fo the whole earth :-)
+        mesh_step_edit.setValidator(validator)
+        mesh_step_edit.editingFinished.connect(action(layer_id))
+        self.mesh_step_label[layer_id] = mesh_step_label
+        self.mesh_step[layer_id] = mesh_step_edit
+        grid.addWidget(mesh_step_label, 6, 0)
+        grid.addWidget(mesh_step_edit, 6, 1)
+
+
+
         self._set_visibility(layer_id, region.dim!=RegionDim.none)
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         sp2 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 6, 0)
-        grid.addItem(sp2, 6, 1)
+        grid.addItem(sp1, 7, 0)
+        grid.addItem(sp2, 7, 1)
         
         widget = QtWidgets.QWidget(self)        
         widget.setLayout(grid)
@@ -210,7 +231,9 @@ class Regions(QtWidgets.QToolBox):
         self.boundary[layer_id].setVisible(visible)
         self.notused_label[layer_id].setVisible(visible)
         self.notused[layer_id].setVisible(visible)
-        
+        self.mesh_step_label[layer_id].setVisible(visible)
+        self.mesh_step[layer_id].setVisible(visible)
+
     def _update_layer_controls(self, region, layer_id):
         """Update set region data in layers controls"""
         data = cfg.diagram.regions                
@@ -232,6 +255,7 @@ class Regions(QtWidgets.QToolBox):
         self.color_button[layer_id].setIcon(icon)
         self.boundary[layer_id].setChecked(region.boundary) 
         self.notused[layer_id].setChecked(region.not_used)
+        self.mesh_step[layer_id].setText(str(region.mesh_step))
         self.update_region_data = False
         self._set_visibility(layer_id, region.dim!=RegionDim.none)
         
@@ -354,7 +378,17 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         data.set_region_boundary(region_id, self.boundary[layer_id].isChecked(), 
             True, "Set region boundary")
-        
+
+    def _mesh_step_set(self, layer_id):
+        if self.update_region_data:
+            return
+        step_value = float(self.mesh_step[layer_id].text())
+        data = cfg.diagram.regions
+        region_id = self.regions[layer_id].currentData()
+        data.set_region_mesh_step(region_id, step_value,
+            True, "Set region mesh step")
+
+
     def _layer_changed(self):
         """Next layer tab is selected"""
         if self.removing_items:

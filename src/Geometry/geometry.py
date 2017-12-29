@@ -8,6 +8,14 @@ TODO:
 - implement intersection in interface_finish_init
 - tests
 
+Heterogeneous mesh step:
+
+- storing mesh step from regions into shape info objects
+- ( brep created )
+-
+- add include
+
+
 """
 
 
@@ -987,6 +995,10 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
+        # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
+        # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
+
+
         # debug listing
         #xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
         #xx.sort(key=lambda x: x[0])
@@ -1030,6 +1042,16 @@ class LayerGeometry(gs.LayerGeometry):
 
 
     def call_gmsh(self, mesh_step):
+        """
+
+        :param mesh_step:
+        :return:
+
+         TODO:
+         - replace Merge by shapefromfile
+         - replace global mesh step field by array of char lenght:
+         Characteristic Length {ID} = step;
+        """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"
@@ -1043,7 +1065,8 @@ class LayerGeometry(gs.LayerGeometry):
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
-        call([gmsh_path, "-3", self.geo_file])
+        #call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
+        call([gmsh_path, "-3",  self.geo_file])
 
 
 
@@ -1195,15 +1218,11 @@ def construct_derived_geometry(gs_obj):
     return geo_obj
 
 
-if __name__ == "__main__":
-    import argparse
+def make_geometry(**kwargs):
+    layers_file = kwargs.get("layers_file", None)
+    mesh_step = kwargs.get("mesh_step", 0.0)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('layers_file', help="Input Layers file (JSON).")
-    parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
-    args = parser.parse_args()
-
-    layers_file = args.layers_file
+    layers_file = layers_file
     filename_base = os.path.splitext(layers_file)[0]
     gs_lg = gs.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
@@ -1215,6 +1234,17 @@ if __name__ == "__main__":
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-    lg.call_gmsh(args.mesh_step)
+    lg.call_gmsh(mesh_step)
     lg.modify_mesh()
 
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('layers_file', help="Input Layers file (JSON).")
+    parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
+    args = parser.parse_args()
+
+    make_geometry(layers_file=args.layers_file, mesh_step=args.mesh_step)

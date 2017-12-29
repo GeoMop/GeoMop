@@ -195,8 +195,8 @@ class LESerializer():
 
         for input_id, node in enumerate(nodes):
             x, y = node
-            node_id = diagram.add_point_id(x, -y)
-            assert node_id == input_id
+            node_id = diagram.add_point_id(x, -y, input_id)
+            assert node_id>=input_id
 
         decomp = polygons_io.deserialize(nodes, topology)
         diagram.import_decomposition(decomp)

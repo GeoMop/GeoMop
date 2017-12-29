@@ -43,20 +43,20 @@ class PolygonOperation():
             self.rest_polygon_id = None
         else:
             polygon_id = self._find_in_polygon(diagram, point)
-        self.decomposition.add_free_point(diagram.points.index(point), (point.x, -point.y), polygon_id)        
+        self.decomposition.add_free_point(point.id, (point.x, -point.y), polygon_id)        
 
     def move_points(self, diagram, points):
         """move set point in decomposition, return if all moving is possible"""
         ret = True
         if len(points)<1:
             return True
-        p0 =  self.decomposition.points[diagram.points.index(points[0])]
+        p0 =  self.decomposition.points[points[0].de_id]
         dx = points[0].x-p0.xy[0]
         dy = -points[0].y-p0.xy[1]
         displacement = np.array([dx, dy])
         spoints = []
         for point in points:
-            spoints.append(self.decomposition.points[diagram.points.index(point)])
+            spoints.append(self.decomposition.points[point.de_id])
         new_displ = self.decomposition.check_displacment(spoints, displacement, 0.01)
         if new_displ[0]!=displacement[0] or new_displ[1]!=displacement[1]:
             ret = False
@@ -75,22 +75,22 @@ class PolygonOperation():
 
     def remove_point(self, diagram, point):
         """remove set point from decomposition"""
-        self.decomposition.remove_free_point(diagram.points.index(point))
+        self.decomposition.remove_free_point(point.de_id)
         
     def add_line(self, diagram, line, label=None, not_history=True):
         """Add new point to decomposition"""
         if self.tmp_line is not None:
             segment = self.decomposition.new_segment(
-                self.decomposition.points[diagram.points.index(self.tmp_line.p1)], 
-                self.decomposition.points[diagram.points.index(self.tmp_line.p2)])
+                self.decomposition.points[self.tmp_line.p1.de_id], 
+                self.decomposition.points[self.tmp_line.p2.de_id])
             self.tmp_line.segment = segment 
             res = self.decomposition.get_last_polygon_changes()
             if res[0]!=PolygonChange.shape and res[0]!=PolygonChange.none:
                 raise Exception("Invalid polygon change during split line.")  
             self.tmp_line = None
         segment = self.decomposition.new_segment(
-            self.decomposition.points[diagram.points.index(line.p1)], 
-            self.decomposition.points[diagram.points.index(line.p2)])
+            self.decomposition.points[line.p1.de_id], 
+            self.decomposition.points[line.p2.de_id])
         line.segment = segment 
         res = self.decomposition.get_last_polygon_changes()
         if res[0]==PolygonChange.shape:
@@ -234,13 +234,20 @@ class PolygonOperation():
         if spolygon is None:
             return
         polygon = self.decomposition.polygons[polygon_id]
+
+        # Temorary fix.
+        # TODO: Do not call _reload_depth
+        if spolygon is None:
+            return
+
         spolygon.depth = polygon.depth()
         if spolygon.object is not None:
             spolygon.object.update_depth()
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
-            if children!=polygon_id:
-                self._reload_depth(diagram, children)
+            spolygon = self._get_spolygon(diagram, children)
+            polygon = self.decomposition.polygons[children]
+            spolygon.depth = polygon.depth()
         
     def _get_lines_and_qtpoly(self, diagram, polygon):
         """Return lines and qt polygon"""

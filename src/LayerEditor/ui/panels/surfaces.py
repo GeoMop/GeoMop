@@ -190,8 +190,7 @@ class Surfaces(QtWidgets.QWidget):
             
     def get_curr_mash(self):
         """Return quad, u, v for mash constraction"""
-        u = int(self.u_approx.text())
-        v = int(self.v_approx.text())
+        u, v = self.get_uv()
         return self.quad, u, v
         
             
@@ -264,12 +263,22 @@ class Surfaces(QtWidgets.QWidget):
         self.depth.setText(str(center[2]))
         self.showMash.emit()
         
+    def get_uv(self):
+        try:
+            u = int(self.u_approx.text())
+        except:
+            u = 10
+        try:
+            v = int(self.v_approx.text())
+        except:
+            v = 10
+        return u, v
+        
     def _refresh_mash(self, new_str):
         """Mash parameters is changet"""
         if self.zs is None:
             return
-        u = int(self.u_approx.text())
-        v = int(self.v_approx.text())
+        u, v = self.get_uv()
         file = self.grid_file_name.text()
         approx = ba.SurfaceApprox.approx_from_file(file) 
         self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
