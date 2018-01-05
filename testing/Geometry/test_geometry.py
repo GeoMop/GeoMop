@@ -16,13 +16,19 @@ import os.path
 #     if str.startswith(prefix):
 #         return str[len(prefix):]
 #     return str
+
+geometry_src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "src/Geometry")
+sys.path.append(geometry_src)
+
 import geometry
+
 
 def check_file(filename):
     file_path = list(os.path.split(filename))
     file_path.insert(-1, 'ref')
     ref_file = os.path.join(*file_path)
     return filecmp.cmp(filename, ref_file)
+
 
 def run_geometry(in_file, mesh_step=0.0):
     full_in_file = os.path.join('test_data', in_file)
@@ -34,8 +40,6 @@ def run_geometry(in_file, mesh_step=0.0):
 
     msh_file = filename_base + '.msh'
     assert check_file(msh_file)
-
-
 
 
 def test_geometry_script():
