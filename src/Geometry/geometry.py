@@ -914,7 +914,7 @@ class LayerGeometry(gs.LayerGeometry):
         """
         Algorithm for creating geometry from Layers:
 
-        3d_region = CompoundSolid of Soligs from extruded polygons
+        3d_region = CompoundSolid of Solids from extruded polygons
         2d_region, .3d_region = Shell of:
             - Faces from extruded segments (vertical 2d region)
             - Faces from polygons (horizontal 2d region)
@@ -1040,25 +1040,31 @@ class LayerGeometry(gs.LayerGeometry):
         return mesh_step
 
 
-    def call_gmsh(self, mesh_step):
+    def call_gmsh(self):
         """
-
-        :param mesh_step:
         :return:
 
          TODO:
-         - replace Merge by shapefromfile
-         - replace global mesh step field by array of char lenght:
-         Characteristic Length {ID} = step;
+         - create self.char_len_file, form: "element_index[int]\tMesh_step[float]\n", i.e. propagation from le
+         - TEST
+         + replace global mesh step field by array of char lengths:
+         + Characteristic Length {ID} = step;
         """
-        if mesh_step == 0.0:
-            mesh_step = self.mesh_step_estimate()
+
         self.geo_file = self.filename_base + ".tmp.geo"
         with open(self.geo_file, "w") as f:
-            print('Merge "%s";\n'%(self.brep_file), file=f)
-            print('Field[1] = MathEval;\n', file=f)
-            print('Field[1].F = "%f";\n'%(mesh_step), file=f)
-            print('Background Field = 1;\n', file=f)
+            print(r'SetFactory("OpenCASCADE");', file=f)
+            print(r'Mesh.Algorithm = 6;', file=f)
+            print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
+            print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
+            print(r'ShapeFromFile("%s")' % brep_file, file=f)
+
+            with open(self.char_len_file, "r") as fchar:
+                for line in fchar:
+                    line = line.split()
+                    if line[1] == 0.0:
+                        line[1] = self.mesh_step_estimate()
+                    print(r'Characteristic Length {%s} = %s' % (line[0], line[1]), file=f)
 
         from subprocess import call
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
