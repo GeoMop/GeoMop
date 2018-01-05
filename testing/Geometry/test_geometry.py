@@ -17,8 +17,8 @@ import os.path
 #         return str[len(prefix):]
 #     return str
 
-geometry_src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "src/Geometry")
-sys.path.append(geometry_src)
+#geometry_src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "src/Geometry")
+#sys.path.append(geometry_src)
 
 import geometry
 
@@ -49,3 +49,4 @@ def test_geometry_script():
     run_geometry('04_flat_fracture.json')
     run_geometry('05_split_square.json', 10)
     run_geometry('06_bump_split.json', 10)
+    #run_geometry('10_var_step_1.json')

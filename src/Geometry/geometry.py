@@ -1037,7 +1037,7 @@ class LayerGeometry(gs.LayerGeometry):
             mesh_step = vtx_si.shape._mesh_step
             if mesh_step == np.inf:
                 mesh_step = global_mesh_step
-            self.vtx_char_length.append( (gmsh_shp_id+1. mesh_step) )
+            self.vtx_char_length.append( (gmsh_shp_id+1, mesh_step) )
 
 
 
