@@ -1002,9 +1002,43 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
-        # TODO, mesh step
-        # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
-        # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
+        # TODO: introduce shape_id to shape info dict and get rid of storing aux. data into BW shapes.
+
+        # Propagate mesh_step from free_shapes to vertices via DFS
+        # use global mesh step if the local mesh_step is zero.
+        self.compute_bounding_box()
+        global_mesh_step = self.mesh_step_estimate()
+
+        # initialize auxiliary vtx mesh_step to 0.0
+        for vi in shape_by_dim[0]:
+            vi.shape._mesh_step = np.inf
+        for shp in self.all_shapes:
+            shp.shape._visited = -1
+
+
+        for i_free, shp in enumerate(self.free_shapes):
+            mesh_step = self.regions[shp.i_reg].mesh_step
+            if mesh_step <= 0.0:
+                mesh_step = global_mesh_step
+
+            # DFS
+            stack = [shp.shape]
+            while stack:
+                shp = stack.pop(-1)
+                if shp is bw.Vertex:
+                    shp._mesh_step = min(shp._mesh_step, mesh_step)
+                for sub in shp.subshapes():
+                    if sub._visited < i_free:
+                        sub._visited = i_free
+                        stack.append(sub)
+
+        self.vtx_char_length=[]
+        for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
+            mesh_step = vtx_si.shape._mesh_step
+            if mesh_step == np.inf:
+                mesh_step = global_mesh_step
+            self.vtx_char_length.append( (gmsh_shp_id+1. mesh_step) )
+
 
 
         # debug listing
@@ -1066,14 +1100,10 @@ class LayerGeometry(gs.LayerGeometry):
             print(r'Mesh.Algorithm = 6;', file=f)
             print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
             print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
-            print(r'ShapeFromFile("%s")' % brep_file, file=f)
+            print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
-            with open(self.char_len_file, "r") as fchar:
-                for line in fchar:
-                    line = line.split()
-                    if line[1] == 0.0:
-                        line[1] = self.mesh_step_estimate()
-                    print(r'Characteristic Length {%s} = %s' % (line[0], line[1]), file=f)
+            for id, char_length in self.vtx_char_length:
+                print(r'Characteristic Length {%s} = %s' % (id, char_length), file=f)
 
         from subprocess import call
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
