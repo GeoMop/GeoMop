@@ -646,6 +646,12 @@ class Diagram():
             self._rect.height()+2*margin)
             
     @property
+    def area_rect(self):
+        dx= (abs(self.area.xmax-self.area.xmin)+abs(self.area.ymax-self.area.ymin))/100
+        return QtCore.QRectF(self.area.xmin-dx, self.area.ymin-dx, 
+            self.area.xmax-self.area.xmin+2*dx, self.area.ymax-self.area.ymin+2*dx)
+            
+    @property
     def zoom(self):
         """Get static zoom variable"""
         return self.zooming.zoom 

@@ -42,6 +42,7 @@ class EditMenu(QMenu):
         self.addAction(self._delete_action)
         
         self._deselect_action = QAction('Deselect &All', self)
+        self._deselect_action.setShortcut(cfg.get_shortcut('deselect_all').key_sequence)
         self._deselect_action.setStatusTip('Deselect selected items')
         self._deselect_action.triggered.connect(self._deselect)
         self.addAction(self._deselect_action)
@@ -51,6 +52,26 @@ class EditMenu(QMenu):
         self._select_action.setStatusTip('Select all items')
         self._select_action.triggered.connect(self._select)
         self.addAction(self._select_action)
+        
+        self.addSeparator()
+
+        self._display_all_action = QAction('Dis&play All', self)
+        self._display_all_action.setShortcut(cfg.get_shortcut('display_all').key_sequence)
+        self._display_all_action.setStatusTip('Display all shapes')
+        self._display_all_action.triggered.connect(self._display_all)
+        self.addAction(self._display_all_action)
+        
+        self._display_area_action = QAction('Display A&rea', self)
+        self._display_area_action.setShortcut(cfg.get_shortcut('display_area').key_sequence)
+        self._display_area_action.setStatusTip('Display area shapes')
+        self._display_area_action.triggered.connect(self._display_area)
+        self.addAction(self._display_area_action)
+        
+        self._display_action = QAction('Displa&y ...', self)
+        self._display_action.setShortcut(cfg.get_shortcut('display').key_sequence)
+        self._display_action.setStatusTip('Display set area')
+        self._display_action.triggered.connect(self._display)
+        self.addAction(self._display_action)
         
     def _undo(self):
         """Revert last diagram operation"""
@@ -134,3 +155,15 @@ class EditMenu(QMenu):
         state = self._init_area_action.isChecked()
         cfg.config.show_init_area = state
         self._diagram.show_init_area(state)
+        
+    def _display_all(self):
+        """Display all shapes"""
+        self._diagram.display_all()
+        
+    def _display_area(self):
+        """Display initialization area"""
+        self._diagram.display_all()
+        
+    def _display(self):
+        """Display set area"""
+        pass

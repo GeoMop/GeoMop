@@ -202,8 +202,17 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def display_all(self):
         """Display all diagram"""
-        view_rect = self.diagramView.rect()
         rect = cfg.diagram.rect
+        self.display_rect(rect)
+        
+    def display_area(self):
+        """Display area"""
+        rect = cfg.diagram.area_rect
+        self.display_rect(rect)    
+            
+    def display_rect(self, rect):
+        """Display set rect"""
+        view_rect = self.diagramView.rect()
         if (view_rect.width()/rect.width())>(view_rect.height()/rect.height()):
             # resize acoording height
             cfg.diagram.zoom = view_rect.height()/rect.height()

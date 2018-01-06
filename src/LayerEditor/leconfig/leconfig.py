@@ -432,8 +432,8 @@ class LEConfig:
         shortcut = None
         if name in shortcuts_definition.SYSTEM_SHORTCUTS:
             shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
-        elif name in cls.config.shortcuts:
-            shortcut = cls.config.shortcuts[name]
+        elif name in shortcuts_definition.DEFAULT_USER_SHORTCUTS:
+            shortcut = shortcuts_definition.DEFAULT_USER_SHORTCUTS[name]
         if shortcut:
             return shortcuts.get_shortcut(shortcut)
         return None

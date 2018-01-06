@@ -46,12 +46,11 @@ class LayersHelpers():
         """Return surface"""
         try:
             interface.depth = float(dialog.depth.text())
-            if (dialog.grid.isChecked()):
-                interface.transform_z = (float(dialog.zscale.text()), 
+            interface.transform_z = (float(dialog.zscale.text()), 
                     float(dialog.zshift.text()))
+            if (dialog.grid.isChecked()):                
                 interface.surface_id = dialog.surface.currentIndex()
             else:
-                interface.transform_z = None
                 interface.surface_id = None
                 
         except:
@@ -72,6 +71,7 @@ class LayersHelpers():
             if dialog.grid.isChecked():
                 _change_surface()
             
+        dialog.zs = None
         dialog.zcoo = QtWidgets.QRadioButton("Z-Coordinate:")
         dialog.zcoo.clicked.connect(_enable_controls)
         d_depth = QtWidgets.QLabel("Depth:", dialog)
@@ -104,9 +104,7 @@ class LayersHelpers():
         for i in range(0, len(surfaces)):            
             label = surfaces[i].name 
             dialog.surface.addItem( label,  i) 
-        dialog.surface.currentIndexChanged.connect(_change_surface)
-        if interface is not None and interface.surface_id is not None:
-            dialog.self.surface.setCurrentIndex(interface.surface_id)
+        dialog.surface.currentIndexChanged.connect(_change_surface)        
 
         grid.addWidget(dialog.grid, row+1, 0)
         grid.addWidget(d_surface, row+1, 1)
@@ -120,6 +118,8 @@ class LayersHelpers():
         
         def _compute_depth():
             """Compute depth for grid file"""
+            if dialog.zs is None:
+                return
             z1 = float(dialog.zscale.text())
             z2 = float(dialog.zshift.text())
             dialog.zs.transform(None, np.array([z1, z2], dtype=float))
@@ -130,9 +130,12 @@ class LayersHelpers():
         dialog.zshift = QtWidgets.QLineEdit()
         dialog.zshift.setValidator(QtGui.QDoubleValidator())
         dialog.zshift.setText("0.0")
-        dialog.zshift.textChanged.connect(_compute_depth)        
+        dialog.zshift.textChanged.connect(_compute_depth)
+
+        if interface is not None and interface.surface_id is not None:
+            dialog.surface.setCurrentIndex(interface.surface_id)        
         
-        if interface is not None:
+        if interface is not None and interface.transform_z:
             dialog.zscale.setText(str(interface.transform_z[0]))
             dialog.zshift.setText(str(interface.transform_z[1]))
         

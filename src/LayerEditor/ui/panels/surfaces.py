@@ -61,7 +61,7 @@ class Surfaces(QtWidgets.QWidget):
         for i in range(0, len(surfaces.surfaces)):            
             label = surfaces.surfaces[i].name 
             self.surface.addItem( label,  i) 
-        self.surface.currentIndexChanged.connect(self._serface_set)
+        self.surface.currentIndexChanged.connect(self._surface_set)
         self.add_surface = QtWidgets.QPushButton("Add Surface")
         self.add_surface.clicked.connect(self._add_surface)  
         self.delete = QtWidgets.QPushButton("Delete Surface")
@@ -70,8 +70,7 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(d_surface, 0, 0)
         grid.addWidget(self.surface, 0, 1, 1, 2)
         grid.addWidget(self.delete, 1, 2)
-        grid.addWidget(self.add_surface, 1, 0)
-        
+        grid.addWidget(self.add_surface, 1, 0)        
         
         # sepparator
         line = QtWidgets.QFrame()
@@ -175,13 +174,25 @@ class Surfaces(QtWidgets.QWidget):
         
         grid.addWidget(self.d_error, 16, 0)
         grid.addWidget(self.error, 16, 1, 1, 2) 
-      
+        
+        self.d_origin_x = QtWidgets.QLabel("Origin x:", self)        
+        self.origin_x = QtWidgets.QLineEdit()
+        self.origin_x.setReadOnly(True)
+        self.d_origin_y = QtWidgets.QLabel("Origin y:", self)        
+        self.origin_y = QtWidgets.QLineEdit()
+        self.origin_y.setReadOnly(True)
+        
+        grid.addWidget(self.d_origin_x, 17, 0)
+        grid.addWidget(self.origin_x, 17, 1, 1, 2) 
+        grid.addWidget(self.d_origin_y, 18, 0)
+        grid.addWidget(self.origin_y, 18, 1, 1, 2) 
+        
         self.d_message = QtWidgets.QLabel("", self)
         self.d_message.setVisible(False)
-        grid.addWidget(self.d_message, 17, 0, 1, 3)
+        grid.addWidget(self.d_message, 19, 0, 1, 3)
  
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 18, 0, 1, 3)
+        grid.addItem(sp1, 20, 0, 1, 3)
         
         self.setLayout(grid)
         
@@ -198,7 +209,7 @@ class Surfaces(QtWidgets.QWidget):
         self.add_surface.setEnabled(not new)
         if new:
             self.zs = None
-            self.zs_id = None
+            self.zs_id = -1
             self.quad = None
             self.grid_file_name.setText("")
             self._set_default_approx(None)            
@@ -241,6 +252,8 @@ class Surfaces(QtWidgets.QWidget):
         
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
+        self.origin_x.setText(str(self.quad[1][0]))
+        self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
         self.depth.setText(str(center[2]))
         
@@ -280,6 +293,8 @@ class Surfaces(QtWidgets.QWidget):
         self.zs.reset_transform()
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
+        self.origin_x.setText(str(self.quad[1][0]))
+        self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
         self.depth.setText(str(center[2]))
         self.showMash.emit()
@@ -316,18 +331,20 @@ class Surfaces(QtWidgets.QWidget):
         self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
+        self.origin_x.setText(str(self.quad[1][0]))
+        self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
         self.depth.setText(str(center[2]))
         self.showMash.emit()
         
-    def _serface_set(self):
+    def _surface_set(self):
         """Surface in combo box was changed"""
         id = self.surface.currentIndex()
         if id == -1:
             return        
         if self.zs_id==id:
             return
-        self._set_new_edit(True)
+        self._set_new_edit(False)
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
@@ -346,6 +363,8 @@ class Surfaces(QtWidgets.QWidget):
         self.last_v = v  
         self.depth.setText("")
         self.error.setText("")
+        self.origin_x.setText("")
+        self.origin_y.setText("")
         self.d_message.setText("")
         self.d_message.setVisible(False)
         
@@ -373,11 +392,13 @@ class Surfaces(QtWidgets.QWidget):
                 self.zs = zs
                 self.zs_id = id
                 if approx.error is not None:
-                    self.error.setText(str(approx.error) )
+                    self.error.setText(str(approx.error))                
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))
+                self.depth.setText(str(center[2]))            
             # TODO: check focus
             self.showMash.emit()
+        self.origin_x.setText(str(self.quad[1][0]))
+        self.origin_y.setText(str(self.quad[1][1]))
             
     def cmp_quad(self, q1, q2):
         """Compare two quad"""
@@ -405,6 +426,8 @@ class Surfaces(QtWidgets.QWidget):
             center = self.zs.center()
             self.depth.setText(str(center[2]))
             self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
+            self.origin_x.setText(str(self.quad[1][0]))
+            self.origin_y.setText(str(self.quad[1][1]))
             self.showMash.emit()
         
     def _add_grid_file(self):
@@ -433,6 +456,8 @@ class Surfaces(QtWidgets.QWidget):
         self.xyshift2.setText("0.0")
         self.depth.setText("")
         self.error.setText("") 
+        self.origin_x.setText("")
+        self.origin_y.setText("")
         self.d_message.setText("")
         self.d_message.setVisible(False)
         self.last_u = 10
@@ -472,6 +497,8 @@ class Surfaces(QtWidgets.QWidget):
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))
                 self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
+                self.origin_x.setText(str(self.quad[1][0]))
+                self.origin_y.setText(str(self.quad[1][1]))
                 self.showMash.emit()
             
     def _name_exist(self, name):
