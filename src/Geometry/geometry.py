@@ -281,8 +281,8 @@ class Surface(gs.Surface):
         uv_points = self.approx_surf.xy_to_uv(xy_points)
         curve_uv = bs_approx.line( uv_points )
         start, end = self.approx_surf.eval_array(curve_uv.eval_array(np.array([0, 1])))
-        check_point_tol( start, axyz, 1e-3)
-        check_point_tol( end, bxyz, 1e-3)
+        check_point_tol( start, axyz, 1e-10)
+        check_point_tol( end, bxyz, 1e-10)
         edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
 
         # vertical curve
@@ -295,6 +295,8 @@ class Surface(gs.Surface):
         poles_t = curve_xyz.poles[:, axis].copy()
         poles_t -= axyz[axis]
         poles_t /= (bxyz[axis] - axyz[axis])
+        poles_t = np.maximum(poles_t, 0.0)
+        poles_t = np.minimum(poles_t, 1.0)
         poles_tz = np.stack( (poles_t, poles_z), axis=1 )
         # overhang = 0.1
         # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
@@ -977,9 +979,9 @@ class LayerGeometry(gs.LayerGeometry):
         self.free_shapes = [ shp_info for shp_info in self.all_shapes if shp_info.free ]
         # sort down from solids to vertices
         self.free_shapes.sort(key=lambda shp: shp.dim(), reverse=True)
-        self.free_shapes = [shp_info.shape for shp_info in self.free_shapes]
+        free_shapes = [shp_info.shape for shp_info in self.free_shapes]
 
-        compound = bw.Compound(self.free_shapes)
+        compound = bw.Compound(free_shapes)
         compound.set_free_shapes()
         self.brep_file = os.path.abspath(self.filename_base + ".brep")
         with open(self.brep_file, 'w') as f:
@@ -1025,9 +1027,11 @@ class LayerGeometry(gs.LayerGeometry):
             stack = [shp.shape]
             while stack:
                 shp = stack.pop(-1)
-                if shp is bw.Vertex:
+                if isinstance(shp, bw.Vertex):
                     shp._mesh_step = min(shp._mesh_step, mesh_step)
                 for sub in shp.subshapes():
+                    if not hasattr(sub, '_visited'):
+                        sub._visited = -1
                     if sub._visited < i_free:
                         sub._visited = i_free
                         stack.append(sub)
@@ -1077,6 +1081,8 @@ class LayerGeometry(gs.LayerGeometry):
 
 
     def mesh_step_estimate(self):
+        if self.global_mesh_step != 0.0:
+            return self.global_mesh_step
         char_length = np.max(self.aabb[1] - self.aabb[0])
         mesh_step = char_length / 20
         print("Char length: {} mesh step: {}", char_length, mesh_step)
@@ -1097,13 +1103,26 @@ class LayerGeometry(gs.LayerGeometry):
         self.geo_file = self.filename_base + ".tmp.geo"
         with open(self.geo_file, "w") as f:
             print(r'SetFactory("OpenCASCADE");', file=f)
-            print(r'Mesh.Algorithm = 6;', file=f)
-            print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
-            print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
+            #print(r'Mesh.Algorithm = 2;', file=f)
+            """
+            TODO: GUI interface for algorithm selection and element optimizaion.
+            Related options:
+            Mesh.Algorithm
+            2D mesh algorithm (1=MeshAdapt, 2=Automatic, 5=Delaunay, 6=Frontal, 7=BAMG, 8=DelQuad)
+
+            Mesh.Algorithm3D
+            3D mesh algorithm (1=Delaunay, 2=New Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
+            """
+            """
+            TODO: ? Meaning of char length limits. Possibly to prevent to small elements at intersection points,
+            they must be derived from min and max mesh step.
+            """
+            #print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
+            #print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
             for id, char_length in self.vtx_char_length:
-                print(r'Characteristic Length {%s} = %s' % (id, char_length), file=f)
+                print(r'Characteristic Length {%s} = %s;' % (id, char_length), file=f)
 
         from subprocess import call
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
@@ -1273,12 +1292,12 @@ def make_geometry(**kwargs):
     lg.filename_base = filename_base
 
     lg.init()   # initialize the tree with ids and references where necessary
-
+    lg.global_mesh_step = mesh_step
     lg.construct_brep_geometry()
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 
-    lg.call_gmsh(mesh_step)
+    lg.call_gmsh()
     lg.modify_mesh()
 
 

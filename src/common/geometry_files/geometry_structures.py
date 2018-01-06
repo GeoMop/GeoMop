@@ -329,7 +329,10 @@ class LayerGeometry(JsonData):
                 self.regions[0].dim = RegionDim.none
                 self.regions[0].name = "NONE"
                 self.regions[0].color = "##"
-                
+
+                for reg in self.regions:
+                    reg.mesh_step = 0.0
+
                 for layer in self.layers:
                     # add None region for outer polygon, always with index 0                
                     layer.polygon_region_ids.insert(0, 0)

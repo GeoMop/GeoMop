@@ -147,7 +147,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#ffffff",
-            "mesh_step": 1.0,
             "name": "NONE_0D",
             "not_used": true,
             "dim": -1
@@ -157,7 +156,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#000000",
-            "mesh_step": 1.0,
             "name": "NONE_1D",
             "not_used": true,
             "dim": -1
@@ -167,7 +165,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#f0f0e8",
-            "mesh_step": 1.0,
             "name": "NONE_2D",
             "not_used": true,
             "dim": 3
@@ -177,7 +174,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#ffd3d0",
-            "mesh_step": 0.01,
             "name": "top_L",
             "not_used": false,
             "dim": 3
@@ -187,7 +183,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#c8c8c8",
-            "mesh_step": 0.01,
             "name": "top_R",
             "not_used": false,
             "dim": 3
@@ -197,7 +192,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#ffd3d0",
-            "mesh_step": 0.01,
             "name": "bot_L",
             "not_used": false,
             "dim": 3
@@ -207,7 +201,6 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#c8c8c8",
-            "mesh_step": 0.01,
             "name": "bot_R",
             "not_used": false,
             "dim": 3
