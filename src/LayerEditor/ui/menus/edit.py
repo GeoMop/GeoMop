@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QMenu, QAction
+import PyQt5.QtWidgets as QtWidgets
 from ui.helpers import CurrentView
 from leconfig import cfg
+from ui.dialogs.diagram import DisplaySizeDlg
 
-class EditMenu(QMenu):
+class EditMenu(QtWidgets.QMenu):
     """Menu with file actions."""
 
     def __init__(self, parent, diagram, title='&Edit'):
@@ -12,13 +13,13 @@ class EditMenu(QMenu):
         self._diagram = diagram
         self.parent = parent
         
-        self._undo_action = QAction('&Undo', self)
+        self._undo_action = QtWidgets.QAction('&Undo', self)
         self._undo_action.setShortcut(cfg.get_shortcut('undo').key_sequence)
         self._undo_action.setStatusTip('Revert last operation')
         self._undo_action.triggered.connect(self._undo)
         self.addAction(self._undo_action)
         
-        self._redo_action = QAction('&Redo', self)
+        self._redo_action = QtWidgets.QAction('&Redo', self)
         self._redo_action.setShortcut(cfg.get_shortcut('redo').key_sequence)
         self._redo_action.setStatusTip('Put last reverted operation back')
         self._redo_action.triggered.connect(self._redo)
@@ -26,7 +27,7 @@ class EditMenu(QMenu):
 
         self.addSeparator()
         
-        self._init_area_action = QAction('&Initialize Area', self)
+        self._init_area_action = QtWidgets.QAction('&Initialize Area', self)
         self._init_area_action.setCheckable(True)
         self._init_area_action.setChecked(cfg.config.show_init_area) 
         self._init_area_action.setStatusTip('Show initialization area')
@@ -35,19 +36,19 @@ class EditMenu(QMenu):
         
         self.addSeparator()
 
-        self._delete_action = QAction('&Delete', self)
+        self._delete_action = QtWidgets.QAction('&Delete', self)
         self._delete_action.setShortcut(cfg.get_shortcut('delete').key_sequence)
         self._delete_action.setStatusTip('Delete selected items')
         self._delete_action.triggered.connect(self._delete)
         self.addAction(self._delete_action)
         
-        self._deselect_action = QAction('Deselect &All', self)
+        self._deselect_action = QtWidgets.QAction('Deselect &All', self)
         self._deselect_action.setShortcut(cfg.get_shortcut('deselect_all').key_sequence)
         self._deselect_action.setStatusTip('Deselect selected items')
         self._deselect_action.triggered.connect(self._deselect)
         self.addAction(self._deselect_action)
         
-        self._select_action = QAction('&Select All', self)
+        self._select_action = QtWidgets.QAction('&Select All', self)
         self._select_action.setShortcut(cfg.get_shortcut('select_all').key_sequence)
         self._select_action.setStatusTip('Select all items')
         self._select_action.triggered.connect(self._select)
@@ -55,19 +56,19 @@ class EditMenu(QMenu):
         
         self.addSeparator()
 
-        self._display_all_action = QAction('Dis&play All', self)
+        self._display_all_action = QtWidgets.QAction('Dis&play All', self)
         self._display_all_action.setShortcut(cfg.get_shortcut('display_all').key_sequence)
         self._display_all_action.setStatusTip('Display all shapes')
         self._display_all_action.triggered.connect(self._display_all)
         self.addAction(self._display_all_action)
         
-        self._display_area_action = QAction('Display A&rea', self)
+        self._display_area_action = QtWidgets.QAction('Display A&rea', self)
         self._display_area_action.setShortcut(cfg.get_shortcut('display_area').key_sequence)
         self._display_area_action.setStatusTip('Display area shapes')
         self._display_area_action.triggered.connect(self._display_area)
         self.addAction(self._display_area_action)
         
-        self._display_action = QAction('Displa&y ...', self)
+        self._display_action = QtWidgets.QAction('Displa&y ...', self)
         self._display_action.setShortcut(cfg.get_shortcut('display').key_sequence)
         self._display_action.setStatusTip('Display set area')
         self._display_action.triggered.connect(self._display)
@@ -158,12 +159,19 @@ class EditMenu(QMenu):
         
     def _display_all(self):
         """Display all shapes"""
-        self._diagram.display_all()
+        cfg.main_window.display_all()
         
     def _display_area(self):
         """Display initialization area"""
-        self._diagram.display_all()
+        cfg.main_window.display_area()
         
     def _display(self):
         """Display set area"""
-        pass
+        rect = cfg.main_window.get_display_rect()
+        dlg = DisplaySizeDlg(rect, cfg.main_window)
+        ret = dlg.exec_()
+        if ret==QtWidgets.QDialog.Accepted:
+            rect = dlg.get_rect()
+            cfg.main_window.display_rect(rect)
+            
+        

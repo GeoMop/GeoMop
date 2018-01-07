@@ -19,6 +19,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         * :py:attr:`cursorChanged(float, float) <cursorChanged>`
         * :py:attr:`possChanged() <possChanged>`
         * :py:attr:`regionsUpdateRequired() <regionUpdateRequired>`
+        * :py:attr:`setArea() <setArea>`
     """
     cursorChanged = QtCore.pyqtSignal(float, float)
     """Signal is sent when cursor position has changed.
@@ -32,13 +33,6 @@ class Diagram(QtWidgets.QGraphicsScene):
     New coordinates is set in _data variable and parent view should connect
     to signal and change visualisation.
     """
-#    regionUpdateRequired = QtCore.pyqtSignal(int, int)
-#    """
-#    Shape was clicked and region update in region panel is required
-#    
-#    :param int dimension: shape dimension
-#    :param int idx: shape index in diagram structure
-#    """
     regionsUpdateRequired = QtCore.pyqtSignal()
     """
     Shape was clicked and all regions in current topology update 
@@ -133,7 +127,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         if self.init_area is not None:
             self.removeItem(self.init_area)
         if state:
-            self.init_area = InitArea(cfg.diagram.area)
+            self.init_area = InitArea(cfg.diagram)
             self.addItem(self.init_area)
         
     def refresh_shp_backgrounds(self):
@@ -518,16 +512,6 @@ class Diagram(QtWidgets.QGraphicsScene):
             if event.modifiers()==QtCore.Qt.ControlModifier:
                 if self.selection.is_empty():
                     self.selection.select_current_region()
-                # if event.gobject is not None:
-                #     if isinstance(event.gobject, Polygon):
-                #         event.gobject.polygon.set_current_region()
-                #         event.gobject.update_color()
-                #     elif isinstance(event.gobject, Line):
-                #         event.gobject.line.set_current_region()
-                #         event.gobject.update()
-                #     elif isinstance(event.gobject, Point):
-                #         event.gobject.point.set_current_region()
-                #         event.gobject.update()
             if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
@@ -539,23 +523,6 @@ class Diagram(QtWidgets.QGraphicsScene):
                     elif isinstance(event.gobject, Point):
                         event.gobject.point_data.set_current_regions()
                         event.gobject.update_color()
-#            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
-#                if event.gobject is not None:
-#                    if isinstance(event.gobject, Polygon):
-#                        self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-#                    elif isinstance(event.gobject, Line):
-#                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-#                    elif isinstance(event.gobject, Point):
-#                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
-#            if event.modifiers()==(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
-#                if event.gobject is not None:
-#                    if isinstance(event.gobject, Polygon):
-#                        self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-#                    elif isinstance(event.gobject, Line):
-#                        self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-#                    elif isinstance(event.gobject, Point):
-#                        self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
-                
             
     def mousePressEvent(self,event):
         """Standart mouse event"""
@@ -614,3 +581,9 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._remove_last()
         # elif event.key() == QtCore.Qt.Key_Delete:
         #     self.delete_selected()
+        
+    def focusInEvent(self, event):
+        """Standart focus event"""
+        super(Diagram, self).focusInEvent(event)
+        self.hide_mash()
+

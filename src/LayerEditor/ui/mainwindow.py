@@ -115,10 +115,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
+        self.layers.refreshArea.connect(self._refresh_area)
         self.regions.regionChanged.connect(self._region_changed)
         self.surfaces.showMash.connect(self._show_mash)
         self.surfaces.hideMash.connect(self._hide_mash)
-        self.surfaces.refreshArrea.connect(self._refresh_arrea)
+        self.surfaces.refreshArea.connect(self._refresh_area)
 
         # initialize components
         self.config_changed()
@@ -157,6 +158,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_view_data(new_i)
         self.diagramScene.release_data(old_i)
         self.diagramScene.set_data()
+        
+        self._refresh_area()
         
         view_rect = self.diagramView.rect()
         rect = QtCore.QRectF(cfg.diagram.x-100, 
@@ -207,7 +210,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def display_area(self):
         """Display area"""
-        rect = cfg.diagram.area_rect
+        rect = cfg.diagram.get_area_rect(cfg.layers, cfg.diagram_id())
         self.display_rect(rect)    
             
     def display_rect(self, rect):
@@ -225,6 +228,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if cfg.diagram.pen_changed:
             self.diagramScene.update_geometry()
         self._display(view_rect)
+        
+    def get_display_rect(self):
+        """Return display rect"""
+        rect = self.diagramView.sceneRect()
+        return rect
         
     def _display(self, view_rect):
         """moving"""
@@ -270,18 +278,20 @@ class MainWindow(QtWidgets.QMainWindow):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
         
-    def _show_mash(self):
+    def _show_mash(self, force):
         """Show mash"""
-        quad, u, v = self.surfaces.get_curr_mash()
-        self.diagramScene.show_mash(quad, u, v)
+        if force or self.diagramScene.mash is None:
+            quad, u, v = self.surfaces.get_curr_mash()
+            self.diagramScene.show_mash(quad, u, v)
         
     def _hide_mash(self):
         """hide mash"""
         self.diagramScene.hide_mash()
         
-    def _refresh_arrea(self):
+    def _refresh_area(self):
         """Refresh init area"""
-        pass
+        if self.diagramScene.init_area is not None:
+            self.diagramScene.init_area.reload()
         
     def closeEvent(self, event):
         """Performs actions before app is closed."""

@@ -17,6 +17,7 @@ class Layers(QtWidgets.QWidget):
         * :py:attr:`viewInterfacesChanged(int) <viewInterfacesChanged>`
         * :py:attr:`editInterfaceChanged(int,int) <editInterfaceChanged>`
         * :py:attr:`topologyChanged() <topologyChanged>`
+        * :py:attr:`refreshArea() <refreshArea>
         
     All regions function contains history operation without label and
     must be placed after first history operation with label.
@@ -35,6 +36,8 @@ class Layers(QtWidgets.QWidget):
     
     :param int idx_old: old edited diagram index
     :param int idx_new: new edited diagram index"""
+    refreshArea = QtCore.pyqtSignal()
+    """Signal is sent when arrea shoud be refreshed."""    
 
     def __init__(self, parent=None):
         """
@@ -220,6 +223,7 @@ class Layers(QtWidgets.QWidget):
             self._history.delete_interface(len(cfg.layers.interfaces)-1)
             cfg.diagram.regions.add_layer(len(cfg.layers.layers)-1, name, TopologyOperations.none)
             self.topologyChanged.emit()
+            self.refreshArea.emit()
             self.change_size()
 
     def prepend_layer(self):
@@ -234,6 +238,7 @@ class Layers(QtWidgets.QWidget):
             self._history.delete_interface(0)
             cfg.diagram.regions.add_layer(0, name, TopologyOperations.none)
             self.topologyChanged.emit()
+            self.refreshArea.emit()
             self.change_size()
             
     def add_layer_to_shadow(self, idx):
@@ -255,6 +260,7 @@ class Layers(QtWidgets.QWidget):
                 self._history.change_group(layers, interfaces, idx, 2)
                 cfg.diagram.regions.copy_related(idx, name, TopologyOperations.none)
             self.topologyChanged.emit()
+            self.refreshArea.emit()
             self.change_size()
     
     def change_viewed(self, i, type):
@@ -327,6 +333,7 @@ class Layers(QtWidgets.QWidget):
             cfg.diagram.regions.add_layer(i+1, name, oper)
             
             self.topologyChanged.emit()
+            self.refreshArea.emit()
             self.change_size()
 
     def rename_layer(self, i):
@@ -518,6 +525,7 @@ class Layers(QtWidgets.QWidget):
                 old_depth!=cfg.layers.interfaces[i].depth:
                 self._history.change_interface_surface(old_surface_id, old_depth, old_transform_z, i, "Set interface surface")
                 self.change_size()
+        self.refreshArea.emit()
         
     def remove_interface(self, i):
         """Remove interface"""        

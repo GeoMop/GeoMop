@@ -473,7 +473,7 @@ class Diagram():
         return self.po.move_points(self, points)        
 
     def find_polygon(self, line_idxs):
-        """Try find poligon accoding to lines indexes"""
+        """Try find polygon accoding to lines indexes"""
         for polygon in self.polygons:
             if len(line_idxs)==len(polygon.lines):
                 ok = True
@@ -492,6 +492,25 @@ class Diagram():
                         break
                 if ok:                    
                     return polygon.id
+                    
+    def get_area_poly(self, layers, diagram_id):
+        """Return init area as squads intersection"""
+        quads = layers.get_diagram_quads(diagram_id)
+        if len(quads)==0:
+            return self.area.gtpolygon
+        poly = None
+        for quad in quads:
+            new_poly = QtGui.QPolygonF([
+                QtCore.QPointF(quad[0][0], -quad[0][1]), 
+                QtCore.QPointF(quad[1][0], -quad[1][1]), 
+                QtCore.QPointF(quad[2][0], -quad[2][1]), 
+                QtCore.QPointF(quad[3][0], -quad[3][1]), 
+                QtCore.QPointF(quad[0][0], -quad[0][1])])
+            if poly is None:
+                poly = new_poly
+            else:
+                poly = new_poly.intersected(new_poly)
+        return poly
     
     @classmethod
     def release_all(cls, history):
@@ -645,11 +664,12 @@ class Diagram():
             self._rect.width()+2*margin,
             self._rect.height()+2*margin)
             
-    @property
-    def area_rect(self):
-        dx= (abs(self.area.xmax-self.area.xmin)+abs(self.area.ymax-self.area.ymin))/100
-        return QtCore.QRectF(self.area.xmin-dx, self.area.ymin-dx, 
-            self.area.xmax-self.area.xmin+2*dx, self.area.ymax-self.area.ymin+2*dx)
+    def get_area_rect(self, layers, diagram_id):
+        poly = self.get_area_poly(layers, diagram_id)
+        area_rect = poly.boundingRect() 
+        dx= (abs(area_rect.height())+abs(area_rect.width()))/100
+        return QtCore.QRectF(area_rect.left()-dx, area_rect.top()-dx, 
+            area_rect.width()+2*dx, area_rect.height()+2*dx)
             
     @property
     def zoom(self):

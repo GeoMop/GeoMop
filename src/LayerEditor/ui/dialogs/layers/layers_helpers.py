@@ -46,6 +46,10 @@ class LayersHelpers():
         """Return surface"""
         try:
             interface.depth = float(dialog.depth.text())
+            if dialog.surface is None:
+                interface.surface_id = None
+                interface.transform_z = (1, -100)
+                return
             interface.transform_z = (float(dialog.zscale.text()), 
                     float(dialog.zshift.text()))
             if (dialog.grid.isChecked()):                
@@ -62,8 +66,9 @@ class LayersHelpers():
         
         def _enable_controls():
             """Disable all not used controls"""
-            dialog.depth.setEnabled(dialog.zcoo.isChecked())
-            
+            if dialog.surface is None:
+               return 
+            dialog.depth.setEnabled(dialog.zcoo.isChecked())            
             dialog.surface.setEnabled(dialog.grid.isChecked())
             dialog.zscale.setEnabled(dialog.grid.isChecked())
             dialog.zshift.setEnabled(dialog.grid.isChecked())
@@ -94,6 +99,8 @@ class LayersHelpers():
         dialog.grid = QtWidgets.QRadioButton("Grid")
         dialog.grid.clicked.connect(_enable_controls)
         if not is_surface:
+            dialog.surface = None
+            dialog.zcoo.setChecked(True)
             dialog.grid.setEnabled(False)
             error = QtWidgets.QLabel("Any surface is not defined")
             grid.addWidget(dialog.grid, row+1, 0)
@@ -120,8 +127,14 @@ class LayersHelpers():
             """Compute depth for grid file"""
             if dialog.zs is None:
                 return
-            z1 = float(dialog.zscale.text())
-            z2 = float(dialog.zshift.text())
+            try:
+                z1 = float(dialog.zscale.text())
+            except:
+                z1 = 0
+            try:
+                z2 = float(dialog.zshift.text())
+            except:
+                z2 = 0
             dialog.zs.transform(None, np.array([z1, z2], dtype=float))
             center = dialog.zs.center()
             dialog.depth.setText(str(center[2]))

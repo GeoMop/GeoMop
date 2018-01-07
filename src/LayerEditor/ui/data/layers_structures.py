@@ -967,7 +967,40 @@ class Layers():
             if self.interfaces[i].diagram_id2 is not None and \
                 self.interfaces[i].diagram_id2 == diagram_id:
                 return self.set_edited_interface(i, True)
-        return True 
+        return True
+       
+    def get_diagram_quads(self, diagram_id):
+        """Find and return list of quads in set diagram"""
+        ret = []
+        found = False
+        for i in range(0, len(self.interfaces)):  
+            if self.interfaces[i].fracture is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id == diagram_id:
+                if self.interfaces[i].surface_id is not None:
+                    return [self.surfaces.surfaces[self.interfaces[i].surface_id].quad]
+                else:
+                    return []            
+            if self.interfaces[i].diagram_id1 is not None and \
+                self.interfaces[i].diagram_id1 == diagram_id:
+                found = True  
+            if self.interfaces[i].splited:
+                if found:
+                    if self.interfaces[i].surface_id is not None:
+                        ret.append(self.surfaces.surfaces[self.interfaces[i].surface_id].quad)
+                    return ret
+                else:
+                    if self.interfaces[i].surface_id is not None:
+                        ret = [self.surfaces.surfaces[self.interfaces[i].surface_id].quad]
+                    else:
+                        ret = []
+            else:
+                if self.interfaces[i].surface_id is not None:
+                    ret.append(self.surfaces.surfaces[self.interfaces[i].surface_id].quad)
+            if self.interfaces[i].diagram_id2 is not None and \
+                self.interfaces[i].diagram_id2 == diagram_id:
+                found = True
+        return ret
         
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 

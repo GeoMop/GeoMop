@@ -9,6 +9,23 @@ import numpy as np
 import bspline_approx as ba
 from geomop_dialogs import GMErrorDialog
 
+class FocusEdit(QtWidgets.QLineEdit):
+    """LineEdit width focus in event
+    
+    pyqtSignals:         
+        * :py:attr:`focusIn() <focusIn>`
+    """
+    
+    focusIn = QtCore.pyqtSignal()
+    """Signal is sent when mash shoud be hide."""
+    
+    def focusInEvent(self, event):
+        """Standart focus event"""
+        super(FocusEdit, self).focusInEvent(event)
+        self.focusIn.emit()
+    
+    
+
 class Surfaces(QtWidgets.QWidget):
     """
     GeoMop Layer editor surfaces panel
@@ -16,19 +33,22 @@ class Surfaces(QtWidgets.QWidget):
     pyqtSignals:
         * :py:attr:`showMash() <showMash>`
         * :py:attr:`hideMash() <hideMash>`
-        * :py:attr:`refreshArrea() <refreshArrea>`
+        * :py:attr:`refreshArea() <refreshArea>`
         
     All regions function contains history operation without label and
     must be placed after first history operation with label.
     """
     
-    showMash = QtCore.pyqtSignal()
-    """Signal is sent when mash shoud be show o repaint."""
+    showMash = QtCore.pyqtSignal(bool)
+    """Signal is sent when mash shoud be show o repaint.
+    
+    :param bool force: if force not set, don't call mash if already exist
+    """
     
     hideMash = QtCore.pyqtSignal()
     """Signal is sent when mash shoud be hide."""
     
-    refreshArrea = QtCore.pyqtSignal()
+    refreshArea = QtCore.pyqtSignal()
     """Signal is sent when arrea shoud be refreshed."""    
     
     def __init__(self, parent=None):
@@ -62,11 +82,14 @@ class Surfaces(QtWidgets.QWidget):
             label = surfaces.surfaces[i].name 
             self.surface.addItem( label,  i) 
         self.surface.currentIndexChanged.connect(self._surface_set)
+        self.surface.activated.connect(self._focus_in)
         self.add_surface = QtWidgets.QPushButton("Add Surface")
-        self.add_surface.clicked.connect(self._add_surface)  
+        self.add_surface.clicked.connect(self._add_surface)
+        self.add_surface.pressed.connect(self._focus_in)
         self.delete = QtWidgets.QPushButton("Delete Surface")
-        self.delete.clicked.connect(self._delete)        
-
+        self.delete.clicked.connect(self._delete)
+        self.delete.pressed.connect(self._focus_in)
+        
         grid.addWidget(d_surface, 0, 0)
         grid.addWidget(self.surface, 0, 1, 1, 2)
         grid.addWidget(self.delete, 1, 2)
@@ -80,12 +103,14 @@ class Surfaces(QtWidgets.QWidget):
         
         # grid file
         self.d_grid_file = QtWidgets.QLabel("Grid File:")
-        self.grid_file_name = QtWidgets.QLineEdit()
+        self.grid_file_name = FocusEdit()
         self.grid_file_name.setReadOnly(True)
         self.grid_file_button = QtWidgets.QPushButton("...")
         self.grid_file_button.clicked.connect(self._add_grid_file)
+        self.grid_file_button.pressed.connect(self._focus_in)
         self.grid_file_refresh_button = QtWidgets.QPushButton("Refresh")
         self.grid_file_refresh_button.clicked.connect(self._refresh_grid_file)
+        self.grid_file_refresh_button.pressed.connect(self._focus_in)
         
         grid.addWidget(self.d_grid_file, 3, 0, 1, 2)        
         grid.addWidget(self.grid_file_button , 3, 2)
@@ -100,33 +125,40 @@ class Surfaces(QtWidgets.QWidget):
         
         # surface name
         self.d_name = QtWidgets.QLabel("Name:")
-        self.name = QtWidgets.QLineEdit()
+        self.name = FocusEdit()
+        self.name.focusIn.connect(self._focus_in)
         
         grid.addWidget(self.d_name, 7, 0)        
         grid.addWidget(self.name, 7, 1, 1, 2)
         
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
-        self.xyscale11 = QtWidgets.QLineEdit()
+        self.xyscale11 = FocusEdit()
         self.xyscale11.textChanged.connect(self._refresh_grid)
+        self.xyscale11.focusIn.connect(self._focus_in)
         self.xyscale11.setValidator(QtGui.QDoubleValidator())        
-        self.xyscale12 = QtWidgets.QLineEdit()
+        self.xyscale12 = FocusEdit()
         self.xyscale12.textChanged.connect(self._refresh_grid)
+        self.xyscale12.focusIn.connect(self._focus_in)
         self.xyscale12.setValidator(QtGui.QDoubleValidator())        
-        self.xyscale21 = QtWidgets.QLineEdit()
+        self.xyscale21 = FocusEdit()
         self.xyscale21.textChanged.connect(self._refresh_grid)
+        self.xyscale21.focusIn.connect(self._focus_in)
         self.xyscale21.setValidator(QtGui.QDoubleValidator())
-        self.xyscale22 = QtWidgets.QLineEdit()
+        self.xyscale22 = FocusEdit()
         self.xyscale22.textChanged.connect(self._refresh_grid)
+        self.xyscale22.focusIn.connect(self._focus_in)
         self.xyscale22.setValidator(QtGui.QDoubleValidator())        
         
         self.d_xyshift = QtWidgets.QLabel("XY shift:", self)        
-        self.xyshift1 = QtWidgets.QLineEdit()
+        self.xyshift1 = FocusEdit()
         self.xyshift1.textChanged.connect(self._refresh_grid)
+        self.xyshift1.focusIn.connect(self._focus_in)
         self.xyshift1.setValidator(QtGui.QDoubleValidator())
         
-        self.xyshift2 = QtWidgets.QLineEdit()
+        self.xyshift2 = FocusEdit()
         self.xyshift2.textChanged.connect(self._refresh_grid)
+        self.xyshift2.focusIn.connect(self._focus_in)
         self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
         grid.addWidget(self.d_xyscale, 8, 0, 1, 2)
@@ -140,11 +172,13 @@ class Surfaces(QtWidgets.QWidget):
         
         # approximation points
         self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
-        self.u_approx = QtWidgets.QLineEdit()
+        self.u_approx = FocusEdit()
         self.u_approx.textChanged.connect(self._refresh_mash)
+        self.u_approx.focusIn.connect(self._focus_in)
         self.u_approx.setValidator(QtGui.QIntValidator())
-        self.v_approx = QtWidgets.QLineEdit()
+        self.v_approx = FocusEdit()
         self.v_approx.textChanged.connect(self._refresh_mash)
+        self.v_approx.focusIn.connect(self._focus_in)
         self.v_approx.setValidator(QtGui.QIntValidator())
         
         grid.addWidget(self.d_approx, 11, 0, 1, 3)
@@ -152,7 +186,8 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(self.v_approx, 12, 1)        
         
         self.apply = QtWidgets.QPushButton("Apply")
-        self.apply.clicked.connect(self._apply)            
+        self.apply.clicked.connect(self._apply) 
+        self.apply.pressed.connect(self._focus_in)
         
         grid.addWidget(self.apply, 13, 1, 1, 2)
         
@@ -216,8 +251,11 @@ class Surfaces(QtWidgets.QWidget):
             self.apply.setText("Add Surface")            
             self.grid_file_refresh_button.setEnabled(False)
             self.surface.setCurrentIndex(-1)
+            self.hideMash.emit()            
         else:            
-            self.apply.setText("Apply")            
+            self.apply.setText("Apply") 
+            self.showMash.emit(False)
+            
         self.new = new
             
     def get_curr_mash(self):
@@ -272,7 +310,7 @@ class Surfaces(QtWidgets.QWidget):
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
             surface.xy_transform = self._get_transform()
             surface.quad = self.quad
-        self.refreshArrea.emit()
+        self.refreshArea.emit()
        
     def _delete(self):
         """Delete surface if is not used"""
@@ -297,7 +335,7 @@ class Surfaces(QtWidgets.QWidget):
         self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
         self.depth.setText(str(center[2]))
-        self.showMash.emit()
+        self.showMash.emit(True)
         
     def get_uv(self):
         """Check and return uv"""
@@ -335,8 +373,13 @@ class Surfaces(QtWidgets.QWidget):
         self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
         self.depth.setText(str(center[2]))
-        self.showMash.emit()
-        
+        self.showMash.emit(True)
+     
+    def _focus_in(self):
+        """Some controll gain focus"""
+        if self.quad is not None:
+            self.showMash.emit(False)
+  
     def _surface_set(self):
         """Surface in combo box was changed"""
         id = self.surface.currentIndex()
@@ -396,7 +439,7 @@ class Surfaces(QtWidgets.QWidget):
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))            
             # TODO: check focus
-            self.showMash.emit()
+            self.showMash.emit(True)
         self.origin_x.setText(str(self.quad[1][0]))
         self.origin_y.setText(str(self.quad[1][1]))
             
@@ -428,7 +471,7 @@ class Surfaces(QtWidgets.QWidget):
             self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
             self.origin_x.setText(str(self.quad[1][0]))
             self.origin_y.setText(str(self.quad[1][1]))
-            self.showMash.emit()
+            self.showMash.emit(True)
         
     def _add_grid_file(self):
         """Clicked event for _file_button"""
@@ -499,7 +542,7 @@ class Surfaces(QtWidgets.QWidget):
                 self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
                 self.origin_x.setText(str(self.quad[1][0]))
                 self.origin_y.setText(str(self.quad[1][1]))
-                self.showMash.emit()
+                self.showMash.emit(True)
             
     def _name_exist(self, name):
         """Test if set surface name exist"""
