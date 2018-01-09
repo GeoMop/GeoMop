@@ -50,3 +50,4 @@ def test_geometry_script():
     run_geometry('05_split_square.json', 4)
     run_geometry('06_bump_split.json', 10)
     run_geometry('10_var_step_flat.json')
+    run_geometry('10_var_step_bump.json')

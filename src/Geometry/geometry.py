@@ -156,8 +156,10 @@ class Surface(gs.Surface):
         # allow relative position to the main layers.json file
         if self.grid_file:
             self.is_bumpy = True
-            if self.grid_file[0] == '.':
-                self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
+            if self.grid_file[0:2] == './':
+                self.grid_file = self.grid_file[2:]
+            assert self.grid_file[0] != '/', "Found absolute path instead of relative."
+            self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
         else:
             self.is_bumpy = False
 
@@ -1004,7 +1006,7 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
-        # TODO: introduce shape_id to shape info dict and get rid of storing aux. data into BW shapes.
+        # TODO: introduce shape_id to shape_info dict and get rid of storing aux. data into BW shapes.
 
         # Propagate mesh_step from free_shapes to vertices via DFS
         # use global mesh step if the local mesh_step is zero.
@@ -1014,17 +1016,17 @@ class LayerGeometry(gs.LayerGeometry):
         # initialize auxiliary vtx mesh_step to 0.0
         for vi in shape_by_dim[0]:
             vi.shape._mesh_step = np.inf
-        for shp in self.all_shapes:
-            shp.shape._visited = -1
+        for shp_info in self.all_shapes:
+            shp_info.shape._visited = -1
 
 
-        for i_free, shp in enumerate(self.free_shapes):
-            mesh_step = self.regions[shp.i_reg].mesh_step
+        for i_free, shp_info in enumerate(self.free_shapes):
+            mesh_step = self.regions[shp_info.i_reg].mesh_step
             if mesh_step <= 0.0:
                 mesh_step = global_mesh_step
 
             # DFS
-            stack = [shp.shape]
+            stack = [shp_info.shape]
             while stack:
                 shp = stack.pop(-1)
                 if isinstance(shp, bw.Vertex):
