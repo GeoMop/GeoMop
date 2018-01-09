@@ -585,5 +585,6 @@ class Diagram(QtWidgets.QGraphicsScene):
     def focusInEvent(self, event):
         """Standart focus event"""
         super(Diagram, self).focusInEvent(event)
-        self.hide_mash()
+        if self.mash is not None:
+            self.hide_mash()
 

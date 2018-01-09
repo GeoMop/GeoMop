@@ -14,7 +14,7 @@ DEFAULT_USER_SHORTCUTS = {
     'save_file_as': 'Ctrl+Shift+S',
     'exit': 'Ctrl+Q',
     'display': 'Ctrl+Shift+D',
-    'display_all': 'Ctrl+Shift+A',
+    'display_all': 'Ctrl+Shift+L',
     'display_area': 'Ctrl+Shift+R',
 }
 """default keyboard shortcuts"""
