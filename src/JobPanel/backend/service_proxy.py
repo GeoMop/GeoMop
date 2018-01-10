@@ -1,5 +1,6 @@
-from .service_base import ServiceBase, ServiceStatus, call_action
+from .service_base import ServiceStatus, call_action
 from .connection import ConnectionStatus, SSHError
+from .json_data import JsonData
 
 import time
 import logging
@@ -7,7 +8,7 @@ import os
 import json
 
 
-class ServiceProxy:
+class ServiceProxy(JsonData):
     """
     Automatic proxy class, provides methods to call 'request_XYZ' methods of
     the class passed as parameter of constructor. Further own thread is created
@@ -42,49 +43,62 @@ class ServiceProxy:
 
 
     """
-    def __init__(self, service_data, repeater, connection):
-        self.repeater = repeater
+    def __init__(self, config):#service_data, repeater, connection):
+        self.connection_name = ""
+        """Name of connection"""
+        self.child_id = -1
+        """Child id"""
+        self.workspace = ""
+        """Service workspace"""
+        self.config_file_name = ""
+        """Service config file name"""
+
+        super().__init__(config)
+
+        self._repeater = None
         """ Object for communication with remote service."""
-        self.service_data = service_data
+        #self._service_data = None
         """
         JSON data used to initialize the service. ?? Should it contain also data of the proxy??
         Proxy data:
         - service listenning port (necessary)
         - service files, service status, ... (convenient)
         """
-        self.connection = connection
-        self.connection_id = connection._id
+        self._connection = None
 
-        self.status=None
-        """ ServiceStatus enum"""
-        self.connected=False
+        self._status = None
+        """ServiceStatus enum"""
+        #self.connected=False
         """ True if remote service is connected. Is it necessary?? """
-        self.changing_status=False
+        #self.changing_status=False
         """ True if a status change action is processed: stopping"""
 
-        self._child_id = None
-        """Child id"""
-
         # Result lists
-        self.results_process_start = []
+        self._results_process_start = []
         """Child service process id save as result list"""
-        self.results_get_status = []
+        self._results_get_status = []
         """List of result list of get status request"""
 
-        self.last_time = time.time()
+        self._last_time = time.time()
         """Last time we had info from service"""
-        self.online = False
+        self._online = False
         """We are connected to service"""
-        self.downloaded_config = None
+        self._downloaded_config = None
         """Config downloaded from service config file"""
 
-        #TODO:
-        #  smazat
-        return
+        # if (self.service.status != None):
+        #     # reinit, download port, status, etc. from remote file using delegator
+        #     self.connect_service(self, self.service.listening_port)
 
-        if (self.service.status != None):
-            # reinit, download port, status, etc. from remote file using delegator
-            self.connect_service(self, self.service.listening_port)
+    def set_rep_con(self, repeater, connection):
+        """
+        Set repeater and connection to proxy.
+        :param repeater:
+        :param connection:
+        :return:
+        """
+        self._repeater = repeater
+        self._connection = connection
 
     def call(self, method_name, data, result):
         """
@@ -100,10 +114,10 @@ class ServiceProxy:
         :param result: List of results.
         :return: None, error.
         """
-        self.repeater.send_request([self._child_id], {'action': method_name, 'data': data}, {'action': 'save_result', 'data': result})
+        self._repeater.send_request([self.child_id], {'action': method_name, 'data': data}, {'action': 'save_result', 'data': result})
 
     def _process_answers(self):
-        for answer_data in self.repeater.get_answers(self._child_id):
+        for answer_data in self._repeater.get_answers(self.child_id):
             logging.info("Processing: " + str(answer_data))
             #child_id = answer_data.sender[0]
             on_answer = answer_data.on_answer
@@ -121,7 +135,7 @@ class ServiceProxy:
         (result_list, result_data) = answer_data
         result_list.append(result_data)
 
-    def start_service(self):
+    def start_service(self, service_data):
         """
         Process of starting a Job:
         0. # have repeater, connection, and service configuration data (from constructor)
@@ -149,59 +163,74 @@ class ServiceProxy:
         """
 
         # 2.
-        delegator_proxy = self.connection.get_delegator()
+        delegator_proxy = self._connection.get_delegator()
 
         # 3.
-        self._child_id, remote_port = self.repeater.add_child(self.connection)
+        self.child_id, remote_port = self._repeater.add_child(self._connection)
 
         # update service data, remove password
-        self.service_data = self.service_data.copy()
-        self.service_data["repeater_address"] = [self._child_id]
-        self.service_data["parent_address"] = [self.service_data["service_host_connection"]["address"], remote_port]
+        service_data = service_data.copy()
+        service_data["repeater_address"] = [self.child_id]
+        service_data["parent_address"] = [service_data["service_host_connection"]["address"], remote_port]
 
-        self.service_data["service_host_connection"] = self.service_data["service_host_connection"].copy()
-        self.service_data["service_host_connection"]["password"] = ""
+        service_data["service_host_connection"] = service_data["service_host_connection"].copy()
+        service_data["service_host_connection"]["password"] = ""
 
-        self.service_data["process"] = self.service_data["process"].copy()
-        if "exec_args" in self.service_data["process"]:
-            self.service_data["process"]["exec_args"] = self.service_data["process"]["exec_args"].copy()
+        service_data["process"] = service_data["process"].copy()
+        if "exec_args" in service_data["process"]:
+            service_data["process"]["exec_args"] = service_data["process"]["exec_args"].copy()
         else:
-            self.service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
-        self.service_data["process"]["exec_args"]["work_dir"] = self.service_data["workspace"]
+            service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
+        service_data["process"]["exec_args"]["work_dir"] = service_data["workspace"]
 
-        if "environment" in self.service_data["process"]:
+        if "environment" in service_data["process"]:
             logging.warning("Start service: Overwriting environment in service_data['process'].")
-        self.service_data["process"]["environment"] = self.service_data["service_host_connection"]["environment"]
+        service_data["process"]["environment"] = service_data["service_host_connection"]["environment"]
 
-        self.service_data["status"] = "queued"
+        service_data["status"] = "queued"
+
+        # save some permanent data
+        self.connection_name = service_data["service_host_connection"]["name"]
+        self.workspace =  service_data["workspace"]
+        self.config_file_name = service_data["config_file_name"]
 
         # save config file
         file = os.path.join(
-            self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-            self.service_data["workspace"],
-            self.service_data["config_file_name"])
+            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self.workspace,
+            self.config_file_name)
         with open(file, 'w') as fd:
-            json.dump(self.service_data, fd, indent=4, sort_keys=True)
+            json.dump(service_data, fd, indent=4, sort_keys=True)
 
         # 1.
         files = []
-        if "input_files" in self.service_data:
-            for file in self.service_data["input_files"]:
-                files.append(os.path.join(self.service_data["workspace"], file))
-        files.append(os.path.join(self.service_data["workspace"], self.service_data["config_file_name"]))
-        self.connection.upload(files,
-                               self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-                               self.connection.environment.geomop_analysis_workspace)
+        if "input_files" in service_data:
+            for file in service_data["input_files"]:
+                files.append(os.path.join(service_data["workspace"], file))
+        files.append(os.path.join(self.workspace, self.config_file_name))
+        self._connection.upload(files,
+                                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                                self._connection.environment.geomop_analysis_workspace)
 
         # 4.
-        process_config = self.service_data["process"]
-        delegator_proxy.call("request_process_start", process_config, self.results_process_start)
+        process_config = service_data["process"]
+        delegator_proxy.call("request_process_start", process_config, self._results_process_start)
 
         # 5.
-        self.status = ServiceStatus.queued
+        self._status = ServiceStatus.queued
 
-        return self._child_id
+        return self.child_id
 
+    def connect_service(self):
+        """
+        Connect to service from deserialized proxy.
+        :return:
+        """
+        assert self.child_id > 0
+        child_id, remote_port = self._repeater.add_child(self._connection, id=self.child_id)
+
+        if self.download_config():
+            self._status = ServiceStatus[self._downloaded_config["status"]]
 
     def get_status(self):
     #def connect_service(self, child_id):
@@ -237,56 +266,60 @@ class ServiceProxy:
         # 1.
         #self.repeater.clients[self._child_id]
 
-        if self.online:
+        if self._online:
             # check get status result
-            self.results_get_status = self.results_get_status[-5:]
+            self._results_get_status = self._results_get_status[-5:]
             res = None
-            for item in reversed(self.results_get_status):
+            for item in reversed(self._results_get_status):
                 if len(item) > 0:
                     res = item[0]
                     break
-            if (res is None and len(self.results_get_status) >= 5) or (res is not None and "error" in res):
-                self.online = False
+            if (res is None and len(self._results_get_status) >= 5) or (res is not None and "error" in res):
+                self._online = False
             else:
                 if res is not None:
-                    self.status = res["data"]
-                    self.last_time = time.time()
+                    self._status = res["data"]
+                    self._last_time = time.time()
 
                 # request get status
                 result = []
                 self.call("request_get_status", None, result)
-                self.results_get_status.append(result)
-        elif self.status == ServiceStatus.queued or self.status == ServiceStatus.running:
-            if time.time() > self.last_time + 1:
+                self._results_get_status.append(result)
+        elif self._status == ServiceStatus.queued or self._status == ServiceStatus.running:
+            if time.time() > self._last_time + 1:
                 if self.download_config():
-                    self.status = ServiceStatus[self.downloaded_config["status"]]
-                    if self.status == ServiceStatus.running:
-                        disp = self.repeater.clients[self._child_id]
+                    self._status = ServiceStatus[self._downloaded_config["status"]]
+                    if self._status == ServiceStatus.running:
+                        disp = self._repeater.clients[self.child_id]
                         if disp._remote_address is None:
-                            disp.set_remote_address(self.downloaded_config["listen_address"])
+                            disp.set_remote_address(self._downloaded_config["listen_address"])
                         else:
-                            self.repeater.reconnect_child(self._child_id)
-                self.last_time = time.time()
-        return self.status
+                            self._repeater.reconnect_child(self.child_id)
+                self._last_time = time.time()
+        return self._status
 
     def download_config(self):
-        if self.connection._status != ConnectionStatus.online:
+        """
+        Download config file from remote.
+        :return:
+        """
+        if self._connection._status != ConnectionStatus.online:
             return False
         try:
-            self.connection.download(
-                [os.path.join(self.service_data["workspace"], self.service_data["config_file_name"])],
-                self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-                self.connection.environment.geomop_analysis_workspace)
+            self._connection.download(
+                [os.path.join(self.workspace, self.config_file_name)],
+                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                self._connection.environment.geomop_analysis_workspace)
         except (SSHError, FileNotFoundError, PermissionError):
             return False
         file = os.path.join(
-            self.connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-            self.service_data["workspace"],
-            self.service_data["config_file_name"])
+            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self.workspace,
+            self.config_file_name)
         try:
             with open(file, 'r') as fd:
                 try:
-                    self.downloaded_config = json.load(fd)
+                    self._downloaded_config = json.load(fd)
                 except ValueError:
                     return False
         except OSError:
@@ -297,15 +330,31 @@ class ServiceProxy:
     #     self.call("request_get", variable_name, self.__dict__[variable_name])
 
     def stop(self):
-        self.call("stop", None, )
+        """
+        Sends stop request to service.
+        :return:
+        """
+        self.call("request_stop", None, [])
 
 
 
     def on_answer_connect(self, data=None):
-        self.status = ServiceStatus.running
-        self.online = True
-        self.results_get_status.clear()
-        self.last_time = time.time()
+        """
+        Called after service is connected.
+        :param data:
+        :return:
+        """
+        self._status = ServiceStatus.running
+        self._online = True
+        self._results_get_status.clear()
+        self._last_time = time.time()
+
+    def close(self):
+        """
+        Closes proxy, remove child from repeater.
+        :return:
+        """
+        self._repeater.remove_child(self.child_id)
 
 
 
@@ -335,11 +384,14 @@ class ServiceProxy:
 
 
 class DelegatorProxy(ServiceProxy):
+    """
+    Proxy for delegator.
+    """
     def get_status(self):
         super().get_status()
-        if self.status == ServiceStatus.running and not self.online:
-            self.status = ServiceStatus.done
-        return self.status
+        if self._status == ServiceStatus.running and not self._online:
+            self._status = ServiceStatus.done
+        return self._status
 
     def download_config(self):
         return False

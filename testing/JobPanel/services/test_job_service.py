@@ -31,19 +31,18 @@ def test_correct_run(request):
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
-          "environment": env}
+          "environment": env,
+          "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # job data
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "_job_service.py",
+                         "path": "JobPanel/services/_job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services",
-          "name": "job_1.py",
+          "path": "../testing/JobPanel/services/job_1.py",
           "script": True}
     service_data = {"service_host_connection": cl,
                     "process": pe,
@@ -58,11 +57,11 @@ def test_correct_run(request):
 
     # check correct job state transition
     time.sleep(5)
-    assert job.status == ServiceStatus.queued
+    assert job._status == ServiceStatus.queued
     time.sleep(10)
-    assert job.status == ServiceStatus.running
+    assert job._status == ServiceStatus.running
     time.sleep(25)
-    assert job.status == ServiceStatus.done
+    assert job._status == ServiceStatus.done
 
     # stopping, closing
     local_service._closing = True
@@ -70,8 +69,7 @@ def test_correct_run(request):
 
 def test_correct_run_connection_fail(request):
     def clear_test_files():
-        #shutil.rmtree(TEST_FILES, ignore_errors=True)
-        pass
+        shutil.rmtree(TEST_FILES, ignore_errors=True)
     request.addfinalizer(clear_test_files)
 
     # create analysis and job workspaces
@@ -84,7 +82,8 @@ def test_correct_run_connection_fail(request):
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
-          "environment": env}
+          "environment": env,
+          "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
@@ -103,15 +102,14 @@ def test_correct_run_connection_fail(request):
           "port": forwarded_port,
           "uid": u,
           "password": p,
-          "environment": env_rem}
+          "environment": env_rem,
+          "name": "remote"}
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "_job_service.py",
+                         "path": "JobPanel/services/_job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services",
-          "name": "job_1.py",
+          "path": "../testing/JobPanel/services/job_1.py",
           "script": True}
     service_data = {"service_host_connection": cr,
                     "process": pe,
@@ -131,16 +129,16 @@ def test_correct_run_connection_fail(request):
     time.sleep(5)
     port_forwarder.discard_data = False
     time.sleep(10)
-    assert job.status == ServiceStatus.running
+    assert job._status == ServiceStatus.running
     time.sleep(5)
     port_forwarder.discard_data = True
     time.sleep(5)
     port_forwarder.discard_data = False
     time.sleep(5)
-    assert job.status == ServiceStatus.running
-    assert job.online == True
+    assert job._status == ServiceStatus.running
+    assert job._online
     time.sleep(10)
-    assert job.status == ServiceStatus.done
+    assert job._status == ServiceStatus.done
 
     # stopping, closing
     port_forwarder.close_all_forwarded_ports()
