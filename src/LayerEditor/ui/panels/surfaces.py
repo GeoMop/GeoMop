@@ -61,6 +61,7 @@ class Surfaces(QtWidgets.QWidget):
         super(Surfaces, self).__init__(parent)
         surfaces = cfg.layers.surfaces
         self.zs = None
+        """ Instance of bs.Z_Surface, result of approximation. """
         self.zs_id = None
         """Help variable of Z-Surface type from bspline library. If this variable is None
         , valid approximation is not loaded"""
@@ -248,7 +249,7 @@ class Surfaces(QtWidgets.QWidget):
             self.quad = None
             self.grid_file_name.setText("")
             self._set_default_approx(None)            
-            self.apply.setText("Add Surface")            
+            self.apply.setText("Add Surface")
             self.grid_file_refresh_button.setEnabled(False)
             self.surface.setCurrentIndex(-1)
             self.hideMash.emit()            
@@ -325,11 +326,17 @@ class Surfaces(QtWidgets.QWidget):
         self.reload_surfaces(id)
         
     def _refresh_grid(self, new_str):
-        """Grid parameters is changet"""
+        """Transform parameters arechanged."""
         if self.zs is None:
             return
-        self.zs.reset_transform()
-        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        t_mat = np.array(self._get_transform(), dtype=float)
+        # Check for inverted and singular transform.
+        # Physicaly reasonable scaling is about 9 orders of magnitude, 2D determinant should be greater
+        # then 1e-18 and we make some reserve.
+        if np.linalg.det(t_mat[0:2,0:2]) < 1e-20:
+            # TODO: mark actual field invalid
+            return
+        self.zs.transform(t_mat, None)
         self.quad = self.zs.quad.tolist()
         self.origin_x.setText(str(self.quad[1][0]))
         self.origin_y.setText(str(self.quad[1][1]))
@@ -355,7 +362,7 @@ class Surfaces(QtWidgets.QWidget):
         return u, v
         
     def _refresh_mash(self, new_str):
-        """Mash parameters is changet"""
+        """Mesh parameters nu, nv have changed."""
         if self.zs is None:
             return
         u, v = self.get_uv()
@@ -374,7 +381,7 @@ class Surfaces(QtWidgets.QWidget):
         center = self.zs.center()
         self.depth.setText(str(center[2]))
         self.showMash.emit(True)
-     
+
     def _focus_in(self):
         """Some controll gain focus"""
         if self.quad is not None:
@@ -424,7 +431,8 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(True)
             approx = ba.SurfaceApprox.approx_from_file(file) 
             zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
-            quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
+            self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+            quad = self.zs.quad
             self.quad = surfaces[id].quad            
             if not self.cmp_quad(quad, surfaces[id].quad):
                 self.zs = surfaces[id].approximation
@@ -468,7 +476,8 @@ class Surfaces(QtWidgets.QWidget):
                 self.error.setText(str(approx.error) )
             center = self.zs.center()
             self.depth.setText(str(center[2]))
-            self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
+            self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+            self.quad = self.zs.quad
             self.origin_x.setText(str(self.quad[1][0]))
             self.origin_y.setText(str(self.quad[1][1]))
             self.showMash.emit(True)
@@ -534,16 +543,19 @@ class Surfaces(QtWidgets.QWidget):
                 self.v_approx.setText(str(nuv[1]))   
                 self.last_u = nuv[0]
                 self.last_v = nuv[1]            
-                self.zs = approx.compute_approximation()                
+
+                self.zs = approx.compute_approximation()
                 if approx.error is not None:
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))
-                self.quad = approx.transformed_quad(np.array(self._get_transform(), dtype=float)).tolist()
+                self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+                self.quad = self.zs.quad
                 self.origin_x.setText(str(self.quad[1][0]))
                 self.origin_y.setText(str(self.quad[1][1]))
                 self.showMash.emit(True)
-            
+
+
     def _name_exist(self, name):
         """Test if set surface name exist"""
         surfaces = cfg.layers.surfaces
