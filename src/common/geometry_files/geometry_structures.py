@@ -50,7 +50,8 @@ class SurfaceApproximation(JsonData):
 
 class Surface(JsonData):
     
-    def __init__(self, config={}):
+    def __init__(self, config={}, id = None):
+        self._id = id
         self.transform_xy = 2*(3*(float,), )
         """Transformation matrix and shift in XY plane."""
         self.transform_z = 2*(float,)
@@ -65,8 +66,8 @@ class Surface(JsonData):
         super().__init__(config)
 
     @staticmethod
-    def make_surface(depth):
-        surf = Surface(dict(depth=depth))
+    def make_surface(id, depth):
+        surf = Surface(dict(depth=depth), id)
         surf.transform_xy = 2*[3*[0.0]]
         surf.transform_xy[0][0] = surf.transform_xy[1][1] = 1.0
         surf.transform_z = [1.0, -depth]
@@ -74,15 +75,13 @@ class Surface(JsonData):
         surf.grid_file = None
         return surf
 
-    def get_depth(self):
-        """Return surface depth in 0"""
-        return self.depth
+    #def get_depth(self):
+    #    """Return surface depth in 0"""
+    #    return self.depth
         
     def __eq__(self, other):
         """operators for comparision"""
-        return self.depth == other.depth \
-            and self.transform_z == other.transform_z \
-            and self.transform_xy != other.transform_xy
+        return self._id  == other._id
 
 
 

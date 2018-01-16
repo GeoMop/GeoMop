@@ -95,19 +95,19 @@ class GeometryFactory:
         ns = SurfaceNodeSet(dict( nodeset_id=ns_idx, surface_id=surface_idx ))
         return ns
 
-    def add_surface_plane(self, depth):
+    def add_surface_plane(self, id, depth):
         """Add new main layer"""
-        surface = Surface.make_surface(depth)
+        surface = Surface.make_surface(id, depth)
         return self._reuse_surface(surface)
 
 
     def add_surface(self, surface):
         """Add new main layer"""        
-        surface = Surface({
+        surface = Surface( {
             "depth":surface.depth, 
             "transform_xy":surface.transform_xy, 
             "grid_file":surface.grid_file, 
-            "transform_z":surface.transform_z})
+            "transform_z":surface.transform_z}, surface.id)
         return self._reuse_surface(surface)
 
 
