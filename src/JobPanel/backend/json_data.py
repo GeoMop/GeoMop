@@ -45,6 +45,13 @@ class ClassFactory:
         assert False
 
 
+class JsonDataNoConstruct:
+    """
+    Template class for data that will not be deserialized.
+    """
+    pass
+
+
 class JsonData:
     """
     Abstract base class for various data classes.
@@ -112,6 +119,11 @@ class JsonData:
         elif isinstance(temp, ClassFactory):
             assert data.__class__ is dict
             return temp.make_instance(data)
+
+        # JsonDataNoConstruct
+        elif isinstance(temp, JsonDataNoConstruct):
+            assert data.__class__ is dict
+            return data
 
         # IntEnum
         elif isinstance(temp, IntEnum):

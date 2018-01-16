@@ -18,6 +18,7 @@ import socket
 import socketserver
 import time
 import enum
+import stat
 
 
 class Error(Exception):
@@ -112,6 +113,13 @@ class ConnectionLocal(ConnectionBase):
         """
         return remote_port
 
+    def close_forwarded_local_port(self, local_port):
+        """
+        Close forwarded local port.
+        :param local_port:
+        :return:
+        """
+        pass
 
     def forward_remote_port(self, local_port):
         """
@@ -123,6 +131,14 @@ class ConnectionLocal(ConnectionBase):
         :return: remote_port
         """
         return local_port
+
+    def close_forwarded_remote_port(self, remote_port):
+        """
+        Close forwarded remote port.
+        :param remote_port:
+        :return:
+        """
+        pass
 
     def upload(self,  paths, local_prefix, remote_prefix  ):
         """
@@ -168,9 +184,24 @@ class ConnectionLocal(ConnectionBase):
         if from_prefix == to_prefix:
             return
         for path in paths:
-            to_file = os.path.join(to_prefix, path)
-            os.makedirs(os.path.dirname(to_file), exist_ok=True)
-            shutil.copyfile(os.path.join(from_prefix, path), to_file)
+            src = os.path.join(from_prefix, path)
+            dst = os.path.join(to_prefix, path)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.isdir(src):
+                self._copy_dir(src, dst)
+            else:
+                shutil.copyfile(src, dst)
+
+    def _copy_dir(self, src, dst):
+        names = os.listdir(src)
+        os.makedirs(dst, exist_ok=True)
+        for name in names:
+            srcname = os.path.join(src, name)
+            dstname = os.path.join(dst, name)
+            if os.path.isdir(srcname):
+                self._copy_dir(srcname, dstname)
+            else:
+                shutil.copyfile(srcname, dstname)
 
 
 class ConnectionSSH(ConnectionBase):
@@ -187,6 +218,9 @@ class ConnectionSSH(ConnectionBase):
 
         self._forwarded_local_ports = {}
         """dict of forwarded local ports, {'local_port': (thread, server)}"""
+
+        self._forwarded_remote_ports = set()
+        """set of forwarded remote ports"""
 
         self._delegator_std_in_out_err = None
         """delegator stdin, stdout, stderr"""
@@ -213,7 +247,6 @@ class ConnectionSSH(ConnectionBase):
             from .service_base import ServiceStatus
             if proxy_status == ServiceStatus.done:
                 self.close_connections()
-                self._delegator_proxy = None
                 self._status = ConnectionStatus.offline
                 self._reconnect_thread = threading.Thread(target=self._reconnect, daemon=True)
                 self._reconnect_event.clear()
@@ -437,6 +470,9 @@ class ConnectionSSH(ConnectionBase):
             remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
         except paramiko.SSHException:
             raise SSHError
+
+        self._forwarded_remote_ports.add(remote_port)
+
         return remote_port
 
     def close_forwarded_remote_port(self, remote_port):
@@ -448,7 +484,9 @@ class ConnectionSSH(ConnectionBase):
         if self._status != ConnectionStatus.online:
             return
 
-        self._ssh.get_transport().cancel_port_forward('', remote_port)
+        if remote_port in self._forwarded_remote_ports:
+            self._ssh.get_transport().cancel_port_forward('', remote_port)
+            self._forwarded_remote_ports.remove(remote_port)
 
     def upload(self, paths, local_prefix, remote_prefix):
         """
@@ -462,6 +500,8 @@ class ConnectionSSH(ConnectionBase):
 
         Implementation: just copy
         """
+        assert os.path.isabs(remote_prefix)
+
         if self._status != ConnectionStatus.online:
             raise SSHError
 
@@ -482,23 +522,43 @@ class ConnectionSSH(ConnectionBase):
 
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
-            try:
-                self._sftp.put(loc, rem)
-            except FileNotFoundError as e:
-                if e.filename is None:
-                    raise OSError(errno.ENOENT, "No such remote file", rem)
-                else:
-                    raise
-            except PermissionError as e:
-                if e.filename is None:
-                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
-                else:
-                    raise
-            except socket.timeout:
-                raise SSHTimeoutError
-            except OSError:
-                raise SSHError
+            if os.path.isdir(loc):
+                self._upload_dir(loc, rem)
+            else:
+                self._upload_file(loc, rem)
         self._sftp.chdir(cwd)
+
+    def _upload_file(self, loc, rem):
+        try:
+            self._sftp.put(loc, rem)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+
+    def _upload_dir(self, loc, rem):
+        names = os.listdir(loc)
+        try:
+            self._sftp.chdir(rem)
+        except IOError:
+            self._sftp.mkdir(rem)
+        for name in names:
+            loc_name = os.path.join(loc, name)
+            rem_name = os.path.join(rem, name)
+            if os.path.isdir(loc_name):
+                self._upload_dir(loc_name, rem_name)
+            else:
+                self._upload_file(loc_name, rem_name)
 
     def download(self, paths, local_prefix, remote_prefix):
         """
@@ -519,22 +579,38 @@ class ConnectionSSH(ConnectionBase):
             loc = os.path.join(local_prefix, path)
             rem = os.path.join(remote_prefix, path)
             os.makedirs(os.path.dirname(loc), exist_ok=True)
-            try:
-                self._sftp.get(rem, loc)
-            except FileNotFoundError as e:
-                if e.filename is None:
-                    raise OSError(errno.ENOENT, "No such remote file", rem)
-                else:
-                    raise
-            except PermissionError as e:
-                if e.filename is None:
-                    raise OSError(errno.EACCES, "Permission denied on remote file", rem)
-                else:
-                    raise
-            except socket.timeout:
-                raise SSHTimeoutError
-            except OSError:
-                raise SSHError
+            if stat.S_ISDIR(self._sftp.stat(rem).st_mode):
+                self._download_dir(loc, rem)
+            else:
+                self._download_file(loc, rem)
+
+    def _download_file(self, loc, rem):
+        try:
+            self._sftp.get(rem, loc)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+
+    def _download_dir(self, loc, rem):
+        os.makedirs(loc, exist_ok=True)
+        for fileattr in self._sftp.listdir_attr(rem):
+            loc_name = os.path.join(loc, fileattr.filename)
+            rem_name = os.path.join(rem, fileattr.filename)
+            if stat.S_ISDIR(fileattr.st_mode):
+                self._download_dir(loc_name, rem_name)
+            else:
+                self._download_file(loc_name, rem_name)
 
     def get_delegator(self):
         """
@@ -596,10 +672,10 @@ class ConnectionSSH(ConnectionBase):
                     break
             if connected:
                 from .service_proxy import DelegatorProxy
-                self._delegator_proxy = DelegatorProxy({}, self._local_service._repeater, self)
-                self._delegator_proxy._child_id = child_id
+                self._delegator_proxy = DelegatorProxy({})
+                self._delegator_proxy.set_rep_con(self._local_service._repeater, self)
+                self._delegator_proxy.child_id = child_id
                 self._delegator_proxy.on_answer_connect()
-                #self._local_service._delegator_services[child_id] = self._delegator_proxy
                 break
 
         return self._delegator_proxy
@@ -617,9 +693,16 @@ class ConnectionSSH(ConnectionBase):
         if self._reconnect_thread is not None:
             self._reconnect_thread.join()
 
+        # close delegator proxi
+        if self._delegator_proxy is not None:
+            self._delegator_proxy.close()
+            self._delegator_proxy = None
+
         # close all forwarded local ports
         for port in list(self._forwarded_local_ports.keys()):
             self.close_forwarded_local_port(port)
+
+        self._forwarded_remote_ports.clear()
 
         if self._sftp is not None:
             self._sftp.close()

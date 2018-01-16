@@ -161,9 +161,11 @@ class ProcessExec(ProcessBase):
             args = self._get_limit_args()
             if self.executable.script:
                 args.append(self.environment.python)
-            args.append(os.path.join(self.environment.geomop_root,
-                                     self.executable.path,
-                                     self.executable.name))
+            if os.path.isabs(self.executable.path):
+                args.append(self.executable.path)
+            else:
+                args.append(os.path.join(self.environment.geomop_root,
+                                         self.executable.path))
             args.extend(self.exec_args.args)
             cwd = os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir)
@@ -307,9 +309,11 @@ class ProcessPBS(ProcessBase):
         else:
             interpreter = None
 
-        command = os.path.join(self.environment.geomop_root,
-                               self.executable.path,
-                               self.executable.name)
+        if os.path.isabs(self.executable.path):
+            command = self.executable.path
+        else:
+            command = os.path.join(self.environment.geomop_root,
+                                   self.executable.path)
 
         pbs.prepare_file(command, interpreter, [], self.exec_args.args, self._get_limit_args())
         logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
@@ -434,9 +438,11 @@ class ProcessDocker(ProcessBase):
         args.extend(self._get_limit_args())
         if self.executable.script:
             args.append(self.environment.python)
-        args.append(os.path.join(self.environment.geomop_root,
-                                 self.executable.path,
-                                 self.executable.name))
+        if os.path.isabs(self.executable.path):
+            args.append(self.executable.path)
+        else:
+            args.append(os.path.join(self.environment.geomop_root,
+                                     self.executable.path))
         args.extend(self.exec_args.args)
         output = subprocess.check_output(args, universal_newlines=True)
         self.process_id = output.strip()

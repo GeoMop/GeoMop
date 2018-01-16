@@ -232,3 +232,21 @@ def test_json_data():
     assert i.c == MyEnum.E2
 
     assert json.dumps(i.serialize(), sort_keys=True) == '{"__class__": "I", "a": 2, "b": "test", "c": "E2"}'
+
+    # JsonDataNoConstruct
+    class J(JsonData):
+        def __init__(self, config={}):
+            self.a = 1
+            self.b = "test"
+            self.c = JsonDataNoConstruct()
+
+            super().__init__(config)
+
+    j = J({"a": 2, "c": {"a": 1, "b": "test"}})
+
+    assert j.a == 2
+    assert j.b == "test"
+    assert j.c == {"a": 1, "b": "test"}
+
+    assert json.dumps(j.serialize(), sort_keys=True) ==\
+        '{"__class__": "J", "a": 2, "b": "test", "c": {"a": 1, "b": "test"}}'

@@ -61,8 +61,7 @@ class Job(service_base.ServiceBase):
         if self.job_executable.script:
             args.append(self.process.environment.python)
         args.append(os.path.join(self.process.environment.geomop_root,
-                                 self.job_executable.path,
-                                 self.job_executable.name))
+                                 self.job_executable.path))
         args.extend(self.job_exec_args.args)
         cwd = os.path.join(self.process.environment.geomop_analysis_workspace,
                            self.job_exec_args.work_dir)

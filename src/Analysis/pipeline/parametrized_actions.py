@@ -96,8 +96,13 @@ class Flow123dAction(ParametrizedActionType):
         runner = Runner(self)
         runner.name = self._get_instance_name()
 
-        runner.command = ["flow123d", "-s", params[0], "-o", "output" + "/" + self._store_id]
+        yaml_file = params[0]
+        output_dir = "output" + "/" + self._store_id
         # we need "/" as separator because flow runs in docker
+        runner.command = ["flow123d", "-s", yaml_file, "-o", output_dir]
+
+        runner.input_files = [yaml_file, self._yaml_support.get_mesh_file()]
+        runner.output_files = [output_dir]
 
         return runner
         

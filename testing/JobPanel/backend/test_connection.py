@@ -15,6 +15,7 @@ import os
 import shutil
 import logging
 import time
+import stat
 
 
 logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
@@ -121,7 +122,8 @@ def test_upload_download(request):
         shutil.rmtree(REMOTE_TEST_FILES, ignore_errors=True)
     request.addfinalizer(clear_test_files)
 
-    files = ["f1.txt", "f2.txt"]
+    files = ["f1.txt", "f2.txt", "d1/f3.txt", "d2/f4.txt", "d2/d3/f5.txt"]
+    paths = ["f1.txt", "f2.txt", "d1/f3.txt", "d2"]
 
     def create_dir(path):
         shutil.rmtree(path, ignore_errors=True)
@@ -131,6 +133,9 @@ def test_upload_download(request):
     def create_files(path):
         create_dir(path)
         for file in files:
+            dir = os.path.dirname(file)
+            if len(dir):
+                os.makedirs(os.path.join(path, dir), exist_ok=True)
             with open(os.path.join(path, file), 'w') as fd:
                 fd.write(file)
 
@@ -140,7 +145,16 @@ def test_upload_download(request):
                 assert fd.read() == file
 
     def remove_files(path):
-        shutil.rmtree(path)
+        shutil.rmtree(path, ignore_errors=True)
+
+    def remove_files_rem(path, con):
+        for fileattr in con._sftp.listdir_attr(path):
+            path_name = os.path.join(path, fileattr.filename)
+            if stat.S_ISDIR(con._sftp.stat(path_name).st_mode):
+                remove_files_rem(path_name, con)
+                con._sftp.rmdir(path_name)
+            else:
+                con._sftp.remove(path_name)
 
     # local service
     env = {"__class__": "Environment",
@@ -164,7 +178,7 @@ def test_upload_download(request):
     # upload
     create_files(loc)
     create_dir(rem)
-    con.upload(files, loc, rem)
+    con.upload(paths, loc, rem)
     check_files(rem)
     remove_files(loc)
     remove_files(rem)
@@ -172,7 +186,7 @@ def test_upload_download(request):
     # download
     create_files(rem)
     create_dir(loc)
-    con.download(files, loc, rem)
+    con.download(paths, loc, rem)
     check_files(loc)
     remove_files(loc)
     remove_files(rem)
@@ -197,15 +211,16 @@ def test_upload_download(request):
     # upload
     create_files(loc)
     create_dir(rem)
-    con.upload(files, loc, rem)
+    con.upload(paths, loc, rem)
     check_files(rem)
     remove_files(loc)
+    remove_files_rem(rem, con)
     remove_files(rem)
 
     # download
     create_files(rem)
     create_dir(loc)
-    con.download(files, loc, rem)
+    con.download(paths, loc, rem)
     check_files(loc)
     remove_files(loc)
     remove_files(rem)
@@ -304,7 +319,7 @@ def test_delegator_exec():
     # start process
     process_config = {"__class__": "ProcessExec",
                       "environment": env_rem,
-                      "executable": {"__class__": "Executable", "path": "../testing/JobPanel/backend", "name": "t_process.py", "script": True}}
+                      "executable": {"__class__": "Executable", "path": "../testing/JobPanel/backend/t_process.py", "script": True}}
     answer = []
     delegator_proxy.call("request_process_start", process_config, answer)
 
@@ -353,18 +368,19 @@ def test_docker(request):
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
-          "environment": env}
+          "environment": env,
+          "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
     threading.Thread(target=local_service.run, daemon=True).start()
 
     # service data
     cd = {"__class__": "ConnectionLocal",
           "address": "172.17.42.1",
-          "environment": env}
+          "environment": env,
+          "name": "docker"}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services",
-                         "name": "backend_service.py",
+                         "path": "JobPanel/services/backend_service.py",
                          "script": True}}
     service_data = {"service_host_connection": cd,
                     "process": pd,
@@ -377,7 +393,7 @@ def test_docker(request):
 
     # wait for backend running
     time.sleep(5)
-    assert backend.status == ServiceStatus.running
+    assert backend._status == ServiceStatus.running
 
     # stop backend
     answer = []
