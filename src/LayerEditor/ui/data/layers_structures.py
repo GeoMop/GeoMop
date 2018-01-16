@@ -103,8 +103,14 @@ class Fracture():
         
 class Surface():
     """Surface structure class"""
-    
-    def __init__(self, depth, transform_xy=None, transform_z=None, grid_file=None): 
+    _surf_id = 0
+
+    def __init__(self, depth, transform_xy=None, transform_z=None, grid_file=None):
+
+        self.id = Surface._surf_id
+        """ Unique ID to check shared surfaces (e.g. for neigbouring layers or for fracture layers). """
+        Surface._surf_id+=1
+
         self.depth = 0.0
         """Float depth description"""
         try:

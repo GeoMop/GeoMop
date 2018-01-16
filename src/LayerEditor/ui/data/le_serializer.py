@@ -29,8 +29,8 @@ class LESerializer():
         gf.set_default()
 
         regions = ([], [], []) # No node, segment, polygon or regions.
-        ns_top = gf.get_surface_ns(0, gf.add_surface_plane(0.0))
-        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_surface_plane(100.0))
+        ns_top = gf.get_surface_ns(0, gf.add_surface_plane(0, 0.0))
+        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_surface_plane(1, 100.0))
         gf.add_GL(lname, LayerType.stratum, regions,
                   TopologyType.given, ns_top,
                   TopologyType.interpolated, ns_bot)
@@ -85,9 +85,9 @@ class LESerializer():
                 continue
             layer_id += 1
             # add interface
-            surface = gf.geometry.surfaces[layer.top.surface_id]
-            #surface = Surface(surface_.depth, surface_.transform_xy,
-            #    surface_.transform_z, surface_.grid_file)
+            gf_surface = gf.geometry.surfaces[layer.top.surface_id]
+            surface = Surface(gf_surface.depth, gf_surface.transform_xy,
+                gf_surface.transform_z, gf_surface.grid_file)
             if last_stratum is None:
                 # first surface
                 name = None
