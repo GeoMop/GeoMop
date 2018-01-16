@@ -372,10 +372,11 @@ class Surfaces(QtWidgets.QWidget):
         else:
             return
         file = self.grid_file_name.text()
-        approx = ba.SurfaceApprox.approx_from_file(file) 
+        approx = ba.SurfaceApprox.approx_from_file(file)
         self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
+
         self.origin_x.setText(str(self.quad[1][0]))
         self.origin_y.setText(str(self.quad[1][1]))
         center = self.zs.center()
@@ -429,6 +430,8 @@ class Surfaces(QtWidgets.QWidget):
         else:
             self.grid_file_refresh_button.setEnabled(True)
             self._enable_approx(True)
+
+            # This approx is recomputed to check that file doesn't change (so the quad match).
             approx = ba.SurfaceApprox.approx_from_file(file) 
             zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             self.zs.transform(np.array(self._get_transform(), dtype=float), None)
