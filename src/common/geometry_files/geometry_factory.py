@@ -1,8 +1,8 @@
 """Structures for Layer Geometry File"""
 
-from .geometry_structures import LayerGeometry, NodeSet,  Topology, Segment
+from .geometry_structures import LayerGeometry, NodeSet,  Topology
 from .geometry_structures import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
-from .geometry_structures import Region, Polygon, RegionDim, StratumLayer
+from .geometry_structures import Region, RegionDim, StratumLayer
 from .geometry_structures import FractureLayer, ShadowLayer
 from .bspline_io import bs_zsurface_read, bs_zsurface_write
 
@@ -15,6 +15,7 @@ class GeometryFactory:
             self.geometry.version = [0, 5, 0]
         else:
             self.geometry = geometry
+        self.used_interfaces = {}
 
     def set_default(self):
         default_regions = [                                                                                # Stratum layer
@@ -113,25 +114,20 @@ class GeometryFactory:
     def add_interface_plane(self, depth):
         """Add new main layer"""
         interface = Interface.make_interface(depth)
-        return self._reuse_interface(interface)
-
-
-    def add_interface(self, interface):
-        """Add new main layer""" 
-        interface = Interface({
-            "depth":interface.depth, 
-            "surface_id":interface.surface_id, 
-            "transform_z":interface.transform_z})
-        return self._reuse_interface(interface)
-
-
-    def _reuse_interface(self, interface):
-        for old_interface in self.geometry.interfaces:
-            if interface==old_interface:
-                return self.geometry.interfaces.index(old_interface)
         self.geometry.interfaces.append(interface)
         return len(self.geometry.interfaces)-1
 
+    def add_interface(self, interface):
+        """Add new main layer""" 
+        if interface in self.used_interfaces:
+            return self.geometry.interfaces.index(self.used_interfaces[interface])
+        new_interface = Interface({
+            "depth":interface.depth, 
+            "surface_id":interface.surface_id, 
+            "transform_z":interface.transform_z})
+        self.used_interfaces[interface] = new_interface
+        self.geometry.interfaces.append(interface)
+        return len(self.geometry.interfaces)-1
 
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
@@ -170,6 +166,7 @@ class GeometryFactory:
         self.geometry.regions = []
         self.geometry.layers = []
         self.geometry.curves = []
+        self.used_interfaces = {}
         
     # def add_node(self, node_set_idx, x, y):
     #     """Add one node"""

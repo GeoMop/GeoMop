@@ -6,6 +6,7 @@ class EventLocation(IntEnum):
     diagram = 0
     layer = 1
     region = 2
+    surfaces = 3
 
 class LocalLabel():
     """
@@ -541,7 +542,7 @@ class LayersHistory(History):
         self._refresh_panel = True
         return revert
         
-    def insert_interface(self, interface, label=None):
+    def insert_interface(self, interface, id, label=None):
         """
         Add insert layer to history operation. 
  
@@ -1147,3 +1148,97 @@ class RegionHistory(History):
         self._refresh_panel = False
         self.updated_shapes={}
         return ret
+        
+class SurfacesHistory(History):
+    """
+    Region history
+    
+    Basic region operation for history purpose
+    """
+
+    __location__ = EventLocation.surfaces
+            
+    def __init__(self, global_history): 
+        super(SurfacesHistory, self).__init__(global_history) 
+        self._refresh_panel = False
+        """Refresh region panel"""  
+    
+    def insert_surface(self, surface, id, label=None):
+        """
+        Add insert layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new surface
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._insert_surface, [surface, id],label))
+        
+    def _insert_surface(self, surface, id):
+        """
+        Insert surface to layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        surfaces.surfaces.insert(id, surface)
+        
+        revert =  HistoryStep(self._delete_surface, [id])
+        self._refresh_panel = True        
+        return revert
+
+    def delete_surface(self, id, label=None):
+        """
+        Add delete layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to rest surfaces
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_surface, [id],label))
+        
+    def _delete_surface(self, id):
+        """
+        Delete layer from layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        del_surface = surfaces.surfaces[id]
+        del surfaces.surfaces[id]
+        
+        revert =  HistoryStep(self._insert_surface, [del_surface, id])
+        self._refresh_panel = True
+        
+        return revert
+
+    def change_surface(self, surface, id, label=None):
+        """
+        Add change layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new surfaces
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_surface, [surface, id],label))
+        
+    def _change_surface(self, surface, id):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        old_surface = surfaces.surfaces[id]
+        surfaces.surfaces[id] = surface
+        
+        revert =  HistoryStep(self._change_surface, [old_surface, id])
+        self._refresh_panel = True
+
+        return revert
+        
+    def return_op(self):
+        """return nedded check """
+        ret = {"type":"Surfaces", "refresh_panel":self._refresh_panel}
+        self._refresh_panel = False
+        return ret
+

@@ -109,6 +109,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         
     def show_mash(self, quad, u, v):
         """Show mash"""
+        if quad is None:
+            return
         if self.mash is None:
             self.mash = Mash(quad, u, v)
             self.addItem(self.mash)

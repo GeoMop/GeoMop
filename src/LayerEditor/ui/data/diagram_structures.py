@@ -511,6 +511,21 @@ class Diagram():
             else:
                 poly = new_poly.intersected(new_poly)
         return poly
+      
+    def get_diagram_all_rect(self, rect, layers, diagram_id):
+        """Return init area as squads intersection"""
+        quads = layers.get_diagram_quads(diagram_id)
+        for quad in quads:
+            for i in range(0, 4):
+                if quad[i][0]<rect.left():
+                    rect.setLeft(quad[i][0])
+                if quad[i][0]>rect.right():
+                    rect.setRight(quad[i][0])
+                if -quad[i][1]<rect.top():
+                    rect.setTop(-quad[i][1])
+                if -quad[i][1]>rect.bottom():
+                    rect.setBottom(-quad[i][1])
+        return rect
     
     @classmethod
     def release_all(cls, history):
@@ -650,9 +665,7 @@ class Diagram():
     def rect(self):
         if self._rect is None:
             if self.shp.boundrect is None:
-                dx= (abs(self.area.xmax-self.area.xmin)+abs(self.area.ymax-self.area.ymin))/100
-                return QtCore.QRectF(self.area.xmin-dx, self.area.ymin-dx, 
-                    self.area.xmax-self.area.xmin+2*dx, self.area.ymax-self.area.ymin+2*dx)
+                return None
             else:
                 return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100

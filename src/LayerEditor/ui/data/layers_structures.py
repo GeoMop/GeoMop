@@ -1001,7 +1001,7 @@ class Layers():
                 self.interfaces[i].diagram_id2 == diagram_id:
                 found = True
         return ret
-        
+
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 
         else change edited interface in data and return True"""

@@ -98,6 +98,9 @@ class EditMenu(QtWidgets.QMenu):
                 elif ops["type"]=="Regions":  
                     if ops["refresh_panel"]: 
                         cfg.main_window.set_topology()
+                elif ops["type"]=="Surfaces":  
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.reload_surfaces()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()
@@ -131,6 +134,9 @@ class EditMenu(QtWidgets.QMenu):
                 elif ops["type"]=="Regions": 
                     if ops["refresh_panel"]: 
                         cfg.main_window.set_topology()
+                elif ops["type"]=="Surfaces":  
+                    if ops["refresh_panel"]: 
+                        cfg.main_window.reload_surfaces()
             if ret:
                 self._diagram._add_polygons()
                 self._diagram._del_polygons()

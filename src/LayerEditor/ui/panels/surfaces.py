@@ -8,6 +8,8 @@ import b_spline
 import numpy as np
 import bspline_approx as ba
 from geomop_dialogs import GMErrorDialog
+from ui.data import SurfacesHistory
+import copy
 
 class FocusEdit(QtWidgets.QLineEdit):
     """LineEdit width focus in event
@@ -73,6 +75,8 @@ class Surfaces(QtWidgets.QWidget):
         """Last u"""
         self.last_v = 10
         """Last v"""
+        self._history = SurfacesHistory(cfg.history)
+        """History class"""
                 
         grid = QtWidgets.QGridLayout(self)
         
@@ -106,6 +110,7 @@ class Surfaces(QtWidgets.QWidget):
         self.d_grid_file = QtWidgets.QLabel("Grid File:")
         self.grid_file_name = FocusEdit()
         self.grid_file_name.setReadOnly(True)
+        self.grid_file_name.setStyleSheet("background-color:WhiteSmoke");
         self.grid_file_button = QtWidgets.QPushButton("...")
         self.grid_file_button.clicked.connect(self._add_grid_file)
         self.grid_file_button.pressed.connect(self._focus_in)
@@ -197,45 +202,48 @@ class Surfaces(QtWidgets.QWidget):
         line.setFrameShape(QtWidgets.QFrame.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
         grid.addWidget(line, 14, 0, 1, 3)
+        
+        
+        inner_grid = QtWidgets.QGridLayout(self)
 
         self.d_depth = QtWidgets.QLabel("Depth:", self)        
         self.depth = QtWidgets.QLineEdit()
         self.depth.setReadOnly(True)
-        grid.addWidget(self.d_depth, 15, 0)
-        grid.addWidget(self.depth, 15, 1, 1, 2)
+        self.depth.setStyleSheet("background-color:WhiteSmoke");
+        self.depth.setEnabled(False)
+        inner_grid.addWidget(self.d_depth, 0, 0)
+        inner_grid.addWidget(self.depth, 0, 1)
 
         self.d_error = QtWidgets.QLabel("Error:", self)        
         self.error = QtWidgets.QLineEdit()
         self.error.setReadOnly(True)
+        self.error.setStyleSheet("background-color:WhiteSmoke");
+        self.error.setEnabled(False)
         
-        grid.addWidget(self.d_error, 16, 0)
-        grid.addWidget(self.error, 16, 1, 1, 2) 
+        inner_grid.addWidget(self.d_error, 0, 2)
+        inner_grid.addWidget(self.error, 0, 3)
         
-        self.d_origin_x = QtWidgets.QLabel("Origin x:", self)        
-        self.origin_x = QtWidgets.QLineEdit()
-        self.origin_x.setReadOnly(True)
-        self.d_origin_y = QtWidgets.QLabel("Origin y:", self)        
-        self.origin_y = QtWidgets.QLineEdit()
-        self.origin_y.setReadOnly(True)
+        grid.addLayout(inner_grid, 15, 0, 1, 3)
         
-        grid.addWidget(self.d_origin_x, 17, 0)
-        grid.addWidget(self.origin_x, 17, 1, 1, 2) 
-        grid.addWidget(self.d_origin_y, 18, 0)
-        grid.addWidget(self.origin_y, 18, 1, 1, 2) 
         
         self.d_message = QtWidgets.QLabel("", self)
         self.d_message.setVisible(False)
-        grid.addWidget(self.d_message, 19, 0, 1, 3)
+        grid.addWidget(self.d_message, 16, 0, 1, 3)
  
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 20, 0, 1, 3)
+        grid.addItem(sp1, 17, 0, 1, 3)
         
         self.setLayout(grid)
         
         if len(surfaces.surfaces)>0:
             self.surface.setCurrentIndex(0)            
         else:
-            self._set_new_edit(True)             
+            self._set_new_edit(True)     
+    
+    def focusInEvent(self, event):
+        """Standart focus event"""
+        super(Surfaces, self).focusInEvent(event)
+        self._focus_in()
             
     def _set_new_edit(self, new):
         """Set or unset new surface editing"""
@@ -267,8 +275,10 @@ class Surfaces(QtWidgets.QWidget):
     def get_surface_id(self):
         return self.surface.currentIndex()
             
-    def reload_surfaces(self, id):
+    def reload_surfaces(self, id=None):
         """Reload all surfaces after file loading"""
+        if id is None:
+            id = self.surface.currentIndex()
         surfaces = cfg.layers.surfaces
         self.surface.clear()
         for i in range(0, len(surfaces.surfaces)):            
@@ -291,26 +301,26 @@ class Surfaces(QtWidgets.QWidget):
         
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
-        self.origin_x.setText(str(self.quad[1][0]))
-        self.origin_y.setText(str(self.quad[1][1]))
-        center = self.zs.center()
-        self.depth.setText(str(center[2]))
         
         if self.new:
             surfaces.add(self.zs, file, 
                 self.name.text(), self._get_transform(), self.quad) 
             self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
+            self._history.delete_surface(len(surfaces.surfaces)-1)
             self.surface.setCurrentIndex(len(surfaces.surfaces)-1)
             self._set_new_edit(False)           
         else:
-            surface = surfaces.surfaces[self.surface.currentData()]
+            id = self.surface.currentData()
+            surface = copy.copy(surfaces.surfaces[id])
             surface.grid_file = self.grid_file_name.text()
             if surface.name!=self.name.text():
                 surface.name = self.name.text()    
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
             surface.xy_transform = self._get_transform()
-            surface.quad = self.quad
+            surface.quad = copy.copy(self.quad)
+            self._history.change_surface(surfaces, id)
+            surfaces.surfaces[id] = surface
         self.refreshArea.emit()
        
     def _delete(self):
@@ -318,11 +328,13 @@ class Surfaces(QtWidgets.QWidget):
         id = self.surface.currentIndex()
         if id == -1:
             return 
+        del_surface = cfg.layers.surfaces.surfaces[id]
         if not cfg.layers.delete_surface(id):
             error = "Surface is used" 
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog(error)
             return
+        self._history.insert_surface(del_surface, id)    
         self.reload_surfaces(id)
         
     def _refresh_grid(self, new_str):
@@ -337,11 +349,7 @@ class Surfaces(QtWidgets.QWidget):
             # TODO: mark actual field invalid
             return
         self.zs.transform(t_mat, None)
-        self.quad = self.zs.quad.tolist()
-        self.origin_x.setText(str(self.quad[1][0]))
-        self.origin_y.setText(str(self.quad[1][1]))
-        center = self.zs.center()
-        self.depth.setText(str(center[2]))
+        self.quad = self.zs.quad.tolist()        
         self.showMash.emit(True)
         
     def get_uv(self):
@@ -371,17 +379,10 @@ class Surfaces(QtWidgets.QWidget):
             self.last_v = v
         else:
             return
-        file = self.grid_file_name.text()
-        approx = ba.SurfaceApprox.approx_from_file(file)
-        self.zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
-        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-        self.quad = self.zs.quad.tolist()
 
-        self.origin_x.setText(str(self.quad[1][0]))
-        self.origin_y.setText(str(self.quad[1][1]))
-        center = self.zs.center()
-        self.depth.setText(str(center[2]))
         self.showMash.emit(True)
+        self.depth.setEnabled(False)
+        self.error.setEnabled(False)
 
     def _focus_in(self):
         """Some controll gain focus"""
@@ -414,8 +415,8 @@ class Surfaces(QtWidgets.QWidget):
         self.last_v = v  
         self.depth.setText("")
         self.error.setText("")
-        self.origin_x.setText("")
-        self.origin_y.setText("")
+        self.depth.setEnabled(False)
+        self.error.setEnabled(False)          
         self.d_message.setText("")
         self.d_message.setVisible(False)
         
@@ -434,8 +435,8 @@ class Surfaces(QtWidgets.QWidget):
             # This approx is recomputed to check that file doesn't change (so the quad match).
             approx = ba.SurfaceApprox.approx_from_file(file) 
             zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
-            self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-            quad = self.zs.quad
+            zs.transform(np.array(self._get_transform(), dtype=float), None)
+            quad = zs.quad
             self.quad = surfaces[id].quad            
             if not self.cmp_quad(quad, surfaces[id].quad):
                 self.zs = surfaces[id].approximation
@@ -448,11 +449,13 @@ class Surfaces(QtWidgets.QWidget):
                 if approx.error is not None:
                     self.error.setText(str(approx.error))                
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))            
+                self.depth.setText(str(center[2]))  
+                self.depth.setEnabled(True)
+                self.error.setEnabled(True)
+                self.depth.home(False) 
+                self.error.home(False) 
             # TODO: check focus
             self.showMash.emit(True)
-        self.origin_x.setText(str(self.quad[1][0]))
-        self.origin_y.setText(str(self.quad[1][1]))
             
     def cmp_quad(self, q1, q2):
         """Compare two quad"""
@@ -479,10 +482,12 @@ class Surfaces(QtWidgets.QWidget):
                 self.error.setText(str(approx.error) )
             center = self.zs.center()
             self.depth.setText(str(center[2]))
+            self.depth.setEnabled(True)
+            self.error.setEnabled(True) 
+            self.depth.home(False) 
+            self.error.home(False)          
             self.zs.transform(np.array(self._get_transform(), dtype=float), None)
             self.quad = self.zs.quad
-            self.origin_x.setText(str(self.quad[1][0]))
-            self.origin_y.setText(str(self.quad[1][1]))
             self.showMash.emit(True)
         
     def _add_grid_file(self):
@@ -511,8 +516,6 @@ class Surfaces(QtWidgets.QWidget):
         self.xyshift2.setText("0.0")
         self.depth.setText("")
         self.error.setText("") 
-        self.origin_x.setText("")
-        self.origin_y.setText("")
         self.d_message.setText("")
         self.d_message.setVisible(False)
         self.last_u = 10
@@ -552,10 +555,12 @@ class Surfaces(QtWidgets.QWidget):
                     self.error.setText(str(approx.error) )
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))
+                self.depth.setEnabled(True)
+                self.error.setEnabled(True)
+                self.depth.home(False) 
+                self.error.home(False)           
                 self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-                self.quad = self.zs.quad
-                self.origin_x.setText(str(self.quad[1][0]))
-                self.origin_y.setText(str(self.quad[1][1]))
+                self.quad = self.zs.quad                
                 self.showMash.emit(True)
 
 

@@ -50,9 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         self.diagramView.setMouseTracking(True)
-        self._hsplitter.addWidget(self.diagramView) 
-        if not cfg.diagram.shp.is_empty():
-            self.refresh_diagram_shp()
+        self._hsplitter.addWidget(self.diagramView)
         
         self._hsplitter.setSizes([300, 760])
         
@@ -70,6 +68,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter2.addWidget(self.shp) 
         if cfg.diagram.shp.is_empty():
             self.shp.hide()   
+            
+        if not cfg.diagram.shp.is_empty():
+            self.refresh_diagram_shp()
         
         # Menu bar
         self._menu = self.menuBar()
@@ -206,6 +207,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def display_all(self):
         """Display all diagram"""
         rect = cfg.diagram.rect
+        if rect is None:
+            rect = cfg.diagram.get_area_rect(cfg.layers, cfg.diagram_id())
+        rect = cfg.diagram.get_diagram_all_rect(rect, cfg.layers, cfg.diagram_id())        
         self.display_rect(rect)
         
     def display_area(self):
@@ -303,3 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def show_status_message(self, message, duration=5000):
         """Show a message in status bar for the given duration (in ms)."""
         self._status.showMessage(message, duration)
+        
+    def reload_surfaces(self):
+        """reload surface"""
+        self.surfaces.reload_surfaces()
