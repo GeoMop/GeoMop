@@ -25,6 +25,13 @@ class FocusEdit(QtWidgets.QLineEdit):
         """Standart focus event"""
         super(FocusEdit, self).focusInEvent(event)
         self.focusIn.emit()
+        
+    def getFloat(self):
+        """Return float in text field"""
+        try:
+            return float(self.text())
+        except:
+            return 0
     
     
 
@@ -501,10 +508,10 @@ class Surfaces(QtWidgets.QWidget):
             
     def _get_transform(self):
         """Return xy transformation from controls"""
-        return ((float(self.xyscale11.text()), 
-                float(self.xyscale12.text()),float(self.xyshift1.text())), 
-                (float(self.xyscale21.text()), float(self.xyscale22.text()),  
-                float(self.xyshift2.text())))
+        return ((self.xyscale11.getFloat(), 
+                self.xyscale12.getFloat(),self.xyshift1.getFloat()), 
+                (self.xyscale21.getFloat(), self.xyscale22.getFloat(),  
+                self.xyshift2.getFloat()))
 
     def _set_default_approx(self, file):
         """Set default scales, aprox points and Name"""
