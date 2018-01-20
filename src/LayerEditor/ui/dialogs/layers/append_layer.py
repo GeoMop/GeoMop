@@ -32,13 +32,13 @@ class AppendLayerDlg(QtWidgets.QDialog):
         if add:
             self.validator.setBottom(min_depth)
             self.validator.setTop( max_depth)
-            self.depth.setText(str(max_depth))
+            self.depth.setText(str((max_depth+min_depth)/2))
         elif prepend:
-            self.validator.setTop( max_depth)
-            self.depth.setText(str(max_depth-100))
-        else:
             self.validator.setBottom( min_depth)
             self.depth.setText(str(min_depth+100))
+        else:
+            self.validator.setTop( max_depth)            
+            self.depth.setText(str(max_depth-100))
         self.depth.setValidator(self.validator)
         
         if add:

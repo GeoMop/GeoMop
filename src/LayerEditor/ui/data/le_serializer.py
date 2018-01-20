@@ -30,7 +30,7 @@ class LESerializer():
 
         regions = ([], [], []) # No node, segment, polygon or regions.
         ns_top = gf.get_interface_ns(0, gf.add_interface_plane(0.0))
-        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_interface_plane(100.0))
+        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_interface_plane(-100.0))
         gf.add_GL(lname, LayerType.stratum, regions,
                   TopologyType.given, ns_top,
                   TopologyType.interpolated, ns_bot)

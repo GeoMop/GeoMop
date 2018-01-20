@@ -509,7 +509,7 @@ class Diagram():
             if poly is None:
                 poly = new_poly
             else:
-                poly = new_poly.intersected(new_poly)
+                poly = new_poly.intersected(poly)
         return poly
       
     def get_diagram_all_rect(self, rect, layers, diagram_id):

@@ -213,7 +213,7 @@ class Surfaces(QtWidgets.QWidget):
         
         inner_grid = QtWidgets.QGridLayout(self)
 
-        self.d_depth = QtWidgets.QLabel("Depth:", self)        
+        self.d_depth = QtWidgets.QLabel("Elevation:", self)        
         self.depth = QtWidgets.QLineEdit()
         self.depth.setReadOnly(True)
         self.depth.setStyleSheet("background-color:WhiteSmoke");

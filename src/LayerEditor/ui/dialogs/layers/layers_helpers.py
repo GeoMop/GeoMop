@@ -24,9 +24,9 @@ class LayersHelpers():
         if state==QtGui.QValidator.Acceptable:                        
             return True
         elif state == QtGui.QValidator.Intermediate:
-            error = "Depth value out of range"
+            error = "Elevation value out of range"
         else:
-            error = "Bad depth value format" 
+            error = "Bad elevation value format" 
         err_dialog = GMErrorDialog(dialog)
         err_dialog.open_error_dialog(error)
         
@@ -79,7 +79,7 @@ class LayersHelpers():
         dialog.zs = None
         dialog.zcoo = QtWidgets.QRadioButton("Z-Coordinate:")
         dialog.zcoo.clicked.connect(_enable_controls)
-        d_depth = QtWidgets.QLabel("Depth:", dialog)
+        d_depth = QtWidgets.QLabel("Elevation:", dialog)
         dialog.depth = QtWidgets.QLineEdit() 
         if interface is not None:
             dialog.depth.setText(str(interface.depth))

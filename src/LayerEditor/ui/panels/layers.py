@@ -146,7 +146,7 @@ class Layers(QtWidgets.QWidget):
         painter.drawText(QtCore.QPointF(d.x_view, d.__dy_row__+d.y_font), "View")
         painter.drawText(QtCore.QPointF(d.x_edit, d.__dy_row__+d.y_font), "Edit")
         painter.drawText(QtCore.QPointF(d.x_label, d.__dy_row__+d.y_font), "Layer")
-        painter.drawText(QtCore.QPointF(d.x_ilabel, d.__dy_row__+d.y_font), "Depth")
+        painter.drawText(QtCore.QPointF(d.x_ilabel, d.__dy_row__+d.y_font), "Elevation")
         
         for i in range(0, len(d.interfaces)):
             # interface            
@@ -213,7 +213,7 @@ class Layers(QtWidgets.QWidget):
 
     def append_layer(self):
         """Append layer to the end"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[-1].depth)
+        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[-1].depth)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -228,7 +228,7 @@ class Layers(QtWidgets.QWidget):
 
     def prepend_layer(self):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[0].depth, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[0].depth, None, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()            
@@ -243,7 +243,7 @@ class Layers(QtWidgets.QWidget):
             
     def add_layer_to_shadow(self, idx):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx].depth,cfg.layers.interfaces[idx+1].depth, False, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx+1].depth, cfg.layers.interfaces[idx].depth, False, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -303,10 +303,10 @@ class Layers(QtWidgets.QWidget):
     
     def add_interface(self, i):
         """Split layer by new interface"""
-        min = cfg.layers.interfaces[i].depth
-        max = None
+        max = cfg.layers.interfaces[i].depth
+        min = None
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].depth
+            min = cfg.layers.interfaces[i+1].depth
             
         dlg = SplitLayerDlg(min, max, __COPY_BLOCK__, cfg.main_window)
         ret = dlg.exec_()

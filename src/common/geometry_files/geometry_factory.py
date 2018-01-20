@@ -126,7 +126,7 @@ class GeometryFactory:
             "surface_id":interface.surface_id, 
             "transform_z":interface.transform_z})
         self.used_interfaces[interface] = new_interface
-        self.geometry.interfaces.append(interface)
+        self.geometry.interfaces.append(new_interface)
         return len(self.geometry.interfaces)-1
 
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):

@@ -144,7 +144,7 @@ class Interface():
         try:
             self.depth = float(depth)            
         except:
-            raise ValueError("Invalid depth type")
+            raise ValueError("Invalid elevation type")
         self.surface_id = surface_id
         """Surface structure"""
         self.splited = splited
@@ -1363,6 +1363,7 @@ class Layers():
                 y_pos += fontHeight+self.__dy_row__
             
         # interface label
+        self.x_ilabel_width = fm.width("elevation")
         for i in range(0, len(self.interfaces)):
             width = fm.width(self.interfaces[i].str_depth)
             if  width>self.x_ilabel_width:
