@@ -229,7 +229,7 @@ class MultiJob(ServiceBase):
 
             # running
             elif job_info.status == JobStatus.running:
-                if self._child_services[job_info.child_id].status == ServiceStatus.done:
+                if self._child_services[job_info.child_id]._status == ServiceStatus.done:
                     self._child_services[job_info.child_id].close()
                     del self._child_services[job_info.child_id]
                     self._n_running_jobs -= 1

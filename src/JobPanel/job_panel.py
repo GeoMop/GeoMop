@@ -10,6 +10,7 @@ import sys
 import logging
 import argparse
 import PyQt5.QtWidgets as QtWidgets
+import time
 
 # import common directory to path (should be in __init__)
 __lib_dir__ = os.path.join(os.path.split(
@@ -24,6 +25,11 @@ sys.path.insert(2, __pexpect_dir__)
 if sys.version_info[0] != 3 or sys.version_info[1] < 4:
     sys.path.insert(3, __enum_dir__)
 
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "Analysis"))
+
+#sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# needed if running from different directory
+
 from ui.com_manager import ComManager
 from ui.main_window import MainWindow
 from ui.data.data_structures import DataContainer
@@ -33,6 +39,8 @@ from  communication.installation import Installation
 
 import config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
+
+from backend.service_frontend import ServiceFrontend
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
@@ -72,9 +80,13 @@ class JobPanel(object):
         # setup com manager
         self._com_manager = ComManager(self._data)
 
+        # setup frontend service
+        self._frontend_service = ServiceFrontend(self._data)
+
         # setup qt UI
         self._main_window = MainWindow(data=self._data,
-                                       com_manager=self._com_manager)
+                                       com_manager=self._com_manager,
+                                       frontend_service=self._frontend_service)
 
         # connect save all on exit
         self._app.aboutToQuit.connect(self._data.save_all)
@@ -87,11 +99,28 @@ class JobPanel(object):
     def run(self):
         """Run app and show UI"""
 
+        # start frontend service
+        self._frontend_service.run_before()
+
+        # start backend service
+        self._frontend_service.start_backend()
+
         # show UI
         self._main_window.show()
 
         # execute app
-        sys.exit(self._app.exec_())
+        ret = self._app.exec_()
+
+        # stop backend service
+        self._frontend_service.stop_backend()
+        for i in range(10):
+            time.sleep(0.1)
+            self._frontend_service.run_body()
+
+        # stop frontend service
+        self._frontend_service.run_after()
+
+        sys.exit(ret)
 
 
 def main():

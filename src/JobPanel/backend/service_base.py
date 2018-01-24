@@ -267,29 +267,20 @@ class ServiceBase(JsonData):
 
     def run(self):
         """
+        Runs service loop.
+        Loop running until self._closing is not set.
         :return:
         """
         time.sleep(self.wait_before_run)
 
-        # Start the repeater loop.
-        self._repeater.run()
-        logging.info("After run")
-
-        self.status = ServiceStatus.running
-        self.save_config()
+        self.run_before()
 
         last_time = time.time()
 
         # Service processing loop.
         while not self._closing:
             #logging.info("Loop")
-            self._process_answers()
-            self._process_requests()
-            self._send_answers()
-            self._do_work()
-            self._check_connections()
-            self._check_child_services()
-            self._repeater.discard_closed_childs()
+            self.run_body()
 
             # sleep, not too much
             remaining_time = 0.1 - (time.time() - last_time)
@@ -297,10 +288,41 @@ class ServiceBase(JsonData):
                 time.sleep(remaining_time)
             last_time = time.time()
 
+        self.run_after()
+
+    def run_before(self):
+        """
+        Perform pre-run actions.
+        :return:
+        """
+        # Start the repeater loop.
+        self._repeater.run()
+        logging.info("After run")
+
+        self.status = ServiceStatus.running
+        self.save_config()
+
+    def run_body(self):
+        """
+        Perform one pass of service processing loop.
+        Must be called about after 0.1 s.
+        :return:
+        """
+        self._process_answers()
+        self._process_requests()
+        self._send_answers()
+        self._do_work()
+        self._check_connections()
+        self._check_child_services()
+        self._repeater.discard_closed_childs()
+
+    def run_after(self):
+        """
+        Perform post-run actions.
+        :return:
+        """
         self._repeater.close()
         self.close_connections()
-
-
 
     def _process_answers(self):
         #logging.info("Process answers ...")
@@ -470,6 +492,10 @@ class ServiceBase(JsonData):
         self._child_services[child_id] = proxy
 
         return child_id
+
+    def request_stop_child(self, child_id):
+        if child_id in self._child_services:
+            self._child_services[child_id].stop()
 
 
     # def request_stop_child(self, request_data):
