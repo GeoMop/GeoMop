@@ -24,7 +24,7 @@ class LayersHelpers():
         if state==QtGui.QValidator.Acceptable:                        
             return True
         elif state == QtGui.QValidator.Intermediate:
-            error = "Elevation value out of range"
+            error = "Elevation value out of range (%f, %f)."%(validator.bottom(), validator.top())
         else:
             error = "Bad elevation value format" 
         err_dialog = GMErrorDialog(dialog)
@@ -102,7 +102,7 @@ class LayersHelpers():
             dialog.surface = None
             dialog.zcoo.setChecked(True)
             dialog.grid.setEnabled(False)
-            error = QtWidgets.QLabel("Any surface is not defined")
+            error = QtWidgets.QLabel("No surface is defined.")
             grid.addWidget(dialog.grid, row+1, 0)
             grid.addWidget(error, row+1, 1, 1, 2)
             return row+2        

@@ -506,17 +506,17 @@ class Layers(QtWidgets.QWidget):
         
     def set_interface_surface(self, i):
         """Set interface depth"""
-        min = None
-        max = None
+        min_elevation = None
+        max_elevation = None
         if i>0:
-            min = cfg.layers.interfaces[i-1].depth
+            max_elevation = cfg.layers.interfaces[i-1].depth
         if i<len(cfg.layers.interfaces)-1:
-            max = cfg.layers.interfaces[i+1].depth
+            min_elevation = cfg.layers.interfaces[i+1].depth
         old_surface_id = cfg.layers.interfaces[i].surface_id
         old_depth = cfg.layers.interfaces[i].depth
         old_transform_z = cfg.layers.interfaces[i].transform_z
 
-        dlg = SetSurfaceDlg(cfg.layers.interfaces[i], cfg.main_window, min, max)
+        dlg = SetSurfaceDlg(cfg.layers.interfaces[i], cfg.main_window, min_elevation, max_elevation)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             dlg.fill_surface(cfg.layers.interfaces[i])

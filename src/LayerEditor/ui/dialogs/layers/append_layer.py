@@ -8,7 +8,7 @@ from .layers_helpers import LayersHelpers
 
 class AppendLayerDlg(QtWidgets.QDialog):
 
-    def __init__(self, parent, min_depth=None ,max_depth=None, prepend=False, add=False):
+    def __init__(self, parent, min_elevation=None, max_elevation=None, prepend=False, add=False):
         super(AppendLayerDlg, self).__init__(parent)
         if add:
             self.setWindowTitle("Add Layer to Shadow Block")
@@ -30,15 +30,15 @@ class AppendLayerDlg(QtWidgets.QDialog):
         
         self.validator = QtGui.QDoubleValidator()
         if add:
-            self.validator.setBottom(min_depth)
-            self.validator.setTop( max_depth)
-            self.depth.setText(str((max_depth+min_depth)/2))
+            self.validator.setBottom(min_elevation)
+            self.validator.setTop(max_elevation)
+            self.depth.setText(str((min_elevation + max_elevation) / 2))
         elif prepend:
-            self.validator.setBottom( min_depth)
-            self.depth.setText(str(min_depth+100))
+            self.validator.setBottom(min_elevation)
+            self.depth.setText(str(min_elevation + 100))
         else:
-            self.validator.setTop( max_depth)            
-            self.depth.setText(str(max_depth-100))
+            self.validator.setTop(max_elevation)
+            self.depth.setText(str(max_elevation - 100))
         self.depth.setValidator(self.validator)
         
         if add:
