@@ -20,6 +20,7 @@ import traceback
 import socket
 import fcntl
 import struct
+import hashlib
 
 
 """
@@ -231,8 +232,7 @@ class ServiceBase(JsonData):
         # obtained from the global geomop setting not retrieved form the service configuration.
 
         self._child_services = {}
-
-        #self._delegator_services = {}
+        """Dict of child service proxies."""
 
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
@@ -289,6 +289,7 @@ class ServiceBase(JsonData):
             self._do_work()
             self._check_connections()
             self._check_child_services()
+            self._repeater.discard_closed_childs()
 
             # sleep, not too much
             remaining_time = 0.1 - (time.time() - last_time)
@@ -367,15 +368,16 @@ class ServiceBase(JsonData):
         :param connection_data:
         :return:
         """
-        addr = connection_data["address"]
+        text = json.dumps(connection_data, separators=(',', ':'), sort_keys=True)
+        hash = hashlib.sha512(bytes(text, "utf-8")).hexdigest()
         with self._connections_lock:
-            if addr in self._connections:
-                return self._connections[addr]
+            if hash in self._connections:
+                return self._connections[hash]
             else:
                 con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
                 con.set_local_service(self)
                 con.connect()
-                self._connections[addr] = con
+                self._connections[hash] = con
                 return con
 
     def close_connections(self):
@@ -462,11 +464,12 @@ class ServiceBase(JsonData):
 
 
         from .service_proxy import ServiceProxy
-        proxy = ServiceProxy(service_data, self._repeater, connection)
-        child_id = proxy.start_service()
+        proxy = ServiceProxy({})
+        proxy.set_rep_con(self._repeater, connection)
+        child_id = proxy.start_service(service_data)
         self._child_services[child_id] = proxy
 
-        return proxy.get_status()
+        return child_id
 
 
     # def request_stop_child(self, request_data):

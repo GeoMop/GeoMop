@@ -1,4 +1,12 @@
 """
+This file contains algorithms for
+1. constructing a 3D geometry in the BREP format
+   (see https://docs.google.com/document/d/1qWq1XKfHTD-xz8vpINxpfQh4k6l1upeqJNjTJxeeOwU/edit#)
+   from the Layer File format (see geometry_structures.py).
+2. meshing the 3D geometry (e.g. using GMSH)
+3. setting regions to the elements of the resulting mesh and other mesh postprocessing
+
+
 TODO:
 - check how GMSH number surfaces standing alone,
   seems that it number object per dimension by the IN time in DFS from solids down to Vtx,
@@ -46,9 +54,10 @@ import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
-#def import_plotting():
-#global plt
-#global bs_plot
+import geometry_files.bspline_io as bspline_io
+# def import_plotting():
+# global plt
+# global bs_plot
 
 #import geometry_files.plot_polygons as plot_polygons
 
@@ -74,23 +83,21 @@ def check_point_tol(A, B, tol):
         raise Exception("Points too far: {} - {} = {}, norm: {}".format(A,B,diff, norm))
 
 
-
-
 class ShapeInfo:
-    #count_by_dim = [0,0,0,0]
+    # count_by_dim = [0,0,0,0]
     """
     Class to capture information about individual shapes finally meshed by GMSH as independent objects.
     """
 
-    _shapes_dim ={'Vertex':0, 'Edge':1, 'Face':2, 'Solid':3}
+    _shapes_dim ={'Vertex': 0, 'Edge': 1, 'Face': 2, 'Solid': 3}
 
     def __init__(self, shape, i_reg=None, top=None, bot=None):
         self.shape = shape
-        #self.dim = shapes_dim.get(type(shape).__name__)
-        #assert self.dim is not None
+        # self.dim = shapes_dim.get(type(shape).__name__)
+        # assert self.dim is not None
 
-        #self.dim_spec_id = self.count_by_dim[dim]
-        #self.count_by_dim += 1
+        # self.dim_spec_id = self.count_by_dim[dim]
+        # self.count_by_dim += 1
 
         if i_reg is None:
             self.free = False
@@ -116,7 +123,7 @@ class ShapeInfo:
         the self.curve_z, which is the full 3d curve of the edge set in Interface.make_shapes.
         TODO: set curve_z through a method.
         :param v_to_z: (min_z, max_z) ... bounds of the vertical face
-        :param u_to_xy: (min_u, max_u)
+        :param xy_to_u: (min_u, max_u)
         :return: Curve for U or V parameter.
         """
         z_min, z_max = v_to_z
@@ -127,6 +134,7 @@ class ShapeInfo:
         poles_uv[:, 0] *= (u_max - u_min)
         poles_uv[:, 0] += u_min
         return bs.Curve(self.curve_z.basis, poles_uv)
+
 
 class Curve(gs.Curve):
     pass
@@ -143,27 +151,31 @@ class Surface(gs.Surface):
     """
     Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
     """
+    def __init__(self, elevation):
+        """
+        Construct a planar surface from a depth.
+        """
+        self.elevation = elevation
+        self.z_surface = None
 
-    def set_file(self, geom_file_base):
-
-        # allow relative position to the main layers.json file
-        if self.grid_file:
-            self.is_bumpy = True
-            if self.grid_file[0] == '.':
-                self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
-        else:
-            self.is_bumpy = False
+    def init(self):
+        """
+        Initialize a B-spline surface.
+        :param geom_file_base:
+        :return:
+        """
+        self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
 
 
     def make_bumpy_surface(self):
         # load grid surface and make its approximation
-
-        self.grid_surf = bs.GridSurface.load(self.grid_file)
-        self.approx_surf = bs_approx.surface_from_grid(self.grid_surf, (16, 16))
-        self.mat_xy = mat_xy = np.array(self.transform_xy)
-        mat_z = np.array(self.transform_z)
-        self.approx_surf.transform(mat_xy, mat_z)
-        self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
+        #
+        # self.grid_surf = bs.GridSurface.load(self.grid_file)
+        # self.approx_surf = bs_approx.surface_from_grid(self.grid_surf, (16, 16))
+        # self.mat_xy = mat_xy = np.array(self.transform_xy)
+        # mat_z = np.array(self.transform_z)
+        # self.approx_surf.transform(mat_xy, mat_z)
+        self.bw_surface = bw.surface_from_bs(self.z_surface.make_full_surface())
 
 
     def make_flat_surface(self, xy_aabb):
@@ -173,15 +185,15 @@ class Surface(gs.Surface):
         corners[2, 0] = xy_aabb[1][0]  # max X
         corners[[1, 2], 1] = xy_aabb[0][1]  # min Y
         corners[0, 1] = xy_aabb[1][1]  # max Y
-        corners[:,2] = self.depth
+        corners[:,2] = self.elevation
 
         basis = bs.SplineBasis.make_equidistant(2, 1)
-        z_const = - self.depth
+        z_const = self.elevation
         poles = np.ones( (3, 3, 1 ) ) * z_const
         surf_z = bs.Surface( (basis, basis), poles)
-        self.grid_surf = bs.Z_Surface(corners[:, 0:2], surf_z)
-        self.approx_surf = self.grid_surf
-        self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
+
+        self.z_surface = bs.Z_Surface(corners[:, 0:2], surf_z)
+        self.bw_surface = bw.surface_from_bs(self.z_surface.make_full_surface())
 
 
     def plot_nodes(self, nodes):
@@ -215,25 +227,26 @@ class Surface(gs.Surface):
         :param nodes:
         :return:
         """
-        if self.is_bumpy:
-            self.make_bumpy_surface()
-            uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
-            for i, uv in enumerate(uv_nodes):
-                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
-                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
-        else:
+        if self.z_surface is None:
+            # planar surface
             nod = np.array(nodes)
             nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
             self.make_flat_surface(nod_aabb)
-            # self.plot_nodes(nodes)
+        else:
+            # bumpy surface
+            self.make_bumpy_surface()
+            uv_nodes = self.z_surface.xy_to_uv(np.array(nodes))
+            for i, uv in enumerate(uv_nodes):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
+                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
 
 
     def approx_eval_z(self, x, y):
-        return self.approx_surf.z_eval_xy_array(np.array([[x, y]]))[0]
+        return self.z_surface.z_eval_xy_array(np.array([[x, y]]))[0]
 
 
-    def eval_z(self, x, y):
-        return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
+    #def eval_z(self, x, y):
+    #    return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
 
 
     @staticmethod
@@ -262,7 +275,7 @@ class Surface(gs.Surface):
         x_points = np.linspace(axyz[0], bxyz[0], n_points)
         y_points = np.linspace(axyz[1], bxyz[1], n_points)
         xy_points = np.stack( (x_points, y_points), axis =1)
-        xyz_points = self.approx_surf.eval_xy_array(xy_points)
+        xyz_points = self.z_surface.eval_xy_array(xy_points)
         curve_xyz = bs_approx.curve_from_grid(xyz_points)
         start, end = curve_xyz.eval_array(np.array([0, 1]))
         check_point_tol( start, axyz, 1e-3)
@@ -271,9 +284,9 @@ class Surface(gs.Surface):
 
         # TODO: make simple line approximation
         xy_points = np.array([ axyz[0:2], bxyz[0:2]])
-        uv_points = self.approx_surf.xy_to_uv(xy_points)
+        uv_points = self.z_surface.xy_to_uv(xy_points)
         curve_uv = bs_approx.line( uv_points )
-        start, end = self.approx_surf.eval_array(curve_uv.eval_array(np.array([0, 1])))
+        start, end = self.z_surface.eval_array(curve_uv.eval_array(np.array([0, 1])))
         check_point_tol( start, axyz, 1e-3)
         check_point_tol( end, bxyz, 1e-3)
         edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
@@ -395,12 +408,15 @@ class Interface:
     It maps nodes onto surface, create complete decompositions and their intersection, and produce all
     shapes laying on the surface.
     """
-    def __init__(self, surface):
+    def init(self, lg):
         """
         Interface is bounded to a single surface.
         :param surface:
         """
-        self.surface = surface
+        if self.surface_id is None:
+            self.surface = Surface(self.depth)
+        else:
+            self.surface = lg.surfaces[self.surface_id]
         self.common_decomp = None
         self.decompositions = {}
 
@@ -551,17 +567,17 @@ class Interface:
                 yield shp
 
 
-class SurfaceNodeSet(gs.SurfaceNodeSet):
+class InterfaceNodeSet(gs.InterfaceNodeSet):
 
     def init(self, lg):
-        self.surface = lg.surfaces[self.surface_id]
+        self.interface = lg.interfaces[self.interface_id]
         self.nodeset = lg.node_sets[self.nodeset_id]
         self.topology = lg.topologies[self.nodeset.topology_id]
         #self.topology.check(self.nodeset)
 
     def make_interface(self, lg ):
         self.init(lg)
-        interface = lg.interfaces[self.surface_id]
+        interface = lg.interfaces[self.interface_id]
         self.decomp = interface.add_decomposition(self.nodeset.nodes, self.topology)
         return interface
 
@@ -569,8 +585,8 @@ class SurfaceNodeSet(gs.SurfaceNodeSet):
 class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 
     def make_interface(self, lg):
-        interface = lg.interfaces[self.surface_id]
-        surface = lg.surfaces[self.surface_id]
+        interface = lg.interfaces[self.interface_id]
+        #surface = lg.surfaces[self.interface_id]
         a, b = self.surf_nodesets
         a.init(lg)
         b.init(lg)
@@ -579,8 +595,9 @@ class InterpolatedNodeSet(gs.InterpolatedNodeSet):
         if a.nodeset_id == b.nodeset_id:
             self.nodes = a.nodeset.nodes
         else:
-            assert a.surface_id != b.surface_id
-            self.nodes = interface.interpolate_nodes(a.surface, a.nodeset.nodes, b.surface, b.nodeset.nodes)
+            assert False, "Interpolation ofr different nodesets not supported yet."
+            assert a.interface_id != b.interface_id
+            self.nodes = interface.interpolate_nodes(a.interface, a.nodeset.nodes, b.interface, b.nodeset.nodes)
         self.decomp = interface.add_decomposition(self.nodes, self.topology)
         return interface
 
@@ -886,6 +903,11 @@ class LayerGeometry(gs.LayerGeometry):
 
     @staticmethod
     def set_ids(xlist):
+        """
+        Set .id attribute to all items of the xlist.
+        :param xlist:
+        :return:
+        """
         for i, item in enumerate(xlist):
             item.id = i
 
@@ -895,13 +917,17 @@ class LayerGeometry(gs.LayerGeometry):
 
         self.set_ids(self.surfaces)
         self.set_ids(self.regions)
-        self.interfaces = [ Interface(surface) for surface in self.surfaces ]
+        #self.interfaces = [ Interface(surface) for surface in self.surfaces ]
         self.set_ids(self.topologies)
         #self.set_ids(self.nodesets)
 
+        # funish initialization of interfaces
+        for iface in self.interfaces:
+            iface.init(self)
+
         # load and construct grid surface functions
         for surf in self.surfaces:
-            surf.set_file(self.filename_base)
+            surf.init()
 
 
         # initialize layers, neigboring layers refer to common interface
@@ -995,6 +1021,7 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
+        # TODO, mesh step
         # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
         # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
 
@@ -1047,7 +1074,7 @@ class LayerGeometry(gs.LayerGeometry):
         :param mesh_step:
         :return:
 
-         TODO:
+         TODO, mesh step:
          - replace Merge by shapefromfile
          - replace global mesh step field by array of char lenght:
          Characteristic Length {ID} = step;
