@@ -95,6 +95,7 @@ class Surfaces(QtWidgets.QWidget):
             self.surface.addItem( label,  i) 
         self.surface.currentIndexChanged.connect(self._surface_set)
         self.surface.activated.connect(self._focus_in)
+        self.surface.highlighted.connect(self._focus_in)
         self.add_surface = QtWidgets.QPushButton("Add Surface")
         self.add_surface.clicked.connect(self._add_surface)
         self.add_surface.pressed.connect(self._focus_in)
@@ -118,6 +119,7 @@ class Surfaces(QtWidgets.QWidget):
         self.grid_file_name = FocusEdit()
         self.grid_file_name.setReadOnly(True)
         self.grid_file_name.setStyleSheet("background-color:WhiteSmoke");
+        self.grid_file_name.focusIn.connect(self._focus_in)
         self.grid_file_button = QtWidgets.QPushButton("...")
         self.grid_file_button.clicked.connect(self._add_grid_file)
         self.grid_file_button.pressed.connect(self._focus_in)
@@ -241,11 +243,15 @@ class Surfaces(QtWidgets.QWidget):
         grid.addItem(sp1, 17, 0, 1, 3)
         
         self.setLayout(grid)
-        
+
         if len(surfaces.surfaces)>0:
             self.surface.setCurrentIndex(0)            
         else:
-            self._set_new_edit(True)     
+            self._set_new_edit(True)
+
+    def mousePressEvent(self, event):
+        super(Surfaces, self).mousePressEvent(event)
+        self._focus_in()
     
     def focusInEvent(self, event):
         """Standart focus event"""
