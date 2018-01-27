@@ -138,6 +138,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
+        cfg.diagram.regions.reload_regions(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
         if not cfg.diagram.position_set:
@@ -207,8 +208,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def display_all(self):
         """Display all diagram"""
         rect = cfg.diagram.rect
-        if rect is None:
-            rect = cfg.diagram.get_area_rect(cfg.layers, cfg.diagram_id())
         rect = cfg.diagram.get_diagram_all_rect(rect, cfg.layers, cfg.diagram_id())        
         self.display_rect(rect)
         

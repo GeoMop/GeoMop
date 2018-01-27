@@ -200,7 +200,7 @@ class LEConfig:
     def reload_surfaces(cls, id):
         """Reload surface panel"""
         if cls.main_window is not None:
-            cls.main_window.surfaces.reload_surfaces(id)
+            cls.main_window.surfaces.reload_surfaces(id, cls)
         
     @classmethod
     def get_curr_surfaces(cls):
@@ -317,7 +317,7 @@ class LEConfig:
         if cls.diagram is not None:
             if not cls.diagram.shp.is_file_open(file):
                 try:
-                    disp = cls.diagram.shp.add_file(file)
+                    disp = cls.diagram.add_file(file)
                     if len(disp.errors)>0:
                         err_dialog = GMErrorDialog(cls.main_window)
                         err_dialog.open_error_report_dialog(disp.errors, msg="Shape file parsing errors:" ,  title=file)
