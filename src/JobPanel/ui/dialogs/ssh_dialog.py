@@ -178,7 +178,7 @@ class SshDialog(AFormContainer):
                 self.ui.envPresetComboBox.setCurrentIndex(
                     self.ui.envPresetComboBox.findData(self.preset.env))
                     
-        self.ui.envPresetComboBox.clear()
+        #self.ui.envPresetComboBox.clear()
         self.ui.pbsSystemComboBox.addItem('No Pbs', '')
         dialect_items = DialectImporter.get_available_dialects()
         for key in dialect_items:
@@ -196,7 +196,7 @@ class SshDialog(AFormContainer):
                 return
         else:
             preset.pwd = self.ui.passwordLineEdit.text()
-        dialog = TestSSHDialog(self, preset, self.data)
+        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.data)
         dialog.exec_()
 
 
@@ -327,7 +327,7 @@ class UiSshDialog():
                                    self.envPresetLabel)
         self.envPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
-        self.validator.add('env',  self.envPresetComboBox)  
+        self.validator.add('env',  self.envPresetComboBox)
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                    self.envPresetComboBox)
                                    
