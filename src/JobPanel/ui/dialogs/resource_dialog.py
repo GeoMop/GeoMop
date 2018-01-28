@@ -139,10 +139,10 @@ class ResourceDialog(AFormContainer):
                 
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
-                    'no PBS' if self.preset.mj_pbs_preset is None else self.preset.mj_pbs_preset))
+                    'no PBS' if self.preset is None or self.preset.mj_pbs_preset is None else self.preset.mj_pbs_preset))
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(
-                    'no PBS' if self.preset.j_pbs_preset is None else self.preset.j_pbs_preset)) 
+                    'no PBS' if self.preset is None or self.preset.j_pbs_preset is None else self.preset.j_pbs_preset))
             self._handle_mj_ssh_changed(0)
             self._handle_j_ssh_changed(0)
 
@@ -170,10 +170,10 @@ class ResourceDialog(AFormContainer):
                 self.permitted['j_ssh_preset'].append(key)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
-                    'local' if self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset)) 
+                    'local' if self.preset is None or self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset))
             self.ui.jobSshPresetComboBox.setCurrentIndex(
                 self.ui.jobSshPresetComboBox.findData(
-                    'local' if self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
+                    'local' if self.preset is None or self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
                 
 
     def first_focus(self):
