@@ -84,8 +84,10 @@ class Surfaces(QtWidgets.QWidget):
         """Last v"""
         self._history = SurfacesHistory(cfg.history)
         """History class"""
+        self.approx=None;
+        """Auxiliary object for optimalization"""
                 
-        grid = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout(self)     
         
         # surface cobobox
         d_surface = QtWidgets.QLabel("Surface:")
@@ -204,16 +206,16 @@ class Surfaces(QtWidgets.QWidget):
         self.apply.clicked.connect(self._apply) 
         self.apply.pressed.connect(self._focus_in)
         
-        grid.addWidget(self.apply, 13, 1, 1, 2)
+        grid.addWidget(self.apply, 12,2)
         
         # sepparator
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        grid.addWidget(line, 14, 0, 1, 3)
+        grid.addWidget(line, 13, 0, 1, 3)
         
         
-        inner_grid = QtWidgets.QGridLayout(self)
+        inner_grid = QtWidgets.QGridLayout()
 
         self.d_depth = QtWidgets.QLabel("Elevation:", self)        
         self.depth = QtWidgets.QLineEdit()
@@ -232,15 +234,14 @@ class Surfaces(QtWidgets.QWidget):
         inner_grid.addWidget(self.d_error, 0, 2)
         inner_grid.addWidget(self.error, 0, 3)
         
-        grid.addLayout(inner_grid, 15, 0, 1, 3)
-        
+        grid.addLayout(inner_grid, 14, 0, 1, 3)
         
         self.d_message = QtWidgets.QLabel("", self)
         self.d_message.setVisible(False)
-        grid.addWidget(self.d_message, 16, 0, 1, 3)
+        grid.addWidget(self.d_message, 15, 0, 1, 3)
  
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 17, 0, 1, 3)
+        grid.addItem(sp1, 16, 0, 1, 3)
         
         self.setLayout(grid)
 
@@ -259,7 +260,7 @@ class Surfaces(QtWidgets.QWidget):
         self._focus_in()
             
     def _set_new_edit(self, new):
-        """Set or unset new surface editing"""
+        """Set or unset new surface editing"""        
         if self.new==new:
             return
         self.delete.setEnabled(not new)
@@ -270,12 +271,10 @@ class Surfaces(QtWidgets.QWidget):
             self.quad = None
             self.grid_file_name.setText("")
             self._set_default_approx(None)            
-            self.apply.setText("Add Surface")
             self.grid_file_refresh_button.setEnabled(False)
             self.surface.setCurrentIndex(-1)
             self.hideMash.emit()            
         else:            
-            self.apply.setText("Apply") 
             self.showMash.emit(False)
             
         self.new = new
@@ -288,8 +287,10 @@ class Surfaces(QtWidgets.QWidget):
     def get_surface_id(self):
         return self.surface.currentIndex()
             
-    def reload_surfaces(self, id=None):
+    def reload_surfaces(self, id=None, cfg=None):
         """Reload all surfaces after file loading"""
+        if cfg is not None:
+            self._history = SurfacesHistory(cfg.history)
         if id is None:
             id = self.surface.currentIndex()
         surfaces = cfg.layers.surfaces
@@ -311,7 +312,10 @@ class Surfaces(QtWidgets.QWidget):
         surfaces = cfg.layers.surfaces
         
         file = self.grid_file_name.text()
+        u, v = self.get_uv()
         
+        self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
         
@@ -326,15 +330,26 @@ class Surfaces(QtWidgets.QWidget):
         else:
             id = self.surface.currentData()
             surface = copy.copy(surfaces.surfaces[id])
+            surface.approximation = self.zs
             surface.grid_file = self.grid_file_name.text()
             if surface.name!=self.name.text():
                 surface.name = self.name.text()    
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
             surface.xy_transform = self._get_transform()
             surface.quad = copy.copy(self.quad)
-            self._history.change_surface(surfaces, id)
+            self._history.change_surface(surfaces, id)            
             surfaces.surfaces[id] = surface
-        self.refreshArea.emit()
+        if self.approx.error is not None:
+            self.error.setText(str(self.approx.error))                
+        else:
+            self.error.setText("")
+        center = self.zs.center()
+        self.depth.setText(str(center[2]))  
+        self.depth.setEnabled(True)
+        self.error.setEnabled(True)
+        self.depth.home(False) 
+        self.error.home(False) 
+        self.showMash.emit(True)
        
     def _delete(self):
         """Delete surface if is not used"""
@@ -433,7 +448,14 @@ class Surfaces(QtWidgets.QWidget):
         self.d_message.setText("")
         self.d_message.setVisible(False)
         
-        if not os.path.exists(file):
+        if os.path.exists(file):
+            try:
+                self.approx = ba.SurfaceApprox.approx_from_file(file)  
+            except:
+                self.d_message.setText("Invalid file.")
+                self.approx = None
+        
+        if self.approx is None:
             self.grid_file_refresh_button.setEnabled(False)
             self._enable_approx(False)
             self.quad = surfaces[id].quad
@@ -446,8 +468,7 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(True)
 
             # This approx is recomputed to check that file doesn't change (so the quad match).
-            approx = ba.SurfaceApprox.approx_from_file(file) 
-            zs = approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+            zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             zs.transform(np.array(self._get_transform(), dtype=float), None)
             quad = zs.quad
             self.quad = surfaces[id].quad            
@@ -459,8 +480,8 @@ class Surfaces(QtWidgets.QWidget):
             else:
                 self.zs = zs
                 self.zs_id = id
-                if approx.error is not None:
-                    self.error.setText(str(approx.error))                
+                if self.approx.error is not None:
+                    self.error.setText(str(self.approx.error))                
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))  
                 self.depth.setEnabled(True)
@@ -486,13 +507,20 @@ class Surfaces(QtWidgets.QWidget):
     def _refresh_grid_file(self):
         """Reload grid file"""        
         file = self.name.text() 
+        
         if os.path.exists(file):
+            try:
+                self.approx = ba.SurfaceApprox.approx_from_file(file)  
+            except:
+                self.d_message.setText("Invalid file.")
+                self.approx = None
+        
+        if self.approx is not None:
             self._enable_approx(True)
-            approx = ba.SurfaceApprox.approx_from_file(file)                
-            self.zs = approx.compute_approximation()
+            self.zs = self.approx.compute_approximation()
             self.zs_id = self.surface.currentIndex()
-            if approx.error is not None:
-                self.error.setText(str(approx.error) )
+            if self.approx.error is not None:
+                self.error.setText(str(self.approx.error) )
             center = self.zs.center()
             self.depth.setText(str(center[2]))
             self.depth.setEnabled(True)
@@ -549,23 +577,29 @@ class Surfaces(QtWidgets.QWidget):
                 i += 1
             name = name+s_i
             self.name.setText(name)  
-            if not os.path.exists(file):
+            self.aprox = None
+            if os.path.exists(file):
+                try:
+                    self.approx = ba.SurfaceApprox.approx_from_file(file)  
+                except:
+                    self.d_message.setText("Invalid file.")
+                    self.approx = None            
+            if self.approx is None:
                 self.grid_file_refresh_button.setEnabled(False)
                 self._enable_approx(False)
                 self.zs = None
             else:
                 self.grid_file_refresh_button.setEnabled(True)
-                self._enable_approx(True)
-                approx = ba.SurfaceApprox.approx_from_file(file)                
-                nuv = approx.compute_default_nuv()
+                self._enable_approx(True)                              
+                nuv = self.approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
                 self.v_approx.setText(str(nuv[1]))   
                 self.last_u = nuv[0]
                 self.last_v = nuv[1]            
 
-                self.zs = approx.compute_approximation()
-                if approx.error is not None:
-                    self.error.setText(str(approx.error) )
+                self.zs = self.approx.compute_approximation()
+                if self.approx.error is not None:
+                    self.error.setText(str(self.approx.error) )
                 center = self.zs.center()
                 self.depth.setText(str(center[2]))
                 self.depth.setEnabled(True)

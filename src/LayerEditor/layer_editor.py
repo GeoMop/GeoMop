@@ -49,8 +49,7 @@ class LayerEditor:
         cfg.set_main(self.mainwindow)
         
         # show
-        self.mainwindow.show()
-        self.mainwindow.paint_new_data()
+        self.mainwindow.show()        
         
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
@@ -58,6 +57,7 @@ class LayerEditor:
                 self.exit = True
         
         # set default values
+        self.mainwindow.paint_new_data()
         self._update_document_name()        
         
     def new_file(self):
@@ -205,12 +205,19 @@ def main():
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
-#    if not args.debug:
-#        from geomop_util.logging import log_unhandled_exceptions
-#
-#        def on_unhandled_exception(type_, exception, tback):
-#            """Unhandled exception callback."""
-#            # pylint: disable=unused-argument
+    if not args.debug:
+        from geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(layer_editor.mainwindow)
+            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            sys.exit(1)
+            
+            
+            
 #            from geomop_dialogs import GMErrorDialog
 #            if layer_editor is not None:
 #                err_dialog = None
@@ -231,7 +238,7 @@ def main():
 #                if err_dialog is not None:
 #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 #
-#        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)

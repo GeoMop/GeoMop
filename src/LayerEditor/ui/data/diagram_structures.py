@@ -515,6 +515,21 @@ class Diagram():
     def get_diagram_all_rect(self, rect, layers, diagram_id):
         """Return init area as squads intersection"""
         quads = layers.get_diagram_quads(diagram_id)
+        if len(quads)==0:
+            rect2 = self.get_area_rect(layers, diagram_id)
+            if rect is None:
+                return rect2
+            if rect2.left()<rect.left():
+                rect.setLeft(rect2.left())
+            if rect2.right()>rect.right():
+                rect.setRight(rect2.right())
+            if rect2.top()<rect.top():
+                rect.setTop(rect2.top())
+            if rect2.bottom()>rect.bottom():
+                rect.setBottom(rect2.bottom())
+            return rect;
+        if rect is None:
+            rect = QtCore.QRectF(quads[0][0][0], -quads[0][0][1], 0, 0)
         for quad in quads:
             for i in range(0, 4):
                 if quad[i][0]<rect.left():

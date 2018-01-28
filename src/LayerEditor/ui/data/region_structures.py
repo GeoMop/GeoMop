@@ -92,6 +92,10 @@ class Regions():
         self.remap_reg_to = None
         """If this variable is set, remap in move topology shapes id to values in set diagram"""
 
+    def reload_regions(self, cfg):
+        """Call if data file changed"""
+        self._history = RegionHistory(cfg.history)
+
     def get_default_regions(self, topology_id):
         """Return default region"""       
         default = [] 
