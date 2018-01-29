@@ -151,11 +151,10 @@ class Surface(gs.Surface):
     """
     Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
     """
-    def __init__(self, elevation):
+    def __init__(self):
         """
         Construct a planar surface from a depth.
         """
-        self.elevation = elevation
         self.z_surface = None
 
     def init(self):
@@ -167,7 +166,7 @@ class Surface(gs.Surface):
         self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
 
 
-    def make_bumpy_surface(self):
+    def make_bumpy_surface(self, z_transform):
         # load grid surface and make its approximation
         #
         # self.grid_surf = bs.GridSurface.load(self.grid_file)
@@ -175,25 +174,32 @@ class Surface(gs.Surface):
         # self.mat_xy = mat_xy = np.array(self.transform_xy)
         # mat_z = np.array(self.transform_z)
         # self.approx_surf.transform(mat_xy, mat_z)
-        self.bw_surface = bw.surface_from_bs(self.z_surface.make_full_surface())
+        assert self.z_surface is not None
+        surf = self.z_surface.get_copy()
+        surf.transform(None, z_transform)
+        return surf
 
 
-    def make_flat_surface(self, xy_aabb):
+
+    def make_flat_surface(self, xy_aabb, z_transform):
         # flat surface
+        z_const = z_transform[1]
+
         corners = np.zeros( (3, 3) )
         corners[[1, 0], 0] = xy_aabb[0][0]  # min X
         corners[2, 0] = xy_aabb[1][0]  # max X
         corners[[1, 2], 1] = xy_aabb[0][1]  # min Y
         corners[0, 1] = xy_aabb[1][1]  # max Y
-        corners[:,2] = self.elevation
+        corners[:,2] = 0.0
 
         basis = bs.SplineBasis.make_equidistant(2, 1)
-        z_const = self.elevation
+
         poles = np.ones( (3, 3, 1 ) ) * z_const
         surf_z = bs.Surface( (basis, basis), poles)
-
         self.z_surface = bs.Z_Surface(corners[:, 0:2], surf_z)
-        self.bw_surface = bw.surface_from_bs(self.z_surface.make_full_surface())
+        return self.make_bumpy_surface(z_transform)
+
+
 
 
     def plot_nodes(self, nodes):
@@ -220,99 +226,6 @@ class Surface(gs.Surface):
 
         plt.plot(xy[:, 0], xy[:, 1], color='green')
         plt.show()
-
-
-    def check_nodes(self, nodes):
-        """
-        :param nodes:
-        :return:
-        """
-        if self.z_surface is None:
-            # planar surface
-            nod = np.array(nodes)
-            nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
-            self.make_flat_surface(nod_aabb)
-        else:
-            # bumpy surface
-            self.make_bumpy_surface()
-            uv_nodes = self.z_surface.xy_to_uv(np.array(nodes))
-            for i, uv in enumerate(uv_nodes):
-                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
-                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
-
-
-    def approx_eval_z(self, x, y):
-        return self.z_surface.z_eval_xy_array(np.array([[x, y]]))[0]
-
-
-    #def eval_z(self, x, y):
-    #    return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
-
-
-    @staticmethod
-    def interpol(a, b, t):
-        return (t * b + (1-t) * a)
-
-    def line_intersect(self, a, b):
-        # TODO:
-        z = self.depth
-        t = (a[2] - z) / (a[2] - b[2])
-        # (1-t) = (z - bz) / (az - bz)
-        x = self.interpol(a[0], b[0], t )
-        y = self.interpol(a[1], b[1], t )
-        return (x, y, z)
-
-
-    def add_curve_to_edge(self, edge):
-        """
-        Make the projection curve for an edge on the surface.
-        :param edge: BRepWriter Edge object
-        :return:
-        """
-        axyz, bxyz = edge.points()
-
-        n_points = 16
-        x_points = np.linspace(axyz[0], bxyz[0], n_points)
-        y_points = np.linspace(axyz[1], bxyz[1], n_points)
-        xy_points = np.stack( (x_points, y_points), axis =1)
-        xyz_points = self.z_surface.eval_xy_array(xy_points)
-        curve_xyz = bs_approx.curve_from_grid(xyz_points)
-        start, end = curve_xyz.eval_array(np.array([0, 1]))
-        check_point_tol( start, axyz, 1e-3)
-        check_point_tol( end, bxyz, 1e-3)
-        edge.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve_xyz))
-
-        # TODO: make simple line approximation
-        xy_points = np.array([ axyz[0:2], bxyz[0:2]])
-        uv_points = self.z_surface.xy_to_uv(xy_points)
-        curve_uv = bs_approx.line( uv_points )
-        start, end = self.z_surface.eval_array(curve_uv.eval_array(np.array([0, 1])))
-        check_point_tol( start, axyz, 1e-3)
-        check_point_tol( end, bxyz, 1e-3)
-        edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
-
-        # vertical curve
-        poles_z = curve_xyz.poles[:, 2].copy()
-        x_diff, y_diff, z_diff = np.abs(bxyz - axyz)
-        if x_diff > y_diff:
-            axis = 0
-        else:
-            axis = 1
-        poles_t = curve_xyz.poles[:, axis].copy()
-        poles_t -= axyz[axis]
-        poles_t /= (bxyz[axis] - axyz[axis])
-        poles_tz = np.stack( (poles_t, poles_z), axis=1 )
-        # overhang = 0.1
-        # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
-        # poles_tz[:, 0] -= axyz[1]
-        # poles_tz[:, 0] *= scale
-        # poles_tz[:, 0] += overhang
-
-
-        #poles_tz[:, 0] -= axyz[1]
-        #poles_tz[:, 0] /= (bxyz[1] - axyz[1])
-
-        return bs.Curve(curve_xyz.basis, poles_tz)
 
 
 
@@ -414,9 +327,9 @@ class Interface:
         :param surface:
         """
         if self.surface_id is None:
-            self.surface = Surface(self.depth)
+            self._surface = None
         else:
-            self.surface = lg.surfaces[self.surface_id]
+            self._surface = lg.surfaces[self.surface_id]
         self.common_decomp = None
         self.decompositions = {}
 
@@ -480,8 +393,8 @@ class Interface:
 
         #self.common_decomp = decomps[0]
         nodes_xy = { pt.id: pt.xy for pt in self.common_decomp.points.values() }
-        self.surface.check_nodes(list(nodes_xy.values()))
-        self.nodes = { id: (x, y, self.surface.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
+        self._check_nodes(list(nodes_xy.values()))
+        self.nodes = { id: (x, y, self.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
 
 
     def make_shapes(self):
@@ -503,7 +416,7 @@ class Interface:
             #nodes_id, surface_id = segment
             pa, pb = segment.vtxs
             edge = bw.Edge( [self.vertices[pa.id].shape, self.vertices[pb.id].shape] )
-            curve_z = self.surface.add_curve_to_edge(edge)
+            curve_z = self.add_curve_to_edge(edge)
             si = ShapeInfo(edge)
             si.curve_z = curve_z
             self.edges[segment.id] =  si
@@ -516,7 +429,7 @@ class Interface:
             for hole in poly.outer_wire.childs:
                 wires.append(self._make_bw_wire(hole).m())
 
-            face = bw.Face(wires, surface = self.surface.bw_surface)
+            face = bw.Face(wires, surface = self.bw_surface)
             self.faces[poly.id] = ShapeInfo(face)
 
     def _make_bw_wire(self, decomp_wire):
@@ -544,17 +457,17 @@ class Interface:
         """
         return self.subpoly_lists[decomp_id][poly_id]
 
-    def interpolate_nodes(self, a_surface, a_nodes, b_surface, b_nodes):
+    def interpolate_nodes(self, a_iface, a_nodes, b_iface, b_nodes):
         """
         Used by InterpolatedNodeSet.
         """
         assert len(a_nodes) == len(b_nodes)
         nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
-            az = a_surface.depth
-            bz = b_surface.depth
-            line = ( (ax, ay, az), (bx,by,bz) )
-            x,y,z = self.surface.line_intersect( *line )
+            az = a_iface.approx_eval_z(ax, ay)
+            bz = b_iface.approx_eval_z(bx, by)
+            line = ( (ax, ay, az), (bx, by, bz) )
+            x,y,z = self.line_intersect( *line )
             nodes.append( (x,y,z) )
         return nodes
 
@@ -565,6 +478,114 @@ class Interface:
         for s_list in [ self.vertices, self.edges, self.faces ]:
             for shp in s_list.values():
                 yield shp
+
+
+    def _check_nodes(self, nodes):
+        """
+        :param nodes:
+        :return:
+        """
+        if self._surface is None:
+            # planar surface
+            nod = np.array(nodes)
+            nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
+            self._surface = Surface()
+
+            # TODO: remove after test correctness of Layer editor
+            if self.transform_z[1] != self.depth:
+                self.transform_z = [ 1.0, self.depth]
+            self.surface_approx = self._surface.make_flat_surface(nod_aabb, self.transform_z)
+
+        else:
+            # bumpy surface
+            self.surface_approx = self._surface.make_bumpy_surface(self.transform_z)
+
+            uv_nodes = self.surface_approx.xy_to_uv(np.array(nodes))
+            for i, uv in enumerate(uv_nodes):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
+                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
+        self.bw_surface = bw.surface_from_bs(self.surface_approx.make_full_surface())
+
+
+    def approx_eval_z(self, x, y):
+        return self.surface_approx.z_eval_xy_array(np.array([[x, y]]))[0]
+
+
+    # TODO:
+    # - test
+
+    @staticmethod
+    def interpol(a, b, t):
+        return (t * b + (1-t) * a)
+
+    def line_intersect(self, a, b):
+        # TODO: Compute true intersection.
+        t = 0.5
+        z = (a[2] + b[2]) / 2
+        z_diff = 1.0
+        tol = np.abs(a[2] - b[2]) * 0.001
+        while abs(z_diff) > tol:
+            x = self.interpol(a[0], b[0], t)
+            y = self.interpol(a[1], b[1], t)
+            z_new = self.approx_eval_z(x, y)
+            z_diff = z - z_new
+            z = z_new
+            t = (z - b[2]) / (a[2] - b[2])
+        return (x, y, z)
+
+
+    def add_curve_to_edge(self, edge):
+        """
+        Make the projection curve for an edge on the surface.
+        :param edge: BRepWriter Edge object
+        :return:
+        """
+        axyz, bxyz = edge.points()
+
+        n_points = 16
+        x_points = np.linspace(axyz[0], bxyz[0], n_points)
+        y_points = np.linspace(axyz[1], bxyz[1], n_points)
+        xy_points = np.stack( (x_points, y_points), axis =1)
+        xyz_points = self.surface_approx.eval_xy_array(xy_points)
+        curve_xyz = bs_approx.curve_from_grid(xyz_points)
+        start, end = curve_xyz.eval_array(np.array([0, 1]))
+        check_point_tol( start, axyz, 1e-3)
+        check_point_tol( end, bxyz, 1e-3)
+        edge.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve_xyz))
+
+        # TODO: make simple line approximation
+        xy_points = np.array([ axyz[0:2], bxyz[0:2]])
+        uv_points = self.surface_approx.xy_to_uv(xy_points)
+        curve_uv = bs_approx.line( uv_points )
+        start, end = self.surface_approx.eval_array(curve_uv.eval_array(np.array([0, 1])))
+        check_point_tol( start, axyz, 1e-3)
+        check_point_tol( end, bxyz, 1e-3)
+        edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
+
+        # vertical curve
+        poles_z = curve_xyz.poles[:, 2].copy()
+        x_diff, y_diff, z_diff = np.abs(bxyz - axyz)
+        if x_diff > y_diff:
+            axis = 0
+        else:
+            axis = 1
+        poles_t = curve_xyz.poles[:, axis].copy()
+        poles_t -= axyz[axis]
+        poles_t /= (bxyz[axis] - axyz[axis])
+        poles_tz = np.stack( (poles_t, poles_z), axis=1 )
+        # overhang = 0.1
+        # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
+        # poles_tz[:, 0] -= axyz[1]
+        # poles_tz[:, 0] *= scale
+        # poles_tz[:, 0] += overhang
+
+
+        #poles_tz[:, 0] -= axyz[1]
+        #poles_tz[:, 0] /= (bxyz[1] - axyz[1])
+
+        return bs.Curve(curve_xyz.basis, poles_tz)
+
+
 
 
 class InterfaceNodeSet(gs.InterfaceNodeSet):
@@ -1110,6 +1131,9 @@ class LayerGeometry(gs.LayerGeometry):
         # new empty nodes list
         # go through volume elements; every volume region should have reference to its top and bot interface;
         # move nodes of volume element
+
+        assert False, "Mesh deformation code must be revisited."
+
         nodes_shift = { id: [] for id, el in self.mesh.nodes.items()}
         for id, elm in self.mesh.elements.items():
             el_type, tags, nodes = elm
