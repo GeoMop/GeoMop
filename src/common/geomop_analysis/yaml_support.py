@@ -3,7 +3,7 @@ import os
 import re
 
 from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
-from model_data import Loader, Validator, notification_handler, get_root_input_type_from_json
+from model_data import Loader, Validator, notification_handler, get_root_input_type_from_json, autoconvert
 
 RE_PARAM = re.compile('<([a-zA-Z][a-zA-Z0-9_]*)>')
 
@@ -84,7 +84,14 @@ class YamlSupportLocal(YamlSupportRemote):
         
         root_input_type, new_err = self._get_root_input_type()
         err.extend(new_err)
-        validator.validate(root, root_input_type)
+
+        # autoconvert
+        root = autoconvert(root, root_input_type)
+
+        # validate
+        if not validator.validate(root, root_input_type):
+            err.append(".yaml file have not valid format")
+            #return err
 
         # mesh file
         try:
