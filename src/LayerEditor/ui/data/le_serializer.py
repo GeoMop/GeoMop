@@ -88,7 +88,7 @@ class LESerializer():
                 continue
             layer_id += 1
             # add interface
-            interface = gf.geometry.interfaces[layer.top.interface_id]
+            interface = gf.get_interface(layer.top.interface_id)
             #surface = Surface(surface_.depth, surface_.transform_xy,
             #    surface_.transform_z, surface_.grid_file)
             if last_stratum is None:
@@ -166,7 +166,7 @@ class LESerializer():
             cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
             last_stratum = layer
         #last interface
-        interface = gf.geometry.interfaces[last_stratum.bottom.interface_id]
+        interface = gf.get_interface(last_stratum.bottom.interface_id)
         id1 = None
         if last_stratum.bottom_type is TopologyType.given:
             id1 = last_stratum.bottom.nodeset_id
