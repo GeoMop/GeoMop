@@ -54,7 +54,10 @@ class LayerEditor:
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.mainwindow.close()
+                self.mainwindow._layer_editor = None
+                del self.mainwindow
                 self.exit = True
+                return
         
         # set default values
         self.mainwindow.paint_new_data()
@@ -247,6 +250,10 @@ def main():
     layer_editor = LayerEditor()
     if not layer_editor.exit:
         layer_editor.main()
+
+    layer_editor._app.quit()
+    del layer_editor._app
+    del layer_editor
     sys.exit(0)
 
 
