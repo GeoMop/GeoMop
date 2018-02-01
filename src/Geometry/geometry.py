@@ -1071,7 +1071,7 @@ class LayerGeometry(gs.LayerGeometry):
                             stack.append(sub)
                 if isinstance(shp, bw.Vertex):
                     shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
-        self.min_step *= 0.02
+        self.min_step *= 0.2
         self.vtx_char_length = []
         for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
             mesh_step = vtx_si.mesh_step
@@ -1149,7 +1149,8 @@ class LayerGeometry(gs.LayerGeometry):
             they must be derived from min and max mesh step.
             """
             print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
-            # print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+            print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+            # print(r'Mesh.RandomFactor = 1e-06;', file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
             for id, char_length in self.vtx_char_length:
