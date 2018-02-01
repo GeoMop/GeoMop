@@ -935,7 +935,8 @@ class LayerGeometry(gs.LayerGeometry):
     def init(self):
         # keep unique interface per surface
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
-
+        self.min_step = np.inf
+        self.max_step = 0
         self.set_ids(self.surfaces)
         self.set_ids(self.regions)
         #self.interfaces = [ Interface(surface) for surface in self.surfaces ]
@@ -999,7 +1000,6 @@ class LayerGeometry(gs.LayerGeometry):
         # self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
         # self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
 
-
         self.all_shapes = []
         self.free_shapes = []
 
@@ -1038,40 +1038,43 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
-        # TODO: introduce shape_id to shape_info dict and get rid of storing aux. data into BW shapes.
-
         # Propagate mesh_step from free_shapes to vertices via DFS
         # use global mesh step if the local mesh_step is zero.
         self.compute_bounding_box()
         global_mesh_step = self.mesh_step_estimate()
 
-        # initialize auxiliary vtx mesh_step to 0.0
-        for vi in shape_by_dim[0]:
-            vi.shape._mesh_step = np.inf
+        shape_dict = {}
         for shp_info in self.all_shapes:
-            shp_info.shape._visited = -1
+            shp_info.mesh_step = np.inf
+            shape_dict[shp_info.shape] = shp_info
+            shp_info.visited = -1
 
         for i_free, shp_info in enumerate(self.free_shapes):
-            mesh_step = self.regions[shp_info.i_reg].mesh_step
-            if mesh_step <= 0.0:
-                mesh_step = global_mesh_step
-
-            # DFS
+            shp_info.mesh_step = self.regions[shp_info.i_reg].mesh_step
+            if shp_info.mesh_step <= 0.0:
+                shp_info.mesh_step = global_mesh_step
+            if shp_info.mesh_step < self.min_step:
+                self.min_step = shp_info.mesh_step
+            else:
+                self.max_step = shp_info.mesh_step
+            count=0
             stack = [shp_info.shape]
             while stack:
                 shp = stack.pop(-1)
-                if isinstance(shp, bw.Vertex):
-                    shp._mesh_step = min(shp._mesh_step, mesh_step)
                 for sub in shp.subshapes():
-                    if not hasattr(sub, '_visited'):
-                        sub._visited = -1
-                    if sub._visited < i_free:
-                        sub._visited = i_free
-                        stack.append(sub)
-
+                    if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
+                        if shape_dict[sub].visited < i_free:
+                            shape_dict[sub].visited = i_free
+                            stack.append(sub)
+                    else:
+                        if sub not in stack:
+                            stack.append(sub)
+                if isinstance(shp, bw.Vertex):
+                    shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
+        self.min_step *= 0.02
         self.vtx_char_length = []
         for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
-            mesh_step = vtx_si.shape._mesh_step
+            mesh_step = vtx_si.mesh_step
             if mesh_step == np.inf:
                 mesh_step = global_mesh_step
             self.vtx_char_length.append((gmsh_shp_id + 1, mesh_step))
@@ -1125,10 +1128,6 @@ class LayerGeometry(gs.LayerGeometry):
         :param mesh_step:
         :return:
 
-         TODO, mesh step:
-         - replace Merge by shapefromfile
-         - replace global mesh step field by array of char lenght:
-         Characteristic Length {ID} = step;
         """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
@@ -1149,8 +1148,8 @@ class LayerGeometry(gs.LayerGeometry):
             TODO: ? Meaning of char length limits. Possibly to prevent to small elements at intersection points,
             they must be derived from min and max mesh step.
             """
-            # print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
-            # print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
+            print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
+            # print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
             for id, char_length in self.vtx_char_length:
