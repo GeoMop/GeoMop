@@ -48,8 +48,6 @@ import geometry_files.polygons as polygons
 import geometry_files.polygons_io as polygons_io
 
 
-print("Start")
-
 import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
@@ -183,7 +181,7 @@ class Surface(gs.Surface):
 
     def make_flat_surface(self, xy_aabb, z_transform):
         # flat surface
-        z_const = z_transform[1]
+        #z_const = z_transform[1]
 
         corners = np.zeros( (3, 3) )
         corners[[1, 0], 0] = xy_aabb[0][0]  # min X
@@ -194,7 +192,7 @@ class Surface(gs.Surface):
 
         basis = bs.SplineBasis.make_equidistant(2, 1)
 
-        poles = np.ones( (3, 3, 1 ) ) * z_const
+        poles = np.zeros( (3, 3, 1 ) )
         surf_z = bs.Surface( (basis, basis), poles)
         self.z_surface = bs.Z_Surface(corners[:, 0:2], surf_z)
         return self.make_bumpy_surface(z_transform)
@@ -492,8 +490,8 @@ class Interface:
             self._surface = Surface()
 
             # TODO: remove after test correctness of Layer editor
-            if self.transform_z[1] != self.depth:
-                self.transform_z = [ 1.0, self.depth]
+            if self.transform_z[1] != self.elevation:
+                self.transform_z = [ 1.0, self.elevation]
             self.surface_approx = self._surface.make_flat_surface(nod_aabb, self.transform_z)
 
         else:
@@ -652,6 +650,14 @@ class Region(gs.Region):
 #    pass
 
 def make_layer_region_maps(layer, regions, extrude):
+    """
+    Return list of obj->region map for every dimension.
+    This replace just list of region ids on the input.
+    :param layer:
+    :param regions:
+    :param extrude:
+    :return:
+    """
     top_decomp = layer.top.decomp
     #bot_decomp = layer.bottom.decomp
     #assert top_decomp == bot_decomp
@@ -671,11 +677,12 @@ def make_layer_region_maps(layer, regions, extrude):
 class FractureLayer(gs.FractureLayer):
     def init(self, lg):
         self.i_top = self.top.make_interface(lg)
+        # Top interface.
         self.topology = self.top.topology
+        # Common topology.
         self.regions = make_layer_region_maps(self, lg.regions, False)
-        #for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
-        #    for i_reg in reg_list:
-        #        self.regions[i_reg].init(topo_dim=dim, extrude = False)
+        # List of dictionaries.
+        # [ points_ids to regions, segment_ids to regions, polygon_ids to regions]
 
     def make_shapes(self):
         """
@@ -724,15 +731,29 @@ class StratumLayer(gs.StratumLayer):
 
 
     def make_vert_bw_surface(self, top_edges, bot_edges, edge_start, edge_end):
-        # vertical edges (edge_start, edge_end) are oriented from bottom to top
+        """
+        Make vertical surface surface from set of 4 boundary edges.
+
+        Sequence of edge shape info, which are subdivision (after partition) of a single edge:
+        :param top_edges: Subdivision of the top edge (V01 - > V11)
+        :param bot_edges: Subdivision of the bottom edge (V00 -> V10)
+
+        Vertical edges oriented from bottom to top:
+        :param edge_start: Connecting start points of (top and bot edges), V00 -> V01
+        :param edge_end: Connecting end points of (top and bot edges), V10 -> V11
+        :return: BW surface object.
+        """
+        #
 
         top_boxes = [edg_si.curve_z.aabb() for edg_si in top_edges]
         bot_boxes = [edg_si.curve_z.aabb() for edg_si in bot_edges]
 
+        # Z range
         top_z = max([ box[:, 1].max() for box in top_boxes]) + 1.0
         bot_z = min([ box[:, 1].min() for box in bot_boxes]) - 1.0
 
-        # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
+        # XYZ of corners, vUV,
+        # U is horizontal start to end, V is vertical bot to top
         edg_start_vtxs = np.array(edge_start.shape.points())
         edg_end_vtxs = np.array(edge_end.shape.points())
         v00, v01 = edg_start_vtxs.copy()
@@ -774,6 +795,19 @@ class StratumLayer(gs.StratumLayer):
         return bw_surf
 
     def _curve_for_horizontal_edges(self, edge_list, v_to_z, xy_vtxs, bw_surf):
+        """
+        Scale and attach boundary curves of edges to the surface bounded by the edges.
+        U - horizontal parameter, V - vertical parameter; parameters of the vertical surface
+        'bw_surf'. Boundary curves (U->V) are part of the shape info objects.
+
+
+        :param edge_list: List of edge shape info objects, forming a subdivision of a segment
+         with endpoints 'xy_vtxs'
+        :param v_to_z: Mapping vertica V parameter to real Z coordinate.
+        :param xy_vtxs: Segment end points.
+        :param bw_surf: Surface to which attache the
+        :return: None
+        """
         axis = np.argmax(np.abs(xy_vtxs[1] - xy_vtxs[0]))
         axis_diff = xy_vtxs[1][axis] - xy_vtxs[0][axis]
         for edg_si in edge_list:
@@ -785,6 +819,8 @@ class StratumLayer(gs.StratumLayer):
             assert 0.0 <= xy_to_u[1] <= 1.0
             boundary_curve = edg_si.vert_curve(v_to_z, xy_to_u)
             uv_vtx = boundary_curve.eval_array(np.array([0, 1]))
+            # Fix errors in U coordinate which should be a sequence from 0 to 1.
+            uv_vtx[:, 0] = np.clip(uv_vtx[:,0], 0.0, 1.0)
 
             if not (np.all( 0 <= uv_vtx ) and np.all( uv_vtx <= 1)):
                 raise Exception("Top point < bottom point, for layer id = {}. Z-range: {}. {}"\

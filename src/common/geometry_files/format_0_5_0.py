@@ -6,10 +6,9 @@ import os
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.append(geomop_src)
 
-import json
 
-from json_data import *
-import geometry_files.layer_format_conversions as fmt_conv
+from json_data import JsonData, IntEnum, ClassFactory
+import geometry_files.layer_format_conversions as lfc
 
 
 class LayerType(IntEnum):
@@ -17,7 +16,7 @@ class LayerType(IntEnum):
     stratum = 0
     fracture = 1
     shadow = 2
-    
+
 
 class TopologyType(IntEnum):
     given = 0
@@ -31,7 +30,7 @@ class RegionDim(IntEnum):
     well = 1
     fracture = 2
     bulk = 3
-    
+
 
 class TopologyDim(IntEnum):
     invalid = -1
@@ -61,7 +60,7 @@ class SurfaceApproximation(JsonData):
 
 
 class Surface(JsonData):
-    
+
     def __init__(self, config={}):
         self.grid_file = ""
         """File with approximated points (grid of 3D points). None for plane"""
@@ -70,25 +69,20 @@ class Surface(JsonData):
         self.xy_transform = 2*(3*(float,),)
         """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
         self.quad = 4*(2*(float,),)
-        """Bounding polygon"""        
+        """Bounding polygon"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         super().__init__(config)
-        
-    @staticmethod
-    def make_surface():
-        surf = Surface()
-        surf.approximation = None
-        return surf
+
 
 class Interface(JsonData):
-    
+
     def __init__(self, config={}):
         self.surface_id = int
         """Surface index"""
         self.transform_z = 2*(float,)
         """Transformation in Z direction (scale and shift)."""
-        self.depth = float
+        self.elevation = float
         """ Representative Z coord of the surface."""
 
         # Grid polygon should be in SurfaceApproximation, however
@@ -97,21 +91,11 @@ class Interface(JsonData):
         """Vertices of the boundary polygon of the grid."""
         super().__init__(config)
 
-    @staticmethod
-    def make_interface(depth):
-        inter = Interface(dict(depth=depth, surface_id=None))
-        inter.transform_z = [1.0, 0.0]
-        return inter
-
-    #def get_depth(self):
-    #    """Return surface depth in 0"""
-    #    return self.depth
-        
-    def __eq__(self, other):
-        """operators for comparation"""
-        return self.depth == other.depth \
-            and self.transform_z == other.transform_z \
-            and self.surface_id != other.surface_id
+    @classmethod
+    def convert(cls, other):
+        return Interface(dict(
+            surface_id
+        ))
 
 
 
@@ -125,10 +109,6 @@ class Segment(JsonData):
         self.interface_id = None
         """Interface index"""
         super().__init__(config)
-
-    def __eq__(self, other):
-        return self.node_ids == other.node.ids \
-            and self.surface_id == other.surface_id
 
 class Polygon(JsonData):
 
@@ -144,12 +124,6 @@ class Polygon(JsonData):
         """Interface index"""
         super().__init__(config)
 
-    def __eq__(self, other):
-        return self.segment_ids == other.segment_ids \
-            and self.holes == other.holes \
-            and self.free_points == other.free_points \
-            and self.surface_id == other.surface_id
-
 
 class Topology(JsonData):
     """Topological presentation of geometry objects"""
@@ -160,10 +134,6 @@ class Topology(JsonData):
         self.polygons = [ ClassFactory(Polygon) ]
         """List of topology polygons"""
         super().__init__(config)
-
-    def __eq__(self, other):
-        return self.segments == other.segments \
-            and self.polygons == other.polygons \
 
 
 
@@ -183,13 +153,9 @@ class NodeSet(JsonData):
         if node has not pair"""
         super().__init__(config)
 
-    def reset(self):
-        """Reset node set"""
-        self.nodes = []
-
 
 class InterfaceNodeSet(JsonData):
-    """Node set in space for transformation(x,y) ->(u,v). 
+    """Node set in space for transformation(x,y) ->(u,v).
     Only for GL"""
     _not_serialized_attrs_ = ['interface_type']
 
@@ -201,10 +167,17 @@ class InterfaceNodeSet(JsonData):
         super().__init__(config)
         self.interface_type = TopologyType.given
 
+    @classmethod
+    def convert(cls, other):
+        return InterfaceNodeSet(dict(
+            nodeset_id = other.nodeset_id,
+            interface_id = other.surface_id
+        ))
+
 
 class InterpolatedNodeSet(JsonData):
     """Two node set with same Topology in space for transformation(x,y) ->(u,v).
-    If both node sets is same, topology is vertical    
+    If both node sets is same, topology is vertical
     Only for GL"""
     _not_serialized_attrs_ = ['interface_type']
 
@@ -216,10 +189,16 @@ class InterpolatedNodeSet(JsonData):
         super().__init__(config)
         self.interface_type = TopologyType.interpolated
 
+    @classmethod
+    def convert(cls, other):
+        return InterpolatedNodeSet(dict(
+            surf_nodesets = [InterfaceNodeSet.convert(ns) for ns in other.surf_nodesets],
+            interface_id = other.surface_id
+        ))
 
 class Region(JsonData):
     """Description of disjunct geometri area sorte by dimension (dim=1 well, dim=2 fracture, dim=3 bulk). """
-    
+
     def __init__(self, config={}):
         self.color = ""
         """8-bite region color"""
@@ -239,17 +218,6 @@ class Region(JsonData):
         """List of shape indexes - in BREP geometry """
         super().__init__(config)
 
-    def fix_dim(self, extruded):
-
-        if self.topo_dim != TopologyDim.invalid:
-            # old format
-            if self.dim == RegionDim.invalid:
-                self.dim = RegionDim(self.topo_dim + extruded)
-            if self.not_used:
-                return
-            assert self.dim.value == self.topo_dim + extruded, "Region {} , dimension mismatch."
-        assert self.dim != RegionDim.invalid
-
 
 class GeoLayer(JsonData):
     """Geological layers"""
@@ -261,7 +229,7 @@ class GeoLayer(JsonData):
 
         self.top =  ClassFactory( [InterfaceNodeSet, InterpolatedNodeSet] )
         """Accoding topology type interface node set or interpolated node set"""
-        
+
         # assign regions to every topology object
         self.polygon_region_ids = [ int ]
         self.segment_region_ids = [ int ]
@@ -270,21 +238,26 @@ class GeoLayer(JsonData):
         super().__init__(config)
         self.layer_type = LayerType.shadow
 
-    def fix_region_dim(self, regions):
-        extruded = (self.layer_type == LayerType.stratum)
-        for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
-            for reg_idx in reg_list:
-                if reg_idx>0:
-                    reg = regions[reg_idx]
-                    reg.fix_dim(extruded)
-                
-    def fix_region_id(self):
-        for reg_list in  [self.polygon_region_ids, self.segment_region_ids, self.node_region_ids]:
-            for i in range(0, len(reg_list)):
-                if reg_list[i]>2:
-                    reg_list[i] -= 2
-                else:
-                    reg_list[i] = 0
+    @classmethod
+    def convert_node_set_type(self, ns):
+        if ns is None:
+            return None
+        elif ns.__class__.__name__ == 'SurfaceNodeSet':
+            return InterfaceNodeSet.convert(ns)
+        else:
+            assert ns.__class__.__name__ == 'InterpolatedNodeSet'
+            return InterpolatedNodeSet.convert(ns)
+
+    @classmethod
+    def convert(cls, other):
+        top = cls.convert_node_set_type(other.top)
+        bottom = cls.convert_node_set_type( getattr(other, 'bottom', None))
+        other.top = None
+        other.bottom = None
+        layer = convert_json_data(other)
+        layer.top = top
+        layer.bottom = bottom
+        return layer
 
 
 class FractureLayer(GeoLayer):
@@ -294,6 +267,7 @@ class FractureLayer(GeoLayer):
         super().__init__(config)
         self.layer_type = LayerType.fracture
         self.top_type = self.top.interface_type
+
 class StratumLayer(GeoLayer):
     _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
 
@@ -309,6 +283,9 @@ class StratumLayer(GeoLayer):
         self.bottom_type = self.bottom.interface_type
 
 
+
+
+
 class ShadowLayer(GeoLayer):
     def __init__(self, config={}):
         super().__init__(config)
@@ -320,12 +297,12 @@ class UserSupplement(JsonData):
         """Last edited node set"""
         self.init_area = [(0.0, 0.0),  (1.0, 0.0),  (1.0, 1.0),  (0.0, 1.0)]
         """Initialization area (polygon x,y coordinates)"""
-        self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0, 'position_set':False}  
-        """Zoom and position for zoom diagram class""" 
-        self.shps = [] 
+        self.zoom = {'zoom':1.0, 'x':0.0, 'y':0.0, 'position_set':False}
+        """Zoom and position for zoom diagram class"""
+        self.shps = []
         """Zoom and position for zoom diagram class"""
         self.surface_idx = None
-        """Surface idx displayed surface panel""" 
+        """Surface idx displayed surface panel"""
         super().__init__(config)
 
 
@@ -359,49 +336,49 @@ class LayerGeometry(JsonData):
         - make   
         """
 
-#         if self.version < [0, 4, 9]:
-#
-#
-#         if self.version < [0, 5, 0]:
-#             def surface_to_interface(id, surf):
-#                 if surf.grid_file is None:
-#                     surf.transform_z = [1.0, self.depth]
-#                 return Interface(dict(
-#                     surface_id=id,
-#                     transform_z=surf.transform_z,
-#                     depth=surf.depth
-#                 ))
-#
-#             def surface_to_new_surf(id, surf):
-#                 import b_spline
-#                 from bspline_approx import SurfaceApprox
-#                 from geometry_files.bspline_io import bs_zsurface_write
-#
-#                 approx = SurfaceApprox.approx_from_file(surf.grid_file)
-#                 z_surf_approx = approx.compute_approximation()
-#                 approx_ser = bs_zsurface_write(z_surf_approx)
-#                 quad = z_surf_approx.quad
-#                 return Surface(dict(
-#                     grid_file = surf.grid_file,
-#                     name = "surface_%d"%(id),
-#                     transform_xy = surf.transform_xy,
-#                     quad = quad,
-#                     approximation = approx_ser
-#                 ))
-#             self.interfaces = [ surface_to_interface(id, surf) for id, surf in  enumerate(self.surfaces) ]
-#             self.surfaces = [ surface_to_new_surf(id, surf) for id, surf in enumerate(self.surfaces)]
-#
-def read_geometry(file_name):
-    """return LayerGeometry data"""
-    with open(file_name) as f:
-        contents = f.read()
-    json_lg = json.loads(contents, encoding="utf-8")
-    return fmt_conv.convert_file_to_actual_format(json_lg)
-    return lg
+    @classmethod
+    def surface_to_interface(cls, id, surf):
+        surf_id = None
+        if surf.grid_file is None:
+            surf_id = id
+            surf.transform_z = [1.0, -surf.depth]
+
+        return Interface(dict(
+            surface_id = surf_id,
+            transform_z = surf.transform_z,
+            elevation = -surf.depth
+        ))
+
+    @classmethod
+    def surface_to_new_surf(cls, id, surf):
+        import b_spline
+        from bspline_approx import SurfaceApprox
+        from geometry_files.bspline_io import bs_zsurface_write
+
+        approx = SurfaceApprox.approx_from_file(surf.grid_file)
+        z_surf_approx = approx.compute_approximation()
+        approx_ser = bs_zsurface_write(z_surf_approx)
+        quad = z_surf_approx.quad
+        return Surface(dict(
+            grid_file=surf.grid_file,
+            name="surface_%d" % (id),
+            transform_xy=surf.transform_xy,
+            quad=quad,
+            approximation=approx_ser
+        ))
 
 
-def write_geometry(file_name, lg):
-    """Write LayerGeometry data to file"""
-    with open(file_name, 'w') as f:
-        json.dump(lg.serialize(), f, indent=4, sort_keys=True)
+    @classmethod
+    def convert(cls, other):
+        lg = convert_json_data(other)
+        lg.interfaces = [ lg.surface_to_interface(id, surf) for id, surf in  enumerate(lg.surfaces) ]
+        lg.surfaces = [ lg.surface_to_new_surf(id, surf) for id, surf in enumerate(lg.surfaces) if surf.grid_file != '']
+        return lg
+
+def convert_object(old_obj):
+    return lfc.convert_object(sys.modules[__name__], old_obj)
+
+
+def convert_json_data(old_obj, new_class=None):
+    return lfc.convert_json_data(sys.modules[__name__], old_obj, new_class)
 
