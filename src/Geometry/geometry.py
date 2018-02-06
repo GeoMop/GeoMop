@@ -1071,6 +1071,7 @@ class LayerGeometry(gs.LayerGeometry):
                             stack.append(sub)
                 if isinstance(shp, bw.Vertex):
                     shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
+
         self.min_step *= 0.2
         self.vtx_char_length = []
         for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
@@ -1150,7 +1151,10 @@ class LayerGeometry(gs.LayerGeometry):
             """
             print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
             print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
-            # print(r'Mesh.RandomFactor = 1e-06;', file=f)
+            # rand_factor has to be increased when the triangle/model ratio
+            # multiplied by rand_factor approaches 'machine accuracy'
+            rand_factor = 1e-14 * np.max(self.aabb[1] - self.aabb[0]) / self.min_step
+            print(r'Mesh.RandomFactor = %s;'%rand_factor , file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
             for id, char_length in self.vtx_char_length:

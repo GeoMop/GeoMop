@@ -42,4 +42,5 @@ def test_geometry_script():
     # run_geometry('04_flat_fracture.json')
     # run_geometry('05_split_square.json', 10)
     # run_geometry('06_bump_split.json', 10)
-    run_geometry('10_bump_step.json')
+    # run_geometry('10_bump_step.json')
+    run_geometry('11_tectonics.json')
