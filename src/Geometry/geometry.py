@@ -1055,9 +1055,8 @@ class LayerGeometry(gs.LayerGeometry):
                 shp_info.mesh_step = global_mesh_step
             if shp_info.mesh_step < self.min_step:
                 self.min_step = shp_info.mesh_step
-            else:
+            elif shp_info.mesh_step > self.max_step:
                 self.max_step = shp_info.mesh_step
-            count=0
             stack = [shp_info.shape]
             while stack:
                 shp = stack.pop(-1)
