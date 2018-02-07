@@ -63,10 +63,11 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.setWindowTitle("Add Region")
 
         grid = QtWidgets.QGridLayout(self)
-        
+
+        on_creation_dim = 3
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
-        self.region_name.setText("New Region")
+        self.region_name.setText("("+str(on_creation_dim)+"D) Region "+str(len(cfg.diagram.regions.regions)))
         grid.addWidget(d_region_name, 0, 0)
         grid.addWidget(self.region_name, 0, 1)
         
@@ -76,9 +77,15 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.well], RegionDim.well)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
-        self.region_dim.setCurrentIndex(3) 
-        grid.addWidget(d_region_dim , 1, 0)
-        grid.addWidget(self.region_dim , 1, 1)
+        self.region_dim.setCurrentIndex(on_creation_dim)
+
+        def adjust_name(idx):
+            if self.region_name.text()[0:5] in ["(0D) ", "(1D) ", "(2D) ", "(3D) "]:
+                self.region_name.setText("("+str(idx)+"D) "+self.region_name.text()[5:])
+
+        self.region_dim.currentIndexChanged[int].connect(adjust_name)
+        grid.addWidget(d_region_dim, 1, 0)
+        grid.addWidget(self.region_dim, 1, 1)
 
         self._tranform_button = QtWidgets.QPushButton("Add", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -96,7 +103,7 @@ class AddRegionDlg(QtWidgets.QDialog):
     def get_some_color(cls, i):
         """Return firs collor accoding to index"""
         return cls.BACKGROUND_COLORS[i % len(cls.BACKGROUND_COLORS)]
-        
+
     def accept(self):
         """
         Accepts the form if region data is valid.

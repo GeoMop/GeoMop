@@ -293,7 +293,7 @@ class Regions(QtWidgets.QToolBox):
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]
             self._set_box_title(self.currentIndex(), layer_id)
-            
+
     def _name_set(self, layer_id):
         """Name is changed"""
         if self.update_region_data:

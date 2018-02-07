@@ -5,6 +5,7 @@ Dialog for appending new layer to the end.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from .layers_helpers import LayersHelpers
+from leconfig import cfg
 
 class AppendLayerDlg(QtWidgets.QDialog):
 
@@ -13,14 +14,14 @@ class AppendLayerDlg(QtWidgets.QDialog):
         if add:
             self.setWindowTitle("Add Layer to Shadow Block")
         elif prepend:
-            self.setWindowTitle("Add Layer")
-        else:
             self.setWindowTitle("Prepend Layer")
+        else:
+            self.setWindowTitle("Append Layer")
         grid = QtWidgets.QGridLayout(self)
         
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
         self.layer_name = QtWidgets.QLineEdit()
-        self.layer_name.setText("New Layer")
+        self.layer_name.setText("Layer "+str(len(cfg.diagram.regions.layers)+1))
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
         
