@@ -76,6 +76,7 @@ class Regions(QtWidgets.QToolBox):
         self.dims = {}
         self.dim_label = {}
         self.add_button = {}
+        self.remove_button = {}
         self.color_label = {}
         self.color_button = {}
         self.name = {}
@@ -123,7 +124,7 @@ class Regions(QtWidgets.QToolBox):
 
             
     def _add_region_panel(self, layer_id, region):
-        """add one region panel to tool box and set regin data"""
+        """add one region panel to tool box and set region data"""
         data = cfg.diagram.regions        
         grid = QtWidgets.QGridLayout()             
         # select and add region
@@ -138,11 +139,20 @@ class Regions(QtWidgets.QToolBox):
         self.regions[layer_id].setCurrentIndex(curr_index)
         self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
-        self.add_button[layer_id] = QtWidgets.QPushButton("Add Region")
-        self.add_button[layer_id].clicked.connect(self._add_region)            
-              
+        self.add_button[layer_id] = QtWidgets.QPushButton()
+        self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.add_button[layer_id].setToolTip('Create new region')
+        #undoicon = QIcon.fromTheme("list - remove", QIcon(":/list_remove.png"))
+        self.add_button[layer_id].clicked.connect(self._add_region)
+
+        self.remove_button[layer_id] = QtWidgets.QPushButton()
+        self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.remove_button[layer_id].setToolTip('Remove selected region')
+        # self.remove_button[layer_id].clicked.connect(self._add_region)
+
         grid.addWidget(self.regions[layer_id], 0, 0)
         grid.addWidget(self.add_button[layer_id], 0, 1)
+        grid.addWidget(self.remove_button[layer_id], 0, 2)
         
         # name
         pom_lamda = lambda ii: lambda: self._name_set(ii)
@@ -151,7 +161,7 @@ class Regions(QtWidgets.QToolBox):
         self.name[layer_id].setText(region.name)
         self.name[layer_id].editingFinished.connect(pom_lamda(layer_id))        
         grid.addWidget(name_label, 1, 0)
-        grid.addWidget(self.name[layer_id], 1, 1)
+        grid.addWidget(self.name[layer_id], 1, 1, 1, 2)
         
         #color button
         self.color_label[layer_id] = QtWidgets.QLabel("Color:", self)
