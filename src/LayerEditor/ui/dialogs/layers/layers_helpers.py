@@ -48,14 +48,15 @@ class LayersHelpers():
             interface.depth = float(dialog.depth.text())
             if dialog.surface is None:
                 interface.surface_id = None
-                interface.transform_z = (1, -100)
+                interface.transform_z = (1, 0.0)
                 return
-            interface.transform_z = (float(dialog.zscale.text()), 
-                    float(dialog.zshift.text()))
-            if (dialog.grid.isChecked()):                
+            if (dialog.grid.isChecked()):
                 interface.surface_id = dialog.surface.currentIndex()
+                interface.transform_z = (float(dialog.zscale.text()),
+                                         float(dialog.zshift.text()))
             else:
                 interface.surface_id = None
+                interface.transform_z = (1, 0.0)
                 
         except:
             raise ValueError("Invalid surface type")

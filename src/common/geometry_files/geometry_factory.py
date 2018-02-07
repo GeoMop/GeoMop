@@ -121,13 +121,24 @@ class GeometryFactory:
         """Add new main layer""" 
         if interface in self.used_interfaces:
             return self.geometry.interfaces.index(self.used_interfaces[interface])
+        if interface.surface_id is None:
+            transform_z = [1.0, interface.depth]
+        else:
+            transform_z = interface.transform_z
         new_interface = Interface({
             "depth":interface.depth, 
             "surface_id":interface.surface_id, 
-            "transform_z":interface.transform_z})
+            "transform_z":transform_z})
         self.used_interfaces[interface] = new_interface
         self.geometry.interfaces.append(new_interface)
         return len(self.geometry.interfaces)-1
+
+
+    def get_interface(self, iface_id):
+        interface = self.geometry.interfaces[iface_id]
+        if interface.surface_id is None:
+            interface.transform_z = [1.0, 0.0]
+        return interface
 
     def add_GL(self, name, type, regions_idx, top_type, top, bottom_type=None, bottom=None):
         """Add new main layer"""
