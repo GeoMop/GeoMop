@@ -39,6 +39,7 @@ sys.path.append(geomop_src)
 
 import json_data as js
 import geometry_files.format_last as gs
+import geometry_files.layers_io as layers_io
 import gmsh_io
 import numpy as np
 import numpy.linalg as la
@@ -1312,7 +1313,7 @@ def make_geometry(**kwargs):
 
     layers_file = layers_file
     filename_base = os.path.splitext(layers_file)[0]
-    gs_lg = gs.read_geometry(layers_file)
+    gs_lg = layers_io.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
     lg.filename_base = filename_base
 
