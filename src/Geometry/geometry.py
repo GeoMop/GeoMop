@@ -162,7 +162,8 @@ class Surface(gs.Surface):
         :return:
         """
         self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
-
+        # Surface approx conatains transform
+        self.z_surface.transform(self.xy_transform)
 
     def make_bumpy_surface(self, z_transform):
         # load grid surface and make its approximation

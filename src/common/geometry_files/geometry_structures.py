@@ -396,7 +396,8 @@ def read_geometry(file_name):
     with open(file_name) as f:
         contents = f.read()
     json_lg = json.loads(contents, encoding="utf-8")
-    return fmt_conv.convert_file_to_actual_format(json_lg)
+    base_path = os.path.dirname(file_name)
+    return fmt_conv.convert_file_to_actual_format(json_lg, base_path=base_path)
     return lg
 
 

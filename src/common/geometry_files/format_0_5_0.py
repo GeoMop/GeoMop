@@ -2,6 +2,7 @@
 
 import sys
 import os
+import numpy as np
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.append(geomop_src)
@@ -338,41 +339,73 @@ class LayerGeometry(JsonData):
 
     @classmethod
     def surface_to_interface(cls, id, surf):
-        surf_id = None
+
         if surf.grid_file is None:
-            surf_id = id
+            assert id is None
             surf.transform_z = [1.0, -surf.depth]
 
+        new_z_shift = surf.transform_z[1] - (1.0 - surf.transform_z[0])*surf.center_z
+        transform_z = [surf.transform_z[0], new_z_shift]
         return Interface(dict(
-            surface_id = surf_id,
-            transform_z = surf.transform_z,
+            surface_id = id,
+            transform_z = transform_z,
             elevation = -surf.depth
         ))
 
     @classmethod
-    def surface_to_new_surf(cls, id, surf):
+    def surface_to_new_surf(cls, id, surf, basepath):
         import b_spline
         from bspline_approx import SurfaceApprox
         from geometry_files.bspline_io import bs_zsurface_write
 
-        approx = SurfaceApprox.approx_from_file(surf.grid_file)
-        z_surf_approx = approx.compute_approximation()
+        if not os.path.isabs(surf.grid_file):
+            path = os.path.join(basepath, surf.grid_file)
+        else:
+            path = surf.grid_file
+
+        # Construct default low resolution approx.
+        approx = SurfaceApprox.approx_from_file(path)
+        z_surf_approx = approx.compute_approximation(nuv=(16,16))
+        center = z_surf_approx.center()
         approx_ser = bs_zsurface_write(z_surf_approx)
         quad = z_surf_approx.quad
+
+        # Convert a linear transform to scaling the grid shifted to origin
+        # old_scale * x + old_shift = new_scale * (x - center) + center + new_shift
+        # = new_scale * x + (I - new_scale) * center + new_shift
+        #
+        # new_shift = old_shift - (I - scale) * center
+        transform_xy = np.array(surf.transform_xy, dtype=float)
+        new_xy_shift = transform_xy[:, 2] - np.dot((np.eye(2) - transform_xy[:, 0:2]), center[0:2])
+        transform_xy[:,2] = new_xy_shift
+        surf.center_z = center[2]
+        z_surf_approx.transform(transform_xy)
         return Surface(dict(
             grid_file=surf.grid_file,
             name="surface_%d" % (id),
-            transform_xy=surf.transform_xy,
-            quad=quad,
-            approximation=approx_ser
+            xy_transform=transform_xy.tolist(),
+            quad=quad.tolist(),
+            approximation=approx_ser.serialize()
         ))
 
 
     @classmethod
     def convert(cls, other):
+        basepath = getattr(other, 'base_path', os.getcwd())
         lg = convert_json_data(other)
-        lg.interfaces = [ lg.surface_to_interface(id, surf) for id, surf in  enumerate(lg.surfaces) ]
-        lg.surfaces = [ lg.surface_to_new_surf(id, surf) for id, surf in enumerate(lg.surfaces) if surf.grid_file != '']
+        surfaces = []
+        surface_ids = []
+        for id, surf in enumerate(other.surfaces):
+            if surf.grid_file != '':
+                surface_ids.append( len(surfaces))
+                surfaces.append(cls.surface_to_new_surf(id, surf, basepath))
+            else:
+                surf.center_z = -surf.depth
+                surface_ids.append(None)
+
+        lg.surfaces = surfaces
+        lg.interfaces = [ cls.surface_to_interface(id, surf) for id, surf in  zip(surface_ids, other.surfaces) ]
+
         return lg
 
 def convert_object(old_obj):

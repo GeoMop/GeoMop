@@ -70,7 +70,7 @@ def module_only_import(name):
                 @classmethod
                 def dflt_conv(cls, x):
                     return convert_json_data(module, x)
-                print("set %s"%(str(element)))
+                #print("set %s"%(str(element)))
                 setattr(element, 'convert', dflt_conv)
     return module
 
@@ -119,7 +119,7 @@ def convert_object(module, old_version_object):
     return new_obj
 
 
-def convert_file_to_actual_format(json_obj):
+def convert_file_to_actual_format(json_obj, base_path=""):
     version = json_obj.get("version", [0, 4, 0])
     layers = None
     for ver, format_module in versions:
@@ -130,6 +130,7 @@ def convert_file_to_actual_format(json_obj):
             if layers is None:
                 raise Exception("Unknown version of the layers file: %s"%(str(version)))
             gs_new_module = module_only_import("geometry_files." + format_module)
+            layers.base_path = base_path
             layers = gs_new_module.LayerGeometry.convert(layers)
 
     return layers

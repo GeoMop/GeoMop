@@ -169,14 +169,6 @@ class InterpolatedNodeSet(JsonData):
 
 class Region(JsonData):
     """Description of disjunct geometri area sorte by dimension (dim=1 well, dim=2 fracture, dim=3 bulk). """
-    none_region_json = dict(
-            dim = RegionDim.none,
-            name = "NONE",
-            not_used = True,
-            boundary = None,
-            mesh_step = None,
-            color = "##"
-        )
 
     def __init__(self, config={}):
         self.color = ""
@@ -303,10 +295,19 @@ class LayerGeometry(JsonData):
 
     @classmethod
     def convert(cls, other):
+        none_region_json = dict(
+            dim=RegionDim.none,
+            name="NONE",
+            not_used=True,
+            boundary=None,
+            mesh_step=None,
+            color="##"
+        )
+
         assert other.regions[0].not_used
         assert other.regions[1].not_used
         assert other.regions[2].not_used
-        regions =  [ Region(Region.none_region_json) ]
+        regions =  [ Region(none_region_json) ]
         for reg in  other.regions[3:]:
             regions.append(convert_json_data(reg))
 
