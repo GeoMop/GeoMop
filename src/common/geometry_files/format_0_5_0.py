@@ -396,7 +396,7 @@ class LayerGeometry(JsonData):
         surfaces = []
         surface_ids = []
         for id, surf in enumerate(other.surfaces):
-            if surf.grid_file != '':
+            if surf.grid_file:
                 surface_ids.append( len(surfaces))
                 surfaces.append(cls.surface_to_new_surf(id, surf, basepath))
             else:
