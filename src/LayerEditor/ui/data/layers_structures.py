@@ -136,13 +136,13 @@ class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
     is None"""
 
-    def __init__(self, surface_id, splited, depth, transform_z=None, fracture_name=None, 
+    def __init__(self, surface_id, splited, elevation, transform_z=None, fracture_name=None,
         diagram_id1=None, diagram_id2=None, fracture_interface=FractureInterface.none, 
         fracture_diagram_id=None):
-        self.depth = 0.0
-        """Float depth description"""
+        self.elevation = 0.0
+        """Float elevation description"""
         try:
-            self.depth = float(depth)            
+            self.elevation = float(elevation)
         except:
             raise ValueError("Invalid elevation type")
         self.surface_id = surface_id
@@ -188,9 +188,9 @@ class Interface():
         """Clicable edit check box area"""
         
     @property
-    def str_depth(self):
-        """Retuen depth in string format"""
-        return str(self.depth)
+    def str_elevation(self):
+        """Retuen elevation in string format"""
+        return str(self.elevation)
     
     def get_fracture_position(self):
         """Return dictionry with string description of fracture possitions -> FractureInterface enum
@@ -213,7 +213,7 @@ class Layers():
     
     @property
     def x_ilabel(self):
-        """depth label x left coordinate"""
+        """elevation label x left coordinate"""
         return self.x_label +self.__dx__*3+self.x_label_width
         
     @property
@@ -428,9 +428,9 @@ class Layers():
                 data.fracture_after = self.interfaces[i+1].fracture
         return data
         
-    def add_interface(self, surface_id, splited, depth, transform_z=None, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):
+    def add_interface(self, surface_id, splited, elevation, transform_z=None, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):
         """add new interface"""
-        self.interfaces.append(Interface(surface_id, splited, depth, transform_z, fracture_name, diagram_id1, diagram_id2,fracture_interface, fracture_id))
+        self.interfaces.append(Interface(surface_id, splited, elevation, transform_z, fracture_name, diagram_id1, diagram_id2,fracture_interface, fracture_id))
         return len(self.interfaces)-1
         
     def add_layer(self, name, shadow=False):
@@ -450,12 +450,12 @@ class Layers():
         self.interfaces.insert(0, Interface(None, False, 0.0)) 
         return self.interfaces[0]
  
-    def add_layer_to_shadow(self, idx, name, interface, depth, dup):
+    def add_layer_to_shadow(self, idx, name, interface, elevation, dup):
         """Append new layer to shadow block, return True if 
         shadow block is replaces"""
         self.interfaces[idx].diagram_id2 = dup.insert_id
         self._move_diagram_idx(idx+1, 1)  
-        if interface.depth==self.interfaces[idx+1].depth:
+        if interface.elevation==self.interfaces[idx+1].elevation:
             self.layers[idx].shadow=False
             self.layers[idx].name=name
             return True
@@ -1365,7 +1365,7 @@ class Layers():
         # interface label
         self.x_ilabel_width = fm.width("elevation")
         for i in range(0, len(self.interfaces)):
-            width = fm.width(self.interfaces[i].str_depth)
+            width = fm.width(self.interfaces[i].str_elevation)
             if  width>self.x_ilabel_width:
                     self.x_ilabel_width = width
             self.interfaces[i].y

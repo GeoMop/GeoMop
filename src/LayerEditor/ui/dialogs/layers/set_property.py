@@ -1,5 +1,5 @@
 """
-Dialogs for settings text name property or depth
+Dialogs for settings text name property or elevation
 """
 
 import PyQt5.QtWidgets as QtWidgets
@@ -52,7 +52,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
             self.validator.setTop( max)
         self.validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         
-        self.depth.setValidator(self.validator)
+        self.elevation.setValidator(self.validator)
         
         self._tranform_button = QtWidgets.QPushButton("Set Surface", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -68,10 +68,10 @@ class SetSurfaceDlg(QtWidgets.QDialog):
 
     def accept(self):
         """
-        Accepts the form if depth data fields are valid.
+        Accepts the form if elevation data fields are valid.
         :return: None
         """
-        if LayersHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.elevation, self.validator, self):
              super(SetSurfaceDlg, self).accept()
              
     def fill_surface(self, interface):

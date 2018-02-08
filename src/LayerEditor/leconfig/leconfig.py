@@ -284,7 +284,7 @@ class LEConfig:
         
     @classmethod
     def make_middle_diagram(cls, dup):
-        """return interpolated new diagram in set depth"""
+        """return interpolated new diagram in set elevation"""
         # TODO: instead copy compute middle diagram
         return cls.diagrams[dup.dup1_id].dcopy()
         

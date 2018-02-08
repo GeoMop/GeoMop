@@ -34,8 +34,8 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.validator = QtGui.QDoubleValidator()
         self.validator.setBottom(min)
         self.validator.setTop(max)
-        self.depth.setValidator(self.validator)
-        self.depth.setText(str((min+max)/2))
+        self.elevation.setValidator(self.validator)
+        self.elevation.setText(str((min+max)/2))
         
         self._tranform_button = QtWidgets.QPushButton("Split", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -51,10 +51,10 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
     def accept(self):
         """
-        Accepts the form if depth data fields are valid.
+        Accepts the form if elevation data fields are valid.
         :return: None
         """
-        if LayersHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.elevation, self.validator, self):
             super(SplitLayerDlg, self).accept()
 
     def fill_surface(self, interface):

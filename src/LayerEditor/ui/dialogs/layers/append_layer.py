@@ -32,14 +32,14 @@ class AppendLayerDlg(QtWidgets.QDialog):
         if add:
             self.validator.setBottom(min_elevation)
             self.validator.setTop(max_elevation)
-            self.depth.setText(str((min_elevation + max_elevation) / 2))
+            self.elevation.setText(str((min_elevation + max_elevation) / 2))
         elif prepend:
             self.validator.setBottom(min_elevation)
-            self.depth.setText(str(min_elevation + 100))
+            self.elevation.setText(str(min_elevation + 100))
         else:
             self.validator.setTop(max_elevation)
-            self.depth.setText(str(max_elevation - 100))
-        self.depth.setValidator(self.validator)
+            self.elevation.setText(str(max_elevation - 100))
+        self.elevation.setValidator(self.validator)
         
         if add:
             self._tranform_button = QtWidgets.QPushButton("Add", self)
@@ -60,10 +60,10 @@ class AppendLayerDlg(QtWidgets.QDialog):
 
     def accept(self):
         """
-        Accepts the form if depth data fields are valid.
+        Accepts the form if elevation data fields are valid.
         :return: None
         """
-        if LayersHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.elevation, self.validator, self):
             super(AppendLayerDlg, self).accept()
             
     def fill_surface(self, interface):

@@ -217,13 +217,13 @@ class Surfaces(QtWidgets.QWidget):
         
         inner_grid = QtWidgets.QGridLayout()
 
-        self.d_depth = QtWidgets.QLabel("Elevation:", self)        
-        self.depth = QtWidgets.QLineEdit()
-        self.depth.setReadOnly(True)
-        self.depth.setStyleSheet("background-color:WhiteSmoke");
-        self.depth.setEnabled(False)
-        inner_grid.addWidget(self.d_depth, 0, 0)
-        inner_grid.addWidget(self.depth, 0, 1)
+        self.d_elevation = QtWidgets.QLabel("Elevation:", self)
+        self.elevation = QtWidgets.QLineEdit()
+        self.elevation.setReadOnly(True)
+        self.elevation.setStyleSheet("background-color:WhiteSmoke");
+        self.elevation.setEnabled(False)
+        inner_grid.addWidget(self.d_elevation, 0, 0)
+        inner_grid.addWidget(self.elevation, 0, 1)
 
         self.d_error = QtWidgets.QLabel("Error:", self)        
         self.error = QtWidgets.QLineEdit()
@@ -307,7 +307,7 @@ class Surfaces(QtWidgets.QWidget):
             self._set_new_edit(False)
     
     def _apply(self):
-        """Save changes to file and compute new depth and error"""
+        """Save changes to file and compute new elevation and error"""
         # TODO: chatch and highlite duplicit item error 
         surfaces = cfg.layers.surfaces
         
@@ -337,17 +337,18 @@ class Surfaces(QtWidgets.QWidget):
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
             surface.xy_transform = self._get_transform()
             surface.quad = copy.copy(self.quad)
-            self._history.change_surface(surfaces, id)            
+            assert surface.quad == self.zs.quad
+            self._history.change_surface(surfaces, id)
             surfaces.surfaces[id] = surface
         if self.approx.error is not None:
             self.error.setText(str(self.approx.error))                
         else:
             self.error.setText("")
         center = self.zs.center()
-        self.depth.setText(str(center[2]))  
-        self.depth.setEnabled(True)
+        self.elevation.setText(str(center[2]))
+        self.elevation.setEnabled(True)
         self.error.setEnabled(True)
-        self.depth.home(False) 
+        self.elevation.home(False)
         self.error.home(False) 
         self.showMash.emit(True)
        
@@ -409,7 +410,7 @@ class Surfaces(QtWidgets.QWidget):
             return
 
         self.showMash.emit(True)
-        self.depth.setEnabled(False)
+        self.elevation.setEnabled(False)
         self.error.setEnabled(False)
 
     def _focus_in(self):
@@ -441,9 +442,9 @@ class Surfaces(QtWidgets.QWidget):
         self.v_approx.setText(str(v))
         self.last_u = u
         self.last_v = v  
-        self.depth.setText("")
+        self.elevation.setText("")
         self.error.setText("")
-        self.depth.setEnabled(False)
+        self.elevation.setEnabled(False)
         self.error.setEnabled(False)          
         self.d_message.setText("")
         self.d_message.setVisible(False)
@@ -460,6 +461,7 @@ class Surfaces(QtWidgets.QWidget):
             self._enable_approx(False)
             self.quad = surfaces[id].quad
             self.zs = surfaces[id].approximation
+            assert np.all(np.array(self.quad) == np.array(self.zs.quad))
             self.zs_id = id
             self.d_message.setText("Set grid file not found.")
             self.d_message.setVisible(True)
@@ -483,10 +485,10 @@ class Surfaces(QtWidgets.QWidget):
                 if self.approx.error is not None:
                     self.error.setText(str(self.approx.error))                
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))  
-                self.depth.setEnabled(True)
+                self.elevation.setText(str(center[2]))
+                self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
-                self.depth.home(False) 
+                self.elevation.home(False)
                 self.error.home(False) 
             # TODO: check focus
             self.showMash.emit(True)
@@ -522,10 +524,10 @@ class Surfaces(QtWidgets.QWidget):
             if self.approx.error is not None:
                 self.error.setText(str(self.approx.error) )
             center = self.zs.center()
-            self.depth.setText(str(center[2]))
-            self.depth.setEnabled(True)
+            self.elevation.setText(str(center[2]))
+            self.elevation.setEnabled(True)
             self.error.setEnabled(True) 
-            self.depth.home(False) 
+            self.elevation.home(False)
             self.error.home(False)          
             self.zs.transform(np.array(self._get_transform(), dtype=float), None)
             self.quad = self.zs.quad
@@ -555,7 +557,7 @@ class Surfaces(QtWidgets.QWidget):
         self.xyscale22.setText("1.0")
         self.xyshift1.setText("0.0")
         self.xyshift2.setText("0.0")
-        self.depth.setText("")
+        self.elevation.setText("")
         self.error.setText("") 
         self.d_message.setText("")
         self.d_message.setVisible(False)
@@ -601,10 +603,10 @@ class Surfaces(QtWidgets.QWidget):
                 if self.approx.error is not None:
                     self.error.setText(str(self.approx.error) )
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))
-                self.depth.setEnabled(True)
+                self.elevation.setText(str(center[2]))
+                self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
-                self.depth.home(False) 
+                self.elevation.home(False)
                 self.error.home(False)           
                 self.zs.transform(np.array(self._get_transform(), dtype=float), None)
                 self.quad = self.zs.quad                

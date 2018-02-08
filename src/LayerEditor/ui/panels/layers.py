@@ -187,7 +187,7 @@ class Layers(QtWidgets.QWidget):
                     self._paint_radiobutton(painter, d.interfaces[i].fracture.edit_rect, 
                         d.interfaces[i].fracture.edited, d.x_label-2*d.__dx__)                
             painter.drawText(d.interfaces[i].rect.left(), d.interfaces[i].rect.bottom()-d.y_font/4, 
-                d.interfaces[i].str_depth)        
+                d.interfaces[i].str_elevation)
             #layers
             if i<len(d.layers):
                 if d.layers[i].shadow:
@@ -213,7 +213,7 @@ class Layers(QtWidgets.QWidget):
 
     def append_layer(self):
         """Append layer to the end"""
-        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[-1].depth)
+        dlg = AppendLayerDlg(cfg.main_window, None, cfg.layers.interfaces[-1].elevation)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -228,7 +228,7 @@ class Layers(QtWidgets.QWidget):
 
     def prepend_layer(self):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[0].depth, None, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[0].elevation, None, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()            
@@ -243,7 +243,7 @@ class Layers(QtWidgets.QWidget):
             
     def add_layer_to_shadow(self, idx):
         """Prepend layer to the start"""
-        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx+1].depth, cfg.layers.interfaces[idx].depth, False, True)
+        dlg = AppendLayerDlg(cfg.main_window, cfg.layers.interfaces[idx+1].elevation, cfg.layers.interfaces[idx].elevation, False, True)
         ret = dlg.exec_()
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.layer_name.text()
@@ -303,10 +303,10 @@ class Layers(QtWidgets.QWidget):
     
     def add_interface(self, i):
         """Split layer by new interface"""
-        max = cfg.layers.interfaces[i].depth
+        max = cfg.layers.interfaces[i].elevation
         min = None
         if i<len(cfg.layers.interfaces)-1:
-            min = cfg.layers.interfaces[i+1].depth
+            min = cfg.layers.interfaces[i+1].elevation
             
         dlg = SplitLayerDlg(min, max, __COPY_BLOCK__, cfg.main_window)
         ret = dlg.exec_()
@@ -505,15 +505,15 @@ class Layers(QtWidgets.QWidget):
         self.change_size()
         
     def set_interface_surface(self, i):
-        """Set interface depth"""
+        """Set interface elevation"""
         min_elevation = None
         max_elevation = None
         if i>0:
-            max_elevation = cfg.layers.interfaces[i-1].depth
+            max_elevation = cfg.layers.interfaces[i-1].elevation
         if i<len(cfg.layers.interfaces)-1:
-            min_elevation = cfg.layers.interfaces[i+1].depth
+            min_elevation = cfg.layers.interfaces[i+1].elevation
         old_surface_id = cfg.layers.interfaces[i].surface_id
-        old_depth = cfg.layers.interfaces[i].depth
+        old_depth = cfg.layers.interfaces[i].elevation
         old_transform_z = cfg.layers.interfaces[i].transform_z
 
         dlg = SetSurfaceDlg(cfg.layers.interfaces[i], cfg.main_window, min_elevation, max_elevation)
@@ -522,7 +522,7 @@ class Layers(QtWidgets.QWidget):
             dlg.fill_surface(cfg.layers.interfaces[i])
             if old_surface_id!=cfg.layers.interfaces[i].surface_id and \
                 old_transform_z!=cfg.layers.interfaces[i].transform_z and \
-                old_depth!=cfg.layers.interfaces[i].depth:
+                old_depth!=cfg.layers.interfaces[i].elevation:
                 self._history.change_interface_surface(old_surface_id, old_depth, old_transform_z, i, "Set interface surface")
                 self.change_size()
         self.refreshArea.emit()
