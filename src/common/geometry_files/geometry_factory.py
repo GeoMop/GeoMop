@@ -1,10 +1,22 @@
 """Structures for Layer Geometry File"""
 
-from .geometry_structures import LayerGeometry, NodeSet,  Topology
-from .geometry_structures import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
-from .geometry_structures import Region, RegionDim, StratumLayer
-from .geometry_structures import FractureLayer, ShadowLayer
+from .format_last import LayerGeometry, NodeSet,  Topology
+from .format_last import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
+from .format_last import Region, RegionDim, StratumLayer
+from .format_last import FractureLayer, ShadowLayer
 from .bspline_io import bs_zsurface_read, bs_zsurface_write
+
+
+# class Unique:
+#     def __init__(self, item_list):
+#         self.id=0
+#         self.add()
+#
+#     def add(self, item):
+#         for it in self.item_list:
+#             if self.item_list._id ==
+#         item._id = self.id
+#         item_list.append()
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -111,9 +123,15 @@ class GeometryFactory:
         ns = InterfaceNodeSet(dict( nodeset_id=ns_idx, interface_id=interface_idx ))
         return ns
 
-    def add_interface_plane(self, depth):
+    @staticmethod
+    def make_interface(elevation):
+        inter = Interface(dict(elevation=elevation, surface_id=None))
+        inter.transform_z = [1.0, 0.0]
+        return inter
+
+    def add_interface_plane(self, elevation):
         """Add new main layer"""
-        interface = Interface.make_interface(depth)
+        interface = self.make_interface(elevation)
         self.geometry.interfaces.append(interface)
         return len(self.geometry.interfaces)-1
 
@@ -122,11 +140,11 @@ class GeometryFactory:
         if interface in self.used_interfaces:
             return self.geometry.interfaces.index(self.used_interfaces[interface])
         if interface.surface_id is None:
-            transform_z = [1.0, interface.depth]
+            transform_z = [1.0, interface.elevation]
         else:
             transform_z = interface.transform_z
         new_interface = Interface({
-            "depth":interface.depth, 
+            "elevation":interface.elevation,
             "surface_id":interface.surface_id, 
             "transform_z":transform_z})
         self.used_interfaces[interface] = new_interface

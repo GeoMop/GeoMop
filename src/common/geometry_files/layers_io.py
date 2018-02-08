@@ -1,6 +1,7 @@
 import sys
 import os
 import inspect
+import json
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.append(geomop_src)
@@ -46,7 +47,8 @@ def convert_to_0_5_0(layers, gs_new):
 versions=[
     ([0,4,0], "format_0_4_0"),
     ([0,4,9], "format_0_4_9"),
-    ([0,5,0], "format_0_5_0")
+    ([0,5,0], "format_0_5_0"),
+    ([9,9,9], "format_last")
 ]
 
 
@@ -134,3 +136,20 @@ def convert_file_to_actual_format(json_obj, base_path=""):
             layers = gs_new_module.LayerGeometry.convert(layers)
 
     return layers
+
+
+def read_geometry(file_name):
+    """return LayerGeometry data"""
+    with open(file_name) as f:
+        contents = f.read()
+    json_lg = json.loads(contents, encoding="utf-8")
+    base_path = os.path.dirname(file_name)
+    return convert_file_to_actual_format(json_lg, base_path=base_path)
+    return lg
+
+
+def write_geometry(file_name, lg):
+    """Write LayerGeometry data to file"""
+    with open(file_name, 'w') as f:
+        json.dump(lg.serialize(), f, indent=4, sort_keys=True)
+

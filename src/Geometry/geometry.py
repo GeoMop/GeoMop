@@ -38,7 +38,7 @@ sys.path.append(geomop_src)
 #sys.path.append(intersections_src)
 
 import json_data as js
-import geometry_files.geometry_structures as gs
+import geometry_files.format_last as gs
 import gmsh_io
 import numpy as np
 import numpy.linalg as la

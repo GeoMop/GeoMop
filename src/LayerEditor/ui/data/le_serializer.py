@@ -2,7 +2,9 @@ from geometry_files import GeometryFactory, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
 import geometry_files.polygons_io as polygons_io
-import geometry_files.geometry_structures as gs
+import geometry_files.format_last as gs
+import geometry_files.layers_io as layers_io
+
 
 class LESerializer():
     """Class for diagram data serialization"""
@@ -40,7 +42,7 @@ class LESerializer():
         return gf.geometry
 
     def load(self, cfg, path):
-        geometry =  gs.read_geometry(path)
+        geometry =  layers_io.read_geometry(path)
         assert geometry.version == [0, 5, 0]
         self.geometry_to_cfg(geometry, cfg, path)
 
@@ -203,7 +205,7 @@ class LESerializer():
 
     def save(self, cfg, path):
         geometry = self.cfg_to_geometry(cfg)
-        gs.write_geometry(path, geometry)
+        layers_io.write_geometry(path, geometry)
 
     def cfg_to_geometry(self, cfg):
         """Save diagram data to set file"""

@@ -6,7 +6,7 @@ geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file_
 sys.path.append(geomop_src)
 
 from json_data import JsonData, IntEnum, ClassFactory
-import geometry_files.layer_format_conversions as lfc
+import geometry_files.layers_io as lfc
 
 
 class LayerType(IntEnum):
@@ -244,6 +244,9 @@ class UserSupplement(JsonData):
 
         super().__init__(config)
 
+    @classmethod
+    def convert(cls, other):
+        return UserSupplement()
 
 class LayerGeometry(JsonData):
 
@@ -296,12 +299,12 @@ class LayerGeometry(JsonData):
     @classmethod
     def convert(cls, other):
         none_region_json = dict(
-            dim=RegionDim.none,
-            name="NONE",
-            not_used=True,
-            boundary=None,
-            mesh_step=None,
-            color="##"
+            dim = RegionDim.none,
+            name = "NONE",
+            not_used = True,
+            boundary = False,
+            mesh_step = None,
+            color = "##"
         )
 
         assert other.regions[0].not_used

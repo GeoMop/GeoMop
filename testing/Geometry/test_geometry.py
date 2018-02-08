@@ -41,7 +41,7 @@ def run_geometry(in_file, mesh_step=0.0):
 def test_geometry_script():
     run_geometry('01_flat_top_side_bc.json')
     run_geometry('02_bump_top_side_bc.json')
-    #run_geometry('03_flat_real_extension.json')
-    #run_geometry('04_flat_fracture.json')
-    #run_geometry('05_split_square.json', 10)
-    #run_geometry('06_bump_split.json', 10)
+    run_geometry('03_flat_real_extension.json')
+    run_geometry('04_flat_fracture.json')
+    run_geometry('05_split_square.json', 10)
+    run_geometry('06_bump_split.json', 10)

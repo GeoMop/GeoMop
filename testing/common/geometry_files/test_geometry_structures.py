@@ -1,7 +1,7 @@
 import pytest
 
 import json_data as js
-import geometry_files.geometry_structures as gs
+import geometry_files.format_last as gs
 import filecmp
 import json
 from geometry_files.geometry import GeometrySer

@@ -9,7 +9,7 @@ sys.path.append(geomop_src)
 
 
 from json_data import JsonData, IntEnum, ClassFactory
-import geometry_files.layer_format_conversions as lfc
+import geometry_files.layers_io as lfc
 
 
 class LayerType(IntEnum):
@@ -306,6 +306,11 @@ class UserSupplement(JsonData):
         """Surface idx displayed surface panel"""
         super().__init__(config)
 
+    @classmethod
+    def convert(cls, other):
+        return UserSupplement()
+
+
 
 class LayerGeometry(JsonData):
     def __init__(self, config={}):
@@ -405,7 +410,7 @@ class LayerGeometry(JsonData):
 
         lg.surfaces = surfaces
         lg.interfaces = [ cls.surface_to_interface(id, surf) for id, surf in  zip(surface_ids, other.surfaces) ]
-
+        lg.version = [0, 5, 0]
         return lg
 
 def convert_object(old_obj):

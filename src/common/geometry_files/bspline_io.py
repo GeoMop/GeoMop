@@ -1,6 +1,6 @@
 import b_spline
 import bspline as bs
-import geometry_files.geometry_structures as gs
+import geometry_files.format_last as gs
 
 
 

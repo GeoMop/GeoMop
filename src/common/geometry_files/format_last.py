@@ -9,7 +9,7 @@ sys.path.append(geomop_src)
 import json
 
 from json_data import *
-import geometry_files.layer_format_conversions as fmt_conv
+import geometry_files.layers_io as fmt_conv
 
 
 class LayerType(IntEnum):
@@ -75,11 +75,11 @@ class Surface(JsonData):
         """Serialization of the  Z_Surface."""
         super().__init__(config)
         
-    @staticmethod
-    def make_surface():
-        surf = Surface()
-        surf.approximation = None
-        return surf
+    # @staticmethod
+    # def make_surface():
+    #     surf = Surface()
+    #     surf.approximation = None
+    #     return surf
 
 class Interface(JsonData):
     
@@ -88,7 +88,7 @@ class Interface(JsonData):
         """Surface index"""
         self.transform_z = 2*(float,)
         """Transformation in Z direction (scale and shift)."""
-        self.depth = float
+        self.elevation = float
         """ Representative Z coord of the surface."""
 
         # Grid polygon should be in SurfaceApproximation, however
@@ -97,11 +97,6 @@ class Interface(JsonData):
         """Vertices of the boundary polygon of the grid."""
         super().__init__(config)
 
-    @staticmethod
-    def make_interface(depth):
-        inter = Interface(dict(depth=depth, surface_id=None))
-        inter.transform_z = [1.0, 0.0]
-        return inter
 
     #def get_depth(self):
     #    """Return surface depth in 0"""
@@ -391,18 +386,3 @@ class LayerGeometry(JsonData):
 #             self.interfaces = [ surface_to_interface(id, surf) for id, surf in  enumerate(self.surfaces) ]
 #             self.surfaces = [ surface_to_new_surf(id, surf) for id, surf in enumerate(self.surfaces)]
 #
-def read_geometry(file_name):
-    """return LayerGeometry data"""
-    with open(file_name) as f:
-        contents = f.read()
-    json_lg = json.loads(contents, encoding="utf-8")
-    base_path = os.path.dirname(file_name)
-    return fmt_conv.convert_file_to_actual_format(json_lg, base_path=base_path)
-    return lg
-
-
-def write_geometry(file_name, lg):
-    """Write LayerGeometry data to file"""
-    with open(file_name, 'w') as f:
-        json.dump(lg.serialize(), f, indent=4, sort_keys=True)
-
