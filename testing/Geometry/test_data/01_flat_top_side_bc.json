@@ -23,7 +23,7 @@
             "name": "NONE_1D",
             "not_used": true,
             "topo_dim": 0,
-            "color": "#000000",
+            "color": "#606060",
             "brep_shape_ids": [],
             "mesh_step": 0.01
         },
@@ -32,7 +32,7 @@
             "name": "NONE_2D",
             "not_used": true,
             "topo_dim": 1,
-            "color": "#000000",
+            "color": "#606060",
             "brep_shape_ids": [],
             "mesh_step": 0.01
         },
@@ -41,7 +41,7 @@
             "name": "NONE_3D",
             "not_used": true,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#606060",
             "brep_shape_ids": [],
             "mesh_step": 0.01
         },
@@ -50,7 +50,7 @@
             "name": ".side",
             "not_used": false,
             "topo_dim": 1,
-            "color": "#000000",
+            "color": "#600000",
             "brep_shape_ids": [],
             "mesh_step": 1
         },
@@ -59,7 +59,7 @@
             "name": "3d_01",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#006000",
             "brep_shape_ids": [],
             "mesh_step": 1
         },
@@ -68,7 +68,7 @@
             "name": "3d_02",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#000060",
             "brep_shape_ids": [],
             "mesh_step": 1
         },
@@ -77,7 +77,7 @@
             "name": ".top",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#900000",
             "brep_shape_ids": [],
             "mesh_step": 1
         }
