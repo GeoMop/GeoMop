@@ -248,7 +248,7 @@ class TestDecomposition:
         assert len(decomp.polygons) == 2
 
         print(decomp)
-        plot_polygon_decomposition(decomp)
+        #plot_polygon_decomposition(decomp)
         sg_m, = decomp.add_line((0, 1), (2, 1))
         print(decomp)
 

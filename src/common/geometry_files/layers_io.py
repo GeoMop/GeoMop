@@ -135,6 +135,7 @@ def convert_file_to_actual_format(json_obj, base_path=""):
             layers.base_path = base_path
             layers = gs_new_module.LayerGeometry.convert(layers)
 
+    del layers.base_path
     return layers
 
 

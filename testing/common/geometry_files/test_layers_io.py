@@ -3,9 +3,14 @@ import pytest
 import json_data as js
 import geometry_files.format_last as gs
 import filecmp
+import os
 import json
-from geometry_files.geometry import GeometrySer
+import geometry_files.layers_io as layers_io
 
+script_dir = os.path.os.path.dirname(os.path.realpath(__file__))
+
+def get_path(f):
+    return os.path.join(script_dir, "test_data", f)
 
 class TestGeometryStructures:
     # Test Read/Write of Geometry structures and its interaction with JSONData
@@ -26,18 +31,17 @@ class TestGeometryStructures:
 
 
     def reload(self, layers_file):
-        geom_serializer = GeometrySer(layers_file)
-        gs_lg = geom_serializer.read()
+        gs_lg = layers_io.read_geometry(layers_file)
         out_file = layers_file + ".out"
-        gs = GeometrySer(out_file)
-        gs.write(gs_lg)
+        gs = layers_io.write_geometry(out_file, gs_lg)
         return out_file
 
 
+
     def test_reload_simple(self):
-        layers_file = "./layers_simple.json"
-        self.check(layers_file, self.reload(layers_file))
+        layers_file = get_path("layers_simple.json")
+        self.check(layers_file + ".ref", self.reload(layers_file))
 
     def test_reload_flat(self):
-        layers_file = "./layers_flat_0.json"
-        assert self.check(layers_file, self.reload(layers_file))
+        layers_file = get_path("layers_flat_0.json")
+        assert self.check(layers_file + ".ref", self.reload(layers_file))
