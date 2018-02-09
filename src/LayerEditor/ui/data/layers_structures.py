@@ -107,8 +107,10 @@ class Surfaces():
         self.surfaces = []
         """List"""
         
-    def add(self, approximation, grid_file, name, transform, quad):
+    def add(self, approximation, grid_file, name):
         """Add new surface"""
+        transform = approximation.get_transform()[0]
+        quad = approximation.quad
         surface = Surface(approximation, grid_file, name, transform, quad)
         self.surfaces.append(surface)
         return surface

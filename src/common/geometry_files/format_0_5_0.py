@@ -56,7 +56,9 @@ class SurfaceApproximation(JsonData):
         self.v_degree = 2
         self.rational = False
         self.poles = [ [ [float] ] ]
-        self.quad = 4*(2*(float,),)
+        self.orig_quad = 4*(2*(float,),)
+        self.xy_map = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+        self.z_map = [1.0, 0.0]
         super().__init__(config)
 
 
@@ -67,9 +69,9 @@ class Surface(JsonData):
         """File with approximated points (grid of 3D points). None for plane"""
         self.name = ""
         """Surface name"""
-        self.xy_transform = 2*(3*(float,),)
+        #self.xy_transform = 2*(3*(float,),)
         """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
-        self.quad = 4*(2*(float,),)
+        #self.quad = 4*(2*(float,),)
         """Bounding polygon"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
@@ -91,13 +93,6 @@ class Interface(JsonData):
         #self.grid_polygon = 4*(2*(float,))
         """Vertices of the boundary polygon of the grid."""
         super().__init__(config)
-
-    @classmethod
-    def convert(cls, other):
-        return Interface(dict(
-            surface_id
-        ))
-
 
 
 class Segment(JsonData):

@@ -10,12 +10,14 @@ def bs_zsurface_read(z_surface_io):
     v_basis = bs.SplineBasis(io.v_degree, io.v_knots)
 
     z_surf = bs.Surface( (u_basis, v_basis), io.poles, io.rational)
-    surf = bs.Z_Surface(io.quad, z_surf)
-    #surf.transform(io.xy_transform)
+    surf = bs.Z_Surface(io.orig_quad, z_surf)
+    surf.transform(io.xy_map, io.z_map)
     return surf
 
 def bs_zsurface_write(z_surf):
 
+
+    xy_map, z_map = z_surf.get_transform()
     config = dict(
         u_degree = z_surf.u_basis.degree,
         u_knots = z_surf.u_basis.knots.tolist(),
@@ -23,7 +25,8 @@ def bs_zsurface_write(z_surf):
         v_knots = z_surf.v_basis.knots.tolist(),
         rational = z_surf.z_surface.rational,
         poles = z_surf.z_surface.poles.tolist(),
-        quad = z_surf.quad.tolist()
-        #xy_transform = z_surf.get_xy_matrix().tolist(),
+        orig_quad = z_surf.orig_quad.tolist(),
+        xy_map = xy_map.tolist(),
+        z_map = z_map.tolist()
     )
     return gs.SurfaceApproximation(config)
