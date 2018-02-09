@@ -46,25 +46,25 @@ class GeometryFactory:
         return self.geometry.regions
     
     def get_surfaces(self):
-        """Get list of regions"""
-        surfaces = []
+        """Generator for surfaces of the LayerGeometry."""
         for surface in self.geometry.surfaces:
-            s = surface.__dict__
-            s['approximation'] = bs_zsurface_read(s['approximation'])                                                                  
-            surfaces.append(s)
-        return surfaces
+            surface.approximation = bs_zsurface_read(surface.approximation)
+            yield surface
+
         
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
         region = Region(dict(color=color, name=name, dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
         
-    def add_surface(self, approximation, grid_file, name, xy_transform, quad):
+    def add_surface(self, approximation, grid_file, name):
         """Get list of regions"""
         
-        surface = Surface(dict(approximation=bs_zsurface_write(approximation), 
-            name=name, grid_file=grid_file, 
-            xy_transform=xy_transform, quad=quad))
+        surface = Surface(dict(
+            approximation=bs_zsurface_write(approximation),
+            name=name,
+            grid_file=grid_file
+            ))
         return self.geometry.surfaces.append(surface)
 
     def get_topology(self, node_set_idx):

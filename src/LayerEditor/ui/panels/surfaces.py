@@ -68,7 +68,7 @@ class Surfaces(QtWidgets.QWidget):
             parent (QWidget): parent window ( empty is None)
         """
         super(Surfaces, self).__init__(parent)
-        surfaces = cfg.layers.surfaces
+
         self.zs = None
         """ Instance of bs.Z_Surface, result of approximation. """
         self.zs_id = None
@@ -90,11 +90,13 @@ class Surfaces(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)     
         
         # surface cobobox
-        d_surface = QtWidgets.QLabel("Surface:")
-        self.surface = QtWidgets.QComboBox()            
+        self.surface = QtWidgets.QComboBox()
+
+        surfaces = cfg.layers.surfaces
         for i in range(0, len(surfaces.surfaces)):            
             label = surfaces.surfaces[i].name 
-            self.surface.addItem( label,  i) 
+            self.surface.addItem( label,  i)
+
         self.surface.currentIndexChanged.connect(self._surface_set)
         self.surface.activated.connect(self._focus_in)
         self.surface.highlighted.connect(self._focus_in)
@@ -104,7 +106,8 @@ class Surfaces(QtWidgets.QWidget):
         self.delete = QtWidgets.QPushButton("Delete Surface")
         self.delete.clicked.connect(self._delete)
         self.delete.pressed.connect(self._focus_in)
-        
+
+        d_surface = QtWidgets.QLabel("Surface:")
         grid.addWidget(d_surface, 0, 0)
         grid.addWidget(self.surface, 0, 1, 1, 2)
         grid.addWidget(self.delete, 1, 2)
@@ -316,12 +319,10 @@ class Surfaces(QtWidgets.QWidget):
         
         self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
         
         if self.new:
-            surfaces.add(self.zs, file, 
-                self.name.text(), self._get_transform(), self.quad) 
+            surfaces.add(self.zs, file, self.name.text())
             self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
             self._history.delete_surface(len(surfaces.surfaces)-1)
@@ -329,15 +330,14 @@ class Surfaces(QtWidgets.QWidget):
             self._set_new_edit(False)           
         else:
             id = self.surface.currentData()
+
+            # Set Surface
             surface = copy.copy(surfaces.surfaces[id])
             surface.approximation = self.zs
             surface.grid_file = self.grid_file_name.text()
             if surface.name!=self.name.text():
                 surface.name = self.name.text()    
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
-            surface.xy_transform = self._get_transform()
-            surface.quad = copy.copy(self.quad)
-            assert surface.quad == self.zs.quad
             self._history.change_surface(surfaces, id)
             surfaces.surfaces[id] = surface
         if self.approx.error is not None:
@@ -429,15 +429,18 @@ class Surfaces(QtWidgets.QWidget):
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
-        self.name.setText(surfaces[id].name) 
-        self.xyscale11.setText(str(surfaces[id].xy_transform[0][0]))        
-        self.xyscale12.setText(str(surfaces[id].xy_transform[0][1]))
-        self.xyscale21.setText(str(surfaces[id].xy_transform[1][0]))
-        self.xyscale22.setText(str(surfaces[id].xy_transform[1][1]))
-        self.xyshift1.setText(str(surfaces[id].xy_transform[0][2]))
-        self.xyshift2.setText(str(surfaces[id].xy_transform[1][2]))
-        u = surfaces[id].approximation.u_basis.n_intervals
-        v = surfaces[id].approximation.v_basis.n_intervals
+        self.name.setText(surfaces[id].name)
+
+        approx = surfaces[id].approximation
+        xy_transform = approx.get_transform()[0]
+        self.xyscale11.setText(str(xy_transform[0][0]))
+        self.xyscale12.setText(str(xy_transform[0][1]))
+        self.xyscale21.setText(str(xy_transform[1][0]))
+        self.xyscale22.setText(str(xy_transform[1][1]))
+        self.xyshift1.setText(str(xy_transform[0][2]))
+        self.xyshift2.setText(str(xy_transform[1][2]))
+        u = approx.u_basis.n_intervals
+        v = approx.v_basis.n_intervals
         self.u_approx.setText(str(u))
         self.v_approx.setText(str(v))
         self.last_u = u
@@ -459,8 +462,8 @@ class Surfaces(QtWidgets.QWidget):
         if self.approx is None:
             self.grid_file_refresh_button.setEnabled(False)
             self._enable_approx(False)
-            self.quad = surfaces[id].quad
             self.zs = surfaces[id].approximation
+            self.quad = self.zs.quad
             assert np.all(np.array(self.quad) == np.array(self.zs.quad))
             self.zs_id = id
             self.d_message.setText("Set grid file not found.")
@@ -472,9 +475,9 @@ class Surfaces(QtWidgets.QWidget):
             # This approx is recomputed to check that file doesn't change (so the quad match).
             zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             zs.transform(np.array(self._get_transform(), dtype=float), None)
-            quad = zs.quad
-            self.quad = surfaces[id].quad            
-            if not self.cmp_quad(quad, surfaces[id].quad):
+
+            self.quad = surfaces[id].approximation.quad
+            if not np.allclose(np.array(zs.quad), np.array(self.quad)) :
                 self.zs = surfaces[id].approximation
                 self.zs_id = id
                 self.d_message.setText("Set grid file get different approximation.")                
@@ -492,16 +495,7 @@ class Surfaces(QtWidgets.QWidget):
                 self.error.home(False) 
             # TODO: check focus
             self.showMash.emit(True)
-            
-    def cmp_quad(self, q1, q2):
-        """Compare two quad"""
-        for i in range(0, 2):
-            for j in range(0, 2):
-                p = q1[i][j]/q2[i][j]
-                if p<0.999999999 or i>1.000000001:
-                    return False
-        return True
-    
+
     def _add_surface(self):
         """New surface is added"""
         self._set_new_edit(True)       
@@ -574,6 +568,10 @@ class Surfaces(QtWidgets.QWidget):
             name = os.path.basename(name)
             s_i = ""
             i = 2
+
+            # TODO have general machanism to this in common. Given a list of names
+            # and given a name prefix return a first unique name.
+            # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
             while self._name_exist(name+s_i):
                 s_i = "_"+str(i)
                 i += 1
@@ -614,6 +612,7 @@ class Surfaces(QtWidgets.QWidget):
 
 
     def _name_exist(self, name):
+
         """Test if set surface name exist"""
         surfaces = cfg.layers.surfaces
         for surface in surfaces.surfaces:

@@ -2,6 +2,7 @@ import sys
 import os
 import inspect
 import json
+import enum
 
 geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
 sys.path.append(geomop_src)
@@ -117,7 +118,12 @@ def convert_object(module, old_version_object):
             old_obj[k] = convert_object(module, v)
         new_obj = old_obj
     else:
-        new_obj = old_obj
+        obj_class = old_obj.__class__
+        if issubclass(obj_class, enum.IntEnum):
+            class_obj = getattr(module, obj_class.__name__)
+            new_obj = class_obj(old_obj)
+        else:
+            new_obj = old_obj
     return new_obj
 
 
