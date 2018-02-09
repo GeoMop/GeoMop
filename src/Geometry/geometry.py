@@ -973,7 +973,8 @@ class LayerGeometry(gs.LayerGeometry):
     def init(self):
         # keep unique interface per surface
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
-
+        self.min_step = np.inf
+        self.max_step = 0
         self.set_ids(self.surfaces)
         self.set_ids(self.regions)
         #self.interfaces = [ Interface(surface) for surface in self.surfaces ]
@@ -994,13 +995,11 @@ class LayerGeometry(gs.LayerGeometry):
             layer.id = id
             layer.init(self)
 
-
-
     def construct_brep_geometry(self):
         """
         Algorithm for creating geometry from Layers:
 
-        3d_region = CompoundSolid of Soligs from extruded polygons
+        3d_region = CompoundSolid of Solids from extruded polygons
         2d_region, .3d_region = Shell of:
             - Faces from extruded segments (vertical 2d region)
             - Faces from polygons (horizontal 2d region)
@@ -1036,41 +1035,38 @@ class LayerGeometry(gs.LayerGeometry):
 
         self.split_to_blocks()
 
-        #self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
-        #self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
+        # self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
+        # self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
 
-
-        self.all_shapes=[]
-        self.free_shapes =[]
+        self.all_shapes = []
+        self.free_shapes = []
 
         for block in self.blocks:
             for layer in block:
                 self.all_shapes += layer.make_shapes()
 
-
         for i_face in self.interfaces:
             for shp in i_face.iter_shapes():
                 self.all_shapes.append(shp)
 
-        self.free_shapes = [ shp_info for shp_info in self.all_shapes if shp_info.free ]
+        self.free_shapes = [shp_info for shp_info in self.all_shapes if shp_info.free]
         # sort down from solids to vertices
         self.free_shapes.sort(key=lambda shp: shp.dim(), reverse=True)
-        self.free_shapes = [shp_info.shape for shp_info in self.free_shapes]
+        free_shapes = [shp_info.shape for shp_info in self.free_shapes]
 
-        compound = bw.Compound(self.free_shapes)
+        compound = bw.Compound(free_shapes)
         compound.set_free_shapes()
         self.brep_file = os.path.abspath(self.filename_base + ".brep")
         with open(self.brep_file, 'w') as f:
-            bw.write_model(f, compound, bw.Location() )
-
+            bw.write_model(f, compound, bw.Location())
 
         # ignore shapes without ID - not part of the output
-        self.all_shapes = [ si for si in self.all_shapes if hasattr(si.shape,  'id') ]
+        self.all_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
         self.compute_bounding_box()
 
         # prepare dict: (dim, shape_id) : shape info
         self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
-        shape_by_dim=[[] for i in range(4)]
+        shape_by_dim = [[] for i in range(4)]
         for shp_info in self.all_shapes:
             dim = shp_info.dim()
             shape_by_dim[dim].append(shp_info)
@@ -1080,16 +1076,54 @@ class LayerGeometry(gs.LayerGeometry):
             for gmsh_shp_id, si in enumerate(shp_list):
                 self.shape_dict[(dim, gmsh_shp_id + 1)] = si
 
-        # TODO, mesh step
-        # Propagate mesh step from higher dim to lower dim by DFS of the Brep tree.
-        # Create mapping from node IDs (dim=0, shape_id) to mesh_step.
+        # Propagate mesh_step from free_shapes to vertices via DFS
+        # use global mesh step if the local mesh_step is zero.
+        self.compute_bounding_box()
+        global_mesh_step = self.mesh_step_estimate()
+
+        shape_dict = {}
+        for shp_info in self.all_shapes:
+            shp_info.mesh_step = np.inf
+            shape_dict[shp_info.shape] = shp_info
+            shp_info.visited = -1
+
+        for i_free, shp_info in enumerate(self.free_shapes):
+            shp_info.mesh_step = self.regions[shp_info.i_reg].mesh_step
+            if shp_info.mesh_step <= 0.0:
+                shp_info.mesh_step = global_mesh_step
+            if shp_info.mesh_step < self.min_step:
+                self.min_step = shp_info.mesh_step
+            elif shp_info.mesh_step > self.max_step:
+                self.max_step = shp_info.mesh_step
+            stack = [shp_info.shape]
+            while stack:
+                shp = stack.pop(-1)
+                for sub in shp.subshapes():
+                    if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
+                        if shape_dict[sub].visited < i_free:
+                            shape_dict[sub].visited = i_free
+                            stack.append(sub)
+                    else:
+                        if sub not in stack:
+                            stack.append(sub)
+                if isinstance(shp, bw.Vertex):
+                    shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
+
+        self.min_step *= 0.2
+        self.vtx_char_length = []
+        for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
+            mesh_step = vtx_si.mesh_step
+            if mesh_step == np.inf:
+                mesh_step = global_mesh_step
+            self.vtx_char_length.append((gmsh_shp_id + 1, mesh_step))
 
 
-        # debug listing
-        #xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
-        #xx.sort(key=lambda x: x[0])
-        #for i in xx:
-        #    print(i[0][0], i[0][1], i[1])
+
+            # debug listing
+            # xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
+            # xx.sort(key=lambda x: x[0])
+            # for i in xx:
+            #    print(i[0][0], i[0][1], i[1])
 
     def split_to_blocks(self):
         blocks=[]
@@ -1126,26 +1160,42 @@ class LayerGeometry(gs.LayerGeometry):
         print("Char length: {} mesh step: {}", char_length, mesh_step)
         return mesh_step
 
-
     def call_gmsh(self, mesh_step):
         """
 
         :param mesh_step:
         :return:
 
-         TODO, mesh step:
-         - replace Merge by shapefromfile
-         - replace global mesh step field by array of char lenght:
-         Characteristic Length {ID} = step;
         """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"
         with open(self.geo_file, "w") as f:
-            print('Merge "%s";\n'%(self.brep_file), file=f)
-            print('Field[1] = MathEval;\n', file=f)
-            print('Field[1].F = "%f";\n'%(mesh_step), file=f)
-            print('Background Field = 1;\n', file=f)
+            print(r'SetFactory("OpenCASCADE");', file=f)
+            # print(r'Mesh.Algorithm = 2;', file=f)
+            """
+            TODO: GUI interface for algorithm selection and element optimizaion.
+            Related options:
+            Mesh.Algorithm
+            2D mesh algorithm (1=MeshAdapt, 2=Automatic, 5=Delaunay, 6=Frontal, 7=BAMG, 8=DelQuad)
+
+            Mesh.Algorithm3D
+            3D mesh algorithm (1=Delaunay, 2=New Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
+            """
+            """
+            TODO: ? Meaning of char length limits. Possibly to prevent to small elements at intersection points,
+            they must be derived from min and max mesh step.
+            """
+            print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
+            print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+            # rand_factor has to be increased when the triangle/model ratio
+            # multiplied by rand_factor approaches 'machine accuracy'
+            rand_factor = 1e-14 * np.max(self.aabb[1] - self.aabb[0]) / self.min_step
+            print(r'Mesh.RandomFactor = %s;'%rand_factor , file=f)
+            print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
+
+            for id, char_length in self.vtx_char_length:
+                print(r'Characteristic Length {%s} = %s;' % (id, char_length), file=f)
 
         from subprocess import call
         gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
@@ -1153,8 +1203,6 @@ class LayerGeometry(gs.LayerGeometry):
             gmsh_path = "gmsh"
         #call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
         call([gmsh_path, "-3",  self.geo_file])
-
-
 
     def deform_mesh(self):
         """
