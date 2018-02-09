@@ -98,17 +98,21 @@ class Surfaces(QtWidgets.QWidget):
         self.surface.currentIndexChanged.connect(self._surface_set)
         self.surface.activated.connect(self._focus_in)
         self.surface.highlighted.connect(self._focus_in)
-        self.add_surface = QtWidgets.QPushButton("Add Surface")
+        self.add_surface = QtWidgets.QPushButton()
+        self.add_surface.setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.add_surface.setToolTip('Add new surface to the assignable list.')
         self.add_surface.clicked.connect(self._add_surface)
         self.add_surface.pressed.connect(self._focus_in)
-        self.delete = QtWidgets.QPushButton("Delete Surface")
+        self.delete = QtWidgets.QPushButton()
+        self.delete.setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.delete.setToolTip('Remove selected surface from the list.')
         self.delete.clicked.connect(self._delete)
         self.delete.pressed.connect(self._focus_in)
         
         grid.addWidget(d_surface, 0, 0)
         grid.addWidget(self.surface, 0, 1, 1, 2)
+        grid.addWidget(self.add_surface, 1, 1)
         grid.addWidget(self.delete, 1, 2)
-        grid.addWidget(self.add_surface, 1, 0)        
         
         # sepparator
         line = QtWidgets.QFrame()
@@ -122,17 +126,22 @@ class Surfaces(QtWidgets.QWidget):
         self.grid_file_name.setReadOnly(True)
         self.grid_file_name.setStyleSheet("background-color:WhiteSmoke");
         self.grid_file_name.focusIn.connect(self._focus_in)
-        self.grid_file_button = QtWidgets.QPushButton("...")
+        self.grid_file_button = QtWidgets.QPushButton()
+        self.grid_file_button.setIcon(QtGui.QIcon.fromTheme("folder"))
+        self.grid_file_button.setToolTip('Browse local files for the grid file.')
         self.grid_file_button.clicked.connect(self._add_grid_file)
         self.grid_file_button.pressed.connect(self._focus_in)
-        self.grid_file_refresh_button = QtWidgets.QPushButton("Refresh")
+        self.grid_file_refresh_button = QtWidgets.QPushButton()
+        self.grid_file_refresh_button.setIcon(QtGui.QIcon.fromTheme("view-refresh"))
+        self.grid_file_refresh_button.setToolTip('Refresh the working surface.')
         self.grid_file_refresh_button.clicked.connect(self._refresh_grid_file)
         self.grid_file_refresh_button.pressed.connect(self._focus_in)
         
-        grid.addWidget(self.d_grid_file, 3, 0, 1, 2)        
-        grid.addWidget(self.grid_file_button , 3, 2)
+        grid.addWidget(self.d_grid_file, 3, 0, 1, 2)
+        grid.addWidget(self.grid_file_button, 3, 1)
+        grid.addWidget(self.grid_file_refresh_button, 3, 2)
         grid.addWidget(self.grid_file_name, 4, 0, 1, 3)
-        grid.addWidget(self.grid_file_refresh_button , 5, 2)         
+
         
         # sepparator
         line = QtWidgets.QFrame()
