@@ -164,7 +164,7 @@ class Surface(gs.Surface):
         """
         self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
         # Surface approx conatains transform
-        self.z_surface.transform(self.xy_transform)
+        #self.z_surface.transform(self.xy_transform)
 
     def make_bumpy_surface(self, z_transform):
         # load grid surface and make its approximation
@@ -1060,62 +1060,88 @@ class LayerGeometry(gs.LayerGeometry):
         with open(self.brep_file, 'w') as f:
             bw.write_model(f, compound, bw.Location())
 
+    def make_gmsh_shape_dict(self):
+        """
+        Construct a dictionary self.gmsh_shape_dict, mapping the pair (dim, gmsh_object_id) -> shape info object
+        :return:
+        """
         # ignore shapes without ID - not part of the output
-        self.all_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
-        self.compute_bounding_box()
+        output_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
 
         # prepare dict: (dim, shape_id) : shape info
-        self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
+        output_shapes.sort(key=lambda si: si.shape.id, reverse=True)
         shape_by_dim = [[] for i in range(4)]
-        for shp_info in self.all_shapes:
+        for shp_info in output_shapes:
             dim = shp_info.dim()
             shape_by_dim[dim].append(shp_info)
 
-        self.shape_dict = {}
+        self.gmsh_shape_dist = {}
         for dim, shp_list in enumerate(shape_by_dim):
             for gmsh_shp_id, si in enumerate(shp_list):
-                self.shape_dict[(dim, gmsh_shp_id + 1)] = si
+                self.gmsh_shape_dist[(dim, gmsh_shp_id + 1)] = si
 
-        # Propagate mesh_step from free_shapes to vertices via DFS
-        # use global mesh step if the local mesh_step is zero.
+    def set_free_si_mesh_step(self, si, step):
+        """
+        Set the mesh step to the free SI (root of local DFS tree).
+        :param si: A free shape info object
+        :param step: Meash step from corresponding region.
+        :return:
+        """
+        if step <= 0.0:
+            step = self.global_mesh_step
+        self.min_step = min(self.min_step, step)
+        self.max_step = max(self.max_step, step)
+        si.mesh_step = step
+
+    def distribute_mesh_step(self):
+        """
+        For every free shape:
+         1. get the mesh step from the region
+         2. pass down through its tree using DFS
+         3. set the mesh_step  to all child vertices, take minimum of exisiting and new mesh_step
+        :return:
+        """
+        print("distribute mesh\n")
         self.compute_bounding_box()
-        global_mesh_step = self.mesh_step_estimate()
+        self.global_mesh_step = self.mesh_step_estimate()
 
+        # prepare map from shapes to their shape info objs
+        # initialize mesh_step of individual shape infos
         shape_dict = {}
         for shp_info in self.all_shapes:
-            shp_info.mesh_step = np.inf
             shape_dict[shp_info.shape] = shp_info
+            shp_info.mesh_step = np.inf
             shp_info.visited = -1
 
+        # Propagate mesh_step from the free_shapes to vertices via DFS
+        # use global mesh step if the local mesh_step is zero.
         for i_free, shp_info in enumerate(self.free_shapes):
-            shp_info.mesh_step = self.regions[shp_info.i_reg].mesh_step
-            if shp_info.mesh_step <= 0.0:
-                shp_info.mesh_step = global_mesh_step
-            if shp_info.mesh_step < self.min_step:
-                self.min_step = shp_info.mesh_step
-            elif shp_info.mesh_step > self.max_step:
-                self.max_step = shp_info.mesh_step
+            self.set_free_si_mesh_step(shp_info, self.regions[shp_info.i_reg].mesh_step)
+            shape_dict[shp_info.shape].visited = i_free
             stack = [shp_info.shape]
             while stack:
+
                 shp = stack.pop(-1)
+                print("shp: {} id: {}\n".format(type(shp), shp.id))
                 for sub in shp.subshapes():
                     if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
                         if shape_dict[sub].visited < i_free:
                             shape_dict[sub].visited = i_free
                             stack.append(sub)
                     else:
-                        if sub not in stack:
-                            stack.append(sub)
+
+                        stack.append(sub)
                 if isinstance(shp, bw.Vertex):
                     shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
 
         self.min_step *= 0.2
         self.vtx_char_length = []
-        for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
-            mesh_step = vtx_si.mesh_step
-            if mesh_step == np.inf:
-                mesh_step = global_mesh_step
-            self.vtx_char_length.append((gmsh_shp_id + 1, mesh_step))
+        for (dim, gmsh_shp_id), si in self.gmsh_shape_dist.items():
+            if dim == 0:
+                mesh_step = si.mesh_step
+                if mesh_step == np.inf:
+                    mesh_step = self.global_mesh_step
+                self.vtx_char_length.append((gmsh_shp_id, mesh_step))
 
 
 
@@ -1268,7 +1294,7 @@ class LayerGeometry(gs.LayerGeometry):
                 raise Exception("Less then 2 tags.")
             dim = self.el_type_to_dim[el_type]
             shape_id = tags[1]
-            shape_info = self.shape_dict[ (dim, shape_id) ]
+            shape_info = self.gmsh_shape_dist[ (dim, shape_id)]
 
             if not shape_info.free:
                 continue
@@ -1368,6 +1394,9 @@ def make_geometry(**kwargs):
     lg.init()   # initialize the tree with ids and references where necessary
 
     lg.construct_brep_geometry()
+    lg.make_gmsh_shape_dict()
+    lg.distribute_mesh_step()
+
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 

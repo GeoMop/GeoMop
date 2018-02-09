@@ -25,7 +25,7 @@
             "topo_dim": 0,
             "color": "#606060",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": false,
@@ -34,7 +34,7 @@
             "topo_dim": 1,
             "color": "#606060",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": false,
@@ -43,7 +43,7 @@
             "topo_dim": 2,
             "color": "#606060",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": true,
@@ -52,7 +52,7 @@
             "topo_dim": 1,
             "color": "#600000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": false,
@@ -61,7 +61,7 @@
             "topo_dim": 2,
             "color": "#006000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": false,
@@ -70,7 +70,7 @@
             "topo_dim": 2,
             "color": "#000060",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": true,
@@ -79,7 +79,7 @@
             "topo_dim": 2,
             "color": "#900000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         }
         
     ],

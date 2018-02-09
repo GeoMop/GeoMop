@@ -69,10 +69,6 @@ class Surface(JsonData):
         """File with approximated points (grid of 3D points). None for plane"""
         self.name = ""
         """Surface name"""
-        #self.xy_transform = 2*(3*(float,),)
-        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
-        #self.quad = 4*(2*(float,),)
-        """Bounding polygon"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         super().__init__(config)
@@ -367,8 +363,7 @@ class LayerGeometry(JsonData):
         approx = SurfaceApprox.approx_from_file(path)
         z_surf_approx = approx.compute_approximation(nuv=(16,16))
         center = z_surf_approx.center()
-        approx_ser = bs_zsurface_write(z_surf_approx)
-        quad = z_surf_approx.quad
+        surf.center_z = center[2]
 
         # Convert a linear transform to scaling the grid shifted to origin
         # old_scale * x + old_shift = new_scale * (x - center) + center + new_shift
@@ -378,13 +373,12 @@ class LayerGeometry(JsonData):
         transform_xy = np.array(surf.transform_xy, dtype=float)
         new_xy_shift = transform_xy[:, 2] - np.dot((np.eye(2) - transform_xy[:, 0:2]), center[0:2])
         transform_xy[:,2] = new_xy_shift
-        surf.center_z = center[2]
+
         z_surf_approx.transform(transform_xy)
+        approx_ser = bs_zsurface_write(z_surf_approx)
         return Surface(dict(
             grid_file=surf.grid_file,
             name="surface_%d" % (id),
-            xy_transform=transform_xy.tolist(),
-            quad=quad.tolist(),
             approximation=approx_ser.serialize()
         ))
 

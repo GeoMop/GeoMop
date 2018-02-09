@@ -69,10 +69,6 @@ class Surface(JsonData):
         """File with approximated points (grid of 3D points). None for plane"""
         self.name = ""
         """Surface name"""
-        #self.xy_transform = 2*(3*(float,),)
-        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
-        #self.quad = 4*(2*(float,),)
-        """Bounding polygon"""        
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         super().__init__(config)
@@ -348,43 +344,3 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
-        """
-        TODO: 
-        - make version support in json_data or rather a wrapper: VersionConvert
-            - add_version(root_class, conversion)
-          this first get version of the file that select appropriate format, read into json and call all subsequent conversions
-        - make   
-        """
-
-#         if self.version < [0, 4, 9]:
-#
-#
-#         if self.version < [0, 5, 0]:
-#             def surface_to_interface(id, surf):
-#                 if surf.grid_file is None:
-#                     surf.transform_z = [1.0, self.depth]
-#                 return Interface(dict(
-#                     surface_id=id,
-#                     transform_z=surf.transform_z,
-#                     depth=surf.depth
-#                 ))
-#
-#             def surface_to_new_surf(id, surf):
-#                 import b_spline
-#                 from bspline_approx import SurfaceApprox
-#                 from geometry_files.bspline_io import bs_zsurface_write
-#
-#                 approx = SurfaceApprox.approx_from_file(surf.grid_file)
-#                 z_surf_approx = approx.compute_approximation()
-#                 approx_ser = bs_zsurface_write(z_surf_approx)
-#                 quad = z_surf_approx.quad
-#                 return Surface(dict(
-#                     grid_file = surf.grid_file,
-#                     name = "surface_%d"%(id),
-#                     transform_xy = surf.transform_xy,
-#                     quad = quad,
-#                     approximation = approx_ser
-#                 ))
-#             self.interfaces = [ surface_to_interface(id, surf) for id, surf in  enumerate(self.surfaces) ]
-#             self.surfaces = [ surface_to_new_surf(id, surf) for id, surf in enumerate(self.surfaces)]
-#
