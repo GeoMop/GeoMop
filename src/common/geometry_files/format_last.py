@@ -96,13 +96,9 @@ class Interface(JsonData):
         super().__init__(config)
 
 
-    #def get_depth(self):
-    #    """Return surface depth in 0"""
-    #    return self.depth
-        
     def __eq__(self, other):
         """operators for comparation"""
-        return self.depth == other.depth \
+        return self.elevation == other.elevation \
             and self.transform_z == other.transform_z \
             and self.surface_id != other.surface_id
 
