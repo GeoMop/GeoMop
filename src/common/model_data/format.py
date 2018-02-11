@@ -92,6 +92,7 @@ def _get_input_type(data):
     input_type['name'] = data.get('name', '')
     input_type['full_name'] = data.get('full_name', '')
     input_type['description'] = data.get('description', '')
+    input_type['attributes'] = data.get('attributes', {})
     if input_type['base_type'] in ['Double', 'Integer']:
         input_type.update(_parse_range(data))
     elif input_type['base_type'] == 'Array':
