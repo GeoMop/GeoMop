@@ -3,7 +3,7 @@ import os
 import re
 
 from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
-from model_data import Loader, Validator, notification_handler, get_root_input_type_from_json
+from model_data import Loader, Validator, notification_handler, get_root_input_type_from_json, autoconvert
 
 RE_PARAM = re.compile('<([a-zA-Z][a-zA-Z0-9_]*)>')
 
@@ -17,7 +17,8 @@ class YamlSupportLocal(YamlSupportRemote):
     def __init__(self):
         super().__init__()
 
-    def _get_root_input_type(self):
+    @staticmethod
+    def _get_root_input_type():
         """Returns root input type."""
         curr_format_file = "2.1.0"
         err = []
@@ -35,19 +36,26 @@ class YamlSupportLocal(YamlSupportRemote):
             err.append("Can't open format file (" + str(e) + ")")
         return root_input_type, err
 
-    def _get_value_type(self, input_type, value):
+    @staticmethod
+    def _get_value_type(input_type, value):
         """Returns observed quantities value type."""
-        ret = None
         fvs = input_type["values"][value]["attributes"]["field_value_shape"]
+
+        # value type
+        vt = None
         if fvs["type"] == "Integer" and fvs["shape"] == [1, 1]:
-            ret = ObservedQuantitiesValueType.integer
+            vt = ObservedQuantitiesValueType.integer
         elif fvs["type"] == "Double" and fvs["shape"] == [1, 1]:
-            ret = ObservedQuantitiesValueType.scalar
+            vt = ObservedQuantitiesValueType.scalar
         elif fvs["type"] == "Double" and fvs["shape"] == [3, 1]:
-            ret = ObservedQuantitiesValueType.vector
+            vt = ObservedQuantitiesValueType.vector
         elif fvs["type"] == "Double" and fvs["shape"] == [3, 3]:
-            ret = ObservedQuantitiesValueType.tensor
-        return ret
+            vt = ObservedQuantitiesValueType.tensor
+
+        # multifield
+        mf = "subfields" in fvs and fvs["subfields"]
+
+        return vt, mf
 
     def parse(self, file):
         """
@@ -76,7 +84,14 @@ class YamlSupportLocal(YamlSupportRemote):
         
         root_input_type, new_err = self._get_root_input_type()
         err.extend(new_err)
-        validator.validate(root, root_input_type)
+
+        # autoconvert
+        root = autoconvert(root, root_input_type)
+
+        # validate
+        if not validator.validate(root, root_input_type):
+            err.append(".yaml file have not valid format")
+            #return err
 
         # mesh file
         try:
@@ -106,15 +121,10 @@ class YamlSupportLocal(YamlSupportRemote):
                 pass
 
             # observed quantities
-            try:
-                oq = {}
-                node = problem_node.get_node_at_path('flow_equation/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
+            oq = {}
+            oq.update(self._get_observed_quantities(problem_node, 'flow_equation/output/observe_fields'))
+            if len(oq) > 0:
                 data["observed_quantities"] = oq
-            except LookupError:
-                pass
 
             # balance file
             try:
@@ -137,34 +147,10 @@ class YamlSupportLocal(YamlSupportRemote):
 
             # observed quantities
             oq = {}
-            try:
-                node = problem_node.get_node_at_path('solute_equation/transport/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
-            except LookupError:
-                pass
-            try:
-                node = problem_node.get_node_at_path('solute_equation/reaction/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
-            except LookupError:
-                pass
-            try:
-                node = problem_node.get_node_at_path('solute_equation/reaction/reaction_mobile/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
-            except LookupError:
-                pass
-            try:
-                node = problem_node.get_node_at_path('solute_equation/reaction/reaction_immobile/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
-            except LookupError:
-                pass
+            oq.update(self._get_observed_quantities(problem_node, 'solute_equation/transport/output/observe_fields'))
+            oq.update(self._get_observed_quantities(problem_node, 'solute_equation/reaction/output/observe_fields'))
+            oq.update(self._get_observed_quantities(problem_node, 'solute_equation/reaction/reaction_mobile/output/observe_fields'))
+            oq.update(self._get_observed_quantities(problem_node, 'solute_equation/reaction/reaction_immobile/output/observe_fields'))
             if len(oq) > 0:
                 data["observed_quantities"] = oq
 
@@ -201,15 +187,10 @@ class YamlSupportLocal(YamlSupportRemote):
                 pass
 
             # observed quantities
-            try:
-                oq = {}
-                node = problem_node.get_node_at_path('heat_equation/output/observe_fields')
-                for child in node.children:
-                    vt = self._get_value_type(child.input_type, child.value)
-                    oq[child.value] = vt
+            oq = {}
+            oq.update(self._get_observed_quantities(problem_node, 'heat_equation/output/observe_fields'))
+            if len(oq) > 0:
                 data["observed_quantities"] = oq
-            except LookupError:
-                pass
 
             # balance file
             try:
@@ -254,3 +235,45 @@ class YamlSupportLocal(YamlSupportRemote):
         err.extend(e)
 
         return err
+
+    @classmethod
+    def _get_observed_quantities(cls, base_node, path):
+        """Returns observed quantities at given path"""
+        try:
+            node = base_node.get_node_at_path(path)
+        except LookupError:
+            return {}
+        oq = {}
+        for child in node.children:
+            vt, mf = cls._get_value_type(child.input_type, child.value)
+            subfields = []
+            if mf:
+                n = node
+                while n is not None:
+                    if n.input_type['base_type'] == 'Record' and "subfields_address" in n.input_type["attributes"]:
+                        subfields_address = n.input_type["attributes"]["subfields_address"]
+                        subfields = cls._get_subfields_at_path(n, subfields_address)
+                        break
+                    n = n.parent
+            if len(subfields) > 0:
+                oq.update({s+"_"+child.value: vt for s in subfields})
+            else:
+                oq[child.value] = vt
+        return oq
+
+    @staticmethod
+    def _get_subfields_at_path(base_node, path):
+        """Returns subfields"""
+        prefix_path, suffix_path = path.split("/*/", 1)
+        try:
+            prefix_node = base_node.get_node_at_path(prefix_path)
+        except LookupError:
+            return []
+        subfields = []
+        for child in prefix_node.children:
+            try:
+                suffix_node = child.get_node_at_path(suffix_path)
+                subfields.append(suffix_node.value)
+            except LookupError:
+                pass
+        return subfields

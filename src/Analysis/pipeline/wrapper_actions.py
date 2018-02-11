@@ -15,6 +15,7 @@ from math import *
 
 import numpy as np
 from scipy.optimize import minimize
+from scipy.optimize import differential_evolution
 
 
 class ForEach(WrapperActionType):
@@ -327,15 +328,17 @@ class Calibration(WrapperActionType):
                     rel_sen = np.nan
                     if p.fixed:
                         pt = "Fixed"
+                    elif p.tied_expression is not None:
+                        pt = "Tied"
                     else:
                         pt = "Free"
-                        if p.tied_expression is None and jac_matrix is not None:
+                        if jac_matrix is not None:
                             sen = np.linalg.norm(jac_matrix[:, sen_ind] * weights) / obs_num
                             if p.log_transform:
                                 rel_sen = sen * math.fabs(math.log10(value))
                             else:
                                 rel_sen = sen * math.fabs(value)
-                            sen_ind += 1
+                        sen_ind += 1
                     spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
                                  value=Float(value),
                                  interval_estimate=Tuple(Float(0.0), Float(0.0)),
@@ -545,6 +548,8 @@ class Calibration(WrapperActionType):
                                 self._add_error(err, "Parameter 'Parameters[{0}]': Lower bound must be positive, if log transform is chosen".format(str(i)))
                             if self._variables['Parameters'][i].bounds[1] <= 0:
                                 self._add_error(err, "Parameter 'Parameters[{0}]': Upper bound must be positive, if log transform is chosen".format(str(i)))
+                        if self._variables['Parameters'][i].fixed and self._variables['Parameters'][i].tied_expression is not None:
+                            self._add_error(err, "Parameter 'Parameters[{0}]': Fixed can't be tied".format(str(i)))
                     else:
                         self._add_error(err, "Type of parameter 'Parameters[{0}]' must be CalibrationParameter".format(str(i)))
                 self._extend_error(err, self.__check_tied_parameters(self._variables['Parameters']))
@@ -587,7 +592,7 @@ class Calibration(WrapperActionType):
         # MinimizationMethod
         if 'MinimizationMethod' in self._variables:
             if isinstance(self._variables['MinimizationMethod'], str):
-                if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP"]:
+                if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP", "DIFF"]:
                     self._add_error(err, "Method '{0}' is not supported.".format(self._variables['MinimizationMethod']))
             else:
                 self._add_error(err, "Parameter 'MinimizationMethod' must be string")
@@ -717,8 +722,13 @@ class Calibration(WrapperActionType):
         alg_par = {}
         for par in self._variables['AlgorithmParameters']:
             alg_par[par.group] = par
+        self._scipy_log_transform = []
+        self._scipy_lb = []
+        self._scipy_ub = []
+        self._scipy_diff_inc_rel = []
+        self._scipy_diff_inc_abs = []
         for par in self._variables['Parameters']:
-            if not par.fixed:
+            if not par.fixed and par.tied_expression is None:
                 self._scipy_log_transform.append(par.log_transform)
                 if par.log_transform:
                     init_values.append(math.log10(par.init_value))
@@ -745,7 +755,12 @@ class Calibration(WrapperActionType):
         #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
         #                                     'ftol': 1e-6, 'disp': True}, **args)
 
-        if self._variables['MinimizationMethod'] == "L-BFGS-B":
+        if self._variables['MinimizationMethod'] == "DIFF":
+            self._scipy_res = differential_evolution(self._scipy_fun, strategy= "best1bin",
+                                                     maxiter=self._variables['TerminationCriteria'].n_max_steps,
+                                                     popsize=5, tol=1e-4, callback=self._scipy_callback,
+                                                     disp=True, polish=False, **args)
+        elif self._variables['MinimizationMethod'] == "L-BFGS-B":
             self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
                                          disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
         else:
@@ -766,7 +781,7 @@ class Calibration(WrapperActionType):
         #print("_scipy_fun enter")
         #print(x)
         y = self._scipy_model_eval(x)
-        #print(y)
+        #print("y: {}".format(y))
 
         return y
 
@@ -810,9 +825,11 @@ class Calibration(WrapperActionType):
         self._scipy_xj_log.append((x.copy(), jac_matrix))
         return jac
 
-    def _scipy_callback(self, xk):
+    def _scipy_callback(self, xk, convergence=None):
         """called by scipy after each iteration"""
         self._scipy_iterations.append((xk.copy(), self._scipy_model_eval(xk), self._scipy_model_eval_num))
+        #print(self._scipy_iterations[-1])
+        #print("conv: {}".format(convergence))
 
     def _scipy_model_eval(self, x):
         """model evaluation used in _scipy_fun and _scipy_jac"""
