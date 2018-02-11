@@ -14,6 +14,7 @@ class LESerializer():
     def set_new(self, cfg):
         """Set new file"""
         first_geometry = self._get_first_geometry()
+        Diagram.area.serialize(first_geometry.supplement.init_area)
         self.geometry_to_cfg(first_geometry, cfg)
 
     def cfg_reset(self, cfg):

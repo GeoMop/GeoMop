@@ -274,7 +274,9 @@ class Area():
         
     def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
-        points.clear()
+        if self.gtpolygon is None:
+            return
+        points.clear()        
         for i in range(0, len(self.gtpolygon)-1):
             points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
@@ -514,7 +516,9 @@ class Diagram():
       
     def get_diagram_all_rect(self, rect, layers, diagram_id):
         """Return init area as squads intersection"""
-        quads = layers.get_diagram_quads(diagram_id)
+        quads = []
+        for surface in layers.surfaces.surfaces:
+            quads.append(surface.quad)
         if len(quads)==0:
             rect2 = self.get_area_rect(layers, diagram_id)
             if rect is None:

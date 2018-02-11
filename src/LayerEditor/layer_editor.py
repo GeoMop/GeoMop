@@ -75,7 +75,7 @@ class LayerEditor:
                 self.mainwindow.show_status_message("New file is opened")
         else:
             self.mainwindow.refresh_all()
-            self.mainwindow.display_all()
+            self.mainwindow.paint_new_data()
         self._update_document_name()
  
     def open_file(self):

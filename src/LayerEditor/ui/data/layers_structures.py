@@ -251,6 +251,7 @@ class Layers():
         """delete all data structure"""
         self.layers = []
         self.interfaces = []
+        self.surfaces = Surfaces()
      
     class LayersIterData():
         """Data clas for passing between itarion functions 
@@ -1151,14 +1152,14 @@ class Layers():
        
     def delete_surface(self, id):
         """Delete surface if is not used or return False"""
-        id = self.surface.currentIndex()
         for interface in self.interfaces:
             if interface.surface_id == id:
                 return False
         for interface in self.interfaces:
-            if interface.surface_id>id:
+            if interface.surface_id is not None and interface.surface_id>id:
                 interface.surface_id -= 1
         self.surfaces.delete(id)
+        return True
 
     def change_interface(self, interface, idx):
         """Switch idx layer to set layer"""

@@ -281,9 +281,9 @@ class Surfaces(QtWidgets.QWidget):
     def get_surface_id(self):
         return self.surface.currentIndex()
             
-    def reload_surfaces(self, id=None, cfg=None):
+    def reload_surfaces(self, id=None, set_history=False):
         """Reload all surfaces after file loading"""
-        if cfg is not None:
+        if set_history:
             self._history = SurfacesHistory(cfg.history)
         if id is None:
             id = self.surface.currentIndex()
