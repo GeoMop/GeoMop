@@ -40,8 +40,9 @@ class MjPreparation():
             err.append("Can't open script file: {0}".format(e))
             return err
         action_types.__action_counter__ = 0
-        exec(script_text)
-        pipeline = locals()[pipeline_name]
+        loc = {}
+        exec(script_text, globals(), loc)
+        pipeline = loc[pipeline_name]
 
         # pipeline inicialize
         pipeline._inicialize()
@@ -71,8 +72,9 @@ class MjPreparation():
             os.chdir(cwd)
             return err
         action_types.__action_counter__ = 0
-        exec(script_text)
-        pipeline2 = locals()[pipeline_name]
+        loc = {}
+        exec(script_text, globals(), loc)
+        pipeline2 = loc[pipeline_name]
 
         # validation #2
         pipeline2._inicialize()
