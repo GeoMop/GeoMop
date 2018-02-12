@@ -48,6 +48,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         Args:
             parent (QWidget): parent window ( empty is None)
         """ 
+        # add point
+        self._add_new_point = False
+        self._add_new_point_counter = 0
+        """counter for add point"""
         # move point variables
         self._point_moving = None
         """point is drawn"""
@@ -355,6 +359,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Standart mouse event"""
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
+        if self._add_new_point:
+            self._add_new_point_counter += 1
         if self._moving: 
             self._moving_counter += 1
             if self._moving_counter%3==0:
@@ -451,6 +457,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
         end_moving = False
+        if self._add_new_point:
+            self._add_new_point = False
+            if self._add_new_point_counter > 5:
+                return
         if self._moving:
             self._moving = False
             if  self._moving_counter>1:
@@ -557,6 +567,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._point_moving_counter = 0
                         self._point_moving = event.gobject
                         self._point_moving_old = event.gobject.point_data.qpointf()
+                    else:
+                        self._add_new_point_counter = 0
+                        self._add_new_point = True
+
+                else:
+                    self._add_new_point_counter = 0
+                    self._add_new_point = True
 
     def wheelEvent(self, event):
         """wheel event for zooming"""
