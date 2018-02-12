@@ -567,6 +567,10 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._point_moving_counter = 0
                         self._point_moving = event.gobject
                         self._point_moving_old = event.gobject.point_data.qpointf()
+                    else:
+                        self._add_new_point_counter = 0
+                        self._add_new_point = True
+
                 else:
                     self._add_new_point_counter = 0
                     self._add_new_point = True
