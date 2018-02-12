@@ -69,8 +69,36 @@ class Chicken(Animal):
         def.wing = 1 # not serialized
 
 TODO:
+
+TODO:
+- Track actual path in the data tree during recursive deserialization. Use this path in error messages.
+- Distinguish asserts (check consistancy of code, can be safely removed in production code) and
+input checks (these should be tested through explicit if (...): raise ...)
+- Add unit tests for:
+    - optional but typed input
+
+FUTURE (as soon as we are not about to release):
+- See existing solutions (attr - allow declaration of variables in the class and
+  provides automatic generatrion of initialization, representation and other common methods.)
+
+- Review design of the module so that definition of variables is part of the class, not part of the init,
+  possibly using 'attr' in significant way.
+    - automaticaly add methods to:
+    - initialize to default values (should be called before explicit initialization)
+    - deserialize (and validate) - specific kind of initialization
+    - validate
+    - serialize
+    - repr == serialize ??
+
+- Allow to serialize some objects into separate list converting references to indices. (support for the thing we do in Geometry)
+-
+
+- Instead of JsonDataNoConstruct have dict_type_of_class(my_class), which returns specification of
+  dictionary representation of the class.
+
 - Need to separate data validation and serialization/deserialization, default values. E.g.
   I need validation against [[int]], but default value []. But otherwise the default could be [[]], or None, ...
+
 
 - Is __init__ the best place to specify types and do deserialization as well?
   We have no way to initialize private attributes (not accesible from input, but known at construction time of the class
@@ -90,6 +118,16 @@ TODO:
         - allow explicti construction/initialization of the instancies
   cons:
         - Two places where we fill and possibly check class attributes
+
+- Serialization of repeating objects:
+        a = A()
+        b = B(a)
+        c = C(a)
+        serialize ([b,c]) # whe should serialize 'a' just once and use kind of referencing (natural in YAML)
+
+
+
+
 """
 #import json
 
