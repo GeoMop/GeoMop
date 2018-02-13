@@ -21,7 +21,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
         
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
         self.layer_name = QtWidgets.QLineEdit()
-        self.layer_name.setText("Layer "+str(len(cfg.diagram.regions.layers)+1))
+        self.layer_name.setText("Layer_"+str(len(cfg.diagram.regions.layers)+1))
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
         

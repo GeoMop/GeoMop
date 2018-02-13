@@ -67,7 +67,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         on_creation_dim = 3
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
-        self.region_name.setText("("+str(on_creation_dim)+"D) Region "+str(len(cfg.diagram.regions.regions)))
+        self.region_name.setText(str(on_creation_dim)+"D_Region_"+str(len(cfg.diagram.regions.regions)))
         grid.addWidget(d_region_name, 0, 0)
         grid.addWidget(self.region_name, 0, 1)
         
@@ -80,8 +80,8 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.setCurrentIndex(on_creation_dim)
 
         def adjust_name(idx):
-            if self.region_name.text()[0:5] in ["(0D) ", "(1D) ", "(2D) ", "(3D) "]:
-                self.region_name.setText("("+str(idx)+"D) "+self.region_name.text()[5:])
+            if self.region_name.text()[0:3] in ["0D_", "1D_", "2D_", "3D_"]:
+                self.region_name.setText(str(idx)+"D_"+self.region_name.text()[3:])
 
         self.region_dim.currentIndexChanged[int].connect(adjust_name)
         grid.addWidget(d_region_dim, 1, 0)

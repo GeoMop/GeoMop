@@ -15,7 +15,7 @@ class AddFractureDlg(QtWidgets.QDialog):
         
         d_fracture_name = QtWidgets.QLabel("Fracture Name:", self)
         self.fracture_name = QtWidgets.QLineEdit()
-        self.fracture_name.setText("Fracture " + str(len(cfg.diagram.regions.layers)))
+        self.fracture_name.setText("Fracture_" + str(len(cfg.diagram.regions.layers)))
         grid.addWidget(d_fracture_name, 0, 0)
         grid.addWidget(self.fracture_name, 0, 1)
         
