@@ -50,7 +50,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         self._tmp = True
         self.state = ItemStates.added
         self.setZValue(self.TMP_ZVALUE) 
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
@@ -97,7 +97,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             self.state = new_state
             if new_state is ItemStates.moved:
                 self.setZValue(self.MOVE_ZVALUE)
-                self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+                #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
                 if ungrab:
                     self.ungrabMouse()
             else:
