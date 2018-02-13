@@ -5,6 +5,7 @@ Dialog for appending new layer to the end.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from .layers_helpers import LayersHelpers
+from leconfig import cfg
 
 class SplitLayerDlg(QtWidgets.QDialog):
 
@@ -13,13 +14,39 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.setWindowTitle("Split Layer")
 
         grid = QtWidgets.QGridLayout(self)
-        
+
+        def check_unique(foo):
+            unique_name = True
+            for _, layer in cfg.diagram.regions.layers.items():
+                if foo == layer:
+                    unique_name = False
+            if unique_name:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height())
+                )
+                self.image.setToolTip('Layer name is unique, everything is fine.')
+                self._tranform_button.setEnabled(True)
+            else:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-important").pixmap(self.layer_name.sizeHint().height())
+                )
+                self.image.setToolTip('Layer name is not unique!')
+                self._tranform_button.setEnabled(False)
+
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
         self.layer_name = QtWidgets.QLineEdit()
         self.layer_name.setToolTip("New Layer name (New layer is in the bottom)")
-        self.layer_name.setText("New layer")
+        self.layer_name.setText("Layer_" + str(len(cfg.diagram.regions.layers) + 1))
+        self.layer_name.textChanged.connect(check_unique)
+
+        self.image = QtWidgets.QLabel(self)
+        self.image.setMinimumWidth(self.layer_name.sizeHint().height())
+        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height()))
+        self.image.setToolTip('Layer name is unique, everything is fine.')
+
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
+        grid.addWidget(self.image, 0, 2)
         
         d_split_type = QtWidgets.QLabel("Split Interface Type:", self)
         self.split_type = LayersHelpers.split_type_combo(copy_block)

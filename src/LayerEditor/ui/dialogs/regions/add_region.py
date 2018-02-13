@@ -64,20 +64,49 @@ class AddRegionDlg(QtWidgets.QDialog):
 
         grid = QtWidgets.QGridLayout(self)
 
-        on_creation_dim = 3
-        d_region_name = QtWidgets.QLabel("Region Name:", self)
-        self.region_name = QtWidgets.QLineEdit()
-        self.region_name.setText(str(on_creation_dim)+"D_Region_"+str(len(cfg.diagram.regions.regions)))
-        grid.addWidget(d_region_name, 0, 0)
-        grid.addWidget(self.region_name, 0, 1)
-        
         d_region_dim = QtWidgets.QLabel("Region Dimension:", self)
-        self.region_dim = QtWidgets.QComboBox()            
+        self.region_dim = QtWidgets.QComboBox()
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.point], RegionDim.point)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.well], RegionDim.well)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
-        self.region_dim.setCurrentIndex(on_creation_dim)
+        # TODO: change the default value according to the maximal dimension of selected elements in the viewport area
+        self.region_dim.setCurrentIndex(self.region_dim.count()-1)
+
+        def check_unique(foo):
+            unique_name = True
+            for region in cfg.diagram.regions.regions:
+                if foo == region.name:
+                    unique_name = False
+            if unique_name:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height())
+                )
+                self.image.setToolTip('Region name is unique, everything is fine.')
+                self._tranform_button.setEnabled(True)
+            else:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-important").pixmap(self.region_name.sizeHint().height())
+                )
+                self.image.setToolTip('Region name is not unique!')
+                self._tranform_button.setEnabled(False)
+
+
+        d_region_name = QtWidgets.QLabel("Region Name:", self)
+        self.region_name = QtWidgets.QLineEdit()
+        self.region_name.setText(str(self.region_dim.currentIndex())+"D_Region_"+str(len(cfg.diagram.regions.regions)))
+        self.region_name.textChanged.connect(check_unique)
+
+        self.image = QtWidgets.QLabel(self)
+        self.image.setMinimumWidth(self.region_name.sizeHint().height())
+        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height()))
+        self.image.setToolTip('Region name is unique, everything is fine.')
+
+        grid.addWidget(d_region_name, 0, 0)
+        grid.addWidget(self.region_name, 0, 1)
+        grid.addWidget(self.image, 0, 2)
+
+
 
         def adjust_name(idx):
             if self.region_name.text()[0:3] in ["0D_", "1D_", "2D_", "3D_"]:
@@ -85,7 +114,7 @@ class AddRegionDlg(QtWidgets.QDialog):
 
         self.region_dim.currentIndexChanged[int].connect(adjust_name)
         grid.addWidget(d_region_dim, 1, 0)
-        grid.addWidget(self.region_dim, 1, 1)
+        grid.addWidget(self.region_dim, 1, 1, 1, 2)
 
         self._tranform_button = QtWidgets.QPushButton("Add", self)
         self._tranform_button.clicked.connect(self.accept)

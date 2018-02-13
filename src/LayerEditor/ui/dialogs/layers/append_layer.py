@@ -18,12 +18,38 @@ class AppendLayerDlg(QtWidgets.QDialog):
         else:
             self.setWindowTitle("Append Layer")
         grid = QtWidgets.QGridLayout(self)
-        
+
+        def check_unique(foo):
+            unique_name = True
+            for _, layer in cfg.diagram.regions.layers.items():
+                if foo == layer:
+                    unique_name = False
+            if unique_name:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height())
+                )
+                self.image.setToolTip('Layer name is unique, everything is fine.')
+                self._tranform_button.setEnabled(True)
+            else:
+                self.image.setPixmap(
+                    QtGui.QIcon.fromTheme("emblem-important").pixmap(self.layer_name.sizeHint().height())
+                )
+                self.image.setToolTip('Layer name is not unique!')
+                self._tranform_button.setEnabled(False)
+
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
         self.layer_name = QtWidgets.QLineEdit()
         self.layer_name.setText("Layer_"+str(len(cfg.diagram.regions.layers)+1))
+        self.layer_name.textChanged.connect(check_unique)
+
+        self.image = QtWidgets.QLabel(self)
+        self.image.setMinimumWidth(self.layer_name.sizeHint().height())
+        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height()))
+        self.image.setToolTip('Layer name is unique, everything is fine.')
+
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
+        grid.addWidget(self.image, 0, 2)
         
         d_surface = QtWidgets.QLabel("Bottom Interface Surface:", self)
         grid.addWidget(d_surface, 1, 0)

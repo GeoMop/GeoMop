@@ -24,7 +24,7 @@ class LESerializer():
         cfg.diagram = None
 
     def _get_first_geometry(self):
-        lname = "Layer 1"
+        lname = "Layer_1"
         gf = GeometryFactory()
         gf.set_default()
 
