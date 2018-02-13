@@ -58,7 +58,7 @@ class AddRegionDlg(QtWidgets.QDialog):
     }
 
 
-    def __init__(self, parent=None):
+    def __init__(self,  parent=None):
         super(AddRegionDlg, self).__init__(parent)
         self.setWindowTitle("Add Region")
 
@@ -71,48 +71,28 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
         # TODO: change the default value according to the maximal dimension of selected elements in the viewport area
-        self.region_dim.setCurrentIndex(self.region_dim.count()-1)
-
-        def check_unique(foo):
-            unique_name = True
-            for region in cfg.diagram.regions.regions:
-                if foo == region.name:
-                    unique_name = False
-            if unique_name:
-                self.image.setPixmap(
-                    QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height())
-                )
-                self.image.setToolTip('Region name is unique, everything is fine.')
-                self._tranform_button.setEnabled(True)
-            else:
-                self.image.setPixmap(
-                    QtGui.QIcon.fromTheme("emblem-important").pixmap(self.region_name.sizeHint().height())
-                )
-                self.image.setToolTip('Region name is not unique!')
-                self._tranform_button.setEnabled(False)
-
+        self.region_dim.setCurrentIndex(3)
 
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
-        self.region_name.setText(str(self.region_dim.currentIndex())+"D_Region_"+str(len(cfg.diagram.regions.regions)))
-        self.region_name.textChanged.connect(check_unique)
-
         self.image = QtWidgets.QLabel(self)
+
         self.image.setMinimumWidth(self.region_name.sizeHint().height())
         self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
+        self.have_default_name = True
+        self.set_default_name(3)
+        self.region_name.textChanged.connect(self.reg_name_changed)
+
+
+
 
         grid.addWidget(d_region_name, 0, 0)
         grid.addWidget(self.region_name, 0, 1)
         grid.addWidget(self.image, 0, 2)
 
 
-
-        def adjust_name(idx):
-            if self.region_name.text()[0:3] in ["0D_", "1D_", "2D_", "3D_"]:
-                self.region_name.setText(str(idx)+"D_"+self.region_name.text()[3:])
-
-        self.region_dim.currentIndexChanged[int].connect(adjust_name)
+        self.region_dim.currentIndexChanged[int].connect(self.set_default_name)
         grid.addWidget(d_region_dim, 1, 0)
         grid.addWidget(self.region_dim, 1, 1, 1, 2)
 
@@ -127,11 +107,49 @@ class AddRegionDlg(QtWidgets.QDialog):
 
         grid.addWidget(button_box, 2, 1)
         self.setLayout(grid)
-        
+
+    @classmethod
+    def is_unique_region_name(self, reg_name):
+        """ Return False in the case of colision with an existing region name."""
+        for region in cfg.diagram.regions.regions:
+            if reg_name == region.name:
+                return False
+        return True
+
+    def reg_name_changed(self, reg_name):
+        """ Called when Region Line Edit is changed."""
+        self.have_default_name = False
+        if self.is_unique_region_name(reg_name):
+            self.image.setPixmap(
+                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height())
+            )
+            self.image.setToolTip('Unique name is OK.')
+            self._tranform_button.setEnabled(True)
+        else:
+            self.image.setPixmap(
+                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.region_name.sizeHint().height())
+            )
+            self.image.setToolTip('Name is not unique!')
+            self._tranform_button.setEnabled(False)
+
+
     @classmethod
     def get_some_color(cls, i):
         """Return firs collor accoding to index"""
         return cls.BACKGROUND_COLORS[i % len(cls.BACKGROUND_COLORS)]
+
+
+    def  set_default_name(self, dim):
+        """ Set default name if it seems to be default name. """
+        if self.have_default_name:
+            dim_to_regtype = ["point_", "well_", "fracture_", "bulk_"]
+            reg_id = 0
+            name = cfg.diagram.regions.regions[0].name
+            while not self.is_unique_region_name(name):
+                reg_id += 1
+                name = dim_to_regtype[dim] + str(reg_id)
+            self.region_name.setText(name)
+            self.have_default_name = True
 
     def accept(self):
         """
