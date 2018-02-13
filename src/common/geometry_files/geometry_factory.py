@@ -1,5 +1,5 @@
 """Structures for Layer Geometry File"""
-
+import os
 from .format_last import LayerGeometry, NodeSet,  Topology
 from .format_last import InterpolatedNodeSet, InterfaceNodeSet, Surface, Interface
 from .format_last import Region, RegionDim, StratumLayer
@@ -20,7 +20,16 @@ from .bspline_io import bs_zsurface_read, bs_zsurface_write
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
-    
+
+    def make_rel_path(self, abs_path):
+        rel_path = os.path.relpath(abs_path, self._base_dir)
+        if (rel_path[0:2] == ".."):
+            print("Warning: referenced file is out of the base directory, rel path: %s\n"%(rel_path))
+        return rel_path
+
+    def make_abs_path(self, rel_path):
+        return  os.path.normpath(os.path.join(self._base_dir, rel_path))
+
     def __init__(self, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
@@ -48,6 +57,7 @@ class GeometryFactory:
     def get_surfaces(self):
         """Generator for surfaces of the LayerGeometry."""
         for surface in self.geometry.surfaces:
+            surface.grid_file = self.make_abs_path(surface.grid_file)
             surface.approximation = bs_zsurface_read(surface.approximation)
             yield surface
 
@@ -63,7 +73,7 @@ class GeometryFactory:
         surface = Surface(dict(
             approximation=bs_zsurface_write(approximation),
             name=name,
-            grid_file=grid_file
+            grid_file=self.make_rel_path(grid_file)
             ))
         return self.geometry.surfaces.append(surface)
 
@@ -267,3 +277,16 @@ class GeometryFactory:
                     used_top.append(curr_top)
         return errors
         
+    """
+    TODO: 
+    - rename UserSupplement
+    - make it conforming to the JsonData approach
+    """
+    def get_shape_files(self):
+        for shp in self.geometry.supplement.shps:
+            shp['file'] = self.make_abs_path(shp['file'])
+            yield shp
+
+    def add_shape_file(self, shp):
+        shp['file'] = self.make_rel_path(shp['file'])
+        self.geometry.supplement.shps.append(shp.copy())

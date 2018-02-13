@@ -1,3 +1,4 @@
+import os
 from geometry_files import GeometryFactory, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
@@ -17,7 +18,7 @@ class LESerializer():
         """Set new file"""
         first_geometry = self._get_first_geometry()
         Diagram.area.serialize(first_geometry.supplement.init_area)
-        self.geometry_to_cfg(first_geometry, cfg)
+        self.geometry_to_cfg("", first_geometry, cfg)
 
     def cfg_reset(self, cfg):
         #TODO: move definiftion and calls to cfg
@@ -45,9 +46,9 @@ class LESerializer():
     def load(self, cfg, path):
         geometry =  layers_io.read_geometry(path)
         assert geometry.version == [0, 5, 0]
-        self.geometry_to_cfg(geometry, cfg, path)
+        self.geometry_to_cfg(path, geometry, cfg)
 
-    def geometry_to_cfg(self, geometry, cfg, path=""):
+    def geometry_to_cfg(self, path, geometry, cfg):
         """Load diagram data from set file"""
         self.cfg_reset(cfg)
 
@@ -55,10 +56,11 @@ class LESerializer():
         curr_block = 0
         # curr_topology and curr_block is for mapping topology to consistent line
         gf = GeometryFactory(geometry)
+        gf._base_dir = os.path.dirname(path)
         errors = gf.check_file_consistency()        
         if len(errors)>0:
             raise LESerializerException(
-                "Some file consistency errors occure in {0}".format(path), errors)
+                "Some file consistency errors occure in {0}".format(geometry._base_file), errors)
         for region in gf.get_regions():
             Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
@@ -180,7 +182,7 @@ class LESerializer():
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
         Diagram.zooming.deserialize(gf.geometry.supplement.zoom)
-        Diagram.shp.deserialize(gf.geometry.supplement.shps) 
+        Diagram.shp.deserialize(gf.get_shape_files())
         cfg.reload_surfaces(gf.geometry.supplement.surface_idx)
         cfg.diagram = cfg.diagrams[ns_idx]         
         cfg.diagram.fix_topologies(cfg.diagrams)
@@ -204,12 +206,13 @@ class LESerializer():
         diagram.import_decomposition(decomp)
 
     def save(self, cfg, path):
-        geometry = self.cfg_to_geometry(cfg)
+        geometry = self.cfg_to_geometry(cfg, path)
         layers_io.write_geometry(path, geometry)
 
-    def cfg_to_geometry(self, cfg):
+    def cfg_to_geometry(self, cfg, path):
         """Save diagram data to set file"""
         gf = GeometryFactory()
+        gf._base_dir = os.path.dirname(path)
         for reg in cfg.diagram.regions.regions:
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         for surface in cfg.layers.surfaces.surfaces:
@@ -281,8 +284,10 @@ class LESerializer():
         gf.geometry.supplement.surface_idx = cfg.get_curr_surfaces()
         Diagram.area.serialize(gf.geometry.supplement.init_area)
         Diagram.zooming.serialize(gf.geometry.supplement.zoom)
-        Diagram.shp.serialize(gf.geometry.supplement.shps)
-        
+
+        for shp in Diagram.shp.serialize():
+            gf.add_shape_file(shp)
+
         errors = gf.check_file_consistency()
         if len(errors) > 0:
             raise LESerializerException("Some file consistency errors occure", errors)
