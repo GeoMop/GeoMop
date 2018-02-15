@@ -139,7 +139,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         return cls.BACKGROUND_COLORS[i % len(cls.BACKGROUND_COLORS)]
 
 
-    def  set_default_name(self, dim):
+    def set_default_name(self, dim):
         """ Set default name if it seems to be default name. """
         if self.have_default_name:
             dim_to_regtype = ["point_", "well_", "fracture_", "bulk_"]
