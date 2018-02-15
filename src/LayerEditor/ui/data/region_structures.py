@@ -797,3 +797,19 @@ class Regions():
         if layer_id in self.layer_region_2D:
             regions[2] = self.layer_region_2D[layer_id]
         return regions
+
+    def get_shapes_of_region(self, reg_idx):
+        """
+        Get list of shape instances of specific region
+        """
+        dim = self.regions[reg_idx].dim.value
+        if dim == 0:
+            layer_region = self.layer_region_0D
+        elif dim == 1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
+        shapes = []
+        for layer_id in self.layers_topology[self.current_topology_id]:
+            shapes.append([shape for shape in layer_region[layer_id] if layer_region[layer_id][shape]==reg_idx])
+        return shapes

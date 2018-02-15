@@ -148,7 +148,7 @@ class Regions(QtWidgets.QToolBox):
         self.remove_button[layer_id] = QtWidgets.QPushButton()
         self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
         self.remove_button[layer_id].setToolTip('Remove selected region')
-        # self.remove_button[layer_id].clicked.connect(self._add_region)
+        self.remove_button[layer_id].clicked.connect(self._remove_region)
 
         grid.addWidget(self.regions[layer_id], 0, 0)
         grid.addWidget(self.add_button[layer_id], 0, 1)
@@ -293,6 +293,20 @@ class Regions(QtWidgets.QToolBox):
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]
             self._set_box_title(self.currentIndex(), layer_id)
+
+    def _remove_region(self):
+        """Remove new region to all combo and select it in current layer"""
+        print("connected")
+        data = cfg.diagram.regions
+        reg_idx = self.get_current_region()
+        shapes = data.get_shapes_of_region(reg_idx)
+        if not any(shapes):
+            data.delete_region(data.regions[reg_idx].dim.value)
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.regions[layer_id].removeItem(reg_idx)
+        else:
+            print("List is not empty! Oops, this button should have been disabled.")
+            #TODO: disable that button
 
     def _name_set(self, layer_id):
         """Name is changed"""
