@@ -14,7 +14,7 @@ class SetNameDlg(QtWidgets.QDialog):
 
         grid = QtWidgets.QGridLayout(self)
         
-        d_name = QtWidgets.QLabel("Layer {0} Name:".format(category), self)
+        d_name = QtWidgets.QLabel("{0} Name:".format(category), self)
         self.name = QtWidgets.QLineEdit()
         self.name.setText(value)
         grid.addWidget(d_name, 0, 0)

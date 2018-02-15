@@ -5,6 +5,7 @@ Dialog for appending new layer to the end.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from .layers_helpers import LayersHelpers
+from leconfig import cfg
 
 class SplitLayerDlg(QtWidgets.QDialog):
 
@@ -13,13 +14,22 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.setWindowTitle("Split Layer")
 
         grid = QtWidgets.QGridLayout(self)
-        
+
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
         self.layer_name = QtWidgets.QLineEdit()
         self.layer_name.setToolTip("New Layer name (New layer is in the bottom)")
-        self.layer_name.setText("New layer")
+        self.have_default_name = True
+        self.set_default_name()
+        self.layer_name.textChanged.connect(self.lay_name_changed)
+
+        self.image = QtWidgets.QLabel(self)
+        self.image.setMinimumWidth(self.layer_name.sizeHint().height())
+        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height()))
+        self.image.setToolTip('Layer name is unique, everything is fine.')
+
         grid.addWidget(d_layer_name, 0, 0)
         grid.addWidget(self.layer_name, 0, 1)
+        grid.addWidget(self.image, 0, 2)
         
         d_split_type = QtWidgets.QLabel("Split Interface Type:", self)
         self.split_type = LayersHelpers.split_type_combo(copy_block)
@@ -48,6 +58,41 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
         grid.addWidget(button_box, i, 1, 1, 2)
         self.setLayout(grid)
+
+    @classmethod
+    def is_unique_layer_name(self, lay_name):
+        """ Return False in the case of colision with an existing region name."""
+        for _, layer in cfg.diagram.regions.layers.items():
+            if lay_name == layer:
+                return False
+        return True
+
+    def lay_name_changed(self, name):
+        """ Called when Region Line Edit is changed."""
+        self.have_default_name = False
+        if self.is_unique_layer_name(name):
+            self.image.setPixmap(
+                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height())
+            )
+            self.image.setToolTip('Unique name is OK.')
+            self._tranform_button.setEnabled(True)
+        else:
+            self.image.setPixmap(
+                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.layer_name.sizeHint().height())
+            )
+            self.image.setToolTip('Name is not unique!')
+            self._tranform_button.setEnabled(False)
+
+    def set_default_name(self):
+        """ Set default name if it seems to be default name. """
+        if self.have_default_name:
+            lay_id = 0
+            name = cfg.diagram.regions.layers[0]
+            while not self.is_unique_layer_name(name):
+                lay_id += 1
+                name = "Layer_" + str(lay_id)
+            self.layer_name.setText(name)
+            self.have_default_name = True
 
     def accept(self):
         """
