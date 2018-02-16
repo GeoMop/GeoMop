@@ -301,9 +301,11 @@ class Regions(QtWidgets.QToolBox):
         reg_idx = self.get_current_region()
         shapes = data.get_shapes_of_region(reg_idx)
         if not any(shapes):
-            data.delete_region(data.regions[reg_idx].dim.value)
+            data.delete_region(reg_idx)
             for layer_id in data.layers_topology[data.current_topology_id]:
                 self.regions[layer_id].removeItem(reg_idx)
+                reg_id = self.regions[layer_id].currentData()
+                self._update_layer_controls(data.regions[reg_id], layer_id)
         else:
             print("List is not empty! Oops, this button should have been disabled.")
 
