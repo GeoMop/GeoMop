@@ -128,8 +128,8 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions        
         grid = QtWidgets.QGridLayout()             
         # select and add region
-        pom_lamda = lambda ii: lambda: self._region_set(ii)
-        self.regions[layer_id] = QtWidgets.QComboBox()            
+        pom_lambda = lambda ii: lambda: self._region_set(ii)
+        self.regions[layer_id] = QtWidgets.QComboBox()
         for i in range(0, len(data.regions)):            
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
@@ -138,7 +138,7 @@ class Regions(QtWidgets.QToolBox):
         self._emit_regionChanged = False
         self.regions[layer_id].setCurrentIndex(curr_index)
         self._emit_regionChanged = True
-        self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
+        self.regions[layer_id].currentIndexChanged.connect(pom_lambda(layer_id))
         self.add_button[layer_id] = QtWidgets.QPushButton()
         self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
         self.add_button[layer_id].setToolTip('Create new region')
@@ -147,8 +147,9 @@ class Regions(QtWidgets.QToolBox):
 
         self.remove_button[layer_id] = QtWidgets.QPushButton()
         self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
-        self.remove_button[layer_id].setToolTip('Remove selected region')
         self.remove_button[layer_id].clicked.connect(self._remove_region)
+        self.remove_button[layer_id].setEnabled(False)
+        self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
 
         grid.addWidget(self.regions[layer_id], 0, 0)
         grid.addWidget(self.add_button[layer_id], 0, 1)
@@ -229,7 +230,7 @@ class Regions(QtWidgets.QToolBox):
         widget.setLayout(grid)
         
         return widget
-        
+
     def _set_visibility(self, layer_id, visible):
         """Set visibility for not NONE items"""
         self.name[layer_id].setReadOnly(not visible)
@@ -295,8 +296,7 @@ class Regions(QtWidgets.QToolBox):
             self._set_box_title(self.currentIndex(), layer_id)
 
     def _remove_region(self):
-        """Remove new region to all combo and select it in current layer"""
-        print("connected")
+        """Remove region if it is not assigned to any no shapes"""
         data = cfg.diagram.regions
         reg_idx = self.get_current_region()
         shapes = data.get_shapes_of_region(reg_idx)
@@ -306,7 +306,6 @@ class Regions(QtWidgets.QToolBox):
                 self.regions[layer_id].removeItem(reg_idx)
         else:
             print("List is not empty! Oops, this button should have been disabled.")
-            #TODO: disable that button
 
     def _name_set(self, layer_id):
         """Name is changed"""
@@ -373,7 +372,7 @@ class Regions(QtWidgets.QToolBox):
             self._set_box_title(self.currentIndex(), layer_id)
             
     def _region_set(self, layer_id):
-        """Region in combo box was changed"""        
+        """Region in combo box was changed"""
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]
@@ -384,6 +383,21 @@ class Regions(QtWidgets.QToolBox):
         self._set_box_title(tab_id, layer_id)
         if self._emit_regionChanged:
             self.regionChanged.emit()
+        reg_idx = self.get_current_region()
+        shapes = data.get_shapes_of_region(reg_idx)
+        # cannot remove default or utilized region
+        if reg_idx == 0:
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(False)
+                self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
+        elif any(shapes):
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(False)
+                self.remove_button[layer_id].setToolTip('Region is still in use!')
+        else:
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(True)
+                self.remove_button[layer_id].setToolTip('Remove selected region')
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""
