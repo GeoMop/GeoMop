@@ -8,8 +8,10 @@ from client_pipeline.identical_list_creator import *
 
 class MjPreparation():
     @staticmethod
-    def prepare(workspace, analysis, mj, python_script, pipeline_name, last_analysis=None):
+    def prepare(workspace, analysis, mj, python_script="analysis.py", pipeline_name="pipeline", last_analysis=None):
         err = []
+        input_files = []
+        ret = (err, input_files)
 
         # workspace absolute path
         workspace = os.path.realpath(workspace)
@@ -17,7 +19,7 @@ class MjPreparation():
         # test if workspace dir exist
         if not os.path.isdir(workspace):
             err.append("Workspace directory don't exist.")
-            return err
+            return ret
 
         # directory preparation
         analysis_dir = os.path.join(workspace, analysis)
@@ -38,7 +40,7 @@ class MjPreparation():
                 script_text = fd.read()
         except (RuntimeError, IOError) as e:
             err.append("Can't open script file: {0}".format(e))
-            return err
+            return ret
         action_types.__action_counter__ = 0
         loc = {}
         exec(script_text, globals(), loc)
@@ -49,14 +51,16 @@ class MjPreparation():
 
         # copy script
         shutil.copy(python_script, mj_config_dir)
+        input_files.append(python_script)
 
         # prepare resources
         for res in pipeline.get_resources():
             if res["name"] == "Flow123d":
-                e = Flow123dActionPreparation.prepare(res, analysis_dir, mj_config_dir)
+                e, files = Flow123dActionPreparation.prepare(res, analysis_dir, mj_config_dir)
+                input_files.extend(files)
                 if len(e) > 0:
                     err.extend(e)
-                    return err
+                    return ret
             else:
                 err.append("Missing resource preparation for {0}.".format(res["name"]))
 
@@ -70,7 +74,7 @@ class MjPreparation():
         except (RuntimeError, IOError) as e:
             err.append("Can't open script file: {0}".format(e))
             os.chdir(cwd)
-            return err
+            return ret
         action_types.__action_counter__ = 0
         loc = {}
         exec(script_text, globals(), loc)
@@ -82,7 +86,7 @@ class MjPreparation():
         if len(e) > 0:
             err.extend(e)
             os.chdir(cwd)
-            return err
+            return ret
 
         # return cwd
         os.chdir(cwd)
@@ -92,7 +96,7 @@ class MjPreparation():
         e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, "compare_list.json"))
         if len(e) > 0:
             err.extend(e)
-            return err
+            return ret
 
         # create identical list
         if last_analysis is not None:
@@ -101,7 +105,7 @@ class MjPreparation():
                 e, last_cl = ILCreator.load_compare_list(last_cl_file)
                 if len(e) > 0:
                     err.extend(e)
-                    return err
+                    return ret
                 il = ILCreator.create_identical_list(compare_list, last_cl)
                 il.save(os.path.join(mj_config_dir, "identical_list.json"))
 
@@ -121,4 +125,4 @@ class MjPreparation():
                 shutil.rmtree(output_dir, ignore_errors=True)
                 shutil.copytree(last_output_dir, output_dir)
 
-        return err
+        return ret
