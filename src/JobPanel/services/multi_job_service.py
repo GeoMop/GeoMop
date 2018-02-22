@@ -124,8 +124,9 @@ class MultiJob(ServiceBase):
             self.mj_status == MJStatus.error
             return
         action_types.__action_counter__ = 0
-        exec(script_text)
-        pipeline = locals()[self.pipeline["pipeline_name"]]
+        loc = {}
+        exec(script_text, globals(), loc)
+        pipeline = loc[self.pipeline["pipeline_name"]]
 
         # pipeline processor
         self._pipeline_processor = Pipelineprocessor(pipeline)
@@ -135,7 +136,7 @@ class MultiJob(ServiceBase):
         if len(err) > 0:
             for e in err:
                 logging.error(e)
-            self.mj_status == MJStatus.error
+            self.mj_status = MJStatus.error
             return
 
         # run pipeline
@@ -197,6 +198,13 @@ class MultiJob(ServiceBase):
         else:
             service_data["input_files"] = runner.input_files
 
+        # update service_host_connection
+        if service_data["process"]["__class__"] == "ProcessPBS" and \
+                service_data["service_host_connection"]["__class__"] == "ConnectionLocal" and \
+                service_data["service_host_connection"]["address"] == "localhost":
+            service_data["service_host_connection"] = service_data["service_host_connection"].copy()
+            service_data["service_host_connection"]["address"] = self.listen_address[0]
+
         # start job
         logging.info("Job {} starting".format(job_id))
         answer = []
@@ -245,7 +253,7 @@ class MultiJob(ServiceBase):
                 if len(job_info.results_download_job_result) > 0:
                     res = job_info.results_download_job_result[-1]
                     if ("error" in res) or (not res["data"]):
-                        logging.error("Job {} unable download result {}".format(job_id))
+                        logging.error("Job {} unable download result".format(job_id))
                         job_info.status = JobStatus.error
                         self.mj_status = MJStatus.error
                     else:

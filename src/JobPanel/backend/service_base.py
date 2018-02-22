@@ -131,7 +131,8 @@ def call_action(obj, action, data, result=None):
         # logging.info("res: {})".format(res))
         save_result(res)
 
-    if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
+    if hasattr(action_method, "run_in_thread") and action_method.run_in_thread and \
+            (not isinstance(obj, ServiceBase) or obj._service_thread_ident == threading.get_ident()):
         # future = self._thread_pool.submit(action_method, data)
         t = threading.Thread(target=wrapper)
         t.daemon = True
@@ -225,6 +226,9 @@ class ServiceBase(JsonData):
 
         super().__init__(config)
 
+        self._service_thread_ident = threading.get_ident()
+        """service main thread identifier"""
+
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
         self._geomop_workspace = ""
@@ -308,6 +312,8 @@ class ServiceBase(JsonData):
         Must be called about after 0.1 s.
         :return:
         """
+        self._service_thread_ident = threading.get_ident()
+
         self._process_answers()
         self._process_requests()
         self._send_answers()
@@ -415,6 +421,9 @@ class ServiceBase(JsonData):
     def get_analysis_workspace(self):
         return self.service_host_connection.environment.geomop_analysis_workspace
 
+    def get_geomop_root(self):
+        return self.service_host_connection.environment.geomop_root
+
     def get_ip_address(self):
         """
         Return IP address of eth0.
@@ -519,20 +528,33 @@ class ServiceBase(JsonData):
         self._closing = True
         return {'data' : 'closing'}
 
+    @LongRequest
     def request_process_start(self, process_config):
         logging.info("request_process_start(process_config: {})".format(process_config))
         executor = self._process_class_factory.make_instance(process_config)
         return executor.start()
 
+    @LongRequest
     def request_process_status(self, process_config):
         executor = self._process_class_factory.make_instance(process_config)
         return executor.get_status()
 
-
+    @LongRequest
     def request_process_kill(self, process_config):
         executor = self._process_class_factory.make_instance(process_config)
         return executor.kill()
 
-
-
-
+    @LongRequest
+    def request_get_executables_from_installation(self):
+        """
+        Return executables from installation where service running.
+        :return:
+        """
+        file = os.path.join(self.get_geomop_root(), "executables.json")
+        try:
+            with open(file, 'r') as fd:
+                executables = json.load(fd)
+        except Exception as e:
+            logging.error("Loading installation executables error: {0}".format(e))
+            return None
+        return executables

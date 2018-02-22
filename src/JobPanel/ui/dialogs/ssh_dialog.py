@@ -165,7 +165,7 @@ class SshDialog(AFormContainer):
         self.permitted['env'] = [] 
         if not env or len(env)==0:
             self.permitted['env'].append("")
-            self.ui.pbsSystemComboBox.addItem('Please set any environment preset', '')
+            self.ui.envPresetComboBox.addItem('Please set any environment preset', '')
         self.permitted['pbs_system'] = []
         self.permitted['pbs_system'].append("")
         
@@ -178,9 +178,10 @@ class SshDialog(AFormContainer):
                 self.ui.envPresetComboBox.setCurrentIndex(
                     self.ui.envPresetComboBox.findData(self.preset.env))
                     
-        self.ui.envPresetComboBox.clear()
+        self.ui.pbsSystemComboBox.clear()
         self.ui.pbsSystemComboBox.addItem('No Pbs', '')
-        dialect_items = DialectImporter.get_available_dialects()
+        #dialect_items = DialectImporter.get_available_dialects()
+        dialect_items = {"PbsDialectPBSPro": "PBSPro"}
         for key in dialect_items:
             self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
             self.permitted['pbs_system'].append(key)

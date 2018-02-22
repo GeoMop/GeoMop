@@ -431,10 +431,13 @@ class ProcessDocker(ProcessBase):
         See client_test_py for a docker starting process.
         :return: process_id - possibly hash of the running container.
         """
+        # ToDo: asi nebude fungovat ve Win
         home = os.environ["HOME"]
         cwd = os.path.join(self.environment.geomop_analysis_workspace,
                            self.exec_args.work_dir)
-        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel"]
+        uid = os.getuid()
+        gid = os.getgid()
+        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "-u", "{}:{}".format(uid, gid), "geomop/jobpanel"]
         args.extend(self._get_limit_args())
         if self.executable.script:
             args.append(self.environment.python)

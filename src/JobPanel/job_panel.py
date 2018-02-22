@@ -78,14 +78,13 @@ class JobPanel(object):
         Installation.set_init_paths(CONFIG_DIR, self._data.workspaces.get_path())
 
         # setup com manager
-        self._com_manager = ComManager(self._data)
+        #self._com_manager = ComManager(self._data)
 
         # setup frontend service
         self._frontend_service = ServiceFrontend(self._data)
 
         # setup qt UI
         self._main_window = MainWindow(data=self._data,
-                                       com_manager=self._com_manager,
                                        frontend_service=self._frontend_service)
 
         # connect save all on exit
