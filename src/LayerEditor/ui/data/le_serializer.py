@@ -57,7 +57,7 @@ class LESerializer():
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(path), errors)
         for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
+            Diagram.add_region(region.color, region.name, region.reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for surface in gf.get_surfaces():
             cfg.layers.surfaces.add(surface['approximation'], surface['grid_file'], 
@@ -208,7 +208,7 @@ class LESerializer():
     def cfg_to_geometry(self, cfg):
         """Save diagram data to set file"""
         gf = GeometryFactory()
-        for reg in cfg.diagram.regions.regions:
+        for _, reg in cfg.diagram.regions.regions.items():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         for surface in cfg.layers.surfaces.surfaces:
             gf.add_surface(surface.approximation, surface.grid_file, 

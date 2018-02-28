@@ -114,9 +114,9 @@ class Regions(QtWidgets.QToolBox):
         if self.layers[layer_id] in self.last_region:
             region_name = self.last_region[self.layers[layer_id]]
         else:
-            self.last_region[self.layers[layer_id]] =  data.regions[0].name
+            self.last_region[self.layers[layer_id]] = data.regions[0].name
             return data.regions[0]
-        for region in data.regions:
+        for _, region in data.regions.items():
             if region.name == region_name:
                 return region
         self.last_region[self.layers[layer_id]] =  data.regions[0].name
@@ -133,8 +133,8 @@ class Regions(QtWidgets.QToolBox):
         for i in range(0, len(data.regions)):            
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
-            data.current_regions[layer_id] = region            
-        curr_index = self.regions[layer_id].findData(data.regions.index(region))
+            data.current_regions[layer_id] = region
+        curr_index = self.regions[layer_id].findData([key for key, value in data.regions.items() if value == region][0])
         self._emit_regionChanged = False
         self.regions[layer_id].setCurrentIndex(curr_index)
         self._emit_regionChanged = True
@@ -248,7 +248,7 @@ class Regions(QtWidgets.QToolBox):
     def _update_layer_controls(self, region, layer_id):
         """Update set region data in layers controls"""
         data = cfg.diagram.regions                
-        region_id = data.regions.index(region)
+        region_id = [key for key, item in data.regions.items() if item == region][0]
         curr_index = self.regions[layer_id].findData(region_id)
 
         # old_emit_regionChanged is used due to recursive call of _update_layer_controls
@@ -317,7 +317,7 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]        
         error = None
-        for reg in data.regions:
+        for _, reg in data.regions.items():
             if reg != region:
                 if self.name[layer_id].text() == reg.name:
                     error = "Region name already exist"
@@ -332,7 +332,7 @@ class Regions(QtWidgets.QToolBox):
             err_dialog.open_error_dialog(error)
             self.name[layer_id].selectAll()
         else:
-            data.set_region_name(data.regions.index(region), 
+            data.set_region_name([key for key, item in data.regions.items() if item == region][0],
                 self.name[layer_id].text(), True, "Set region name")
             combo_text = self.name[layer_id].text()+" ("+str(data.regions[region_id].dim.value)+"D)"
             self.regions[layer_id].setItemText(

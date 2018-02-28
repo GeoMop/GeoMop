@@ -222,6 +222,8 @@ class Region(JsonData):
         """8-bite region color"""
         self.name = ""
         """region name"""
+        self.reg_id = ""
+        """region unique id"""
         self.dim = RegionDim.invalid
         """ Real dimension of the region. (0,1,2,3)"""
         self.topo_dim = TopologyDim.invalid
