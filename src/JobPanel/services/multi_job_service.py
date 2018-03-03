@@ -166,8 +166,11 @@ class MultiJob(ServiceBase):
                 job_executable = e
                 break
         if job_executable is None:
-            logging.error("Unable to find executable: {}".format(name))
-            self.mj_status == MJStatus.error
+            #logging.error("Unable to find executable: {}".format(name))
+            #self.mj_status == MJStatus.error
+            job_executable = {"__class__": "Executable",
+                              "name": name,
+                              "path": ""}
         service_data["job_executable"] = job_executable
 
         # job_exec_args

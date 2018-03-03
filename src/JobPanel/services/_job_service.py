@@ -57,6 +57,25 @@ class Job(service_base.ServiceBase):
         self._job_thread = None
 
     def _job_run(self):
+        # find executable
+        if self.job_executable.path == "":
+            executables = self.request_get_executables_from_installation()
+            if executables is None:
+                logging.error("Unable to load installation executables.")
+                return
+            job_executable = None
+            name = self.job_executable.name
+            for e in executables:
+                if e["name"] == name:
+                    job_executable = e
+                    break
+            if job_executable is None:
+                logging.error("Unable to find executable: {}".format(name))
+                return
+            if "__class__" in job_executable:
+                del job_executable["__class__"]
+            self.job_executable = Executable(job_executable)
+
         args = []
         if self.job_executable.script:
             args.append(self.process.environment.python)
