@@ -123,7 +123,7 @@ class ProcessBase(JsonData):
         args = []
         if self.time_limit > 0 or self.memory_limit > 0:
             args.append(self.environment.python)
-            args.append(os.path.join(self.environment.geomop_root, "common/exec_with_limit.py"))
+            args.append(os.path.join(self.environment.geomop_root, "gm_base/exec_with_limit.py"))
             if self.time_limit > 0:
                 args.append("-t")
                 args.append(str(self.time_limit))

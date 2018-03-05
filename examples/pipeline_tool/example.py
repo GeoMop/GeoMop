@@ -4,10 +4,10 @@ import sys
 geomop_root = "/home/radek/work/GeoMop/src"
 executables = {"flow123d": "/home/radek/work/Flow123d-2.1.0-linux-install/bin/flow123d.sh"}
 
-sys.path.append(os.path.join(geomop_root, "Analysis"))
-sys.path.append(os.path.join(geomop_root, "common"))
+#sys.path.append(os.path.join(geomop_root, "Analysis"))
+#sys.path.append(os.path.join(geomop_root, "gm_base"))
 
-import pipeline_tool
+import Analysis.pipeline_tool as pipeline_tool
 
 
 def print_errors(err):

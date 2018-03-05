@@ -3,13 +3,9 @@
 import sys
 import os
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.append(geomop_src)
 
-import json
 
-from json_data import *
-import geometry_files.layers_io as fmt_conv
+from gm_base.json_data import *
 
 
 class LayerType(IntEnum):

@@ -2,9 +2,12 @@ import os
 import sys
 import re
 
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
+#__lib_dir__ = os.path.join(os.path.split(
+#    os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
+#sys.path.insert(1, __lib_dir__)
+
+# TODO: Move this into tests?
+
 
 from pipeline.parametrized_actions import *
 from pipeline.generator_actions import *

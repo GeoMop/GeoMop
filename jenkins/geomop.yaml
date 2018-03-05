@@ -139,31 +139,31 @@
           expr substr ${GIT_COMMIT} 1 6 >> prop.file
       - multijob:
           condition: COMPLETED
-          name: 'Unit tests - common'
+          name: 'Unit tests - gm_base'
           projects:
-            - name: test-common
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Model Editor'
-          projects:
-            - name: test-me
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Layer Editor'
-          projects:
-            - name: test-le
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Job Panel'
-          projects:
-            - name: test-jp
+            - name: test-gm-base
               property-file: prop.file
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - Analysis'
           projects:
-            - name: test-an
+            - name: test-analysis
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Model Editor'
+          projects:
+            - name: test-model-editor
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Layers'
+          projects:
+            - name: test-layers
+              property-file: prop.file
+      - multijob:
+          condition: COMPLETED
+          name: 'Unit tests - Job Panel'
+          projects:
+            - name: test-job-panel
               property-file: prop.file

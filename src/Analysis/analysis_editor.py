@@ -2,15 +2,15 @@
 import sys
 import os
 import signal
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
+#__lib_dir__ = os.path.join(os.path.split(
+#    os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
+#sys.path.insert(1, __lib_dir__)
 
 import argparse
-from ui import MainWindow
-from aeconfig import cfg
+from .ui import MainWindow
+from .aeconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
-import icon
+import gm_base.icon as icon
 
 class AnalyzisEditor:
     """Analyzis editor main class"""

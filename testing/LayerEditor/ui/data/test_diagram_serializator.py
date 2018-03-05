@@ -20,7 +20,8 @@ def test_serialize_base(request):
     diagram = cfg.diagram
     assert diagram.topology_owner
 
-
+    # TODO:
+    # Need to review and possibly fix diagram adding methods as they do not preserve consitency in Regions.
 
     for point in points:
         diagram.add_point(point[0], point[1], 'Add test point', None, False)

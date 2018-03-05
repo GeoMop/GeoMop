@@ -25,13 +25,10 @@ Description:
 
 import os
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import argparse
 
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 
 
 if __name__ == "__main__":

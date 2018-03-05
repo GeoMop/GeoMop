@@ -4,10 +4,8 @@ import inspect
 import json
 import enum
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.append(geomop_src)
 
-import json_data as js
+import gm_base.json_data as js
 
 """
 TODO:

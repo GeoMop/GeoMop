@@ -257,7 +257,7 @@ class MEConfig:
     resource_dir = os.path.join(os.path.split(
         os.path.dirname(os.path.realpath(__file__)))[0], 'resources')
     """path to a folder containing resources"""
-    format_dir = os.path.join(resource_dir, '..', '..', 'common', 'resources', 'ist')
+    format_dir = os.path.join(resource_dir, '..', '..', 'gm_base', 'resources', 'ist')
     """path to a folder containing IST files"""
     transformation_dir = os.path.join(resource_dir, 'transformation')
     """path to a folder containing transformation files"""

@@ -7,7 +7,7 @@ pyshp==1.2.10
 paramiko
 psutil
 pyDes
-pxssh
+pexpect
 mpi4py
 
 # pip3

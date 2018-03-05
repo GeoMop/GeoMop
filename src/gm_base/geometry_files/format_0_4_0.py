@@ -4,10 +4,10 @@
 import sys
 import os
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.append(geomop_src)
+#geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
+#sys.path.append(geomop_src)
 
-from json_data import *
+from gm_base.json_data import *
 
 
 class LayerType(IntEnum):

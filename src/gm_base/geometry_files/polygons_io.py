@@ -1,11 +1,9 @@
 import os
 import sys
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.append(geomop_src)
 
-import geometry_files.format_last as gs
-import geometry_files.polygons as polygons
+import gm_base.geometry_files.format_last as gs
+import gm_base.geometry_files.polygons as polygons
 
 def serialize(decomp):
     """

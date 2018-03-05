@@ -19,7 +19,7 @@ class Serializable:
     Serialization of nested objects.
     Define nested keys in the composite dictionary. As a value, pass in the class to be instanced.
     If the class needs to reference itself, you can define __serializable__ after the class
-    definition. See testing/common/test_serializable.py for example.
+    definition. See testing/gm_base/test_serializable.py for example.
     """
 
     def __init__(self, excluded=None, deleted=None, default=None, composite=None):

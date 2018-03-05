@@ -18,15 +18,16 @@ from JobPanel.data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfi
 from ...ui.dialogs.resource_dialog import UiResourceDialog
 from JobPanel.data import Users
 from ...ui.dialogs import SshPasswordDialog
-from geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from ...ui.imports.workspaces_conf import BASE_DIR
 
 from version import Version
 
+# TODO: If this code will be used must: remove copy of pyssh.
 JOB_NAME_LABEL = "flow"
 COPY_EX_LIBS = ['pyssh']
 EX_LIB_PATH = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "..", "..", "common")
+    os.path.dirname(os.path.realpath(__file__)))[0], "..", "..", "gm_base")
 
 
 class ConfigBuilder:

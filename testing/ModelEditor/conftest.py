@@ -14,7 +14,7 @@ import pytest
 
 # Modify sys.path for all tests in testing/ModelEditor
 this_source_dir = os.path.dirname(os.path.realpath(__file__))
-rel_paths = ["../../src", "../../src/common"]
+rel_paths = ["../../src"]
 for rel_path in rel_paths:
     sys.path.append(os.path.realpath(os.path.join(this_source_dir, rel_path)))
 

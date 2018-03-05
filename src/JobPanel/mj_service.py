@@ -6,25 +6,12 @@ import logging
 import json
 import os
 
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-__pexpect_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/pexpect")
-__enum_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/enum")
 
-sys.path.insert(1, __pexpect_dir__)
-if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(2, __enum_dir__)
-if sys.platform == "win32":
-    sys.path.insert(2, __lib_dir__)
-
-from communication import JobsCommunicator
-import data.communicator_conf as comconf
-import communication.installation as inst
-import data.transport_data as tdata
-
-from communication.installation import __ins_files__
+from .communication import JobsCommunicator
+from .communication import installation as inst
+from .communication.installation import __ins_files__
+from .data import communicator_conf as comconf
+from .data import transport_data as tdata
 
 logger = logging.getLogger("Remote")
 

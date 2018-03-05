@@ -6,15 +6,12 @@ import traceback
 import enum
 import shutil
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Analysis"))
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../common"))
 
-from backend.service_base import ServiceBase, ServiceStatus
-from backend.json_data import JsonData, ClassFactory, JsonDataNoConstruct
-from backend.connection import ConnectionStatus, SSHError
-from pipeline.pipeline_processor import Pipelineprocessor
-from pipeline import *
+from ..backend.service_base import ServiceBase, ServiceStatus
+from ..backend.json_data import JsonData, ClassFactory, JsonDataNoConstruct
+from ..backend.connection import ConnectionStatus, SSHError
+from Analysis.pipeline.pipeline_processor import Pipelineprocessor
+#from Analysis.pipeline import *
 
 
 class MJStatus(enum.IntEnum):

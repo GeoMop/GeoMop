@@ -7,15 +7,12 @@ import argparse
 import os
 import signal
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
-import icon
+import gm_base.icon as icon
 from .meconfig import cfg
 from .ui.dialogs.json_editor import JsonEditorDlg
 from .ui import MainWindow

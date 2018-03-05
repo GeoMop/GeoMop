@@ -4,12 +4,9 @@ import sys
 import os
 import numpy as np
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.append(geomop_src)
 
-
-from json_data import JsonData, IntEnum, ClassFactory
-import geometry_files.layers_io as lfc
+from gm_base.json_data import JsonData, IntEnum, ClassFactory
+import gm_base.geometry_files.layers_io as lfc
 
 
 class LayerType(IntEnum):
