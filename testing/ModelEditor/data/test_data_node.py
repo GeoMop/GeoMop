@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import QApplication
 
 from model_data import DataNode, Loader, NotificationHandler
 from model_data.yaml.resolver import resolve_scalar_tag
-from meconfig.meconfig import MEConfig as cfg
-import mock_config as mockcfg
+from ModelEditor.meconfig.meconfig import MEConfig as cfg
+import testing.ModelEditor.mock.mock_config as mockcfg
 from geomop_util import Position
 
 APP = QApplication(sys.argv)

@@ -1217,7 +1217,7 @@ class PolygonDecomposition:
 class Point(IdObject):
 
     def __init__(self, point, poly):
-        self.xy = np.array(point)
+        self.xy = np.array(point, dtype=float)
         self.poly = poly
         # Containing polygon for free-nodes. None for others.
         self.segment = (None, None)

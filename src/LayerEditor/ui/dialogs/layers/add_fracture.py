@@ -3,7 +3,7 @@ Dialog for adding fracture to interface.
 """
 
 import PyQt5.QtWidgets as QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
 
 class AddFractureDlg(QtWidgets.QDialog):

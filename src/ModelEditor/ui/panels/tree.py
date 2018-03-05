@@ -12,7 +12,7 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QColor
 
 from geomop_util import load_stylesheet
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 from model_data import DataNode
 
 

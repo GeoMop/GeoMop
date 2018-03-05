@@ -1,13 +1,13 @@
-import model_editor
+import ModelEditor.model_editor
 from PyQt5.QtTest import QTest
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import mock_config as mockcfg
+import testing.ModelEditor.mock.mock_config as mockcfg
 
 dialog_result = {}
 mockcfg.set_empty_config()
-editor = model_editor.ModelEditor()
+editor = ModelEditor.model_editor.ModelEditor()
 
 
 def test_err_dialog(request):

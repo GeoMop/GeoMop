@@ -12,9 +12,9 @@ def data():
     config.__config_dir__ = os.path.join(os.path.split(
             os.path.dirname(os.path.realpath(__file__)))[0], "resources", "mock_settings")
 
-    import ui.imports.workspaces_conf as wc
+    import JobPanel.ui.imports.workspaces_conf as wc
     wc.BASE_DIR = '.'
-    import ui.data.data_structures as ds
+    import JobPanel.ui.data.data_structures as ds
 
     return ds.DataContainer()
 

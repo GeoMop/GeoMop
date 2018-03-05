@@ -1,4 +1,4 @@
-from ui.data import EventLocation
+from ..data import EventLocation
 import time
 
 

@@ -4,9 +4,9 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-from meconfig import cfg
-from ui.dialogs import SettingsDialog, ChangeISTDialog
-from ui.template import EditorAppearance
+from ModelEditor.meconfig import cfg
+from ..dialogs import SettingsDialog, ChangeISTDialog
+from ..template import EditorAppearance
 
 
 class MainSettingsMenu(QMenu):

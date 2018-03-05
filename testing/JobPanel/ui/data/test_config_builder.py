@@ -1,9 +1,9 @@
 import pytest
 import os
 
-import communicator_files_builder
-from ui.data.config_builder import ConfBuilder
-from data.communicator_conf import CommType
+import testing.JobPanel.mock.communicator_files_builder as communicator_files_builder
+from JobPanel.ui.data.config_builder import ConfBuilder
+from JobPanel.data.communicator_conf import CommType
 
 HOME_DIR = os.path.split(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])[0]
 TEST_DIR = os.path.join(HOME_DIR, "test")
@@ -15,9 +15,9 @@ def data():
     import config
     config.__config_dir__ = SETTINGS_DIR
 
-    import ui.imports.workspaces_conf as wc
+    import JobPanel.ui.imports.workspaces_conf as wc
     wc.BASE_DIR = '.'
-    import ui.data.data_structures as ds
+    import JobPanel.ui.data.data_structures as ds
     
     container = ds.DataContainer()
     container.config.local_env = 'local'

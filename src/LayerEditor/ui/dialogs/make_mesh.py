@@ -4,7 +4,7 @@ Dialog for making mesh.
 
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 class MakeMeshDlg(QtWidgets.QDialog):
     def __init__(self, parent=None):

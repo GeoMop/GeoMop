@@ -40,7 +40,7 @@ sys.path.append(geomop_src)
 import json_data as js
 import geometry_files.format_last as gs
 import geometry_files.layers_io as layers_io
-import gmsh_io
+import Geometry.gmsh_io as gmsh_io
 import numpy as np
 import numpy.linalg as la
 import math

@@ -1,6 +1,6 @@
-from backend.service_base import ServiceBase, ServiceStatus
-from passwords import get_test_password
-from port_forwarder import PortForwarder
+from JobPanel.backend.service_base import ServiceBase, ServiceStatus
+from testing.JobPanel.mock.passwords import get_test_password
+from .port_forwarder import PortForwarder
 
 import threading
 import os
@@ -58,7 +58,7 @@ def test_correct_run(request):
     # check correct job state transition
     time.sleep(5)
     assert job._status == ServiceStatus.queued
-    time.sleep(10)
+    time.sleep(15)
     assert job._status == ServiceStatus.running
     time.sleep(25)
     assert job._status == ServiceStatus.done

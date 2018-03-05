@@ -2,11 +2,11 @@ import threading
 import time
 import logging
 import os
-import data.transport_data as tdata
-from data.states import TaskStatus
-from ui.data.mj_data import MultiJobState
-from  communication.installation import __install_dir__
-from communication.communicator import __NOT_INSTALLED__
+import JobPanel.data.transport_data as tdata
+from JobPanel.data.states import TaskStatus
+from .data.mj_data import MultiJobState
+from  JobPanel.communication.installation import __install_dir__
+from JobPanel.communication.communicator import __NOT_INSTALLED__
 from enum import IntEnum
 
 __SFTP_NEVER_DOWNLOADED__ = "Results is not downloaded"

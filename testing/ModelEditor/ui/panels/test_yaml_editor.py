@@ -2,7 +2,7 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-from ui.panels.yaml_editor import YamlEditorWidget
+from ModelEditor.ui.panels.yaml_editor import YamlEditorWidget
 
 
 def test_insert_at_cursor_single(qapp):

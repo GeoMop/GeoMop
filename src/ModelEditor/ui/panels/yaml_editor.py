@@ -16,15 +16,15 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 from model_data import DataNode, Notification
-from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
+from ModelEditor.helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, StructureAnalyzer)
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from ui.dialogs import FindReplaceDialog
-from ui.menus import EditMenu
-from ui.template import EditorAppearance as appearance
-from util import PosType, CursorType
+from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
+from ..dialogs import FindReplaceDialog
+from ..menus import EditMenu
+from ..template import EditorAppearance as appearance
+from ModelEditor.util import PosType, CursorType
 from geomop_util import Position
 
 RELOAD_INTERVAL = 5000

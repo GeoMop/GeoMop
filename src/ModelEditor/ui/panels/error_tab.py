@@ -6,7 +6,7 @@ import icon
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 from model_data import Notification
 
 

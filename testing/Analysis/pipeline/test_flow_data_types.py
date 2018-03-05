@@ -1,11 +1,15 @@
 from geomop_analysis import YamlSupportLocal
-from pipeline.flow_data_types import *
+from Analysis.pipeline.flow_data_types import *
+import pytest
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+def data_file(test_path):
+    return os.path.join(this_source_dir, "flow_data_types_res", test_path)
 
 def test_flow_data_types():
     # 01 - flow equation
     ys = YamlSupportLocal()
-    err = ys.parse("pipeline/flow_data_types_res/01/flow_gmsh.yaml")
+    err = ys.parse(data_file("01/flow_gmsh.yaml"))
     assert len(err) == 0
 
     type = FlowOutputType.create_type(ys)
@@ -49,7 +53,7 @@ def test_flow_data_types():
     assert type._match_type(test_type)
     assert test_type._match_type(type)
 
-    data = FlowOutputType.create_data(ys, "pipeline/flow_data_types_res/01/output")
+    data = FlowOutputType.create_data(ys, data_file("01/output"))
     assert type._match_type(data)
     assert data._match_type(type)
     assert len(data.flow_result.balance._list) == 8
@@ -60,7 +64,7 @@ def test_flow_data_types():
 
     # 02 - solute equation
     ys = YamlSupportLocal()
-    err = ys.parse("pipeline/flow_data_types_res/02/flow_lin_sorption_dg.yaml")
+    err = ys.parse(data_file("02/flow_lin_sorption_dg.yaml"))
     assert len(err) == 0
 
     type = FlowOutputType.create_type(ys)
@@ -158,7 +162,7 @@ def test_flow_data_types():
     assert type._match_type(test_type)
     assert test_type._match_type(type)
 
-    data = FlowOutputType.create_data(ys, "pipeline/flow_data_types_res/02/output")
+    data = FlowOutputType.create_data(ys, data_file("02/output"))
     assert type._match_type(data)
     assert data._match_type(type)
     assert len(data.solute_result.balance._list) == 132
@@ -171,7 +175,7 @@ def test_flow_data_types():
 
     # 21 - heat equation
     ys = YamlSupportLocal()
-    err = ys.parse("pipeline/flow_data_types_res/21/flow_heat.yaml")
+    err = ys.parse(data_file("21/flow_heat.yaml"))
     assert len(err) == 0
 
     type = FlowOutputType.create_type(ys)
@@ -271,7 +275,7 @@ def test_flow_data_types():
     assert type._match_type(test_type)
     assert test_type._match_type(type)
 
-    data = FlowOutputType.create_data(ys, "pipeline/flow_data_types_res/21/output")
+    data = FlowOutputType.create_data(ys, data_file("21/output"))
     assert type._match_type(data)
     assert data._match_type(type)
     assert len(data.heat_result.balance._list) == 99
@@ -283,7 +287,7 @@ def test_flow_data_types():
 
     # 02_2 - balance file name
     ys = YamlSupportLocal()
-    err = ys.parse("pipeline/flow_data_types_res/02_2/flow_lin_sorption_dg.yaml")
+    err = ys.parse(data_file("02_2/flow_lin_sorption_dg.yaml"))
     assert len(err) == 0
 
     type = FlowOutputType.create_type(ys)
@@ -381,7 +385,7 @@ def test_flow_data_types():
     assert type._match_type(test_type)
     assert test_type._match_type(type)
 
-    data = FlowOutputType.create_data(ys, "pipeline/flow_data_types_res/02_2/output")
+    data = FlowOutputType.create_data(ys, data_file("02_2/output"))
     assert type._match_type(data)
     assert data._match_type(type)
     assert len(data.solute_result.balance._list) == 132

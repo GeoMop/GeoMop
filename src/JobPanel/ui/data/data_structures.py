@@ -11,7 +11,7 @@ from geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
-from ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
+from ...ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
 from geomop_analysis import Analysis
 
 class PersistentDict(dict):

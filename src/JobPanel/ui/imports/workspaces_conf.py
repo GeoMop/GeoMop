@@ -1,9 +1,9 @@
 from geomop_util import Serializable
-import ui.imports.ie_presets as ie
-from ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
-from ui.data.mj_data import MultiJob, MultiJobPreset
-from ui.dialogs.import_dialog import ImportDialog
-from data.states import TaskStatus
+from . import ie_presets as ie
+from ...ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
+from ...ui.data.mj_data import MultiJob, MultiJobPreset
+from ...ui.dialogs.import_dialog import ImportDialog
+from JobPanel.data.states import TaskStatus
 from PyQt5 import QtWidgets
 
 import config as cfg

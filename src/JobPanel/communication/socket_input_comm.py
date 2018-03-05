@@ -1,12 +1,12 @@
 import logging
 import sys
-import data.transport_data as tdata
+import JobPanel.data.transport_data as tdata
 import socket
 import time
 import threading
 import struct
 
-from communication.communication import InputComm
+from .communication import InputComm
 
 logger = logging.getLogger("Remote")
 __MAX_OPEN_PORTS__=200

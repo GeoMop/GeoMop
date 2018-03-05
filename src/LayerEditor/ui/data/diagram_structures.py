@@ -425,11 +425,13 @@ class Diagram():
         diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
         tmp = {}
         for point in diagram.points:
-            tmp[diagram.po.get_point_origin_id(point.de_id)]=regions[0][point.id]
+            point_orig_id = diagram.po.get_point_origin_id(point.de_id)
+            tmp[point_orig_id]=regions[0][point.id]
         remapped_regions[0] = [value for (key, value) in sorted(tmp.items())]  
         tmp = {}
         for line in diagram.lines:
-            tmp[diagram.po.get_line_origin_id(line)]=regions[1][line.id]
+            line_orig_id = diagram.po.get_line_origin_id(line)
+            tmp[line_orig_id]=regions[1][line.id]
         remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
         for polygon in diagram.polygons:
             tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]

@@ -121,7 +121,7 @@ from enum import Enum
 
 from model_data import (Loader, DataNode, autoconvert, get_root_input_type_from_json,
                         NotificationHandler)
-from helpers.subyaml.structure_changer import StructureChanger
+from ModelEditor.helpers.subyaml.structure_changer import StructureChanger
 
 class Transformator:
     """Transform yaml file to new version"""

@@ -1,4 +1,4 @@
-from communication.socket_input_comm import SocketInputComm
+from .socket_input_comm import SocketInputComm
 import sys
 import os
 import logging

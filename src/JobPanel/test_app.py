@@ -4,11 +4,11 @@ import logging
 import time
 sys.path.insert(1, './twoparty/pexpect')
 
-import data.communicator_conf as comconf
-from communication import Communicator
-import data.transport_data as tdata
-import communication.installation as inst
-from data.states import  JobsState, TaskStatus
+import JobPanel.data.communicator_conf as comconf
+from JobPanel.communication import Communicator
+import JobPanel.data.transport_data as tdata
+import JobPanel.communication.installation as inst
+from JobPanel.data.states import  JobsState, TaskStatus
 
 logger = logging.getLogger("Remote")
 
@@ -21,7 +21,7 @@ if len(sys.argv)>2 and sys.argv[2] != "":
 
 # Load from json file
 com_conf = comconf.CommunicatorConfig(mj_name)
-directory = inst.Installation.get_config_dir_static(mj_name)
+directory = inst.Installation.get_config_dir_static(mj_name, "geomop_installation")
 path = comconf.CommunicatorConfigService.get_file_path(
     directory, comconf.CommType.app.value)
 try:

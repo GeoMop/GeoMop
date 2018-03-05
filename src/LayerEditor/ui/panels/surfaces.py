@@ -1,14 +1,14 @@
 """CanvasWidget file"""
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtCore as QtCore
 import os
 import b_spline
 import numpy as np
 import bspline_approx as ba
 from geomop_dialogs import GMErrorDialog
-from ui.data import SurfacesHistory
+from ..data import SurfacesHistory
 import copy
 
 class FocusEdit(QtWidgets.QLineEdit):

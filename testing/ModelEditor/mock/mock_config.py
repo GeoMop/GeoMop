@@ -1,5 +1,5 @@
-from meconfig import cfg
-from meconfig.meconfig import _Config as Config
+from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig.meconfig import _Config as Config
 from model_data import Loader, NotificationHandler
 import os
 

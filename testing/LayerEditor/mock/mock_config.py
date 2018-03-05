@@ -1,5 +1,5 @@
-from leconfig import cfg
-from leconfig.leconfig import _Config as Config
+from LayerEditor.leconfig import cfg
+from LayerEditor.leconfig.leconfig import _Config as Config
 
 def set_empty_config():
     Config.SERIAL_FILE = "LayerEditorData_test"

@@ -5,13 +5,13 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from ui import panels
-from leconfig import cfg
-from ui.menus.edit import EditMenu
-from ui.menus.file import MainFileMenu
-from ui.menus.analysis import AnalysisMenu
-from ui.menus.settings import MainSettingsMenu
-from ui.menus.mesh import MeshMenu
+from . import panels
+from LayerEditor.leconfig import cfg
+from .menus.edit import EditMenu
+from .menus.file import MainFileMenu
+from .menus.analysis import AnalysisMenu
+from .menus.settings import MainSettingsMenu
+from .menus.mesh import MeshMenu
 import icon
 
 class MainWindow(QtWidgets.QMainWindow):

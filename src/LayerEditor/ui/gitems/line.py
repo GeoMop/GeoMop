@@ -2,7 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 class Line(QtWidgets.QGraphicsLineItem):
     """ 

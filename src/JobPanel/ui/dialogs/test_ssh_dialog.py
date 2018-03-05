@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets,  QtCore, QtGui
-from ui.ssh_test import SshTester
+from JobPanel.ui.ssh_test import SshTester
 
 
 class TestSSHDialog(QtWidgets.QDialog):

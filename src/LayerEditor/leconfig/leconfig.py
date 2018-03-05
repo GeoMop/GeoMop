@@ -8,13 +8,13 @@ import os
 from copy import deepcopy
 import config as cfg
 from geomop_shortcuts import shortcuts
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
+from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable
 from geomop_dialogs import GMErrorDialog
 from geomop_analysis import Analysis, InvalidAnalysis
-import ui.data
-from ui.helpers import CurrentView
+from LayerEditor.ui import data as le_data
+from LayerEditor.ui.helpers import CurrentView
 
 
 class _Config:
@@ -176,7 +176,7 @@ class LEConfig:
     """List of diagram data"""
     history = None
     """History for current geometry data"""
-    layers = ui.data.Layers()
+    layers = le_data.Layers()
     """Layers structure"""
     diagram =  None
     """Current diagram data"""
@@ -216,17 +216,17 @@ class LEConfig:
     @classmethod
     def add_region(cls, color, name, dim, step,  boundary, not_used):
         """Add region"""
-        ui.data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
+        le_data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        ui.data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        le_data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
     
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return ui.data.Diagram.get_shapes_from_region(is_fracture, layer_id)
+        return le_data.Diagram.get_shapes_from_region(is_fracture, layer_id)
         
     @classmethod
     def set_curr_diagram(cls, i):
@@ -256,9 +256,9 @@ class LEConfig:
                 cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
                 cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))
-        if oper is ui.data.TopologyOperations.insert:
+        if oper is le_data.TopologyOperations.insert:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
-        elif oper is ui.data.TopologyOperations.insert_next:
+        elif oper is le_data.TopologyOperations.insert_next:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
             
     @classmethod
@@ -268,8 +268,8 @@ class LEConfig:
         for i in range(0, len(diagrams)):
             cls.diagrams.insert(id+i, diagrams[i])
             cls.diagrams[id+i].join()
-        if oper is ui.data.TopologyOperations.insert or \
-            oper is ui.data.TopologyOperations.insert_next:
+        if oper is le_data.TopologyOperations.insert or \
+            oper is le_data.TopologyOperations.insert_next:
             cls.diagrams[id].move_diagram_topologies(id+len(diagrams), cls.diagrams)
             
     @classmethod
@@ -279,7 +279,7 @@ class LEConfig:
         cls.history.removed_diagrams.append(cls.diagrams[idx])
         curr_id = cls.diagram_id()
         del cls.diagrams[idx]
-        ui.data.Diagram.fix_topologies(cls.diagrams)
+        le_data.Diagram.fix_topologies(cls.diagrams)
         return curr_id == idx
         
     @classmethod
@@ -291,14 +291,14 @@ class LEConfig:
     @classmethod
     def release_all(cls):
         """Release all diagram data"""
-        ui.data.Diagram.release_all(cls.history)
+        le_data.Diagram.release_all(cls.history)
     
     @classmethod
     def init(cls):
         """Init class with static method"""
-        cls.history = ui.data.GlobalHistory(cls)
-        ui.data.Diagram.release_all(cls.history)
-        cls.le_serializer = ui.data.LESerializer(cls)
+        cls.history = le_data.GlobalHistory(cls)
+        le_data.Diagram.release_all(cls.history)
+        cls.le_serializer = le_data.LESerializer(cls)
         
     @staticmethod
     def get_current_view(location):

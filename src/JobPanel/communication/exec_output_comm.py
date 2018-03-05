@@ -1,11 +1,11 @@
 import logging
-import data.transport_data as tdata
+import JobPanel.data.transport_data as tdata
 import socket
 import subprocess
 import re
 import sys
 import time
-from communication.communication import OutputComm
+from .communication import OutputComm
 
 logger = logging.getLogger("Remote")
 

@@ -1,4 +1,4 @@
-from data.user_helper import Users
+from JobPanel.data import Users
 import shutil
 import os
 

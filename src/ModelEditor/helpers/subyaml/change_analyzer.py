@@ -5,7 +5,7 @@
 import re
 import copy
 
-from util import KeyType, PosType
+from ModelEditor.util import KeyType, PosType
 
 from .line_analyzer import LineAnalyzer
 

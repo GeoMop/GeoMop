@@ -16,10 +16,10 @@ from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
 import icon
-from meconfig import cfg
-from ui.dialogs.json_editor import JsonEditorDlg
-from ui import MainWindow
-from util import constants
+from .meconfig import cfg
+from .ui.dialogs.json_editor import JsonEditorDlg
+from .ui import MainWindow
+from .util import constants
 import subprocess
 
 RELOAD_INTERVAL = 5000

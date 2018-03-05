@@ -10,12 +10,12 @@ import codecs
 from copy import deepcopy
 
 import config as cfg
-from data import Transformator, TransformationFileFormatError
-from helpers import AutocompleteHelper, StructureAnalyzer
+from ModelEditor.data import Transformator, TransformationFileFormatError
+from ModelEditor.helpers import AutocompleteHelper, StructureAnalyzer
 from geomop_shortcuts import shortcuts
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from ist import InfoTextGenerator
-from util import constants
+from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
+from ModelEditor.ist import InfoTextGenerator
+from ModelEditor.util import constants
 
 from geomop_util.logging import LOGGER_PREFIX
 from geomop_util import Serializable

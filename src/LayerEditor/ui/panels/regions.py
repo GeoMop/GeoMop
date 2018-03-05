@@ -1,9 +1,9 @@
 import PyQt5.QtWidgets as QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from geomop_dialogs import GMErrorDialog
-from ui.dialogs.regions import AddRegionDlg
+from ..dialogs.regions import AddRegionDlg
 from geometry_files import RegionDim
 
 

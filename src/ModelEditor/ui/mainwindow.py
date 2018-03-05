@@ -6,11 +6,11 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 
 import icon
-from helpers import LineAnalyzer
-from meconfig import cfg
-from ui import panels
-from ui.menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
-from util import CursorType
+from ModelEditor.helpers import LineAnalyzer
+from ModelEditor.meconfig import cfg
+from . import panels
+from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
+from ModelEditor.util import CursorType
 from geomop_util import Position
 
 

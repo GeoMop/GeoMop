@@ -1,9 +1,9 @@
-import layer_editor
+import LayerEditor.layer_editor as layer_editor
 from PyQt5.QtTest import QTest
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import mock_config as mockcfg
+import testing.LayerEditor.mock.mock_config as mockcfg
 
 dialog_result = {}
 mockcfg.set_empty_config()

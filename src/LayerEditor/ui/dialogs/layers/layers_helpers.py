@@ -5,8 +5,8 @@ Dialogs for settings text name property or elevation
 from geomop_dialogs import GMErrorDialog
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
-from ui.data import LayerSplitType
-from leconfig import cfg
+from ...data import LayerSplitType
+from LayerEditor.leconfig import cfg
 import b_spline
 import numpy as np
 

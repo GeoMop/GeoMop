@@ -1,7 +1,7 @@
-from pipeline.generator_actions import *
-from pipeline.data_types_tree import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.data_types_tree import *
 from .pomfce import *
-import pipeline.action_types as action
+import Analysis.pipeline.action_types as action
 import os
 
 def test_generator_code_init():
@@ -14,7 +14,7 @@ def test_generator_code_init():
     gen=RangeGenerator(Items=items)
     gen._inicialize()
     test=gen._get_settings_script()
-    compare_with_file(os.path.join("pipeline", "results", "gen1.py"), test)
+    compare_with_file("gen1.py", test)
     # generator by exec
     exec ('\n'.join(test), globals())
     

@@ -112,6 +112,12 @@ _out_*
 #temporary installed files
 src/JobsScheduler/ins-lib
 
+#kate swap files
+*.kate-swp
+
+# merge orginals
+*.orig
+
 # Docker build dependencies and libraries.
 docker/geomop_build/build
 

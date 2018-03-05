@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QM
                              QTabWidget, QCheckBox, QFormLayout, QLabel, QPushButton, QHBoxLayout,
                              QGroupBox, QComboBox)
 
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from meconfig import cfg
+from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
+from ModelEditor.meconfig import cfg
 from geomop_shortcuts import KeyboardShortcutPicker
 from geomop_widgets import WorkspaceSelectorWidget, FontSelectorWidget
 

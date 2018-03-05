@@ -2,7 +2,7 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 from geomop_dialogs import GMAboutDialog
 
 

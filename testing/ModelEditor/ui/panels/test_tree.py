@@ -1,9 +1,9 @@
-from ui.panels.tree import *
+from ModelEditor.ui.panels.tree import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtTest import QTest
-import mock_config as mockcfg
+import testing.ModelEditor.mock.mock_config as mockcfg
 
 
 def setup_module(module):

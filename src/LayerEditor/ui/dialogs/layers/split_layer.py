@@ -5,7 +5,7 @@ Dialog for appending new layer to the end.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from .layers_helpers import LayersHelpers
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 class SplitLayerDlg(QtWidgets.QDialog):
 

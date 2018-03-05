@@ -5,7 +5,7 @@ Editor appearance manager.
 from PyQt5.Qsci import QsciScintilla
 import PyQt5.QtGui as QtGui
 
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 
 
 class EditorAppearance:

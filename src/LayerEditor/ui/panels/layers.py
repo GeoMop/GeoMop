@@ -1,13 +1,13 @@
 """CanvasWidget file"""
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtCore as QtCore
-from ui.data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations, Interface
-from ui.data import LayersHistory
-from ui.menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
-from ui.menus.layers import __COPY_BLOCK__
-from ui.dialogs.layers import AppendLayerDlg, SetNameDlg, SetSurfaceDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
+from ..data import FractureInterface, ClickedControlType, ChangeInterfaceActions, LayerSplitType, TopologyOperations, Interface
+from ..data import LayersHistory
+from ..menus.layers import LayersLayerMenu, LayersInterfaceMenu, LayersFractuceMenu, LayersShadowMenu
+from ..menus.layers import __COPY_BLOCK__
+from ..dialogs.layers import AppendLayerDlg, SetNameDlg, SetSurfaceDlg, SplitLayerDlg, AddFractureDlg, ReportOperationsDlg
 
 class Layers(QtWidgets.QWidget):
     """

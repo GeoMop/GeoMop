@@ -14,9 +14,9 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 from PyQt5.QtCore import QUrl, Qt
 import PyQt5.QtCore as QtCore
 
-from ist import InfoTextGenerator
-from util import CursorType
-from meconfig import cfg
+from ModelEditor.ist import InfoTextGenerator
+from ModelEditor.util import CursorType
+from ModelEditor.meconfig import cfg
 
 # pylint: disable=invalid-name
 

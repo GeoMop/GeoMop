@@ -1,15 +1,15 @@
 import logging
 import copy
-import data.transport_data as tdata
-import data.communicator_conf as comconf
+import JobPanel.data.transport_data as tdata
+import JobPanel.data.communicator_conf as comconf
 from .communicator import Communicator
-from  communication.installation import  Installation
-from communication.std_input_comm import StdInputComm
+from  .installation import  Installation
+from .std_input_comm import StdInputComm
 import threading
-from  communication.exec_output_comm import  ExecOutputComm
+from  .exec_output_comm import  ExecOutputComm
 import time
-from data.states import JobsState, MJState, TaskStatus
-from data.job import  Job
+from JobPanel.data.states import JobsState, MJState, TaskStatus
+from JobPanel.data.job import  Job
 
 logger = logging.getLogger("Remote")
 

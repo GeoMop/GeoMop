@@ -9,9 +9,9 @@ import os
 import time
 import copy
 
-from communication import Installation
-from data.states import TaskStatus, JobsState
-from ui.data.preset_data import APreset
+from JobPanel.communication import Installation
+from JobPanel.data.states import TaskStatus, JobsState
+from ..data.preset_data import APreset
 from geomop_util import Serializable
 
 

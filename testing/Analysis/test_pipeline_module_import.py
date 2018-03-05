@@ -1,4 +1,4 @@
-import pipeline as p
+import Analysis.pipeline as p
 
 def test_classes():
     try:

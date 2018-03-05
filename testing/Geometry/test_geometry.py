@@ -16,7 +16,7 @@ import os.path
 #     if str.startswith(prefix):
 #         return str[len(prefix):]
 #     return str
-import geometry
+import Geometry.geometry as geometry
 
 def check_file(filename):
     file_path = list(os.path.split(filename))

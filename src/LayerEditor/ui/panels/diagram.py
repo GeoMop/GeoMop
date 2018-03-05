@@ -2,11 +2,11 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-import ui.data.diagram_structures as struc
-from ui.data.selection import Selection
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
-from ui.gitems import ItemStates
-from leconfig import cfg
+from ..data import diagram_structures as struc
+from ..data.selection import Selection
+from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
+from ..gitems import ItemStates
+from LayerEditor.leconfig import cfg
     
 class Diagram(QtWidgets.QGraphicsScene):
     """

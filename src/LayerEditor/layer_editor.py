@@ -9,13 +9,13 @@ __lib_dir__ = os.path.join(os.path.split(
 sys.path.insert(1, __lib_dir__)
 
 import argparse
-from ui import MainWindow
-from leconfig import cfg
+from LayerEditor.ui import MainWindow
+from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import icon
-from ui.dialogs.set_diagram import SetDiagramDlg
-from ui.dialogs.make_mesh import MakeMeshDlg
+from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 class LayerEditor:
     """Analyzis editor main class"""

@@ -162,7 +162,7 @@ transform_test_data/24_inflow_implicit.yaml
 transform_test_data/24_total_flux_implicit.yaml
 """.splitlines(False)
 
-from meconfig import cfg
+from ModelEditor.meconfig import cfg
 
 def test_transf():
     path = os.path.dirname(os.path.realpath(__file__))
