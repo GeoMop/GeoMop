@@ -1,4 +1,4 @@
-from json_data import *
+from gm_base.json_data import *
 
 import sys
 

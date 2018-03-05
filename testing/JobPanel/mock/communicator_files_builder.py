@@ -1,6 +1,6 @@
 import shutil
 import os
-import config
+import gm_base.config as config
 import logging
 
 from JobPanel.ui.data.config_builder import ConfigBuilder

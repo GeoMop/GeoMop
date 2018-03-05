@@ -6,7 +6,7 @@
 import os
 import yaml
 
-from geomop_util import Serializable
+from gm_base.geomop_util import Serializable
 
 
 if 'APPDATA' in os.environ:

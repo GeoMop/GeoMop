@@ -12,7 +12,7 @@ from .menus.file import MainFileMenu
 from .menus.analysis import AnalysisMenu
 from .menus.settings import MainSettingsMenu
 from .menus.mesh import MeshMenu
-import icon
+import gm_base.icon as icon
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""

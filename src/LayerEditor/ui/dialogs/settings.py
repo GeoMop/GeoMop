@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QM
 
 from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
 from LayerEditor.leconfig import cfg
-from geomop_shortcuts import KeyboardShortcutPicker
-from geomop_widgets import WorkspaceSelectorWidget
+from gm_base.geomop_shortcuts import KeyboardShortcutPicker
+from gm_base.geomop_widgets import WorkspaceSelectorWidget
 
 
 class SettingsDialog(QDialog):

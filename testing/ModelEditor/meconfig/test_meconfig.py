@@ -2,8 +2,8 @@
 Tests for the meconfig module.
 """
 
-from ModelEditor.meconfig import cfg
-from ModelEditor.meconfig.meconfig import _Config as Config
+from ModelEditor.meconfig import MEConfig as cfg
+from ModelEditor.meconfig import _Config as Config
 
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"

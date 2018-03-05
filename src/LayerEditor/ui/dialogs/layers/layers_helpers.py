@@ -2,7 +2,7 @@
 Dialogs for settings text name property or elevation
 """
 
-from geomop_dialogs import GMErrorDialog
+from gm_base.geomop_dialogs import GMErrorDialog
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
 from ...data import LayerSplitType

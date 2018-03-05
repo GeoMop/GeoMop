@@ -3,7 +3,7 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 from ..notifications import Notification
-from geomop_util import TextValue, Span, Parameter
+from gm_base.geomop_util import TextValue, Span, Parameter
 
 from . import checks
 from ..data_node import DataNode

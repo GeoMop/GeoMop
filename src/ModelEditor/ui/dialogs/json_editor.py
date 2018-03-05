@@ -2,7 +2,7 @@
 JSON editor dialog.
 """
 import os
-import geomop_dialogs
+import gm_base.geomop_dialogs
 from ..template import EditorAppearance as appearance
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.Qsci import QsciScintilla, QsciLexerJavaScript
@@ -55,7 +55,7 @@ class JsonEditorDlg(QtWidgets.QDialog):
             file_d.write(self._editor.text())
             file_d.close()
         except (RuntimeError, IOError) as err:
-            err_dialog = geomop_dialogs.GMErrorDialog(self)
+            err_dialog = gm_base.geomop_dialogs.GMErrorDialog(self)
             err_dialog.open_error_dialog("Can't save file", err)
 
     def _save_as_file(self):

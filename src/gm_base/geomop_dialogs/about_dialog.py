@@ -2,7 +2,7 @@
 Module contains about dialog.
 """
 
-from version import Version
+from gm_base.version import Version
 from PyQt5.QtWidgets import (QDialog, QTextEdit, QLabel, QLineEdit, QGridLayout)
 from PyQt5.QtGui import QFont
 

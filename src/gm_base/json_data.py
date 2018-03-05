@@ -38,7 +38,7 @@ Rules:
 
 
 Example:
-import json_data as jd
+import gm_base.json_data as jd
 
 class Animal(jd.JsonData):
     def __init__(config = {}):

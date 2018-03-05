@@ -4,8 +4,8 @@
 
 import os
 
-from geomop_util import Serializable, Parameter, File
-import config
+from gm_base.geomop_util import Serializable, Parameter, File
+import gm_base.config as config
 import gm_base.flow_util
 
 

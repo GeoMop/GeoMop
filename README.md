@@ -14,4 +14,11 @@ Components:
 | ----- | ---- |
 | Tests | [![Test Status](http://ci3.nti.tul.cz/buildStatus/icon?job=gm-linux-tests)](http://ci3.nti.tul.cz/job/gm-linux-tests/) |
 
+## Development rules and notes
 
+- In order to use relative imports of modules within package the prefered format of imports is:
+    
+    from <package> import <module> as <new_module_name>
+
+- 
+  

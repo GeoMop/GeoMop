@@ -4,7 +4,7 @@
 import pytest
 import os
 
-from model_data import (export_con, Loader)
+from gm_base.model_data import (export_con, Loader)
 
 __model_data_dir__ =  os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(__model_data_dir__, 'export_con')

@@ -4,7 +4,7 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 from ..dialogs import SettingsDialog, ChangeISTDialog
 from ..template import EditorAppearance
 

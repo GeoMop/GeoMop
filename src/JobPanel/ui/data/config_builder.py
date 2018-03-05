@@ -8,7 +8,7 @@ import copy
 import os
 import uuid
 import json
-import config
+import gm_base.config as config
 
 import JobPanel.communication.installation as ins
 from JobPanel.communication import Installation
@@ -21,7 +21,7 @@ from ...ui.dialogs import SshPasswordDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from ...ui.imports.workspaces_conf import BASE_DIR
 
-from version import Version
+from gm_base.version import Version
 
 # TODO: If this code will be used must: remove copy of pyssh.
 JOB_NAME_LABEL = "flow"

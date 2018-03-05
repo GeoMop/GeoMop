@@ -1,6 +1,6 @@
 import pexpect.pxssh as pxssh
 import pexpect
-import config
+import gm_base.config as config
 import os
 
 from JobPanel.data import Users

@@ -119,7 +119,7 @@ import re
 import copy
 from enum import Enum
 
-from model_data import (Loader, DataNode, autoconvert, get_root_input_type_from_json,
+from gm_base.model_data import (Loader, DataNode, autoconvert, get_root_input_type_from_json,
                         NotificationHandler)
 from ModelEditor.helpers.subyaml.structure_changer import StructureChanger
 

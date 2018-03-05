@@ -9,7 +9,7 @@ Ensures auto-conversion of data for specified format.
 from copy import deepcopy
 
 from .notifications import notification_handler, Notification
-from geomop_util import TextValue, Span
+from gm_base.geomop_util import TextValue, Span
 
 from .data_node import DataNode, MappingDataNode, SequenceDataNode, ScalarDataNode
 from .format import SCALAR, is_param

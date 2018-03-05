@@ -31,7 +31,7 @@ from ..ui.menus.main_menu_bar import MainMenuBar
 from ..ui.panels.overview import Overview
 from ..ui.panels.tabs import Tabs
 
-from geomop_analysis import Analysis, MULTIJOBS_DIR
+from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
 from config import __config_dir__
 
 
@@ -480,7 +480,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def report_error(self, msg, err=None):
         """Report an error with dialog."""
-        from geomop_dialogs import GMErrorDialog
+        from gm_base.geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(self)
         err_dialog.open_error_dialog(msg, err)
 

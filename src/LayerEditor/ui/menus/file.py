@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
 from LayerEditor.leconfig import cfg
-from geomop_dialogs import GMAboutDialog
+from gm_base.geomop_dialogs import GMAboutDialog
 
 
 class MainFileMenu(QMenu):

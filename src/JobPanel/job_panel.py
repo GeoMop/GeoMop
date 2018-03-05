@@ -19,7 +19,7 @@ from JobPanel.ui.imports.workspaces_conf import BASE_DIR
 import gm_base.icon as icon
 from  JobPanel.communication.installation import Installation
 
-import config as cfg
+import gm_base.config cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
 
 # logging setup on STDOUT or to FILE
@@ -94,12 +94,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             # display message box with the exception
             if job_panel is not None and job_panel.mainwindow is not None:
                 err_dialog = GMErrorDialog(job_panel.mainwindow)

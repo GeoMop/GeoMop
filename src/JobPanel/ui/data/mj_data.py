@@ -12,7 +12,7 @@ import copy
 from JobPanel.communication import Installation
 from JobPanel.data.states import TaskStatus, JobsState
 from ..data.preset_data import APreset
-from geomop_util import Serializable
+from gm_base.geomop_util import Serializable
 
 
 class MultiJobState:

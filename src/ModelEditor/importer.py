@@ -28,7 +28,7 @@ import sys
 
 import argparse
 
-from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 
 
 if __name__ == "__main__":

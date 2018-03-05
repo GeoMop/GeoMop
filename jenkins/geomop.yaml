@@ -88,9 +88,11 @@
     name: "test-{module}"
     display-name: "Test {module} module"
     builders:
-      - shell: |
-          cd /var/lib/jenkins/workspace/gm-linux-tests/testing
-          ./RunXvfb.sh {test-file} {result-file} /var/lib/jenkins/workspace/test-{module}/
+      - shell:
+          pwd
+          ls -l|
+          cd testing/{module}
+          ./fb_test_wrapper.sh python -m --junitxml="{module}.xml" . 
     publishers:
       - junit:
           results: "{result-file}"
@@ -137,6 +139,8 @@
       - shell: |
           echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
           expr substr ${GIT_COMMIT} 1 6 >> prop.file
+          pwd
+          ls -l
       - multijob:
           condition: COMPLETED
           name: 'Unit tests - gm_base'

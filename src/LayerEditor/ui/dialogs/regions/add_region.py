@@ -1,11 +1,11 @@
 """
 Dialog for adding region to interface.
 """
-from gm_base.geometry_files import RegionDim
+from gm_base.geometry_files.format_last import RegionDim
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg
-from geomop_dialogs import GMErrorDialog
+from gm_base.geomop_dialogs import GMErrorDialog
 
 class AddRegionDlg(QtWidgets.QDialog):
     

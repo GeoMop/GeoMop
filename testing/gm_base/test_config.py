@@ -1,7 +1,7 @@
-import config
+import gm_base.config as config
 import os
 
-from geomop_util import Serializable
+from gm_base.geomop_util import Serializable
 
 
 class DataForTestInner:

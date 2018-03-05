@@ -158,7 +158,7 @@ sys.exit()
 
 
 
-from geomop_analysis import YamlSupportLocal
+from gm_base.geomop_analysis import YamlSupportLocal
 #from pipeline.flow_data_types import *
 #from gm_base.flow_util import YamlSupport
 

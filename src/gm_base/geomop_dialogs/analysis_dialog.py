@@ -5,7 +5,7 @@
 import os
 from PyQt5 import QtWidgets, QtGui
 from .dialogs import AFormDialog, UiFormDialog
-from geomop_analysis import Analysis
+from gm_base.geomop_analysis import Analysis
 
 
 class AnalysisDialog(AFormDialog):

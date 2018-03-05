@@ -5,7 +5,7 @@ Dialog for inicialization empty diagram.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
-from geomop_dialogs import GMErrorDialog
+from gm_base.geomop_dialogs import GMErrorDialog
 from LayerEditor.leconfig import cfg
 
 class SetDiagramDlg(QtWidgets.QDialog):

@@ -2,7 +2,7 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from geomop_util.serializable import Serializable
+from gm_base.geomop_util.serializable import Serializable
 from enum import IntEnum
 
 

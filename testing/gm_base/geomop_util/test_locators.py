@@ -3,7 +3,7 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 
-from geomop_util import Position
+from gm_base.geomop_util import Position
 
 
 def test_position():

@@ -1,4 +1,4 @@
-import geomop_dialogs
+import gm_base.geomop_dialogs
 import sys
 from PyQt5.QtTest import QTest
 from PyQt5.QtCore import *
@@ -23,7 +23,7 @@ def test_err_dialog(request):
         file_d.close()
     except (RuntimeError, IOError) as err:
         assert text is None
-        err_dialog = geomop_dialogs.GMErrorDialog(label)
+        err_dialog = gm_base.geomop_dialogs.GMErrorDialog(label)
         timer=QTimer(label)
         timer.timeout.connect(lambda: start_dialog(err_dialog))
         timer.start(0)

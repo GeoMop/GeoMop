@@ -1,6 +1,6 @@
 import pytest
 
-import json_data as js
+import gm_base.json_data as js
 import gm_base.geometry_files.format_last as gs
 import filecmp
 import os

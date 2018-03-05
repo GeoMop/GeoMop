@@ -1,4 +1,4 @@
-from geomop_analysis import YamlSupportLocal
+from gm_base.geomop_analysis import YamlSupportLocal
 from Analysis.pipeline.flow_data_types import *
 import pytest
 

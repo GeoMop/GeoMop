@@ -1,6 +1,7 @@
-from ModelEditor.meconfig import cfg
-from ModelEditor.meconfig.meconfig import _Config as Config
-from model_data import Loader, NotificationHandler
+
+from ModelEditor.meconfig import _Config as Config
+from gm_base.model_data import Loader, NotificationHandler
+from ModelEditor.meconfig import MEConfig as cfg
 import os
 
 __sample_dir__ = os.path.join(os.path.split(os.path.split(os.path.split(
@@ -13,8 +14,8 @@ def set_empty_config():
 
 
 def clean_config():
-    import config
-    config.delete_config_file("ModelEditorData_test")
+    import gm_base.config
+    gm_base.config.delete_config_file("ModelEditorData_test")
 
 
 def load_complex_structure_to_config():

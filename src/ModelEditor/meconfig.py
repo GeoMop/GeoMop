@@ -9,20 +9,20 @@ import logging
 import codecs
 from copy import deepcopy
 
-import config as cfg
+import gm_base.config as base_cfg
 from ModelEditor.data import Transformator, TransformationFileFormatError
 from ModelEditor.helpers import AutocompleteHelper, StructureAnalyzer
-from geomop_shortcuts import shortcuts
+from gm_base.geomop_shortcuts import shortcuts
 from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
 from ModelEditor.ist import InfoTextGenerator
 from ModelEditor.util import constants
 
-from geomop_util.logging import LOGGER_PREFIX
-from geomop_util import Serializable
-from geomop_analysis import Analysis, InvalidAnalysis
-from model_data import (export_con, Loader, Validator, get_root_input_type_from_json,
+from gm_base.geomop_util.logging import LOGGER_PREFIX
+from gm_base.geomop_util import Serializable
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.model_data import (export_con, Loader, Validator, get_root_input_type_from_json,
                         autoconvert, notification_handler, Notification)
-from model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
+from gm_base.model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
 
 
 class _Config:
@@ -41,7 +41,7 @@ class _Config:
     COUNT_RECENT_FILES = 5
     """Count of recent files"""
 
-    CONFIG_DIR = os.path.join(cfg.__config_dir__, 'ModelEditor')
+    CONFIG_DIR = os.path.join(base_cfg.__config_dir__, 'ModelEditor')
 
     LINE_ENDINGS_LF = 'unix'
     LINE_ENDINGS_CRLF = 'windows'
@@ -94,7 +94,7 @@ class _Config:
     @staticmethod
     def open():
         """Open config from saved file (if exists)."""
-        config = cfg.get_config_file(_Config.SERIAL_FILE,
+        config = base_cfg.get_config_file(_Config.SERIAL_FILE,
                                      _Config.CONFIG_DIR, cls=_Config)
         if config is None:
             config = _Config()
@@ -102,7 +102,7 @@ class _Config:
 
     def save(self):
         """Save config data"""
-        cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
+        base_cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
 
     def add_recent_file(self, file_name, format_file):
         """
@@ -254,9 +254,9 @@ class MEConfig:
     """data validator"""
     root_input_type = None
     """input type of the whole tree, parsed from format"""
-    resource_dir = os.path.join(os.path.split(
-        os.path.dirname(os.path.realpath(__file__)))[0], 'resources')
-    """path to a folder containing resources"""
+    resource_dir = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), 'resources')
+    """path to a folder containing ME resources"""
     format_dir = os.path.join(resource_dir, '..', '..', 'gm_base', 'resources', 'ist')
     """path to a folder containing IST files"""
     transformation_dir = os.path.join(resource_dir, 'transformation')
@@ -761,7 +761,7 @@ class MEConfig:
     @classmethod
     def _report_error(cls, mess, err):
         """Report an error with dialog."""
-        from geomop_dialogs import GMErrorDialog
+        from gm_base.geomop_dialogs import GMErrorDialog
         if cls.main_window is not None:
             err_dialog = GMErrorDialog(cls.main_window)
             err_dialog.open_error_dialog(mess, err)
@@ -771,6 +771,6 @@ class MEConfig:
     @classmethod
     def _report_notify(cls, errs):
         """Report an error with dialog."""
-        from geomop_dialogs import GMErrorDialog
+        from gm_base.geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(cls.main_window)
         err_dialog.open_error_report_dialog(errs)

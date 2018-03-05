@@ -4,7 +4,7 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction
 
-from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 
 
 class EditMenu(QMenu):

@@ -16,7 +16,7 @@ import PyQt5.QtCore as QtCore
 
 from ModelEditor.ist import InfoTextGenerator
 from ModelEditor.util import CursorType
-from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 
 # pylint: disable=invalid-name
 

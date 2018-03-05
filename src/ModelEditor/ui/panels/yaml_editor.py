@@ -6,7 +6,7 @@ Customized QScintilla editor widget.
 """
 
 # pylint: disable=invalid-name
-import icon
+import gm_base.icon as icon
 from contextlib import ContextDecorator
 import math
 
@@ -16,8 +16,8 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
-from ModelEditor.meconfig import cfg
-from model_data import DataNode, Notification
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.model_data import DataNode, Notification
 from ModelEditor.helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, StructureAnalyzer)
 from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
@@ -25,7 +25,7 @@ from ..dialogs import FindReplaceDialog
 from ..menus import EditMenu
 from ..template import EditorAppearance as appearance
 from ModelEditor.util import PosType, CursorType
-from geomop_util import Position
+from gm_base.geomop_util import Position
 
 RELOAD_INTERVAL = 5000
 """default reload interval in ms"""

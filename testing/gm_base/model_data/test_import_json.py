@@ -1,4 +1,4 @@
-from model_data.import_json import *
+from gm_base.model_data.import_json import *
 
 def test_read_key():
     comments = Comments()

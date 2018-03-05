@@ -206,12 +206,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             err_dialog = GMErrorDialog(layer_editor.mainwindow)
             err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
             sys.exit(1)

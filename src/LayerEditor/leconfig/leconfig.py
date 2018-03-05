@@ -6,13 +6,13 @@
 import logging
 import os
 from copy import deepcopy
-import config as cfg
-from geomop_shortcuts import shortcuts
+import gm_base.config as cfg
+from gm_base.geomop_shortcuts import shortcuts
 from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
-from geomop_util.logging import LOGGER_PREFIX
-from geomop_util import Serializable
-from geomop_dialogs import GMErrorDialog
-from geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.geomop_util.logging import LOGGER_PREFIX
+from gm_base.geomop_util import Serializable
+from gm_base.geomop_dialogs import GMErrorDialog
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from LayerEditor.ui import data as le_data
 from LayerEditor.ui.helpers import CurrentView
 

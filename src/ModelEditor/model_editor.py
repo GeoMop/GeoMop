@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
 import gm_base.icon as icon
-from .meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 from .ui.dialogs.json_editor import JsonEditorDlg
 from .ui import MainWindow
 from .util import constants
@@ -237,12 +237,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             if model_editor is not None:
                 err_dialog = None
                 # display message box with the exception

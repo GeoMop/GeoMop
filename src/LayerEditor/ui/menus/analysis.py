@@ -5,8 +5,8 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMenu, QAction
 
-from geomop_dialogs import AnalysisDialog
-from geomop_analysis import Analysis
+from gm_base.geomop_dialogs import AnalysisDialog
+from gm_base.geomop_analysis import Analysis
 
 
 class AnalysisMenu(QMenu):

@@ -6,9 +6,9 @@ Tests for auto-conversion module
 import os
 import pytest
 
-import model_data.autoconversion as ac
-from model_data import ScalarDataNode, MappingDataNode, Validator, notification_handler
-from geomop_util import TextValue
+import gm_base.model_data.autoconversion as ac
+from gm_base.model_data import ScalarDataNode, MappingDataNode, Validator, notification_handler
+from gm_base.geomop_util import TextValue
 
 __model_data_dir__ =  os.path.dirname(os.path.realpath(__file__))
 __common_dir__ =  os.path.split(__model_data_dir__)[0]
@@ -21,13 +21,13 @@ INPUT_TYPE_FILE200 = os.path.join(__common_dir__, 'resources', 'ist', '2.0.0_rc.
 
 @pytest.fixture(scope='module')
 def loader():
-    from model_data import Loader
+    from gm_base.model_data import Loader
     return Loader()
 
 
 @pytest.fixture(scope='module')
 def root_input_type():
-    from model_data import get_root_input_type_from_json
+    from gm_base.model_data import get_root_input_type_from_json
     json_data = open(INPUT_TYPE_FILE).read()
     return get_root_input_type_from_json(json_data)
 
@@ -358,7 +358,7 @@ def _check_nodes(input, expected, desc):
             _check_nodes(input_child, expected_child, desc)
 
 def test_all_files(loader):
-    from model_data import get_root_input_type_from_json    
+    from gm_base.model_data import get_root_input_type_from_json
     
     DATA_DIR = os.path.join(__model_data_dir__, "autoconversion", "expected")
     RES_DIR = os.path.join(__model_data_dir__, "autoconversion", "input")

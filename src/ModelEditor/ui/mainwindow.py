@@ -7,7 +7,7 @@ import PyQt5.QtCore as QtCore
 
 import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
-from ModelEditor.meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 from . import panels
 from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
 from ModelEditor.util import CursorType
