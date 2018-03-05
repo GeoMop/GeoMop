@@ -1,5 +1,5 @@
-import geometry_files.polygons_io as polygons_io
-import geometry_files.polygons as polygons
+import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.geometry_files.polygons as polygons
 
 def test_polygons_io():
     decomp = polygons.PolygonDecomposition()

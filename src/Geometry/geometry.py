@@ -49,7 +49,7 @@ import numpy.linalg as la
 import math
 
 
-import b_spline
+import gm_base.b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
@@ -57,7 +57,7 @@ import brep_writer as bw
 # global plt
 # global bs_plot
 
-#import geometry_files.plot_polygons as plot_polygons
+#import gm_base.geometry_files.plot_polygons as plot_polygons
 
 #import matplotlib
 #import matplotlib.pyplot as plt

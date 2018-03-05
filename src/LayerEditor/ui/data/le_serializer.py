@@ -1,10 +1,10 @@
 import os
-from geometry_files import GeometryFactory, LayerType, TopologyType
+from gm_base.geometry_files import GeometryFactory, LayerType, TopologyType
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
-import geometry_files.polygons_io as polygons_io
-import geometry_files.format_last as gs
-import geometry_files.layers_io as layers_io
+import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.geometry_files.format_last as gs
+import gm_base.geometry_files.layers_io as layers_io
 
 
 class LESerializer():

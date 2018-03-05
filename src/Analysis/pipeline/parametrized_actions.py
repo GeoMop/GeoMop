@@ -1,7 +1,7 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-from flow_util import YamlSupportRemote, analysis
+from gm_base.flow_util import YamlSupportRemote, analysis
 from .flow_data_types import *
 
 import os

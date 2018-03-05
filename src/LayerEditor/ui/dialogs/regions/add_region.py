@@ -1,7 +1,7 @@
 """
 Dialog for adding region to interface.
 """
-from geometry_files import RegionDim
+from gm_base.geometry_files import RegionDim
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg

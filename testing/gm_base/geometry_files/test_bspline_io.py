@@ -1,4 +1,4 @@
-import geometry_files.bspline_io as bspline_io
+import gm_base.geometry_files.bspline_io as bspline_io
 import bspline as bs
 import numpy as np
 

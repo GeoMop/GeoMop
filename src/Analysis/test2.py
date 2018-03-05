@@ -160,7 +160,7 @@ sys.exit()
 
 from geomop_analysis import YamlSupportLocal
 #from pipeline.flow_data_types import *
-#from flow_util import YamlSupport
+#from gm_base.flow_util import YamlSupport
 
 #from client_pipeline.identical_list_creator import *
 

@@ -1,6 +1,6 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from geometry_files import TopologyType
+from gm_base.geometry_files import TopologyType
 from enum import IntEnum
 import copy
 

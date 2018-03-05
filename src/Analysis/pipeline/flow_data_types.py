@@ -1,5 +1,5 @@
 from .data_types_tree import *
-from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
+from gm_base.flow_util import YamlSupportRemote, ObservedQuantitiesValueType
 import xml.etree.ElementTree as ET
 import os
 import yaml as pyyaml

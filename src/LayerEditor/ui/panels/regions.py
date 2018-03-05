@@ -4,7 +4,7 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from geomop_dialogs import GMErrorDialog
 from ..dialogs.regions import AddRegionDlg
-from geometry_files import RegionDim
+from gm_base.geometry_files import RegionDim
 
 
 class Regions(QtWidgets.QToolBox):

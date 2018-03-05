@@ -1,4 +1,4 @@
-from geometry_files import PolygonDecomposition, PolygonChange
+from gm_base.geometry_files import PolygonDecomposition, PolygonChange
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import numpy as np

@@ -5,13 +5,13 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 
-import icon
+import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
 from ModelEditor.meconfig import cfg
 from . import panels
 from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
 from ModelEditor.util import CursorType
-from geomop_util import Position
+from gm_base.geomop_util import Position
 
 
 class MainWindow(QtWidgets.QMainWindow):

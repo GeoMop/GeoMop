@@ -4,7 +4,7 @@
 """
 from enum import Enum
 
-from geomop_util.locators import Span, Position
+from gm_base.geomop_util.locators import Span, Position
 from .list import NOTIFICATIONS_BY_CODE, NOTIFICATIONS_BY_NAME
 
 

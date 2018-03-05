@@ -4,7 +4,7 @@
 
 import pytest
 
-from flow_util import analysis
+from gm_base.flow_util import analysis
 
 
 @pytest.mark.parametrize('text, params, expected', [

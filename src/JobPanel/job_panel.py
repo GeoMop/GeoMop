@@ -12,12 +12,12 @@ import argparse
 import PyQt5.QtWidgets as QtWidgets
 
 
-from .ui.com_manager import ComManager
-from .ui.main_window import MainWindow
-from .ui.data.data_structures import DataContainer
-from .ui.imports.workspaces_conf import BASE_DIR
+from JobPanel.ui.com_manager import ComManager
+from JobPanel.ui.main_window import MainWindow
+from JobPanel.ui.data.data_structures import DataContainer
+from JobPanel.ui.imports.workspaces_conf import BASE_DIR
 import gm_base.icon as icon
-from  .communication.installation import Installation
+from  JobPanel.communication.installation import Installation
 
 import config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)

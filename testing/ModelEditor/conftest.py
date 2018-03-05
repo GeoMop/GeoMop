@@ -23,7 +23,7 @@ for rel_path in rel_paths:
 #    print(ui_path)
 #    if os.path.isdir(ui_path):
 #        print("UI path: ", ui_path)
-#print(sys.path)
+print(sys.path)
 
 
 from PyQt5.Qt import QApplication

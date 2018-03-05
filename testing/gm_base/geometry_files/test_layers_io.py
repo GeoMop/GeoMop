@@ -1,11 +1,11 @@
 import pytest
 
 import json_data as js
-import geometry_files.format_last as gs
+import gm_base.geometry_files.format_last as gs
 import filecmp
 import os
 import json
-import geometry_files.layers_io as layers_io
+import gm_base.geometry_files.layers_io as layers_io
 
 script_dir = os.path.os.path.dirname(os.path.realpath(__file__))
 

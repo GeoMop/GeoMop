@@ -2,7 +2,7 @@ from enum import IntEnum
 from copy import deepcopy
 from collections import OrderedDict
 from .history import RegionHistory
-from geometry_files import RegionDim
+from gm_base.geometry_files import RegionDim
 
 class TopologyOperations(IntEnum):
     """Type of topology operation"""

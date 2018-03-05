@@ -2,7 +2,7 @@ import codecs
 import os
 import re
 
-from flow_util import YamlSupportRemote, ObservedQuantitiesValueType
+from gm_base.flow_util import YamlSupportRemote, ObservedQuantitiesValueType
 from model_data import Loader, Validator, notification_handler, get_root_input_type_from_json, autoconvert
 
 RE_PARAM = re.compile('<([a-zA-Z][a-zA-Z0-9_]*)>')

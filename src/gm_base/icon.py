@@ -1,9 +1,9 @@
-"""Icon manimulation library"""
+"""Icon manipulation library"""
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 import os
 
-__icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icon")
+__icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources", "icons")
 
 def get_file(name,  size):
     """Get file path to icon from archiv"""

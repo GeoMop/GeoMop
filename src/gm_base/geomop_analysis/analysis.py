@@ -6,7 +6,7 @@ import os
 
 from geomop_util import Serializable, Parameter, File
 import config
-import flow_util
+import gm_base.flow_util
 
 
 ANALYSIS_MAIN_FILE_EXT = 'data'
@@ -248,7 +248,7 @@ class Analysis:
             dst_dir = os.path.dirname(dst)
             if not os.path.isdir(dst_dir):
                 os.makedirs(dst_dir)
-            flow_util.analysis.replace_params_in_file(src, dst, params)
+            gm_base.flow_util.analysis.replace_params_in_file(src, dst, params)
 
     @staticmethod
     def is_analysis(path):

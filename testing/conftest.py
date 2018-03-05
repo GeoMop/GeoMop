@@ -8,6 +8,7 @@ import sys
 import os
 import pytest
 
+print("Root conf test.")
 # Modify sys.path to have path to the GeoMop modules.
 # TODO: make installation and Tox working in order to remove this hack.
 this_source_dir = os.path.dirname(os.path.realpath(__file__))

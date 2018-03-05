@@ -8,7 +8,7 @@ import re
 # import copy
 import yaml as pyyaml
 
-from geomop_util import TextValue, Position, Span
+from gm_base.geomop_util import TextValue, Position, Span
 from ..notifications import Notification, NotificationHandler
 
 from .constructor import construct_scalar

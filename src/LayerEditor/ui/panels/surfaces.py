@@ -4,10 +4,10 @@ import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg
 import PyQt5.QtCore as QtCore
 import os
-import b_spline
+import gm_base.b_spline
 import numpy as np
 import bspline_approx as ba
-from geomop_dialogs import GMErrorDialog
+from gm_base.geomop_dialogs import GMErrorDialog
 from ..data import SurfacesHistory
 import copy
 

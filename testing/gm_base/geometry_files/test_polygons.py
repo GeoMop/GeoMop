@@ -3,8 +3,8 @@
 # from matplotlib import collections  as mc
 # from matplotlib import patches as mp
 
-from geometry_files.polygons import *
-from geometry_files.plot_polygons import *
+from gm_base.geometry_files.polygons import *
+from gm_base.geometry_files.plot_polygons import *
 
 
 class TestPoint:
