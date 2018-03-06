@@ -12,8 +12,8 @@ SETTINGS_DIR =  os.path.join(HOME_DIR, "resources", "mock_settings_cm")
 
 @pytest.fixture
 def data():    
-    import config
-    config.__config_dir__ = SETTINGS_DIR
+    import gm_base.config
+    gm_base.config.__config_dir__ = SETTINGS_DIR
 
     import JobPanel.ui.imports.workspaces_conf as wc
     wc.BASE_DIR = '.'

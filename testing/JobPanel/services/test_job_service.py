@@ -7,7 +7,7 @@ import os
 import shutil
 import time
 import logging
-
+import pytest
 
 logging.basicConfig(filename='test_job_service.log', filemode='w', level=logging.INFO)
 
@@ -15,7 +15,7 @@ logging.basicConfig(filename='test_job_service.log', filemode='w', level=logging
 TEST_FILES = "test_files"
 REMOTE_WORKSPACE = "/home/test/workspace"
 
-
+@pytest.mark.slow
 def test_correct_run(request):
     def clear_test_files():
         shutil.rmtree(TEST_FILES, ignore_errors=True)
@@ -60,7 +60,7 @@ def test_correct_run(request):
     assert job._status == ServiceStatus.queued
     time.sleep(15)
     assert job._status == ServiceStatus.running
-    time.sleep(25)
+    time.sleep(15)
     assert job._status == ServiceStatus.done
 
     # stopping, closing

@@ -7,7 +7,7 @@
 from JobPanel.backend.connection import *
 from JobPanel.backend.service_base import ServiceBase, ServiceStatus
 from JobPanel.backend.service_proxy import ServiceProxy
-from testing.JobPanel.mock.passwords import get_test_password
+from testing.JobPanel.mock.passwords import get_test_password, get_passwords
 
 import threading
 import socket
@@ -17,7 +17,7 @@ import shutil
 import logging
 import time
 import stat
-
+import pytest
 
 logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
@@ -353,7 +353,7 @@ def test_delegator_exec():
     local_service._closing = True
     con.close_connections()
 
-
+@pytest.mark.slow
 def test_docker(request):
     def clear_test_files():
         shutil.rmtree(TEST_FILES, ignore_errors=True)

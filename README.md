@@ -16,9 +16,15 @@ Components:
 
 ## Development rules and notes
 
+### Sources
 - In order to use relative imports of modules within package the prefered format of imports is:
     
     from <package> import <module> as <new_module_name>
 
-- 
+### Tests
+- use @pytest.mark.<the_mark> to set marks to the test functions, in particular
+  to mark tests that needs specific environment, e.g. ssh setup. Standard set of marks:
+  
+  - ssh_metacentrum - use ssh connection to the metacentrum servers
+  - metacentrum - run on metacentrum, e.g. test PBS 
   
