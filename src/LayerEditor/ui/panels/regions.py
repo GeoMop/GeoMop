@@ -114,13 +114,13 @@ class Regions(QtWidgets.QToolBox):
         if self.layers[layer_id] in self.last_region:
             region_name = self.last_region[self.layers[layer_id]]
         else:
-            self.last_region[self.layers[layer_id]] = data.regions[0].name
-            return data.regions[0]
+            self.last_region[self.layers[layer_id]] = data.regions['0'].name
+            return data.regions['0']
         for _, region in data.regions.items():
             if region.name == region_name:
                 return region
-        self.last_region[self.layers[layer_id]] =  data.regions[0].name
-        return data.regions[0]
+        self.last_region[self.layers[layer_id]] =  data.regions['0'].name
+        return data.regions['0']
 
             
     def _add_region_panel(self, layer_id, region):
@@ -131,8 +131,8 @@ class Regions(QtWidgets.QToolBox):
         pom_lambda = lambda ii: lambda: self._region_set(ii)
         self.regions[layer_id] = QtWidgets.QComboBox()
         for i in range(0, len(data.regions)):            
-            label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
-            self.regions[layer_id].addItem( label,  i) 
+            label = data.regions[str(i)].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[str(i)].dim] + ")"
+            self.regions[layer_id].addItem(label,  i)
             data.current_regions[layer_id] = region
         curr_index = self.regions[layer_id].findData([key for key, value in data.regions.items() if value == region][0])
         self._emit_regionChanged = False
@@ -279,7 +279,7 @@ class Regions(QtWidgets.QToolBox):
             self.regions[layer_id].addItem( label, region_len-1) 
         layer_id = self.layers_id[self.currentIndex()]
         self._update_layer_controls(region, layer_id)
-        self.last_region[self.layers[layer_id]] = region.name        
+        self.last_region[self.layers[layer_id]] = region.name
             
     def _add_region(self):
         """Add new region to all combo and select it in current layer"""
@@ -305,7 +305,7 @@ class Regions(QtWidgets.QToolBox):
             for layer_id in data.layers_topology[data.current_topology_id]:
                 self.regions[layer_id].removeItem(reg_idx)
                 reg_id = self.regions[layer_id].currentData()
-                self._update_layer_controls(data.regions[reg_id], layer_id)
+                self._update_layer_controls(data.regions[str(reg_id)], layer_id)
         else:
             print("List is not empty! Oops, this button should have been disabled.")
 
@@ -315,7 +315,7 @@ class Regions(QtWidgets.QToolBox):
             return
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
-        region = data.regions[region_id]        
+        region = data.regions[str(region_id)]
         error = None
         for _, reg in data.regions.items():
             if reg != region:
@@ -334,13 +334,13 @@ class Regions(QtWidgets.QToolBox):
         else:
             data.set_region_name([key for key, item in data.regions.items() if item == region][0],
                 self.name[layer_id].text(), True, "Set region name")
-            combo_text = self.name[layer_id].text()+" ("+str(data.regions[region_id].dim.value)+"D)"
+            combo_text = self.name[layer_id].text()+" ("+str(data.regions[str(region_id)].dim.value)+"D)"
             self.regions[layer_id].setItemText(
                 self.regions[layer_id].currentIndex(), combo_text)
                 
     def _set_box_title(self, id, layer_id):
         region_id = self.regions[layer_id].currentData()
-        region = cfg.diagram.regions.regions[region_id]
+        region = cfg.diagram.regions.regions[str(region_id)]
         pixmap = QtGui.QPixmap(16, 16)
         color = QtGui.QColor("#f0f0e8")
         if region.color!="##":
@@ -377,7 +377,7 @@ class Regions(QtWidgets.QToolBox):
         """Region in combo box was changed"""
         data = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
-        region = data.regions[region_id]
+        region = data.regions[str(region_id)]
         self._update_layer_controls(region, layer_id)
         self.last_region[self.layers[layer_id]] = region.name
         data.current_regions[layer_id] = region
