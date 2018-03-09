@@ -6,6 +6,13 @@
     block-downstream: false
     block-upstream: false
     builders:
+    # Mark the build with branch name    
+    - shell: |
+        echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+        expr substr ${GIT_COMMIT} 1 6 >> prop.file
+        pwd
+        ls -l
+    # Build packages    
     - shell: VERSION=${version} TESTS=${process_tests} /home/geomop/docker/jenkins.sh
     concurrent: false
     description: null
@@ -45,6 +52,8 @@
 #########################################################################################
 # Create doc and push to github
 #########################################################################################
+# Not good practice to modify geomop.github.io by CI.
+# TODO: publish on bacula and make links at geomop.github.io
 
 - job:
     block-downstream: false
@@ -92,7 +101,7 @@
           pwd
           ls -l|
           cd testing/{module}
-          ./fb_test_wrapper.sh python -m --junitxml="{module}.xml" . 
+          ./fb_test_wrapper.sh python3 -m pytest --junitxml="{module}.xml" . 
     publishers:
       - junit:
           results: "{result-file}"
@@ -100,74 +109,94 @@
       - build-name:
           name: $BUILD_NAME
 
-- project:
-    name: "test-{module}"
-    module: 
-        - common:
-            test-file: runCm.py
-            result-file: testCommon.xml
-        - me:
-            test-file: runMe.py
-            result-file: testMe.xml
-        - le:
-            test-file: runLe.py
-            result-file: testLe.xml
-        - jp:
-            test-file: runJp.py
-            result-file: testJp.xml
-        - an:
-            test-file: runAn.py
-            result-file: testAn.xml
-    jobs:
-        - "test-{module}" 
 
+#########################################################################################
+# Test after commit
+#########################################################################################
 - job:
-    name: "gm-linux-tests"
-    display-name: "GeoMop Linux Tests"
-    scm:
-    - git:
-        branches:
-        - '*'
-        url: https://github.com/GeoMop/GeoMop
-    project-type: multijob
-    triggers:
-      - github
-    wrappers:
-      - build-name:
-          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+    name: "test-all"
+    display-name: "All tests"
     builders:
       - shell: |
-          echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
-          expr substr ${GIT_COMMIT} 1 6 >> prop.file
           pwd
           ls -l
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - gm_base'
-          projects:
-            - name: test-gm-base
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Analysis'
-          projects:
-            - name: test-analysis
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Model Editor'
-          projects:
-            - name: test-model-editor
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Layers'
-          projects:
-            - name: test-layers
-              property-file: prop.file
-      - multijob:
-          condition: COMPLETED
-          name: 'Unit tests - Job Panel'
-          projects:
-            - name: test-job-panel
-              property-file: prop.file
+          cd testing
+          ./fb_test_wrapper.sh python3 -m pytest --junitxml="all_tests.xml" .
+    publishers:
+      - junit:
+          results: "all_tests.xml"
+    wrappers:
+      - build-name:
+          name: $BUILD_NAME
+
+#- project:
+#    name: "test-{module}"
+#    module:
+#        - common:
+#            test-file: runCm.py
+#            result-file: testCommon.xml
+#        - me:
+#            test-file: runMe.py
+#            result-file: testMe.xml
+#        - le:
+#            test-file: runLe.py
+#            result-file: testLe.xml
+#        - jp:
+#            test-file: runJp.py
+#            result-file: testJp.xml
+#        - an:
+#            test-file: runAn.py
+#            result-file: testAn.xml
+#    jobs:
+#        - "test-{module}"
+#
+#- job:
+#    name: "gm-linux-tests"
+#    display-name: "GeoMop Linux Tests"
+#    scm:
+#    - git:
+#        branches:
+#        - '*'
+#        url: https://github.com/GeoMop/GeoMop
+#    project-type: multijob
+#    triggers:
+#      - github
+#    wrappers:
+#      - build-name:
+#          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+#    builders:
+#      - shell: |
+#          echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+#          expr substr ${GIT_COMMIT} 1 6 >> prop.file
+#          pwd
+#          ls -l
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - gm_base'
+#          projects:
+#            - name: test-gm-base
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Analysis'
+#          projects:
+#            - name: test-analysis
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Model Editor'
+#          projects:
+#            - name: test-model-editor
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Layers'
+#          projects:
+#            - name: test-layers
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Job Panel'
+#          projects:
+#            - name: test-job-panel
+#              property-file: prop.file

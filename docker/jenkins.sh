@@ -6,18 +6,18 @@ cd /var/lib/jenkins/workspace/gm-build
 /bin/bash tools/initialize_submodules.sh
 cd $CURR_PATH
 
-if $TESTS; then
-
-echo "************ RUNNING TESTS *************"
-
-# test
-docker run \
-  -v /var/lib/jenkins/workspace/gm-build:/mnt/GeoMop \
-  geomop/test \
-  /home/geomop/test.sh
-if [[ $? != 0 ]]; then exit 1; fi
-
-fi
+#if $TESTS; then
+#
+#echo "************ RUNNING TESTS *************"
+#
+## test
+#docker run \
+#  -v /var/lib/jenkins/workspace/gm-build:/mnt/GeoMop \
+#  geomop/test \
+#  /home/geomop/test.sh
+#if [[ $? != 0 ]]; then exit 1; fi
+#
+#fi
 
 
 echo "************ RUNNING BUILD *************"
