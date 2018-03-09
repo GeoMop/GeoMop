@@ -272,11 +272,9 @@ class Regions(QtWidgets.QToolBox):
         
     def _add_disply_region(self, region):
         """Add new region to all combo and display it"""
-        data = cfg.diagram.regions
         label = region.name + " (" + str(region.dim.value) + "D)"
-        region_len = len(data.regions)
         for layer_id in self.layers:
-            self.regions[layer_id].addItem( label, region_len-1) 
+            self.regions[layer_id].addItem(label, region.reg_id)
         layer_id = self.layers_id[self.currentIndex()]
         self._update_layer_controls(region, layer_id)
         self.last_region[self.layers[layer_id]] = region.name
@@ -289,7 +287,7 @@ class Regions(QtWidgets.QToolBox):
         if ret==QtWidgets.QDialog.Accepted:
             name = dlg.region_name.text()
             dim = dlg.region_dim.currentData()
-            color = dlg.get_some_color(len(data.regions) - 1).name()
+            color = dlg.get_some_color(data._get_available_reg_id()-1).name()
             region = data.add_new_region(color, name, dim, True, "Add Region")            
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]

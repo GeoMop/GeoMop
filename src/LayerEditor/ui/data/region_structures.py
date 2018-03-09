@@ -308,7 +308,7 @@ class Regions():
     def add_new_region(self, color, name, dim, to_history=False, label=None):
         """Add region"""
         region = Region(color, name, self._get_available_reg_id(), dim, step = 0.0)
-        self.regions[len(self.regions)] = region
+        self.regions[str(region.reg_id)] = region
         # self.regions.update({len(self.regions): region})
         if to_history:
             self._history.delete_region(len(self.regions)-1, label)
