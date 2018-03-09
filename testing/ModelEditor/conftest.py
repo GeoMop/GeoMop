@@ -12,20 +12,13 @@ import pytest
 
 
 
-from PyQt5.Qt import QApplication
-from ModelEditor.ui.panels.yaml_editor import YamlEditorWidget
-
-
-@pytest.fixture(scope='session')
-def qapp(request):
-    """Qt application"""
-    app = QApplication(sys.argv)
-    def fin():
-        app.quit()
-    request.addfinalizer(fin)
-    return app
-
-
-@pytest.fixture(scope='session')
-def editor(qapp):
-    return YamlEditorWidget()
+# from PyQt5.Qt import QApplication
+# from ModelEditor.ui.panels.yaml_editor import YamlEditorWidget
+#
+#
+#
+#
+# @pytest.fixture(scope='session')
+# def editor(qapp):
+#     print("ME editor_fixture")
+#     return YamlEditorWidget()

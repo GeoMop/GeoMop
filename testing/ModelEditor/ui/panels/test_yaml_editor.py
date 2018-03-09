@@ -4,7 +4,11 @@
 """
 from ModelEditor.ui.panels.yaml_editor import YamlEditorWidget
 
+import sys
+import pytest
 
+
+@pytest.mark.qt
 def test_insert_at_cursor_single(qapp):
     """Test `insert_at_cursor` method."""
     editor = YamlEditorWidget()
@@ -14,7 +18,7 @@ def test_insert_at_cursor_single(qapp):
     editor.insert_at_cursor(text)
     assert (2, 5) == editor.getCursorPosition()
 
-
+@pytest.mark.qt
 def test_insert_at_cursor_multi(qapp):
     """Test `insert_at_cursor` method."""
     editor = YamlEditorWidget()

@@ -31,6 +31,7 @@ class ModelEditor:
 
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Model app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         self.mainwindow = MainWindow(self)
         cfg.main_window = self.mainwindow
@@ -222,7 +223,7 @@ class ModelEditor:
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
 
 
 def main():

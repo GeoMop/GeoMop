@@ -6,5 +6,5 @@ def set_empty_config():
     cfg.config = Config()
 
 def clean_config():
-    import config
-    config.delete_config_file("LayerEditorData_test")
+    import gm_base.config
+    gm_base.config.delete_config_file("LayerEditorData_test")

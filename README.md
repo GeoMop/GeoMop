@@ -27,4 +27,9 @@ Components:
   
   - ssh_metacentrum - use ssh connection to the metacentrum servers
   - metacentrum - run on metacentrum, e.g. test PBS 
+  - slow - tests that take more then 5s
+  - skip - python skip these tests
+  - qt - tests using QApplication
+  
+- TODO: use [pytest-qt](http://pytest-qt.readthedocs.io/en/latest/intro.html) to test function of Qt widgets  
   

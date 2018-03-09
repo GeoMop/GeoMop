@@ -1,21 +1,19 @@
 import gm_base.geomop_dialogs
-import sys
 from PyQt5.QtTest import QTest
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.Qt import QSplashScreen
+import pytest
 
-dialog_result={}
-app = QApplication(sys.argv)
+@pytest.mark.qt
+def test_err_dialog(request, qapp):
+    global dialog_result
 
-def test_err_dialog(request): 
-    global dialog_result,  app
-    
-    label = QLabel("test dialog")
-    label.setWindowFlags(Qt.SplashScreen)
-    label.show()
+    dialog_result = {}
+
+    splash = QSplashScreen()
+    splash.show()
     text = None
-    
+
     try:
         file_name="not_exist_file.txt"
         file_d = open(file_name, 'r')
@@ -23,13 +21,16 @@ def test_err_dialog(request):
         file_d.close()
     except (RuntimeError, IOError) as err:
         assert text is None
-        err_dialog = gm_base.geomop_dialogs.GMErrorDialog(label)
-        timer=QTimer(label)
+        err_dialog = gm_base.geomop_dialogs.GMErrorDialog(splash)
+        timer=QTimer(splash)
         timer.timeout.connect(lambda: start_dialog(err_dialog))
-        timer.start(0)
+        timer.start(1000)
         err_dialog.open_error_dialog("Can't open file", err)
-    
-    app.quit()
+
+
+    del splash
+
+
     #button tests
     assert dialog_result['button_count'] == 1
     assert dialog_result['button_text'] in ('&OK', 'OK')

@@ -20,6 +20,7 @@ class LayerEditor:
     def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
@@ -180,7 +181,7 @@ class LayerEditor:
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
         
     def _update_document_name(self):
         """Update document title (add file name)"""

@@ -1,20 +1,14 @@
 import sys
 import pytest
 
-from PyQt5.QtWidgets import QApplication
-
 from gm_base.model_data import DataNode, Loader, NotificationHandler
 from gm_base.model_data.yaml.resolver import resolve_scalar_tag
 from ModelEditor.meconfig import MEConfig as cfg
 import testing.ModelEditor.mock.mock_config as mockcfg
 from gm_base.geomop_util import Position
 
-APP = QApplication(sys.argv)
-APP_NOT_INIT = pytest.mark.skipif(not (type(APP).__name__ == "QApplication"),
-                                  reason="App not inicialized")
 
-
-@APP_NOT_INIT
+# TODO: original test seems to setup QApplication, but it should not depend on Qt.
 def test_parse(request=None):
     error_handler = NotificationHandler()
     mockcfg.set_empty_config()
