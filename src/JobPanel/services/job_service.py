@@ -11,6 +11,7 @@ import traceback
 import psutil
 import subprocess
 import time
+import random
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -56,6 +57,9 @@ class Job(service_base.ServiceBase):
 
         self._job_thread = None
 
+        # for testing purposes only
+        #self.wait_before_run = random.randrange(0, 30)
+
     def _job_run(self):
         # find executable
         if self.job_executable.path == "":
@@ -88,14 +92,15 @@ class Job(service_base.ServiceBase):
             p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
             p.wait()
 
+            # for testing purposes only
+            #time.sleep(random.randrange(0, 30))
+
     def _do_work(self):
         if self._job_thread is None:
             self._job_thread = threading.Thread(target=self._job_run, daemon=True)
             self._job_thread.start()
         elif not self._job_thread.is_alive():
-            self.status = service_base.ServiceStatus.done
-            self.save_config()
-            self._closing = True
+            self._set_status_done()
 
 
 def job_main():

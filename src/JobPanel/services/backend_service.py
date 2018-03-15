@@ -3,20 +3,290 @@ import os
 import logging
 import traceback
 import json
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from backend import service_base
+from backend.service_base import ServiceBase, LongRequest, ServiceStatus
+from backend.json_data import JsonData, JsonDataNoConstruct
+from backend.service_proxy import ServiceProxy
+from services.multi_job_service import JobReport, JobStatus, MJStatus
+from data.states import TaskStatus as GuiTaskStatus
+from backend.connection import ConnectionStatus, SSHError
 
 
-class Backend(service_base.ServiceBase):
+class MJInfo(JsonData):
+    """
+    MJ info struct.
+    """
+    def __init__(self, config={}):
+        self.proxy = ServiceProxy()
+        """mj proxy"""
+
+        self.n_jobs = 0
+        """number of known jobs"""
+
+        super().__init__(config)
+
+        self._jobs_report = {}
+        """jobs report information"""
+        self._jobs_report_save_counter = 0
+        """jobs report save counter"""
+
+        self._results_get_jobs_report = []
+        """Result list of get jobs report request"""
+
+        self._jobs_report_time = time.time()
+        """Last time request_get_jobs_report sent or report retrieved from proxy._downloaded_config"""
+
+        self.queued_time = 0.0
+        """MJ queued time"""
+
+        self.files_to_download = []
+        """Files need to be downloaded"""
+
+        self._log_planed_to_download = False
+        """True if log file was planed to download"""
+
+
+class MJReport(JsonData):
+    """
+    Crate for store MJ report information.
+    """
+    def __init__(self, config={}):
+        self.service_status = ServiceStatus.queued
+        self.mj_status = MJStatus.preparing
+        self.queued_time = 0.0
+        self.start_time = 0.0
+        self.done_time = 0.0
+        self.known_jobs = 0
+        self.estimated_jobs = 0
+        self.finished_jobs = 0
+        self.running_jobs = 0
+        self.jobs_report_save_counter = 0
+
+        super().__init__(config)
+
+    def __eq__(self, other):
+        if isinstance(other, MJReport):
+            return self.service_status == other.service_status and \
+                self.queued_time == other.queued_time and \
+                self.start_time == other.start_time and \
+                self.done_time == other.done_time and \
+                self.known_jobs == other.known_jobs and \
+                self.estimated_jobs == other.estimated_jobs and \
+                self.finished_jobs == other.finished_jobs and \
+                self.running_jobs == other.running_jobs and \
+                self.jobs_report_save_counter == other.jobs_report_save_counter
+        else:
+            return NotImplemented
+
+
+class Backend(ServiceBase):
     """
     """
 
     def __init__(self, config):
-        service_base.ServiceBase.__init__(self, config)
+        self.mj_info = JsonDataNoConstruct()
+        """dict of managed MJ information"""
+
+        super().__init__(config)
+
+        # JsonData dict workaround
+        self.mj_info = JsonData.construct_dict(MJInfo(), self.mj_info)
+
+    def _do_work(self):
+        self._retrieve_jobs_report()
+        self._download_files()
+        self._check_mj_status()
+
+    def _retrieve_jobs_report(self):
+        """
+        Retrieves Jobs report data.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            # result
+            while len(mj._results_get_jobs_report) > 0:
+                res = mj._results_get_jobs_report.pop(0)
+                if "error" in res:
+                    logging.error("Error in retrieving Jobs report")
+                else:
+                    jobs_report = res["data"]
+                    mj.n_jobs = jobs_report["n_jobs"]
+                    new_jobs_report = JsonData.construct_dict(JobReport(), jobs_report["reports"])
+                    self._update_jobs_report(mj, new_jobs_report)
+
+            if time.time() > mj._jobs_report_time + 2:
+                if mj.proxy._online:
+                    # send request
+                    job_id_list = []
+                    for i in range(1, mj.n_jobs + 1):
+                        id = str(i)
+                        if (id not in mj._jobs_report) or \
+                                (mj._jobs_report[id].status not in [JobStatus.done, JobStatus.error]):
+                            job_id_list.append(id)
+                    mj.proxy.call("request_get_jobs_report", job_id_list, mj._results_get_jobs_report)
+                else:
+                    # get data from config file
+                    conf = mj.proxy._downloaded_config
+                    if (conf is not None) and ("jobs_report" in conf):
+                        new_n_jobs = len(conf["jobs_report"])
+                        if new_n_jobs > mj.n_jobs:
+                            mj.n_jobs = new_n_jobs
+                        new_jobs_report = JsonData.construct_dict(JobReport(), conf["jobs_report"])
+                        self._update_jobs_report(mj, new_jobs_report)
+                mj._jobs_report_time = time.time()
+
+    def _update_jobs_report(self, mj, new_jobs_report):
+        """
+        Updates jobs report with new information.
+        :param mj:
+        :param new_jobs_report:
+        :return:
+        """
+        changed = False
+        for k, v in new_jobs_report.items():
+            if (k not in mj._jobs_report) or (v.status > mj._jobs_report[k].status):
+                # todo: neni moc dobry, pokud prvni info bude status done selze
+                if (k in mj._jobs_report) and (v.status in [JobStatus.done, JobStatus.error]) and mj._jobs_report[k].status < v.status:
+                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
+                mj._jobs_report[k] = v
+                changed = True
+
+            # We need update run_interval
+            if v.status in [JobStatus.running, JobStatus.downloading_result]:
+                changed = True
+        if changed:
+            self._save_jobs_states(mj)
+            mj._jobs_report_save_counter += 1
+
+    def _save_jobs_states(self, mj):
+        """
+        Saves MJ jobs status to file.
+        :param mj:
+        :return:
+        """
+        jobs_states = []
+        for k, v in mj._jobs_report.items():
+            # status
+            status = GuiTaskStatus.none
+            if v.status in [JobStatus.starting, JobStatus.queued]:
+                status = GuiTaskStatus.queued
+            elif v.status in [JobStatus.running, JobStatus.downloading_result]:
+                status = GuiTaskStatus.running
+            elif v.status == JobStatus.done:
+                status = GuiTaskStatus.finished
+            elif v.status == JobStatus.error:
+                status = GuiTaskStatus.error
+
+            # run_interval
+            run_interval = 0.0
+            if v.done_time:
+                run_interval = v.done_time - v.start_time
+            elif v.start_time:
+                run_interval = time.time() - v.start_time
+
+            d = {"status": status,
+                 "name": v.name,
+                 "insert_time": v.insert_time,
+                 "queued_time": v.queued_time,
+                 "start_time": v.start_time,
+                 "run_interval": run_interval}
+            jobs_states.append(d)
+
+        # save to file
+        dir = os.path.join(self.get_analysis_workspace(),
+                           mj.proxy.workspace,
+                           "..", "res", "state")
+        os.makedirs(dir, exist_ok=True)
+        file = os.path.join(dir, "jobs_states.json")
+        try:
+            with open(file, 'w') as fd:
+                json.dump(jobs_states, fd, indent=4, sort_keys=True)
+        except Exception as e:
+            logging.error("Jobs states saving error: {0}".format(e))
+
+    def _download_files(self):
+        """
+        Download files which are in self.files_to_download.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            con = mj.proxy._connection
+            if con._status == ConnectionStatus.online:
+                # todo: v pripade chyby v jednom souboru se bude pokouset stahovat porad znovu
+                try:
+                    con.download(
+                        mj.files_to_download,
+                        os.path.join(con._local_service.service_host_connection.environment.geomop_analysis_workspace, mj.proxy.workspace),
+                        os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
+                    mj.files_to_download.clear()
+                except (SSHError, FileNotFoundError, PermissionError):
+                    pass
+
+    def _check_mj_status(self):
+        """
+        Check MJ status and perform appropriate action.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            if mj.proxy._status == ServiceStatus.done and not mj._log_planed_to_download:
+                mj.files_to_download.append("mj_service.log")
+                mj._log_planed_to_download = True
 
     """ Backend requests. """
+
+    @LongRequest
+    def request_start_mj(self, data):
+        """
+        Starts MJ.
+        :param data: dict with keys "mj_id" and "mj_conf"
+        :return:
+        """
+        mj_id = data["mj_id"]
+        mj_conf = data["mj_conf"]
+        child_id = self.request_start_child(mj_conf)
+        mj = MJInfo()
+        mj.proxy = self._child_services[child_id]
+        mj.queued_time = time.time()
+        self.mj_info[mj_id] = mj
+
+    def request_get_mj_report(self, data):
+        """
+        Return MJ report.
+        :param data:
+        :return:
+        """
+        reports = {}
+        for k, mj in self.mj_info.items():
+            status = mj.proxy._status
+            if status is None:
+                continue
+
+            rep = MJReport()
+            rep.service_status = status
+            rep.known_jobs = mj.n_jobs
+            rep.estimated_jobs = mj.n_jobs
+            rep.queued_time = mj.queued_time
+            rep.jobs_report_save_counter = mj._jobs_report_save_counter
+            for v in mj._jobs_report.values():
+                if v.status in [JobStatus.running, JobStatus.downloading_result]:
+                    rep.running_jobs += 1
+                elif v.status in [JobStatus.done, JobStatus.error]:
+                    rep.finished_jobs += 1
+
+            conf = mj.proxy._downloaded_config
+            if (conf is not None) and (ServiceStatus[conf["status"]] == status):
+                if "start_time" in conf:
+                    rep.start_time = conf["start_time"]
+                if "done_time" in conf:
+                    rep.done_time = conf["done_time"]
+                if "mj_status" in conf:
+                    rep.mj_status = MJStatus[conf["mj_status"]]
+
+            reports[str(k)] = rep.serialize()
+        return reports
 
 
 ##########
@@ -24,17 +294,18 @@ class Backend(service_base.ServiceBase):
 ##########
 
 
-logging.basicConfig(filename='backend_service.log', filemode="w",
-                    format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
-                    level=logging.INFO)
+if __name__ == "__main__":
+    logging.basicConfig(filename='backend_service.log', filemode="w",
+                        format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
+                        level=logging.INFO)
 
 
-try:
-    input_file = "backend_service.conf"
-    with open(input_file, "r") as f:
-        config = json.load(f)
-    bs = Backend(config)
-    bs.run()
-except:
-    logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
-    raise
+    try:
+        input_file = "backend_service.conf"
+        with open(input_file, "r") as f:
+            config = json.load(f)
+        bs = Backend(config)
+        bs.run()
+    except:
+        logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
+        raise

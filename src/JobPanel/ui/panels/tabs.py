@@ -107,7 +107,7 @@ class JobsTab(AbstractTab):
                 job.start_time).strftime(time_format))
         else:
             item.setText(3, "Not Started Yet")
-        item.setText(4, str(datetime.timedelta(seconds=job.run_interval)))
+        item.setText(4, str(datetime.timedelta(seconds=int(job.run_interval))))
         item.setText(5, str(TaskStatus(job.status)))
 
         item.setTextAlignment(1, QtCore.Qt.AlignRight)

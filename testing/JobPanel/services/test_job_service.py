@@ -39,7 +39,7 @@ def test_correct_run(request):
     # job data
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services/_job_service.py",
+                         "path": "JobPanel/services/job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
           "path": "../testing/JobPanel/services/job_1.py",
@@ -106,7 +106,7 @@ def test_correct_run_connection_fail(request):
           "name": "remote"}
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services/_job_service.py",
+                         "path": "JobPanel/services/job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
           "path": "../testing/JobPanel/services/job_1.py",

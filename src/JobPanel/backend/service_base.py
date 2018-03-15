@@ -224,6 +224,11 @@ class ServiceBase(JsonData):
         self.config_file_name = ""
         """Name of service config file."""
 
+        self.start_time = 0.0
+        """Time when service start."""
+        self.done_time = 0.0
+        """Time when service done."""
+
         super().__init__(config)
 
         self._service_thread_ident = threading.get_ident()
@@ -237,6 +242,8 @@ class ServiceBase(JsonData):
 
         self._child_services = {}
         """Dict of child service proxies."""
+        self._child_services_lock = threading.Lock()
+        """Lock for _child_services"""
 
         self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
         self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
@@ -268,6 +275,16 @@ class ServiceBase(JsonData):
                             self.config_file_name)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
+
+    def _set_status_done(self):
+        """
+        Sets status to done, sets done_time, saves config and sets closing flag.
+        :return:
+        """
+        self.status = ServiceStatus.done
+        self.done_time = time.time()
+        self.save_config()
+        self._closing = True
 
     def run(self):
         """
@@ -304,6 +321,7 @@ class ServiceBase(JsonData):
         logging.info("After run")
 
         self.status = ServiceStatus.running
+        self.start_time = time.time()
         self.save_config()
 
     def run_body(self):
@@ -332,8 +350,9 @@ class ServiceBase(JsonData):
 
     def _process_answers(self):
         #logging.info("Process answers ...")
-        for ch_service in self._child_services.values():
-            ch_service._process_answers()
+        with self._child_services_lock:
+            for ch_service in self._child_services.values():
+                ch_service._process_answers()
         # for d_service in self._delegator_services.values():
         #     d_service._process_answers()
         for con in self._connections.values():
@@ -362,18 +381,19 @@ class ServiceBase(JsonData):
 
     def _send_answers(self):
         """
-        Send filled answers form self._answers_to_send.
+        Send filled answers from self._answers_to_send.
         Method is thread safe.
         :return:
         """
         done = False
         while not done:
+            done = True
             for i in range(len(self._answers_to_send)):
                 if len(self._answers_to_send[i][1]) > 0:
                     item = self._answers_to_send.pop(i)
                     self._repeater.send_answer(item[0], item[1][0])
+                    done = False
                     break
-            done = True
 
     def _do_work(self):
         """
@@ -387,8 +407,9 @@ class ServiceBase(JsonData):
             con.get_status()
 
     def _check_child_services(self):
-        for child in self._child_services.values():
-            child.get_status()
+        with self._child_services_lock:
+            for child in self._child_services.values():
+                child.get_status()
 
     def get_connection(self, connection_data):
         """
@@ -498,13 +519,15 @@ class ServiceBase(JsonData):
         proxy = ServiceProxy({})
         proxy.set_rep_con(self._repeater, connection)
         child_id = proxy.start_service(service_data)
-        self._child_services[child_id] = proxy
+        with self._child_services_lock:
+            self._child_services[child_id] = proxy
 
         return child_id
 
     def request_stop_child(self, child_id):
-        if child_id in self._child_services:
-            self._child_services[child_id].stop()
+        with self._child_services_lock:
+            if child_id in self._child_services:
+                self._child_services[child_id].stop()
 
 
     # def request_stop_child(self, request_data):
@@ -522,7 +545,7 @@ class ServiceBase(JsonData):
         :param data: None
         :return:
         """
-        return ServiceStatus.running
+        return ServiceStatus.running.name
 
     def request_stop(self, data):
         self._closing = True

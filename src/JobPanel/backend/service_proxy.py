@@ -43,7 +43,7 @@ class ServiceProxy(JsonData):
 
 
     """
-    def __init__(self, config):#service_data, repeater, connection):
+    def __init__(self, config={}):#service_data, repeater, connection):
         self.connection_name = ""
         """Name of connection"""
         self.child_id = -1
@@ -85,6 +85,8 @@ class ServiceProxy(JsonData):
         """We are connected to service"""
         self._downloaded_config = None
         """Config downloaded from service config file"""
+        self._download_config_false_time = 0.0
+        """Time of unsuccessful attempt of download config"""
 
         # if (self.service.status != None):
         #     # reinit, download port, status, etc. from remote file using delegator
@@ -231,6 +233,7 @@ class ServiceProxy(JsonData):
 
         if self.download_config():
             self._status = ServiceStatus[self._downloaded_config["status"]]
+        self._last_time = time.time()
 
     def get_status(self):
     #def connect_service(self, child_id):
@@ -241,14 +244,6 @@ class ServiceProxy(JsonData):
 
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
-
-        Nasledujici body jiz neplati.
-        1. Check if repeater.client[child_id] have target port (ClientDispatcher exists)
-        2. If No or child_id == None, download service config file and get port from there ( ... postpone)
-        3. Open forward tunnel
-        4. Call repeater.client[id].connect(port)
-           self.repeater._connect_child_repeater(socket_address)
-        5. set Job state to running
         """
 
         #TODO:
@@ -278,13 +273,19 @@ class ServiceProxy(JsonData):
                 self._online = False
             else:
                 if res is not None:
-                    self._status = res["data"]
+                    self._status = ServiceStatus[res["data"]]
                     self._last_time = time.time()
 
                 # request get status
                 result = []
                 self.call("request_get_status", None, result)
                 self._results_get_status.append(result)
+
+            # update config
+            if (self._downloaded_config is None) or (ServiceStatus[self._downloaded_config["status"]] != self._status):
+                if time.time() > self._download_config_false_time + 1:
+                    if not self.download_config():
+                        self._download_config_false_time = time.time()
         elif self._status == ServiceStatus.queued or self._status == ServiceStatus.running:
             if time.time() > self._last_time + 1:
                 if self.download_config():
@@ -296,6 +297,12 @@ class ServiceProxy(JsonData):
                         else:
                             self._repeater.reconnect_child(self.child_id)
                 self._last_time = time.time()
+        elif (self._downloaded_config is None) or (ServiceStatus[self._downloaded_config["status"]] != self._status):
+            if time.time() > self._last_time + 1:
+                if self.download_config():
+                    self._status = ServiceStatus[self._downloaded_config["status"]]
+                self._last_time = time.time()
+
         return self._status
 
     def download_config(self):

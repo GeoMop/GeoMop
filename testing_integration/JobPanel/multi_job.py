@@ -38,7 +38,7 @@ mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
 # job_service executable
 job_service = {"__class__": "Executable",
                "name": "job_service",
-               "path": "JobPanel/services/_job_service.py",
+               "path": "JobPanel/services/job_service.py",
                "script": True}
 
 # flow123d executable

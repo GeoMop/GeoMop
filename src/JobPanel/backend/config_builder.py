@@ -67,7 +67,7 @@ def build(data_app, mj_id):
     # job_service executable
     job_service = {"__class__": "Executable",
                    "name": "job_service",
-                   "path": "JobPanel/services/_job_service.py",
+                   "path": "JobPanel/services/job_service.py",
                    "script": True}
 
     # flow123d executable

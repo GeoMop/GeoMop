@@ -5,6 +5,7 @@ import json
 import traceback
 import enum
 import shutil
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Analysis"))
@@ -32,10 +33,11 @@ class JobStatus(enum.IntEnum):
     State of a job.
     """
     starting = 1
-    running = 2
-    downloading_result = 3
-    done = 4
-    error = 5
+    queued = 2
+    running = 3
+    downloading_result = 4
+    done = 5
+    error = 6
 
 
 class JobInfo:
@@ -49,6 +51,32 @@ class JobInfo:
         self.results_download_job_result = None
         self.child_id = None
         self.job_dir = job_dir
+
+
+class JobReport(JsonData):
+    """
+    Crate for store job report information.
+    """
+    def __init__(self, config={}):
+        self.status = JobStatus.starting
+        self.name = ""
+        self.insert_time = 0.0
+        self.queued_time = 0.0
+        self.start_time = 0.0
+        self.done_time = 0.0
+
+        super().__init__(config)
+
+    # def __eq__(self, other):
+    #     if isinstance(other, JobReport):
+    #         return self.status == other.status and \
+    #             self.name == other.name and \
+    #             self.insert_time == other.insert_time and \
+    #             self.queued_time == other.queued_time and \
+    #             self.start_time == other.start_time and \
+    #             self.done_time == other.done_time
+    #     else:
+    #         return NotImplemented
 
 
 class MultiJob(ServiceBase):
@@ -66,13 +94,22 @@ class MultiJob(ServiceBase):
         self.max_n_jobs = 10
         """maximal count of running jobs"""
 
+        self.jobs_report = JsonDataNoConstruct()
+        """jobs report information"""
+
         super().__init__(config)
+
+        # JsonData dict workaround
+        self.jobs_report = JsonData.construct_dict(JobReport(), self.jobs_report)
 
         self._pipeline_processor = None
 
         self._jobs = {}
         self._max_job_id = 0
         self._n_running_jobs = 0
+
+        self._config_changed = False
+        self._last_config_saved = 0.0
 
     def _do_work(self):
         if self.status == ServiceStatus.done:
@@ -102,17 +139,19 @@ class MultiJob(ServiceBase):
 
         # success
         elif self.mj_status == MJStatus.success:
-            self.status = ServiceStatus.done
-            self.save_config()
-            self._closing = True
+            self._set_status_done()
 
         # error
         elif self.mj_status == MJStatus.error:
             self.check_jobs()
             if len(self._jobs) == 0:
-                self.status = ServiceStatus.done
-                self.save_config()
-                self._closing = True
+                self._set_status_done()
+
+        # save config if needed
+        if self._config_changed and (time.time() > self._last_config_saved + 10):
+            self.save_config()
+            self._config_changed = False
+            self._last_config_saved = time.time()
 
     def run_pipeline(self):
         # run script
@@ -212,8 +251,16 @@ class MultiJob(ServiceBase):
         logging.info("Job {} starting".format(job_id))
         answer = []
         self.call("request_start_child", service_data, answer)
-        self._jobs[job_id] = JobInfo(runner, answer, job_dir)
+        job_info = JobInfo(runner, answer, job_dir)
+        self._jobs[job_id] = job_info
         self._n_running_jobs += 1
+
+        # update job report
+        job_report = JobReport()
+        job_report.status = job_info.status
+        job_report.name = "job_{}".format(job_id)
+        job_report.insert_time = time.time()
+        self.jobs_report[str(job_id)] = job_report
 
     def check_jobs(self):
         """
@@ -222,6 +269,7 @@ class MultiJob(ServiceBase):
         """
         for job_id in list(self._jobs.keys()):
             job_info = self._jobs[job_id]
+            job_report = self.jobs_report[str(job_id)]
 
             # starting
             if job_info.status == JobStatus.starting:
@@ -236,7 +284,18 @@ class MultiJob(ServiceBase):
                         del self._jobs[job_id]
                     else:
                         job_info.child_id = res["data"]
-                        job_info.status = JobStatus.running
+                        job_info.status = JobStatus.queued
+                        job_report.queued_time = time.time()
+                    job_report.status = job_info.status
+                    self._config_changed = True
+
+            # queued
+            elif job_info.status == JobStatus.queued:
+                if self._child_services[job_info.child_id]._status in [ServiceStatus.running, ServiceStatus.done]:
+                    job_info.status = JobStatus.running
+                    job_report.status = job_info.status
+                    job_report.start_time = time.time()
+                    self._config_changed = True
 
             # running
             elif job_info.status == JobStatus.running:
@@ -250,6 +309,7 @@ class MultiJob(ServiceBase):
                     job_info.results_download_job_result = []
                     self.call("request_download_job_result", job_id, job_info.results_download_job_result)
                     job_info.status = JobStatus.downloading_result
+                    job_report.status = job_info.status
 
             # downloading
             elif job_info.status == JobStatus.downloading_result:
@@ -263,6 +323,9 @@ class MultiJob(ServiceBase):
                         self._pipeline_processor.set_job_finished(job_info.runner.id)
                         job_info.status = JobStatus.done
                     del self._jobs[job_id]
+                    job_report.status = job_info.status
+                    job_report.done_time = time.time()
+                    self._config_changed = True
 
     # todo: az to bude bezpecne spoustet jako LongRequest
     #@LongRequest
@@ -272,32 +335,50 @@ class MultiJob(ServiceBase):
         :param job_id:
         :return:
         """
-        analysis_workspace = self.service_host_connection.environment.geomop_analysis_workspace
-        local_prefix = os.path.join(analysis_workspace, self.workspace)
-        remote_prefix = os.path.join(
-            self.job_service_data["service_host_connection"]["environment"]["geomop_analysis_workspace"],
-            self._jobs[job_id].job_dir)
+        loc_an_work = self.service_host_connection.environment.geomop_analysis_workspace
+        rem_an_work = self.job_service_data["service_host_connection"]["environment"]["geomop_analysis_workspace"]
         con = self.get_connection(self.job_service_data["service_host_connection"])
         if con._status != ConnectionStatus.online:
             return False
         try:
-            con.download(self._jobs[job_id].runner.output_files, local_prefix, remote_prefix)
+            # output files
+            con.download(self._jobs[job_id].runner.output_files,
+                         os.path.join(loc_an_work, self.workspace),
+                         os.path.join(rem_an_work, self._jobs[job_id].job_dir))
+
+            # log file
+            con.download([os.path.join(self._jobs[job_id].job_dir, "job_service.log")],
+                         loc_an_work,
+                         rem_an_work)
         except (SSHError, FileNotFoundError, PermissionError):
             return False
         return True
 
+    def request_get_jobs_report(self, job_id_list):
+        """
+        Return jobs report for jobs their ids are in job_id_list.
+        :param job_id_list:
+        :return:
+        """
+        reports = {}
+        for id in job_id_list:
+            if id in self.jobs_report:
+                reports[id] = self.jobs_report[id].serialize()
+        return {"reports": reports, "n_jobs": len(self.jobs_report)}
 
-logging.basicConfig(filename='mj_service.log', filemode="w",
-                    format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
-                    level=logging.INFO)
+
+if __name__ == "__main__":
+    logging.basicConfig(filename='mj_service.log', filemode="w",
+                        format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
+                        level=logging.INFO)
 
 
-try:
-    input_file = "mj_service.conf"
-    with open(input_file, "r") as f:
-        config = json.load(f)
-    bs = MultiJob(config)
-    bs.run()
-except:
-    logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
-    raise
+    try:
+        input_file = "mj_service.conf"
+        with open(input_file, "r") as f:
+            config = json.load(f)
+        bs = MultiJob(config)
+        bs.run()
+    except:
+        logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
+        raise

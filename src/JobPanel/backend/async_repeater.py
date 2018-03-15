@@ -434,11 +434,15 @@ class ServerDispatcher(asynchat.async_chat):
         self.push_queue = []
         """Queue for push request"""
 
+        self._async_chat_init = False
+        """True if async_chat was initialized"""
+
 
     def accept(self, socket):
         logging.info("Accept")
         #socket.settimeout(2)
         asynchat.async_chat.__init__(self, sock = socket)
+        self._async_chat_init = True
         #self.set_socket(socket)
         self.set_terminator(_terminator)
         return
@@ -487,6 +491,10 @@ class ServerDispatcher(asynchat.async_chat):
         :return:
         """
         self.push_queue.append(data)
+
+    def close(self):
+        if self._async_chat_init:
+            super().close()
 
 
     """

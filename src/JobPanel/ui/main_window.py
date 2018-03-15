@@ -65,9 +65,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.error = "Multijob data is corrupted"
             action = TASK_STATUS_STARTUP_ACTIONS[status]
             if action == MultijobActions.resume:
-                self.frontend_service._resume_jobs.append(mj_id)
+                #self.frontend_service._resume_jobs.append(mj_id)
+                pass
             elif action == MultijobActions.terminate:
-                self.frontend_service._terminate_jobs.append(mj_id)
+                #self.frontend_service._terminate_jobs.append(mj_id)
+                pass
 
     def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
@@ -167,7 +169,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if current is not None:
             current_mj_id = current.text(0)
 
-        for mj_id in self.frontend_service._state_change_jobs:
+        state_change_jobs = self.frontend_service.get_mj_changed_state()
+        for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
             if current_mj_id == mj_id:
@@ -187,11 +190,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.multijobs_changed.emit(self.data.multijobs)
                         break
 
-        overview_change_jobs = set(self.frontend_service._results_change_jobs)
-        overview_change_jobs.update(self.frontend_service._jobs_change_jobs)
-        overview_change_jobs.update(self.frontend_service._logs_change_jobs)
-
-        for mj_id in overview_change_jobs:
+        for mj_id in state_change_jobs:
             if current_mj_id == mj_id:
                 mj = self.data.multijobs[mj_id]
                 self.ui.tabWidget.reload_view(mj)
@@ -214,10 +213,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(self.frontend_service._jobs_deleted)>0:
             self.multijobs_changed.emit(self.data.multijobs)
 
-        self.frontend_service._state_change_jobs = []
-        self.frontend_service._results_change_jobs = []
-        self.frontend_service._jobs_change_jobs = []
-        self.frontend_service._logs_change_jobs = []
         self.frontend_service._jobs_deleted = {}
 
         # close application
@@ -438,12 +433,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        self.frontend_service._resume_jobs.append(key)
+        #self.frontend_service._resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        self.frontend_service._stop_jobs.append(key)
+        self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
         OptionsDialog(self, self.data,self.data.env_presets).show()
