@@ -1,6 +1,7 @@
 from .service_base import ServiceBase, ServiceStatus
 from . import config_builder
 from .json_data import JsonData, JsonDataNoConstruct
+from .executor import ProcessDocker
 from services.backend_service import MJReport
 from services.multi_job_service import MJStatus
 from ui.data.mj_data import MultiJobState
@@ -9,6 +10,8 @@ from data.states import TaskStatus as GuiTaskStatus
 import threading
 import time
 import logging
+import os
+import json
 
 
 class ServiceFrontend(ServiceBase):
@@ -36,17 +39,52 @@ class ServiceFrontend(ServiceBase):
     """
 
     def __init__(self, data_app):
-        # ToDo: nezadavat natvrdo
-        env = {"__class__": "Environment",
-               "geomop_root": "/home/radek/work/GeoMop/src",
-               "geomop_analysis_workspace": "/home/radek/work/workspace",
-               "python": "python3"}
+        self.backend_process_id = ""
+        """Hash of the backend running container"""
 
-        cl = {"__class__": "ConnectionLocal",
-              "address": "localhost",
-              "environment": env,
-              "name": "local"}
-        super().__init__({"service_host_connection": cl})
+        # ToDo: nezadavat natvrdo
+        geomop_root = "/home/radek/work/GeoMop/src"
+        geomop_analysis_workspace = "/home/radek/work/workspace"
+        workspace = ""
+        config_file_name = "frontend_service.conf"
+
+        # try load frontend service config file
+        file = os.path.join(geomop_analysis_workspace,
+                            workspace,
+                            config_file_name)
+        service_data = None
+        try:
+            with open(file, 'r') as fd:
+                try:
+                    service_data = json.load(fd)
+                except ValueError:
+                    pass
+        except OSError:
+            pass
+
+        if service_data is not None:
+            # fix service_data
+            if "__class__" in service_data:
+                del service_data["__class__"]
+            # todo: Asi by se melo znovu nastavit geomop_root a geomop_analysis_workspace pro pripad,
+            # ze doslo ke zmene umisteni workspace. To same plati i pro backend.
+        else:
+            # if file doesn't exist create new config
+            env = {"__class__": "Environment",
+                   "geomop_root": geomop_root,
+                   "geomop_analysis_workspace": geomop_analysis_workspace,
+                   "python": "python3"}
+
+            cl = {"__class__": "ConnectionLocal",
+                  "address": "localhost",
+                  "environment": env,
+                  "name": "local"}
+
+            service_data = {"service_host_connection": cl,
+                            "workspace": workspace,
+                            "config_file_name": config_file_name}
+
+        super().__init__(service_data)
 
         self._mj_report = {}
         """MJ report information"""
@@ -85,7 +123,16 @@ class ServiceFrontend(ServiceBase):
         self._mj_changed_state = set()
         """Set of MJ which changed state, from last call get_mj_changed_state."""
 
+        self._backend_process_id_saved = False
+
     def _do_work(self):
+        # save backend process id
+        if not self._backend_process_id_saved:
+            if (self._backend_proxy is not None) and (len(self._backend_proxy._results_process_start) > 0):
+                self.backend_process_id = self._backend_proxy._results_process_start[-1]["data"]
+                self.save_config()
+                self._backend_process_id_saved = True
+
         self._retrieve_mj_report()
 
     def _retrieve_mj_report(self):
@@ -95,14 +142,15 @@ class ServiceFrontend(ServiceBase):
         """
         # result
         l = len(self._results_get_mj_report)
-        for i in range(l-1):
-            self._results_get_mj_report.pop(0)
-        res = self._results_get_mj_report.pop(0)
-        if "error" in res:
-            logging.error("Error in retrieving MJ report data")
-        else:
-            new_mj_report = JsonData.construct_dict(MJReport(), res["data"])
-            self._update_mj_report(new_mj_report)
+        if l > 0:
+            for i in range(l-1):
+                self._results_get_mj_report.pop(0)
+            res = self._results_get_mj_report.pop(0)
+            if "error" in res:
+                logging.error("Error in retrieving MJ report data")
+            else:
+                new_mj_report = JsonData.construct_dict(MJReport(), res["data"])
+                self._update_mj_report(new_mj_report)
 
         # send request
         if (self._backend_proxy is not None) and self._backend_proxy._online and (time.time() > self._mj_report_time + 1):
@@ -174,36 +222,81 @@ class ServiceFrontend(ServiceBase):
 
 
     def start_backend(self):
-        # environment
-        # ToDo: nezadavat natvrdo
-        env = {"__class__": "Environment",
-               "geomop_root": "/home/radek/work/GeoMop/src",
-               "geomop_analysis_workspace": "/home/radek/work/workspace",
-               "python": "python3"}
+        """
+        Starts backend.
+        :return:
+        """
+        workspace = ""
+        config_file_name = "backend_service.conf"
 
-        # service data
-        cd = {"__class__": "ConnectionLocal",
-              # ToDo: nezadavat natvrdo
-              "address": "172.17.42.1",
-              "environment": env,
-              "name": "docker"}
-        pd = {"__class__": "ProcessDocker",
-              "executable": {"__class__": "Executable",
-                             "path": "JobPanel/services/backend_service.py",
-                             "script": True}}
-        service_data = {"service_host_connection": cd,
-                        "process": pd,
-                        "workspace": "",
-                        "config_file_name": "backend_service.conf"}
+        # kill old backend container
+        self.kill_backend()
+
+        # try load backend service config file
+        file = os.path.join(self.get_analysis_workspace(),
+                            workspace,
+                            config_file_name)
+        service_data = None
+        try:
+            with open(file, 'r') as fd:
+                try:
+                    service_data = json.load(fd)
+                except ValueError:
+                    pass
+        except OSError:
+            pass
+
+        if service_data is not None:
+            # fix service_data
+            if "__class__" in service_data:
+                del service_data["__class__"]
+            if "environment" in service_data["process"]:
+                del service_data["process"]["environment"]
+        else:
+            # if file doesn't exist create new config
+            env = {"__class__": "Environment",
+                   # todo: v budoucnu bude odkazovat primo na instalaci v dockeru
+                   "geomop_root": self.get_geomop_root(),
+                   "geomop_analysis_workspace": self.get_analysis_workspace(),
+                   "python": "python3"}
+
+            cd = {"__class__": "ConnectionLocal",
+                  # ToDo: nezadavat natvrdo, nicmene zpusobi jenom zpozdeni 1 s
+                  "address": "172.17.42.1",
+                  "environment": env,
+                  "name": "docker"}
+
+            pd = {"__class__": "ProcessDocker",
+                  "executable": {"__class__": "Executable",
+                                 "path": "JobPanel/services/backend_service.py",
+                                 "script": True}}
+
+            service_data = {"service_host_connection": cd,
+                            "process": pd,
+                            "workspace": workspace,
+                            "config_file_name": config_file_name}
 
         # start backend
         child_id = self.request_start_child(service_data)
         self._backend_proxy = self._child_services[child_id]
 
     def stop_backend(self):
+        """
+        Request stop backend.
+        :return:
+        """
         answer = []
         self._backend_proxy.call("request_stop", None, answer)
         #time.sleep(5)
+
+    def kill_backend(self):
+        """
+        Kill backend container.
+        :return:
+        """
+        if self.backend_process_id != "":
+            executor = ProcessDocker({"process_id": self.backend_process_id})
+            executor.kill()
 
     # Interface new
     ###############

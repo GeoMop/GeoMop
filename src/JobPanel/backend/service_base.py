@@ -187,7 +187,7 @@ class ServiceBase(JsonData):
     """
     # answer_ok = { 'data' : 'ok' }
 
-    def __init__(self, config):
+    def __init__(self, config, repeater_max_client_id=0):
         """
         Create the service and its repeater.
         """
@@ -229,6 +229,9 @@ class ServiceBase(JsonData):
         self.done_time = 0.0
         """Time when service done."""
 
+        #self.repeater_max_client_id = 0
+        """repeater max client id"""
+
         super().__init__(config)
 
         self._service_thread_ident = threading.get_ident()
@@ -245,8 +248,10 @@ class ServiceBase(JsonData):
         self._child_services_lock = threading.Lock()
         """Lock for _child_services"""
 
-        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
-        self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
+        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address, repeater_max_client_id)
+        listen_port = self._repeater.listen_port
+        if listen_port is not None:
+            self.listen_address = (self.get_ip_address(), listen_port)
 
         self._closing = False
 

@@ -1,6 +1,6 @@
 from .service_base import ServiceStatus, call_action
 from .connection import ConnectionStatus, SSHError
-from .json_data import JsonData
+from .json_data import JsonData, JsonDataNoConstruct
 
 import time
 import logging
@@ -46,6 +46,8 @@ class ServiceProxy(JsonData):
     def __init__(self, config={}):#service_data, repeater, connection):
         self.connection_name = ""
         """Name of connection"""
+        # todo: v budoucnu bude asi jinak
+        self.connection_config = JsonDataNoConstruct()
         self.child_id = -1
         """Child id"""
         self.workspace = ""
@@ -170,6 +172,9 @@ class ServiceProxy(JsonData):
         # 3.
         self.child_id, remote_port = self._repeater.add_child(self._connection)
 
+        # todo: docasne ukladame vcetne hesla
+        self.connection_config = service_data["service_host_connection"]
+
         # update service data, remove password
         service_data = service_data.copy()
         service_data["repeater_address"] = [self.child_id]
@@ -198,7 +203,7 @@ class ServiceProxy(JsonData):
 
         # save config file
         file = os.path.join(
-            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
         with open(file, 'w') as fd:
@@ -211,7 +216,7 @@ class ServiceProxy(JsonData):
                 files.append(os.path.join(service_data["workspace"], file))
         files.append(os.path.join(self.workspace, self.config_file_name))
         self._connection.upload(files,
-                                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                                self._connection._local_service.get_analysis_workspace(),
                                 self._connection.environment.geomop_analysis_workspace)
 
         # 4.
@@ -315,12 +320,12 @@ class ServiceProxy(JsonData):
         try:
             self._connection.download(
                 [os.path.join(self.workspace, self.config_file_name)],
-                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                self._connection._local_service.get_analysis_workspace(),
                 self._connection.environment.geomop_analysis_workspace)
         except (SSHError, FileNotFoundError, PermissionError):
             return False
         file = os.path.join(
-            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
         try:

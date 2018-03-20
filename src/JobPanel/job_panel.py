@@ -115,6 +115,7 @@ class JobPanel(object):
         for i in range(10):
             time.sleep(0.1)
             self._frontend_service.run_body()
+        self._frontend_service.kill_backend()
 
         # stop frontend service
         self._frontend_service.run_after()

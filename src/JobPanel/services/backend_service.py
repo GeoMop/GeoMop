@@ -26,27 +26,31 @@ class MJInfo(JsonData):
         self.n_jobs = 0
         """number of known jobs"""
 
-        super().__init__(config)
-
-        self._jobs_report = {}
-        """jobs report information"""
-        self._jobs_report_save_counter = 0
-        """jobs report save counter"""
-
-        self._results_get_jobs_report = []
-        """Result list of get jobs report request"""
-
-        self._jobs_report_time = time.time()
-        """Last time request_get_jobs_report sent or report retrieved from proxy._downloaded_config"""
-
         self.queued_time = 0.0
         """MJ queued time"""
 
         self.files_to_download = []
         """Files need to be downloaded"""
 
-        self._log_planed_to_download = False
+        self.log_planed_to_download = False
         """True if log file was planed to download"""
+
+        self.job_log_planed_to_download = []
+        """List of job names which has their log planed to download"""
+
+        self.jobs_report_save_counter = 0
+        """jobs report save counter"""
+
+        super().__init__(config)
+
+        self._jobs_report = {}
+        """jobs report information"""
+
+        self._results_get_jobs_report = []
+        """Result list of get jobs report request"""
+
+        self._jobs_report_time = 0.0
+        """Last time request_get_jobs_report sent or report retrieved from proxy._downloaded_config"""
 
 
 class MJReport(JsonData):
@@ -90,15 +94,65 @@ class Backend(ServiceBase):
         self.mj_info = JsonDataNoConstruct()
         """dict of managed MJ information"""
 
-        super().__init__(config)
+        # find repeater_max_client_id
+        repeater_max_client_id = 0
+        if "mj_info" in config:
+            for mj in config["mj_info"].values():
+                child_id = mj["proxy"]["child_id"]
+                if child_id > repeater_max_client_id:
+                    repeater_max_client_id = child_id
+
+        super().__init__(config, repeater_max_client_id)
 
         # JsonData dict workaround
         self.mj_info = JsonData.construct_dict(MJInfo(), self.mj_info)
 
+        self._new_mj_queue = []
+        """Queue with new MJ to add to self.mj_info"""
+
+        self._config_changed = False
+        self._proxies_resuscitated = False
+
     def _do_work(self):
+        if not self._proxies_resuscitated:
+            self._resuscitate_proxies()
+
         self._retrieve_jobs_report()
         self._download_files()
         self._check_mj_status()
+        self._process_queues()
+
+        # save config if needed
+        # todo: je nutne ukladat okamzite?
+        if self._config_changed:
+            self.save_config()
+            logging.info("Saving backend conf. ===============================================================================")
+            self._config_changed = False
+
+    def _resuscitate_proxies(self):
+        """
+        Calls _request_resuscitate_proxy for all deserialized proxies.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            proxy = mj.proxy
+            answer = []
+            self.call("_request_resuscitate_proxy", proxy, answer)
+        self._proxies_resuscitated = True
+
+    @LongRequest
+    def _request_resuscitate_proxy(self, proxy):
+        """
+        Gets connection and connect service.
+        :param proxy:
+        :return:
+        """
+        # todo: je potreba nastavit heslo
+        con = self.get_connection(proxy.connection_config)
+        proxy.set_rep_con(self._repeater, con)
+        proxy.connect_service()
+        with self._child_services_lock:
+            self._child_services[proxy.child_id] = proxy
 
     def _retrieve_jobs_report(self):
         """
@@ -148,18 +202,20 @@ class Backend(ServiceBase):
         changed = False
         for k, v in new_jobs_report.items():
             if (k not in mj._jobs_report) or (v.status > mj._jobs_report[k].status):
-                # todo: neni moc dobry, pokud prvni info bude status done selze
-                if (k in mj._jobs_report) and (v.status in [JobStatus.done, JobStatus.error]) and mj._jobs_report[k].status < v.status:
-                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
                 mj._jobs_report[k] = v
                 changed = True
+
+                if (v.status in [JobStatus.done, JobStatus.error]) and (v.name not in mj.job_log_planed_to_download):
+                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
+                    mj.job_log_planed_to_download.append(v.name)
 
             # We need update run_interval
             if v.status in [JobStatus.running, JobStatus.downloading_result]:
                 changed = True
         if changed:
             self._save_jobs_states(mj)
-            mj._jobs_report_save_counter += 1
+            mj.jobs_report_save_counter += 1
+            self._config_changed = True
 
     def _save_jobs_states(self, mj):
         """
@@ -212,18 +268,26 @@ class Backend(ServiceBase):
         Download files which are in self.files_to_download.
         :return:
         """
+        # todo: predelat tak, aby probihalo ve vlakne, kazdy MJ bude mit svoje stahovaci vlakno
         for mj in self.mj_info.values():
             con = mj.proxy._connection
-            if con._status == ConnectionStatus.online:
-                # todo: v pripade chyby v jednom souboru se bude pokouset stahovat porad znovu
-                try:
-                    con.download(
-                        mj.files_to_download,
-                        os.path.join(con._local_service.service_host_connection.environment.geomop_analysis_workspace, mj.proxy.workspace),
-                        os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
-                    mj.files_to_download.clear()
-                except (SSHError, FileNotFoundError, PermissionError):
-                    pass
+            if (con is not None) and (con._status == ConnectionStatus.online):
+                while len(mj.files_to_download) > 0:
+                    try:
+                        con.download(
+                            [mj.files_to_download[0]],
+                            os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
+                            os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
+                        del mj.files_to_download[0]
+                        # todo: az bude ve vlakne, bude se muset pouzit zamek nebo resit pres queue - to je asi lepsi
+                        self._config_changed = True
+                    except SSHError as e:
+                        logging.error("Downloading file error: {0}".format(e))
+                        break
+                    except (FileNotFoundError, PermissionError) as e:
+                        logging.error("Downloading file error: {0}".format(e))
+                        del mj.files_to_download[0]
+                        self._config_changed = True
 
     def _check_mj_status(self):
         """
@@ -231,9 +295,19 @@ class Backend(ServiceBase):
         :return:
         """
         for mj in self.mj_info.values():
-            if mj.proxy._status == ServiceStatus.done and not mj._log_planed_to_download:
+            if mj.proxy._status == ServiceStatus.done and not mj.log_planed_to_download:
                 mj.files_to_download.append("mj_service.log")
-                mj._log_planed_to_download = True
+                mj.log_planed_to_download = True
+
+    def _process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
+        for i in range(len(self._new_mj_queue)):
+            mj_id, mj = self._new_mj_queue.pop(0)
+            self.mj_info[mj_id] = mj
+            self._config_changed = True
 
     """ Backend requests. """
 
@@ -248,9 +322,10 @@ class Backend(ServiceBase):
         mj_conf = data["mj_conf"]
         child_id = self.request_start_child(mj_conf)
         mj = MJInfo()
-        mj.proxy = self._child_services[child_id]
+        with self._child_services_lock:
+            mj.proxy = self._child_services[child_id]
         mj.queued_time = time.time()
-        self.mj_info[mj_id] = mj
+        self._new_mj_queue.append((mj_id, mj))
 
     def request_get_mj_report(self, data):
         """
@@ -269,7 +344,7 @@ class Backend(ServiceBase):
             rep.known_jobs = mj.n_jobs
             rep.estimated_jobs = mj.n_jobs
             rep.queued_time = mj.queued_time
-            rep.jobs_report_save_counter = mj._jobs_report_save_counter
+            rep.jobs_report_save_counter = mj.jobs_report_save_counter
             for v in mj._jobs_report.values():
                 if v.status in [JobStatus.running, JobStatus.downloading_result]:
                     rep.running_jobs += 1
@@ -287,6 +362,31 @@ class Backend(ServiceBase):
 
             reports[str(k)] = rep.serialize()
         return reports
+
+    @LongRequest
+    def request_download_whole_mj(self, mj_id):
+        """
+        Downloads whole MJ from remote.
+        :param data:
+        :return:
+        """
+        if mj_id not in self.mj_info:
+            logging.warning("Attempt to download nonexistent MJ.")
+            return
+        mj = self.mj_info[mj_id]
+        con = mj.proxy._connection
+        if con._status == ConnectionStatus.online:
+            dir = os.path.join(self.get_analysis_workspace(),
+                               mj.proxy.workspace,
+                               "..", "downloaded_config")
+            os.makedirs(dir, exist_ok=True)
+            try:
+                con.download(
+                    ["mj_config"],
+                    dir,
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
+            except (SSHError, FileNotFoundError, PermissionError):
+                pass
 
 
 ##########

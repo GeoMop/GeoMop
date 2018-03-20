@@ -456,5 +456,9 @@ class ProcessDocker(ProcessBase):
         See client_test.py, BackedProxy.__del__
         :return:
         """
-        output = subprocess.check_output(['docker', 'rm', '-f', self.process_id])
+        try:
+            args = ['docker', 'rm', '-f', self.process_id]
+            output = subprocess.check_output(args, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            pass
         return True
