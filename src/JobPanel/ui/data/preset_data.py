@@ -6,6 +6,10 @@ Unified data structure for presets.
 """
 import uuid
 import re
+import os
+
+import config
+from data import Users
 
 
 class Id:
@@ -66,6 +70,20 @@ class APreset:
         :return: String representation of object.
         """
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
+
+    def mangle_secret(self):
+        """
+        Mangles secret data.
+        :return:
+        """
+        pass
+
+    def demangle_secret(self):
+        """
+        Demangles secret data.
+        :return:
+        """
+        pass
 
 
 class PbsPreset(APreset):
@@ -192,6 +210,26 @@ class SshPreset(APreset):
             ret["uid"]="Bad format of ssh user name"            
         return ret
         
+    def mangle_secret(self):
+        """
+        Mangles secret data.
+        :return:
+        """
+        from ui.imports.workspaces_conf import BASE_DIR
+        self.key = Users.save_reg(self.name, self.pwd, os.path.join(config.__config_dir__, BASE_DIR))
+        self.pwd = "a124b.#"
+
+    def demangle_secret(self):
+        """
+        Demangles secret data.
+        :return:
+        """
+        from ui.imports.workspaces_conf import BASE_DIR
+        pwd = Users.get_reg(self.name, self.key, os.path.join(config.__config_dir__, BASE_DIR))
+        if pwd is not None:
+            self.pwd = pwd
+        else:
+            self.pwd = ""
 
 
 class ResPreset(APreset):

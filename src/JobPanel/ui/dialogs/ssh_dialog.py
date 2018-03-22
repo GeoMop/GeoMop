@@ -71,14 +71,11 @@ class SshDialog(AFormContainer):
             return True
         # password
         if self.ui.passwordLineEdit.isEnabled():
-            password = self.ui.passwordLineEdit.text()
-            pwd2 = Users.get_reg(self.preset.name, self.preset.key, os.path.join(
-                config.__config_dir__, BASE_DIR))
-            if password != pwd2:
+            if self.preset.pwd != p.pwd:
                 return True
         return False
 
-    def get_data(self, save_reg=True):
+    def get_data(self):
         name=self.ui.nameLineEdit.text()
         preset = SshPreset(name=name)
         preset.host = self.ui.hostLineEdit.text()
@@ -95,17 +92,7 @@ class SshDialog(AFormContainer):
 
         # password
         if self.ui.passwordLineEdit.isEnabled():
-            password = self.ui.passwordLineEdit.text()
-            if save_reg:                
-                if self.preset is None or password != self.preset.pwd:
-                    # if password changed
-                    key = Users.save_reg(name, password,
-                        os.path.join(config.__config_dir__, BASE_DIR))
-                    preset.pwd = "a124b.#"
-                    preset.key = key
-                else:
-                    preset.pwd = self.preset.pwd
-                    preset.key = self.preset.key
+            preset.pwd = self.ui.passwordLineEdit.text()
 
         return {'preset': preset,
                 'old_name': self.old_name}
@@ -128,14 +115,8 @@ class SshDialog(AFormContainer):
             self.ui.portSpinBox.setValue(preset.port)
             self.ui.remoteDirLineEdit.setText(preset.remote_dir)
             self.ui.userLineEdit.setText(preset.uid)
-            pwd = Users.get_reg(preset.name, preset.key, 
-                os.path.join(config.__config_dir__, BASE_DIR))
-            if pwd is not None:
-                self.ui.passwordLineEdit.setText(pwd)
-                self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
-            else:
-                self.ui.passwordLineEdit.setText("")
-                self.ui.rememberPasswordCheckbox.setChecked(False)
+            self.ui.passwordLineEdit.setText(preset.pwd)
+            self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.useTunnelingCheckbox.setChecked(preset.use_tunneling)
             self.ui.pbsSystemComboBox.setCurrentIndex(
@@ -188,15 +169,13 @@ class SshDialog(AFormContainer):
                 
     def handle_test(self):
         """Do ssh connection test"""
-        preset = self.get_data(False)['preset']
+        preset = self.get_data()['preset']
         if not preset.to_pc:
             dialog = SshPasswordDialog(None, preset)
             if dialog.exec_():
                 preset.pwd = dialog.password
             else:
                 return
-        else:
-            preset.pwd = self.ui.passwordLineEdit.text()
         dialog = TestSSHDialog(self, preset, self.data)
         dialog.exec_()
 
