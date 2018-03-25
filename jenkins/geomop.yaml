@@ -1,3 +1,9 @@
+# TODO
+# - create multi job as in Flow123d
+# - try single test job
+# - reuse doc job, use build name for commit message
+# - build job, version given by  file version.txt
+# - review response from tests, nee to see only failing tests
 #########################################################################################
 # Test and build all platform
 #########################################################################################
@@ -116,6 +122,16 @@
 - job:
     name: "test-all"
     display-name: "All tests"
+    scm:
+    - git:
+        branches:
+        - '*'
+        url: https://github.com/GeoMop/GeoMop
+    triggers:
+      - github
+    wrappers:
+      - build-name:
+          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
     builders:
       - shell: |
           pwd
