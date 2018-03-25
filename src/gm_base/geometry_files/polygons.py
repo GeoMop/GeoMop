@@ -1077,16 +1077,19 @@ class PolygonDecomposition:
             decomp.points.append(Point(pt.xy, poly=None), id=pt.id)
             id_maps[0][pt.id] = pt.id
 
+        seg_orig_to_new={}
         for seg in self.segments.values():
             vtxs_ids = [pt.id for pt in seg.vtxs]
             new_seg = decomp.make_segment(vtxs_ids)
             id_maps[1][new_seg.id] = seg.id
+            seg_orig_to_new[seg.id] = new_seg.id
 
+        # FixMe: map orig segment IDs to new IDs
         for poly in self.polygons.values():
-            outer_wire = [seg.id for seg, side in poly.outer_wire.segments()]
+            outer_wire = [ seg_orig_to_new[seg.id] for seg, side in poly.outer_wire.segments()]
             holes = []
             for hole in poly.outer_wire.childs:
-                wire = [seg.id for seg, side in hole.segments()]
+                wire = [ seg_orig_to_new[seg.id] for seg, side in hole.segments()]
                 holes.append(wire)
             free_points = [pt.id for pt in poly.free_points]
             new_poly = decomp.make_polygon(outer_wire, holes, free_points)

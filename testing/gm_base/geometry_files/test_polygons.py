@@ -534,34 +534,6 @@ class TestDecomposition:
        decomp.new_segment(pt2, pt3)
        #plot_polygon_decomposition(decomp)
 
-
-    def test_simple_intersections(self):
-        da = PolygonDecomposition()
-        da.add_line((0, 0), (1,0))
-        da.add_line((0, 0), (0, 1))
-        da.add_line((1, 1), (1, 0))
-        da.add_line((1, 1), (0, 1))
-        da.add_line((0, 0), (1, 1))
-        print("da:\n", da)
-
-        db = PolygonDecomposition()
-        db.add_line((0, 0), (1,0))
-        db.add_line((0, 0), (0, 1))
-        db.add_line((1, 1), (1, 0))
-        db.add_line((1, 1), (0, 1))
-        db.add_line((1, 0), (0, 1))
-        print("db:\n", db)
-
-        (dc, maps_a, maps_b) = da.intersection(db)
-        print("dc\n", dc)
-        #plot_polygon_decomposition(dc)
-        assert maps_a[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
-        assert maps_b[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
-        assert maps_a[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5:4, 6:None, 7:None}
-        assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: None, 5:None, 6:4, 7:4}
-        assert maps_a[2] == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
-        assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
-
     def test_complex_wire_remove(self):
         da = PolygonDecomposition()
         # outer triangle
@@ -578,9 +550,63 @@ class TestDecomposition:
         sa, = da.add_line((2, 1), (4, 0))
         sb, = da.add_line((1, 2), (0, 4))
 
-        print("initial dc:\n", da)
+        #print("initial dc:\n", da)
         #plot_polygon_decomposition(da)
 
         da.delete_segment(sb)
         da.delete_segment(sa)
-        print("final dc:\n", da)
+        #print("final dc:\n", da)
+
+    def test_deep_copy(self):
+        print("===== test deep_copy")
+        da = PolygonDecomposition()
+        da.add_line((0, 0), (1,0))
+        sb, = da.add_line((0, 0), (0, 1))
+        da.add_line((1, 1), (1, 0))
+        da.add_line((1, 1), (0, 1))
+        da.add_line((0, 0), (1, 1))
+        da.add_line((1, 0), (0, 1))
+        da.delete_segment(sb)
+        print("da:\n", da)
+
+        db, maps = da.deep_copy()
+        print("db:\n", db)
+        print(maps)
+
+        for poly_b in db.polygons.values():
+            poly_a = da.polygons[maps[2][poly_b.id]]
+            for sa, sb in zip(poly_a.outer_wire.segments(), poly_b.outer_wire.segments()):
+                seg_a, _ = sa
+                seg_b, _ = sb
+                assert seg_a.id == maps[1][seg_b.id]
+
+
+    def test_simple_intersections(self):
+        da = PolygonDecomposition()
+        da.add_line((0, 0), (1,0))
+        da.add_line((0, 0), (0, 1))
+        da.add_line((1, 1), (1, 0))
+        da.add_line((1, 1), (0, 1))
+        da.add_line((0, 0), (1, 1))
+        #print("da:\n", da)
+
+        db = PolygonDecomposition()
+        db.add_line((0, 0), (1,0))
+        db.add_line((0, 0), (0, 1))
+        db.add_line((1, 1), (1, 0))
+        db.add_line((1, 1), (0, 1))
+        db.add_line((1, 0), (0, 1))
+        #print("db:\n", db)
+
+        (dc, maps_a, maps_b) = da.intersection(db)
+        #print("dc\n", dc)
+        #plot_polygon_decomposition(dc)
+        assert maps_a[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
+        assert maps_b[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
+        assert maps_a[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5:4, 6:None, 7:None}
+        assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: None, 5:None, 6:4, 7:4}
+        assert maps_a[2] == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
+        assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
+
+
+
