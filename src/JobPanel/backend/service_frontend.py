@@ -42,9 +42,9 @@ class ServiceFrontend(ServiceBase):
         self.backend_process_id = ""
         """Hash of the backend running container"""
 
-        # ToDo: nezadavat natvrdo
-        geomop_root = "/home/radek/work/GeoMop/src"
-        geomop_analysis_workspace = "/home/radek/work/workspace"
+        # ToDo: vyresit lepe
+        geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+        geomop_analysis_workspace = data_app.workspaces.get_path()
         workspace = ""
         config_file_name = "frontend_service.conf"
 
@@ -326,6 +326,11 @@ class ServiceFrontend(ServiceBase):
         return
         if mj_id in self.mj_map:
             del self.mj_map[mj_id]
+
+    def download_whole_mj(self, mj_id):
+        """Downloads whole multijob"""
+        answer = []
+        self._backend_proxy.call("request_download_whole_mj", mj_id, answer)
 
     def get_mj_changed_state(self):
         """

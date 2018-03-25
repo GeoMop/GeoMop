@@ -105,6 +105,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_send_report_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
             self._handle_delete_remote_action)
+        self.ui.menuBar.multiJob.actionDownloadWholeMultiJob.triggered.connect(
+            self._handle_download_whole_multijob_action)
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.save_mj)
         # ssh presets
@@ -176,11 +178,11 @@ class MainWindow(QtWidgets.QMainWindow):
             if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
-            if mj.state.status == TaskStatus.finished:
-                # copy app central log into mj
-                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                      MULTIJOBS_DIR, mj.preset.name)
-                shutil.copy(LOG_PATH, mj_dir)
+            # if mj.state.status == TaskStatus.finished:
+            #     # copy app central log into mj
+            #     mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
+            #                           MULTIJOBS_DIR, mj.preset.name)
+            #     shutil.copy(LOG_PATH, mj_dir)
 
                 # check if all jobs finished successfully for a finished multijob
                 for job in mj.get_jobs():
@@ -332,6 +334,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
 
     def _handle_delete_multijob_action(self):
+        return
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             if self.data.multijobs[key].preset.deleted_remote:
@@ -392,13 +395,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
 
     def _handle_delete_remote_action(self):
+        return
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             if not  self.data.multijobs[key].preset.deleted_remote:
                 self.frontend_service._delete_jobs.append(key)
                 self._set_deleting(key)
 
-    def handle_multijob_dialog(self, purpose, data):        
+    def _handle_download_whole_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        self.frontend_service.download_whole_mj(key)
+
+    def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
         if purpose in (MultiJobDialog.PURPOSE_ADD, MultiJobDialog.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
@@ -436,6 +445,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.frontend_service._resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
+        return
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
         self.frontend_service.mj_stop(key)
@@ -490,6 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).showEvent(event)
         self.raise_()
 
+        return
         # select workspace if none is selected
         if self.data.workspaces.get_path() is None:
             import sys

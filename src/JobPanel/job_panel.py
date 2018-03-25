@@ -80,6 +80,17 @@ class JobPanel(object):
         # setup com manager
         #self._com_manager = ComManager(self._data)
 
+        # todo: presunuto z main_window, nevim jeslti to je v poradku
+        # select workspace if none is selected
+        if self._data.workspaces.get_path() is None:
+            import sys
+            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose workspace")
+            if not sel_dir:
+                sel_dir = None
+            elif sys.platform == "win32":
+                sel_dir = sel_dir.replace('/', '\\')
+            self._data.reload_workspace(sel_dir)
+
         # setup frontend service
         self._frontend_service = ServiceFrontend(self._data)
 

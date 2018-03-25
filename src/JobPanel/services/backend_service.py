@@ -111,6 +111,8 @@ class Backend(ServiceBase):
         """Queue with new MJ to add to self.mj_info"""
 
         self._config_changed = False
+        self._last_config_saved = 0.0
+
         self._proxies_resuscitated = False
 
     def _do_work(self):
@@ -123,11 +125,10 @@ class Backend(ServiceBase):
         self._process_queues()
 
         # save config if needed
-        # todo: je nutne ukladat okamzite?
-        if self._config_changed:
+        if self._config_changed and (time.time() > self._last_config_saved + 1):
             self.save_config()
-            logging.info("Saving backend conf. ===============================================================================")
             self._config_changed = False
+            self._last_config_saved = time.time()
 
     def _resuscitate_proxies(self):
         """

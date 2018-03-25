@@ -2,6 +2,10 @@ import os
 import json
 
 from client_pipeline.mj_preparation import *
+from ui.dialogs import SshPasswordDialog
+from ui.imports.workspaces_conf import BASE_DIR
+from data import Users
+import config
 
 
 def build(data_app, mj_id):
@@ -20,21 +24,21 @@ def build(data_app, mj_id):
     mj_ssh_preset = data_app.ssh_presets.get(res_preset.mj_ssh_preset, None)
     mj_remote_execution_type = res_preset.mj_remote_execution_type
     mj_pbs_preset = data_app.pbs_presets.get(res_preset.mj_pbs_preset, None)
-    if mj_ssh_preset is None:
-        mj_env = data_app.config.local_env
-    else:
-        mj_env = mj_ssh_preset.env
-    mj_env = data_app.env_presets[mj_env]
+    # if mj_ssh_preset is None:
+    #     mj_env = data_app.config.local_env
+    # else:
+    #     mj_env = mj_ssh_preset.env
+    # mj_env = data_app.env_presets[mj_env]
 
     j_execution_type = res_preset.j_execution_type
     j_ssh_preset = data_app.ssh_presets.get(res_preset.j_ssh_preset, None)
     j_remote_execution_type = res_preset.j_remote_execution_type
     j_pbs_preset = data_app.pbs_presets.get(res_preset.j_pbs_preset, None)
-    if j_ssh_preset is None:
-        j_env = mj_env
-    else:
-        j_env = j_ssh_preset.env
-        j_env = data_app.env_presets[j_env]
+    # if j_ssh_preset is None:
+    #     j_env = mj_env
+    # else:
+    #     j_env = j_ssh_preset.env
+    #     j_env = data_app.env_presets[j_env]
 
 
 
@@ -52,10 +56,8 @@ def build(data_app, mj_id):
     # mj_config_dir
     mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
 
-    # todo: docasne, zatim neni kde brat
-    rem_geomop_root = "/storage/brno2/home/radeksrb/work/GeoMop/src"
-    rem_geomop_analysis_workspace = "/storage/brno2/home/radeksrb/work/workspace"
-    loc_geomop_root = "/home/radek/work/GeoMop/src"
+    # ToDo: vyresit lepe
+    loc_geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     loc_geomop_analysis_workspace = os.path.abspath(workspace)
 
     # multi_job_service executable
@@ -70,24 +72,36 @@ def build(data_app, mj_id):
                    "path": "JobPanel/services/job_service.py",
                    "script": True}
 
-    # flow123d executable
-    flow123d = {"__class__": "Executable",
-                "name": "flow123d",
-                "path": j_env.flow_path}
+    # docker flow123d executable
+    # todo: v budoucnu bude brat z executables.json, ktery bude primo v dockeru
+    docker_flow123d = {"__class__": "Executable",
+                       "name": "flow123d",
+                       "path": "/opt/flow123d/bin/flow123d"}
 
     # mj environment
-    env_mj = {"__class__": "Environment",
-           "geomop_root": loc_geomop_root if mj_ssh_preset is None else rem_geomop_root,
-           "geomop_analysis_workspace": loc_geomop_analysis_workspace if mj_ssh_preset is None else rem_geomop_analysis_workspace,
-           "executables": [],
-           "python": mj_env.python_exec}
+    if mj_ssh_preset is not None:
+        env_mj = {"__class__": "Environment",
+                  "geomop_root": mj_ssh_preset.geomop_root,
+                  "geomop_analysis_workspace": mj_ssh_preset.workspace,
+                  "executables": [],
+                  "python": mj_ssh_preset.geomop_root + "/" + "bin/python"}
+    else:
+        env_mj = {"__class__": "Environment",
+                  "geomop_root": loc_geomop_root,
+                  "geomop_analysis_workspace": loc_geomop_analysis_workspace,
+                  "executables": [],
+                  "python": "python3"}
 
     # job environment
-    env_j = {"__class__": "Environment",
-           "geomop_root": env_mj["geomop_root"] if j_ssh_preset is None else rem_geomop_root,
-           "geomop_analysis_workspace": env_mj["geomop_analysis_workspace"] if j_ssh_preset is None else rem_geomop_analysis_workspace,
-           "executables": [job_service, flow123d],
-           "python": j_env.python_exec}
+    if j_ssh_preset is not None:
+        env_j = {"__class__": "Environment",
+                 "geomop_root": j_ssh_preset.geomop_root,
+                 "geomop_analysis_workspace": j_ssh_preset.workspace,
+                 "executables": [job_service],
+                 "python": j_ssh_preset.geomop_root + "/" + "bin/python"}
+    else:
+        env_j = env_mj.copy()
+        env_j["executables"] = [job_service, docker_flow123d] if (mj_ssh_preset is None) else [job_service]
 
     # mj connection
     if mj_ssh_preset is None:
@@ -96,12 +110,22 @@ def build(data_app, mj_id):
               "environment": env_mj,
               "name": "localhost"}
     else:
-        # ToDo: jmena, hesla
-        u, p = get_passwords()["metacentrum"]
+        if mj_ssh_preset.to_pc:
+            pwd = Users.get_reg(mj_ssh_preset.name,
+                                mj_ssh_preset.key,
+                                os.path.join(config.__config_dir__, BASE_DIR))
+        else:
+            dialog = SshPasswordDialog(None, mj_ssh_preset)
+            if dialog.exec_():
+                pwd = dialog.password
+            else:
+                # todo: asi by bylo lepsi spousteni MJ zrusit
+                pwd = ""
+        #u, pwd = get_passwords()["metacentrum"]
         mj_con = {"__class__": "ConnectionSSH",
               "address": mj_ssh_preset.host,
               "uid": mj_ssh_preset.uid,
-              "password": p,
+              "password": pwd,
               "environment": env_mj,
               "name": mj_ssh_preset.name}
 
@@ -129,14 +153,14 @@ def build(data_app, mj_id):
         pe = {"__class__": "ProcessPBS",
               "executable": multi_job_service,
               "exec_args": {"__class__": "ExecArgs",
-                            "pbs_args": _get_pbs_conf(mj_pbs_preset, mj_env.pbs_params)}}
+                            "pbs_args": _get_pbs_conf(mj_pbs_preset)}}
 
     if j_pbs_preset is None:
         job_pe = {"__class__": "ProcessExec"}
     else:
         job_pe = {"__class__": "ProcessPBS",
                   "exec_args": {"__class__": "ExecArgs",
-                                "pbs_args": _get_pbs_conf(j_pbs_preset, j_env.pbs_params)}}
+                                "pbs_args": _get_pbs_conf(j_pbs_preset)}}
 
     job_service_data = {"service_host_connection": j_con,
                         "process": job_pe}

@@ -159,8 +159,10 @@ class SshPreset(APreset):
         """Host to connect"""
         self.port = kw_or_def('port', '22')
         """Port for connection"""
-        self.remote_dir = kw_or_def('remote_dir', 'js_services')
-        """Remote directory name"""
+        self.geomop_root = kw_or_def('geomop_root', '')
+        """Remote GeoMop root"""
+        self.workspace = kw_or_def('workspace', '')
+        """Remote analysis workspace"""
         self.uid = kw_or_def('uid', '')
         """User ID"""
         self.pwd = kw_or_def('pwd', '')
@@ -204,8 +206,9 @@ class SshPreset(APreset):
             ret["host"]="Invalid dns name (too long)" 
         if not isinstance(self.port, int) or self.port<1 or self.port>65535:
             ret["port"]="Invalid ssh port"     
-        if not self.re_name.match(self.remote_dir):
-            ret["remote_dir"]="Bad format of remote directory"
+        # todo: spravit, taky pridat validaci pro workspace
+        # if not self.re_name.match(self.geomop_root):
+        #     ret["geomop_root"]="Bad format of remote directory"
         if self.uid is None and len(self.uid)==0:
             ret["uid"]="Bad format of ssh user name"            
         return ret

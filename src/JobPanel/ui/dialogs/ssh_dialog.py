@@ -55,7 +55,9 @@ class SshDialog(AFormContainer):
             return True
         if p.port!=self.preset.port:
             return True
-        if p.remote_dir!=self.preset.remote_dir:
+        if p.geomop_root!=self.preset.geomop_root:
+            return True
+        if p.workspace!=self.preset.workspace:
             return True
         if p.uid!=self.preset.uid:
             return True
@@ -80,7 +82,8 @@ class SshDialog(AFormContainer):
         preset = SshPreset(name=name)
         preset.host = self.ui.hostLineEdit.text()
         preset.port = self.ui.portSpinBox.value()
-        preset.remote_dir = self.ui.remoteDirLineEdit.text()
+        preset.geomop_root = self.ui.geomop_rootLineEdit.text()
+        preset.workspace = self.ui.workspaceLineEdit.text()
         preset.uid = self.ui.userLineEdit.text()
         preset.to_pc = self.ui.rememberPasswordCheckbox.isChecked()
         preset.to_remote = (self.ui.copyPasswordCheckbox.isEnabled() and
@@ -113,14 +116,23 @@ class SshDialog(AFormContainer):
             self.ui.nameLineEdit.setText(preset.name)
             self.ui.hostLineEdit.setText(preset.host)
             self.ui.portSpinBox.setValue(preset.port)
-            self.ui.remoteDirLineEdit.setText(preset.remote_dir)
+            self.ui.geomop_rootLineEdit.setText(preset.geomop_root)
+            self.ui.workspaceLineEdit.setText(preset.workspace)
             self.ui.userLineEdit.setText(preset.uid)
             self.ui.passwordLineEdit.setText(preset.pwd)
             self.ui.rememberPasswordCheckbox.setChecked(preset.to_pc)
             self.ui.copyPasswordCheckbox.setChecked(preset.to_remote)
             self.ui.useTunnelingCheckbox.setChecked(preset.use_tunneling)
+
+            # todo: nevim jak lepe vyresit
+            self.ui.pbsSystemComboBox.clear()
+            self.ui.pbsSystemComboBox.addItem('No Pbs', '')
+            dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+            for key in dialect_items:
+                self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
             self.ui.pbsSystemComboBox.setCurrentIndex(
                 self.ui.pbsSystemComboBox.findData(preset.pbs_system))
+
             self.ui.envPresetComboBox.setCurrentIndex(
                 self.ui.envPresetComboBox.findData(preset.env))
             self.valid()
@@ -128,13 +140,22 @@ class SshDialog(AFormContainer):
             self.ui.nameLineEdit.clear()
             self.ui.hostLineEdit.clear()
             self.ui.portSpinBox.setValue(22)
-            self.ui.remoteDirLineEdit.setText('js_services')
+            self.ui.geomop_rootLineEdit.setText('')
+            self.ui.workspaceLineEdit.setText('')
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
             self.ui.rememberPasswordCheckbox.setChecked(True)
             self.ui.copyPasswordCheckbox.setChecked(True)
             self.ui.useTunnelingCheckbox.setChecked(False)
             self.ui.pbsSystemComboBox.setCurrentIndex(0)
+
+            # todo: nevim jak lepe vyresit
+            self.ui.pbsSystemComboBox.clear()
+            self.ui.pbsSystemComboBox.addItem('No Pbs', '')
+            dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+            for key in dialect_items:
+                self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
+
             self.ui.envPresetComboBox.setCurrentIndex(-1)
         return 
             
@@ -159,12 +180,12 @@ class SshDialog(AFormContainer):
                 self.ui.envPresetComboBox.setCurrentIndex(
                     self.ui.envPresetComboBox.findData(self.preset.env))
                     
-        self.ui.pbsSystemComboBox.clear()
-        self.ui.pbsSystemComboBox.addItem('No Pbs', '')
+        #self.ui.pbsSystemComboBox.clear()
+        #self.ui.pbsSystemComboBox.addItem('No Pbs', '')
         #dialect_items = DialectImporter.get_available_dialects()
         dialect_items = {"PbsDialectPBSPro": "PBSPro"}
         for key in dialect_items:
-            self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
+            #self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
             self.permitted['pbs_system'].append(key)
                 
     def handle_test(self):
@@ -238,31 +259,42 @@ class UiSshDialog():
                                   self.portSpinBox)
 
         # 4 row
-        self.remoteDirLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.remoteDirLabel.setText("Remote directory:")
+        self.geomop_rootLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.geomop_rootLabel.setText("GeoMop root directory:")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
-                                  self.remoteDirLabel)
-        self.remoteDirLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-        self.remoteDirLineEdit.setText("js_services")
-        self.validator.add('remote_dir',self.remoteDirLineEdit)
+                                  self.geomop_rootLabel)
+        self.geomop_rootLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
+        self.geomop_rootLineEdit.setText("")
+        self.validator.add('geomop_root',self.geomop_rootLineEdit)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
-                                  self.remoteDirLineEdit)
+                                  self.geomop_rootLineEdit)
 
         # 5 row
+        self.workspaceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.workspaceLabel.setText("Analysis workspace directory:")
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
+                                  self.workspaceLabel)
+        self.workspaceLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
+        self.workspaceLineEdit.setText("")
+        self.validator.add('workspace', self.workspaceLineEdit)
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+                                  self.workspaceLineEdit)
+
+        # 6 row
         self.userLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.userLabel.setText("User:")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
                                   self.userLabel)
         self.userLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.userLineEdit.setPlaceholderText("User name")
         self.userLineEdit.setProperty("clearButtonEnabled", True)
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole,
                                   self.userLineEdit)
 
-        # 6 row
+        # 7 row
         self.passwordLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.passwordLabel.setText("Password:")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
                                   self.passwordLabel)
 
         self.passwordLayout = QtWidgets.QVBoxLayout()
@@ -275,46 +307,56 @@ class UiSshDialog():
         self.copyPasswordCheckbox = QtWidgets.QCheckBox()
         self.copyPasswordCheckbox.setText('Copy password to remote')        
         self.useTunnelingCheckbox = QtWidgets.QCheckBox()
-        self.useTunnelingCheckbox.setText('Use ssh tunneling')        
+        self.useTunnelingCheckbox.setText('Use ssh tunneling')
+        self.useTunnelingCheckbox.setEnabled(False)
         self.passwordLayout.addWidget(self.passwordLineEdit)
         self.passwordLayout.addWidget(self.rememberPasswordCheckbox)
         self.passwordLayout.addWidget(self.copyPasswordCheckbox)
         self.passwordLayout.addWidget(self.useTunnelingCheckbox)
         
-        self.formLayout.setLayout(6, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setLayout(7, QtWidgets.QFormLayout.FieldRole,
                                   self.passwordLayout)
 
         self.rememberPasswordCheckbox.stateChanged.connect(
             self._handle_remember_password_checkbox_changed)
         self._handle_remember_password_checkbox_changed()
 
-        # 7 row
+        # 8 row
         self.pbsSystemLabel = QtWidgets.QLabel(
             self.mainVerticalLayoutWidget)
         self.pbsSystemLabel.setText("PBS System:")
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
                                   self.pbsSystemLabel)
         self.pbsSystemComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.validator.add('pbs_system', self.pbsSystemComboBox)        
-        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
                                   self.pbsSystemComboBox)
-                                  
-        # 8 row
+
+        # todo: nevim jak lepe vyresit
+        self.pbsSystemComboBox.clear()
+        self.pbsSystemComboBox.addItem('No Pbs', '')
+        dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+        for key in dialect_items:
+            self.pbsSystemComboBox.addItem(dialect_items[key], key)
+
+        # 9 row
         self.envPresetLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.envPresetLabel.setText(self.ENV_LABEL)
-        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole,
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.LabelRole,
                                    self.envPresetLabel)
         self.envPresetComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
+        self.envPresetComboBox.setEnabled(False)
         self.validator.add('env',  self.envPresetComboBox)  
-        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole,
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
                                    self.envPresetComboBox)
                                    
-        # 9 row
+        # 10 row
         self.btnTest = QtWidgets.QPushButton(dialog)
         self.btnTest.setText("Test Connection")
-        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
+        self.btnTest.setEnabled(False)
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.FieldRole,
                                    self.btnTest)
                                    
         self.btnTest.clicked.connect(parent.handle_test)
