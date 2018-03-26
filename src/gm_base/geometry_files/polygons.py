@@ -985,6 +985,7 @@ class PolygonDecomposition:
         for hole_wire in list(orig_poly.outer_wire.childs):
             if new_poly.outer_wire.contains_wire(hole_wire):
                 hole_wire.set_parent(new_poly.outer_wire)
+                hole_wire.polygon = new_poly
         return new_seg
 
 
@@ -1804,7 +1805,7 @@ def intersect_decompositions(decomps):
         for one_decomp_maps in all_maps:
             new_decomp_maps = []
             for one_dim_map, common_map in zip(one_decomp_maps, common_maps):
-                new_map = { new_id: one_dim_map[orig_id] for new_id, orig_id in common_map.items() if orig_id is not None }
+                new_map = { new_id: one_dim_map[orig_id] for new_id, orig_id in common_map.items() if orig_id in one_dim_map}
                 new_decomp_maps.append(new_map)
             new_all_maps.append(new_decomp_maps)
         new_all_maps.append(decomp_maps)

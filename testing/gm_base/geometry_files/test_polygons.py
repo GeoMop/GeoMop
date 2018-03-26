@@ -297,6 +297,8 @@ class TestDecomposition:
         decomp.remove_free_point(100)
 
 
+
+
     def check_split_poly_structure(self, decomp, out_square, in_square):
         decomp.check_consistency()
 
@@ -393,6 +395,20 @@ class TestDecomposition:
         wire4 = list(wire3.childs)[0]
         assert we_r == wire4
         assert len(wire4.childs) == 0
+
+        # Split main polygon with childs.
+        da = PolygonDecomposition()
+        seg_in, = da.add_line((0.1, 0.5), (0.9, 0.5))
+        seg_out, = da.add_line((0.1, -0.5), (0.9, -0.5))
+        da.add_line((0, 0), (1, 0))
+        da.add_line((0, 0), (0, 1))
+        da.add_line((1, 1), (1, 0))
+        da.add_line((1, 1), (0, 1))
+        assert seg_in.wire[0] == seg_in.wire[1]
+        assert seg_in.wire[0].polygon != da.outer_polygon
+        assert seg_out.wire[0] == seg_out.wire[1]
+        assert seg_out.wire[0].polygon == da.outer_polygon
+
 
 
     def test_seg_add_remove(self):
@@ -609,4 +625,23 @@ class TestDecomposition:
         assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
 
 
+    def test_frac_intersections(self):
+
+        da = PolygonDecomposition()
+        da.add_line((0, 0), (1,0))
+        da.add_line((0, 0), (0, 1))
+        da.add_line((1, 1), (1, 0))
+        da.add_line((1, 1), (0, 1))
+        decomps = [da]
+
+        lines = [[0.8, 2.1, 1e-4, 1e-1],
+                 [-0.5, 0.5, 1.5, 0.5],
+                 [0.5, -0.5, 0.5, 1.5],
+                 [0, 0.75, 1, 0]]
+        for line in lines:
+            dd = PolygonDecomposition()
+            dd.add_line(line[0:2], line[2:4])
+            decomps.append(dd)
+
+        intersect_decompositions(decomps)
 
