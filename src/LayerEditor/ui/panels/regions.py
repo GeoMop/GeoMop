@@ -140,13 +140,16 @@ class Regions(QtWidgets.QToolBox):
         self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
         self.add_button[layer_id] = QtWidgets.QPushButton()
-        self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
+        # self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
+        #QIcon.fromTheme("list - remove", QIcon(":/list_remove.png"))
+        self.add_button[layer_id].setIcon(QtGui.QIcon("../common/icon/24x24/add.png"))
         self.add_button[layer_id].setToolTip('Create new region')
-        #undoicon = QIcon.fromTheme("list - remove", QIcon(":/list_remove.png"))
         self.add_button[layer_id].clicked.connect(self._add_region)
 
         self.remove_button[layer_id] = QtWidgets.QPushButton()
-        self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        # self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.remove_button[layer_id].setIcon(
+            QtGui.QIcon("../common/icon/24x24/remove.png"))
         self.remove_button[layer_id].setToolTip('Remove selected region')
         # self.remove_button[layer_id].clicked.connect(self._add_region)
 
