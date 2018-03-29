@@ -5,14 +5,14 @@
 
 from gm_base.geometry_files.polygons import *
 from gm_base.geometry_files.plot_polygons import *
-
+import pytest
 
 class TestPoint:
     def test_insert_segment_0(self):
         decomp = PolygonDecomposition()
         # insert to free point
         pt0 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
-        assert pt0.insert_segment(np.array([10, 1])) == None
+        assert pt0.insert_vector(np.array([10, 1])) == None
 
     def test_insert_segment_1(self):
         decomp = PolygonDecomposition()
@@ -21,8 +21,8 @@ class TestPoint:
         pt2 = decomp._add_free_point([1.0, 1.0], decomp.outer_polygon)
         sg1 = decomp.new_segment(pt1, pt2)
         assert sg1.is_dendrite()
-        assert pt1.insert_segment(np.array([0, 1.0])) == ( (sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
-        assert pt1.insert_segment(np.array([0, -1.0])) == ((sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_vector(np.array([0, 1.0])) == ((sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_vector(np.array([0, -1.0])) == ((sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
 
     def test_insert_segment_2(self):
         decomp = PolygonDecomposition()
@@ -37,18 +37,18 @@ class TestPoint:
         assert sg2.is_dendrite()
         assert sg1.wire[out_vtx] == sg2.wire[out_vtx]
 
-        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
-        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), sg1.wire[out_vtx])
-        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_vector(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_vector(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), sg1.wire[out_vtx])
+        assert pt1.insert_vector(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), sg1.wire[out_vtx])
 
         # close polygon
         sg3 = decomp.new_segment(pt3, pt2)
         print(decomp)
         assert sg3.wire[right_side] == decomp.wires[1]
         assert sg3.wire[left_side] == decomp.wires[2]
-        assert pt1.insert_segment(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
-        assert pt1.insert_segment(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), decomp.wires[2])
-        assert pt1.insert_segment(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
+        assert pt1.insert_vector(np.array([0.0, 1.0])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
+        assert pt1.insert_vector(np.array([1.0, 0.01])) == ((sg1, right_side), (sg2, left_side), decomp.wires[2])
+        assert pt1.insert_vector(np.array([-1.0, 0.001])) == ((sg2, right_side), (sg1, left_side), decomp.wires[1])
 
 
 class TestSegment:
@@ -59,6 +59,9 @@ class TestSegment:
 
         sg = Segment((Point([0.0, 1.0], None), Point([1.0, 0.0], None)))
         assert not sg.is_on_x_line([0.5 + 1e-1, 0.5 + 1e-1])
+
+    def test_x_line_isec(self):
+        pass
 
 class TestWire:
     def test_contains(self):
@@ -150,6 +153,52 @@ class TestDecomposition:
     #     plt.show()
 
 
+    def test_snap_point(self):
+        decomp = PolygonDecomposition()
+        # vlines
+        decomp.add_line([0, 0], [0, 4])
+        decomp.add_line([1, 1], [1, 3])
+        decomp.add_line([2, 1], [2, 2])
+        decomp.add_line([3, 0], [3, 2])
+        decomp.add_line([4, 1], [4, 4])
+        sg5, = decomp.add_line([5, 1], [5, 4])
+        sg6, = decomp.add_line([6, 0], [6, 4])
+        # h lines
+        decomp.add_line([0, 0], [6, 0])
+        decomp.add_line([4, 1], [5, 1])
+        decomp.add_line([4, 4], [5, 4])
+        decomp.add_line([0, 4], [6, 4])
+        # diagonal
+        decomp.add_line([0, 2], [2, 4])
+        decomp.add_line([0, 3], [1, 4])
+        decomp.add_line([0.5, 0], [0, 0.5])
+        decomp.check_consistency()
+
+        #plot_polygon_decomposition(decomp)
+
+        def check_snap(dim, obj, snap):
+            dim_, obj_, param_ = snap
+            assert dim == dim_
+            assert obj == obj_
+
+        check_snap(2, decomp.outer_polygon, decomp.snap_point([7, 2]) )
+        check_snap(1, sg6, decomp.snap_point([6.009, 2]) )
+        check_snap(1, sg6, decomp.snap_point([5.99, 2]))
+        check_snap(0, sg6.vtxs[out_vtx], decomp.snap_point([6.009, 0]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([5.5, 2]))
+        check_snap(1, sg5, decomp.snap_point([5, 2]))
+        check_snap(2, decomp.polygons[1], decomp.snap_point([4.5, 2]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([3.5, 2]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([3.5, 2]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([2.5, 1.5]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([2.5, 2]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([1.5, 1.5]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([1.5, 1]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([1.5, 2]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([1.5, 3]))
+        check_snap(2, decomp.polygons[3], decomp.snap_point([0.5, 3]))
+        check_snap(2, decomp.polygons[2], decomp.snap_point([1.5, 0.5]))
+
     def test_decomp(self):
 
         decomp = PolygonDecomposition()
@@ -233,13 +282,14 @@ class TestDecomposition:
 
         # test add_point on segment
         decomp.add_point((2.25, 0.75))
-        #plot_polygon_decomposition(decomp)
+
 
 
         # test new_segment - split polygon
         decomp.add_line( (-0.5, 1), (0.5, 0))
         assert decomp.get_last_polygon_changes() == (PolygonChange.add, outer.id, 1)
 
+        #plot_polygon_decomposition(decomp)
         # test split_segment in vertex
         decomp.add_line( (2,0.5), (2,-0.5))
 
@@ -625,23 +675,30 @@ class TestDecomposition:
         assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
 
 
+    #@pytest.mark.skip
     def test_frac_intersections(self):
 
         da = PolygonDecomposition()
-        da.add_line((0, 0), (1,0))
-        da.add_line((0, 0), (0, 1))
-        da.add_line((1, 1), (1, 0))
-        da.add_line((1, 1), (0, 1))
+        box = np.array([[0.0, 0.0],
+                        [2.0, 3.0]])
+        p00, p11 = box
+        p01 = np.array([p00[0], p11[1]])
+        p10 = np.array([p11[0], p00[1]])
+        da.add_line(p00, p01)
+        da.add_line(p01, p11)
+        da.add_line(p11, p10)
+        da.add_line(p10, p00)
         decomps = [da]
 
-        lines = [[0.8, 2.1, 1e-4, 1e-1],
-                 [-0.5, 0.5, 1.5, 0.5],
-                 [0.5, -0.5, 0.5, 1.5],
-                 [0, 0.75, 1, 0]]
-        for line in lines:
+        np.random.seed(1)
+        n_frac = 47
+        p0 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
+        p1 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
+
+        for pa, pb in zip(p0, p1):
             dd = PolygonDecomposition()
-            dd.add_line(line[0:2], line[2:4])
+            dd.add_line(pa, pb)
             decomps.append(dd)
 
-        intersect_decompositions(decomps)
-
+        decomp, maps = intersect_decompositions(decomps)
+        #plot_polygon_decomposition(decomp)

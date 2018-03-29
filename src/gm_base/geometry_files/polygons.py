@@ -70,6 +70,33 @@ def id_list(obj_list):
 class PolygonDecomposition:
     """
     Decomposition of a plane into (non-convex) polygonal subsets (not necessarily domains).
+
+    Methods that works with some tolerance:
+    Segment:
+
+      intersection - tolerance for snapping to the end points, fixed eps = 1e-10
+                   - snapping only to one of intersectiong segments
+
+      is_on_x_line - no tolerance, but not sure about numerical stability
+
+    Wire:
+        contains_point(self, xy):   called by Polygon.contains_point
+            -> seg.is_on_x_line(xy)
+
+        contains_wire(self, wire):
+            - fixed tolerance eps=1e-10
+            -> self.contains_point(inner_point)
+
+    PD.snap_point, calls:
+           seg.x_line_isec(point, self.tolerance)
+           snap_polygon -> pt.colocated(point, self.tolerance)
+           snap_segment ->
+                segment.contains_point(point, self.tolerance)
+                pt.colocated(point, self.tolerance)
+
+    Point.colocated - tolerance given as parameter, used for snapping
+    Segment.x_line_isec  - tol parameter
+
     """
 
     def __init__(self):
@@ -149,6 +176,8 @@ class PolygonDecomposition:
         :param b_pt: End point.
         :return: new segment
         """
+        if  a_pt == b_pt:
+            return a_pt
         self.last_polygon_change = (PolygonChange.none, None, None)
         segment = self.pt_to_seg.get((a_pt.id, b_pt.id), None)
         if segment is not None:
@@ -162,8 +191,8 @@ class PolygonDecomposition:
             return self._new_wire(a_pt.poly, a_pt, b_pt)
 
         vec = b_pt.xy - a_pt.xy
-        a_insert = a_pt.insert_segment(vec)
-        b_insert = b_pt.insert_segment(-vec)
+        a_insert = a_pt.insert_vector(vec)
+        b_insert = b_pt.insert_vector(-vec)
 
         if a_pt.is_free():
             assert b_insert is not None
@@ -324,40 +353,81 @@ class PolygonDecomposition:
         :param point: numpy array X, Y
         :return: (dim, obj, param) Where dim is object dimension (0, 1, 2), obj is the object (Point, Segment, Polygon).
         'param' is:
-          Point: polygon containing the free point
+          Point: None
           Segment: parameter 't' of snapped point on the segment
           Polygon: None
         """
         #pt = np.array(point, dtype=float)
+
+        def seg_common_pt(seg1, seg2):
+            if type(seg1) == Point:
+                return seg1
+            if seg1.vtxs[0] in seg2.vtxs:
+                return seg1.vtxs[0]
+            elif seg1.vtxs[1] in seg2.vtxs:
+                return seg1.vtxs[1]
+            assert False, "No common pt: {} {}".format(seg1,seg2)
+
         point = np.array(point)
         x_pt, y_pt = point
+        lower_bound_isec = (-np.inf, None)
+        upper_bound_isec = (np.inf, None)
         x_axis_segs = []
         for seg in self.segments.values():
             x_isec = seg.x_line_isec(point, self.tolerance)
+            if len(x_isec) == 2 and x_isec[0] <= x_pt <= x_isec[1]:
+                return self._snap_to_segment(seg, point, up_is_left=None)
             for x_isec_pt in x_isec:
-                x_axis_segs.append((x_isec_pt, seg.id, seg))
+                if x_isec_pt < x_pt and x_isec_pt >= lower_bound_isec[0]:
+                    if x_isec_pt == lower_bound_isec[0]:
+                        lower_bound_isec = (x_isec_pt, seg_common_pt(lower_bound_isec[1], seg))
+                    else:
+                        lower_bound_isec = (x_isec_pt,  seg)
+                elif  x_isec_pt >= x_pt and x_isec_pt <= upper_bound_isec[0]:
+                    if x_isec_pt == upper_bound_isec[0]:
+                        upper_bound_isec = (x_isec_pt, seg_common_pt(upper_bound_isec[1], seg))
+                    else:
+                        upper_bound_isec = (x_isec_pt, seg)
 
-        if len(x_axis_segs) == 0:
-            return self._snap_to_polygon(self.outer_polygon, point)
-        x_axis_segs.sort()
-        i = bisect.bisect_left(x_axis_segs, (x_pt, seg.id, seg))
+        #if lower_bound_isec[1] is None and upper_bound_isec[1] is None:
+
+        #x_axis_segs.sort()
+        #i = bisect.bisect_left(x_axis_segs, (x_pt, seg.id, seg))
         # i ...  x_axis_segs[i-1] < x_pt <= x_axis_segs[i]
 
-        assert i <= len(x_axis_segs)
-        if i-1 >= 0:
-            px, id, seg = x_axis_segs[i - 1]
-            snapped = self._snap_to_segment(seg, point, up_is_left=False)
-            if snapped[0] < 2:
-                return snapped
-            wire = snapped[1]
+        #assert i <= len(x_axis_segs)
+        def snap_to_side(obj, up_is_left):
+            if type(obj) == Segment:
+                return self._snap_to_segment(obj, point, up_is_left)
+            if type(obj) == Point:
+                if obj.colocated(point, self.tolerance):
+                    return (0, obj, None)
+                else:
+                    prev, next, wire = obj.insert_vector(point - obj.xy)
+                    return (2, wire.polygon, None)
+            return (3, None, None)
 
-        if i < len(x_axis_segs):
-            px, id, seg = x_axis_segs[i]
-            snapped = self._snap_to_segment(seg, point, up_is_left=True)
-            if snapped[0] < 2:
-                return snapped
-            wire = snapped[1]
-        return self._snap_to_polygon(wire.polygon, point)
+
+        snap_info_left = snap_to_side(lower_bound_isec[1], up_is_left=False)
+        snap_info_right = snap_to_side(upper_bound_isec[1], up_is_left=True)
+        #assert snap_info_left[0] < 2 != snap_info_right[0] < 2
+        if snap_info_left[0] < snap_info_right[0]:
+            snap = snap_info_left
+        else:
+            snap = snap_info_right
+        if snap[0] < 2:
+            return snap
+        elif snap[0] < 3:
+            assert snap_info_left[0] != snap_info_right[0] or snap_info_left[1] == snap_info_right[1]
+            poly = snap[1]
+        else:
+            poly = self.outer_polygon
+
+        for pt in poly.free_points:
+            if pt.colocated(point, self.tolerance):
+                return (0, pt, None)
+        return (2, poly, None)
+
 
 
 
@@ -381,13 +451,8 @@ class PolygonDecomposition:
             else:
                 side = right_side
             wire = segment.wire[side]
-            return (2, wire, None)
+            return (2, wire.polygon, None)
 
-    def _snap_to_polygon(self, polygon, point):
-        for pt in polygon.free_points:
-            if pt.colocated(point, self.tolerance):
-                return (0, pt, None)
-        return (2, polygon, None)
 
 
 
@@ -402,6 +467,9 @@ class PolygonDecomposition:
         :return: Point instance.
 
         This operation translates to atomic operations: add_free_point and split_line_by_point.
+        TODO: make consisten system to check ide effects of decomp operations.
+        This is partly done with get_last_polygon_changes but we need similar for segment in this method.
+        This is necessary in intersections.
         """
         point = np.array(point, dtype=float)
         dim, obj, t = self.snap_point(point)
@@ -430,7 +498,8 @@ class PolygonDecomposition:
         b = np.array(b, dtype=float)
         a_point = self.add_point(a)
         b_point = self.add_point(b)
-
+        if a_point == b_point:
+            return a_point
         return self.add_line_for_points(a_point, b_point)
 
 
@@ -1051,6 +1120,8 @@ class PolygonDecomposition:
     # Helper change operations.
     def _make_segment(self, points):
         seg = Segment(points)
+        if points[0] == points[1]:
+            assert False
         self.segments.append(seg)
         for vtx in [out_vtx, in_vtx]:
             seg.vtxs[vtx].join_segment(seg, vtx)
@@ -1137,19 +1208,28 @@ class PolygonDecomposition:
         other_point_map={}
         for pt in other.points.values():
             new_pt = decomp.add_point(pt.xy)
+            # Hack to identify split segment
+            seg, vtx_side = new_pt.segment
+            if seg is not None and pt != new_pt:
+                prev_seg, prev_side = seg.next[out_vtx]
+                assert prev_seg.next[in_vtx][0] == seg
+                assert seg.id not in maps_self[1]
+                maps_self[1][seg.id] = maps_self[1][prev_seg.id]
+                maps_other[1].setdefault(seg.id, None)
             maps_other[0][new_pt.id] = pt.id
             other_point_map[pt.id] = new_pt.id
             maps_self[0].setdefault(new_pt.id,  None)
 
         for seg in other.segments.values():
             new_a_pt, new_b_pt = [decomp.points[other_point_map[pt.id]] for pt in seg.vtxs]
-
+            if new_a_pt == new_b_pt:
+                continue
             #print(decomp)
             #print('add line {} {}'.format(a, b))
             t_list =  list( decomp._add_line_seg_intersections(new_a_pt, new_b_pt) )
             for t, mid_pt, seg_a, seg_b in t_list:
                 maps_self[1][seg_b.id] = maps_self[1][seg_a.id]
-                maps_other[1][seg_b.id] = maps_other[1][seg_a.id]
+                maps_other[1][seg_b.id] = maps_other[1][seg_a.id] # Should still be None, unless there is common edge
 
             # TODO:
             # - remove, yeilding polygon change
@@ -1171,9 +1251,11 @@ class PolygonDecomposition:
             - for two polygons separated by segment where segment_map[segment] is None
             - (p, P), (q, Q) for segment separating polygons p and q with parent segment
               separating polygons P and Q
+        Use DFS to construct map: (0/1, polygon.id) -> parent_polygon_id
+        for components of the graph.
         :param parent_decomp: Coarse decomposotion.
         :param segment_map: map fine decompositon segment ids to coarse decomposition segment ids
-        :return: Graph as a dict (0/1, polygon.id) -> parent_polygon_id
+        :return: Map new_poly_id -> parent_poly_id
         """
         graph = {}
 
@@ -1259,7 +1341,7 @@ class Point(IdObject):
             if seg_side == start:
                 return
 
-    def insert_segment(self, vector):
+    def insert_vector(self, vector):
         """
         Insert a vector between segments connected to the point.
 
@@ -1451,6 +1533,18 @@ class Segment(IdObject):
                 assert wire.segment[0].wire[wire.segment[1]] == wire, "wire.segment: {}, wire: {}".format(wire.segment, wire)
                 assert not wire.segment[0] == self
 
+
+    def project_point(self, pt):
+        """
+        Return parameter t of the projection to the segment.
+        :param pt: numpy [X,Y]
+        :return: t
+        """
+        Dxy = self.vector()
+        AX = self.vtxs[out_vtx] - pt
+        t = AX.dot(Dxy)/Dxy.dot(Dxy)
+        return min(max(t, 0.0), 1.0)
+
     def contains_point(self, pt, tol):
         """
         Project point to segment line in X or Y direction and check if
@@ -1458,14 +1552,7 @@ class Segment(IdObject):
         :param pt:
         :return:
         """
-        Dxy = self.vector()
-        axis = np.argmax(np.abs(Dxy))
-        D = Dxy[axis]
-        assert np.abs(D) > 1e-100
-        t = (pt[axis] - self.vtxs[0].xy[axis]) / D
-        t = min( max(t, 0.0), 1.0)
-        xy = self.parametric(t)
-        if la.norm(pt - xy, np.inf) < tol:
+        if  < tol:
             return t
         else:
             return None
@@ -1476,7 +1563,7 @@ class Segment(IdObject):
         Find intersection of 'self' and (a,b) edges.
         :param a: start vtx of edge1
         :param b: end vtx of edge1
-        :return: (t0, t1) Parameters of the intersection for 'sef' and other edge.
+        :return: (t0, t1) Parameters of the intersection for 'self' and other edge.
         """
         mat = np.array([ self.vector(), a - b])
         rhs = a - self.vtxs[0].xy
@@ -1491,22 +1578,27 @@ class Segment(IdObject):
         else:
             return (None, None)
 
-    def x_line_isec(self, xy, tol = 1e-12):
+    def x_line_isec(self, xy, tol):
         """
         Find intersection of the segment with a horizontal line passing through the given point.
         :param xy: The point. (X,Y) any indexable.
-        :param tol: Tolerance. TODO: no default tolerance, pas in the tolerance of the Decomposition.
+        :param tol: Tolerance.
         :return: List of zero, one or two points. corresponding to no, point and segment intersections respectively.
+
+        TODO: Merge with is_on_x_line, return intersection on demand, but keep consistency of these two.
         """
         vtxs = np.array([self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy])
         Dy = vtxs[1, 1] - vtxs[0, 1]
         magnitude = np.max(vtxs[:, 1])
         # require at least 4 decimal digit remaining precision of the Dy
-        if np.abs(Dy) < tol:
+        num_tol = 1e-15
+        if Dy == 0.0:
             # horizontal edge
             min_y, max_y = np.sort(vtxs[:, 1])
-            if min_y - tol <= xy[1] <= max_y + tol:
-                return [ vtxs[0, 0], vtxs[1, 0] ]
+            if min_y  <= xy[1] <= max_y :
+                res = [ vtxs[0, 0], vtxs[1, 0] ]
+                res.sort()
+                return res
             else:
                 return []
         else:
@@ -1522,8 +1614,30 @@ class Segment(IdObject):
     def is_on_x_line(self, xy):
         """
         Returns true if the segment is on the right horizontal halfline. starting in given point.
-        TODO: Careful test of numerical stability when x_axis goes through
-        a point or a segment is on it.
+
+        Evaluation of condition is_on_line is unstable for xy close to the segment,
+        however still the best approximation of the condition. Nevertheless,
+        such case should not happen as the point would be snapped to the segment.
+
+        Result for special cases (not clear if this is OK):
+            - y_vtx_in == y_vtx_out on h-line:
+                False
+
+            - y_vtx_in > y_vtx_out:
+              - vtx_in on h-line:  -> False
+              - vtx_out on h-line: ->
+                x_vtx_out > x -> True
+                x_vtx_out < x  -> False
+                x_vtx_out == x should not happen
+
+
+            - y_vtx_in < y_vtx_out:
+              - vtx_out on h-line:  -> False
+              - vtx_in on h-line: ->
+                x_vtx_in > x -> True
+                x_vtx_in < x  -> False
+                x_vtx_out == x should not happen
+
         :param xy: (x, y) left tip of the horizontal half line
         :return:
         """
@@ -1800,7 +1914,9 @@ def intersect_decompositions(decomps):
     common_decomp = PolygonDecomposition()
     all_maps = []
     for decomp in decomps:
-        common_decomp, decomp_maps, common_maps = decomp.intersection(common_decomp)
+        print("frac : ", len(all_maps))
+        common_decomp, common_maps, decomp_maps = common_decomp.intersection(decomp)
+        decomp_maps = [ { key: val for key,val in map.items() if val is not None} for map in decomp_maps ]
         new_all_maps = []
         for one_decomp_maps in all_maps:
             new_decomp_maps = []
