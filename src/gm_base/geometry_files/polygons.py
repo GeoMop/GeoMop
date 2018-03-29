@@ -87,15 +87,7 @@ class PolygonDecomposition:
             - fixed tolerance eps=1e-10
             -> self.contains_point(inner_point)
 
-    PD.snap_point, calls:
-           seg.x_line_isec(point, self.tolerance)
-           snap_polygon -> pt.colocated(point, self.tolerance)
-           snap_segment ->
-                segment.contains_point(point, self.tolerance)
-                pt.colocated(point, self.tolerance)
-
-    Point.colocated - tolerance given as parameter, used for snapping
-    Segment.x_line_isec  - tol parameter
+    PD.snap_point, use slef. tolerance consistently
 
     """
 
@@ -357,103 +349,51 @@ class PolygonDecomposition:
           Segment: parameter 't' of snapped point on the segment
           Polygon: None
         """
-        #pt = np.array(point, dtype=float)
+        point = np.array(point, dtype=float)
 
-        def seg_common_pt(seg1, seg2):
-            if type(seg1) == Point:
-                return seg1
-            if seg1.vtxs[0] in seg2.vtxs:
-                return seg1.vtxs[0]
-            elif seg1.vtxs[1] in seg2.vtxs:
-                return seg1.vtxs[1]
-            assert False, "No common pt: {} {}".format(seg1,seg2)
-
-        point = np.array(point)
-        x_pt, y_pt = point
-        lower_bound_isec = (-np.inf, None)
-        upper_bound_isec = (np.inf, None)
-        x_axis_segs = []
-        for seg in self.segments.values():
-            x_isec = seg.x_line_isec(point, self.tolerance)
-            if len(x_isec) == 2 and x_isec[0] <= x_pt <= x_isec[1]:
-                return self._snap_to_segment(seg, point, up_is_left=None)
-            for x_isec_pt in x_isec:
-                if x_isec_pt < x_pt and x_isec_pt >= lower_bound_isec[0]:
-                    if x_isec_pt == lower_bound_isec[0]:
-                        lower_bound_isec = (x_isec_pt, seg_common_pt(lower_bound_isec[1], seg))
-                    else:
-                        lower_bound_isec = (x_isec_pt,  seg)
-                elif  x_isec_pt >= x_pt and x_isec_pt <= upper_bound_isec[0]:
-                    if x_isec_pt == upper_bound_isec[0]:
-                        upper_bound_isec = (x_isec_pt, seg_common_pt(upper_bound_isec[1], seg))
-                    else:
-                        upper_bound_isec = (x_isec_pt, seg)
-
-        #if lower_bound_isec[1] is None and upper_bound_isec[1] is None:
-
-        #x_axis_segs.sort()
-        #i = bisect.bisect_left(x_axis_segs, (x_pt, seg.id, seg))
-        # i ...  x_axis_segs[i-1] < x_pt <= x_axis_segs[i]
-
-        #assert i <= len(x_axis_segs)
-        def snap_to_side(obj, up_is_left):
-            if type(obj) == Segment:
-                return self._snap_to_segment(obj, point, up_is_left)
-            if type(obj) == Point:
-                if obj.colocated(point, self.tolerance):
-                    return (0, obj, None)
-                else:
-                    prev, next, wire = obj.insert_vector(point - obj.xy)
-                    return (2, wire.polygon, None)
-            return (3, None, None)
-
-
-        snap_info_left = snap_to_side(lower_bound_isec[1], up_is_left=False)
-        snap_info_right = snap_to_side(upper_bound_isec[1], up_is_left=True)
-        #assert snap_info_left[0] < 2 != snap_info_right[0] < 2
-        if snap_info_left[0] < snap_info_right[0]:
-            snap = snap_info_left
-        else:
-            snap = snap_info_right
-        if snap[0] < 2:
-            return snap
-        elif snap[0] < 3:
-            assert snap_info_left[0] != snap_info_right[0] or snap_info_left[1] == snap_info_right[1]
-            poly = snap[1]
-        else:
-            poly = self.outer_polygon
-
-        for pt in poly.free_points:
-            if pt.colocated(point, self.tolerance):
+        # First snap to points
+        for pt in self.points.values():
+            if la.norm(pt.xy - point) <  self.tolerance:
                 return (0, pt, None)
-        return (2, poly, None)
 
+        # Snap to segments, keep the closest to get polygon.
+        closest_seg = (np.inf, None, None)
+        for seg in self.segments.values():
+            t = seg.project_point(point)
+            dist = la.norm(point - seg.parametric(t))
+            if dist < self.tolerance:
+                return (1, seg, t)
+            elif dist < closest_seg[0]:
+                closest_seg = (dist, seg, t)
 
-
-
-    def _snap_to_segment(self, segment, point, up_is_left ):
-        """
-        Snap to segment or to its side wire.
-        Auxiliary method for 'snap_point'.
-        :return: see: snap_point
-        """
-        tt = segment.contains_point(point, self.tolerance)
-        if tt is not None:
-            if segment.vtxs[out_vtx].colocated(segment.parametric(tt), self.tolerance):
-                return (0, segment.vtxs[out_vtx], None)
-            if segment.vtxs[in_vtx].colocated(segment.parametric(tt), self.tolerance):
-                return (0, segment.vtxs[in_vtx], None)
-            return (1, segment, tt)
+        # Snap to polygon,
+        # have to deal with nonconvex case
+        poly = None
+        dist, seg, t = closest_seg
+        if seg is None:
+            return (2, self.outer_polygon, None)
+        if t == 0.0:
+            pt = seg.vtxs[out_vtx]
+        elif t == 1.0:
+            pt = seg.vtxs[in_vtx]
         else:
-            up_ori = segment.vtxs[in_vtx].xy[1] > segment.vtxs[out_vtx].xy[1]
-            if up_ori == up_is_left:
-                side = left_side
+            # convex case
+            tangent = seg.vector()
+            normal = np.array([tangent[1], -tangent[0]])
+            point_n = (point - seg.vtxs[out_vtx].xy).dot(normal)
+            assert point_n != 0.0
+            if  point_n > 0:
+                poly = seg.wire[right_side].polygon
             else:
-                side = right_side
-            wire = segment.wire[side]
-            return (2, wire.polygon, None)
+                poly = seg.wire[left_side].polygon
 
-
+        if poly is None:
+            # non-convex case
+            prev, next, wire = pt.insert_vector(point - pt.xy)
+            poly = wire.polygon
+        if not poly.contains_point(point):
+            assert False
+        return (2, poly, None)
 
 
 
@@ -1406,14 +1346,6 @@ class Point(IdObject):
         self.segment = (None, None)
 
 
-    def colocated(self, xy_pt, tol):
-        """
-        Check if other point is close to  'self' point.
-        :param xy_pt: Numpy array (X,Y)
-        :param tol: Tolerance.
-        :return: bool
-        """
-        return la.norm(self.xy - xy_pt) < tol
 
 class Segment(IdObject):
 
@@ -1541,21 +1473,10 @@ class Segment(IdObject):
         :return: t
         """
         Dxy = self.vector()
-        AX = self.vtxs[out_vtx] - pt
+        AX = pt - self.vtxs[out_vtx].xy
         t = AX.dot(Dxy)/Dxy.dot(Dxy)
         return min(max(t, 0.0), 1.0)
 
-    def contains_point(self, pt, tol):
-        """
-        Project point to segment line in X or Y direction and check if
-        projection is close to the point in max norm.
-        :param pt:
-        :return:
-        """
-        if  < tol:
-            return t
-        else:
-            return None
 
 
     def intersection(self, a, b):
@@ -1578,37 +1499,37 @@ class Segment(IdObject):
         else:
             return (None, None)
 
-    def x_line_isec(self, xy, tol):
-        """
-        Find intersection of the segment with a horizontal line passing through the given point.
-        :param xy: The point. (X,Y) any indexable.
-        :param tol: Tolerance.
-        :return: List of zero, one or two points. corresponding to no, point and segment intersections respectively.
-
-        TODO: Merge with is_on_x_line, return intersection on demand, but keep consistency of these two.
-        """
-        vtxs = np.array([self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy])
-        Dy = vtxs[1, 1] - vtxs[0, 1]
-        magnitude = np.max(vtxs[:, 1])
-        # require at least 4 decimal digit remaining precision of the Dy
-        num_tol = 1e-15
-        if Dy == 0.0:
-            # horizontal edge
-            min_y, max_y = np.sort(vtxs[:, 1])
-            if min_y  <= xy[1] <= max_y :
-                res = [ vtxs[0, 0], vtxs[1, 0] ]
-                res.sort()
-                return res
-            else:
-                return []
-        else:
-            t = (xy[1] - vtxs[0, 1]) / Dy
-            if 0 - tol < t < 1 + tol:
-                Dx = vtxs[1, 0] - vtxs[0, 0]
-                isec_x = t * Dx + vtxs[0, 0]
-                return [isec_x]
-            else:
-                return []
+    # def x_line_isec(self, xy, tol):
+    #     """
+    #     Find intersection of the segment with a horizontal line passing through the given point.
+    #     :param xy: The point. (X,Y) any indexable.
+    #     :param tol: Tolerance.
+    #     :return: List of zero, one or two points. corresponding to no, point and segment intersections respectively.
+    #
+    #     TODO: Merge with is_on_x_line, return intersection on demand, but keep consistency of these two.
+    #     """
+    #     vtxs = np.array([self.vtxs[out_vtx].xy, self.vtxs[in_vtx].xy])
+    #     Dy = vtxs[1, 1] - vtxs[0, 1]
+    #     magnitude = np.max(vtxs[:, 1])
+    #     # require at least 4 decimal digit remaining precision of the Dy
+    #     num_tol = 1e-15
+    #     if Dy == 0.0:
+    #         # horizontal edge
+    #         min_y, max_y = np.sort(vtxs[:, 1])
+    #         if min_y  <= xy[1] <= max_y :
+    #             res = [ vtxs[0, 0], vtxs[1, 0] ]
+    #             res.sort()
+    #             return res
+    #         else:
+    #             return []
+    #     else:
+    #         t = (xy[1] - vtxs[0, 1]) / Dy
+    #         if 0 - tol < t < 1 + tol:
+    #             Dx = vtxs[1, 0] - vtxs[0, 0]
+    #             isec_x = t * Dx + vtxs[0, 0]
+    #             return [isec_x]
+    #         else:
+    #             return []
 
 
     def is_on_x_line(self, xy):
@@ -1792,7 +1713,7 @@ class Wire(IdObject):
         """
         Check if the wire contains given point.
         TODO: use tolerance.
-        :param xy:
+        :param xy: array [x,y]
         :return:
         """
         if self.is_root():
@@ -1892,6 +1813,11 @@ class Polygon(IdObject):
                 yield wire.polygon
 
     def contains_point(self, xy):
+        """
+        Returns true if polygon contains the point.
+        :param xy: array [x,y]
+        :return:
+        """
         if not self.outer_wire.contains_point(xy):
             return False
         for wire in self.outer_wire.childs:

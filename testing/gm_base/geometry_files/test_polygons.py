@@ -263,10 +263,6 @@ class TestDecomposition:
         sg_e, sg_f = result
         assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [outer.id], None)
 
-        assert sg_e.vtxs[out_vtx].colocated((2,1), 0.001)
-        assert sg_e.vtxs[in_vtx].colocated((2.5, 0.5), 0.001)
-        assert sg_f.vtxs[out_vtx].colocated((2.5, 0.5), 0.001)
-        assert sg_f.vtxs[in_vtx].colocated((3, 0), 0.001)
 
         assert sg_e.next[right_side] == (sg_e, left_side)
         sg_h = sg_e.next[left_side][0]
@@ -691,7 +687,7 @@ class TestDecomposition:
         decomps = [da]
 
         np.random.seed(1)
-        n_frac = 47
+        n_frac = 100
         p0 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
         p1 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
 
