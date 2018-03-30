@@ -1,9 +1,5 @@
-import os
-import sys
-
-
 import gm_base.geometry_files.format_last as gs
-import gm_base.geometry_files.polygons as polygons
+import gm_base.polygons.polygons as polygons
 
 def serialize(decomp):
     """

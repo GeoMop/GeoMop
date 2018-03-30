@@ -3,9 +3,8 @@
 # from matplotlib import collections  as mc
 # from matplotlib import patches as mp
 
-from gm_base.geometry_files.polygons import *
-from gm_base.geometry_files.plot_polygons import *
-import pytest
+from gm_base.polygons.polygons import *
+
 
 class TestPoint:
     def test_insert_segment_0(self):

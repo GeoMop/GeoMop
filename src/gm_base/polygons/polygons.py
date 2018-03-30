@@ -4,17 +4,11 @@ import numpy.linalg as la
 import enum
 
 # TODO: rename point - > node
-# TODO: Change points, segments, wires, polygons, holes, free_points to sets where it is appropriate.
 # TODO: careful unification of tolerance usage.
-# TODO: Review segment snapping to snap in normal direction.
 # TODO: Performance tests:
 # - snap_point have potentialy very bad complexity O(Nlog(N)) with number of segments
 # - add_line linear with number of segments
 # - other operations are at most linear with number of segments per wire or point
-
-# TODO: Reconstruction just from list of points, segments and polygons.
-# TODO: Reconstruction from Point.xy; Semgnet.(vtxs, next); Wire.(segment,  parent); Polygon.(outer, holes, free_points)
-
 
 
 in_vtx = left_side = 1

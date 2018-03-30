@@ -40,16 +40,14 @@ import sys
 import gm_base.json_data as js
 import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io
-import gm_base.geometry_files.polygons as polygons
-import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.polygons.polygons as polygons
+import gm_base.polygons.polygons_io as polygons_io
 import gm_base.geometry_files.bspline_io as bspline_io
 import Geometry.gmsh_io as gmsh_io
 import numpy as np
 import numpy.linalg as la
 import math
 
-
-import gm_base.b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
@@ -1312,7 +1310,7 @@ class LayerGeometry(gs.LayerGeometry):
         self.msh_file = self.filename_base + ".msh"
         with open(self.msh_file, "w") as f:
             self.mesh.write_ascii(f)
-
+        return self.mesh
 
 
     # def mesh_export(self, mesh, filename):
@@ -1381,13 +1379,20 @@ def construct_derived_geometry(gs_obj):
 
 
 def make_geometry(**kwargs):
+    """
+    Read geometry from file or use provided gs.LayerGeometry object.
+    Construct the BREP geometry, call gmsh, postprocess mesh.
+    Write: geo file, brep file, tmp.msh file, msh file
+    """
+    raw_geometry = kwargs.get("geometry", None)
     layers_file = kwargs.get("layers_file", None)
+    filename_base = ""
     mesh_step = kwargs.get("mesh_step", 0.0)
 
-    layers_file = layers_file
-    filename_base = os.path.splitext(layers_file)[0]
-    gs_lg = layers_io.read_geometry(layers_file)
-    lg = construct_derived_geometry(gs_lg)
+    if raw_geometry is None:
+        raw_geometry = layers_io.read_geometry(layers_file)
+        filename_base = os.path.splitext(layers_file)[0]
+    lg = construct_derived_geometry(raw_geometry)
     lg.filename_base = filename_base
 
     lg.init()   # initialize the tree with ids and references where necessary
@@ -1400,7 +1405,7 @@ def make_geometry(**kwargs):
     #geom.netgen_to_gmsh()
 
     lg.call_gmsh(mesh_step)
-    lg.modify_mesh()
+    return lg.modify_mesh()
 
 
 
