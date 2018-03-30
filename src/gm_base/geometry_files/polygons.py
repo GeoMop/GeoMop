@@ -106,8 +106,14 @@ class PolygonDecomposition:
         # Closed loops possibly degenerated) of segment sides. Single wire can be tracked through segment.next links.
         self.polygons = IdMap()
         # Polygon dictionary ID -> Polygon
+        self.shapes = [self.points, self.segments, self.polygons]
+        # Common access to shapes of various dim.
+
+        # Most outer wire of whole decomposition
         outer_wire = self.wires.append(Wire())
         outer_wire.parent = None
+
+        # Outer polygon - extending to infinity
         self.outer_polygon = Polygon(outer_wire)
         self.polygons.append(self.outer_polygon)
         outer_wire.polygon = self.outer_polygon
@@ -450,8 +456,8 @@ class PolygonDecomposition:
         :param b_pt:
         :return:
         """
-        t_list = list(self._add_line_seg_intersections(a_pt, b_pt))
-        return [seg    for seg, change in self._add_line_new_segments(a_pt, b_pt, t_list)]
+        line_div = self._add_line_seg_intersections(a_pt, b_pt)
+        return [seg    for seg, change, side in self._add_line_new_segments(a_pt, b_pt, line_div)]
 
     def _add_line_seg_intersections(self, a_pt, b_pt):
         """
@@ -463,25 +469,30 @@ class PolygonDecomposition:
             - the Point object of the intersection point.
             - old and new subsegments of the segment split
         """
+        line_division = {}
         segments = list(self.segments.values()) # need copy since we change self.segments
         for seg in segments:
             (t0, t1) = seg.intersection(a_pt.xy, b_pt.xy)
             if t1 is not None:
                 mid_pt = self._split_segment(seg, t0)
-                yield (t1, mid_pt, seg, seg.next[in_vtx][0])
+                line_division[t1] = (mid_pt, seg, seg.next[in_vtx][0])
+        return line_division
 
-    def _add_line_new_segments(self, a_pt, b_pt, t_list):
+    def _add_line_new_segments(self, a_pt, b_pt, line_div):
         """
         Generator for added new segments of the new line.
         """
-        t_list.sort()   # sort by t1
         start_pt = a_pt
-        for t1, mid_pt, seg0, seg1 in t_list:
+        for t1, (mid_pt, seg0, seg1) in sorted(line_div.items()):
+            if start_pt == mid_pt:
+                continue
             new_seg = self.new_segment(start_pt, mid_pt)
-            yield (new_seg, self.last_polygon_change)
+            if type(new_seg) == Point:
+                assert False
+            yield (new_seg, self.last_polygon_change, new_seg.vtxs[out_vtx] == start_pt)
             start_pt = mid_pt
         new_seg = self.new_segment(start_pt, b_pt)
-        yield (new_seg, self.last_polygon_change)
+        yield (new_seg, self.last_polygon_change, new_seg.vtxs[out_vtx] == start_pt)
 
 
     def delete_point(self, point):
@@ -1109,7 +1120,7 @@ class PolygonDecomposition:
 
         decomp.set_wire_parents()
 
-        decomp.check_consistency()
+        #decomp.check_consistency()
         return decomp, id_maps
 
 
@@ -1135,22 +1146,31 @@ class PolygonDecomposition:
         - For a parent_decomp go through segments in segment_map that is not None and color polygons/graph vertices
         by related polygon in parent_decomp matching the polygons on segment sides.
         - Color rest of polygons in the same component using DFS or BFS.
+
+        TODO: Implement clear interface to PolygonDecomposition with history of internal elementary operations
+        in particular segment splitting and line splitting. Then we can remove several hacks here.
         """
 
-        decomp, id_maps = self.deep_copy()
+        decomp = self
+        id_maps = 3*[None]
+        id_maps[0] = {pt.id: pt.id for pt in decomp.points.values()}
+        id_maps[1] = {seg.id: seg.id for seg in decomp.segments.values()}
+        id_maps[2] = {poly.id: poly.id for poly in decomp.polygons.values()}
+
         maps_self = 3*[None]
         maps_other = 3*[None]
-        maps_self[0] = id_maps[0]
-        maps_other[0] = {pt.id: None for pt in decomp.points.values()}
-        maps_self[1] = id_maps[1]
-        maps_other[1] = {seg.id: None for seg in decomp.segments.values()}
+        for dim in range(3):
+            maps_self[dim] = {obj.id: obj.id for obj in self.shapes[dim].values()}
+            maps_other[dim] = {obj.id: None for obj in self.shapes[dim].values()}
+
 
         other_point_map={}
         for pt in other.points.values():
+            n_points = len(decomp.points)
             new_pt = decomp.add_point(pt.xy)
             # Hack to identify split segment
             seg, vtx_side = new_pt.segment
-            if seg is not None and pt != new_pt:
+            if seg is not None and n_points < len(decomp.points):
                 prev_seg, prev_side = seg.next[out_vtx]
                 assert prev_seg.next[in_vtx][0] == seg
                 assert seg.id not in maps_self[1]
@@ -1164,79 +1184,60 @@ class PolygonDecomposition:
             new_a_pt, new_b_pt = [decomp.points[other_point_map[pt.id]] for pt in seg.vtxs]
             if new_a_pt == new_b_pt:
                 continue
+            other_right_poly = seg.wire[right_side].polygon
+            other_left_poly = seg.wire[left_side].polygon
             #print(decomp)
             #print('add line {} {}'.format(a, b))
-            t_list =  list( decomp._add_line_seg_intersections(new_a_pt, new_b_pt) )
-            for t, mid_pt, seg_a, seg_b in t_list:
+            line_div =  decomp._add_line_seg_intersections(new_a_pt, new_b_pt)
+            for t, (mid_pt, seg_a, seg_b) in line_div.items():
                 maps_self[1][seg_b.id] = maps_self[1][seg_a.id]
                 maps_other[1][seg_b.id] = maps_other[1][seg_a.id] # Should still be None, unless there is common edge
 
             # TODO:
             # - remove, yeilding polygon change
-            for new_seg, change in decomp._add_line_new_segments(new_a_pt, new_b_pt, t_list):
+            for new_seg, change, side in decomp._add_line_new_segments(new_a_pt, new_b_pt, line_div):
                 maps_other[1][new_seg.id] = seg.id
                 maps_self[1].setdefault(new_seg.id, None)
 
-        maps_self[2] = decomp._parent_polygon_graph(self, maps_self[1])
-        maps_other[2] = decomp._parent_polygon_graph(other, maps_other[1])
-        
-        assert decomp.check_consistency()
+                # Update polygon maps for a segment which is part of segment in other decomposition.
+                change_type, orig_poly, new_poly = change
+                assert change_type not in [PolygonChange.remove, PolygonChange.join]
+                if change_type == PolygonChange.add or change_type == PolygonChange.split:
+                    # Fix maps for changed polygons
+                    maps_self[2][new_poly.id] = maps_self[2][orig_poly.id]
+                    maps_other[2][new_poly.id] = maps_other[2][orig_poly.id]
+                # Just omit changes: PolygonChange.shape, PolygonChange.none
+
+                # Partial fill of maps_other[2]
+                if side:
+                    r, l = right_side, left_side
+                else:
+                    l, r = right_side, left_side
+                maps_other[2][new_seg.wire[r].polygon.id] = other_right_poly.id
+                maps_other[2][new_seg.wire[l].polygon.id] = other_left_poly.id
+
+
+        # Fill remaining maps_other[2] items using DFS
+        for new_poly, other_poly in list(maps_other[2].items()):
+            if other_poly != None:
+                stack = [new_poly]
+                while stack:
+                    p_id = stack.pop(-1)
+                    maps_other[2][p_id] = other_poly
+                    for seg, side in decomp.polygons[p_id].outer_wire.segments():
+                        ngh_poly = seg.wire[1 - side].polygon
+                        if maps_other[2][ngh_poly.id] is None:
+                            stack.append(ngh_poly.id)
+
+
+        # # Check
+        # for p in decomp.polygons.values():
+        #     assert maps_other[2][p.id] is not None
+        #     assert maps_self[2][p.id] is not None
+
+        #assert decomp.check_consistency()
         return (decomp, maps_self, maps_other)
 
-
-    def _parent_polygon_graph(self, parent_decomp, segment_map):
-        """
-        Make a graph with V = (0, self.polygon id), (1, parent_polygon id)
-        edges:
-            - for two polygons separated by segment where segment_map[segment] is None
-            - (p, P), (q, Q) for segment separating polygons p and q with parent segment
-              separating polygons P and Q
-        Use DFS to construct map: (0/1, polygon.id) -> parent_polygon_id
-        for components of the graph.
-        :param parent_decomp: Coarse decomposotion.
-        :param segment_map: map fine decompositon segment ids to coarse decomposition segment ids
-        :return: Map new_poly_id -> parent_poly_id
-        """
-        graph = {}
-
-        def add_edge(a, b):
-            graph[a].append(b)
-            graph[b].append(a)
-
-        for p in self.polygons.values():
-            graph[(0, p.id)] = []
-        for p in parent_decomp.polygons.values():
-            graph[(1, p.id)] = []
-
-        for fine_seg_id, coarse_seg_id in segment_map.items():
-            fine_seg = self.segments[fine_seg_id]
-            pa, pb = fine_seg.polygons()
-            if coarse_seg_id is None:
-                add_edge( (0, pa.id), (0, pb.id) )
-            else:
-                coarse_seg = parent_decomp.segments[coarse_seg_id]
-                Pa, Pb = coarse_seg.polygons()
-                add_edge( (0, pa.id), (1, Pa.id) )
-                add_edge( (0, pb.id), (1, Pb.id) )
-
-        for p in parent_decomp.polygons.values():
-            self._parent_graph_dfs(graph, vtx = (1, p.id), parent = p.id)
-
-        return { fine_poly_id: coarse_poly_id for (i_coarse, fine_poly_id), coarse_poly_id  in graph.items() if i_coarse == 0 }
-
-
-    def _parent_graph_dfs(self, graph, vtx, parent):
-        """
-        :param graph: Graph dict, closed vertices are set to 'parent'
-        :param vtx: vertex to visit
-        :param parent: Parent polygon id, assigned to the all fine polygons in same component.
-        :return: None
-        """
-        if not isinstance(graph[vtx], int):
-            neigh_list = graph[vtx]
-            graph[vtx] = parent
-            for neigh in neigh_list:
-                self._parent_graph_dfs(graph, neigh, parent)
 
 
 # Data classes contains no modification methods, all modifications are through reversible atomic operations.
@@ -1664,6 +1665,33 @@ class Wire(IdObject):
             parent_wire.childs.add(self)
 
 
+    # def segments(self, start = (None, None), end = (None, None)):
+    #     """
+    #     DEBUG VERSION.
+    #     Yields all (segmnet, side) of the same wire as the 'start' segment side,
+    #     up to end segment side.
+    #     """
+    #     if self.is_root():
+    #         return
+    #     if start[0] is None:
+    #         start = self.segment
+    #     if end[0] is None:
+    #         end = start
+    #
+    #     seg_side = start
+    #     visited = []
+    #     while (1):
+    #         visited.append( (seg_side[0], seg_side[1]) )
+    #         yield seg_side
+    #         segment, side = seg_side
+    #         seg_side = segment.next[side]
+    #         if seg_side == end:
+    #             break
+    #         if (seg_side[0], seg_side[1]) in visited:
+    #
+    #             assert False, "Repeated seg: {}\nVisited: {}".format(seg_side, visited)
+    #         assert not seg_side == start, "Inifinite loop."
+
     def segments(self, start = (None, None), end = (None, None)):
         """
         Yields all (segmnet, side) of the same wire as the 'start' segment side,
@@ -1677,17 +1705,12 @@ class Wire(IdObject):
             end = start
 
         seg_side = start
-        visited = []
         while (1):
-            visited.append( (seg_side[0], seg_side[1]) )
             yield seg_side
             segment, side = seg_side
             seg_side = segment.next[side]
             if seg_side == end:
                 break
-            if (seg_side[0], seg_side[1]) in visited:
-
-                assert False, "Repeated seg: {}\nVisited: {}".format(seg_side, visited)
             assert not seg_side == start, "Inifinite loop."
 
     # def outer_segments(self):
@@ -1840,7 +1863,12 @@ def intersect_decompositions(decomps):
     common_decomp = PolygonDecomposition()
     all_maps = []
     for decomp in decomps:
-        print("frac : ", len(all_maps))
+        print("frac : {} #pt: {} #seg: {} #wires: {} #poly: {}".format(
+            len(all_maps),
+            len(common_decomp.points),
+            len(common_decomp.segments),
+            len(common_decomp.wires),
+            len(common_decomp.polygons)))
         common_decomp, common_maps, decomp_maps = common_decomp.intersection(decomp)
         decomp_maps = [ { key: val for key,val in map.items() if val is not None} for map in decomp_maps ]
         new_all_maps = []
