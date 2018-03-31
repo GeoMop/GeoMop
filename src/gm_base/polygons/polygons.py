@@ -4,6 +4,7 @@ import enum
 import gm_base.polygons.aabb_lookup as aabb_lookup
 import gm_base.polygons.decomp as decomp
 
+from gm_base.polygons.decomp import PolygonChange
 
 # TODO: rename point - > node
 # TODO: careful unification of tolerance usage.
@@ -63,7 +64,21 @@ class PolygonDecomposition:
     #         and len(self.segments) == len(other.segments) \
     #         and len(self.polygons) == len(other.polygons)
 
+    @property
+    def points(self):
+        return self.decomp.points
 
+    @property
+    def segments(self):
+        return self.decomp.segments
+
+    @property
+    def polygons(self):
+        return self.decomp.polygons
+
+    @property
+    def outer_polygon(self):
+        return self.decomp.outer_polygon
 
     ##################################################################
     # Interface for LayerEditor. Should be changed.

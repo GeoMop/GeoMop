@@ -74,7 +74,8 @@ def deserialize(nodes, topology):
         node.index = id
 
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
-        return reconstruction_from_old_input(decomp, topology)
+        reconstruction_from_old_input(decomp, topology)
+        return polydec
 
 
     for id, seg in enumerate(topology.segments):
@@ -92,7 +93,7 @@ def deserialize(nodes, topology):
     polydec.set_wire_parents()
 
     decomp.check_consistency()
-    return decomp
+    return polydec
 
 
 def reconstruction_from_old_input(decomp, topology):
