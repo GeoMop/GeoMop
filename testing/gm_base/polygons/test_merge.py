@@ -46,14 +46,14 @@ def test_simple_intersections():
     (dc, maps_a, maps_b) = merge.intersect_single(da, db)
     #print("dc\n", dc)
     #plot_polygon_decomposition(dc)
-    assert maps_a[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
+    assert maps_a[0] == {}
     assert maps_b[0] == { 0: 0, 1: 1, 2: 2, 3: 3}
-    assert maps_a[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5:4, 6:None, 7:None}
-    assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 4: None, 5:None, 6:4, 7:4}
-    assert maps_a[2] == { 0: 0, 1: 1, 2: 2, 3: 1, 4: 2}
+    assert maps_a[1] == { 5:4}
+    assert maps_b[1] == { 0: 0, 1: 1, 2: 2, 3: 3, 6:4, 7:4}
+    assert maps_a[2] == { 3: 1, 4: 2}
     assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_frac_intersections():
     # import sys
     # import trace
@@ -79,7 +79,7 @@ def test_frac_intersections():
     decomps = [da]
 
     np.random.seed(1)
-    n_frac = 100
+    n_frac = 200
     p0 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
     p1 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
 

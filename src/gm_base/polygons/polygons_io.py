@@ -70,11 +70,11 @@ def deserialize(nodes, topology):
     decomp = polydec.decomp
 
     for id, node in enumerate(nodes):
-        node = decomp.points.append(Point(node, poly=None), id=id)
-        node.index = id
+        point = polydec._add_point(node, poly=polydec.outer_polygon, id=id)
+        point.index = id
 
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
-        reconstruction_from_old_input(decomp, topology)
+        reconstruction_from_old_input(polydec, topology)
         return polydec
 
 
@@ -96,22 +96,22 @@ def deserialize(nodes, topology):
     return polydec
 
 
-def reconstruction_from_old_input(decomp, topology):
+def reconstruction_from_old_input(polydec, topology):
     # Set points free
-    for pt in decomp.points.values():
-        pt.set_polygon(decomp.outer_polygon)
+    for pt in polydec.points.values():
+        pt.set_polygon(polydec.outer_polygon)
 
     for id, seg in enumerate(topology.segments):
-        vtxs = [decomp.points[pt_id] for pt_id in seg.node_ids]
-        s = decomp.new_segment(vtxs[0], vtxs[1])
+        vtxs = [polydec.points[pt_id] for pt_id in seg.node_ids]
+        s = polydec.new_segment(vtxs[0], vtxs[1])
         s.index = id
         assert s.id == id
 
-    decomp.outer_polygon.index  = 0
+    polydec.outer_polygon.index  = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []
-        for p in decomp.polygons.values():
+        for p in polydec.polygons.values():
             seg_set = set()
             for seg, side in p.outer_wire.segments():
                 seg_set.add(seg.index)
@@ -120,5 +120,4 @@ def reconstruction_from_old_input(decomp, topology):
 
         assert len(candidates) == 1
         candidates[0].index = id + 1
-    decomp.check_consistency()
-    return decomp
+    polydec.decomp.check_consistency()

@@ -1,9 +1,9 @@
 # import matplotlib.pyplot as plt
-# import numpy as np
 # from matplotlib import collections  as mc
 # from matplotlib import patches as mp
-import pytest
 
+import numpy as np
+import pytest
 from gm_base.polygons.decomp import *
 from gm_base.polygons.polygons import PolygonDecomposition
 
@@ -11,14 +11,14 @@ class TestPoint:
     def test_insert_segment_0(self):
         decomp = Decomposition()
         # insert to free point
-        pt0 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
+        pt0 = decomp.add_free_point([0.0, 0.0], decomp.outer_polygon)
         assert pt0.insert_vector(np.array([10, 1])) == None
 
     def test_insert_segment_1(self):
         decomp = Decomposition()
         # insert to single segment point
-        pt1 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
-        pt2 = decomp._add_free_point([1.0, 1.0], decomp.outer_polygon)
+        pt1 = decomp.add_free_point([0.0, 0.0], decomp.outer_polygon)
+        pt2 = decomp.add_free_point([1.0, 1.0], decomp.outer_polygon)
         sg1 = decomp.new_segment(pt1, pt2)
         assert sg1.is_dendrite()
         assert pt1.insert_vector(np.array([0, 1.0])) == ((sg1, right_side), (sg1, left_side), sg1.wire[out_vtx])
@@ -27,9 +27,9 @@ class TestPoint:
     def test_insert_segment_2(self):
         decomp = Decomposition()
         # insert to two segment point
-        pt1 = decomp._add_free_point([0.0, 0.0], decomp.outer_polygon)
-        pt2 = decomp._add_free_point([1.0, 1.0], decomp.outer_polygon)
-        pt3 = decomp._add_free_point([-1.0, -0.1], decomp.outer_polygon)
+        pt1 = decomp.add_free_point([0.0, 0.0], decomp.outer_polygon)
+        pt2 = decomp.add_free_point([1.0, 1.0], decomp.outer_polygon)
+        pt3 = decomp.add_free_point([-1.0, -0.1], decomp.outer_polygon)
         sg1 = decomp.new_segment(pt1, pt2)
         sg2 = decomp.new_segment(pt1, pt3)
 
@@ -284,7 +284,7 @@ class TestDecomposition:
         seg1 = sg_e
         mid_point = seg1.vtxs[in_vtx]
         seg0 = sg_e.next[left_side][0]
-        decomp._join_segments(mid_point, seg0, seg1)
+        decomp.join_segments(mid_point, seg0, seg1)
 
         # print("Decomp:\n", decomp)
         pd.delete_point(pt_op)
@@ -468,8 +468,8 @@ class TestDecomposition:
         mid_pt = sg0.vtxs[1]
         sg1, = pd.add_line((2,0), (1,0))
         sg2, = pd.add_line((2, 0), (3, 0))
-        decomp._join_segments(sg0.vtxs[1], sg0, sg1)
-        decomp._join_segments(sg0.vtxs[1], sg0, sg2)
+        decomp.join_segments(sg0.vtxs[1], sg0, sg1)
+        decomp.join_segments(sg0.vtxs[1], sg0, sg2)
 
 
 

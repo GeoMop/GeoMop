@@ -24,11 +24,12 @@ def test_intersect_candidates():
     add_box([1, 1], [2, 3])
     add_box([0, 0], [1, 1])
     add_box([1, -1], [2, -1])
+    add_box([-1,-1], [1,1])
 
     add_box([1, 5], [2, 10])
     add_box([1, -5], [2, -10])
     candidates = al.intersect_candidates(box)
-    assert candidates.tolist() == [0,1,2]
+    assert candidates.tolist() == [0,1,2,3]
 
 
 def min_distance(point, box_list):
@@ -39,9 +40,9 @@ def min_distance(point, box_list):
             min_dist = (dist, i)
     return min_dist
 
-@pytest.mark.parametrize("seed", list(range(10)))
+@pytest.mark.parametrize("seed", list(range(40)))
 def test_closest_candidates(seed):
-    al = AABB_Lookup(init_size=100)
+    al = AABB_Lookup(init_size=10)
 
     def add_box(*pts):
         al.add_object(add_box.ibox, make_aabb(pts) )
@@ -49,13 +50,14 @@ def test_closest_candidates(seed):
 
     add_box.ibox = 0
     np.random.seed(seed)
-    boxes1 = 100*np.random.rand(10, 2)
-    boxes2 = boxes1 + 30*(np.random.rand(10, 2) -0.5)
+    size = 1000
+    boxes1 = 3*np.random.rand(size, 2)
+    boxes2 = boxes1 + 1.5*(np.random.rand(size, 2) -0.5)
     boxes = np.concatenate((boxes1, boxes2), axis=1)
     for i, box in enumerate(boxes):
         add_box(*box.reshape(2,2))
 
-    point = np.array([0.0, 0.0])
+    point = np.array([1., 2.])
     ref_min_dist = min_distance(point, boxes)
 
     candidates = al.closest_candidates(point)

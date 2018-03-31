@@ -6,7 +6,7 @@ import pytest
 
 from gm_base.polygons.polygons import *
 from gm_base.polygons.decomp import PolygonChange
-
+from gm_base.polygons.plot_polygons import plot_polygon_decomposition
 #
 # def plot_polygon(self, polygon):
 #     if polygon is None or polygon.displayed or polygon.outer_wire.is_root():
@@ -67,11 +67,13 @@ def test_snap_point():
     pd.add_line([0, 4], [6, 4])
     # diagonal
     pd.add_line([0, 2], [2, 4])
+    #plot_polygon_decomposition(decomp)
+    #decomp.check_consistency()
     pd.add_line([0, 3], [1, 4])
     pd.add_line([0.5, 0], [0, 0.5])
     decomp.check_consistency()
 
-    #plot_polygon_decomposition(decomp)
+
 
     def check_snap(dim, obj, snap):
         dim_, obj_, param_ = snap

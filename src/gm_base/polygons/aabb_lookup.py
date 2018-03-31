@@ -26,7 +26,7 @@ def make_aabb(points, margin=-1):
     return box
 
 class AABB_Lookup:
-    def __init__(self, infty = 1e50, init_size=1024):
+    def __init__(self, infty = 1e50, init_size=128):
         self.inf = infty
         self.n_boxes = 0
         self.boxes = np.full((init_size, 4), self.inf)
@@ -41,8 +41,9 @@ class AABB_Lookup:
         boxes_size = self.boxes.shape[0]
         while id >= boxes_size:
             # double the size
-            np.append( self.boxes, np.full((boxes_size, 4), self.inf) )
-        self.n_boxes = id + 1
+            self.boxes = np.append( self.boxes, np.full((boxes_size, 4), self.inf), axis=0 )
+            boxes_size = self.boxes.shape[0]
+        self.n_boxes = max(self.n_boxes, id + 1)
         self.boxes[id, :] = box
 
     def rm_object(self, id):
@@ -56,15 +57,20 @@ class AABB_Lookup:
         :return: List of IDs.
         """
         boxes = self.boxes[:self.n_boxes, :]
+        if boxes.shape[0] == 0 :
+            return []
         inf_dists = np.max(np.maximum(self.boxes[:, 0:2] - point, point - self.boxes[:, 2:4]), axis=1)
         if np.amin(inf_dists) > 0.0:
             i_closest = np.argmin(inf_dists)
             c_boxes = boxes[i_closest:i_closest+1, :]
         else:
             c_boxes = boxes[np.where(inf_dists<=0.0)]
-
+        assert c_boxes.shape[0] != 0
         # Max distance of closest boxes
+        #try:
         l_inf_max = np.max(np.maximum(point - c_boxes[:, 0:2], c_boxes[:, 2:4] - point))
+        #except:
+        #    pass
         l2_max = np.sqrt(2) * l_inf_max
         return np.where(inf_dists < l2_max)[0]
 

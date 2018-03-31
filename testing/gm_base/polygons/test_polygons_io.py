@@ -25,8 +25,8 @@ def test_polygons_io():
 
     nodes, topology = polygons_io.serialize(decomp)
 
-    nodes_id_map = { id: (id, node) for id, node in enumerate(nodes) }
-    new_decomp = polygons_io.deserialize(nodes_id_map, topology)
+    #nodes_id_map = { id: (id, node) for id, node in enumerate(nodes) }
+    new_decomp = polygons_io.deserialize(nodes, topology)
 
     for dim in range(3):
         len(decomp.decomp.shapes[dim]) == len(new_decomp.decomp.shapes[dim])
