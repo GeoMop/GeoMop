@@ -24,8 +24,8 @@ def check_file(filename):
     ref_file = os.path.join(*file_path)
     return filecmp.cmp(filename, ref_file)
 
-@pytest.mark.parametrize("in_file, mesh_step",
-      [('01_flat_top_side_bc.json', 0),
+@pytest.mark.parametrize("in_file, mesh_step", [
+       ('01_flat_top_side_bc.json', 0),
        ('02_bump_top_side_bc.json', 0),
        ('03_flat_real_extension.json', 0),
        ('04_flat_fracture.json', 0),

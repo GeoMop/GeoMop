@@ -366,17 +366,18 @@ class Interface:
                     subobjs[dim].setdefault(orig_id, list())    # make new instance every time
                     subobjs[dim][orig_id].append(new_id)
 
-            # sort subsegment lists
+            # sort new segments along original segments
             orig_decomp = decomps[decomp_idx]
             for orig_seg_id, seg_list in subobjs[1].items():
                 if orig_seg_id is None:
                     continue
-                pt_to_seg={}
+                pt_to_seg={} # Point ID to outgoing segment
                 for seg_id in seg_list:
                     seg = self.common_decomp.segments[seg_id]
                     pt_id = seg.vtxs[polygons.out_vtx].id
                     pt_to_seg[pt_id] = seg
                 new_seg_list = []
+
                 pt_id = orig_decomp.segments[orig_seg_id].vtxs[polygons.out_vtx].id
                 new_pt_id = subobjs[0][pt_id]
                 assert len(new_pt_id) == 1
@@ -667,7 +668,7 @@ def make_layer_region_maps(layer, regions, extrude):
     top_objs = [top_decomp.points.values(), top_decomp.segments.values(), top_decomp.polygons.values()]
     for dim, (reg_list, obj_list) in enumerate(zip(region_id_lists, top_objs)):
         reg_map={}
-        for reg, obj in zip(reg_list, obj_list):
+        for obj in obj_list:
             i_reg = reg_list[obj.index]
             regions[i_reg].init(topo_dim=dim, extrude=extrude)
             reg_map[obj.id] = regions[i_reg]
