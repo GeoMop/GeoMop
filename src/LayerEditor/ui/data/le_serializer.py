@@ -171,14 +171,16 @@ class LESerializer():
             cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
             last_stratum = layer
         #last interface
-        interface = gf.get_interface(last_stratum.bottom.interface_id)
-        id1 = None
-        if last_stratum.bottom_type is TopologyType.given:
-            id1 = last_stratum.bottom.nodeset_id
-        if last_fracture is not None:
-            cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, last_fracture.name, id1)
-        else:
-            cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, None, id1)        
+        if last_stratum:
+            interface = gf.get_interface(last_stratum.bottom.interface_id)
+            id1 = None
+            if last_stratum.bottom_type is TopologyType.given:
+                id1 = last_stratum.bottom.nodeset_id
+            if last_fracture is not None:
+                cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, last_fracture.name, id1)
+            else:
+                cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, None, id1)
+
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
