@@ -41,6 +41,7 @@ import gm_base.json_data as js
 import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io
 import gm_base.polygons.polygons as polygons
+import gm_base.polygons.merge as merge
 import gm_base.polygons.polygons_io as polygons_io
 import gm_base.geometry_files.bspline_io as bspline_io
 import Geometry.gmsh_io as gmsh_io
@@ -354,7 +355,7 @@ class Interface:
 
         decomps = list(self.decompositions.values())
         decomp_ids = list(self.decompositions.keys())
-        self.common_decomp, all_maps = polygons.intersect_decompositions(decomps)
+        self.common_decomp, all_maps = merge.intersect_decompositions(decomps)
         #plot_polygons.plot_polygon_decomposition(self.common_decomp)
         # make subpolygon lists
         self.subobj_lists={}
@@ -1119,7 +1120,7 @@ class LayerGeometry(gs.LayerGeometry):
             while stack:
 
                 shp = stack.pop(-1)
-                print("shp: {} id: {}\n".format(type(shp), shp.id))
+                #print("shp: {} id: {}\n".format(type(shp), shp.id))
                 for sub in shp.subshapes():
                     if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
                         if shape_dict[sub].visited < i_free:

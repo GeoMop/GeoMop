@@ -24,7 +24,17 @@ def check_file(filename):
     ref_file = os.path.join(*file_path)
     return filecmp.cmp(filename, ref_file)
 
-def run_geometry(in_file, mesh_step=0.0):
+@pytest.mark.parametrize("in_file, mesh_step",
+      [('01_flat_top_side_bc.json', 0),
+       ('02_bump_top_side_bc.json', 0),
+       ('03_flat_real_extension.json', 0),
+       ('04_flat_fracture.json', 0),
+       ('05_split_square.json', 10),
+       ('06_bump_split.json', 10),
+       ('10_bump_step.json', 0),
+       ('11_tectonics.json', 0)
+       ])
+def test_run_geometry(in_file, mesh_step):
     full_in_file = os.path.join('test_data', in_file)
     geometry.make_geometry(layers_file=full_in_file, mesh_step=mesh_step)
 
@@ -35,12 +45,12 @@ def run_geometry(in_file, mesh_step=0.0):
     # msh_file = filename_base + '.msh'
     # assert check_file(msh_file)
 
-def test_geometry_script():
-     #run_geometry('01_flat_top_side_bc.json')
-     #run_geometry('02_bump_top_side_bc.json')
-     #run_geometry('03_flat_real_extension.json')
-     #run_geometry('04_flat_fracture.json')
-     #run_geometry('05_split_square.json', 10)
-     #run_geometry('06_bump_split.json', 10)
-     run_geometry('10_bump_step.json')
-     run_geometry('11_tectonics.json')
+# def test_geometry_script():
+#      run_geometry('01_flat_top_side_bc.json')
+#      run_geometry('02_bump_top_side_bc.json')
+#      run_geometry('03_flat_real_extension.json')
+#      run_geometry('04_flat_fracture.json')
+#      run_geometry('05_split_square.json', 10)
+#      run_geometry('06_bump_split.json', 10)
+#      #run_geometry('10_bump_step.json')
+#      #run_geometry('11_tectonics.json')
