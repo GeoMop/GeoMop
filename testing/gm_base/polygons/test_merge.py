@@ -53,6 +53,10 @@ def test_simple_intersections():
     assert maps_a[2] == { 3: 1, 4: 2}
     assert maps_b[2] == { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2}
 
+
+
+
+
 #@pytest.mark.skip
 def test_frac_intersections():
     # import sys
@@ -79,7 +83,7 @@ def test_frac_intersections():
     decomps = [da]
 
     np.random.seed(1)
-    n_frac = 200
+    n_frac = 50
     p0 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
     p1 = np.random.rand(n_frac, 2) * (box[1] - box[0]) + box[0]
 
@@ -89,24 +93,18 @@ def test_frac_intersections():
         decomps.append(dd)
 
     def tracer_func():
-        decomp, maps = merge.intersect_decompositions(decomps)
+        return merge.intersect_decompositions(decomps)
 
-    import cProfile
-    cProfile.runctx('tracer_func()', globals(), locals(), 'prof_stats')
-
-    import pstats
-    p = pstats.Stats('prof_stats')
-    p.sort_stats('cumulative').print_stats()
-
-    # #plot_polygon_decomposition(decomp)
-    # # run the new command using the given tracer
-    # tracer.run('tracer_func()')
+    # import cProfile
+    # cProfile.runctx('tracer_func()', globals(), locals(), 'prof_stats')
     #
-    # # make a report, placing output in the current directory
-    # r = tracer.results()
-    # r.write_results(show_missing=True, coverdir=".")
-#
-# def run_prof():
-#     TestDecomposition()._test_frac_intersections()
-#
-# def test_profile():
+    # import pstats
+    # p = pstats.Stats('prof_stats')
+    # p.sort_stats('cumulative').print_stats()
+
+    decomp, maps = tracer_func()
+
+    #######
+    # Test merge with empty decomp.
+    # Test fix for split points under tolerance.
+    copy_decomp, maps = merge.intersect_decompositions([ decomp ])

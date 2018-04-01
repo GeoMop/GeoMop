@@ -39,7 +39,7 @@ def deep_copy(self):
     return decomp, id_maps
 
 
-def intersect_single(decomp, other):
+def intersect_single(decomp, other, merge_tol=1e-10):
     """
     TODO: move to separate intersection module.
 
@@ -66,7 +66,8 @@ def intersect_single(decomp, other):
     TODO: Implement clear interface to PolygonDecomposition with history of internal elementary operations
     in particular segment splitting and line splitting. Then we can remove several hacks here.
     """
-
+    save_tol = decomp.tolerance
+    decomp.tolerance = merge_tol
     maps_self = [ {}, {}, {}]
     maps_other = [ {}, {}, {}]
     # for dim in range(3):
@@ -143,6 +144,7 @@ def intersect_single(decomp, other):
     #     assert maps_self[2][p.id] is not None
 
     # assert decomp.check_consistency()
+    decomp.tolerance = save_tol
     return (decomp, maps_self, maps_other)
 
 
