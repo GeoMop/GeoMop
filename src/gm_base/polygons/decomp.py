@@ -606,7 +606,10 @@ class Decomposition:
 
         # Join holes and free points
         for child in list(rm_wire.childs):
-            child.set_parent(keep_wire)
+            assert child.polygon == new_polygon
+            child.set_parent(orig_polygon.outer_wire)
+            child.polygon = orig_polygon
+
 
         for pt in list(new_polygon.free_points):
             pt.set_polygon(orig_polygon)

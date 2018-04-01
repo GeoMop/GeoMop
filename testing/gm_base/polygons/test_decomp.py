@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from gm_base.polygons.decomp import *
 from gm_base.polygons.polygons import PolygonDecomposition
+from gm_base.polygons.plot_polygons import plot_polygon_decomposition
 
 class TestPoint:
     def test_insert_segment_0(self):
@@ -560,3 +561,25 @@ class TestDecomposition:
         da.delete_segment(sb)
         da.delete_segment(sa)
         #print("final dc:\n", da)
+
+    def test_complex_join_polygons(self):
+        da = PolygonDecomposition()
+        # outer triangle
+        da.add_line((0, 4), (0,0))
+        da.add_line((0, 0), (4, 0))
+        da.add_line((4, 0), (0, 4))
+
+        # inner triangle
+        da.add_line((1, 2), (1, 1))
+        da.add_line((1, 1), (2, 1))
+        seg, = da.add_line((2, 1), (1, 2))
+
+        # inner triangle
+        da.add_line((1.2, 1.6), (1.2, 1.2))
+        da.add_line((1.2, 1.2), (1.6, 1.2))
+        da.add_line((1.6, 1.2), (1.2, 1.6))
+        da.decomp.check_consistency()
+        #plot_polygon_decomposition(da)
+
+        da.delete_segment(seg)
+        da.decomp.check_consistency()
