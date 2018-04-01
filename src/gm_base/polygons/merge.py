@@ -84,7 +84,7 @@ def intersect_single(decomp, other):
             assert prev_seg.next[in_vtx][0] == seg
             #assert seg.id not in maps_self[1]
             maps_self[1][seg.id] = maps_self[1].setdefault(prev_seg.id, prev_seg.id)
-            maps_other[1].setdefault(seg.id, None)
+            #maps_other[1].setdefault(seg.id, None)
         maps_other[0][new_pt.id] = pt.id
         other_point_map[pt.id] = new_pt.id
         #maps_self[0].setdefault(new_pt.id, new_pt.id)
@@ -153,12 +153,18 @@ def intersect_single(decomp, other):
 
 def intersect_decompositions(decomps):
     """
-    Intersection of any number of decompositions.
-    :param decomps:
-    :return: (common_decomp, poly_maps) - intersection decomposition, and for every original decomposition
-    a dict mapping polygon ids in intersection to original decomposition polygon ids.
+    Intersection of a list of decompositions. Segments and polygons are subdivided.
+
+    :param decomps: List of PolygonDecomposition objects to itersect.
+    :return: (common_decomp, poly_maps)
+    common_decomp - resulting merged/intersected decomposition.
+    poly_maps - List of maps, one for every input decomposition. For single decomp the map
+    consists of maps for every dimension, [map_0d, map_1d, map_2d].
+    map_Nd - is a dict mapping IDs of sommon_decomp objects to IDs of decomp objects.
+    Objects of common_decomp that have no preimage in decomp are omitted.
+
     TODO: For larger number of intersectiong decompositions, it would be better to
-    use a binary tree instead of linear pass to have n log(n) complexity of map updating.
+    use a binary tree reduction instead of linear pass to have n log(n) complexity of map updating.
     """
     common_decomp = polygons.PolygonDecomposition()
     all_maps = []
@@ -179,4 +185,11 @@ def intersect_decompositions(decomps):
                         one_dim_map[new_id] = one_dim_map[orig_id]
 
         all_maps.append(decomp_maps)
+
+        # check
+        for dim in range(3):
+            orig_id_set = { val for val in decomp_maps[dim].values()}
+            for obj_id in decomp.decomp.shapes[dim].keys():
+                assert obj_id in orig_id_set, "dim:{} id:{}".format(dim, obj_id)
+
     return common_decomp, all_maps

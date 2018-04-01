@@ -3,15 +3,25 @@ import numpy.linalg as la
 import enum
 import gm_base.polygons.aabb_lookup as aabb_lookup
 import gm_base.polygons.decomp as decomp
-
 from gm_base.polygons.decomp import PolygonChange
 
-# TODO: rename point - > node
 # TODO: careful unification of tolerance usage.
-# TODO: Performance tests:
-# - snap_point have potentialy very bad complexity O(Nlog(N)) with number of segments
+# - Snapping is consistent.
+# - Still we may get points closer then tolerance for an edge crossing very acute angle.
+# - not sure about wire.contains_point
+
+# TODO: Performance improvement
+# - O(n^2) complexity of intersections is due to: snap_point and _add_line_seg_intersections
+# The first needs to find closest edge to the point, in fact any edge _ahave potentialy very bad complexity O(Nlog(N)) with number of segments
 # - add_line linear with number of segments
 # - other operations are at most linear with number of segments per wire or point
+#
+# Libraries:
+# - scipy.KDtree - only for points, problematic use for lines must use fixed division of lines
+# - smartquadtree - seems to be also point based but support iterationg over close pairs
+# See:
+# - http://blog.notdot.net/2009/11/Damn-Cool-Algorithms-Spatial-indexing-with-Quadtrees-and-Hilbert-Curves
+# - https://stackoverflow.com/questions/36135161/efficient-quadtree-implementation-in-python
 
 
 in_vtx = left_side = 1
@@ -434,8 +444,8 @@ class PolygonDecomposition:
             if start_pt == mid_pt:
                 continue
             new_seg = self._add_segment(start_pt, mid_pt)
-            if type(new_seg) == decomp.Point:
-                assert False
+            #if type(new_seg) == decomp.Point:
+            #    assert False
             yield (new_seg, self.decomp.last_polygon_change, new_seg.vtxs[out_vtx] == start_pt)
             start_pt = mid_pt
 
