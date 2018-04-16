@@ -167,6 +167,7 @@ class ServiceProxy(JsonData):
         """
 
         # 2.
+        # todo: muze byt problem, pokud bude volano pri restartu ssh connection
         delegator_proxy = self._connection.get_delegator()
 
         # 3.
@@ -268,13 +269,13 @@ class ServiceProxy(JsonData):
 
         if self._online:
             # check get status result
-            self._results_get_status = self._results_get_status[-5:]
+            self._results_get_status = self._results_get_status[-50:]
             res = None
             for item in reversed(self._results_get_status):
                 if len(item) > 0:
                     res = item[0]
                     break
-            if (res is None and len(self._results_get_status) >= 5) or (res is not None and "error" in res):
+            if (res is None and len(self._results_get_status) >= 50) or (res is not None and "error" in res):
                 self._online = False
             else:
                 if res is not None:
@@ -318,10 +319,12 @@ class ServiceProxy(JsonData):
         if self._connection._status != ConnectionStatus.online:
             return False
         try:
+            # todo: presunout stahovani do vlakna, takto muze zaseknout hlavni smycku sluzby
             self._connection.download(
                 [os.path.join(self.workspace, self.config_file_name)],
                 self._connection._local_service.get_analysis_workspace(),
-                self._connection.environment.geomop_analysis_workspace)
+                self._connection.environment.geomop_analysis_workspace,
+                priority=True)
         except (SSHError, FileNotFoundError, PermissionError):
             return False
         file = os.path.join(

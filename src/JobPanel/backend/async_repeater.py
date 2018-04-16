@@ -187,7 +187,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         self.address = address
         self.create_socket()
-        self.socket.settimeout(1)
+        self.socket.settimeout(5)
         logging.info("Connecting: %s" % (str(self.address)))
         try:
             self.connect(self.address)
@@ -396,14 +396,14 @@ class Server(asyncore.dispatcher):
         self.repeater._starter_client_attempting = False
 
         # close previous connection
-        #self.server_dispatcher.close()
+        self.server_dispatcher.close()
         #self.server_dispatcher.discard_buffers()
         self.server_dispatcher.received_data.clear()
 
         client_info = self.accept()
         logging.info("Incomming connection accepted.")
         #print("Incomming connection accepted.")
-        self.server_dispatcher.accept(client_info[0])
+        self.server_dispatcher.accept2(client_info[0])
         return
 
     def handle_close(self):
@@ -438,7 +438,7 @@ class ServerDispatcher(asynchat.async_chat):
         """True if async_chat was initialized"""
 
 
-    def accept(self, socket):
+    def accept2(self, socket):
         logging.info("Accept")
         #socket.settimeout(2)
         asynchat.async_chat.__init__(self, sock = socket)

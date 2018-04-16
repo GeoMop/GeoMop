@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Analysis"))
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../common"))
 
-from backend.service_base import ServiceBase, ServiceStatus
+from backend.service_base import ServiceBase, ServiceStatus, LongRequest
 from backend.json_data import JsonData, ClassFactory, JsonDataNoConstruct
 from backend.connection import ConnectionStatus, SSHError
 from pipeline.pipeline_processor import Pipelineprocessor
@@ -111,6 +111,8 @@ class MultiJob(ServiceBase):
         self._config_changed = False
         self._last_config_saved = 0.0
 
+        self._counter = 0
+
     def _do_work(self):
         if self.status == ServiceStatus.done:
             return
@@ -126,12 +128,13 @@ class MultiJob(ServiceBase):
         elif self.mj_status == MJStatus.running:
             self.check_jobs()
             if self._pipeline_processor.is_run():
-                while self._n_running_jobs < self.max_n_jobs:
-                    runner = self._pipeline_processor.get_next_job()
-                    if runner is None:
-                        break
-                    else:
-                        self.run_job(runner)
+                self._counter += 1
+                if self._counter >= 10:
+                    if self._n_running_jobs < self.max_n_jobs:
+                        runner = self._pipeline_processor.get_next_job()
+                        if runner is not None:
+                            self.run_job(runner)
+                    self._counter = 0
             else:
                 if len(self._jobs) == 0:
                     assert self._n_running_jobs == 0
@@ -327,8 +330,7 @@ class MultiJob(ServiceBase):
                     job_report.done_time = time.time()
                     self._config_changed = True
 
-    # todo: az to bude bezpecne spoustet jako LongRequest
-    #@LongRequest
+    @LongRequest
     def request_download_job_result(self, job_id):
         """
         Downloads job result files.

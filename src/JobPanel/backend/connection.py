@@ -140,7 +140,7 @@ class ConnectionLocal(ConnectionBase):
         """
         pass
 
-    def upload(self,  paths, local_prefix, remote_prefix  ):
+    def upload(self, paths, local_prefix, remote_prefix, priority=False):
         """
         Upload given relative 'paths' to remote, prefixing them by 'local_prefix' for source and
         by 'remote_prefix' for destination.
@@ -154,7 +154,7 @@ class ConnectionLocal(ConnectionBase):
         self._copy(paths, local_prefix, remote_prefix)
 
 
-    def download(self, paths, local_prefix, remote_prefix):
+    def download(self, paths, local_prefix, remote_prefix, priority=False):
         """
         Download given relative 'paths' to remote, prefixing them by 'local_prefix' for destination and
         by 'remote_prefix' for source.
@@ -166,6 +166,15 @@ class ConnectionLocal(ConnectionBase):
         Implementation: just copy
         """
         self._copy(paths, remote_prefix, local_prefix )
+
+    def delete(self, paths, remote_prefix, priority=False):
+        """
+        Delete given relative 'paths' on remote, prefixing them by 'remote_prefix'.
+        :param paths:
+        :param remote_prefix:
+        :return:
+        """
+        pass
 
     def get_delegator(self):
         """
@@ -207,14 +216,103 @@ class ConnectionLocal(ConnectionBase):
 class ConnectionSSH(ConnectionBase):
 
 
+    class SftpPool:
+        """
+        Class for managing SFTP sessions.
+        """
+        PRIORITY_RESERVE = 2
+        """Number of sftp sessions reserved to priority operations"""
+
+        def __init__(self, ssh, timeout):
+            """
+
+            :param paramiko.SSHClient ssh: ssh client
+            :param timeout: timeout for sftp sessions
+            """
+            self._ssh = ssh
+            self._pool = []
+            self._lock = threading.Lock()
+            self._event = threading.Event()
+            self._event_priority = threading.Event()
+            self._closing = False
+
+            # open sftp sessions
+            for i in range(5):
+                sftp = self._ssh.open_sftp()
+                sftp.get_channel().settimeout(timeout)
+                self._pool.append(sftp)
+
+            self._event.set()
+            self._event_priority.set()
+
+        def close(self):
+            """
+            Closes pool.
+            :return:
+            """
+            # todo: spravne by se asi melo pockat, az vsechny up/down loady skonci
+            with self._lock:
+                self._closing = True
+                sftp_to_close = self._pool
+                self._pool = []
+            self._event.set()
+            self._event_priority.set()
+            for sftp in sftp_to_close:
+                sftp.close()
+
+        def acquire(self, priority=False):
+            """
+            Acquire sftp session from pool.
+            If no session available wait.
+            If pool closing return None.
+            :param bool priority: if true acquire session from priority reserve
+            :return:
+            """
+            while True:
+                if priority:
+                    self._event_priority.wait(0.1)
+                else:
+                    self._event.wait(0.1)
+                with self._lock:
+                    if self._closing:
+                        return None
+                    l = len(self._pool)
+                    if (priority and l == 0) or (l <= self.PRIORITY_RESERVE):
+                        continue
+                    sftp = self._pool.pop(0)
+                    l = len(self._pool)
+                    if l <= self.PRIORITY_RESERVE:
+                        self._event.clear()
+                    if l == 0:
+                        self._event_priority.clear()
+                return sftp
+
+        def release(self, sftp):
+            """
+            Returns sftp session back to pool.
+            :param sftp:
+            :return:
+            """
+            close = False
+            with self._lock:
+                if self._closing:
+                    close = True
+                else:
+                    self._pool.append(sftp)
+                    self._event.set()
+            if close:
+                sftp.close()
+
     def __init__(self, config={}):
         """
         :param config:
         """
         super().__init__(config)
 
-        self._timeout = 1000
-        """timeout for ssh operations"""
+        self._timeout = 10
+        """timeout for ssh operations,
+        should be longer than ServiceProxy timeout,
+        we want to ServiceProxy detects problem first"""
 
         self._forwarded_local_ports = {}
         """dict of forwarded local ports, {'local_port': (thread, server)}"""
@@ -227,9 +325,10 @@ class ConnectionSSH(ConnectionBase):
 
         self._ssh = None
         """ssh client"""
+        self._ssh_lock = threading.Lock()
+        """Lock for ssh operations"""
 
-        self._sftp = None
-        """SFTP session"""
+        self._sftp_pool = None
 
         self._delegator_dir = ""
         """directory where delegator is executed"""
@@ -277,22 +376,26 @@ class ConnectionSSH(ConnectionBase):
             logging.error('*** Failed to connect to %s:%d: %r' % (self.address, self.port, e))
             raise
 
-        # open an SFTP session
-        self._sftp = self._ssh.open_sftp()
-        self._sftp.get_channel().settimeout(self._timeout)
+        self._ssh.get_transport().set_keepalive(1)
+
+        self._sftp_pool = self.SftpPool(self._ssh, self._timeout)
 
         # prepare workspace
-        workspace = self.environment.geomop_analysis_workspace
+        sftp = self._sftp_pool.acquire()
         try:
-            self._sftp.chdir(workspace)
-        except IOError as e:
-            self._sftp.mkdir(workspace)
-        self._delegator_dir = os.path.join(workspace, "Delegators")
-        try:
-            self._sftp.chdir(self._delegator_dir)
-        except IOError as e:
-            self._sftp.mkdir(self._delegator_dir)
-        self._sftp.chdir()
+            workspace = self.environment.geomop_analysis_workspace
+            try:
+                sftp.mkdir(workspace)
+            except IOError:
+                pass
+
+            self._delegator_dir = os.path.join(workspace, "Delegators")
+            try:
+                sftp.mkdir(self._delegator_dir)
+            except IOError :
+                pass
+        finally:
+            self._sftp_pool.release(sftp)
 
         assert self.get_delegator() is not None
 
@@ -310,8 +413,7 @@ class ConnectionSSH(ConnectionBase):
                         pass
                 else:
                     break
-            #time.sleep(2)
-            self._reconnect_event.wait(timeout=2)
+            self._reconnect_event.wait(timeout=10)
 
     def __del__(self):
         # close all tunels, delagators, etc. immediately
@@ -466,10 +568,11 @@ class ConnectionSSH(ConnectionBase):
             t.daemon = True
             t.start()
 
-        try:
-            remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
-        except paramiko.SSHException:
-            raise SSHError
+        with self._ssh_lock:
+            try:
+                remote_port = self._ssh.get_transport().request_port_forward('', 0, handler)
+            except paramiko.SSHException:
+                raise SSHError
 
         self._forwarded_remote_ports.add(remote_port)
 
@@ -485,10 +588,11 @@ class ConnectionSSH(ConnectionBase):
             return
 
         if remote_port in self._forwarded_remote_ports:
-            self._ssh.get_transport().cancel_port_forward('', remote_port)
+            with self._ssh_lock:
+                self._ssh.get_transport().cancel_port_forward('', remote_port)
             self._forwarded_remote_ports.remove(remote_port)
 
-    def upload(self, paths, local_prefix, remote_prefix):
+    def upload(self, paths, local_prefix, remote_prefix, priority=False):
         """
         Upload given relative 'paths' to remote, prefixing them by 'local_prefix' for source and
         by 'remote_prefix' for destination.
@@ -505,32 +609,56 @@ class ConnectionSSH(ConnectionBase):
         if self._status != ConnectionStatus.online:
             raise SSHError
 
-        cwd = self._sftp.getcwd()
-        for path in paths:
-            # make dirs
-            dir = os.path.dirname(path)
-            dir_list = []
-            while len(dir) > 0:
-                dir_list.insert(0, dir)
-                dir = os.path.dirname(dir)
-            for dir in dir_list:
-                prefix_dir = os.path.join(remote_prefix, dir)
-                try:
-                    self._sftp.chdir(prefix_dir)
-                except IOError:
-                    self._sftp.mkdir(prefix_dir)
+        sftp_pool = self._sftp_pool
+        sftp = sftp_pool.acquire(priority)
+        if sftp is None:
+            raise SSHError
 
-            loc = os.path.join(local_prefix, path)
-            rem = os.path.join(remote_prefix, path)
-            if os.path.isdir(loc):
-                self._upload_dir(loc, rem)
-            else:
-                self._upload_file(loc, rem)
-        self._sftp.chdir(cwd)
-
-    def _upload_file(self, loc, rem):
+        rem = ""
         try:
-            self._sftp.put(loc, rem)
+            for path in paths:
+                # make dirs
+                dir = os.path.dirname(path)
+                dir_list = []
+                while len(dir) > 0:
+                    dir_list.insert(0, dir)
+                    dir = os.path.dirname(dir)
+                for dir in dir_list:
+                    prefix_dir = os.path.join(remote_prefix, dir)
+                    try:
+                        # for exception handling
+                        rem = prefix_dir
+
+                        sftp.mkdir(prefix_dir)
+                    except IOError:
+                        pass
+
+                loc = os.path.join(local_prefix, path)
+                rem = os.path.join(remote_prefix, path)
+                if os.path.isdir(loc):
+                    self._upload_dir(sftp, loc, rem)
+                else:
+                    self._upload_file(sftp, loc, rem)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file/dir", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file/dir", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+        finally:
+            sftp_pool.release(sftp)
+
+    def _upload_file(self, sftp, loc, rem):
+        try:
+            sftp.put(loc, rem)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file", rem)
@@ -541,26 +669,33 @@ class ConnectionSSH(ConnectionBase):
                 raise OSError(errno.EACCES, "Permission denied on remote file", rem)
             else:
                 raise
-        except socket.timeout:
-            raise SSHTimeoutError
-        except OSError:
-            raise SSHError
 
-    def _upload_dir(self, loc, rem):
-        names = os.listdir(loc)
+    def _upload_dir(self, sftp, loc, rem):
         try:
-            self._sftp.chdir(rem)
-        except IOError:
-            self._sftp.mkdir(rem)
-        for name in names:
-            loc_name = os.path.join(loc, name)
-            rem_name = os.path.join(rem, name)
-            if os.path.isdir(loc_name):
-                self._upload_dir(loc_name, rem_name)
+            names = os.listdir(loc)
+            try:
+                sftp.mkdir(rem)
+            except IOError:
+                pass
+            for name in names:
+                loc_name = os.path.join(loc, name)
+                rem_name = os.path.join(rem, name)
+                if os.path.isdir(loc_name):
+                    self._upload_dir(sftp, loc_name, rem_name)
+                else:
+                    self._upload_file(sftp, loc_name, rem_name)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote dir", rem)
             else:
-                self._upload_file(loc_name, rem_name)
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote dir", rem)
+            else:
+                raise
 
-    def download(self, paths, local_prefix, remote_prefix):
+    def download(self, paths, local_prefix, remote_prefix, priority=False):
         """
         Download given relative 'paths' to remote, prefixing them by 'local_prefix' for destination and
         by 'remote_prefix' for source.
@@ -575,18 +710,41 @@ class ConnectionSSH(ConnectionBase):
         if self._status != ConnectionStatus.online:
             raise SSHError
 
-        for path in paths:
-            loc = os.path.join(local_prefix, path)
-            rem = os.path.join(remote_prefix, path)
-            os.makedirs(os.path.dirname(loc), exist_ok=True)
-            if stat.S_ISDIR(self._sftp.stat(rem).st_mode):
-                self._download_dir(loc, rem)
-            else:
-                self._download_file(loc, rem)
+        sftp_pool = self._sftp_pool
+        sftp = sftp_pool.acquire(priority)
+        if sftp is None:
+            raise SSHError
 
-    def _download_file(self, loc, rem):
+        rem = ""
         try:
-            self._sftp.get(rem, loc)
+            for path in paths:
+                loc = os.path.join(local_prefix, path)
+                rem = os.path.join(remote_prefix, path)
+                os.makedirs(os.path.dirname(loc), exist_ok=True)
+                if stat.S_ISDIR(sftp.stat(rem).st_mode):
+                    self._download_dir(sftp, loc, rem)
+                else:
+                    self._download_file(sftp, loc, rem)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file/dir", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file/dir", rem)
+            else:
+                raise
+        except socket.timeout:
+            raise SSHTimeoutError
+        except OSError:
+            raise SSHError
+        finally:
+            sftp_pool.release(sftp)
+
+    def _download_file(self, sftp, loc, rem):
+        try:
+            sftp.get(rem, loc)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file", rem)
@@ -597,20 +755,104 @@ class ConnectionSSH(ConnectionBase):
                 raise OSError(errno.EACCES, "Permission denied on remote file", rem)
             else:
                 raise
+
+    def _download_dir(self, sftp, loc, rem):
+        try:
+            os.makedirs(loc, exist_ok=True)
+            for fileattr in sftp.listdir_attr(rem):
+                loc_name = os.path.join(loc, fileattr.filename)
+                rem_name = os.path.join(rem, fileattr.filename)
+                if stat.S_ISDIR(fileattr.st_mode):
+                    self._download_dir(sftp, loc_name, rem_name)
+                else:
+                    self._download_file(sftp, loc_name, rem_name)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote dir", rem)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote dir", rem)
+            else:
+                raise
+
+    def delete(self, paths, remote_prefix, priority=False):
+        """
+        Delete given relative 'paths' on remote, prefixing them by 'remote_prefix'.
+        If path doesn't exist no error occurs.
+        :param paths:
+        :param remote_prefix:
+        :return:
+        """
+        assert os.path.isabs(remote_prefix)
+
+        if self._status != ConnectionStatus.online:
+            raise SSHError
+
+        sftp_pool = self._sftp_pool
+        sftp = sftp_pool.acquire(priority)
+        if sftp is None:
+            raise SSHError
+
+        full_path = ""
+        try:
+            for path in paths:
+                full_path = os.path.join(remote_prefix, path)
+                if stat.S_ISDIR(sftp.stat(full_path).st_mode):
+                    self._delete_dir(sftp, full_path)
+                else:
+                    self._delete_file(sftp, full_path)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file/dir", full_path)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file/dir", full_path)
+            else:
+                raise
         except socket.timeout:
             raise SSHTimeoutError
         except OSError:
             raise SSHError
+        finally:
+            sftp_pool.release(sftp)
 
-    def _download_dir(self, loc, rem):
-        os.makedirs(loc, exist_ok=True)
-        for fileattr in self._sftp.listdir_attr(rem):
-            loc_name = os.path.join(loc, fileattr.filename)
-            rem_name = os.path.join(rem, fileattr.filename)
-            if stat.S_ISDIR(fileattr.st_mode):
-                self._download_dir(loc_name, rem_name)
+    def _delete_file(self, sftp, path):
+        try:
+            sftp.remove(path)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote file", path)
             else:
-                self._download_file(loc_name, rem_name)
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote file", path)
+            else:
+                raise
+
+    def _delete_dir(self, sftp, path):
+        try:
+            for fileattr in sftp.listdir_attr(path):
+                path_name = os.path.join(path, fileattr.filename)
+                if stat.S_ISDIR(sftp.stat(path_name).st_mode):
+                    self._delete_dir(sftp, path_name)
+                else:
+                    self._delete_file(sftp, path_name)
+            sftp.rmdir(path)
+        except FileNotFoundError as e:
+            if e.filename is None:
+                raise OSError(errno.ENOENT, "No such remote dir", path)
+            else:
+                raise
+        except PermissionError as e:
+            if e.filename is None:
+                raise OSError(errno.EACCES, "Permission denied on remote dir", path)
+            else:
+                raise
 
     def get_delegator(self):
         """
@@ -652,12 +894,13 @@ class ConnectionSSH(ConnectionBase):
                   + self.environment.python + " " \
                   + os.path.join(self.environment.geomop_root, "JobPanel/services/delegator_service.py") \
                   + " {} {} {}".format(child_id, "localhost", remote_port)
-        try:
-            self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
-        except paramiko.SSHException:
-            raise SSHError
-        except socket.timeout:
-            raise SSHTimeoutError
+        with self._ssh_lock:
+            try:
+                self._delegator_std_in_out_err = self._ssh.exec_command(command, timeout=self._timeout, get_pty=True)
+            except paramiko.SSHException:
+                raise SSHError
+            except socket.timeout:
+                raise SSHTimeoutError
 
         #time.sleep(10)
         #print(self._delegator_std_in_out_err[1].readlines())
@@ -704,14 +947,12 @@ class ConnectionSSH(ConnectionBase):
 
         self._forwarded_remote_ports.clear()
 
-        if self._sftp is not None:
-            self._sftp.close()
-            self._sftp = None
+        if self._sftp_pool is not None:
+            with self._ssh_lock:
+                self._sftp_pool.close()
+                self._sftp_pool = None
 
         if self._ssh is not None:
-            self._ssh.close()
-            self._ssh = None
-
-
-
-
+            with self._ssh_lock:
+                self._ssh.close()
+                self._ssh = None
