@@ -27,7 +27,7 @@ class AppendLayerDlg(QtWidgets.QDialog):
 
         self.image = QtWidgets.QLabel(self)
         self.image.setMinimumWidth(self.layer_name.sizeHint().height())
-        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height()))
+        self.image.setPixmap(QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.layer_name.sizeHint().height()))
         self.image.setToolTip('Layer name is unique, everything is fine.')
 
         grid.addWidget(d_layer_name, 0, 0)
@@ -81,13 +81,13 @@ class AppendLayerDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_layer_name(name):
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height())
+                    QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.layer_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.layer_name.sizeHint().height())
+                QtGui.QIcon("../common/icon/24x24/warning.png").pixmap(self.layer_name.sizeHint().height())
             )
             self.image.setToolTip('Name is not unique!')
             self._tranform_button.setEnabled(False)
