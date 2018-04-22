@@ -226,11 +226,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                 p1, label = self._add_point(self._last_p1_on_line, 
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
-            px = p.x()
-            py = p.y()
+            px = p2.point_data.x
+            py = p2.point_data.y
+            # px = p.x()
+            # py = p.y()
             added_points, moved_points, added_lines = cfg.diagram.join_line_intersection(
                 p1.point_data, p2.point_data, label)
-            self.update_changes(added_points, [], moved_points, added_lines, [])            
+            self.update_changes(added_points, [], moved_points, added_lines, [])
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
