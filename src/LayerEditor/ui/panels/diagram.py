@@ -243,6 +243,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             p1 = Point(line.p1, tmp=True)
             self.addItem(p1)
             p2 = Point(line.p2, tmp=True)
+            p2.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             self.addItem(p2)
             l = Line(line, tmp=True)
             self.addItem(l)
