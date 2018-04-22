@@ -41,21 +41,43 @@ class AddRegionDlg(QtWidgets.QDialog):
         # QtGui.QColor("#8effff")  # blue4
     ]
         
+    # REGION_DESCRIPTION = {
+    #     RegionDim.none: "None (default)",
+    #     RegionDim.point: "Point (0D)",
+    #     RegionDim.well: "Well (1D)",
+    #     RegionDim.fracture: "Fracture (2D)",
+    #     RegionDim.bulk: "Bulk (3D)"
+    # }
+
+    # REGION_DESCRIPTION_SHORT = {
+    #     RegionDim.none: "default",
+    #     RegionDim.point: "point",
+    #     RegionDim.well: "well",
+    #     RegionDim.fracture: "fracture",
+    #     RegionDim.bulk: "bulk"
+    # }
     REGION_DESCRIPTION = {
-        RegionDim.none: "None (default)",
+        RegionDim.none: "Default (None)",
         RegionDim.point: "Point (0D)",
-        RegionDim.well: "Well (1D)",
-        RegionDim.fracture: "Fracture (2D)", 
-        RegionDim.bulk: "Bulk (3D)"
+        RegionDim.well: "Edge (1D)",
+        RegionDim.fracture: "Face (2D)",
+        RegionDim.bulk: "Volume (3D)"
     }
-    
     REGION_DESCRIPTION_SHORT = {
         RegionDim.none: "default",
         RegionDim.point: "point",
-        RegionDim.well: "well",
-        RegionDim.fracture: "fracture", 
-        RegionDim.bulk: "bulk"
+        RegionDim.well: "edge",
+        RegionDim.fracture: "face",
+        RegionDim.bulk: "volume"
     }
+    REGION_DESCRIPTION_DIM = {
+        RegionDim.none: "None",
+        RegionDim.point: "0D",
+        RegionDim.well: "1D",
+        RegionDim.fracture: "2D",
+        RegionDim.bulk: "3D"
+    }
+
 
 
     def __init__(self,  parent=None):
@@ -149,7 +171,12 @@ class AddRegionDlg(QtWidgets.QDialog):
     def set_default_name(self, dim):
         """ Set default name if it seems to be default name. """
         if self.have_default_name:
-            dim_to_regtype = ["point_", "well_", "fracture_", "bulk_"]
+            dim_to_regtype = [
+                self.REGION_DESCRIPTION_SHORT[RegionDim.point]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.well]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.fracture]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.bulk]+"_"
+            ]
             reg_id = 0
             name = cfg.diagram.regions.regions[0].name
             while not self.is_unique_region_name(name):
