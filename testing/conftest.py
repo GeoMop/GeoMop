@@ -14,7 +14,7 @@ print("Root conf test.")
 # Modify sys.path to have path to the GeoMop modules.
 # TODO: make installation and Tox working in order to remove this hack.
 this_source_dir = os.path.dirname(os.path.realpath(__file__))
-rel_paths = ["../src"]
+rel_paths = ["../src", "../submodules/intersections/src"]
 for rel_path in rel_paths:
     sys.path.append(os.path.realpath(os.path.join(this_source_dir, rel_path)))
 sys.path = [ x for x in sys.path if x not in {this_source_dir, ''} ]
