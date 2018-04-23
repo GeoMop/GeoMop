@@ -163,30 +163,30 @@ class Surfaces(QtWidgets.QWidget):
         # xz scale        
         self.d_xyscale = QtWidgets.QLabel("XY scale:", self)
         self.xyscale11 = FocusEdit()
-        self.xyscale11.textChanged.connect(self._refresh_grid)
+        self.xyscale11.editingFinished.connect(self._refresh_grid)
         self.xyscale11.focusIn.connect(self._focus_in)
         self.xyscale11.setValidator(QtGui.QDoubleValidator())        
         self.xyscale12 = FocusEdit()
-        self.xyscale12.textChanged.connect(self._refresh_grid)
+        self.xyscale12.editingFinished.connect(self._refresh_grid)
         self.xyscale12.focusIn.connect(self._focus_in)
         self.xyscale12.setValidator(QtGui.QDoubleValidator())        
         self.xyscale21 = FocusEdit()
-        self.xyscale21.textChanged.connect(self._refresh_grid)
+        self.xyscale21.editingFinished.connect(self._refresh_grid)
         self.xyscale21.focusIn.connect(self._focus_in)
         self.xyscale21.setValidator(QtGui.QDoubleValidator())
         self.xyscale22 = FocusEdit()
-        self.xyscale22.textChanged.connect(self._refresh_grid)
+        self.xyscale22.editingFinished.connect(self._refresh_grid)
         self.xyscale22.focusIn.connect(self._focus_in)
         self.xyscale22.setValidator(QtGui.QDoubleValidator())        
         
         self.d_xyshift = QtWidgets.QLabel("XY shift:", self)        
         self.xyshift1 = FocusEdit()
-        self.xyshift1.textChanged.connect(self._refresh_grid)
+        self.xyshift1.editingFinished.connect(self._refresh_grid)
         self.xyshift1.focusIn.connect(self._focus_in)
         self.xyshift1.setValidator(QtGui.QDoubleValidator())
         
         self.xyshift2 = FocusEdit()
-        self.xyshift2.textChanged.connect(self._refresh_grid)
+        self.xyshift2.editingFinished.connect(self._refresh_grid)
         self.xyshift2.focusIn.connect(self._focus_in)
         self.xyshift2.setValidator(QtGui.QDoubleValidator())        
         
@@ -202,24 +202,35 @@ class Surfaces(QtWidgets.QWidget):
         # approximation points
         self.d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)        
         self.u_approx = FocusEdit()
-        self.u_approx.textChanged.connect(self._refresh_mash)
+        self.u_approx.editingFinished.connect(self._refresh_mash)
         self.u_approx.focusIn.connect(self._focus_in)
         self.u_approx.setValidator(QtGui.QIntValidator())
         self.v_approx = FocusEdit()
-        self.v_approx.textChanged.connect(self._refresh_mash)
+        self.v_approx.editingFinished.connect(self._refresh_mash)
         self.v_approx.focusIn.connect(self._focus_in)
         self.v_approx.setValidator(QtGui.QIntValidator())
         
         grid.addWidget(self.d_approx, 11, 0, 1, 3)
         grid.addWidget(self.u_approx, 12, 0)
-        grid.addWidget(self.v_approx, 12, 1)        
-        
-        self.apply = QtWidgets.QPushButton("Apply")
+        grid.addWidget(self.v_approx, 12, 1)
+
+        self.reload = QtWidgets.QPushButton()
+        self.reload.setIcon(QtGui.QIcon("../common/icon/24x24/refresh.png"))
+        self.reload.setToolTip("Recalculate approximation")
+        self.reload.clicked.connect(self._recalculate_approx)
+        self.reload.pressed.connect(self._focus_in)
+
+        self.apply = QtWidgets.QPushButton()
+        self.apply.setIcon(QtGui.QIcon("../common/icon/24x24/sign-check.png"))
+        self.apply.setToolTip("Create surface")
         self.apply.clicked.connect(self._apply) 
         self.apply.pressed.connect(self._focus_in)
-        
-        grid.addWidget(self.apply, 12,2)
-        
+
+        subgrid = QtWidgets.QGridLayout(self)
+        subgrid.addWidget(self.reload, 0, 0)
+        # subgrid.addWidget(self.apply, 0, 1)
+        grid.addLayout(subgrid, 12,2)
+        # QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
         # sepparator
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -229,7 +240,7 @@ class Surfaces(QtWidgets.QWidget):
         
         inner_grid = QtWidgets.QGridLayout()
 
-        self.d_elevation = QtWidgets.QLabel("Elevation:", self)
+        self.d_elevation = QtWidgets.QLabel("Z:", self)
         self.elevation = QtWidgets.QLineEdit()
         self.elevation.setReadOnly(True)
         self.elevation.setStyleSheet("background-color:WhiteSmoke");
@@ -245,9 +256,11 @@ class Surfaces(QtWidgets.QWidget):
         
         inner_grid.addWidget(self.d_error, 0, 2)
         inner_grid.addWidget(self.error, 0, 3)
+
         
-        grid.addLayout(inner_grid, 14, 0, 1, 3)
-        
+        grid.addLayout(inner_grid, 14, 0, 1, 2)
+        grid.addWidget(self.apply, 14, 2)
+
         self.d_message = QtWidgets.QLabel("", self)
         self.d_message.setVisible(False)
         grid.addWidget(self.d_message, 15, 0, 1, 3)
@@ -326,9 +339,9 @@ class Surfaces(QtWidgets.QWidget):
         file = self.grid_file_name.text()
         u, v = self.get_uv()
         
-        self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
-        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-        self.quad = self.zs.quad.tolist()
+        # self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+        # self.zs.transform(np.array(self._get_transform(), dtype=float), None)
+        # self.quad = self.zs.quad.tolist()
         
         if self.new:
             surfaces.add(self.zs, file, self.name.text())
@@ -350,11 +363,11 @@ class Surfaces(QtWidgets.QWidget):
             self._history.change_surface(surfaces, id)
             surfaces.surfaces[id] = surface
         if self.approx.error is not None:
-            self.error.setText(str(self.approx.error))                
+            self.error.setText("%0.3f"%self.approx.error)
         else:
             self.error.setText("")
         center = self.zs.center()
-        self.elevation.setText(str(center[2]))
+        self.elevation.setText("%0.3f"%center[2])
         self.elevation.setEnabled(True)
         self.error.setEnabled(True)
         self.elevation.home(False)
@@ -374,8 +387,26 @@ class Surfaces(QtWidgets.QWidget):
             return
         self._history.insert_surface(del_surface, id)    
         self.reload_surfaces(id)
-        
-    def _refresh_grid(self, new_str):
+
+    def _recalculate_approx(self):
+        u, v = self.get_uv()
+        self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+        self.error.setText('%.3f' % self.approx.error)
+        self.elevation.setText('%.3f' % self.zs.center()[2])
+        self.apply.setEnabled(True)
+        self.apply.setToolTip("Create surface")
+        self.calculatedApprox['t_mat'] = np.array(self._get_transform(), dtype=float)
+        self.calculatedApprox['uv'] = self.get_uv()
+
+    def _checkApproximation(self):
+        if np.all(self.calculatedApprox['t_mat'] == np.array(self._get_transform(), dtype=float)) and self.calculatedApprox['uv'] == self.get_uv():
+            self.apply.setEnabled(True)
+            self.apply.setToolTip("Create surface")
+        else:
+            self.apply.setEnabled(False)
+            self.apply.setToolTip("Recalculate the approximation before surface creation.")
+
+    def _refresh_grid(self):
         """Transform parameters arechanged."""
         if self.zs is None:
             return
@@ -389,7 +420,8 @@ class Surfaces(QtWidgets.QWidget):
         self.zs.transform(t_mat, None)
         self.quad = self.zs.quad.tolist()        
         self.showMash.emit(True)
-        
+        self._checkApproximation()
+
     def get_uv(self):
         """Check and return uv"""
         # TODO: highlite error 
@@ -407,7 +439,7 @@ class Surfaces(QtWidgets.QWidget):
             v = 10
         return u, v
         
-    def _refresh_mash(self, new_str):
+    def _refresh_mash(self):
         """Mesh parameters nu, nv have changed."""
         if self.zs is None:
             return
@@ -421,6 +453,7 @@ class Surfaces(QtWidgets.QWidget):
         self.showMash.emit(True)
         self.elevation.setEnabled(False)
         self.error.setEnabled(False)
+        self._checkApproximation()
 
     def _focus_in(self):
         """Some controll gain focus"""
@@ -439,7 +472,6 @@ class Surfaces(QtWidgets.QWidget):
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
         self.name.setText(surfaces[id].name)
-
         approx = surfaces[id].approximation
         xy_transform = approx.get_transform()[0]
         self.xyscale11.setText(str(xy_transform[0][0]))
@@ -460,7 +492,13 @@ class Surfaces(QtWidgets.QWidget):
         self.error.setEnabled(False)          
         self.d_message.setText("")
         self.d_message.setVisible(False)
-        
+        t_mat = np.array(self._get_transform(), dtype=float)
+        uv = self.get_uv()
+        self.calculatedApprox = {
+            't_mat': t_mat,
+            'uv': uv
+        }
+
         if os.path.exists(file):
             try:
                 self.approx = ba.SurfaceApprox.approx_from_file(file)  
@@ -495,9 +533,9 @@ class Surfaces(QtWidgets.QWidget):
                 self.zs = zs
                 self.zs_id = id
                 if self.approx.error is not None:
-                    self.error.setText(str(self.approx.error))                
+                    self.error.setText('%.3f' % self.approx.error)
                 center = self.zs.center()
-                self.elevation.setText(str(center[2]))
+                self.elevation.setText("%0.3f" % center[2])
                 self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
                 self.elevation.home(False)
@@ -525,9 +563,9 @@ class Surfaces(QtWidgets.QWidget):
             self.zs = self.approx.compute_approximation()
             self.zs_id = self.surface.currentIndex()
             if self.approx.error is not None:
-                self.error.setText(str(self.approx.error) )
+                self.error.setText('%.3f' % self.approx.error)
             center = self.zs.center()
-            self.elevation.setText(str(center[2]))
+            self.elevation.setText("%0.3f" % center[2])
             self.elevation.setEnabled(True)
             self.error.setEnabled(True) 
             self.elevation.home(False)
@@ -602,15 +640,15 @@ class Surfaces(QtWidgets.QWidget):
                 self._enable_approx(True)                              
                 nuv = self.approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
-                self.v_approx.setText(str(nuv[1]))   
+                self.v_approx.setText(str(nuv[1]))
                 self.last_u = nuv[0]
                 self.last_v = nuv[1]            
 
                 self.zs = self.approx.compute_approximation()
                 if self.approx.error is not None:
-                    self.error.setText(str(self.approx.error) )
+                    self.error.setText('%.3f' % self.approx.error)
                 center = self.zs.center()
-                self.elevation.setText(str(center[2]))
+                self.elevation.setText("%.3f" % center[2])
                 self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
                 self.elevation.home(False)
@@ -618,6 +656,12 @@ class Surfaces(QtWidgets.QWidget):
                 self.zs.transform(np.array(self._get_transform(), dtype=float), None)
                 self.quad = self.zs.quad                
                 self.showMash.emit(True)
+                t_mat = np.array(self._get_transform(), dtype=float)
+                uv = self.get_uv()
+                self.calculatedApprox = {
+                    't_mat': t_mat,
+                    'uv': uv
+                }
 
 
     def _name_exist(self, name):
@@ -645,4 +689,5 @@ class Surfaces(QtWidgets.QWidget):
         self.d_approx.setEnabled(enable)
         self.u_approx.setEnabled(enable)
         self.v_approx.setEnabled(enable)         
-        self.apply.setEnabled(enable) 
+        self.reload.setEnabled(enable)
+        self.apply.setEnabled(enable)
