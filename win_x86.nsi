@@ -248,27 +248,31 @@ Section "-Batch files" SecBatchFiles
   CreateDirectory "$INSTDIR\bin"
   SetOutPath $INSTDIR\bin
 
-  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +5
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +6
     FileOpen $0 "job_panel.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\JobPanel\job_panel.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +5
+  IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +6
     FileOpen $0 "layer_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\layer_editor.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +5
+  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +6
     FileOpen $0 "model_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +5
+  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +6
     FileOpen $0 "geometry.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py" %*$\r$\n'
     FileClose $0
 
@@ -277,6 +281,12 @@ Section "-Batch files" SecBatchFiles
     FileWrite $0 "@echo off$\r$\n"
     FileWrite $0 '"$INSTDIR\gmsh\gmsh.exe" %*$\r$\n'
     FileClose $0
+
+  FileOpen $0 "pythonw.bat" w
+  FileWrite $0 "@echo off$\r$\n"
+  FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
+  FileWrite $0 'start "" "$PYTHON_SCRIPTS\pythonw.exe" %*$\r$\n'
+  FileClose $0
 
 SectionEnd
 
@@ -295,15 +305,15 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
 
 SectionEnd
 
@@ -312,15 +322,15 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortCut "$DESKTOP\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
+    CreateShortCut "$DESKTOP\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
+    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
+    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
 
 SectionEnd
 
