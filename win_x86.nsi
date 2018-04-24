@@ -119,6 +119,9 @@ Section "Runtime Environment" SecRuntime
   # Copy the common folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
 
+  # Copy the gm_base folder.
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\gm_base"
+
   # Copy LICENSE, CHANGELOG, VERSION.
   File "${GIT_DIR}\VERSION"
   File "${GIT_DIR}\CHANGELOG.md"
