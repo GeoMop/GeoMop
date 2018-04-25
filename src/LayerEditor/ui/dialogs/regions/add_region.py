@@ -92,19 +92,29 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.well], RegionDim.well)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
-        # TODO: change the default value according to the maximal dimension of selected elements in the viewport area
-        self.region_dim.setCurrentIndex(3)
+
+        selected_regions = cfg.main_window.diagramScene.selection
+        max_selected_dim = 3
+        if not selected_regions.selected_polygons:
+            max_selected_dim -= 1
+            if not selected_regions.selected_lines:
+                max_selected_dim -= 1
+                if not selected_regions.selected_points:
+                    max_selected_dim -= 1
+        if cfg.diagram.regions.current_layer_id < 0:
+            max_selected_dim -= 1
+
+        self.region_dim.setCurrentIndex(max_selected_dim)
 
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
         self.image = QtWidgets.QLabel(self)
 
         self.image.setMinimumWidth(self.region_name.sizeHint().height())
-        # self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height()))
         self.image.setPixmap(QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
         self.have_default_name = True
-        self.set_default_name(3)
+        self.set_default_name(max_selected_dim)
         self.region_name.textChanged.connect(self.reg_name_changed)
 
 
@@ -144,17 +154,12 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_region_name(reg_name):
             self.image.setPixmap(
-                #QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height())
-                #TODO: QRessources library and QDir for appropriate icon search
-                # QtGui.QIcon.fromTheme("emblem-default", QtGui.QIcon(":/check.png")).pixmap(self.region_name.sizeHint().height())
-                #TODO: Icon size
                 QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.region_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                # QtGui.QIcon.fromTheme("emblem-important").pixmap(self.region_name.sizeHint().height())
                 QtGui.QIcon("../common/icon/24x24/warning.png").pixmap(
                     self.region_name.sizeHint().height())
             )
