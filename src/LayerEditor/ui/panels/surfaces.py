@@ -8,6 +8,7 @@ import gm_base.b_spline
 import numpy as np
 import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
+import gm_base.icon as icon
 from ..data import SurfacesHistory
 import copy
 
@@ -101,12 +102,12 @@ class Surfaces(QtWidgets.QWidget):
         self.surface.activated.connect(self._focus_in)
         self.surface.highlighted.connect(self._focus_in)
         self.add_surface = QtWidgets.QPushButton()
-        self.add_surface.setIcon(QtGui.QIcon("../common/icon/24x24/add.png"))
+        self.add_surface.setIcon(icon.get_app_icon("add"))
         self.add_surface.setToolTip('Add new surface to the assignable list.')
         self.add_surface.clicked.connect(self._add_surface)
         self.add_surface.pressed.connect(self._focus_in)
         self.delete = QtWidgets.QPushButton()
-        self.delete.setIcon(QtGui.QIcon("../common/icon/24x24/remove.png"))
+        self.delete.setIcon(icon.get_app_icon("remove"))
         self.delete.setToolTip('Remove selected surface from the list.')
         self.delete.clicked.connect(self._delete)
         self.delete.pressed.connect(self._focus_in)
@@ -130,12 +131,12 @@ class Surfaces(QtWidgets.QWidget):
         self.grid_file_name.setStyleSheet("background-color:WhiteSmoke");
         self.grid_file_name.focusIn.connect(self._focus_in)
         self.grid_file_button = QtWidgets.QPushButton()
-        self.grid_file_button.setIcon(QtGui.QIcon("../common/icon/24x24/folder.png"))
+        self.grid_file_button.setIcon(icon.get_app_icon("folder"))
         self.grid_file_button.setToolTip('Browse local files for the grid file.')
         self.grid_file_button.clicked.connect(self._add_grid_file)
         self.grid_file_button.pressed.connect(self._focus_in)
         self.grid_file_refresh_button = QtWidgets.QPushButton()
-        self.grid_file_refresh_button.setIcon(QtGui.QIcon("../common/icon/24x24/refresh.png"))
+        self.grid_file_refresh_button.setIcon(icon.get_app_icon("refresh"))
         self.grid_file_refresh_button.setToolTip('Refresh the working surface.')
         self.grid_file_refresh_button.clicked.connect(self._refresh_grid_file)
         self.grid_file_refresh_button.pressed.connect(self._focus_in)

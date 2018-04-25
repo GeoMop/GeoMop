@@ -2,9 +2,11 @@ import PyQt5.QtWidgets as QtWidgets
 from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog
 from ..dialogs.regions import AddRegionDlg
 from gm_base.geometry_files.format_last import RegionDim
+
 
 
 class Regions(QtWidgets.QToolBox):
@@ -140,18 +142,14 @@ class Regions(QtWidgets.QToolBox):
         self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
         self.add_button[layer_id] = QtWidgets.QPushButton()
-        # self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
-        #QIcon.fromTheme("list - remove", QIcon(":/list_remove.png"))
-        self.add_button[layer_id].setIcon(QtGui.QIcon("../common/icon/24x24/add.png"))
+        self.add_button[layer_id].setIcon(icon.get_app_icon("add"))
         self.add_button[layer_id].setToolTip('Create new region')
         self.add_button[layer_id].clicked.connect(self._add_region)
 
         self.remove_button[layer_id] = QtWidgets.QPushButton()
-        # self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
-        self.remove_button[layer_id].setIcon(
-            QtGui.QIcon("../common/icon/24x24/remove.png"))
+        self.remove_button[layer_id].setIcon(icon.get_app_icon("remove"))
         self.remove_button[layer_id].setToolTip('Remove selected region')
-        # self.remove_button[layer_id].clicked.connect(self._add_region)
+        # TODO: self.remove_button[layer_id].clicked.connect(self._add_region)
 
         grid.addWidget(self.regions[layer_id], 0, 0)
         grid.addWidget(self.add_button[layer_id], 0, 1)
@@ -172,8 +170,8 @@ class Regions(QtWidgets.QToolBox):
         self.color_button[layer_id] = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
-        self.color_button[layer_id].setIcon(icon)
+        iconPix = QtGui.QIcon(pixmap)
+        self.color_button[layer_id].setIcon(iconPix)
         self.color_button[layer_id].setFixedSize( 25, 25 )
         self.color_button[layer_id].clicked.connect(pom_lamda(layer_id))
         grid.addWidget(self.color_label[layer_id], 2, 0)
@@ -263,9 +261,9 @@ class Regions(QtWidgets.QToolBox):
         self.dims[layer_id].setText(str(region.dim.value) + "D")
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.update_region_data = True
-        self.color_button[layer_id].setIcon(icon)
+        self.color_button[layer_id].setIcon(iconPix)
         self.boundary[layer_id].setChecked(region.boundary) 
         self.notused[layer_id].setChecked(region.not_used)
         self.mesh_step[layer_id].setText(str(region.mesh_step))
@@ -337,9 +335,9 @@ class Regions(QtWidgets.QToolBox):
         if region.color!="##":
             color = QtGui.QColor(region.color)
         pixmap.fill(color)
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.setItemText(id, self.layers[layer_id] + " (" + region.name + ")")
-        self.setItemIcon(id, icon)
+        self.setItemIcon(id, iconPix)
             
     def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
@@ -356,8 +354,8 @@ class Regions(QtWidgets.QToolBox):
         if selected_color.isValid():
             pixmap = QtGui.QPixmap(16, 16)
             pixmap.fill(selected_color)
-            icon = QtGui.QIcon(pixmap)
-            self.color_button[layer_id].setIcon(icon)
+            iconPix = QtGui.QIcon(pixmap)
+            self.color_button[layer_id].setIcon(iconPix)
             
             cfg.diagram.regions.set_region_color(region_id, 
                 selected_color.name(), True, "Set Color")

@@ -6,6 +6,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg
 from gm_base.geomop_dialogs import GMErrorDialog
+import gm_base.icon as icon
 
 class AddRegionDlg(QtWidgets.QDialog):
     
@@ -117,7 +118,7 @@ class AddRegionDlg(QtWidgets.QDialog):
 
         self.image.setMinimumWidth(self.region_name.sizeHint().height())
 
-        self.image.setPixmap(QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.region_name.sizeHint().height()))
+        self.image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
         self.have_default_name = True
         self.set_default_name(max_selected_dim)
@@ -160,14 +161,13 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_region_name(reg_name):
             self.image.setPixmap(
-                QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.region_name.sizeHint().height())
+                icon.get_app_icon("sign-check").pixmap(self.region_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                QtGui.QIcon("../common/icon/24x24/warning.png").pixmap(
-                    self.region_name.sizeHint().height())
+                icon.get_app_icon("warning").pixmap(self.region_name.sizeHint().height())
             )
             self.image.setToolTip('Name is not unique!')
             self._tranform_button.setEnabled(False)
