@@ -131,7 +131,6 @@ class Regions(QtWidgets.QToolBox):
         pom_lamda = lambda ii: lambda: self._region_set(ii)
         self.regions[layer_id] = QtWidgets.QComboBox()            
         for i in range(0, len(data.regions)):            
-            # label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
             data.current_regions[layer_id] = region            
@@ -182,7 +181,7 @@ class Regions(QtWidgets.QToolBox):
         
         # dimension
         self.dim_label[layer_id] = QtWidgets.QLabel("Dimension:", self)
-        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION[region.dim], self)
+        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim], self)
         grid.addWidget(self.dim_label[layer_id], 3, 0)
         grid.addWidget(self.dims[layer_id], 3, 1)
         

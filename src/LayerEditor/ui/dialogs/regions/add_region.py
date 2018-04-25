@@ -56,6 +56,9 @@ class AddRegionDlg(QtWidgets.QDialog):
     #     RegionDim.fracture: "fracture",
     #     RegionDim.bulk: "bulk"
     # }
+
+
+    # Usage: Add_region dialogue dropdown
     REGION_DESCRIPTION = {
         RegionDim.none: "Default (None)",
         RegionDim.point: "Point (0D)",
@@ -63,6 +66,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         RegionDim.fracture: "Face (2D)",
         RegionDim.bulk: "Volume (3D)"
     }
+    # Usage: Name suggestions in the dialogue
     REGION_DESCRIPTION_SHORT = {
         RegionDim.none: "default",
         RegionDim.point: "point",
@@ -70,6 +74,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         RegionDim.fracture: "face",
         RegionDim.bulk: "volume"
     }
+    # Usage: Region panel dimension hints
     REGION_DESCRIPTION_DIM = {
         RegionDim.none: "None",
         RegionDim.point: "0D",
