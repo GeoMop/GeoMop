@@ -116,6 +116,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.image = QtWidgets.QLabel(self)
 
         self.image.setMinimumWidth(self.region_name.sizeHint().height())
+
         self.image.setPixmap(QtGui.QIcon("../common/icon/24x24/sign-check.png").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
         self.have_default_name = True
