@@ -14,9 +14,9 @@ import PyQt5.QtCore as QtCore
 
 import gm_base.icon as icon
 from ModelEditor.meconfig import MEConfig as cfg
-from .ui.dialogs.json_editor import JsonEditorDlg
-from .ui import MainWindow
-from .util import constants
+from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
+from ModelEditor.ui import MainWindow
+from ModelEditor.util import constants
 import subprocess
 
 RELOAD_INTERVAL = 5000

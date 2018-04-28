@@ -436,18 +436,16 @@ class MEConfig:
     @classmethod
     def read_file(cls, file_name):
         try:
+            # try utf-8
             try:
                 with codecs.open(file_name, 'r', 'utf-8') as file_d:
                     return file_d.read().expandtabs(tabsize=2)
             except UnicodeDecodeError:
-                import chardet
-                with open(file_name, 'rb') as file_d:
-                    raw_content = file_d.read()
-                    enc_dict = chardet.detect(raw_content)
-                    coding = enc_dict['encoding']
+                pass
 
+            # try windows-1250
             try:
-                with codecs.open(file_name, 'r', coding) as file_d:
+                with codecs.open(file_name, 'r', 'cp1250') as file_d:
                     return file_d.read().expandtabs(tabsize=2)
             except UnicodeDecodeError:
                 cls._report_error("Unknown encoding of the file %s. Should be UTF-8." % file_name)
