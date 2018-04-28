@@ -118,8 +118,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.topologyChanged.connect(self.set_topology)
         self.layers.refreshArea.connect(self._refresh_area)
         self.regions.regionChanged.connect(self._region_changed)
-        self.surfaces.showMash.connect(self._show_mash)
-        self.surfaces.hideMash.connect(self._hide_mash)
+        self.surfaces.show_grid.connect(self._show_grid)
+        self.surfaces.hide_grid.connect(self._hide_grid)
         self.surfaces.refreshArea.connect(self._refresh_area)
 
         # initialize components
@@ -281,13 +281,13 @@ class MainWindow(QtWidgets.QMainWindow):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
         
-    def _show_mash(self, force):
+    def _show_grid(self, force):
         """Show mash"""
         if force or self.diagramScene.mash is None:
-            quad, u, v = self.surfaces.get_curr_mash()
+            quad, u, v = self.surfaces.get_curr_quad()
             self.diagramScene.show_mash(quad, u, v)
         
-    def _hide_mash(self):
+    def _hide_grid(self):
         """hide mash"""
         self.diagramScene.hide_mash()
         
