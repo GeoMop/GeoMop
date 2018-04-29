@@ -6,6 +6,7 @@ import os
 
 
 from gm_base.json_data import *
+import gm_base.geometry_files.layers_io as lfc
 
 
 class LayerType(IntEnum):
@@ -67,7 +68,7 @@ class Surface(JsonData):
         """Surface name"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
-        self.approx_error = 0
+        self.approx_error = 0.0
         """L-inf error of aproximation"""
         super().__init__(config)
         
@@ -76,6 +77,12 @@ class Surface(JsonData):
     #     surf = Surface()
     #     surf.approximation = None
     #     return surf
+
+    @classmethod
+    def convert(cls, other):
+        new_surf = lfc.convert_json_data(sys.modules[__name__], other, cls)
+        new_surf.approx_error = 0.0
+        return new_surf
 
 class Interface(JsonData):
     
@@ -338,3 +345,9 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
+    @classmethod
+    def convert(cls, other):
+        basepath = getattr(other, 'base_path', os.getcwd())
+        lg = lfc.convert_json_data(sys.modules[__name__], other, cls)
+        lg.version = [0, 5, 5]
+        return lg

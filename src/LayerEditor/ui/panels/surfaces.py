@@ -15,6 +15,26 @@ from ..data import SurfacesHistory
 import copy
 
 
+
+class ApproxData:
+    """
+    Temporary solution to store data of a Surface before it is stored.
+    Final solution should be have Surface class with history support, store data there and
+    unce apply is triggered copy these into LayerGeometry.
+    """
+    def __init__(self, z_surf):
+        self.z_surf = z_surf
+        u = z_surf.u_basis.n_intervals
+        v = z_surf.v_basis.n_intervals
+        self.nuv = (u,v)
+        self.xy_transform = z_surf.get_transform()[0]
+        self.elevation = z_surf.center()[2]
+
+
+
+
+
+
 class FocusLineEdit(QtWidgets.QLineEdit):
     """
     Focus is not propagated by signal but by QEvent.
@@ -37,6 +57,56 @@ def float_safe(text):
     except:
         return 0
 
+
+class SurfacesComboBox(QtWidgets.QComboBox):
+    def __init__(self, surfaces, focus_in):
+        self._surfaces = surfaces
+        super().__init__()
+        self.setEditable(True)
+
+        for idx, surf in enumerate(self._surfaces):
+            self.surface.addItem( surf.name,  idx)
+
+        self.activated.connect(focus_in)
+        self.highlighted.connect(focus_in)
+        self.currentTextChanged.connect(self.changed_name)
+
+    def set_items(self):
+        self.clear()
+        for idx, surf in enumerate(self._surfaces):
+            self.surface.addItem( surf.name,  idx)
+
+
+    def changed_name(self):
+        """
+        TODO: How we treat changes in current surface if it is already stored ?
+        We should perform indicate changes and warn user to loose the changes on
+        currentIndexChanged signal.
+        So change in current text mean nothing.
+        :return:
+        """
+        self.currentIndex
+
+    def get_surface(self, idx):
+        return self._surfaces[idx]
+
+    def del_surface(self):
+        idx = self.currentIndex()
+        assert idx > 0
+        assert idx < len(self._surfaces)
+        del_surface = self._surfaces[idx]
+        if not cfg.layers.delete_surface(id):
+            err_dialog = GMErrorDialog(self)
+            err_dialog.open_error_dialog("Surface is used")
+            return None
+        self._history.insert_surface(del_surface, id)
+
+        self.set_items()
+        # propose new idx
+        return min(idx, len(self._surfaces) - 1)
+
+
+"""TODO: must set a current surface, need handler in main class."""
 
 class Surfaces(QtWidgets.QWidget):
     """
@@ -73,22 +143,23 @@ class Surfaces(QtWidgets.QWidget):
         """
         super(Surfaces, self).__init__(parent)
 
-
         self.zs = None
         """ Instance of bs.Z_Surface, result of approximation. """
+
         self.zs_id = None
-        """Help variable of Z-Surface type from bspline library. If this variable is None
+        """
+        TODO: remove
+        Help variable of Z-Surface type from bspline library. If this variable is None
         , valid approximation is not loaded"""
+
         self.quad = None
         """Display rect for mesh"""
         self.new = False
         """New surface is set"""
-        self.last_u = 10
-        """Last u"""
-        self.last_v = 10
-        """Last v"""
+        self.nuv = (10, 10)
+        """Last grid dimensions. """
         self._history = SurfacesHistory(cfg.history)
-        """History class"""
+        """History class, move into layers data operations."""
         self.approx=None;
         """Auxiliary object for optimalization"""
 
@@ -218,7 +289,7 @@ class Surfaces(QtWidgets.QWidget):
         grid.addLayout(inner_grid, 14, 0, 1, 3)
         
         self.d_message = QtWidgets.QLabel("", self)
-        self.d_message.setVisible(False)
+        self.set_message("")
         grid.addWidget(self.d_message, 15, 0, 1, 3)
 
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
@@ -254,6 +325,9 @@ class Surfaces(QtWidgets.QWidget):
 
 
     def make_double_edit(self):
+        """
+        EditLine box for a double (part of xyscale).
+        """
         edit = FocusLineEdit(self._focus_in)
         #edit.focusIn.connect(self._focus_in)
         edit.textChanged.connect(self._refresh_grid)
@@ -261,6 +335,9 @@ class Surfaces(QtWidgets.QWidget):
         return edit
 
     def make_int_edit(self):
+        """
+        EditLine box for a int (part of nuv).
+        """
         edit = FocusLineEdit(self._focus_in)
         edit.textChanged.connect(self._refresh_mash)
         edit.setValidator(QtGui.QIntValidator())
@@ -273,15 +350,106 @@ class Surfaces(QtWidgets.QWidget):
         for form, val in zip(self.xyscale_mat, values.flat):
             form.setText(str(val))
 
+    def set_message(self, text):
+        self.d_message.setText(text)
+        if text:
+            self.d_message.setVisible(True)
+        else:
+            self.d_message.setVisible(False)
+
+
     # def mousePressEvent(self, event):
     #     super(Surfaces, self).mousePressEvent(event)
     #     self._focus_in()
     
+
+    ####################################################
+    # Event handlers
+
     def focusInEvent(self, event):
         """Standart focus event"""
         super(Surfaces, self).focusInEvent(event)
         self._focus_in()
-            
+
+    def set_current_surface(self, idx):
+        assert idx > 0
+        assert idx < self._surf_combo.count
+        self._surf_combo.setCurrentIndex(idx)
+
+        surface = self._surf_combo.get_surface(idx)
+        self.grid_file_name.setText(surface.grid_file)
+        #self.name.setText(surface.name)
+
+        approx = ApproxData(surface.approximation)
+        self.set_xymat_form(approx.xy_transform)
+        self.u_approx.setText(str(approx.nuv[0]))
+        self.v_approx.setText(str(approx.nuv[1]))
+        self.nuv = approx.nuv
+        self.elevation.setText(str(approx.elevation))
+        self.error.setText(str(surface.approx_error))
+        #self.elevation.setEnabled(False)
+        #self.error.setEnabled(False)
+        self.set_message("")
+
+        # TODO: introduce validator for the file LineEdit that checks
+        #
+        # if os.path.exists(file):
+        #     try:
+        #         self.approx = ba.SurfaceApprox.approx_from_file(file)
+        #     except:
+        #         self.set_message("Invalid file.")
+        #         self.approx = None
+
+        # NOTE: following should not happen
+        # Distinguish operations:
+        # - (re)load file -> get quad, transform, and NUV estimate
+        # - apply -> compute approximation, save into layers
+
+        if self.approx is None:
+            self.grid_file_refresh_button.setEnabled(False)
+            self._enable_approx(False)
+            self.zs = surfaces[id].approximation
+            self.quad = self.zs.quad
+            assert np.all(np.array(self.quad) == np.array(self.zs.quad))
+            self.zs_id = id
+            self.set_message("Set grid file not found.")
+        else:
+            self.grid_file_refresh_button.setEnabled(True)
+            self._enable_approx(True)
+
+            # This approx is recomputed to check that file doesn't change (so the quad match).
+            zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
+            zs.transform(np.array(self._get_transform(), dtype=float), None)
+
+            self.quad = surfaces[id].approximation.quad
+            if not np.allclose(np.array(zs.quad), np.array(self.quad)):
+                self.zs = surfaces[id].approximation
+                self.zs_id = id
+                self.set_message("Set grid file get different approximation.")
+
+            else:
+                self.zs = zs
+                self.zs_id = id
+                if self.approx.error is not None:
+                    self.error.setText(str(self.approx.error))
+                center = self.zs.center()
+                self.elevation.setText(str(center[2]))
+                self.elevation.setEnabled(True)
+                self.error.setEnabled(True)
+                self.elevation.home(False)
+                self.error.home(False)
+            # TODO: check focus
+            self.show_grid.emit(True)
+
+    def _del_surface(self, idx):
+        new_idx = self._surf_combo.del_surface(idx)
+        if new_idx is not None:
+            if new_idx == -1:
+                self.set_empty_dialog()
+            else:
+                self.set_current_surface(new_idx)
+
+
     def _set_new_edit(self, new):
         """Set or unset new surface editing"""        
         if self.new==new:
@@ -406,16 +574,12 @@ class Surfaces(QtWidgets.QWidget):
         """Mesh parameters nu, nv have changed."""
         if self.zs is None:
             return
-        u, v = self.get_uv()
-        if u!=self.last_u or v!=self.last_v:
-            self.last_u = u
-            self.last_v = v
-        else:
-            return
-
-        self.show_grid.emit(True)
-        self.elevation.setEnabled(False)
-        self.error.setEnabled(False)
+        nuv =  self.get_uv()
+        if nuv != self.nuv:
+            self.nuv = nuv
+            self.show_grid.emit(True)
+            self.elevation.setEnabled(False)
+            self.error.setEnabled(False)
 
 
     def get_uv(self):
@@ -527,7 +691,7 @@ class Surfaces(QtWidgets.QWidget):
             try:
                 self.approx = ba.SurfaceApprox.approx_from_file(file)
             except:
-                self.d_message.setText("Invalid file.")
+                self.set_message("Invalid file.")
                 self.approx = None
 
         if self.approx is not None:
@@ -560,15 +724,33 @@ class Surfaces(QtWidgets.QWidget):
         mat = [ float_safe(mat_item.text()) for mat_item in self.xyscale_mat]
         return np.array(mat, dtype=float).reshape(2,3)
 
+    def get_unique_name(self, init_name, names):
+        """
+
+        # TODO: make this a general function to provide unique default name. have general machanism to this in common. Given a list of names
+        # and given a name prefix return a first unique name.
+        # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
+
+        :param init_name:
+        :param names:
+        :return:
+        """
+        name_set = set(names)
+        namebase = name = init_name
+        i = 1
+
+        while name in name_set:
+            name = namebase + "_" + str(i)
+            i += 1
+        return name
+
     def _set_default_approx(self, file):
         """Set default scales, aprox points and Name"""
         self.set_xymat_form(np.array([[1,0,0],[0,1,0]], dtype=float))
         self.elevation.setText("")
         self.error.setText("")
-        self.d_message.setText("")
-        self.d_message.setVisible(False)
-        self.last_u = 10
-        self.last_v = 10
+        self.set_message("")
+        self.nuv = (10, 10)
         self.u_approx.setText("10")
         self.v_approx.setText("10")
 
@@ -578,23 +760,14 @@ class Surfaces(QtWidgets.QWidget):
         else:
             name = os.path.splitext(file)[0]
             name = os.path.basename(name)
-            s_i = ""
-            i = 2
-
-            # TODO have general machanism to this in common. Given a list of names
-            # and given a name prefix return a first unique name.
-            # usage: get_unique_name(name, [surf.name for surf in surfaces])
-            while self._name_exist(name+s_i):
-                s_i = "_"+str(i)
-                i += 1
-            name = name+s_i
+            name = self.get_unique_name(name, [surf.name for surf in cfg.layers.surfaces])
             self.name.setText(name)
             self.aprox = None
             if os.path.exists(file):
                 try:
                     self.approx = ba.SurfaceApprox.approx_from_file(file)
                 except:
-                    self.d_message.setText("Invalid file.")
+                    self.set_message("Invalid file.")
                     self.approx = None
             if self.approx is None:
                 self.grid_file_refresh_button.setEnabled(False)
@@ -606,8 +779,7 @@ class Surfaces(QtWidgets.QWidget):
                 nuv = self.approx.compute_default_nuv()
                 self.u_approx.setText(str(nuv[0]))
                 self.v_approx.setText(str(nuv[1]))
-                self.last_u = nuv[0]
-                self.last_v = nuv[1]
+                self.nuv = tuple(nuv)
 
                 self.zs = self.approx.compute_approximation()
                 if self.approx.error is not None:
@@ -623,14 +795,7 @@ class Surfaces(QtWidgets.QWidget):
                 self.show_grid.emit(True)
 
 
-    def _name_exist(self, name):
 
-        """Test if set surface name exist"""
-        surfaces = cfg.layers.surfaces
-        for surface in surfaces:
-            if surface.name==name:
-                return True
-        return False
 
     def _enable_approx(self, enable):
         """Enable approx controls"""

@@ -201,6 +201,7 @@ class LEConfig:
         """Reload surface panel"""
         if cls.main_window is not None:
             cls.main_window.surfaces.reload_surfaces(id, True)
+            #cls.main_window.surfaces.set_current_surface(id, True)
         
     @classmethod
     def get_curr_surfaces(cls):

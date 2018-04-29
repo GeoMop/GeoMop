@@ -47,6 +47,7 @@ versions=[
     ([0,4,0], "format_0_4_0"),
     ([0,4,9], "format_0_4_9"),
     ([0,5,0], "format_0_5_0"),
+    ([0,5,5], "format_last"),
     ([9,9,9], "format_last")
 ]
 

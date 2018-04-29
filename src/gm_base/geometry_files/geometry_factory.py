@@ -33,7 +33,7 @@ class GeometryFactory:
     def __init__(self, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
-            self.geometry.version = [0, 5, 0]
+            self.geometry.version = [0, 5, 5]
         else:
             self.geometry = geometry
         self.used_interfaces = {}

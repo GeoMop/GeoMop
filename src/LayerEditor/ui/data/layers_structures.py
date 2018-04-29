@@ -130,6 +130,7 @@ class Surface:
 
     def __init__(self, surf_in):
         self.gl_surf = surf_in
+        assert surf_in.approx_error > -1
 
     @property
     def approximation(self):
@@ -446,7 +447,7 @@ class Layers():
                         if j==len(self.interfaces) or \
                             self.interfaces[j].splited:                        
                             next = False
-                            data.stype2 = GL.Topology_Type.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
                             break
                         j += 1
                     if next:
@@ -456,9 +457,9 @@ class Layers():
                             data.diagram_id2 = self.interfaces[i].diagram_id2
                             data.surface2 = self.interfaces[i].surface_id
                         if j==i+1:
-                            data.stype2 = GL.Topology_Type.given
+                            data.stype2 = GL.TopologyType.given
                         else:
-                            data.stype2 = GL.Topology_Type.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
             data.fracture_before = None
             data.fracture_after = None
             data.fracture_own = None
