@@ -67,6 +67,8 @@ class Surface(JsonData):
         """Surface name"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
+        self.approx_error = 0
+        """L-inf error of aproximation"""
         super().__init__(config)
         
     # @staticmethod

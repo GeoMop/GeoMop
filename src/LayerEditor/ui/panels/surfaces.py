@@ -101,8 +101,8 @@ class Surfaces(QtWidgets.QWidget):
         self.surface.setEditable(True)
 
         surfaces = cfg.layers.surfaces
-        for i in range(0, len(surfaces.surfaces)):
-            label = surfaces.surfaces[i].name
+        for i in range(0, len(surfaces)):
+            label = surfaces[i].name
             self.surface.addItem( label,  i)
 
         self.surface.currentIndexChanged.connect(self._surface_set)
@@ -226,7 +226,7 @@ class Surfaces(QtWidgets.QWidget):
         
         self.setLayout(grid)
 
-        if len(surfaces.surfaces)>0:
+        if len(surfaces)>0:
             self.surface.setCurrentIndex(0)
         else:
             self._set_new_edit(True)
@@ -318,11 +318,11 @@ class Surfaces(QtWidgets.QWidget):
             id = self.surface.currentIndex()
         surfaces = cfg.layers.surfaces
         self.surface.clear()
-        for i in range(0, len(surfaces.surfaces)):            
-            label = surfaces.surfaces[i].name 
+        for i in range(0, len(surfaces)):
+            label = surfaces[i].name
             self.surface.addItem( label,  i)
-        if id is None or len(surfaces.surfaces)>=id:
-            if len(surfaces.surfaces)>0:
+        if id is None or len(surfaces)>=id:
+            if len(surfaces)>0:
                 self._set_new_edit(False)
             else:
                 self._set_new_edit(True)
@@ -342,24 +342,25 @@ class Surfaces(QtWidgets.QWidget):
         self.quad = self.zs.quad.tolist()
         
         if self.new:
-            surfaces.add(self.zs, file, self.name.text())
-            self.zs_id = len(surfaces.surfaces)-1
-            self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
-            self._history.delete_surface(len(surfaces.surfaces)-1)
-            self.surface.setCurrentIndex(len(surfaces.surfaces)-1)
+            surface = cfg.layers.make_surface(self.zs, file, self.name.text(), self.approx.error)
+            cfg.layers.add_surface( surface )
+            self.zs_id = len(surfaces)-1
+            self.surface.addItem( self.name.text(), len(surfaces)-1)
+            self._history.delete_surface(len(surfaces)-1)
+            self.surface.setCurrentIndex(len(surfaces)-1)
             self._set_new_edit(False)           
         else:
             id = self.surface.currentData()
 
             # Set Surface
-            surface = copy.copy(surfaces.surfaces[id])
+            surface = copy.copy(surfaces[id])
             surface.approximation = self.zs
             surface.grid_file = self.grid_file_name.text()
             if surface.name!=self.name.text():
                 surface.name = self.name.text()    
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
             self._history.change_surface(surfaces, id)
-            surfaces.surfaces[id] = surface
+            surfaces[id] = surface
         if self.approx.error is not None:
             self.error.setText(str(self.approx.error))                
         else:
@@ -377,7 +378,7 @@ class Surfaces(QtWidgets.QWidget):
         id = self.surface.currentIndex()
         if id == -1:
             return 
-        del_surface = cfg.layers.surfaces.surfaces[id]
+        del_surface = cfg.layers.surfaces[id]
         if not cfg.layers.delete_surface(id):
             error = "Surface is used" 
             err_dialog = GMErrorDialog(self)
@@ -449,7 +450,7 @@ class Surfaces(QtWidgets.QWidget):
         if self.zs_id==id:
             return
         self._set_new_edit(False)
-        surfaces = cfg.layers.surfaces.surfaces
+        surfaces = cfg.layers.surfaces
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
         self.name.setText(surfaces[id].name)
@@ -582,7 +583,7 @@ class Surfaces(QtWidgets.QWidget):
 
             # TODO have general machanism to this in common. Given a list of names
             # and given a name prefix return a first unique name.
-            # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
+            # usage: get_unique_name(name, [surf.name for surf in surfaces])
             while self._name_exist(name+s_i):
                 s_i = "_"+str(i)
                 i += 1
@@ -626,7 +627,7 @@ class Surfaces(QtWidgets.QWidget):
 
         """Test if set surface name exist"""
         surfaces = cfg.layers.surfaces
-        for surface in surfaces.surfaces:
+        for surface in surfaces:
             if surface.name==name:
                 return True
         return False

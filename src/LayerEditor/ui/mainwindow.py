@@ -307,6 +307,3 @@ class MainWindow(QtWidgets.QMainWindow):
         """Show a message in status bar for the given duration (in ms)."""
         self._status.showMessage(message, duration)
         
-    def reload_surfaces(self):
-        """reload surface"""
-        self.surfaces.reload_surfaces()

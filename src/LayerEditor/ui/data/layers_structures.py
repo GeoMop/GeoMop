@@ -1,6 +1,6 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from gm_base.geometry_files.format_last import TopologyType
+import gm_base.geometry_files.format_last as GL
 from enum import IntEnum
 import copy
 
@@ -101,38 +101,59 @@ class Fracture():
         self.edited = False
         """fracture diagram is  edited"""
         
-class Surfaces():
-    """List of surfaces"""
-    def __init__(self):
-        self.surfaces = []
-        """List"""
+# class Surfaces():
+#     """List of surfaces"""
+#     def __init__(self):
+#         self.surfaces = []
+#         """List"""
+#
+#     def add(self, approximation, grid_file, name):
+#         """Add new surface"""
+#         transform = approximation.get_transform()[0]
+#         quad = approximation.quad
+#         surface = Surface(approximation, grid_file, name, transform, quad)
+#         self.surfaces.append(surface)
+#         return surface
+#
+#     def delete(self, id):
+#         """Delete surface"""
+#         del self.surfaces[id]
         
-    def add(self, approximation, grid_file, name):
-        """Add new surface"""
-        transform = approximation.get_transform()[0]
-        quad = approximation.quad
-        surface = Surface(approximation, grid_file, name, transform, quad)
-        self.surfaces.append(surface)
-        return surface
-        
-    def delete(self, id):
-        """Delete surface"""
-        del self.surfaces[id]
-        
-class Surface():
-    """Surface structure class"""    
-    
-    def __init__(self, approximation, grid_file, name, transform, quad):
-        self.approximation = approximation
-        """Approximation class""" 
-        self.grid_file = grid_file
-        """List of input grid 3DPoints. None for plane"""
-        self.name = name
-        """Surface name"""
-        self.xy_transform = transform
-        """Transformation matrix used in construction of approximation. Approximation stores the quad after transformation."""
-        self.quad = quad
-        """Bounding polygon""" 
+
+
+class Surface:
+    """
+    TODO: imporve JsonData and make this class united with gl.Surface
+    We need tway to prescribe own serialization deserialization actions for this class
+    as we have to explicitely ser./deser. Z_Surface.
+    """
+
+    def __init__(self, surf_in):
+        self.gl_surf = surf_in
+
+    @property
+    def approximation(self):
+        return self.gl_surf.approximation
+
+    @property
+    def grid_file(self):
+        return self.gl_surf.grid_file
+
+    @property
+    def name(self):
+        return self.gl_surf.name
+
+    @property
+    def approx_error(self):
+        return self.gl_surf.approx_error
+
+    @property
+    def quad(self):
+        return self.gl_surf.approximation.quad
+
+    @property
+    def xy_transform(self):
+        return self.gl_surf.approximation.get_transform()[0]
 
 class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
@@ -246,14 +267,37 @@ class Layers():
         """Coordinate of the longest interface name end"""
         self.y_font = 0
         """Font height"""
-        self.surfaces = Surfaces()
+        self.surfaces = []
         """Class with list of surfaces"""
-        
+
+    def load_surfaces(self, gl_surfaces):
+        """ TODO: deserialize directly into the Surface object."""
+        self.surfaces = [ Surface(surf) for surf in gl_surfaces]
+
+    def make_surface(self, approximation, grid_file, name, error):
+        """
+        TODO: Improve JsonData, make approx conversion part of Surface ser./deser.
+        Then remove this code duplicity.
+        """
+        surface = GL.Surface()
+        surface.approximation = approximation
+        surface.grid_file = grid_file
+        surface.name = name
+        surface.approx_error = error
+        return Surface(surface)
+
+    def add_surface(self, surf_in):
+        self.surfaces.append(surf_in)
+
+    def del_surface(self, id):
+        """Delete surface"""
+        del self.surfaces[id]
+
     def delete(self):
-        """delete all data structure"""
         self.layers = []
+        """delete all data structure"""
         self.interfaces = []
-        self.surfaces = Surfaces()
+        self.surfaces = []
      
     class LayersIterData():
         """Data clas for passing between itarion functions 
@@ -300,20 +344,20 @@ class Layers():
                 i += 1
             data.diagram_id1 = self.interfaces[i].diagram_id1
             data.surface1 = self.interfaces[i].surface_id
-            data.stype1 = TopologyType.interpolated
+            data.stype1 = GL.TopologyType.interpolated
             data.diagram_id2 = None
             data.surface2 = None
             if i==1:
-                data.stype2 = TopologyType.given
+                data.stype2 = GL.TopologyType.given
             else:
-                data.stype2 = TopologyType.interpolated
+                data.stype2 = GL.TopologyType.interpolated
         else:
             data.diagram_id1 = self.interfaces[0].diagram_id1
             data.surface1 = self.interfaces[0].surface_id
-            data.stype1 = TopologyType.given
+            data.stype1 = GL.TopologyType.given
             i=1
             if self.interfaces[1].diagram_id1 is None:
-                data.stype2 = TopologyType.interpolated
+                data.stype2 = GL.TopologyType.interpolated
                 while len(self.interfaces)>i and self.interfaces[i].diagram_id1 is None:
                     if self.interfaces[i].splited:                        
                         break
@@ -327,7 +371,7 @@ class Layers():
             else:
                 data.diagram_id2 = self.interfaces[1].diagram_id1
                 data.surface2 = self.interfaces[1].surface_id
-                data.stype2 = TopologyType.given
+                data.stype2 = GL.TopologyType.given
             if self.interfaces[0].fracture:
                 data.fracture_before = self.interfaces[0].fracture
         if self.interfaces[1].fracture:
@@ -361,20 +405,20 @@ class Layers():
                             j += 1
                         data.diagram_id1 = self.interfaces[j].diagram_id1
                         data.surface1 = self.interfaces[i].surface_id
-                        data.stype1 = TopologyType.interpolated
+                        data.stype1 = GL.TopologyType.interpolated
                         data.diagram_id2 = None
                         data.surface2 = None
                         if i==1:
-                            data.stype2 = TopologyType.given
+                            data.stype2 = GL.TopologyType.given
                         else:
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
                     else:
                         data.diagram_id1 = self.interfaces[i].diagram_id2
                         data.surface1 = self.interfaces[i].surface_id
-                        data.stype1 = TopologyType.given
+                        data.stype1 = GL.TopologyType.given
                         j=i+1
                         if self.interfaces[j].diagram_id1 is None:
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
                             while len(self.interfaces)>j and self.interfaces[j].diagram_id1 is None:
                                 if self.interfaces[j].splited:                        
                                     data.diagram_id2 = None
@@ -390,19 +434,19 @@ class Layers():
                         else:
                             data.diagram_id2 = self.interfaces[i+1].diagram_id1
                             data.surface2 = self.interfaces[i+1].surface_id
-                            data.stype2 = TopologyType.given
+                            data.stype2 = GL.TopologyType.given
                 else:
                     if self.interfaces[i].diagram_id1 is not None:                    
-                        data.stype1 = TopologyType.given
+                        data.stype1 = GL.TopologyType.given
                     else:
-                        data.stype1 = TopologyType.interpolated
+                        data.stype1 = GL.TopologyType.interpolated
                     j = i+1
                     next = True
                     while len(self.interfaces)>j and self.interfaces[j].diagram_id1 is None:
                         if j==len(self.interfaces) or \
                             self.interfaces[j].splited:                        
                             next = False
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.Topology_Type.interpolated
                             break
                         j += 1
                     if next:
@@ -412,9 +456,9 @@ class Layers():
                             data.diagram_id2 = self.interfaces[i].diagram_id2
                             data.surface2 = self.interfaces[i].surface_id
                         if j==i+1:
-                            data.stype2 = TopologyType.given
+                            data.stype2 = GL.Topology_Type.given
                         else:
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.Topology_Type.interpolated
             data.fracture_before = None
             data.fracture_after = None
             data.fracture_own = None
@@ -981,7 +1025,7 @@ class Layers():
                 self.interfaces[i].fracture.fracture_diagram_id is not None and \
                 self.interfaces[i].fracture.fracture_diagram_id == diagram_id:
                 if self.interfaces[i].surface_id is not None:
-                    return [self.surfaces.surfaces[self.interfaces[i].surface_id].quad]
+                    return [self.surfaces[self.interfaces[i].surface_id].quad]
                 else:
                     return []            
             if self.interfaces[i].diagram_id1 is not None and \
@@ -990,16 +1034,16 @@ class Layers():
             if self.interfaces[i].splited:
                 if found:
                     if self.interfaces[i].surface_id is not None:
-                        ret.append(self.surfaces.surfaces[self.interfaces[i].surface_id].quad)
+                        ret.append(self.surfaces[self.interfaces[i].surface_id].quad)
                     return ret
                 else:
                     if self.interfaces[i].surface_id is not None:
-                        ret = [self.surfaces.surfaces[self.interfaces[i].surface_id].quad]
+                        ret = [self.surfaces[self.interfaces[i].surface_id].quad]
                     else:
                         ret = []
             else:
                 if self.interfaces[i].surface_id is not None:
-                    ret.append(self.surfaces.surfaces[self.interfaces[i].surface_id].quad)
+                    ret.append(self.surfaces[self.interfaces[i].surface_id].quad)
             if self.interfaces[i].diagram_id2 is not None and \
                 self.interfaces[i].diagram_id2 == diagram_id:
                 found = True
@@ -1160,7 +1204,7 @@ class Layers():
         for interface in self.interfaces:
             if interface.surface_id is not None and interface.surface_id>id:
                 interface.surface_id -= 1
-        self.surfaces.delete(id)
+        self.surfaces.pop(id)
         return True
 
     def change_interface(self, interface, idx):

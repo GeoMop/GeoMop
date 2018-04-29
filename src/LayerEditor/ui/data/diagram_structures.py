@@ -519,7 +519,7 @@ class Diagram():
     def get_diagram_all_rect(self, rect, layers, diagram_id):
         """Return init area as squads intersection"""
         quads = []
-        for surface in layers.surfaces.surfaces:
+        for surface in layers.surfaces:
             quads.append(surface.quad)
         if len(quads)==0:
             rect2 = self.get_area_rect(layers, diagram_id)
