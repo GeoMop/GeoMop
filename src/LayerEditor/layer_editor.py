@@ -14,12 +14,27 @@ import gm_base.icon as icon
 from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
+
+style_sheet =\
+"""
+QLineEdit[status="modified"] {
+    /* light orange */
+    background-color: #FFCCAA                    
+}
+QLineEdit[status="error"] {
+    /* light red */
+    background-color: #FFAAAA                   
+}
+"""
+
+
 class LayerEditor:
     """Analyzis editor main class"""
     
     def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        self._app.setStyleSheet(style_sheet)
         #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
@@ -27,7 +42,7 @@ class LayerEditor:
         cfg.init()
 
         # set default font to layers
-        cfg.layers.font = self._app.font()
+        #cfg.layers.font = self._app.font()
 
         # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

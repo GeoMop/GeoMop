@@ -176,7 +176,7 @@ class LEConfig:
     """List of diagram data"""
     history = None
     """History for current geometry data"""
-    layers = le_data.Layers()
+    layers = None
     """Layers structure"""
     diagram =  None
     """Current diagram data"""
@@ -200,13 +200,12 @@ class LEConfig:
     def reload_surfaces(cls, id):
         """Reload surface panel"""
         if cls.main_window is not None:
-            cls.main_window.surfaces.reload_surfaces(id, True)
-            #cls.main_window.surfaces.set_current_surface(id, True)
+            cls.main_window.wg_surface_panel.change_surface(id)
         
     @classmethod
     def get_curr_surfaces(cls):
         """Get current surface id from surface panel"""
-        return  cls.main_window.surfaces.get_surface_id()
+        return  cls.main_window.wg_surface_panel.get_surface_id()
         
 
     @classmethod
@@ -298,6 +297,7 @@ class LEConfig:
     def init(cls):
         """Init class with static method"""
         cls.history = le_data.GlobalHistory(cls)
+        cls.layers = le_data.Layers(cls.history)
         le_data.Diagram.release_all(cls.history)
         cls.le_serializer = le_data.LESerializer(cls)
         

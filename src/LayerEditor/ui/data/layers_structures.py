@@ -1,6 +1,7 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import gm_base.geometry_files.format_last as GL
+
 from enum import IntEnum
 import copy
 
@@ -149,6 +150,10 @@ class Surface:
         return self.gl_surf.approx_error
 
     @property
+    def regularization(self):
+        return self.gl_surf.regularization
+
+    @property
     def quad(self):
         return self.gl_surf.approximation.quad
 
@@ -255,7 +260,7 @@ class Layers():
         """edit button x left coordinate"""
         return self.__dx__*4+self.__dx_controls__    
     
-    def __init__(self):
+    def __init__(self, global_history):
         self.font = QtGui.QFont("times", 12)
         """Layer diagram font"""
         self.layers = []
@@ -271,11 +276,15 @@ class Layers():
         self.surfaces = []
         """Class with list of surfaces"""
 
+        from LayerEditor.ui.data import SurfacesHistory
+        self.surfaces_history = SurfacesHistory(global_history)
+
     def load_surfaces(self, gl_surfaces):
         """ TODO: deserialize directly into the Surface object."""
         self.surfaces = [ Surface(surf) for surf in gl_surfaces]
 
-    def make_surface(self, approximation, grid_file, name, error):
+    @staticmethod
+    def make_surface(approximation, grid_file, name, regularization, error):
         """
         TODO: Improve JsonData, make approx conversion part of Surface ser./deser.
         Then remove this code duplicity.
@@ -284,15 +293,31 @@ class Layers():
         surface.approximation = approximation
         surface.grid_file = grid_file
         surface.name = name
+        surface.regularization = regularization
         surface.approx_error = error
         return Surface(surface)
 
     def add_surface(self, surf_in):
         self.surfaces.append(surf_in)
+        self.surfaces_history.delete_surface(len(self.surfaces) - 1)
 
-    def del_surface(self, id):
-        """Delete surface"""
-        del self.surfaces[id]
+    def set_surface(self, idx, new_surface):
+        self.surfaces_history.change_surface(self.surfaces, idx)
+        self.surfaces[idx] = new_surface
+
+
+    def delete_surface(self, idx):
+        """Delete surface if is not used or return False"""
+        for interface in self.interfaces:
+            if interface.surface_id == idx:
+                return False
+        for interface in self.interfaces:
+            if interface.surface_id is not None and interface.surface_id > idx:
+                interface.surface_id -= 1
+        self.surfaces_history.insert_surface(copy.copy(self.surfaces[idx]), idx)
+        self.surfaces.pop(idx)
+        return True
+
 
     def delete(self):
         self.layers = []
@@ -1197,16 +1222,6 @@ class Layers():
             self._move_diagram_idx(idx, -move)
         return ret
        
-    def delete_surface(self, id):
-        """Delete surface if is not used or return False"""
-        for interface in self.interfaces:
-            if interface.surface_id == id:
-                return False
-        for interface in self.interfaces:
-            if interface.surface_id is not None and interface.surface_id>id:
-                interface.surface_id -= 1
-        self.surfaces.pop(id)
-        return True
 
     def change_interface(self, interface, idx):
         """Switch idx layer to set layer"""

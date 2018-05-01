@@ -68,6 +68,8 @@ class Surface(JsonData):
         """Surface name"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
+        self.regularization = 1.0
+        """Regularization weight."""
         self.approx_error = 0.0
         """L-inf error of aproximation"""
         super().__init__(config)
@@ -82,6 +84,7 @@ class Surface(JsonData):
     def convert(cls, other):
         new_surf = lfc.convert_json_data(sys.modules[__name__], other, cls)
         new_surf.approx_error = 0.0
+        new_surf.regularization = 1.0
         return new_surf
 
 class Interface(JsonData):
