@@ -285,6 +285,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """Show mash"""
         if show_flag:
             quad, nuv = self.wg_surface_panel.get_curr_quad()
+            if quad is None:
+                return
             rect = self.diagramScene.show_grid(quad, nuv)
             view_rect = self.diagramView.sceneRect()
             if not view_rect.contains(rect):

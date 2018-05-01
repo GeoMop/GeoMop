@@ -14,7 +14,10 @@ import gm_base.icon as icon
 TODO:
 - Surface row: view eye button, combo box, + - buttons, in horizontal layout
 - File: LE,  reload button, other horizontal Layout (how to make buttons square
--  
+- Mat OK
+- Approximation parameters:
+  nu: [], nv: [] reg. weight: []
+  Apply Elev. Err. 
 - line edit for regularization parameter
 - skip header for open file
 - reload
@@ -120,6 +123,8 @@ class SurfFormData:
         self.changed_forms = True
 
     def get_actual_quad(self):
+        if self.quad is None:
+            return None
         quad_center = np.average(self.quad, axis=0)
         xy_mat = self.xy_transform
         return np.dot( (self.quad - quad_center) , xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
@@ -169,8 +174,6 @@ class FocusLineEdit(QtWidgets.QLineEdit):
         super().focusInEvent(event)
 
 
-
-
 class SurfacesComboBox(QtWidgets.QComboBox):
     def __init__(self, focus_in):
         super().__init__()
@@ -189,6 +192,34 @@ class SurfacesComboBox(QtWidgets.QComboBox):
             new_idx = self.count() - 1
         self.setCurrentIndex(new_idx)
         self.blockSignals(False)
+
+class WgShowButton(QtWidgets.QPushButton):
+    """
+    Toggle visibility button.
+    signal: toggled
+    use setChecked to set visibility
+    use blockSignals to fix the state
+    """
+    def __init__(self, tooltip, parent):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.set_icon()
+
+    def nextCheckState(self):
+        visible = self.isChecked()
+        self.setChecked(not visible)
+        self.set_icon()
+
+    def set_icon(self):
+        visible = self.isChecked()
+        if visible:
+            self.setIcon(icon.get_app_icon("visible"))
+        else:
+            self.setIcon(icon.get_app_icon("hidden"))
+
+
+
 
 
 
@@ -233,8 +264,18 @@ class Surfaces(QtWidgets.QWidget):
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         # Setup child widgets
-        grid = QtWidgets.QGridLayout(self)     
-        
+        grid = QtWidgets.QGridLayout(self)
+        self.setLayout(grid)
+
+        surf_row = QtWidgets.QHBoxLayout()
+
+        wg_suface_lbl = QtWidgets.QLabel("Surface:")
+        grid.addWidget(wg_suface_lbl, 0, 0, 1, 3)
+        grid.addLayout(surf_row, 1, 0, 1, 3)
+
+        self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent = self)
+        self.wg_view_button.toggled.connect(self.show_grid)
+
         # surface cobobox
         self.wg_surf_combo = SurfacesComboBox(self._focus_in)
         self.wg_surf_combo.currentTextChanged.connect(self.data.set_name)
@@ -247,11 +288,15 @@ class Surfaces(QtWidgets.QWidget):
             "remove", None, 'Remove selected surface from the list.',
             self.rm_surface)
 
-        wg_suface_lbl = QtWidgets.QLabel("Surface:")
-        grid.addWidget(wg_suface_lbl, 0, 0)
-        grid.addWidget(self.wg_surf_combo, 0, 1, 1, 2)
-        grid.addWidget(self.wg_add_button, 1, 1)
-        grid.addWidget(self.wg_rm_button, 1, 2)
+        surf_row.addWidget(self.wg_view_button)
+        surf_row.addWidget(self.wg_surf_combo, stretch = 10)
+        surf_row.addWidget(self.wg_add_button)
+        surf_row.addWidget(self.wg_rm_button)
+        #wg_suface_lbl = QtWidgets.QLabel("Surface:")
+        # grid.addWidget(wg_suface_lbl, 0, 0)
+        # grid.addWidget(self.wg_surf_combo, 0, 1, 1, 2)
+        # grid.addWidget(self.wg_add_button, 1, 1)
+        # grid.addWidget(self.wg_rm_button, 1, 2)
         grid.addWidget(self._make_separator(), 2, 0, 1, 3)
         
         # grid file
@@ -321,7 +366,7 @@ class Surfaces(QtWidgets.QWidget):
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         grid.addItem(sp1, 16, 0, 1, 3)
         
-        self.setLayout(grid)
+
         self._fill_forms()
 
     def get_curr_quad(self):
@@ -429,8 +474,8 @@ class Surfaces(QtWidgets.QWidget):
 
     def _focus_in(self):
         """Some control gain focus"""
-        if self.data.quad is not None:
-            self.show_grid.emit(True)
+        # if self.data.quad is not None:
+        #     self.show_grid.emit(True)
 
     def change_surface(self, new_idx = None):
         """
@@ -476,6 +521,7 @@ class Surfaces(QtWidgets.QWidget):
             self.data = SurfFormData.init_from_file(file, name)
         except:
             self._set_message("Error: Invalid file.")
+        self.wg_view_button.setChecked(True)
         self._fill_forms()
 
 
@@ -524,7 +570,7 @@ class Surfaces(QtWidgets.QWidget):
         self.data.set_nuv( (u,v) )
         if self.data.changed_forms:
             self._set_message("There are modified fields.")
-        self.show_grid.emit(True)
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     def xy_scale_changed(self):
         mat = [self.float_convert(mat_item) for mat_item in self.wg_xyscale_mat]
@@ -537,7 +583,7 @@ class Surfaces(QtWidgets.QWidget):
         self.data.set_xy_transform(mat)
         if self.data.changed_forms:
             self._set_message("There are modified fields.")
-        self.show_grid.emit(True)
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     ################################
 
@@ -561,6 +607,7 @@ class Surfaces(QtWidgets.QWidget):
         """
         if self.data.name == "":
             # Empty form
+            self.wg_view_button.setEnabled(False)
             self.wg_file_le.setText("")
             self.wg_file_le.setEnabled(False)
             self.wg_surf_combo.setEnabled(False)
@@ -569,6 +616,8 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_apply_button.setEnabled(False)
             return
 
+        self.wg_view_button.setEnabled(True)
+        self.wg_view_button.set_icon()
 
         self.wg_surf_combo.set_items(self.layers.surfaces, self.data.idx, self.data.name)
         self.wg_surf_combo.setEnabled(True)
