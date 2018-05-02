@@ -158,29 +158,12 @@ class SurfFormData:
 
 
 
-class FocusLineEdit(QtWidgets.QLineEdit):
-    """
-    Focus is not propagated by signal but by QEvent.
-    Do not know how to catch FocusIn event for the Surfaces widget
-    or any of its childs. For QPushButton we use FocusProxy
-    but for LineEdit this unable editing. So we must override the focusInEvent handler.
-    """
-    def __init__(self, focus_action):
-        self._focus_action = focus_action
-        super().__init__()
-
-    def focusInEvent(self, event):
-        self._focus_action()
-        super().focusInEvent(event)
-
 
 class SurfacesComboBox(QtWidgets.QComboBox):
-    def __init__(self, focus_in):
+    def __init__(self):
         super().__init__()
         self.setEditable(True)
         self.setEnabled(False)
-        self.activated.connect(focus_in)
-        self.highlighted.connect(focus_in)
 
     def set_items(self, surfaces, new_idx = 0, name = ""):
         self.blockSignals(True)
@@ -259,10 +242,6 @@ class Surfaces(QtWidgets.QWidget):
         # Home dir (this way fixed through one LayerEditor session.)
         self.home_dir = home_dir
 
-        # Handle focus event
-        #self.setFocusPolicy(QtCore.Qt.StrongFocus)     # both click and tab focus
-        self.setFocusPolicy(QtCore.Qt.ClickFocus)
-
         # Setup child widgets
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
@@ -277,7 +256,7 @@ class Surfaces(QtWidgets.QWidget):
         self.wg_view_button.toggled.connect(self.show_grid)
 
         # surface cobobox
-        self.wg_surf_combo = SurfacesComboBox(self._focus_in)
+        self.wg_surf_combo = SurfacesComboBox()
         self.wg_surf_combo.currentTextChanged.connect(self.data.set_name)
         self.wg_surf_combo.currentIndexChanged.connect(self.change_surface)
 
@@ -292,11 +271,6 @@ class Surfaces(QtWidgets.QWidget):
         surf_row.addWidget(self.wg_surf_combo, stretch = 10)
         surf_row.addWidget(self.wg_add_button)
         surf_row.addWidget(self.wg_rm_button)
-        #wg_suface_lbl = QtWidgets.QLabel("Surface:")
-        # grid.addWidget(wg_suface_lbl, 0, 0)
-        # grid.addWidget(self.wg_surf_combo, 0, 1, 1, 2)
-        # grid.addWidget(self.wg_add_button, 1, 1)
-        # grid.addWidget(self.wg_rm_button, 1, 2)
         grid.addWidget(self._make_separator(), 2, 0, 1, 3)
         
         # grid file
@@ -426,7 +400,6 @@ class Surfaces(QtWidgets.QWidget):
             button.setText(text)
         button.setToolTip(tooltip)
         button.clicked.connect(method)
-        button.setFocusProxy(self)
         return button
 
     def _make_read_only_line(self):
@@ -440,7 +413,7 @@ class Surfaces(QtWidgets.QWidget):
         """
         EditLine box for a double (part of xyscale).
         """
-        edit = FocusLineEdit(self._focus_in)
+        edit = QtWidgets.QLineEdit()
         edit.editingFinished.connect(self.xy_scale_changed)
         edit.setValidator(QtGui.QDoubleValidator())
         return edit
@@ -449,7 +422,7 @@ class Surfaces(QtWidgets.QWidget):
         """
         EditLine box for a int (part of nuv).
         """
-        edit = FocusLineEdit(self._focus_in)
+        edit = QtWidgets.QLineEdit()
         edit.editingFinished.connect(self.nuv_changed)
         nuv_validator = QtGui.QIntValidator()
         nuv_validator.setRange(2, 600)
@@ -466,16 +439,6 @@ class Surfaces(QtWidgets.QWidget):
 
     ####################################################
     # Event handlers
-
-    def focusInEvent(self, event):
-        """Standart focus event"""
-        super().focusInEvent(event)
-        self._focus_in()
-
-    def _focus_in(self):
-        """Some control gain focus"""
-        # if self.data.quad is not None:
-        #     self.show_grid.emit(True)
 
     def change_surface(self, new_idx = None):
         """
