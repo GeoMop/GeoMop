@@ -4,28 +4,21 @@ import PyQt5.QtCore as QtCore
 
 import os
 import numpy as np
+import copy
 
 import gm_base.b_spline
 import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
+import gm_base.geometry_files.format_last as GL
 
 """
 TODO:
-- Surface row: view eye button, combo box, + - buttons, in horizontal layout
-- File: LE,  reload button, other horizontal Layout (how to make buttons square
-- Mat OK
-- Approximation parameters:
-  nu: [], nv: [] reg. weight: []
-  Apply Elev. Err. 
-- line edit for regularization parameter
-- skip header for open file
-- reload
-- check that file was loaded
+Why is approx error so large. Debug display error distribution.
 """
 
 
-class SurfFormData:
+class SurfFormData(GL.Surface):
     """
     All data operations are performed here.
     TODO: distinguish changes that can be applied faster:
@@ -37,126 +30,109 @@ class SurfFormData:
         """
         :param surf: layer_structures.Surface
         """
-        # Surface name
-        self.name = ""
+        ### Common with GL Surface
+        super().__init__()
+        # self.name = ""
+        # self.grid_file = ""
+        # self.file_skip_lines = 0
+        # self.file_delimiter = ' '
+        # self.approximation = ClassFactory(SurfaceApproximation), # converted to ZSurface during IO
+        # self.regularization = 1.0
+        # self.approx_error = 0.0
 
-        # Source grid file
-        self.grid_file = ""
-
-        # Z surface approximation
-        self.z_surf = None
 
         # Approximation grid dimensions. (u,v)
-        self.nuv = None
+        self._nuv = None
 
         # Approximation reglularization parameter
-        self.regularization = None
+        self.regularization = 1.0
 
         # Original quad
-        self.quad = None
+        self._quad = None
 
         # Transformation matrix np array 2x3, shift vector in last column.
-        self.xy_transform = None
+        self._xy_transform = np.array([[1, 0, 0], [0, 1, 0]], dtype = float)
 
         # Elevation of the approximation.
-        self.elevation = None
-
-        # Error of the approximation.
-        self.error = None
+        self._elevation = None
 
         # Approx object.
-        self.approximation = None
+        self._approx_maker = None
 
         #
-        self.changed_forms = False
+        self._changed_forms = False
 
         # Index of original surface. None for unsaved surface.
-        self.idx = -1
+        self._idx = -1
 
     @classmethod
     def init_from_surface(cls, surf, idx):
         self = cls()
-        self.name = surf.name
-        self.grid_file = surf.grid_file
-        self.z_surf = surf.approximation
-        self.update_from_z_surf()
-        self.regularization = surf.regularization
-        self.error = surf.approx_error
-        self.approximation = None
-        self.changed_forms = False
-        self.idx = idx
+        for key, val in surf.__dict__.items():
+            self.__dict__[key] = val
+        self._idx = idx
         return self
 
-    @classmethod
-    def init_from_file(cls, file, name):
-        self = cls()
-        self.approximation = ba.SurfaceApprox.approx_from_file(file)
-        self.name = name
-        self.grid_file = file
-        self.quad = self.approximation.compute_default_quad()
-        self.nuv = self.approximation.compute_default_nuv()
-        self.regularization = 1.0
-        self.xy_transform = np.array([[1, 0, 0], [0, 1, 0]], dtype = float)
-        self.changed_forms = True
-        self.idx = -1
+    def init_from_file(self):
+        try:
+            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
+        except:
+            return None
+        self._quad = self._approx_maker.compute_default_quad()
+        self._nuv = self._approx_maker.compute_default_nuv()
+        self._changed_forms = True
         return self
 
     def update_from_z_surf(self):
-        u = self.z_surf.u_basis.n_intervals
-        v = self.z_surf.v_basis.n_intervals
-        self.nuv = (u, v)
-        self.quad = self.z_surf.orig_quad
-        self.xy_transform = self.z_surf.get_transform()[0]
-        self.elevation = self.z_surf.center()[2]
+        u = self.approximation.u_basis.n_intervals
+        v = self.approximation.v_basis.n_intervals
+        self._nuv = (u, v)
+        self._quad = self.approximation.orig_quad
+        self._xy_transform = self.approximation.get_transform()[0]
+        self._elevation = self.approximation.center()[2]
 
 
     def set_name(self, name):
         self.name = name
-        self.changed_forms = True
+        self._changed_forms = True
 
     def set_nuv(self, nuv):
-        self.nuv = nuv
-        self.changed_forms = True
+        self._nuv = nuv
+        self._changed_forms = True
 
     def set_xy_transform(self, xy_transform):
-        self.xy_transform = xy_transform
-        self.changed_forms = True
+        self._xy_transform = xy_transform
+        self._changed_forms = True
 
     def get_actual_quad(self):
-        if self.quad is None:
+        if self._quad is None:
             return None
-        quad_center = np.average(self.quad, axis=0)
-        xy_mat = self.xy_transform
-        return np.dot( (self.quad - quad_center) , xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
+        quad_center = np.average(self._quad, axis=0)
+        xy_mat = self._xy_transform
+        return np.dot((self._quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
 
     def compute_approximation(self):
-        self.z_surf = self.approximation.compute_approximation(
+        self.approximation = self._approx_maker.compute_approximation(
             quad = self.get_actual_quad(),
-            nuv = self.nuv,
+            nuv = self._nuv,
             regularization_weight = self.regularization)
         self.update_from_z_surf()
-        self.error = self.approximation.error
-        self.changed_forms = True
+        self.approx_error = self._approx_maker.error
+        self._changed_forms = True
 
     def save_to_layers(self, layers):
         assert self.name != ""
         assert self.grid_file != ""
-        assert self.z_surf is not None
-        new_surface = layers.make_surface(self.z_surf, self.grid_file, self.name, self.regularization, self.error)
-        if self.idx == -1:
+        assert self.approximation is not None
+        new_surface = copy.copy(self)
+        if self._idx == -1:
             # New surface.
             layers.add_surface(new_surface)
-            self.idx = len(layers.surfaces) - 1
-
+            self._idx = len(layers.surfaces) - 1
         else:
             # Modify existing
-            layers.set_surface(self.idx, new_surface)
-        self.changed_forms = False
-        # self.wg_elevation.home(False)
-        # self.wg_error.home(False)
-        # self.show_grid.emit(True)
-
-
+            layers.set_surface(self._idx, new_surface)
+        self._changed_forms = False
 
 
 class SurfacesComboBox(QtWidgets.QComboBox):
@@ -271,27 +247,39 @@ class Surfaces(QtWidgets.QWidget):
         surf_row.addWidget(self.wg_surf_combo, stretch = 10)
         surf_row.addWidget(self.wg_add_button)
         surf_row.addWidget(self.wg_rm_button)
-        grid.addWidget(self._make_separator(), 2, 0, 1, 3)
+        #grid.addWidget(self._make_separator(), 2, 0, 1, 3)
         
         # grid file
-        self.wg_file_lbl = QtWidgets.QLabel("Grid File:")
-        self.wg_file_le = self._make_read_only_line()
+        file_row = QtWidgets.QHBoxLayout()
+        grid.addLayout(file_row, 2, 0, 1, 3)
         self.wg_reload_button = self._make_button(
-            "refresh", None, 'Refresh the working surface.',
+            "folder", None, 'Refresh the working surface.',
             self.reload)
+        self.wg_file_le = self._make_read_only_line()
 
-        
-        grid.addWidget(self.wg_file_lbl, 3, 0, 1, 2)
-        grid.addWidget(self.wg_reload_button, 3, 2)
-        grid.addWidget(self.wg_file_le, 4, 0, 1, 3)
-        grid.addWidget(self._make_separator(), 6, 0, 1, 3)
-        
+        file_row.addWidget(self.wg_reload_button)
+        file_row.addWidget(self.wg_file_le, stretch=10)
+
+        import_row = QtWidgets.QHBoxLayout()
+        grid.addLayout(import_row, 3, 0, 1, 3)
+        wg_header_lbl = QtWidgets.QLabel("Skip:")
+        self.wg_skip_lines_le = self._make_skip_lines_le()
+
+        # delimiter
+        wg_delimiter_lbl = QtWidgets.QLabel("Delimiter:")
+        self.wg_delimiter_cb = self._make_delimiter_combo()
+
+        import_row.addWidget(wg_header_lbl)
+        import_row.addWidget(self.wg_skip_lines_le)
+        import_row.addWidget(wg_delimiter_lbl)
+        import_row.addWidget(self.wg_delimiter_cb)
+        grid.addWidget(self._make_separator(), 4, 0, 1, 3)
 
         # xz scale
         wg_xy_scale_lbl = QtWidgets.QLabel("XY scale:", self)
         wg_xy_shift_lbl = QtWidgets.QLabel("XY shift:", self)
 
-        self.wg_xyscale_mat = [self._make_xymat_edit() for i in range(6)]
+        self.wg_xyscale_mat = [self._make_double_edit(self.xy_scale_changed) for i in range(6)]
 
         # Labels in row 8
         grid.addWidget(wg_xy_scale_lbl, 8, 0, 1, 2)
@@ -302,20 +290,30 @@ class Surfaces(QtWidgets.QWidget):
                 grid.addWidget(self.wg_xyscale_mat[3 * i + j], 9 + i, j)
 
         # approximation points
-        self.wg_d_approx = QtWidgets.QLabel("Approximation points (u,v):", self)
+        wg_approx_lbl = QtWidgets.QLabel("Approx. dimensions:")
+        grid.addWidget(wg_approx_lbl, 11, 0, 1, 2)
+        wg_approx_lbl = QtWidgets.QLabel("Regularization:")
+        grid.addWidget(wg_approx_lbl, 11, 2, 1, 1)
+
+        row_nuv = QtWidgets.QHBoxLayout()
+        grid.addLayout(row_nuv, 12, 0 , 1, 2)
+
         self.wg_u_approx = self._make_nuv_edit()
         self.wg_v_approx = self._make_nuv_edit()
+        row_nuv.addWidget(QtWidgets.QLabel("u:"))
+        row_nuv.addWidget(self.wg_u_approx, stretch=1)
+        row_nuv.addWidget(QtWidgets.QLabel("v:"))
+        row_nuv.addWidget(self.wg_v_approx, stretch=1)
 
-        grid.addWidget(self.wg_d_approx, 11, 0, 1, 3)
-        grid.addWidget(self.wg_u_approx, 12, 0)
-        grid.addWidget(self.wg_v_approx, 12, 1)
-        
+        self.wg_reg_weight_le = self._make_double_edit(self.set_regularization)
+        grid.addWidget(self.wg_reg_weight_le, 12, 2, 1, 1)
+
         self.wg_apply_button = self._make_button(
             None, "Apply", 'Compute approximation and save to the surface list.',
             self.apply)
 
-        grid.addWidget(self.wg_apply_button, 12, 2)
-        grid.addWidget(self._make_separator(), 13, 0, 1, 3)
+        grid.addWidget(self.wg_apply_button, 13, 2)
+        grid.addWidget(self._make_separator(), 14, 0, 1, 3)
 
 
         inner_grid = QtWidgets.QGridLayout()
@@ -331,11 +329,11 @@ class Surfaces(QtWidgets.QWidget):
         inner_grid.addWidget(self.wg_d_error, 0, 2)
         inner_grid.addWidget(self.wg_error, 0, 3)
 
-        grid.addLayout(inner_grid, 14, 0, 1, 3)
+        grid.addLayout(inner_grid, 15, 0, 1, 3)
         
-        self.d_message = QtWidgets.QLabel("", self)
+        self.wg_message = QtWidgets.QLabel("", self)
         self._set_message("")
-        grid.addWidget(self.d_message, 15, 0, 1, 3)
+        grid.addWidget(self.wg_message, 15, 0, 1, 3)
 
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         grid.addItem(sp1, 16, 0, 1, 3)
@@ -346,7 +344,7 @@ class Surfaces(QtWidgets.QWidget):
     def get_curr_quad(self):
         """
         Return quad, u, v for grid plot in mainwindow._show_grid."""
-        nuv = self.data.nuv
+        nuv = self.data._nuv
         quad = self.data.get_actual_quad()
         return quad, nuv
 
@@ -405,16 +403,45 @@ class Surfaces(QtWidgets.QWidget):
     def _make_read_only_line(self):
         le = QtWidgets.QLineEdit()
         le.setReadOnly(True)
-        le.setStyleSheet("background-color:WhiteSmoke");
+        le.setStyleSheet("background-color:#dddddd");
         return le
 
+    def _make_delimiter_combo(self):
+        cb = QtWidgets.QComboBox()
+        delimiters = [
+            ("space/tab", ' \t'),
+            ("comma", ","),
+            ("semi-comma", ";"),
+            ("|","|")
+        ]
+        for label, delim in delimiters:
+            cb.addItem(label, delim)
+        cb.currentIndexChanged.connect(self.set_delimiter)
+        return cb
 
-    def _make_xymat_edit(self):
+    def set_delimiter(self):
+        self.data.file_delimiter = self.wg_delimiter_cb.currentData()
+
+    def _make_skip_lines_le(self):
+        le = QtWidgets.QLineEdit()
+        le.setToolTip("Skip given number of lines at the file beginning.")
+        le.editingFinished.connect(self.set_skip_lines)
+        validator = QtGui.QIntValidator()
+        validator.setBottom(0)
+        le.setValidator(validator)
+        return le
+
+    def set_skip_lines(self):
+        self.data.file_skip_lines = int(self.wg_skip_lines_le.text())
+
+
+    def _make_double_edit(self, edited_method):
         """
         EditLine box for a double (part of xyscale).
         """
         edit = QtWidgets.QLineEdit()
-        edit.editingFinished.connect(self.xy_scale_changed)
+        edit.editingFinished.connect(edited_method)
+        # Validator cause  unmarked error fields.
         edit.setValidator(QtGui.QDoubleValidator())
         return edit
 
@@ -431,14 +458,19 @@ class Surfaces(QtWidgets.QWidget):
 
 
     def _set_message(self, text):
-        self.d_message.setText(text)
+        self.wg_message.setText(text)
+        if text[0:5] == "Error":
+            self.setProperty("status", "error")
         if text:
-            self.d_message.setVisible(True)
+            self.wg_message.setVisible(True)
         else:
-            self.d_message.setVisible(False)
+            self.wg_message.setVisible(False)
 
     ####################################################
     # Event handlers
+
+    def set_regularization(self):
+        self.data.regularization = self.float_convert(self.wg_reg_weight_le)
 
     def change_surface(self, new_idx = None):
         """
@@ -446,14 +478,16 @@ class Surfaces(QtWidgets.QWidget):
         """
         if new_idx is None:
             new_idx = int(self.wg_surf_combo.currentData())
-        self.empty_forms()
+        if not self.empty_forms():
+            self.wg_surf_combo.setCurrentIndex(self.data._idx)
+            return
         self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
         self._fill_forms()
 
     def rm_surface(self):
-        assert self.data.idx != -1
+        assert self.data._idx != -1
         idx = self.wg_surf_combo.currentData()
-        assert self.data.idx == idx
+        assert self.data._idx == idx
         assert idx >= 0
         assert idx < len(self.layers.surfaces)
         if not self.layers.delete_surface(idx):
@@ -471,31 +505,44 @@ class Surfaces(QtWidgets.QWidget):
         """
         Handle wg_add_button. Open a file and add new unsaved surface into combo and current panel content.
         """
+        if not self.empty_forms():
+            return
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", self.home_dir, "File (*.*)")
         if not file:
             return
 
-        self.empty_forms()
         init_name = os.path.basename(file)
         init_name, _ext = os.path.splitext(init_name)
         name = self.get_unique_name(init_name, [surf.name for surf in self.layers.surfaces])
-        try:
-            self.data = SurfFormData.init_from_file(file, name)
-        except:
+
+        new_data = SurfFormData()
+        new_data.name = name
+        new_data.grid_file = file
+        new_data.file_skip_lines = self.data.file_skip_lines
+        new_data.file_delimiter = self.data.file_delimiter
+        data = new_data.init_from_file()
+        if data is None:
+            # Error in file
             self._set_message("Error: Invalid file.")
+        else:
+            self.data = data
         self.wg_view_button.setChecked(True)
         self._fill_forms()
 
 
     def reload(self):
-        pass
-        # surf_data =
-        # self.empty_forms()
-        # file = self.wg_surf_combo.current_surface().grid_file
-        # new_data = SurfFormData.init_from_file(file, name)
-        # self.load_file(file)
-        # self.fill_forms()
+        file, pattern = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Choose grid file", self.home_dir, "File (*.*)")
+        if not file:
+            return
+        result = self.data.init_from_file()
+        if result is None:
+            # Error in file
+            self._set_message("Error: Invalid file.")
+
+        self.wg_view_button.setChecked(True)
+        self._fill_forms()
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""
@@ -531,7 +578,7 @@ class Surfaces(QtWidgets.QWidget):
         u = self.int_convert(self.wg_u_approx)
         v = self.int_convert(self.wg_v_approx)
         self.data.set_nuv( (u,v) )
-        if self.data.changed_forms:
+        if self.data._changed_forms:
             self._set_message("There are modified fields.")
         self.show_grid.emit(self.wg_view_button.isChecked())
 
@@ -544,7 +591,7 @@ class Surfaces(QtWidgets.QWidget):
             self._set_message("Error: singular transform matrix.")
             return
         self.data.set_xy_transform(mat)
-        if self.data.changed_forms:
+        if self.data._changed_forms:
             self._set_message("There are modified fields.")
         self.show_grid.emit(self.wg_view_button.isChecked())
 
@@ -554,14 +601,14 @@ class Surfaces(QtWidgets.QWidget):
         """
         Check to prevent loose of changes stored in actual in self.data.
         """
-        if self.data.changed_forms:
+        if self.data._changed_forms:
             wg_discard = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
                                   "title", "Discard changes in current surface forms?",
                                   QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             if QtWidgets.QMessageBox.Yes != wg_discard.exec():
-                return   # Do nothing.
+                return False          # Do nothing.
+        return True
 
-        self.data = SurfFormData()
 
 
     def _fill_forms(self):
@@ -582,13 +629,13 @@ class Surfaces(QtWidgets.QWidget):
         self.wg_view_button.setEnabled(True)
         self.wg_view_button.set_icon()
 
-        self.wg_surf_combo.set_items(self.layers.surfaces, self.data.idx, self.data.name)
+        self.wg_surf_combo.set_items(self.layers.surfaces, self.data._idx, self.data.name)
         self.wg_surf_combo.setEnabled(True)
 
         self.wg_file_le.setText(self.data.grid_file)
         self.wg_file_le.setEnabled(True)
 
-        if self.data.idx is -1:
+        if self.data._idx is -1:
             self.wg_rm_button.setEnabled(False)
         else:
             self.wg_rm_button.setEnabled(True)
@@ -596,41 +643,41 @@ class Surfaces(QtWidgets.QWidget):
         self.wg_reload_button.setEnabled(True)
         self.wg_apply_button.setEnabled(True)
 
-        if self.data.xy_transform is None:
+        if self.data._xy_transform is None:
             for form in self.wg_xyscale_mat:
                 form.setText("")
                 form.setEnabled(False)
         else:
-            for form, val in zip(self.wg_xyscale_mat, self.data.xy_transform.flat):
+            for form, val in zip(self.wg_xyscale_mat, self.data._xy_transform.flat):
                 form.setText(str(val))
                 form.setEnabled(True)
 
-        if self.data.nuv is None:
+        if self.data._nuv is None:
             self.wg_u_approx.setText("")
             self.wg_u_approx.setEnabled(False)
             self.wg_v_approx.setText("")
             self.wg_v_approx.setEnabled(False)
         else:
-            self.wg_u_approx.setText(str(self.data.nuv[0]))
+            self.wg_u_approx.setText(str(self.data._nuv[0]))
             self.wg_u_approx.setEnabled(True)
-            self.wg_v_approx.setText(str(self.data.nuv[1]))
+            self.wg_v_approx.setText(str(self.data._nuv[1]))
             self.wg_v_approx.setEnabled(True)
 
-        if self.data.elevation is None:
+        if self.data._elevation is None:
             self.wg_elevation.setText("")
             self.wg_elevation.setEnabled(False)
         else:
-            self.wg_elevation.setText("{:8.2f}".format(self.data.elevation))
+            self.wg_elevation.setText("{:8.2f}".format(self.data._elevation))
             self.wg_elevation.setEnabled(True)
 
-        if self.data.error is None:
+        if self.data.approx_error is None:
             self.wg_error.setText("")
             self.wg_error.setEnabled(False)
         else:
-            self.wg_error.setText("{:8.2e}".format(self.data.error))
+            self.wg_error.setText("{:8.2e}".format(self.data.approx_error))
             self.wg_error.setEnabled(True)
 
-        if self.data.changed_forms:
+        if self.data._changed_forms:
             self._set_message("There are modified fields.")
         else:
             self._set_message("")

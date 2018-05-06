@@ -25,6 +25,10 @@ QLineEdit[status="error"] {
     /* light red */
     background-color: #FFAAAA                   
 }
+QLabel[status="error"] {
+    /* light red */
+    background-color: #FFAAAA                   
+}
 """
 
 

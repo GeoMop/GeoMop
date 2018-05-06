@@ -64,9 +64,13 @@ class Surface(JsonData):
     def __init__(self, config={}):
         self.grid_file = ""
         """File with approximated points (grid of 3D points). None for plane"""
+        self.file_skip_lines = 0
+        """Number of header lines to skip. """
+        self.file_delimiter = ' '
+        """ Delimiter of data fields on a single line."""
         self.name = ""
         """Surface name"""
-        self.approximation = ClassFactory(SurfaceApproximation)
+        self._approx_maker = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         self.regularization = 1.0
         """Regularization weight."""

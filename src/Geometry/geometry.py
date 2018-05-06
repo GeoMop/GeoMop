@@ -161,7 +161,7 @@ class Surface(gs.Surface):
         :param geom_file_base:
         :return:
         """
-        self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
+        self.z_surface = bspline_io.bs_zsurface_read(self._approx_maker)
         # Surface approx conatains transform
         #self.z_surface.transform(self.xy_transform)
 

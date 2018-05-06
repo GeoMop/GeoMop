@@ -102,64 +102,6 @@ class Fracture():
         self.edited = False
         """fracture diagram is  edited"""
         
-# class Surfaces():
-#     """List of surfaces"""
-#     def __init__(self):
-#         self.surfaces = []
-#         """List"""
-#
-#     def add(self, approximation, grid_file, name):
-#         """Add new surface"""
-#         transform = approximation.get_transform()[0]
-#         quad = approximation.quad
-#         surface = Surface(approximation, grid_file, name, transform, quad)
-#         self.surfaces.append(surface)
-#         return surface
-#
-#     def delete(self, id):
-#         """Delete surface"""
-#         del self.surfaces[id]
-        
-
-
-class Surface:
-    """
-    TODO: imporve JsonData and make this class united with gl.Surface
-    We need tway to prescribe own serialization deserialization actions for this class
-    as we have to explicitely ser./deser. Z_Surface.
-    """
-
-    def __init__(self, surf_in):
-        self.gl_surf = surf_in
-        assert surf_in.approx_error > -1
-
-    @property
-    def approximation(self):
-        return self.gl_surf.approximation
-
-    @property
-    def grid_file(self):
-        return self.gl_surf.grid_file
-
-    @property
-    def name(self):
-        return self.gl_surf.name
-
-    @property
-    def approx_error(self):
-        return self.gl_surf.approx_error
-
-    @property
-    def regularization(self):
-        return self.gl_surf.regularization
-
-    @property
-    def quad(self):
-        return self.gl_surf.approximation.quad
-
-    @property
-    def xy_transform(self):
-        return self.gl_surf.approximation.get_transform()[0]
 
 class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
@@ -281,21 +223,7 @@ class Layers():
 
     def load_surfaces(self, gl_surfaces):
         """ TODO: deserialize directly into the Surface object."""
-        self.surfaces = [ Surface(surf) for surf in gl_surfaces]
-
-    @staticmethod
-    def make_surface(approximation, grid_file, name, regularization, error):
-        """
-        TODO: Improve JsonData, make approx conversion part of Surface ser./deser.
-        Then remove this code duplicity.
-        """
-        surface = GL.Surface()
-        surface.approximation = approximation
-        surface.grid_file = grid_file
-        surface.name = name
-        surface.regularization = regularization
-        surface.approx_error = error
-        return Surface(surface)
+        self.surfaces = list(gl_surfaces)
 
     def add_surface(self, surf_in):
         self.surfaces.append(surf_in)
