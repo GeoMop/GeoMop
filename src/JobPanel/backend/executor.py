@@ -408,13 +408,21 @@ class ProcessPBS(ProcessBase):
         return ret
 
     def kill(self):
+        # todo: Spravne by se melo pockat az se proces ukonci (pomoci qstat), jako u ProcessExec.
+        # Ale to by zase dlouho trvalo.
+        # Pokud je sluzba ve fronte pbs, tak bude tato implementace fungovat dobre.
+        # Problem muze nastat pokud jiz sluzba bezi, ale to s ní zase muzeme komunikovat pres socket
+        # a ukoncit ji pres nej.
         try:
             output = subprocess.check_output(["qdel", self.process_id],
                                              universal_newlines=True,
-                                             timeout=60)
+                                             timeout=60,
+                                             stderr=subprocess.STDOUT)
             return True
         except subprocess.TimeoutExpired:
             return False
+        except subprocess.CalledProcessError:
+            return True
 
 
 class ProcessDocker(ProcessBase):

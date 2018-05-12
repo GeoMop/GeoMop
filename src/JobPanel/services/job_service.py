@@ -44,6 +44,12 @@ class Job(service_base.ServiceBase):
         #self.environment=Environment()
         self.job_executable=Executable()
         self.job_exec_args=ExecArgs()
+
+        self.error = False
+        """If error occurs."""
+        self.stopping = False
+        """If stopping was requested."""
+
         super().__init__(config)
 
         # can not work this way, how we get return value
@@ -66,6 +72,7 @@ class Job(service_base.ServiceBase):
             executables = self.request_get_executables_from_installation()
             if executables is None:
                 logging.error("Unable to load installation executables.")
+                self.error = True
                 return
             job_executable = None
             name = self.job_executable.name
@@ -75,6 +82,7 @@ class Job(service_base.ServiceBase):
                     break
             if job_executable is None:
                 logging.error("Unable to find executable: {}".format(name))
+                self.error = True
                 return
             if "__class__" in job_executable:
                 del job_executable["__class__"]
@@ -90,10 +98,35 @@ class Job(service_base.ServiceBase):
                            self.job_exec_args.work_dir)
         with open(os.path.join(cwd, "job_out.txt"), 'w') as fd_out:
             p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
-            p.wait()
+            while not self.stopping:
+                try:
+                    p.wait(1)
+                    break
+                except psutil.TimeoutExpired:
+                    continue
+            try:
+                p.terminate()
+            except psutil.NoSuchProcess:
+                pass
+            else:
+                try:
+                    p.wait(1)
+                except psutil.TimeoutExpired:
+                    try:
+                        p.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                    else:
+                        try:
+                            p.wait(1)
+                        except psutil.TimeoutExpired:
+                            logging.error("Unable to kill Job's process. PID: {}".format(p.pid))
+                            self.error = True
 
-            # for testing purposes only
-            #time.sleep(random.randrange(0, 30))
+        # for testing purposes only
+        # end_time = time.time() + random.randrange(0, 30)
+        # while (not self.stopping) and (time.time() < end_time):
+        #     time.sleep(0.1)
 
     def _do_work(self):
         if self._job_thread is None:
@@ -101,6 +134,12 @@ class Job(service_base.ServiceBase):
             self._job_thread.start()
         elif not self._job_thread.is_alive():
             self._set_status_done()
+
+    def request_stop(self, data):
+        if not self.stopping:
+            self.stopping = True
+            self.save_config()
+        return {'data': 'closing'}
 
 
 def job_main():
@@ -115,14 +154,6 @@ def job_main():
 
 
 if __name__ == "__main__":
-
-    # logger=logging.Logger("job_main")
-    # try:
-    #     job_main()
-    # except Exception as err:
-    #     logger.error(err))
-    #     sys.exit(ServiceExit.1)
-
     logging.basicConfig(filename='job_service.log', filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)

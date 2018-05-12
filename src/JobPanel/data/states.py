@@ -168,7 +168,8 @@ TASK_STATUS_PERMITTED_ACTIONS = set([
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
     (TaskStatus.stopped, MultijobActions.delete), 
-    (TaskStatus.stopped, MultijobActions.delete_remote)
+    (TaskStatus.stopped, MultijobActions.delete_remote),
+    (TaskStatus.stopped, MultijobActions.download_whole)
 ])
 
 

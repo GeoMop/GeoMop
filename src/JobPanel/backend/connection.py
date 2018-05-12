@@ -649,7 +649,7 @@ class ConnectionSSH(ConnectionBase):
                 raise OSError(errno.EACCES, "Permission denied on remote file/dir", rem)
             else:
                 raise
-        except socket.timeout:
+        except (paramiko.SSHException, socket.timeout):
             raise SSHTimeoutError
         except OSError:
             raise SSHError
@@ -737,7 +737,7 @@ class ConnectionSSH(ConnectionBase):
                 raise
         except socket.timeout:
             raise SSHTimeoutError
-        except OSError:
+        except (paramiko.SSHException, OSError):
             raise SSHError
         finally:
             sftp_pool.release(sftp)
@@ -815,7 +815,7 @@ class ConnectionSSH(ConnectionBase):
                 raise
         except socket.timeout:
             raise SSHTimeoutError
-        except OSError:
+        except (paramiko.SSHException, OSError):
             raise SSHError
         finally:
             sftp_pool.release(sftp)

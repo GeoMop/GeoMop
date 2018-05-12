@@ -60,6 +60,8 @@ class MJReport(JsonData):
     def __init__(self, config={}):
         self.service_status = ServiceStatus.queued
         self.mj_status = MJStatus.preparing
+        self.proxy_stopping = False
+        self.proxy_stopped = False
         self.queued_time = 0.0
         self.start_time = 0.0
         self.done_time = 0.0
@@ -74,6 +76,9 @@ class MJReport(JsonData):
     def __eq__(self, other):
         if isinstance(other, MJReport):
             return self.service_status == other.service_status and \
+                self.mj_status == other.mj_status and \
+                self.proxy_stopping == other.proxy_stopping and \
+                self.proxy_stopped == other.proxy_stopped and \
                 self.queued_time == other.queued_time and \
                 self.start_time == other.start_time and \
                 self.done_time == other.done_time and \
@@ -109,6 +114,8 @@ class Backend(ServiceBase):
 
         self._new_mj_queue = []
         """Queue with new MJ to add to self.mj_info"""
+        self._delete_mj_queue = []
+        """Queue with MJ to delete from self.mj_info"""
 
         self._config_changed = False
         self._last_config_saved = 0.0
@@ -149,6 +156,7 @@ class Backend(ServiceBase):
         :return:
         """
         # todo: je potreba nastavit heslo
+        # todo: v get_connection muze nastat chyba
         con = self.get_connection(proxy.connection_config)
         proxy.set_rep_con(self._repeater, con)
         proxy.connect_service()
@@ -236,6 +244,8 @@ class Backend(ServiceBase):
                 status = GuiTaskStatus.finished
             elif v.status == JobStatus.error:
                 status = GuiTaskStatus.error
+            elif v.status == JobStatus.stopped:
+                status = GuiTaskStatus.stopped
 
             # run_interval
             run_interval = 0.0
@@ -310,6 +320,15 @@ class Backend(ServiceBase):
             self.mj_info[mj_id] = mj
             self._config_changed = True
 
+        for i in range(len(self._delete_mj_queue)):
+            mj_id = self._delete_mj_queue.pop(0)
+            mj = self.mj_info[mj_id]
+            mj.proxy.close()
+            with self._child_services_lock:
+                del self._child_services[mj.proxy.child_id]
+            del self.mj_info[mj_id]
+            self._config_changed = True
+
     """ Backend requests. """
 
     @LongRequest
@@ -328,6 +347,79 @@ class Backend(ServiceBase):
         mj.queued_time = time.time()
         self._new_mj_queue.append((mj_id, mj))
 
+    def request_stop_mj(self, mj_id):
+        """
+        Stops MJ.
+        :param mj_id:
+        :return:
+        """
+        # todo: Pokud MJ zkolaboval je potreba zastavit Joby.
+        if mj_id not in self.mj_info:
+            logging.warning("Attempt to stop nonexistent MJ.")
+            return
+        mj = self.mj_info[mj_id]
+        mj.proxy.stop()
+
+    @LongRequest
+    def request_delete_mj(self, mj_id):
+        """
+        Deletes MJ.
+        :param mj_id:
+        :return: str with error or None
+        """
+        if mj_id not in self.mj_info:
+            logging.warning("Attempt to delete nonexistent MJ.")
+            return None
+        mj = self.mj_info[mj_id]
+
+        mj_dir = mj.proxy.workspace
+        if os.path.basename(mj_dir) == "mj_config":
+            mj_dir = os.path.dirname(mj_dir)
+
+        # delete MJ remote data
+        con = mj.proxy._connection
+        if (con is not None) and (con._status == ConnectionStatus.online):
+            try:
+                con.delete(
+                    [mj_dir],
+                    con.environment.geomop_analysis_workspace)
+            except (SSHError, PermissionError):
+                return "Unable to delete MJ remote data, PermissionError."
+            except FileNotFoundError:
+                pass
+        else:
+            return "Unable to delete MJ remote data, connection is offline."
+
+        # delete Job remote data
+        conf = mj.proxy._downloaded_config
+        if conf is not None:
+            con_data = conf["job_service_data"]["service_host_connection"]
+            if con_data["__class__"] == "ConnectionSSH":
+                try:
+                    con = self.get_connection(con_data)
+                except SSHError:
+                    return "Unable to delete Job remote data, ssh connection error."
+                if con._status == ConnectionStatus.online:
+                    try:
+                        con.delete(
+                            [mj_dir],
+                            con.environment.geomop_analysis_workspace)
+                    except (SSHError, PermissionError):
+                        return "Unable to delete Job remote data, PermissionError."
+                    except FileNotFoundError:
+                        pass
+                else:
+                    return "Unable to delete Job remote data, connection is offline."
+        else:
+            return "Unable to delete Job remote data."
+
+        # delete MJInfo
+        self._delete_mj_queue.append(mj_id)
+        while(mj_id in self.mj_info):
+            time.sleep(0.1)
+
+        return None
+
     def request_get_mj_report(self, data):
         """
         Return MJ report.
@@ -342,6 +434,8 @@ class Backend(ServiceBase):
 
             rep = MJReport()
             rep.service_status = status
+            rep.proxy_stopping = mj.proxy.stopping
+            rep.proxy_stopped = mj.proxy.stopped
             rep.known_jobs = mj.n_jobs
             rep.estimated_jobs = mj.n_jobs
             rep.queued_time = mj.queued_time

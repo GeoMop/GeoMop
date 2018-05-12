@@ -199,15 +199,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for mj_id, error in self.frontend_service._jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
-            if error is None and mj_id in self._delete_mj_local:
-                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                      MULTIJOBS_DIR, mj.preset.name)
-                shutil.rmtree(mj_dir)
-                self.data.multijobs.pop(mj_id)  # delete from gui
+            if error is None:
+                if mj_id in self._delete_mj_local:
+                    mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
+                                          MULTIJOBS_DIR, mj.preset.name)
+                    shutil.rmtree(mj_dir)
+                    self.data.multijobs.pop(mj_id)  # delete from gui
+                else:
+                    self.data.multijobs[mj_id].preset.deleted_remote = True
             else:
-                self.data.multijobs[mj_id].preset.deleted_remote = True
-                
-            if error is not None:
                 self.report_error("Deleting error: {0}".format(error))
             mj.get_state().status = mj.last_status
             mj.last_status = None
@@ -273,6 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_ui_locks(self, mj_id):
         if mj_id is None:
             self.ui.menuBar.multiJob.lock_by_status(True, None)
+            self.ui.tabWidget.reload_view(None)
         else:
             status = self.data.multijobs[mj_id].state.status
             rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
@@ -334,14 +335,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
 
     def _handle_delete_multijob_action(self):
-        return
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             if self.data.multijobs[key].preset.deleted_remote:
                 self.frontend_service._jobs_deleted[key] = None
                 self._delete_mj_local.append(key)
             else:
-                self.frontend_service._delete_jobs.append(key)
+                self.frontend_service.mj_delete(key)
                 self._delete_mj_local.append(key)
             self._set_deleting(key)
             
@@ -395,11 +395,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.update_item(key, mj.get_state())
 
     def _handle_delete_remote_action(self):
-        return
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
-            if not  self.data.multijobs[key].preset.deleted_remote:
-                self.frontend_service._delete_jobs.append(key)
+            if not self.data.multijobs[key].preset.deleted_remote:
+                self.frontend_service.mj_delete(key)
                 self._set_deleting(key)
 
     def _handle_download_whole_multijob_action(self):
@@ -445,7 +444,6 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.frontend_service._resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
-        return
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
         self.frontend_service.mj_stop(key)

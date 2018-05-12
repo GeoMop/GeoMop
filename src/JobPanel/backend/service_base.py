@@ -72,8 +72,6 @@ class ServiceStatus(enum.IntEnum):
     """
 
 
-
-
 def LongRequest(func):
     """
     Auxiliary decorator to mark requests that takes long time or
@@ -81,19 +79,6 @@ def LongRequest(func):
     """
     func.run_in_thread = True
     return func
-
-
-# class ServiceStarter:
-#     """
-#     Start a child service and return ChildServiceProxy object.
-#
-#
-#     """
-#     def __init__(self):
-#         pass
-#
-#     def start_pbs(self):
-#         pass
 
 
 def call_action(obj, action, data, result=None):
@@ -533,16 +518,6 @@ class ServiceBase(JsonData):
         with self._child_services_lock:
             if child_id in self._child_services:
                 self._child_services[child_id].stop()
-
-
-    # def request_stop_child(self, request_data):
-    #     id = request_data['child_id']
-    #     self._repeater.send_request([id], {'action' :' stop'}, { 'action' : 'on_answer_stop_child', 'data' : id})
-
-    #def on_answer_stop_child(self, ):
-    #    self._repeater.close_child_repeater(id)
-    #    return self.answer_ok
-
 
     def request_get_status(self, data):
         """

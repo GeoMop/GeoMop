@@ -22,10 +22,16 @@ class Tabs(QtWidgets.QTabWidget):
         self.show()
 
     def reload_view(self, mj):
-        self.ui.jobsTab.reload_view(mj.get_jobs())
-        self.ui.resultsTab.reload_view(mj.get_results())
-        self.ui.logsTab.reload_view(mj.get_logs())
-        self.ui.confTab.reload_view(mj.get_configs())
+        if mj is not None:
+            self.ui.jobsTab.reload_view(mj.get_jobs())
+            self.ui.resultsTab.reload_view(mj.get_results())
+            self.ui.logsTab.reload_view(mj.get_logs())
+            self.ui.confTab.reload_view(mj.get_configs())
+        else:
+            self.ui.jobsTab.reload_view([])
+            self.ui.resultsTab.reload_view([])
+            self.ui.logsTab.reload_view([])
+            self.ui.confTab.reload_view([])
 
 
 class UiTabs(object):

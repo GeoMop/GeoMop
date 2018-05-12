@@ -26,6 +26,7 @@ class MJStatus(enum.IntEnum):
     running = 2
     success = 3
     error = 4
+    stopping = 5
 
 
 class JobStatus(enum.IntEnum):
@@ -38,6 +39,7 @@ class JobStatus(enum.IntEnum):
     downloading_result = 4
     done = 5
     error = 6
+    stopped = 7
 
 
 class JobInfo:
@@ -144,8 +146,8 @@ class MultiJob(ServiceBase):
         elif self.mj_status == MJStatus.success:
             self._set_status_done()
 
-        # error
-        elif self.mj_status == MJStatus.error:
+        # error, stopping
+        elif self.mj_status in [MJStatus.error, MJStatus.stopping]:
             self.check_jobs()
             if len(self._jobs) == 0:
                 self._set_status_done()
@@ -294,7 +296,25 @@ class MultiJob(ServiceBase):
 
             # queued
             elif job_info.status == JobStatus.queued:
-                if self._child_services[job_info.child_id]._status in [ServiceStatus.running, ServiceStatus.done]:
+                proxy = self._child_services[job_info.child_id]
+                if proxy._status == ServiceStatus.queued:
+                    if proxy.stopped:
+                        proxy.close()
+                        with self._child_services_lock:
+                            del self._child_services[job_info.child_id]
+                        self._n_running_jobs -= 1
+                        assert self._n_running_jobs >= 0
+
+                        job_info.status = JobStatus.stopped
+                        del self._jobs[job_id]
+                        #job_report.done_time = time.time()
+                        self._config_changed = True
+
+                        job_report.status = job_info.status
+                    elif self.mj_status == MJStatus.stopping:
+                        proxy.stop()
+                # todo: vyresit situaci, kdy pri zabijeni sluzby, ta prejde do stavu running
+                elif proxy._status in [ServiceStatus.running, ServiceStatus.done]:
                     job_info.status = JobStatus.running
                     job_report.status = job_info.status
                     job_report.start_time = time.time()
@@ -302,23 +322,55 @@ class MultiJob(ServiceBase):
 
             # running
             elif job_info.status == JobStatus.running:
-                if self._child_services[job_info.child_id]._status == ServiceStatus.done:
-                    self._child_services[job_info.child_id].close()
-                    del self._child_services[job_info.child_id]
-                    self._n_running_jobs -= 1
-                    assert self._n_running_jobs >= 0
+                proxy = self._child_services[job_info.child_id]
+                if proxy._status == ServiceStatus.running:
+                    if proxy.stopped:
+                        proxy.close()
+                        with self._child_services_lock:
+                            del self._child_services[job_info.child_id]
+                        self._n_running_jobs -= 1
+                        assert self._n_running_jobs >= 0
 
-                    logging.info("Job {} downloading result".format(job_id))
-                    job_info.results_download_job_result = []
-                    self.call("request_download_job_result", job_id, job_info.results_download_job_result)
-                    job_info.status = JobStatus.downloading_result
-                    job_report.status = job_info.status
+                        job_info.status = JobStatus.stopped
+                        del self._jobs[job_id]
+                        #job_report.done_time = time.time()
+                        self._config_changed = True
+
+                        job_report.status = job_info.status
+                    elif self.mj_status == MJStatus.stopping:
+                        proxy.stop()
+                elif proxy._status == ServiceStatus.done:
+                    conf = proxy._downloaded_config
+                    if (conf is not None) and (ServiceStatus[conf["status"]] == ServiceStatus.done):
+                        proxy.close()
+                        with self._child_services_lock:
+                            del self._child_services[job_info.child_id]
+                        self._n_running_jobs -= 1
+                        assert self._n_running_jobs >= 0
+
+                        if conf["error"]:
+                            job_info.status = JobStatus.error
+                            del self._jobs[job_id]
+                            job_report.done_time = time.time()
+                            self._config_changed = True
+                        elif conf["stopping"]:
+                            job_info.status = JobStatus.stopped
+                            del self._jobs[job_id]
+                            job_report.done_time = time.time()
+                            self._config_changed = True
+                        else:
+                            logging.info("Job {} downloading result".format(job_id))
+                            job_info.results_download_job_result = []
+                            self.call("request_download_job_result", job_id, job_info.results_download_job_result)
+                            job_info.status = JobStatus.downloading_result
+                        job_report.status = job_info.status
 
             # downloading
             elif job_info.status == JobStatus.downloading_result:
                 if len(job_info.results_download_job_result) > 0:
                     res = job_info.results_download_job_result[-1]
                     if ("error" in res) or (not res["data"]):
+                        # todo: pokud se stahovani nezdarilo z duvodu nefunkcniho connection, melo by se stahovani opakovat
                         logging.error("Job {} unable download result".format(job_id))
                         job_info.status = JobStatus.error
                         self.mj_status = MJStatus.error
@@ -367,6 +419,13 @@ class MultiJob(ServiceBase):
             if id in self.jobs_report:
                 reports[id] = self.jobs_report[id].serialize()
         return {"reports": reports, "n_jobs": len(self.jobs_report)}
+
+    def request_stop(self, data):
+        if self.mj_status != MJStatus.stopping:
+            self.mj_status = MJStatus.stopping
+            self._config_changed = True
+        # todo: backend se zmenu statusu nemusi dozvedet, pokud je MJ online .conf soubor se pravidelne nestahuje
+        return {'data': 'closing'}
 
 
 if __name__ == "__main__":

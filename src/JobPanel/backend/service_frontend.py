@@ -125,6 +125,9 @@ class ServiceFrontend(ServiceBase):
 
         self._backend_process_id_saved = False
 
+        self._answers_from_delete = []
+        """list of answers from request_delete_mj (mj_id, [answer])"""
+
     def _do_work(self):
         # save backend process id
         if not self._backend_process_id_saved:
@@ -134,6 +137,7 @@ class ServiceFrontend(ServiceBase):
                 self._backend_process_id_saved = True
 
         self._retrieve_mj_report()
+        self._process_delete_answers()
 
     def _retrieve_mj_report(self):
         """
@@ -170,16 +174,27 @@ class ServiceFrontend(ServiceBase):
 
                 # update MJ data
                 status = GuiTaskStatus.none
-                if v.service_status == ServiceStatus.queued:
-                    status = GuiTaskStatus.queued
+                if v.proxy_stopped:
+                    status = GuiTaskStatus.stopped
+                elif v.service_status == ServiceStatus.queued:
+                    if v.proxy_stopping:
+                        status = GuiTaskStatus.stopping
+                    else:
+                        status = GuiTaskStatus.queued
                 elif v.service_status == ServiceStatus.running:
-                    status = GuiTaskStatus.running
+                    if v.proxy_stopping:
+                        status = GuiTaskStatus.stopping
+                    else:
+                        status = GuiTaskStatus.running
                 elif v.service_status == ServiceStatus.done:
                     if v.mj_status == MJStatus.success:
                         status = GuiTaskStatus.finished
                     elif v.mj_status == MJStatus.error:
                         status = GuiTaskStatus.error
+                    elif v.mj_status == MJStatus.stopping:
+                        status = GuiTaskStatus.stopped
                     else:
+                        # todo: divny, nemelo by nikdy nastat
                         status = GuiTaskStatus.running
 
                 run_interval = 0.0
@@ -201,6 +216,25 @@ class ServiceFrontend(ServiceBase):
                 mj.state.update(state)
 
                 self._mj_changed_state.add(k)
+
+    def _process_delete_answers(self):
+        """
+        Process answers from request_delete_mj.
+        :return:
+        """
+        done = False
+        while not done:
+            done = True
+            for i in range(len(self._answers_from_delete)):
+                if len(self._answers_from_delete[i][1]) > 0:
+                    item = self._answers_from_delete.pop(i)
+                    res = item[1][0]
+                    if "error" in res:
+                        logging.error("Error in delete mj")
+                    else:
+                        self._jobs_deleted[item[0]] = res["data"]
+                    done = False
+                    break
 
     # Interface old
     ###############
@@ -302,30 +336,20 @@ class ServiceFrontend(ServiceBase):
     ###############
     def mj_start(self, mj_id):
         """Start multijob"""
-        # if mj_id in self.mj_map:
-        #     return
-        # self.mj_map[mj_id] = None
-
         mj_conf = config_builder.build(self._data_app, mj_id)
         answer = []
         self._backend_proxy.call("request_start_mj", {"mj_id": mj_id, "mj_conf": mj_conf}, answer)
-        #self.mj_map[mj_id] = answer
 
     def mj_stop(self, mj_id):
         """Stop multijob"""
-        return
-        if mj_id in self.mj_map:
-            child_id_list = self.mj_map[mj_id]
-            if len(child_id_list) > 0:
-                answer = []
-                self._backend_proxy.call("request_stop_child", child_id_list[0], answer)
-            # ToDo: co kdyz existuje, ale jeste nemame child_id?
+        answer = []
+        self._backend_proxy.call("request_stop_mj", mj_id, answer)
 
     def mj_delete(self, mj_id):
         """Delete multijob"""
-        return
-        if mj_id in self.mj_map:
-            del self.mj_map[mj_id]
+        answer = []
+        self._backend_proxy.call("request_delete_mj", mj_id, answer)
+        self._answers_from_delete.append((mj_id, answer))
 
     def download_whole_mj(self, mj_id):
         """Downloads whole multijob"""
