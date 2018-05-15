@@ -132,7 +132,7 @@ class ForEach(WrapperActionType):
                     inputs.append(gen) 
                 name = self._variables['WrappedAction']._get_instance_name()
                 script = self._variables['WrappedAction']._get_settings_script()
-                script.insert(0, "from pipeline import *")
+                script.insert(0, "from Analysis.pipeline import *")
                 script = '\n'.join(script)
                 script = script.replace(name, "new_dupl_workflow")
                 exec (script, globals())
@@ -509,7 +509,7 @@ class Calibration(WrapperActionType):
         inputs = [gen]
         name = self._variables['WrappedAction']._get_instance_name()
         script = self._variables['WrappedAction']._get_settings_script()
-        script.insert(0, "from pipeline import *")
+        script.insert(0, "from Analysis.pipeline import *")
         script = '\n'.join(script)
         script = script.replace(name, "new_dupl_workflow")
         exec(script, globals())

@@ -1,5 +1,5 @@
-from helpers import LineAnalyzer, ChangeAnalyzer
-from util import PosType, KeyType
+from ModelEditor.helpers import LineAnalyzer, ChangeAnalyzer
+from ModelEditor.util import PosType, KeyType
 
 def test_json():
     test = ["key: [86, 95, 12] # json 1.r"]

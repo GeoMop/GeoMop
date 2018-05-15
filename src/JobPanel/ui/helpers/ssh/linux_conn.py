@@ -4,7 +4,7 @@ ssh connection for testing
 if error was occured throw exception
 """
 
-import pxssh
+import pexpect.pxssh as pxssh
 import pexpect
 import time
 import subprocess

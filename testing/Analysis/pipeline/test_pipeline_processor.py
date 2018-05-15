@@ -1,15 +1,15 @@
-from pipeline.connector_actions import *
-from pipeline.generator_actions import *
-from pipeline.data_types_tree import *
-from pipeline.generic_tree import *
-from pipeline.convertors import *
-from pipeline.pipeline_processor import *
-from pipeline.pipeline import *
-from pipeline.workflow_actions import *
-from pipeline.wrapper_actions import *
-from pipeline.parametrized_actions import *
-import pipeline.action_types as action
-from client_pipeline.identical_list_creator import *
+from Analysis.pipeline.connector_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.generic_tree import *
+from Analysis.pipeline.convertors import *
+from Analysis.pipeline.pipeline_processor import *
+from Analysis.pipeline.pipeline import *
+from Analysis.pipeline.workflow_actions import *
+from Analysis.pipeline.wrapper_actions import *
+from Analysis.pipeline.parametrized_actions import *
+import Analysis.pipeline.action_types as action
+from Analysis.client_pipeline.identical_list_creator import *
 from .pomfce import *
 import time
 import shutil

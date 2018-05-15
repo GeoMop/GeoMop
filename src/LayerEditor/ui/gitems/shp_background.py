@@ -1,7 +1,8 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
+
 
 class ShpBackground(QtWidgets.QGraphicsItem):
     """ 

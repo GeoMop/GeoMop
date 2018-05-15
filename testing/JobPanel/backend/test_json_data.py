@@ -1,4 +1,4 @@
-from backend.json_data import *
+from JobPanel.backend.json_data import *
 
 import json
 

@@ -2,11 +2,12 @@
 # 1: on machine must be user "test" with ssh keys set for user which runs tests (or password in secret file)
 # 2: directory "/home/test/test_dir" must be writable for user which runs tests
 
+# TODO: Run in Tox virtual environment, try to set $HOME to a test directory and setup prerequisities
 
-from backend.connection import *
-from backend.service_base import ServiceBase, ServiceStatus
-from backend.service_proxy import ServiceProxy
-from passwords import get_test_password
+from JobPanel.backend.connection import *
+from JobPanel.backend.service_base import ServiceBase, ServiceStatus
+from JobPanel.backend.service_proxy import ServiceProxy
+from testing.JobPanel.mock.passwords import get_test_password, get_passwords
 
 import threading
 import socket
@@ -16,7 +17,7 @@ import shutil
 import logging
 import time
 import stat
-
+import pytest
 
 logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
@@ -352,7 +353,7 @@ def test_delegator_exec():
     local_service._closing = True
     con.close_connections()
 
-
+@pytest.mark.slow
 def test_docker(request):
     def clear_test_files():
         shutil.rmtree(TEST_FILES, ignore_errors=True)

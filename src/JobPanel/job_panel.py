@@ -12,35 +12,19 @@ import argparse
 import PyQt5.QtWidgets as QtWidgets
 import time
 
-# import common directory to path (should be in __init__)
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-__pexpect_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/pexpect")
-__enum_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/enum")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-sys.path.insert(1, __lib_dir__)
-sys.path.insert(2, __pexpect_dir__)
-if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(3, __enum_dir__)
+from JobPanel.ui.com_manager import ComManager
+from JobPanel.ui.main_window import MainWindow
+from JobPanel.ui.data.data_structures import DataContainer
+from JobPanel.ui.imports.workspaces_conf import BASE_DIR
+import gm_base.icon as icon
+from JobPanel.communication.installation import Installation
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "Analysis"))
-
-#sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-# needed if running from different directory
-
-from ui.com_manager import ComManager
-from ui.main_window import MainWindow
-from ui.data.data_structures import DataContainer
-from ui.imports.workspaces_conf import BASE_DIR
-import icon
-from  communication.installation import Installation
-
-import config as cfg
+import gm_base.config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
 
-from backend.service_frontend import ServiceFrontend
+from JobPanel.backend.service_frontend import ServiceFrontend
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
@@ -146,12 +130,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             # display message box with the exception
             if job_panel is not None and job_panel.mainwindow is not None:
                 err_dialog = GMErrorDialog(job_panel.mainwindow)

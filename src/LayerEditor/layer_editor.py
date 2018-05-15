@@ -4,18 +4,15 @@ Start script that inicialize main window
 import sys
 import os
 import signal
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import argparse
-from ui import MainWindow
-from leconfig import cfg
+from LayerEditor.ui import MainWindow
+from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
-import icon
-from ui.dialogs.set_diagram import SetDiagramDlg
-from ui.dialogs.make_mesh import MakeMeshDlg
+import gm_base.icon as icon
+from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -23,6 +20,7 @@ class LayerEditor:
     def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
@@ -49,15 +47,18 @@ class LayerEditor:
         cfg.set_main(self.mainwindow)
         
         # show
-        self.mainwindow.show()
-        self.mainwindow.paint_new_data()
+        self.mainwindow.show()        
         
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.mainwindow.close()
+                self.mainwindow._layer_editor = None
+                del self.mainwindow
                 self.exit = True
+                return
         
         # set default values
+        self.mainwindow.paint_new_data()
         self._update_document_name()        
         
     def new_file(self):
@@ -72,9 +73,10 @@ class LayerEditor:
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.new_file()
+                self.mainwindow.show_status_message("New file is opened")
         else:
             self.mainwindow.refresh_all()
-            self.mainwindow.display_all()
+            self.mainwindow.paint_new_data()
         self._update_document_name()
  
     def open_file(self):
@@ -87,6 +89,7 @@ class LayerEditor:
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
             
@@ -98,6 +101,7 @@ class LayerEditor:
         if shp_file[0]:
             if cfg.open_shape_file( shp_file[0]):
                 self.mainwindow.refresh_diagram_shp()
+                self.mainwindow.show_status_message("Shape file '" + shp_file[0] + "' is opened")
 
     def make_mesh(self):
         """open Make mesh dialog"""
@@ -116,7 +120,7 @@ class LayerEditor:
         cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
-#        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
+        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
         """save file menu action"""
@@ -125,7 +129,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         cfg.save_file()
-        # self.mainwindow.show_status_message("File is saved")
+        self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
@@ -147,7 +151,7 @@ class LayerEditor:
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
             self._update_document_name()
-#            self.mainwindow.show_status_message("File is saved")
+            self.mainwindow.show_status_message("File is saved")
             return True
         return False
 
@@ -177,7 +181,7 @@ class LayerEditor:
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
         
     def _update_document_name(self):
         """Update document title (add file name)"""
@@ -202,12 +206,19 @@ def main():
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
-#    if not args.debug:
-#        from geomop_util.logging import log_unhandled_exceptions
-#
-#        def on_unhandled_exception(type_, exception, tback):
-#            """Unhandled exception callback."""
-#            # pylint: disable=unused-argument
+    if not args.debug:
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from gm_base.geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(layer_editor.mainwindow)
+            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            sys.exit(1)
+            
+            
+            
 #            from geomop_dialogs import GMErrorDialog
 #            if layer_editor is not None:
 #                err_dialog = None
@@ -228,7 +239,7 @@ def main():
 #                if err_dialog is not None:
 #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 #
-#        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -237,6 +248,10 @@ def main():
     layer_editor = LayerEditor()
     if not layer_editor.exit:
         layer_editor.main()
+
+    layer_editor._app.quit()
+    del layer_editor._app
+    del layer_editor
     sys.exit(0)
 
 

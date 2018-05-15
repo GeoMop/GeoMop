@@ -6,19 +6,21 @@ import time
 import threading
 import re
 
-import data.communicator_conf as comconf
-import data.transport_data as tdata
-from data.user_helper import Users
-from data.communicator_status import CommunicatorStatus
-from communication.std_input_comm import StdInputComm
-from  communication.socket_input_comm import SocketInputComm
-from  communication.ssh_output_comm import SshOutputComm
-from  communication.ssh_output_tunnel_comm import SshOutputTunnelComm
-from  communication.exec_output_comm import  ExecOutputComm
-from  communication.installation import Installation
-from  communication.pbs_output_comm import PbsOutputComm
-from  communication.pbs_input_comm import PbsInputComm
-from data.states import TaskStatus
+import JobPanel.data.communicator_conf as comconf
+import JobPanel.data.transport_data as tdata
+from JobPanel.data.user_helper import Users
+from JobPanel.data.communicator_status import CommunicatorStatus
+
+from JobPanel.communication import *
+# from communication.std_input_comm import StdInputComm
+# from  communication.socket_input_comm import SocketInputComm
+# from  communication.ssh_output_comm import SshOutputComm
+# from  communication.ssh_output_tunnel_comm import SshOutputTunnelComm
+# from  communication.exec_output_comm import  ExecOutputComm
+# from  communication.installation import Installation
+# from  communication.pbs_output_comm import PbsOutputComm
+# from  communication.pbs_input_comm import PbsInputComm
+from JobPanel.data.states import TaskStatus
 
 LONG_MESSAGE_TIMEOUT=600
 __NOT_INSTALLED__ = "Next communicator was not installed"

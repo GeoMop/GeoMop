@@ -2,7 +2,7 @@
 # author:   Jan Hybs
 from xml.etree import ElementTree as ET
 import markdown
-from ist.formatters.extensions.md_latex import MdLatexSupport
+from ModelEditor.ist.formatters.extensions.md_latex import MdLatexSupport
 
 
 class markdown2html(object):

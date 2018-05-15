@@ -1,7 +1,7 @@
-from backend.service_base import ServiceBase, LongRequest, ServiceStatus
-from backend.service_proxy import ServiceProxy
-from backend.connection import *
-from t_service import TService
+from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatus
+from JobPanel.backend.service_proxy import ServiceProxy
+from JobPanel.backend.connection import *
+from .t_service import TService
 
 import time
 import threading
@@ -68,7 +68,7 @@ def test_request_remote(request):
     test_service = local_service._child_services[1]
 
     # wait for test service running
-    time.sleep(5)
+    time.sleep(10)
     assert test_service._status == ServiceStatus.running
 
     # long request

@@ -2,11 +2,11 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-import ui.data.diagram_structures as struc
-from ui.data.selection import Selection
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea
-from ui.gitems import ItemStates
-from leconfig import cfg
+from ..data import diagram_structures as struc
+from ..data.selection import Selection
+from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
+from ..gitems import ItemStates
+from LayerEditor.leconfig import cfg
     
 class Diagram(QtWidgets.QGraphicsScene):
     """
@@ -19,6 +19,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         * :py:attr:`cursorChanged(float, float) <cursorChanged>`
         * :py:attr:`possChanged() <possChanged>`
         * :py:attr:`regionsUpdateRequired() <regionUpdateRequired>`
+        * :py:attr:`setArea() <setArea>`
     """
     cursorChanged = QtCore.pyqtSignal(float, float)
     """Signal is sent when cursor position has changed.
@@ -32,13 +33,6 @@ class Diagram(QtWidgets.QGraphicsScene):
     New coordinates is set in _data variable and parent view should connect
     to signal and change visualisation.
     """
-#    regionUpdateRequired = QtCore.pyqtSignal(int, int)
-#    """
-#    Shape was clicked and region update in region panel is required
-#    
-#    :param int dimension: shape dimension
-#    :param int idx: shape index in diagram structure
-#    """
     regionsUpdateRequired = QtCore.pyqtSignal()
     """
     Shape was clicked and all regions in current topology update 
@@ -54,6 +48,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         Args:
             parent (QWidget): parent window ( empty is None)
         """ 
+        # add point
+        self._add_new_point = False
+        self._add_new_point_counter = 0
+        """counter for add point"""
         # move point variables
         self._point_moving = None
         """point is drawn"""
@@ -102,6 +100,9 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.init_area=None
         """Initialization area"""
         self.blink_timer.setSingleShot(True) 
+        #mash
+        self.mash=None
+        """Surface mash"""        
         
         super(Diagram, self).__init__(parent)
         self.blink_timer.timeout.connect(self.blink_end)
@@ -110,12 +111,29 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
         
+    def show_mash(self, quad, u, v):
+        """Show mash"""
+        if quad is None:
+            return
+        if self.mash is None:
+            self.mash = Mash(quad, u, v)
+            self.addItem(self.mash)
+        else:
+            self.mash.u = u
+            self.mash.v = v
+            self.mash.set_quad(quad, u, v)
+        
+    def hide_mash(self):
+        """hide mash"""
+        self.removeItem(self.mash)
+        self.mash = None
+        
     def  show_init_area(self, state):
         """Show initialization area"""
         if self.init_area is not None:
             self.removeItem(self.init_area)
         if state:
-            self.init_area = InitArea(cfg.diagram.area)
+            self.init_area = InitArea(cfg.diagram)
             self.addItem(self.init_area)
         
     def refresh_shp_backgrounds(self):
@@ -208,11 +226,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                 p1, label = self._add_point(self._last_p1_on_line, 
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
-            px = p.x()
-            py = p.y()
+            px = p2.point_data.x
+            py = p2.point_data.y
+            # px = p.x()
+            # py = p.y()
             added_points, moved_points, added_lines = cfg.diagram.join_line_intersection(
                 p1.point_data, p2.point_data, label)
-            self.update_changes(added_points, [], moved_points, added_lines, [])            
+            self.update_changes(added_points, [], moved_points, added_lines, [])
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
@@ -223,6 +243,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             p1 = Point(line.p1, tmp=True)
             self.addItem(p1)
             p2 = Point(line.p2, tmp=True)
+            p2.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             self.addItem(p2)
             l = Line(line, tmp=True)
             self.addItem(l)
@@ -300,8 +321,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         for polygon in cfg.diagrams[old_diagram].polygons:
             obj = polygon.object
             obj.release_polygon()
-            self.removeItem(obj)
-            
+            self.removeItem(obj)            
         
     def set_data(self):        
         """set new shapes data"""
@@ -342,6 +362,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Standart mouse event"""
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
+        if self._add_new_point:
+            self._add_new_point_counter += 1
         if self._moving: 
             self._moving_counter += 1
             if self._moving_counter%3==0:
@@ -438,6 +460,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
         end_moving = False
+        if self._add_new_point:
+            self._add_new_point = False
+            if self._add_new_point_counter > 5:
+                return
         if self._moving:
             self._moving = False
             if  self._moving_counter>1:
@@ -501,16 +527,6 @@ class Diagram(QtWidgets.QGraphicsScene):
             if event.modifiers()==QtCore.Qt.ControlModifier:
                 if self.selection.is_empty():
                     self.selection.select_current_region()
-                # if event.gobject is not None:
-                #     if isinstance(event.gobject, Polygon):
-                #         event.gobject.polygon.set_current_region()
-                #         event.gobject.update_color()
-                #     elif isinstance(event.gobject, Line):
-                #         event.gobject.line.set_current_region()
-                #         event.gobject.update()
-                #     elif isinstance(event.gobject, Point):
-                #         event.gobject.point.set_current_region()
-                #         event.gobject.update()
             if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
                 if event.gobject is not None:
                     if isinstance(event.gobject, Polygon):
@@ -522,23 +538,6 @@ class Diagram(QtWidgets.QGraphicsScene):
                     elif isinstance(event.gobject, Point):
                         event.gobject.point_data.set_current_regions()
                         event.gobject.update_color()
-#            if event.modifiers()==(QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
-#                if event.gobject is not None:
-#                    if isinstance(event.gobject, Polygon):
-#                        self.regionUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-#                    elif isinstance(event.gobject, Line):
-#                        self.regionUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-#                    elif isinstance(event.gobject, Point):
-#                        self.regionUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
-#            if event.modifiers()==(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
-#                if event.gobject is not None:
-#                    if isinstance(event.gobject, Polygon):
-#                        self.regionsUpdateRequired.emit(2, cfg.diagram.polygons.index(event.gobject.polygon))
-#                    elif isinstance(event.gobject, Line):
-#                        self.regionsUpdateRequired.emit(1, cfg.diagram.lines.index(event.gobject.line))
-#                    elif isinstance(event.gobject, Point):
-#                        self.regionsUpdateRequired.emit(0, cfg.diagram.points.index(event.gobject.point))
-                
             
     def mousePressEvent(self,event):
         """Standart mouse event"""
@@ -571,6 +570,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._point_moving_counter = 0
                         self._point_moving = event.gobject
                         self._point_moving_old = event.gobject.point_data.qpointf()
+                    else:
+                        self._add_new_point_counter = 0
+                        self._add_new_point = True
+
+                else:
+                    self._add_new_point_counter = 0
+                    self._add_new_point = True
 
     def wheelEvent(self, event):
         """wheel event for zooming"""
@@ -597,3 +603,10 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._remove_last()
         # elif event.key() == QtCore.Qt.Key_Delete:
         #     self.delete_selected()
+        
+    def focusInEvent(self, event):
+        """Standart focus event"""
+        super(Diagram, self).focusInEvent(event)
+        if self.mash is not None:
+            self.hide_mash()
+

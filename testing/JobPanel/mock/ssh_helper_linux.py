@@ -1,9 +1,9 @@
-import pxssh
+import pexpect.pxssh as pxssh
 import pexpect
-import config
+import gm_base.config as config
 import os
 
-from data import Users
+from JobPanel.data import Users
 
 def clear_ssh_installation(data, mj_name):
     dir = '/home/test/js_services'

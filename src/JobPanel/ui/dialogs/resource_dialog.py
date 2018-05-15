@@ -7,9 +7,9 @@ Resource dialog
 
 from PyQt5 import QtGui, QtWidgets, QtCore
 
-from ui.data.preset_data import ResPreset
-from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetsValidationColorizer
+from ...ui.data.preset_data import ResPreset
+from ...ui.dialogs.dialogs import AFormContainer
+from ...ui.validators.validation import PresetsValidationColorizer
 
 
 class ResourceDialog(AFormContainer):

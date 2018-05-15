@@ -2,15 +2,15 @@ import pytest
 import os
 import time
 
-import communicator_files_builder
+import testing.JobPanel.mock.communicator_files_builder as communicator_files_builder
 import sys
 if sys.platform == "win32":
-    import ssh_helper_win as ssh_helper
+    import testing.JobPanel.mock.ssh_helper_win as ssh_helper
 else:
-    import ssh_helper_linux as ssh_helper
-from ui.data.config_builder import ConfigBuilder
-from communication import Communicator
-from ui.com_worker import ComWorker
+    import testing.JobPanel.mock.ssh_helper_linux as ssh_helper
+from JobPanel.ui.data.config_builder import ConfigBuilder
+from JobPanel.communication import Communicator
+from JobPanel.ui.com_worker import ComWorker
 
 HOME_DIR = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
 TEST_DIR = os.path.join(HOME_DIR, "test")
@@ -23,9 +23,9 @@ def data():
     import config
     config.__config_dir__ = SETTINGS_DIR
     
-    import ui.imports.workspaces_conf as wc
+    import JobPanel.ui.imports.workspaces_conf as wc
     wc.BASE_DIR = '.'
-    import ui.data.data_structures as ds
+    import JobPanel.ui.data.data_structures as ds
 
     container = ds.DataContainer()
     container.config.local_env = 'local'

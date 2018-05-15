@@ -2,12 +2,12 @@
 
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
-import icon
+import gm_base.icon as icon
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from meconfig import cfg
-from model_data import Notification
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.model_data import Notification
 
 
 class ErrorWidget(QtWidgets.QListWidget):

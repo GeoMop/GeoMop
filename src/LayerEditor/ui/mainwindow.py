@@ -5,14 +5,14 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from ui import panels
-from leconfig import cfg
-from ui.menus.edit import EditMenu
-from ui.menus.file import MainFileMenu
-from ui.menus.analysis import AnalysisMenu
-from ui.menus.settings import MainSettingsMenu
-from ui.menus.mesh import MeshMenu
-import icon
+from . import panels
+from LayerEditor.leconfig import cfg
+from .menus.edit import EditMenu
+from .menus.file import MainFileMenu
+from .menus.analysis import AnalysisMenu
+from .menus.settings import MainSettingsMenu
+from .menus.mesh import MeshMenu
+import gm_base.icon as icon
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""
@@ -22,27 +22,24 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self._layer_editor = layer_editor
 
-        self.setMinimumSize(960, 660)
+        self.setMinimumSize(1060, 660)
 
        # splitters
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
         self.setCentralWidget(self._hsplitter)
-        self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self._vsplitter.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
-
-        # left pannels
-        self.scroll_area = QtWidgets.QScrollArea()
-        # self._scroll_area.setWidgetResizable(True)  
-        self.layers = panels.Layers(self.scroll_area)
-        self.scroll_area.setWidget(self.layers)
         
-        self._vsplitter.addWidget(self.scroll_area)        
+        # left pannels
+        self._vsplitter1 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
+        self._vsplitter1.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+
+        self.scroll_area1 = QtWidgets.QScrollArea()
+        # self._scroll_area.setWidgetResizable(True)  
+        self.layers = panels.Layers(self.scroll_area1)
+        self.scroll_area1.setWidget(self.layers)        
+        self._vsplitter1.addWidget(self.scroll_area1)        
+        
         self.regions = panels.Regions()        
-        self._vsplitter.addWidget(self.regions)     
-        self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter)
-        self._vsplitter.addWidget(self.shp) 
-        if cfg.diagram.shp.is_empty():
-            self.shp.hide()   
+        self._vsplitter1.addWidget(self.regions)  
         
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
@@ -53,11 +50,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         self.diagramView.setMouseTracking(True)
-        self._hsplitter.addWidget(self.diagramView) 
-        if not cfg.diagram.shp.is_empty():
-            self.refresh_diagram_shp()
+        self._hsplitter.addWidget(self.diagramView)
         
         self._hsplitter.setSizes([300, 760])
+        
+        # right pannels  
+        self._vsplitter2 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
+        self._vsplitter2.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+       
+        self.scroll_area2 = QtWidgets.QScrollArea()
+        self.scroll_area2.setWidgetResizable(True) 
+        self.surfaces = panels.Surfaces(self.scroll_area2)
+        self.scroll_area2.setWidget(self.surfaces)
+        self._vsplitter2.addWidget(self.scroll_area2)
+        
+        self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter2)
+        self._vsplitter2.addWidget(self.shp) 
+        if cfg.diagram.shp.is_empty():
+            self.shp.hide()   
+            
+        if not cfg.diagram.shp.is_empty():
+            self.refresh_diagram_shp()
         
         # Menu bar
         self._menu = self.menuBar()
@@ -103,7 +116,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
+        self.layers.refreshArea.connect(self._refresh_area)
         self.regions.regionChanged.connect(self._region_changed)
+        self.surfaces.showMash.connect(self._show_mash)
+        self.surfaces.hideMash.connect(self._hide_mash)
+        self.surfaces.refreshArea.connect(self._refresh_area)
 
         # initialize components
         self.config_changed()
@@ -121,14 +138,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
+        cfg.diagram.regions.reload_regions(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
-        if not cfg.diagram.position_set:
-            self.display_all()        
+        if not cfg.diagram.position_set():
+            self.display_area()        
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
-        self.display_all()
+        self.display_area()
         self.layers.change_size()
         self.diagramScene.show_init_area(True)
         if not cfg.config.show_init_area:
@@ -142,6 +160,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_view_data(new_i)
         self.diagramScene.release_data(old_i)
         self.diagramScene.set_data()
+        
+        self._refresh_area()
         
         view_rect = self.diagramView.rect()
         rect = QtCore.QRectF(cfg.diagram.x-100, 
@@ -187,8 +207,18 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def display_all(self):
         """Display all diagram"""
-        view_rect = self.diagramView.rect()
         rect = cfg.diagram.rect
+        rect = cfg.diagram.get_diagram_all_rect(rect, cfg.layers, cfg.diagram_id())        
+        self.display_rect(rect)
+        
+    def display_area(self):
+        """Display area"""
+        rect = cfg.diagram.get_area_rect(cfg.layers, cfg.diagram_id())
+        self.display_rect(rect)    
+            
+    def display_rect(self, rect):
+        """Display set rect"""
+        view_rect = self.diagramView.rect()
         if (view_rect.width()/rect.width())>(view_rect.height()/rect.height()):
             # resize acoording height
             cfg.diagram.zoom = view_rect.height()/rect.height()
@@ -201,6 +231,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if cfg.diagram.pen_changed:
             self.diagramScene.update_geometry()
         self._display(view_rect)
+        
+    def get_display_rect(self):
+        """Return display rect"""
+        rect = self.diagramView.sceneRect()
+        return rect
         
     def _display(self, view_rect):
         """moving"""
@@ -246,9 +281,32 @@ class MainWindow(QtWidgets.QMainWindow):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
         
+    def _show_mash(self, force):
+        """Show mash"""
+        if force or self.diagramScene.mash is None:
+            quad, u, v = self.surfaces.get_curr_mash()
+            self.diagramScene.show_mash(quad, u, v)
+        
+    def _hide_mash(self):
+        """hide mash"""
+        self.diagramScene.hide_mash()
+        
+    def _refresh_area(self):
+        """Refresh init area"""
+        if self.diagramScene.init_area is not None:
+            self.diagramScene.init_area.reload()
+        
     def closeEvent(self, event):
         """Performs actions before app is closed."""
         # prompt user to save changes (if any)
         if not self._layer_editor.save_old_file():
             return event.ignore()
         super(MainWindow, self).closeEvent(event)
+        
+    def show_status_message(self, message, duration=5000):
+        """Show a message in status bar for the given duration (in ms)."""
+        self._status.showMessage(message, duration)
+        
+    def reload_surfaces(self):
+        """reload surface"""
+        self.surfaces.reload_surfaces()

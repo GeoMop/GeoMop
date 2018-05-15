@@ -1,6 +1,6 @@
-from backend.service_base import ServiceBase, LongRequest, ServiceStatus
-from backend.service_proxy import ServiceProxy
-from backend.connection import *
+from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatus
+from JobPanel.backend.service_proxy import ServiceProxy
+from JobPanel.backend.connection import *
 
 import time
 import threading

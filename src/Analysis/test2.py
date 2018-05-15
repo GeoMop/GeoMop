@@ -2,9 +2,12 @@ import os
 import sys
 import re
 
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
+#__lib_dir__ = os.path.join(os.path.split(
+#    os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
+#sys.path.insert(1, __lib_dir__)
+
+# TODO: Move this into tests?
+
 
 from pipeline.parametrized_actions import *
 from pipeline.generator_actions import *
@@ -155,9 +158,9 @@ sys.exit()
 
 
 
-from geomop_analysis import YamlSupportLocal
+from gm_base.geomop_analysis import YamlSupportLocal
 #from pipeline.flow_data_types import *
-#from flow_util import YamlSupport
+#from gm_base.flow_util import YamlSupport
 
 #from client_pipeline.identical_list_creator import *
 

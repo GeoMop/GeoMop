@@ -7,7 +7,7 @@ import json
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../src/JobPanel"))
 
-from backend import service_base
+from JobPanel.backend import service_base
 
 
 class TService(service_base.ServiceBase):

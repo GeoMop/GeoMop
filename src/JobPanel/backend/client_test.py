@@ -1,5 +1,5 @@
 import subprocess
-import service_base
+from . import service_base
 import os
 import re
 import logging

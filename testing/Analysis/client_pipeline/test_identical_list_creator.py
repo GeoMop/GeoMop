@@ -1,4 +1,4 @@
-from client_pipeline.identical_list_creator import *
+from Analysis.client_pipeline.identical_list_creator import *
 import os
 import shutil
 

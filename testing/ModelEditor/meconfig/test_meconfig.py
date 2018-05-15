@@ -2,8 +2,8 @@
 Tests for the meconfig module.
 """
 
-from meconfig import cfg
-from meconfig.meconfig import _Config as Config
+from ModelEditor.meconfig import MEConfig as cfg
+from ModelEditor.meconfig import _Config as Config
 
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
@@ -13,8 +13,8 @@ def test_config(request):
     assert cfg.config.__class__ == Config
 
     def fin_test_config():
-        import config
-        config.delete_config_file("ModelEditorData_test")
+        import gm_base.config
+        gm_base.config.delete_config_file("ModelEditorData_test")
     request.addfinalizer(fin_test_config)
 
     from os.path import expanduser
@@ -83,8 +83,8 @@ def test_meconfig_static(request):
     assert cfg.config.__class__ == Config
 
     def fin_test_config():
-        import config
-        config.delete_config_file("ModelEditorData_test")
+        import gm_base.config
+        gm_base.config.delete_config_file("ModelEditorData_test")
     request.addfinalizer(fin_test_config)
 
     cfg.format_files = []

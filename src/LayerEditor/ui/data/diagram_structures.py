@@ -274,7 +274,9 @@ class Area():
         
     def serialize(self, points):
         """Return inicialization arrea in polygon coordinates"""
-        points.clear()
+        if self.gtpolygon is None:
+            return
+        points.clear()        
         for i in range(0, len(self.gtpolygon)-1):
             points.append((self.gtpolygon[i].x(),-self.gtpolygon[i].y()))
         
@@ -423,11 +425,13 @@ class Diagram():
         diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
         tmp = {}
         for point in diagram.points:
-            tmp[diagram.po.get_point_origin_id(point.de_id)]=regions[0][point.id]
+            point_orig_id = diagram.po.get_point_origin_id(point.de_id)
+            tmp[point_orig_id]=regions[0][point.id]
         remapped_regions[0] = [value for (key, value) in sorted(tmp.items())]  
         tmp = {}
         for line in diagram.lines:
-            tmp[diagram.po.get_line_origin_id(line)]=regions[1][line.id]
+            line_orig_id = diagram.po.get_line_origin_id(line)
+            tmp[line_orig_id]=regions[1][line.id]
         remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
         for polygon in diagram.polygons:
             tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
@@ -473,7 +477,7 @@ class Diagram():
         return self.po.move_points(self, points)        
 
     def find_polygon(self, line_idxs):
-        """Try find poligon accoding to lines indexes"""
+        """Try find polygon accoding to lines indexes"""
         for polygon in self.polygons:
             if len(line_idxs)==len(polygon.lines):
                 ok = True
@@ -492,6 +496,57 @@ class Diagram():
                         break
                 if ok:                    
                     return polygon.id
+                    
+    def get_area_poly(self, layers, diagram_id):
+        """Return init area as squads intersection"""
+        quads = layers.get_diagram_quads(diagram_id)
+        if len(quads)==0:
+            return self.area.gtpolygon
+        poly = None
+        for quad in quads:
+            new_poly = QtGui.QPolygonF([
+                QtCore.QPointF(quad[0][0], -quad[0][1]), 
+                QtCore.QPointF(quad[1][0], -quad[1][1]), 
+                QtCore.QPointF(quad[2][0], -quad[2][1]), 
+                QtCore.QPointF(quad[3][0], -quad[3][1]), 
+                QtCore.QPointF(quad[0][0], -quad[0][1])])
+            if poly is None:
+                poly = new_poly
+            else:
+                poly = new_poly.intersected(poly)
+        return poly
+      
+    def get_diagram_all_rect(self, rect, layers, diagram_id):
+        """Return init area as squads intersection"""
+        quads = []
+        for surface in layers.surfaces.surfaces:
+            quads.append(surface.quad)
+        if len(quads)==0:
+            rect2 = self.get_area_rect(layers, diagram_id)
+            if rect is None:
+                return rect2
+            if rect2.left()<rect.left():
+                rect.setLeft(rect2.left())
+            if rect2.right()>rect.right():
+                rect.setRight(rect2.right())
+            if rect2.top()<rect.top():
+                rect.setTop(rect2.top())
+            if rect2.bottom()>rect.bottom():
+                rect.setBottom(rect2.bottom())
+            return rect;
+        if rect is None:
+            rect = QtCore.QRectF(quads[0][0][0], -quads[0][0][1], 0, 0)
+        for quad in quads:
+            for i in range(0, 4):
+                if quad[i][0]<rect.left():
+                    rect.setLeft(quad[i][0])
+                if quad[i][0]>rect.right():
+                    rect.setRight(quad[i][0])
+                if -quad[i][1]<rect.top():
+                    rect.setTop(-quad[i][1])
+                if -quad[i][1]>rect.bottom():
+                    rect.setBottom(-quad[i][1])
+        return rect
     
     @classmethod
     def release_all(cls, history):
@@ -631,9 +686,7 @@ class Diagram():
     def rect(self):
         if self._rect is None:
             if self.shp.boundrect is None:
-                dx= (abs(self.area.xmax-self.area.xmin)+abs(self.area.ymax-self.area.ymin))/100
-                return QtCore.QRectF(self.area.xmin-dx, self.area.ymin-dx, 
-                    self.area.xmax-self.area.xmin+2*dx, self.area.ymax-self.area.ymin+2*dx)
+                return None
             else:
                 return self.shp.boundrect
         margin = (self._rect.width()+self._rect.height())/100
@@ -644,6 +697,13 @@ class Diagram():
             self._rect.top()-margin,
             self._rect.width()+2*margin,
             self._rect.height()+2*margin)
+            
+    def get_area_rect(self, layers, diagram_id):
+        poly = self.get_area_poly(layers, diagram_id)
+        area_rect = poly.boundingRect() 
+        dx= (abs(area_rect.height())+abs(area_rect.width()))/100
+        return QtCore.QRectF(area_rect.left()-dx, area_rect.top()-dx, 
+            area_rect.width()+2*dx, area_rect.height()+2*dx)
             
     @property
     def zoom(self):

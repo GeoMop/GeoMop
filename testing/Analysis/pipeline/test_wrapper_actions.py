@@ -1,11 +1,11 @@
-from pipeline.parametrized_actions import *
-from pipeline.generator_actions import *
-from pipeline.wrapper_actions import *
-from pipeline.data_types_tree import *
-from pipeline.workflow_actions import *
-from pipeline.pipeline import *
-from pipeline.pipeline_processor import *
-import pipeline.action_types as action
+from Analysis.pipeline.parametrized_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.wrapper_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.workflow_actions import *
+from Analysis.pipeline.pipeline import *
+from Analysis.pipeline.pipeline_processor import *
+import Analysis.pipeline.action_types as action
 from .pomfce import *
 import shutil
 
@@ -169,7 +169,7 @@ def test_calibration(request):
 
     # _get_settings_script
     test = cal._get_settings_script()
-    compare_with_file(os.path.join("pipeline", "results", "cal1.py"), test)
+    compare_with_file("cal1.py", test)
 
     # run pipeline
     pp.run()

@@ -5,8 +5,8 @@
 from copy import copy
 from PyQt5.Qsci import QsciScintilla
 
-from model_data.format import is_scalar
-from geomop_analysis import Analysis
+from gm_base.model_data.format import is_scalar
+from gm_base.geomop_analysis import Analysis
 
 
 class AutocompleteHelper:

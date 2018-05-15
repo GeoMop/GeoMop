@@ -1,7 +1,7 @@
 import threading
 import time
 import copy
-from data.states import JobState, TaskStatus
+from JobPanel.data.states import JobState, TaskStatus
 
 
 class Job:

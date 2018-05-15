@@ -1,6 +1,6 @@
 import logging
-import data.transport_data as tdata
-from communication.communication import InputComm
+from  JobPanel.data import transport_data as tdata
+from .communication import InputComm
 import sys
 
 """

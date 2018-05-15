@@ -20,7 +20,7 @@ import sphinx_rtd_theme
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-sys.path.insert(0, os.path.abspath('../src/common'))
+sys.path.insert(0, os.path.abspath('../src/gm_base'))
 if sys.argv[4] == 'LE':
     sys.path.insert(1, os.path.abspath('../src/LayerEditor'))
 elif sys.argv[4] == 'JP':
@@ -67,7 +67,7 @@ elif sys.argv[4] == 'ME':
   # The master toctree document.
   master_doc = 'indexME'
   project = u'Model Editor Source Documentation'
-elif sys.argv[4] == 'common':
+elif sys.argv[4] == 'gm_base':
   source_suffix = '.rstd'
   master_doc = 'indexCommon'
   project = u'GeoMop Common Source Documentation'

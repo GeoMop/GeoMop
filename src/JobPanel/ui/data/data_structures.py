@@ -6,13 +6,13 @@ JobPanel data structures
 """
 import os
 
-import config as cfg
-from geomop_util import Serializable
+import gm_base.config cfg
+from gm_base.geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
-from ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
-from geomop_analysis import Analysis
+from ...ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
+from gm_base.geomop_analysis import Analysis
 
 class PersistentDict(dict):
     """Persistent dictionary containing configuration."""

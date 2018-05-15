@@ -2,7 +2,7 @@ from enum import IntEnum
 from copy import deepcopy
 from collections import OrderedDict
 from .history import RegionHistory
-from geometry_files import RegionDim
+from gm_base.geometry_files.format_last import RegionDim
 
 class TopologyOperations(IntEnum):
     """Type of topology operation"""
@@ -91,6 +91,10 @@ class Regions():
         """If this variable is set, remap in move topology shapes id from set diagram"""
         self.remap_reg_to = None
         """If this variable is set, remap in move topology shapes id to values in set diagram"""
+
+    def reload_regions(self, cfg):
+        """Call if data file changed"""
+        self._history = RegionHistory(cfg.history)
 
     def get_default_regions(self, topology_id):
         """Return default region"""       

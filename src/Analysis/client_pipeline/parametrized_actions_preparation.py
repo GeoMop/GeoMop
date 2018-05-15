@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from geomop_analysis import YamlSupportLocal
+from gm_base.geomop_analysis import YamlSupportLocal
 
 
 class Flow123dActionPreparation():

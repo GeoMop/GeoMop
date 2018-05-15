@@ -15,7 +15,7 @@ from ui.dialogs.test_ssh_dialog import TestSSHDialog
 from data import Users
 from ui.dialogs import SshPasswordDialog
 from ui.imports.workspaces_conf import BASE_DIR
-import config
+import gm_base.config as config
 import os
 
 class SshDialog(AFormContainer):
@@ -197,7 +197,9 @@ class SshDialog(AFormContainer):
                 preset.pwd = dialog.password
             else:
                 return
-        dialog = TestSSHDialog(self, preset, self.data)
+        else:
+            preset.pwd = self.ui.passwordLineEdit.text()
+        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.data)
         dialog.exec_()
 
 

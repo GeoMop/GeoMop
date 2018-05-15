@@ -1,10 +1,12 @@
 import PyQt5.QtWidgets as QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
-from geomop_dialogs import GMErrorDialog
-from ui.dialogs.regions import AddRegionDlg
-from geometry_files import RegionDim
+import gm_base.icon as icon
+from gm_base.geomop_dialogs import GMErrorDialog
+from ..dialogs.regions import AddRegionDlg
+from gm_base.geometry_files.format_last import RegionDim
+
 
 
 class Regions(QtWidgets.QToolBox):
@@ -76,6 +78,7 @@ class Regions(QtWidgets.QToolBox):
         self.dims = {}
         self.dim_label = {}
         self.add_button = {}
+        self.remove_button = {}
         self.color_label = {}
         self.color_button = {}
         self.name = {}
@@ -123,14 +126,14 @@ class Regions(QtWidgets.QToolBox):
 
             
     def _add_region_panel(self, layer_id, region):
-        """add one region panel to tool box and set regin data"""
+        """add one region panel to tool box and set region data"""
         data = cfg.diagram.regions        
         grid = QtWidgets.QGridLayout()             
         # select and add region
         pom_lamda = lambda ii: lambda: self._region_set(ii)
         self.regions[layer_id] = QtWidgets.QComboBox()            
         for i in range(0, len(data.regions)):            
-            label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
+            label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem( label,  i) 
             data.current_regions[layer_id] = region            
         curr_index = self.regions[layer_id].findData(data.regions.index(region))
@@ -138,11 +141,19 @@ class Regions(QtWidgets.QToolBox):
         self.regions[layer_id].setCurrentIndex(curr_index)
         self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lamda(layer_id))
-        self.add_button[layer_id] = QtWidgets.QPushButton("Add Region")
-        self.add_button[layer_id].clicked.connect(self._add_region)            
-              
+        self.add_button[layer_id] = QtWidgets.QPushButton()
+        self.add_button[layer_id].setIcon(icon.get_app_icon("add"))
+        self.add_button[layer_id].setToolTip('Create new region')
+        self.add_button[layer_id].clicked.connect(self._add_region)
+
+        self.remove_button[layer_id] = QtWidgets.QPushButton()
+        self.remove_button[layer_id].setIcon(icon.get_app_icon("remove"))
+        self.remove_button[layer_id].setToolTip('Remove selected region')
+        # TODO: self.remove_button[layer_id].clicked.connect(self._add_region)
+
         grid.addWidget(self.regions[layer_id], 0, 0)
         grid.addWidget(self.add_button[layer_id], 0, 1)
+        grid.addWidget(self.remove_button[layer_id], 0, 2)
         
         # name
         pom_lamda = lambda ii: lambda: self._name_set(ii)
@@ -151,7 +162,7 @@ class Regions(QtWidgets.QToolBox):
         self.name[layer_id].setText(region.name)
         self.name[layer_id].editingFinished.connect(pom_lamda(layer_id))        
         grid.addWidget(name_label, 1, 0)
-        grid.addWidget(self.name[layer_id], 1, 1)
+        grid.addWidget(self.name[layer_id], 1, 1, 1, 2)
         
         #color button
         self.color_label[layer_id] = QtWidgets.QLabel("Color:", self)
@@ -159,8 +170,8 @@ class Regions(QtWidgets.QToolBox):
         self.color_button[layer_id] = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
-        self.color_button[layer_id].setIcon(icon)
+        iconPix = QtGui.QIcon(pixmap)
+        self.color_button[layer_id].setIcon(iconPix)
         self.color_button[layer_id].setFixedSize( 25, 25 )
         self.color_button[layer_id].clicked.connect(pom_lamda(layer_id))
         grid.addWidget(self.color_label[layer_id], 2, 0)
@@ -168,7 +179,7 @@ class Regions(QtWidgets.QToolBox):
         
         # dimension
         self.dim_label[layer_id] = QtWidgets.QLabel("Dimension:", self)
-        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION[region.dim], self)
+        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim], self)
         grid.addWidget(self.dim_label[layer_id], 3, 0)
         grid.addWidget(self.dims[layer_id], 3, 1)
         
@@ -250,9 +261,9 @@ class Regions(QtWidgets.QToolBox):
         self.dims[layer_id].setText(str(region.dim.value) + "D")
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.update_region_data = True
-        self.color_button[layer_id].setIcon(icon)
+        self.color_button[layer_id].setIcon(iconPix)
         self.boundary[layer_id].setChecked(region.boundary) 
         self.notused[layer_id].setChecked(region.not_used)
         self.mesh_step[layer_id].setText(str(region.mesh_step))
@@ -262,7 +273,7 @@ class Regions(QtWidgets.QToolBox):
     def _add_disply_region(self, region):
         """Add new region to all combo and display it"""
         data = cfg.diagram.regions
-        label = region.name + " (" + str(region.dim.value) + "D)"
+        label = region.name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim] + ")"
         region_len = len(data.regions)
         for layer_id in self.layers:
             self.regions[layer_id].addItem( label, region_len-1) 
@@ -282,8 +293,11 @@ class Regions(QtWidgets.QToolBox):
             region = data.add_new_region(color, name, dim, True, "Add Region")            
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]
-            self._set_box_title(self.currentIndex(), layer_id)
-            
+            self._region_set(layer_id)
+
+
+
+
     def _name_set(self, layer_id):
         """Name is changed"""
         if self.update_region_data:
@@ -321,9 +335,9 @@ class Regions(QtWidgets.QToolBox):
         if region.color!="##":
             color = QtGui.QColor(region.color)
         pixmap.fill(color)
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.setItemText(id, self.layers[layer_id] + " (" + region.name + ")")
-        self.setItemIcon(id, icon)
+        self.setItemIcon(id, iconPix)
             
     def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
@@ -340,8 +354,8 @@ class Regions(QtWidgets.QToolBox):
         if selected_color.isValid():
             pixmap = QtGui.QPixmap(16, 16)
             pixmap.fill(selected_color)
-            icon = QtGui.QIcon(pixmap)
-            self.color_button[layer_id].setIcon(icon)
+            iconPix = QtGui.QIcon(pixmap)
+            self.color_button[layer_id].setIcon(iconPix)
             
             cfg.diagram.regions.set_region_color(region_id, 
                 selected_color.name(), True, "Set Color")

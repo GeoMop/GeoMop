@@ -1,13 +1,13 @@
 import shutil
 import os
-import config
+import gm_base.config as config
 import logging
 
-from ui.data.config_builder import ConfigBuilder
-from communication import Installation
-import data.communicator_conf as comconf
-from log_reader import Log
-from data import Users
+from JobPanel.ui.data.config_builder import ConfigBuilder
+from JobPanel.communication import Installation
+import JobPanel.data.communicator_conf as comconf
+from .log_reader import Log
+from JobPanel.data import Users
 
 __HOME__ = "home"
 __WORKSPACE__ = "workspace"
