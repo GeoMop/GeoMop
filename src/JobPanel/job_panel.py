@@ -14,7 +14,7 @@ import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from JobPanel.ui.com_manager import ComManager
+#from JobPanel.ui.com_manager import ComManager
 from JobPanel.ui.main_window import MainWindow
 from JobPanel.ui.data.data_structures import DataContainer
 from JobPanel.ui.imports.workspaces_conf import BASE_DIR
@@ -55,7 +55,7 @@ class JobPanel(object):
         self._app = QtWidgets.QApplication(args)
         
         #icon
-        self._app.setWindowIcon(icon.get_app_icon("js-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("jp-geomap"))
 
         # load data container
         self._data = DataContainer()

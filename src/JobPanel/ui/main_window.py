@@ -32,7 +32,7 @@ from ..ui.panels.overview import Overview
 from ..ui.panels.tabs import Tabs
 
 from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
-from config import __config_dir__
+from gm_base.config import __config_dir__
 
 
 logger = logging.getLogger("UiTrace")

@@ -6,9 +6,9 @@ import json
 import traceback
 import psutil
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from backend import service_base
+from JobPanel.backend import service_base
 
 
 class Delegator(service_base.ServiceBase):

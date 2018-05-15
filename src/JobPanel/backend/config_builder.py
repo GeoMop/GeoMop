@@ -1,11 +1,11 @@
 import os
 import json
 
-from client_pipeline.mj_preparation import *
+from Analysis.client_pipeline.mj_preparation import *
 from ui.dialogs import SshPasswordDialog
 from ui.imports.workspaces_conf import BASE_DIR
-from data import Users
-import config
+from data.user_helper import Users
+from gm_base import config
 
 
 def build(data_app, mj_id):

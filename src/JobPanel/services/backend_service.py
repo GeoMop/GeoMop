@@ -5,14 +5,14 @@ import traceback
 import json
 import time
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from backend.service_base import ServiceBase, LongRequest, ServiceStatus
-from backend.json_data import JsonData, JsonDataNoConstruct
-from backend.service_proxy import ServiceProxy
-from services.multi_job_service import JobReport, JobStatus, MJStatus
-from data.states import TaskStatus as GuiTaskStatus
-from backend.connection import ConnectionStatus, SSHError
+from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatus
+from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
+from JobPanel.backend.service_proxy import ServiceProxy
+from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
+from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.backend.connection import ConnectionStatus, SSHError
 
 
 class MJInfo(JsonData):

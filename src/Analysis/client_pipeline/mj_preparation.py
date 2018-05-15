@@ -1,10 +1,10 @@
 import os
 import shutil
 
-from pipeline import *
+from Analysis.pipeline import *
 
-from client_pipeline.parametrized_actions_preparation import *
-from client_pipeline.identical_list_creator import *
+from Analysis.client_pipeline.parametrized_actions_preparation import *
+from Analysis.client_pipeline.identical_list_creator import *
 
 class MjPreparation():
     @staticmethod

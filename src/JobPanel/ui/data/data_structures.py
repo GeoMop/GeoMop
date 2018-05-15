@@ -6,7 +6,7 @@ JobPanel data structures
 """
 import os
 
-import gm_base.config cfg
+import gm_base.config as cfg
 from gm_base.geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset

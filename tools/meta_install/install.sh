@@ -50,7 +50,7 @@ echo "Instaling python packages..."
 
 echo "Copying GeoMop modules..."
 SRC="$CWD/../../src"
-cp -r "$SRC/common" "$GEOMOP_INST"
+cp -r "$SRC/gm_base" "$GEOMOP_INST"
 cp -r "$SRC/JobPanel" "$GEOMOP_INST"
 cp -r "$SRC/Analysis" "$GEOMOP_INST"
 

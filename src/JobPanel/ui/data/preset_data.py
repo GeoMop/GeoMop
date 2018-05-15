@@ -8,8 +8,8 @@ import uuid
 import re
 import os
 
-import config
-from data import Users
+from gm_base import config
+from data.user_helper import Users
 
 
 class Id:

@@ -13,10 +13,10 @@ import subprocess
 import time
 import random
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from backend import service_base
-from backend.executor import Executable, ExecArgs
+from JobPanel.backend import service_base
+from JobPanel.backend.executor import Executable, ExecArgs
 
 
 """

@@ -12,7 +12,7 @@ from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import PresetsValidationColorizer
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
-from data import Users
+from data.user_helper import Users
 from ui.dialogs import SshPasswordDialog
 from ui.imports.workspaces_conf import BASE_DIR
 import gm_base.config as config
