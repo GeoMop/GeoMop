@@ -6,6 +6,7 @@ Put here only those things that can not be done through command line options and
 
 import sys
 import os
+import shutil
 import pytest
 import PyQt5.Qt as Qt
 
@@ -63,3 +64,42 @@ def qapp(request):
     print("Delete fixture app: ", str(app))
     app.closeAllWindows()
     del app
+
+@pytest.fixture
+def paths_to_remove():
+    """
+    Fixture for removing paths (files and dirs) after test ends.
+    Usage:
+    def test_a(paths_to_remove):
+        file = "file.txt"
+        paths_to_remove.append(file)
+        write_file(file)
+        check_file(file)
+    """
+    paths_to_remove = []
+    yield paths_to_remove
+    for path in paths_to_remove:
+        if os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+
+@pytest.fixture
+def change_dir_back():
+    """
+    After test ends change working directory to original directory which was before test start.
+    Usage:
+    def test_a(change_dir_back):
+        os.chdir("work_dir")
+        some_work()
+    """
+    class ChangeDirBack:
+        def __init__(self):
+            self._old_dir = os.getcwd()
+
+        def _change_back(self):
+            os.chdir(self._old_dir)
+
+    change_dir_back = ChangeDirBack()
+    yield
+    change_dir_back._change_back()

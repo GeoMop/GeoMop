@@ -11,12 +11,10 @@ import math
 
 this_source_dir = os.path.dirname(os.path.realpath(__file__))
 
-def data_file(test_path):
-    return os.path.join(this_source_dir, "resources", test_path)
 
+def test_flow_code_init(change_dir_back):
+    os.chdir(this_source_dir)
 
-
-def test_flow_code_init():
     action.__action_counter__ = 0
     input=VariableGenerator(Variable=Struct(test1=String("test")))
     input._inicialize()
@@ -25,7 +23,7 @@ def test_flow_code_init():
     test = input._get_settings_script()
     test.extend(flow._get_settings_script())
 
-    compare_with_file("flow1.py", test)
+    compare_with_file(os.path.join("results", "flow1.py"), test)
     exec ('\n'.join(test), globals())
     VariableGenerator_1._inicialize()
     Flow123d_2._inicialize()    
@@ -35,14 +33,16 @@ def test_flow_code_init():
     assert Flow123d_2._get_hash() == flow._get_hash()
 
 
-def test_flow_runner_command(request):
+def test_flow_runner_command(request, change_dir_back):
     def clear_backup():
-        remove_if_exist(data_file("test1_2.yaml"))
+        remove_if_exist(os.path.join("resources", "test1_2.yaml"))
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct())
-    flow = Flow123dAction(Inputs=[vg], YAMLFile=data_file("test1.yaml"))
+    flow = Flow123dAction(Inputs=[vg], YAMLFile="resources/test1.yaml")
 
     vg._inicialize()
     flow._inicialize()
@@ -50,8 +50,8 @@ def test_flow_runner_command(request):
     assert len(err) == 0
 
     runner = flow._update()
-    assert runner.command == ["flow123d", "-s", data_file("test1_2.yaml"),
-                              "-o", os.path.join("output", "2")]
+    assert runner.command == ["flow123d", "-s", "resources/test1_2.yaml",
+                              "-o", "output/2"]
 
 
 def test_function_action(request):
