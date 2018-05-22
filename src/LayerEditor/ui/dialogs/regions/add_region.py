@@ -144,7 +144,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         if self.have_default_name:
             dim_to_regtype = ["point_", "edge_", "face_", "volume_"]
             reg_id = 0
-            name = cfg.diagram.regions.regions['0'].name
+            name = cfg.diagram.regions.regions[0].name
             while not self.is_unique_region_name(name):
                 reg_id += 1
                 name = dim_to_regtype[dim] + str(reg_id)

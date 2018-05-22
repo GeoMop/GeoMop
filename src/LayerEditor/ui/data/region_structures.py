@@ -275,10 +275,10 @@ class Regions():
     def get_region_color(self, dim, shape_id):
         """Return current region color for set shape"""
         if dim==0:
-            return self.regions[str(self.layer_region_0D[self.current_layer_id][shape_id])].color
+            return self.regions[self.layer_region_0D[self.current_layer_id][shape_id]].color
         elif dim==1:
-            return self.regions[str(self.layer_region_1D[self.current_layer_id][shape_id])].color
-        return self.regions[str(self.layer_region_2D[self.current_layer_id][shape_id])].color
+            return self.regions[self.layer_region_1D[self.current_layer_id][shape_id]].color
+        return self.regions[self.layer_region_2D[self.current_layer_id][shape_id]].color
 
     def get_region_id(self, dim, shape_id):
         """Return current region color for set shape"""
@@ -308,7 +308,7 @@ class Regions():
     def add_new_region(self, color, name, dim, to_history=False, label=None):
         """Add region"""
         region = Region(color, name, self._get_available_reg_id(), dim, step = 0.0)
-        self.regions[str(region.reg_id)] = region
+        self.regions[region.reg_id] = region
         # self.regions.update({len(self.regions): region})
         if to_history:
             self._history.delete_region(len(self.regions)-1, label)
@@ -323,47 +323,47 @@ class Regions():
 
     def set_region_name(self, id, name, to_history=False, label=None):
         """Add region"""
-        region = deepcopy(self.regions[str(id)])
-        self.regions[str(id)].name = name
+        region = deepcopy(self.regions[id])
+        self.regions[id].name = name
         if to_history:
             self._history.change_region(id, region, label)
         return region
 
     def set_region_color(self, id, color, to_history=False, label=None):
         """Add region"""
-        region = deepcopy(self.regions[str(id)])
-        self.regions[str(id)].color = color
+        region = deepcopy(self.regions[id])
+        self.regions[id].color = color
         if to_history:
             self._history.change_region(id, region, label)
         return region
 
     def set_region_boundary(self, id, boundary, to_history=False, label=None):
         """Add region"""
-        region = deepcopy(self.regions[str(id)])
-        self.regions[str(id)].boundary = boundary
+        region = deepcopy(self.regions[id])
+        self.regions[id].boundary = boundary
         if to_history:
             self._history.change_region(id, region, label)
         return region
 
     def set_region_mesh_step(self, id, step, to_history=False, label=None):
         """Add region"""
-        region = deepcopy(self.regions[str(id)])
-        self.regions[str(id)].mesh_step = step
+        region = deepcopy(self.regions[id])
+        self.regions[id].mesh_step = step
         if to_history:
             self._history.change_region(id, region, label)
         return region
 
     def set_region_not_used(self, id, not_used, to_history=False, label=None):
         """Add region"""
-        region = deepcopy(self.regions[str(id)])
-        self.regions[str(id)].not_used = not_used
+        region = deepcopy(self.regions[id])
+        self.regions[id].not_used = not_used
         if to_history:
             self._history.change_region(id, region, label)
 
     def delete_region(self, id, to_history=True, label=None):
         """Add region"""
-        region = self.regions[str(id)]
-        del self.regions[str(id)]
+        region = self.regions[id]
+        del self.regions[id]
         if to_history:
             self._history.insert_region(id, region, label)
         return region
@@ -770,7 +770,7 @@ class Regions():
         """Add region"""
         region = Region(color, name, reg_id, dim, step, boundary, not_used)
         # self.regions.append(region)
-        self.regions[str(reg_id)] = region
+        self.regions[reg_id] = region
 
     def add_shapes_to_region(self, is_fracture, layer_id, layer_name, topology_idx, regions):
         """
@@ -815,7 +815,7 @@ class Regions():
         """
         Get list of shape instances of specific region
         """
-        dim = self.regions[str(reg_idx)].dim.value
+        dim = self.regions[reg_idx].dim.value
         if dim == 0:
             layer_region = self.layer_region_0D
         elif dim == 1:
@@ -824,5 +824,5 @@ class Regions():
             layer_region = self.layer_region_2D
         shapes = []
         for layer_id in self.layers_topology[self.current_topology_id]:
-            shapes.append([shape for shape in layer_region[layer_id] if layer_region[layer_id][shape]==str(reg_idx)])
+            shapes.append([shape for shape in layer_region[layer_id] if layer_region[layer_id][shape]==reg_idx])
         return shapes
