@@ -28,7 +28,7 @@ class Regions(QtWidgets.QToolBox):
         self.topology_idx = 0
         """Current topology idx"""
         self.layer_idx = 0
-        """Current topology idx"""
+        """Current layer idx"""
         self.last_layer = {}
         """Last edited layer in topology (topology_id:layer_name)"""        
         self.last_region = {}
@@ -352,7 +352,7 @@ class Regions(QtWidgets.QToolBox):
         else:
             data.set_region_name([key for key, item in data.regions.items() if item == region][0],
                 self.name[layer_id].text(), True, "Set region name")
-            combo_text = self.name[layer_id].text()+" ("+str(data.regions[str(region_id)].dim.value)+"D)"
+            combo_text = self.name[layer_id].text()+" ("+str(data.regions[region_id].dim.value)+"D)"
             self.regions[layer_id].setItemText(
                 self.regions[layer_id].currentIndex(), combo_text)
                 
@@ -403,6 +403,7 @@ class Regions(QtWidgets.QToolBox):
         self._set_box_title(tab_id, layer_id)
         if self._emit_regionChanged:
             self.regionChanged.emit()
+        self.update_regions_panel()
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""

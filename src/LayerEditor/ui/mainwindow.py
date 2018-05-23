@@ -267,10 +267,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """Current topology or its structure is changed"""
         self.regions.set_topology(cfg.diagram.topology_idx)
         
-    def _update_regions(self, select = False):
-        """Update region panel, eventually set """
-        if select != False:
-            regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
+    def _update_regions(self):
+        """Update region panel, eventually set tab according to the selection in diagram"""
+        regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
+        if regions[0]:
             self.regions.select_current_regions(regions)
         self.regions.update_regions_panel()
             
