@@ -41,7 +41,27 @@ class Regions(QtWidgets.QToolBox):
         self.currentChanged.connect(self._layer_changed)
         self._emit_regionChanged = True
         """If True regionChanged is emitted"""
-        
+
+    def update_regions_panel(self):
+        """Refresh the region panel based upon data layer"""
+        # TODO: Rewrite whole region panel to utilize this function. When any change occurs outside of this scope, this function should be called as well.
+        data = cfg.diagram.regions
+        reg_idx = self.get_current_region()
+        shapes = data.get_shapes_of_region(reg_idx)
+        # cannot remove default or utilized region
+        if reg_idx == 0:
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(False)
+                self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
+        elif any(shapes):
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(False)
+                self.remove_button[layer_id].setToolTip('Region is still in use!')
+        else:
+            for layer_id in data.layers_topology[data.current_topology_id]:
+                self.remove_button[layer_id].setEnabled(True)
+                self.remove_button[layer_id].setToolTip('Remove selected region')
+
     def release_all(self):
         """Remove all items"""
         self.removing_items = True
@@ -56,14 +76,14 @@ class Regions(QtWidgets.QToolBox):
         self.release_all()
         self.topology_idx = top_idx
         self._show_layers()
-        
+
     def select_current_regions(self, regions):
         """Select current regions in topology"""
         data = cfg.diagram.regions
         self._emit_regionChanged = False
         for i in range(0, len(regions)):
             layer_id = data.layers_topology[self.topology_idx][i]
-            new_index = self.regions[layer_id].findData(regions[i])          
+            new_index = self.regions[layer_id].findData(regions[i])
             self.regions[layer_id].setCurrentIndex(new_index)
         self._emit_regionChanged = True
         
@@ -116,7 +136,7 @@ class Regions(QtWidgets.QToolBox):
         else:
             self.last_region[self.layers[layer_id]] = data.regions[0].name
             return data.regions[0]
-        for _, region in data.regions.items():
+        for region in data.regions.values():
             if region.name == region_name:
                 return region
         self.last_region[self.layers[layer_id]] =  data.regions[0].name
@@ -315,7 +335,7 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         region = data.regions[region_id]
         error = None
-        for _, reg in data.regions.items():
+        for reg in data.regions.values():
             if reg != region:
                 if self.name[layer_id].text() == reg.name:
                     error = "Region name already exist"
@@ -383,21 +403,6 @@ class Regions(QtWidgets.QToolBox):
         self._set_box_title(tab_id, layer_id)
         if self._emit_regionChanged:
             self.regionChanged.emit()
-        reg_idx = self.get_current_region()
-        shapes = data.get_shapes_of_region(reg_idx)
-        # cannot remove default or utilized region
-        if reg_idx == 0:
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(False)
-                self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
-        elif any(shapes):
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(False)
-                self.remove_button[layer_id].setToolTip('Region is still in use!')
-        else:
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(True)
-                self.remove_button[layer_id].setToolTip('Remove selected region')
         
     def _not_used_set(self, layer_id):
         """Region not used property is changed"""

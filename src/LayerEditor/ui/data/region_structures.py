@@ -211,6 +211,7 @@ class Regions():
         if old_region_id!=[key for key, item in self.regions.items() if item == region][0]:
             if region.cmp_shape_dim(self.current_layer_id, dim):
                 layer_region[self.current_layer_id][shape_id] = [key for key, item in self.regions.items() if item == region][0]
+                regionUsageChanged.emit()
                 if to_history:
                     self._history.change_shape_region(shape_id, self.current_layer_id, dim, old_region_id, label)
             else:

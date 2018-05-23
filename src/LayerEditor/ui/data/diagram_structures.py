@@ -448,7 +448,7 @@ class Diagram():
                 point.object.update_color()
 
     def layer_region_changed(self):
-        """Layer color is changed, refresh all region collors"""
+        """Layer color is changed, refresh all region colors"""
         for polygon in self.polygons:
             if polygon.object is not None:
                 polygon.object.update_color()
@@ -852,7 +852,7 @@ class Diagram():
                 self.regions.add_regions(2, polygon.id, not not_history, label)
         else:
             self.regions.add_regions(2, polygon.id, not not_history, label)
-        self.new_polygons.append(polygon)        
+        self.new_polygons.append(polygon)
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):
