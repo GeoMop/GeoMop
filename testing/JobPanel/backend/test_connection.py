@@ -22,14 +22,37 @@ import pytest
 logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+geomop_root_local = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(this_source_dir))), "src")
+
 TEST_FILES = "test_files"
 REMOTE_WORKSPACE = "/home/test/workspace"
 
 
+@pytest.mark.ssh
+@pytest.mark.slow
 def test_port_forwarding(request):
-    def clear_test_files():
+    server = None
+    server_thread = None
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+
+        # shutdown server
+        if server_thread is not None:
+            server.shutdown()
+            server.server_close()
+            server_thread.join(timeout=5)
+            assert not server_thread.is_alive()
+
         shutil.rmtree(TEST_FILES, ignore_errors=True)
-    request.addfinalizer(clear_test_files)
+    request.addfinalizer(finalizer)
 
     class Server(socketserver.ThreadingTCPServer):
         daemon_threads = True
@@ -57,20 +80,20 @@ def test_port_forwarding(request):
     ip, origin_port = server.server_address
 
     # start server in thread
-    t = threading.Thread(target=server.serve_forever)
-    t.daemon = True
-    t.start()
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
 
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
           "environment": env}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # ConnectionLocal
     con = ConnectionLocal()
@@ -87,7 +110,7 @@ def test_port_forwarding(request):
 
     # environment
     env_rem = {"__class__": "Environment",
-               "geomop_root": os.path.abspath("../src"),
+               "geomop_root": geomop_root_local,
                "geomop_analysis_workspace": REMOTE_WORKSPACE,
                "python": "python3"}
 
@@ -105,23 +128,26 @@ def test_port_forwarding(request):
 
     con.close_connections()
 
-    # stopping, closing
-    local_service._closing = True
-
-    # shutdown server
-    server.shutdown()
-    server.server_close()
-
 
 LOCAL_TEST_FILES = os.path.abspath("test_files")
 REMOTE_TEST_FILES = "/home/test/test_dir/test_files"
 
 
+@pytest.mark.ssh
 def test_upload_download(request):
-    def clear_test_files():
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+
         shutil.rmtree(LOCAL_TEST_FILES, ignore_errors=True)
         shutil.rmtree(REMOTE_TEST_FILES, ignore_errors=True)
-    request.addfinalizer(clear_test_files)
+    request.addfinalizer(finalizer)
 
     files = ["f1.txt", "f2.txt", "d1/f3.txt", "d2/f4.txt", "d2/d3/f5.txt"]
     paths = ["f1.txt", "f2.txt", "d1/f3.txt", "d2"]
@@ -149,24 +175,29 @@ def test_upload_download(request):
         shutil.rmtree(path, ignore_errors=True)
 
     def remove_files_rem(path, con):
-        for fileattr in con._sftp.listdir_attr(path):
-            path_name = os.path.join(path, fileattr.filename)
-            if stat.S_ISDIR(con._sftp.stat(path_name).st_mode):
-                remove_files_rem(path_name, con)
-                con._sftp.rmdir(path_name)
-            else:
-                con._sftp.remove(path_name)
+        sftp = con._sftp_pool.acquire()
+        try:
+            for fileattr in sftp.listdir_attr(path):
+                path_name = os.path.join(path, fileattr.filename)
+                if stat.S_ISDIR(sftp.stat(path_name).st_mode):
+                    remove_files_rem(path_name, con)
+                    sftp.rmdir(path_name)
+                else:
+                    sftp.remove(path_name)
+        finally:
+            con._sftp_pool.release(sftp)
 
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
           "environment": env}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # ConnectionLocal
     con = ConnectionLocal()
@@ -196,7 +227,7 @@ def test_upload_download(request):
 
     # environment
     env_rem = {"__class__": "Environment",
-               "geomop_root": os.path.abspath("../src"),
+               "geomop_root": geomop_root_local,
                "geomop_analysis_workspace": REMOTE_WORKSPACE,
                "python": "python3"}
 
@@ -241,10 +272,8 @@ def test_upload_download(request):
 
     con.close_connections()
 
-    # stopping, closing
-    local_service._closing = True
 
-
+@pytest.mark.ssh
 def test_exceptions():
     con = ConnectionSSH({"address": "localhost", "uid": "user_not_exist", "password": ""})
     try:
@@ -263,14 +292,27 @@ def test_exceptions():
         pass
 
 
-def test_get_delegator():
+@pytest.mark.ssh
+def test_get_delegator(request):
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+    request.addfinalizer(finalizer)
+
     # local service
     local_service = ServiceBase({})
-    local_service._repeater.run()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # environment
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": REMOTE_WORKSPACE,
            "python": "python3"}
 
@@ -284,26 +326,38 @@ def test_get_delegator():
     delegator_proxy = con.get_delegator()
     assert isinstance(delegator_proxy, ServiceProxy)
 
-    # stopping, closing
-    local_service._repeater.close()
     con.close_connections()
 
 
-def test_delegator_exec():
+@pytest.mark.slow
+@pytest.mark.ssh
+def test_delegator_exec(request):
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+    request.addfinalizer(finalizer)
+
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
           "address": "localhost",
           "environment": env}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # environment
     env_rem = {"__class__": "Environment",
-               "geomop_root": os.path.abspath("../src"),
+               "geomop_root": geomop_root_local,
                "geomop_analysis_workspace": REMOTE_WORKSPACE,
                "python": "python3"}
 
@@ -349,22 +403,29 @@ def test_delegator_exec():
     delegator_proxy._process_answers()
     assert answer[-1]["data"] is True
 
-    # stopping, closing
-    local_service._closing = True
     con.close_connections()
 
 @pytest.mark.slow
 def test_docker(request):
-    def clear_test_files():
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+
         shutil.rmtree(TEST_FILES, ignore_errors=True)
-    request.addfinalizer(clear_test_files)
+    request.addfinalizer(finalizer)
 
     # create analysis workspace
     os.makedirs(os.path.join(TEST_FILES, "workspace"), exist_ok=True)
 
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
@@ -372,7 +433,8 @@ def test_docker(request):
           "environment": env,
           "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # service data
     cd = {"__class__": "ConnectionLocal",
@@ -381,42 +443,53 @@ def test_docker(request):
           "name": "docker"}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services/backend_service.py",
+                         "path": os.path.join(this_source_dir, "t_service.py"),
                          "script": True}}
     service_data = {"service_host_connection": cd,
                     "process": pd,
                     "workspace": "",
-                    "config_file_name": "backend_service.conf"}
+                    "config_file_name": "t_service.conf"}
 
-    # start backend
+    # start test service
     local_service.request_start_child(service_data)
-    backend = local_service._child_services[1]
+    test_service = local_service._child_services[1]
 
-    # wait for backend running
-    time.sleep(5)
-    assert backend._status == ServiceStatus.running
+    # wait for test service running
+    time.sleep(10)
+    assert test_service._status == ServiceStatus.running
 
-    # stop backend
+    # stop test service
     answer = []
-    backend.call("request_stop", None, answer)
+    test_service.call("request_stop", None, answer)
     time.sleep(5)
     #assert len(answer) > 0
-
-    # stopping, closing
-    local_service._closing = True
 
 
 METACENTRUM_FRONTEND = "skirit.metacentrum.cz"
 METACENTRUM_HOME = "/storage/brno2/home/"
 
 
-def test_mc_get_delegator():
+@pytest.mark.slow
+@pytest.mark.meta
+def test_mc_get_delegator(request):
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+    request.addfinalizer(finalizer)
+
     # metacentrum credentials
     mc_u, mc_p = get_passwords()["metacentrum"]
 
     # local service
     local_service = ServiceBase({})
-    local_service._repeater.run()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # environment
     env = {"__class__": "Environment",
@@ -432,18 +505,30 @@ def test_mc_get_delegator():
     delegator_proxy = con.get_delegator()
     assert isinstance(delegator_proxy, ServiceProxy)
 
-    # stopping, closing
-    local_service._repeater.stop()
     con.close_connections()
 
 
-def test_mc_delegator_pbs():
+@pytest.mark.slow
+@pytest.mark.meta
+def test_mc_delegator_pbs(request):
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+    request.addfinalizer(finalizer)
+
     # metacentrum credentials
     mc_u, mc_p = get_passwords()["metacentrum"]
 
     # local service
     local_service = ServiceBase({})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # environment
     env = {"__class__": "Environment",
@@ -498,6 +583,4 @@ def test_mc_delegator_pbs():
     wait_for_answer(answer, 60)
     assert answer[-1] is True
 
-    # stopping, closing
-    local_service._closing = True
     con.close_connections()

@@ -9,7 +9,7 @@ import re
 import os
 
 from gm_base import config
-from data.user_helper import Users
+from JobPanel.data.user_helper import Users
 
 
 class Id:
