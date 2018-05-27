@@ -110,7 +110,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         4. Connected.
     """
-    def __init__(self, repeater_address, server_dispatcher, connection, get_answer_on_connect=None):
+    def __init__(self, repeater_address, server_dispatcher, connection, get_answer_on_connect=None, map=None):
         """
         :param repeater_address: Address of this repeater.
         :param server_dispatcher: Server side of the repeater (can be None). Used to resend answers.
@@ -157,7 +157,7 @@ class _ClientDispatcher(asynchat.async_chat):
         self.set_remote_address_lock = threading.Lock()
         """Lock for set_remote_address()"""
 
-        asynchat.async_chat.__init__(self)
+        asynchat.async_chat.__init__(self, map=map)
 
     def connect_to_address_safe(self, address):
         """
@@ -370,13 +370,13 @@ class _ClientDispatcher(asynchat.async_chat):
 
 
 class Server(asyncore.dispatcher):
-    def __init__(self,  repeater, port, clients):
+    def __init__(self,  repeater, port, clients, map=None):
         """
         host - get automatically
         :param port - port ( same as in socket module)
         """
         self.repeater = repeater
-        asyncore.dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self, map=map)
         self.server_dispatcher = ServerDispatcher(repeater.repeater_address, port, clients)
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -403,8 +403,7 @@ class Server(asyncore.dispatcher):
         client_info = self.accept()
         logging.info("Incomming connection accepted.")
         #print("Incomming connection accepted.")
-        self.server_dispatcher.accept2(client_info[0])
-        return
+        self.server_dispatcher.accept2(client_info[0], self._map)
 
     def handle_close(self):
         self.close()
@@ -438,10 +437,10 @@ class ServerDispatcher(asynchat.async_chat):
         """True if async_chat was initialized"""
 
 
-    def accept2(self, socket):
+    def accept2(self, socket, map):
         logging.info("Accept")
         #socket.settimeout(2)
-        asynchat.async_chat.__init__(self, sock = socket)
+        asynchat.async_chat.__init__(self, sock = socket, map=map)
         self._async_chat_init = True
         #self.set_socket(socket)
         self.set_terminator(_terminator)
@@ -552,11 +551,11 @@ class StarterServer(asyncore.dispatcher):
     """
     Server which accepts reverse connection from child repeaters.
     """
-    def __init__(self, async_repeater):
+    def __init__(self, async_repeater, map=None):
         """
         :param async_repeater:
         """
-        asyncore.dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self, map=map)
 
         self.async_repeater = async_repeater
 
@@ -573,7 +572,7 @@ class StarterServer(asyncore.dispatcher):
 
 class StarterServerDispatcher(asyncore.dispatcher):
     def __init__(self, sock, async_repeater):
-        super().__init__(sock)
+        super().__init__(sock, map=async_repeater._socket_map)
         self.async_repeater = async_repeater
 
     def handle_read(self):
@@ -626,6 +625,8 @@ class AsyncRepeater():
         :param parent_address:
                 socket address ( address, port) of the parent repeater to connect for initialization.
         """
+        self._socket_map = {}
+        """asyncore socket map"""
         self.repeater_address = repeater_address
         self.parent_address = parent_address
         self.max_client_id = max_client_id
@@ -640,13 +641,13 @@ class AsyncRepeater():
         self._starter_client_thread = None
         self._starter_client_attempting = False
         if self.parent_address[0] != "":
-            self._server = Server(self, 0, self.clients)
+            self._server = Server(self, 0, self.clients, map=self._socket_map)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
             self._starter_client_attempting = True
 
-        self._starter_server = StarterServer(self)
+        self._starter_server = StarterServer(self, map=self._socket_map)
         self._loop_thread = None
         self._loop_closing = False
 
@@ -672,7 +673,7 @@ class AsyncRepeater():
         :return:
         """
         while not self._loop_closing:
-            asyncore.loop(timeout=0.01, count=1)
+            asyncore.loop(timeout=0.01, map=self._socket_map, count=1)
             self._process_queues()
 
     def _process_queues(self):
@@ -715,7 +716,7 @@ class AsyncRepeater():
              Then it servers also as a unique token to check that the correct repeater is connecting to the StarterServer.
              Must keep generating of ID atomic.
         """
-        client = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection)
+        client = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection, map=self._socket_map)
 
         with self.clients_lock:
             if id is not None:
