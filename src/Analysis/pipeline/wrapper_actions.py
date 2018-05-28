@@ -153,8 +153,8 @@ class ForEach(WrapperActionType):
             if state is ActionRunningState.finished:
                 if next_wa == self._procesed_instances:
                     self._procesed_instances += 1
-                # Next line commented to fix bug with repeatedly running underling workflow.
-                # return ActionRunningState.wait, action
+                    # Next line indented to fix bug with repeatedly running underlying workflow.
+                    return ActionRunningState.wait, action
             if state is ActionRunningState.repeat:
                 return state, action
             if state is ActionRunningState.error:
