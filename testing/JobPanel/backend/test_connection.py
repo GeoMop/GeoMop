@@ -465,8 +465,8 @@ def test_docker(request):
     #assert len(answer) > 0
 
 
-METACENTRUM_FRONTEND = "skirit.metacentrum.cz"
-METACENTRUM_HOME = "/storage/brno2/home/"
+METACENTRUM_FRONTEND = "charon-ft.nti.tul.cz"
+METACENTRUM_HOME = "/storage/liberec1-tul/home/"
 
 
 @pytest.mark.slow
@@ -492,9 +492,10 @@ def test_mc_get_delegator(request):
     local_service_thread.start()
 
     # environment
+    test_dir = METACENTRUM_HOME + "/" + mc_u + "/jenkins_test"
     env = {"__class__": "Environment",
-           "geomop_root": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/GeoMop/src"),
-           "python": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/geomop_python.sh")}
+           "geomop_root": test_dir + "/geomop",
+           "python": test_dir + "/geomop/bin/python"}
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
@@ -531,10 +532,11 @@ def test_mc_delegator_pbs(request):
     local_service_thread.start()
 
     # environment
+    test_dir = METACENTRUM_HOME + "/" + mc_u + "/jenkins_test"
     env = {"__class__": "Environment",
-           "geomop_root": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/GeoMop/src"),
-           "geomop_analysis_workspace": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/workspace"),
-           "python": os.path.join(METACENTRUM_HOME, mc_u, "jenkins_test/geomop_python.sh")}
+           "geomop_root": test_dir + "/geomop",
+           "geomop_analysis_workspace": test_dir + "/workspace",
+           "python": test_dir + "/geomop/bin/python"}
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
