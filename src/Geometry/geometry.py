@@ -161,7 +161,7 @@ class Surface(gs.Surface):
         :param geom_file_base:
         :return:
         """
-        self.z_surface = bspline_io.bs_zsurface_read(self._approx_maker)
+        self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
         # Surface approx conatains transform
         #self.z_surface.transform(self.xy_transform)
 
@@ -704,6 +704,8 @@ class FractureLayer(gs.FractureLayer):
                     self.i_top.edges[sub_seg_id].set_shape(reg.id, self.i_top, self.i_top)
 
         for poly in decomp.polygons.values():
+            if poly.is_outer_polygon():
+                continue
             reg = self.regions[2][poly.id]
             if reg.is_active(2):
                 for sub_poly_id in obj_maps[2][poly.id]:

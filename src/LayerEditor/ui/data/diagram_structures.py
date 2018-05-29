@@ -432,10 +432,10 @@ class Diagram():
         for line in diagram.lines:
             line_orig_id = diagram.po.get_line_origin_id(line)
             tmp[line_orig_id]=regions[1][line.id]
-        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
-        for polygon in diagram.polygons:
-            tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
-        remapped_regions[2] = [value for (key, value) in sorted(tmp.items())]    
+        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]
+
+        poly_id_to_reg = {diagram.po.get_polygon_origin_id(polygon) : regions[2][polygon.id] for polygon in diagram.polygons}
+        remapped_regions[2] = [value for (key, value) in sorted(poly_id_to_reg.items())]
         
         return remapped_regions
                 

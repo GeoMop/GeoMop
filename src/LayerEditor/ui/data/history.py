@@ -69,9 +69,7 @@ class GlobalHistory():
     def remove_all(self):
         """Releas all histories"""
         for history in self.histories:
-            history.global_history = None
             history.release()
-        self.histories = []
         self.labels = []
         self.undo_labels = []
         
@@ -226,7 +224,9 @@ class History():
         
     def release(self):
         """Set or lins to none"""
-        pass
+        self.steps = []
+        self.undo_steps = []
+        self.multi = {}
 
     
 class DiagramHistory(History):

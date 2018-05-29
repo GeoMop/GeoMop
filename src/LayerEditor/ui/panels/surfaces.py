@@ -65,12 +65,19 @@ class SurfFormData(GL.Surface):
         # Index of original surface. None for unsaved surface.
         self._idx = -1
 
+
+
     @classmethod
     def init_from_surface(cls, surf, idx):
         self = cls()
         for key, val in surf.__dict__.items():
             self.__dict__[key] = val
         self._idx = idx
+        try:
+            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
+        except:
+            return None
+
         return self
 
     def init_from_file(self):
@@ -306,6 +313,8 @@ class Surfaces(QtWidgets.QWidget):
         row_nuv.addWidget(self.wg_v_approx, stretch=1)
 
         self.wg_reg_weight_le = self._make_double_edit(self.set_regularization)
+        self.wg_reg_weight_le.setValidator(QtGui.QDoubleValidator())
+
         grid.addWidget(self.wg_reg_weight_le, 12, 2, 1, 1)
 
         self.wg_apply_button = self._make_button(
@@ -333,10 +342,10 @@ class Surfaces(QtWidgets.QWidget):
         
         self.wg_message = QtWidgets.QLabel("", self)
         self._set_message("")
-        grid.addWidget(self.wg_message, 15, 0, 1, 3)
+        grid.addWidget(self.wg_message, 16, 0, 1, 3)
 
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
-        grid.addItem(sp1, 16, 0, 1, 3)
+        grid.addItem(sp1, 17, 0, 1, 3)
         
 
         self._fill_forms()
@@ -441,8 +450,6 @@ class Surfaces(QtWidgets.QWidget):
         """
         edit = QtWidgets.QLineEdit()
         edit.editingFinished.connect(edited_method)
-        # Validator cause  unmarked error fields.
-        edit.setValidator(QtGui.QDoubleValidator())
         return edit
 
     def _make_nuv_edit(self):
@@ -561,10 +568,13 @@ class Surfaces(QtWidgets.QWidget):
     @classmethod
     def float_convert(cls, le_obj):
         try:
-            return float(le_obj.text())
+            status = "none"
+            val = float(le_obj.text())
         except ValueError:
-            cls.set_le_status(le_obj, "error")
-            return 0
+            status = "error"
+            val = None
+        cls.set_le_status(le_obj, status)
+        return val
 
     @classmethod
     def int_convert(cls, le_obj):
@@ -584,6 +594,8 @@ class Surfaces(QtWidgets.QWidget):
 
     def xy_scale_changed(self):
         mat = [self.float_convert(mat_item) for mat_item in self.wg_xyscale_mat]
+        if None in mat:
+            return
         mat = np.array(mat, dtype=float).reshape(2,3)
         if np.linalg.det(mat[0:2,0:2]) < 1e-16:
             for field in self.wg_xyscale_mat:
@@ -618,39 +630,42 @@ class Surfaces(QtWidgets.QWidget):
         if self.data.name == "":
             # Empty form
             self.wg_view_button.setEnabled(False)
+            self.wg_surf_combo.setEnabled(False)
             self.wg_file_le.setText("")
             self.wg_file_le.setEnabled(False)
-            self.wg_surf_combo.setEnabled(False)
             self.wg_rm_button.setEnabled(False)
             self.wg_reload_button.setEnabled(False)
             self.wg_apply_button.setEnabled(False)
-            return
 
-        self.wg_view_button.setEnabled(True)
-        self.wg_view_button.set_icon()
-
-        self.wg_surf_combo.set_items(self.layers.surfaces, self.data._idx, self.data.name)
-        self.wg_surf_combo.setEnabled(True)
-
-        self.wg_file_le.setText(self.data.grid_file)
-        self.wg_file_le.setEnabled(True)
-
-        if self.data._idx is -1:
-            self.wg_rm_button.setEnabled(False)
-        else:
-            self.wg_rm_button.setEnabled(True)
-
-        self.wg_reload_button.setEnabled(True)
-        self.wg_apply_button.setEnabled(True)
-
-        if self.data._xy_transform is None:
             for form in self.wg_xyscale_mat:
                 form.setText("")
                 form.setEnabled(False)
+
+            self.wg_reg_weight_le.setEnabled(False)
         else:
+            self.wg_view_button.setEnabled(True)
+            self.wg_view_button.set_icon()
+
+            self.wg_surf_combo.set_items(self.layers.surfaces, self.data._idx, self.data.name)
+            self.wg_surf_combo.setEnabled(True)
+
+            self.wg_file_le.setText(self.data.grid_file)
+            self.wg_file_le.setEnabled(True)
+
+            if self.data._idx is -1:
+                self.wg_rm_button.setEnabled(False)
+            else:
+                self.wg_rm_button.setEnabled(True)
+
+            self.wg_reload_button.setEnabled(True)
+            self.wg_apply_button.setEnabled(True)
+
             for form, val in zip(self.wg_xyscale_mat, self.data._xy_transform.flat):
                 form.setText(str(val))
                 form.setEnabled(True)
+
+            self.wg_reg_weight_le.setEnabled(True)
+            self.wg_reg_weight_le.setText(str(self.data.regularization))
 
         if self.data._nuv is None:
             self.wg_u_approx.setText("")

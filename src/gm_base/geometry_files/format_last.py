@@ -70,7 +70,7 @@ class Surface(JsonData):
         """ Delimiter of data fields on a single line."""
         self.name = ""
         """Surface name"""
-        self._approx_maker = ClassFactory(SurfaceApproximation)
+        self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
         self.regularization = 1.0
         """Regularization weight."""
@@ -83,6 +83,10 @@ class Surface(JsonData):
     #     surf = Surface()
     #     surf.approximation = None
     #     return surf
+
+    @property
+    def quad(self):
+        return self.approximation.quad
 
     @classmethod
     def convert(cls, other):
