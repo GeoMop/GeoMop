@@ -9,7 +9,7 @@ import re
 import os
 
 from gm_base import config
-from JobPanel.data.user_helper import Users
+from JobPanel.data.secret import Secret
 
 
 class Id:
@@ -218,21 +218,16 @@ class SshPreset(APreset):
         Mangles secret data.
         :return:
         """
-        from ui.imports.workspaces_conf import BASE_DIR
-        self.key = Users.save_reg(self.name, self.pwd, os.path.join(config.__config_dir__, BASE_DIR))
-        self.pwd = "a124b.#"
+        s = Secret()
+        self.pwd = s.mangle(self.pwd)
 
     def demangle_secret(self):
         """
         Demangles secret data.
         :return:
         """
-        from ui.imports.workspaces_conf import BASE_DIR
-        pwd = Users.get_reg(self.name, self.key, os.path.join(config.__config_dir__, BASE_DIR))
-        if pwd is not None:
-            self.pwd = pwd
-        else:
-            self.pwd = ""
+        s = Secret()
+        self.pwd = s.demangle(self.pwd)
 
 
 class ResPreset(APreset):

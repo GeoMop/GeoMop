@@ -3,9 +3,7 @@ import json
 
 from Analysis.client_pipeline.mj_preparation import *
 from ui.dialogs import SshPasswordDialog
-from ui.imports.workspaces_conf import BASE_DIR
-from data.user_helper import Users
-from gm_base import config
+from JobPanel.data.secret import Secret
 
 
 def build(data_app, mj_id):
@@ -111,9 +109,8 @@ def build(data_app, mj_id):
               "name": "localhost"}
     else:
         if mj_ssh_preset.to_pc:
-            pwd = Users.get_reg(mj_ssh_preset.name,
-                                mj_ssh_preset.key,
-                                os.path.join(config.__config_dir__, BASE_DIR))
+            s = Secret()
+            pwd = s.demangle(mj_ssh_preset.pwd)
         else:
             dialog = SshPasswordDialog(None, mj_ssh_preset)
             if dialog.exec_():

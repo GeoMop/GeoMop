@@ -13,6 +13,7 @@ from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
 from JobPanel.backend.connection import ConnectionStatus, SSHError
+from JobPanel.data.secret import Secret
 
 
 class MJInfo(JsonData):
@@ -121,6 +122,33 @@ class Backend(ServiceBase):
         self._last_config_saved = 0.0
 
         self._proxies_resuscitated = False
+
+        self._secret = Secret()
+        self._demangle_secret()
+
+    def serialize(self):
+        """
+        Serialize with mangle secret data.
+        :return:
+        """
+        # todo: chtelo by to vymyslet lepe, asi pouzit nejaky manazer hesel
+        conf = super().serialize().copy()
+        conf["mj_info"] = conf["mj_info"].copy()
+        for k in list(conf["mj_info"].keys()):
+            mj = conf["mj_info"][k] = conf["mj_info"][k].copy()
+            mj["proxy"] = mj["proxy"].copy()
+            con = mj["proxy"]["connection_config"] = mj["proxy"]["connection_config"].copy()
+            con["password"] = self._secret.mangle(con["password"])
+        return conf
+
+    def _demangle_secret(self):
+        """
+        Demangle deserialized secret data.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            mj.proxy.connection_config = mj.proxy.connection_config.copy()
+            mj.proxy.connection_config["password"] = self._secret.demangle(mj.proxy.connection_config["password"])
 
     def _do_work(self):
         if not self._proxies_resuscitated:
