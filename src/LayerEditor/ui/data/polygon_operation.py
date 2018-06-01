@@ -284,7 +284,21 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
-        
+        for e in polygon.outer_wire.childs:
+            seggen = e.segments()
+            vtx = []
+            for seg in seggen:
+                if vtx:
+                    if seg[0].vtxs == vtx[-1]
+                   notalreadythere = np.setdiff1d(seg[0].vtxs, vtx[-1])
+                   vtx.append(notalreadythere[0])
+                else:
+                    #first segment
+                    vtx.append(seg[0].vtxs[0])
+                    vtx.append(seg[0].vtxs[1])
+            print(vtx)
+
+
     def _remove_polygon(self, diagram, polygon_id, parent_id, label, not_history):
         """Add polygon to boundary"""
         childs = self.decomposition.get_childs(parent_id)

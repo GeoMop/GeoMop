@@ -1627,7 +1627,7 @@ class Wire(IdObject):
 
     def segments(self, start = (None, None), end = (None, None)):
         """
-        Yields all (segmnet, side) of the same wire as the 'start' segment side,
+        Yields all (segment, side) of the same wire as the 'start' segment side,
         up to end segment side.
         """
         if self.is_root():

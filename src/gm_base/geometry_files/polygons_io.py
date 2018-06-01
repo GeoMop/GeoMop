@@ -5,6 +5,7 @@ import sys
 import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.polygons as polygons
 
+
 def serialize(decomp):
     """
     Serialization of the PolygonDecomposition, into geometry objects, storing:
@@ -39,7 +40,6 @@ def serialize(decomp):
             polygon.holes.append(wire)
         polygon.free_points = [pt.index for pt in poly.free_points]
         topology.polygons.append(polygon)
-
     return (nodes, topology)
 
 
@@ -60,7 +60,6 @@ def deserialize(nodes, topology):
 
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
         return reconstruction_from_old_input(decomp, topology)
-
 
     for id, seg in enumerate(topology.segments):
         vtxs_ids = seg.node_ids
@@ -91,7 +90,7 @@ def reconstruction_from_old_input(decomp, topology):
         s.index = id
         assert s.id == id
 
-    decomp.outer_polygon.index  = 0
+    decomp.outer_polygon.index = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []

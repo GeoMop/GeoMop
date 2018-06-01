@@ -44,7 +44,7 @@ class Example(QWidget):
         polygon.setPoints(points)
         # QPaint.drawPolygon(polygon)
 
-        points = [40, 40, 200, 170, 200, 80]
+        points = [40, 40, 40, 80, 40, 40, 200, 170, 200, 80]
         polygon2 = QPolygon();
         polygon2.setPoints(points)
 

@@ -59,6 +59,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         """reload polygon.spolygon.gtpolygon"""
         self.setPolygon(self.polygon_data.qtpolygon)
 
+
     def select_polygon(self):
         """set selected and repaint polygon"""
         if self.state == ItemStates.standart:
