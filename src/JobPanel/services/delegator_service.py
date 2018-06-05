@@ -33,7 +33,7 @@ if __name__ == "__main__":
     filename = "{}_{}.log".format(time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime(p.create_time())), p.pid)
     logging.basicConfig(filename=filename, filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
-                        level=logging.INFO)
+                        level=logging.WARNING)
 
 
     try:

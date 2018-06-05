@@ -217,6 +217,9 @@ class ServiceBase(JsonData):
         #self.repeater_max_client_id = 0
         """repeater max client id"""
 
+        self.log_all = False
+        """True mean log level INFO, False mean log level WARNING"""
+
         super().__init__(config)
 
         self._service_thread_ident = threading.get_ident()

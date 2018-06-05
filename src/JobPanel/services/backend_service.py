@@ -527,6 +527,14 @@ if __name__ == "__main__":
         input_file = "backend_service.conf"
         with open(input_file, "r") as f:
             config = json.load(f)
+
+        # set log level
+        if "log_all" in config and config["log_all"]:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+        logging.root.setLevel(level)
+
         bs = Backend(config)
         bs.run()
     except:

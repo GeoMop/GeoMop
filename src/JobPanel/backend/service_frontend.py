@@ -310,6 +310,9 @@ class ServiceFrontend(ServiceBase):
                             "workspace": workspace,
                             "config_file_name": config_file_name}
 
+        # set log level
+        service_data["log_all"] = False
+
         # start backend
         child_id = self.request_start_child(service_data)
         self._backend_proxy = self._child_services[child_id]
