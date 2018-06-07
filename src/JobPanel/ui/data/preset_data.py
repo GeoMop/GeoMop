@@ -205,7 +205,7 @@ class SshPreset(APreset):
         elif len(self.host)>63:
             ret["host"]="Invalid dns name (too long)" 
         if not isinstance(self.port, int) or self.port<1 or self.port>65535:
-            ret["port"]="Invalid ssh port"     
+            ret["host"]="Invalid ssh port"
         # todo: spravit, taky pridat validaci pro workspace
         # if not self.re_name.match(self.geomop_root):
         #     ret["geomop_root"]="Bad format of remote directory"
