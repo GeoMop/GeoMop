@@ -367,3 +367,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def ssh_test(self, ssh):
+        """Performs ssh test"""
+        ssh_conf = config_builder.build_ssh_conf(ssh)
+        answer = []
+        self._backend_proxy.call("request_ssh_test", ssh_conf, answer)
+        return answer

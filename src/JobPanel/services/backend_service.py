@@ -12,7 +12,7 @@ from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
-from JobPanel.backend.connection import ConnectionStatus, SSHError
+from JobPanel.backend.connection import ConnectionStatus, SSHError, SSHAuthenticationError
 from JobPanel.data.secret import Secret
 
 
@@ -510,6 +510,45 @@ class Backend(ServiceBase):
                     os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
             except (SSHError, FileNotFoundError, PermissionError):
                 pass
+
+    @LongRequest
+    def request_ssh_test(self, ssh_conf):
+        """
+        Performs ssh test.
+        :param ssh_conf:
+        :return:
+        """
+        ret = {"executables": [],
+               "errors": []}
+
+        try:
+            con = self.get_connection(ssh_conf)
+        except SSHAuthenticationError:
+            ret["errors"].append("Authentication error")
+            return ret
+        except SSHError:
+            ret["errors"].append("Unable to connect to host.")
+            return ret
+
+        delegator_proxy = con.get_delegator()
+        answer = []
+        delegator_proxy.call("request_get_executables_from_installation", con.environment.geomop_root, answer)
+        for i in range(100):
+            time.sleep(0.1)
+            if len(answer) > 0:
+                res = answer[0]
+                if "error" in res:
+                    logging.error("Error in ssh test")
+                    ret["errors"].append("Error in communication with Delegator.")
+                else:
+                    if res["data"] is None:
+                        ret["errors"].append("Error in reading executables.")
+                    else:
+                        for executable in res["data"]:
+                            ret["executables"].append(executable["name"])
+                return ret
+        ret["errors"].append("Timeout in communication with Delegator.")
+        return ret
 
 
 ##########

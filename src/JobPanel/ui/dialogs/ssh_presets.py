@@ -14,11 +14,11 @@ class SshPresets(APresetsDialog):
     Dialog executive code with bindings and other functionality.
     """
 
-    def __init__(self, parent, presets, container):        
+    def __init__(self, parent, presets, container, frontend_service):
         self.ui = UiSshPresets()
         """Form builed"""
         super().__init__(parent, presets, SshDialog)
-        self.presets_dlg.set_data_container(container)
+        self.presets_dlg.set_data_container(container, frontend_service)
 
 
 class UiSshPresets(UiPresetsDialog):

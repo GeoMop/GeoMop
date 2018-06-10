@@ -589,6 +589,25 @@ def build(data_app, mj_id):
 
 
 
+def build_ssh_conf(ssh):
+    """Builds configuration for ssh test."""
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_root": ssh.geomop_root,
+           "geomop_analysis_workspace": ssh.workspace,
+           "python": ssh.geomop_root + "/" + "bin/python"}
+
+    # connection
+    con = {"__class__": "ConnectionSSH",
+           "address": ssh.host,
+           "uid": ssh.uid,
+           "password": ssh.pwd,
+           "environment": env,
+           "name": ssh.name}
+
+    return con
+
+
 def _get_pbs_conf(preset, pbs_params=[]):
     """
     Converts preset data to PbsConfig.

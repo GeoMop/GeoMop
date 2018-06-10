@@ -29,6 +29,7 @@ class SshDialog(AFormContainer):
         self.excluded["name"]=excluded_names
         self.permitted = {}
         self.data = None
+        self.frontend_service = None
 
         # setup specific UI
         self.ui = UiSshDialog() 
@@ -175,8 +176,9 @@ class SshDialog(AFormContainer):
             #self.ui.envPresetComboBox.setCurrentIndex(-1)
         return 
             
-    def set_data_container(self, data):
+    def set_data_container(self, data, frontend_service):
         self.data = data
+        self.frontend_service = frontend_service
         # env = data.env_presets
         # self.ui.envPresetComboBox.clear()
         
@@ -215,7 +217,7 @@ class SshDialog(AFormContainer):
                 return
         else:
             preset.pwd = self.ui.passwordLineEdit.text()
-        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.data)
+        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.frontend_service)
         dialog.exec_()
 
 
@@ -373,7 +375,7 @@ class UiSshDialog():
         # 9 row
         self.btnTest = QtWidgets.QPushButton(dialog)
         self.btnTest.setText("Test Connection")
-        self.btnTest.setEnabled(False)
+        #self.btnTest.setEnabled(False)
         self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
                                    self.btnTest)
                                    

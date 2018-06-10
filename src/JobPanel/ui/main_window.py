@@ -226,8 +226,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_ssh(self):                                 
         """ssh dialog"""
         ssh_dlg = SshPresets(parent=self,
-                                          presets=self.data.ssh_presets,
-                                          container=self.data)
+                             presets=self.data.ssh_presets,
+                             container=self.data,
+                             frontend_service=self.frontend_service)
         ssh_dlg.exec_()
                                           
     def set_pbs(self):                                 
