@@ -44,27 +44,3 @@ if __name__ == "__main__":
         #logging.error("{}: {}".format(sys.exc_info()[0].__name__, sys.exc_info()[1]))
         logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
         raise
-
-
-#print(bs.get_listen_port())
-
-
-# address = json.loads(sys.argv[1])
-# logging.info("addr: %s"%(str(address)))
-# port_output_file = sys.argv[2]
-# bs=Delegator(address)
-# logging.info("port file: %s\n"%(port_output_file))
-# print("port: %d\n"%(bs.get_listen_port())  )
-# with open(port_output_file, "a") as f:
-#     logging.info("port: %d\n" % (bs.get_listen_port()))
-#     f.write(" %d"%(bs.get_listen_port()))
-
-
-#sys.stdout.flush()
-
-
-# TODO:
-# use only logging, check that loggig flush
-# try to proof ping
-#
-

@@ -219,28 +219,3 @@ class JsonData:
             for k, v in data.items():
                 d[k] = JsonData._deserialize(temp, v)
         return d
-
-    # @staticmethod
-    # def make_instance(config):
-    #     """
-    #     Make instance from config dict.
-    #     Dict must contain item "__class__" with name of desired class.
-    #     :param config:
-    #     :return:
-    #     """
-    #     if "__class__" not in config:
-    #         return None
-    #
-    #     # find class by name
-    #     cn = config["__class__"]
-    #     if cn in locals():
-    #         c = locals()[cn]
-    #     elif cn in globals():
-    #         c = globals()[cn]
-    #     else:
-    #         return None
-    #
-    #     # instantiate class
-    #     d = config.copy()
-    #     del d["__class__"]
-    #     return c(d)
