@@ -7,12 +7,11 @@ SSH dialog
 
 from PyQt5 import QtWidgets
 
-from helpers.importer import DialectImporter
+#from helpers.importer import DialectImporter
 from ui.data.preset_data import SshPreset
 from ui.dialogs.dialogs import AFormContainer
 from ui.validators.validation import PresetsValidationColorizer
 from ui.dialogs.test_ssh_dialog import TestSSHDialog
-from data.user_helper import Users
 from ui.dialogs import SshPasswordDialog
 from ui.imports.workspaces_conf import BASE_DIR
 import gm_base.config as config
