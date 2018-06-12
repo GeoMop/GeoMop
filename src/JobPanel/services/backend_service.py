@@ -138,7 +138,8 @@ class Backend(ServiceBase):
             mj = conf["mj_info"][k] = conf["mj_info"][k].copy()
             mj["proxy"] = mj["proxy"].copy()
             con = mj["proxy"]["connection_config"] = mj["proxy"]["connection_config"].copy()
-            con["password"] = self._secret.mangle(con["password"])
+            if "password" in con:
+                con["password"] = self._secret.mangle(con["password"])
         return conf
 
     def _demangle_secret(self):
@@ -147,8 +148,9 @@ class Backend(ServiceBase):
         :return:
         """
         for mj in self.mj_info.values():
-            mj.proxy.connection_config = mj.proxy.connection_config.copy()
-            mj.proxy.connection_config["password"] = self._secret.demangle(mj.proxy.connection_config["password"])
+            con = mj.proxy.connection_config = mj.proxy.connection_config.copy()
+            if "password" in con:
+                con["password"] = self._secret.demangle(con["password"])
 
     def _do_work(self):
         if not self._proxies_resuscitated:
