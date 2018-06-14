@@ -1,8 +1,8 @@
 import logging
 import sys
-import data.transport_data as tdata
+import JobPanel.data.transport_data as tdata
 import re
-from communication.communication import OutputComm
+from .communication import OutputComm
 
 """
 JB, TODO:
@@ -117,8 +117,8 @@ if sys.platform == "win32":
             """load state from variable"""
             pass
 else:
-    import pxssh
     import pexpect
+    import pexpect.pxssh as pxssh
     
     class SshOutputComm(OutputComm):
         """Ancestor of communication classes"""
@@ -172,7 +172,7 @@ else:
                 """
                 self.last_mess = None
                 self._connected = True
-            except pexpect.pxssh.ExceptionPxssh  as err:
+            except pxssh.ExceptionPxssh  as err:
                 logger.warning("Can't connect to ssh server " +  
                     self.host + " as " + self.name + ": " +   str(err))
             except Exception as err:

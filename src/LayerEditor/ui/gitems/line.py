@@ -2,7 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 class Line(QtWidgets.QGraphicsLineItem):
     """ 
@@ -37,7 +37,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         self._tmp = True
         self.state = ItemStates.added
         self.setZValue(self.TMP_ZVALUE)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
 
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
@@ -119,7 +119,7 @@ class Line(QtWidgets.QGraphicsLineItem):
             self.state = new_state
             if new_state is ItemStates.moved:
                 self.setZValue(self.MOVE_ZVALUE)
-                self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor)) 
+                #self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor))
             else:
                 self.setZValue(self.STANDART_ZVALUE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor)) 

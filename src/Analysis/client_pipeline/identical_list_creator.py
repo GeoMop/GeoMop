@@ -1,5 +1,5 @@
 import json
-from pipeline.identical_list import IdenticalList
+from Analysis.pipeline.identical_list import IdenticalList
 
 class ILCreator():
     """

@@ -2,6 +2,11 @@ import os
 
 
 def compare_with_file(fname, lines):
+    """
+    :param fname: reference file path
+    :param lines: actual output
+    :return:
+    """
     with open(fname) as f:
         res = f.readlines()
         i=0

@@ -38,7 +38,7 @@ mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
 # job_service executable
 job_service = {"__class__": "Executable",
                "name": "job_service",
-               "path": "JobPanel/services/_job_service.py",
+               "path": "JobPanel/services/job_service.py",
                "script": True}
 
 # flow123d executable
@@ -56,7 +56,8 @@ env = {"__class__": "Environment",
 # local connection
 cl = {"__class__": "ConnectionLocal",
       "address": "localhost",
-      "environment": env}
+      "environment": env,
+      "name": "localhost"}
 
 # local service
 local_service = ServiceBase({"service_host_connection": cl})
@@ -83,7 +84,7 @@ child_id = local_service.request_start_child(service_data)
 multi_job = local_service._child_services[child_id]
 
 # wait for multi job done
-while multi_job.status != ServiceStatus.done:
+while multi_job._status != ServiceStatus.done:
     time.sleep(1)
 
 # stopping, closing

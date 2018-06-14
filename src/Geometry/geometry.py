@@ -32,34 +32,34 @@ import sys
 
 
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
+#geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
 #intersections_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "intersections","src")
-sys.path.append(geomop_src)
+#sys.path.append(geomop_src)
 #sys.path.append(intersections_src)
 
-import json_data as js
-import geometry_files.geometry_structures as gs
-import gmsh_io
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+import gm_base.json_data as js
+import gm_base.geometry_files.format_last as gs
+import gm_base.geometry_files.layers_io as layers_io
+import gm_base.geometry_files.polygons as polygons
+import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.geometry_files.bspline_io as bspline_io
+import Geometry.gmsh_io as gmsh_io
 import numpy as np
 import numpy.linalg as la
 import math
 
-import geometry_files.polygons as polygons
-import geometry_files.polygons_io as polygons_io
 
-
-print("Start")
-
-import b_spline
+import gm_base.b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
-import geometry_files.bspline_io as bspline_io
 # def import_plotting():
 # global plt
 # global bs_plot
 
-#import geometry_files.plot_polygons as plot_polygons
+#import gm_base.geometry_files.plot_polygons as plot_polygons
 
 #import matplotlib
 #import matplotlib.pyplot as plt
@@ -164,7 +164,8 @@ class Surface(gs.Surface):
         :return:
         """
         self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
-
+        # Surface approx conatains transform
+        #self.z_surface.transform(self.xy_transform)
 
     def make_bumpy_surface(self, z_transform):
         # load grid surface and make its approximation
@@ -183,7 +184,7 @@ class Surface(gs.Surface):
 
     def make_flat_surface(self, xy_aabb, z_transform):
         # flat surface
-        z_const = z_transform[1]
+        #z_const = z_transform[1]
 
         corners = np.zeros( (3, 3) )
         corners[[1, 0], 0] = xy_aabb[0][0]  # min X
@@ -194,7 +195,7 @@ class Surface(gs.Surface):
 
         basis = bs.SplineBasis.make_equidistant(2, 1)
 
-        poles = np.ones( (3, 3, 1 ) ) * z_const
+        poles = np.zeros( (3, 3, 1 ) )
         surf_z = bs.Surface( (basis, basis), poles)
         self.z_surface = bs.Z_Surface(corners[:, 0:2], surf_z)
         return self.make_bumpy_surface(z_transform)
@@ -492,8 +493,8 @@ class Interface:
             self._surface = Surface()
 
             # TODO: remove after test correctness of Layer editor
-            if self.transform_z[1] != self.depth:
-                self.transform_z = [ 1.0, self.depth]
+            if self.transform_z[1] != self.elevation:
+                self.transform_z = [ 1.0, self.elevation]
             self.surface_approx = self._surface.make_flat_surface(nod_aabb, self.transform_z)
 
         else:
@@ -652,6 +653,14 @@ class Region(gs.Region):
 #    pass
 
 def make_layer_region_maps(layer, regions, extrude):
+    """
+    Return list of obj->region map for every dimension.
+    This replace just list of region ids on the input.
+    :param layer:
+    :param regions:
+    :param extrude:
+    :return:
+    """
     top_decomp = layer.top.decomp
     #bot_decomp = layer.bottom.decomp
     #assert top_decomp == bot_decomp
@@ -671,11 +680,12 @@ def make_layer_region_maps(layer, regions, extrude):
 class FractureLayer(gs.FractureLayer):
     def init(self, lg):
         self.i_top = self.top.make_interface(lg)
+        # Top interface.
         self.topology = self.top.topology
+        # Common topology.
         self.regions = make_layer_region_maps(self, lg.regions, False)
-        #for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
-        #    for i_reg in reg_list:
-        #        self.regions[i_reg].init(topo_dim=dim, extrude = False)
+        # List of dictionaries.
+        # [ points_ids to regions, segment_ids to regions, polygon_ids to regions]
 
     def make_shapes(self):
         """
@@ -724,15 +734,29 @@ class StratumLayer(gs.StratumLayer):
 
 
     def make_vert_bw_surface(self, top_edges, bot_edges, edge_start, edge_end):
-        # vertical edges (edge_start, edge_end) are oriented from bottom to top
+        """
+        Make vertical surface surface from set of 4 boundary edges.
+
+        Sequence of edge shape info, which are subdivision (after partition) of a single edge:
+        :param top_edges: Subdivision of the top edge (V01 - > V11)
+        :param bot_edges: Subdivision of the bottom edge (V00 -> V10)
+
+        Vertical edges oriented from bottom to top:
+        :param edge_start: Connecting start points of (top and bot edges), V00 -> V01
+        :param edge_end: Connecting end points of (top and bot edges), V10 -> V11
+        :return: BW surface object.
+        """
+        #
 
         top_boxes = [edg_si.curve_z.aabb() for edg_si in top_edges]
         bot_boxes = [edg_si.curve_z.aabb() for edg_si in bot_edges]
 
+        # Z range
         top_z = max([ box[:, 1].max() for box in top_boxes]) + 1.0
         bot_z = min([ box[:, 1].min() for box in bot_boxes]) - 1.0
 
-        # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
+        # XYZ of corners, vUV,
+        # U is horizontal start to end, V is vertical bot to top
         edg_start_vtxs = np.array(edge_start.shape.points())
         edg_end_vtxs = np.array(edge_end.shape.points())
         v00, v01 = edg_start_vtxs.copy()
@@ -774,6 +798,19 @@ class StratumLayer(gs.StratumLayer):
         return bw_surf
 
     def _curve_for_horizontal_edges(self, edge_list, v_to_z, xy_vtxs, bw_surf):
+        """
+        Scale and attach boundary curves of edges to the surface bounded by the edges.
+        U - horizontal parameter, V - vertical parameter; parameters of the vertical surface
+        'bw_surf'. Boundary curves (U->V) are part of the shape info objects.
+
+
+        :param edge_list: List of edge shape info objects, forming a subdivision of a segment
+         with endpoints 'xy_vtxs'
+        :param v_to_z: Mapping vertica V parameter to real Z coordinate.
+        :param xy_vtxs: Segment end points.
+        :param bw_surf: Surface to which attache the
+        :return: None
+        """
         axis = np.argmax(np.abs(xy_vtxs[1] - xy_vtxs[0]))
         axis_diff = xy_vtxs[1][axis] - xy_vtxs[0][axis]
         for edg_si in edge_list:
@@ -785,6 +822,8 @@ class StratumLayer(gs.StratumLayer):
             assert 0.0 <= xy_to_u[1] <= 1.0
             boundary_curve = edg_si.vert_curve(v_to_z, xy_to_u)
             uv_vtx = boundary_curve.eval_array(np.array([0, 1]))
+            # Fix errors in U coordinate which should be a sequence from 0 to 1.
+            uv_vtx[:, 0] = np.clip(uv_vtx[:,0], 0.0, 1.0)
 
             if not (np.all( 0 <= uv_vtx ) and np.all( uv_vtx <= 1)):
                 raise Exception("Top point < bottom point, for layer id = {}. Z-range: {}. {}"\
@@ -935,7 +974,8 @@ class LayerGeometry(gs.LayerGeometry):
     def init(self):
         # keep unique interface per surface
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
-
+        self.min_step = np.inf
+        self.max_step = 0
         self.set_ids(self.surfaces)
         self.set_ids(self.regions)
         #self.interfaces = [ Interface(surface) for surface in self.surfaces ]
@@ -999,7 +1039,6 @@ class LayerGeometry(gs.LayerGeometry):
         # self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
         # self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
 
-
         self.all_shapes = []
         self.free_shapes = []
 
@@ -1022,59 +1061,88 @@ class LayerGeometry(gs.LayerGeometry):
         with open(self.brep_file, 'w') as f:
             bw.write_model(f, compound, bw.Location())
 
+    def make_gmsh_shape_dict(self):
+        """
+        Construct a dictionary self.gmsh_shape_dict, mapping the pair (dim, gmsh_object_id) -> shape info object
+        :return:
+        """
         # ignore shapes without ID - not part of the output
-        self.all_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
-        self.compute_bounding_box()
+        output_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
 
         # prepare dict: (dim, shape_id) : shape info
-        self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
+        output_shapes.sort(key=lambda si: si.shape.id, reverse=True)
         shape_by_dim = [[] for i in range(4)]
-        for shp_info in self.all_shapes:
+        for shp_info in output_shapes:
             dim = shp_info.dim()
             shape_by_dim[dim].append(shp_info)
 
-        self.shape_dict = {}
+        self.gmsh_shape_dist = {}
         for dim, shp_list in enumerate(shape_by_dim):
             for gmsh_shp_id, si in enumerate(shp_list):
-                self.shape_dict[(dim, gmsh_shp_id + 1)] = si
+                self.gmsh_shape_dist[(dim, gmsh_shp_id + 1)] = si
 
-        # TODO: introduce shape_id to shape_info dict and get rid of storing aux. data into BW shapes.
+    def set_free_si_mesh_step(self, si, step):
+        """
+        Set the mesh step to the free SI (root of local DFS tree).
+        :param si: A free shape info object
+        :param step: Meash step from corresponding region.
+        :return:
+        """
+        if step <= 0.0:
+            step = self.global_mesh_step
+        self.min_step = min(self.min_step, step)
+        self.max_step = max(self.max_step, step)
+        si.mesh_step = step
 
-        # Propagate mesh_step from free_shapes to vertices via DFS
-        # use global mesh step if the local mesh_step is zero.
+    def distribute_mesh_step(self):
+        """
+        For every free shape:
+         1. get the mesh step from the region
+         2. pass down through its tree using DFS
+         3. set the mesh_step  to all child vertices, take minimum of exisiting and new mesh_step
+        :return:
+        """
+        print("distribute mesh\n")
         self.compute_bounding_box()
-        global_mesh_step = self.mesh_step_estimate()
+        self.global_mesh_step = self.mesh_step_estimate()
 
-        # initialize auxiliary vtx mesh_step to 0.0
-        for vi in shape_by_dim[0]:
-            vi.shape._mesh_step = np.inf
+        # prepare map from shapes to their shape info objs
+        # initialize mesh_step of individual shape infos
+        shape_dict = {}
         for shp_info in self.all_shapes:
-            shp_info.shape._visited = -1
+            shape_dict[shp_info.shape] = shp_info
+            shp_info.mesh_step = np.inf
+            shp_info.visited = -1
 
+        # Propagate mesh_step from the free_shapes to vertices via DFS
+        # use global mesh step if the local mesh_step is zero.
         for i_free, shp_info in enumerate(self.free_shapes):
-            mesh_step = self.regions[shp_info.i_reg].mesh_step
-            if mesh_step <= 0.0:
-                mesh_step = global_mesh_step
-
-            # DFS
+            self.set_free_si_mesh_step(shp_info, self.regions[shp_info.i_reg].mesh_step)
+            shape_dict[shp_info.shape].visited = i_free
             stack = [shp_info.shape]
             while stack:
-                shp = stack.pop(-1)
-                if isinstance(shp, bw.Vertex):
-                    shp._mesh_step = min(shp._mesh_step, mesh_step)
-                for sub in shp.subshapes():
-                    if not hasattr(sub, '_visited'):
-                        sub._visited = -1
-                    if sub._visited < i_free:
-                        sub._visited = i_free
-                        stack.append(sub)
 
+                shp = stack.pop(-1)
+                print("shp: {} id: {}\n".format(type(shp), shp.id))
+                for sub in shp.subshapes():
+                    if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
+                        if shape_dict[sub].visited < i_free:
+                            shape_dict[sub].visited = i_free
+                            stack.append(sub)
+                    else:
+
+                        stack.append(sub)
+                if isinstance(shp, bw.Vertex):
+                    shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
+
+        self.min_step *= 0.2
         self.vtx_char_length = []
-        for gmsh_shp_id, vtx_si in enumerate(shape_by_dim[0]):
-            mesh_step = vtx_si.shape._mesh_step
-            if mesh_step == np.inf:
-                mesh_step = global_mesh_step
-            self.vtx_char_length.append((gmsh_shp_id + 1, mesh_step))
+        for (dim, gmsh_shp_id), si in self.gmsh_shape_dist.items():
+            if dim == 0:
+                mesh_step = si.mesh_step
+                if mesh_step == np.inf:
+                    mesh_step = self.global_mesh_step
+                self.vtx_char_length.append((gmsh_shp_id, mesh_step))
 
 
 
@@ -1125,10 +1193,6 @@ class LayerGeometry(gs.LayerGeometry):
         :param mesh_step:
         :return:
 
-         TODO, mesh step:
-         - replace Merge by shapefromfile
-         - replace global mesh step field by array of char lenght:
-         Characteristic Length {ID} = step;
         """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
@@ -1149,8 +1213,12 @@ class LayerGeometry(gs.LayerGeometry):
             TODO: ? Meaning of char length limits. Possibly to prevent to small elements at intersection points,
             they must be derived from min and max mesh step.
             """
-            # print(r'Mesh.CharacteristicLengthMin = 1;', file=f)
-            # print(r'Mesh.CharacteristicLengthMax = 500;', file=f)
+            print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
+            print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+            # rand_factor has to be increased when the triangle/model ratio
+            # multiplied by rand_factor approaches 'machine accuracy'
+            rand_factor = 1e-14 * np.max(self.aabb[1] - self.aabb[0]) / self.min_step
+            print(r'Mesh.RandomFactor = %s;'%rand_factor , file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
 
             for id, char_length in self.vtx_char_length:
@@ -1227,7 +1295,7 @@ class LayerGeometry(gs.LayerGeometry):
                 raise Exception("Less then 2 tags.")
             dim = self.el_type_to_dim[el_type]
             shape_id = tags[1]
-            shape_info = self.shape_dict[ (dim, shape_id) ]
+            shape_info = self.gmsh_shape_dist[ (dim, shape_id)]
 
             if not shape_info.free:
                 continue
@@ -1320,13 +1388,16 @@ def make_geometry(**kwargs):
 
     layers_file = layers_file
     filename_base = os.path.splitext(layers_file)[0]
-    gs_lg = gs.read_geometry(layers_file)
+    gs_lg = layers_io.read_geometry(layers_file)
     lg = construct_derived_geometry(gs_lg)
     lg.filename_base = filename_base
 
     lg.init()   # initialize the tree with ids and references where necessary
 
     lg.construct_brep_geometry()
+    lg.make_gmsh_shape_dict()
+    lg.distribute_mesh_step()
+
     #geom.mesh_netgen()
     #geom.netgen_to_gmsh()
 

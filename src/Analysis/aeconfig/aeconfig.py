@@ -5,8 +5,8 @@
 
 import logging
 import os
-import config as cfg
-from geomop_util.logging import LOGGER_PREFIX
+import gm_base.config cfg
+from gm_base.geomop_util.logging import LOGGER_PREFIX
 
 class _Config:
     """Class for Analyzis serialization"""

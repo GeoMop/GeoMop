@@ -1,4 +1,4 @@
-from pipeline.identical_list import *
+from Analysis.pipeline.identical_list import *
 import os
 import shutil
 

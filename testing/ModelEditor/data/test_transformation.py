@@ -1,7 +1,7 @@
-import mock_transform as mocktrf
+import testing.ModelEditor.mock.mock_transform as mocktrf
 import re
-import mock_config as mockcfg
-from data.yaml.transformator import Transformator, TransformationFileFormatError
+import testing.ModelEditor.mock.mock_config as mockcfg
+from ModelEditor.data.yaml.transformator import Transformator, TransformationFileFormatError
 
 def test_init():
     text = ""

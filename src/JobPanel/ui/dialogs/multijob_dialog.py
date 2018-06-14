@@ -10,7 +10,7 @@ import logging
 from PyQt5 import QtCore, QtWidgets
 from ui.data.mj_data import MultiJobPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
-from geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from ui.validators.validation import PresetsValidationColorizer
 
 

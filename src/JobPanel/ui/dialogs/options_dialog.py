@@ -4,8 +4,8 @@
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QLabel, QComboBox)
 
-from geomop_widgets import WorkspaceSelectorWidget
-from geomop_analysis import Analysis
+from gm_base.geomop_widgets import WorkspaceSelectorWidget
+from gm_base.geomop_analysis import Analysis
 
 
 class OptionsDialog(QDialog):
@@ -55,7 +55,7 @@ class OptionsDialog(QDialog):
     def accept(self):
         """Handles a confirmation."""
         if self.workspace_selector.value is None:
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog("", Exception("Workspace is not selected."))
             return
@@ -64,5 +64,9 @@ class OptionsDialog(QDialog):
             self.data.config.analysis = None
         self.data.config.local_env = self.envPresetComboBox.currentData()
         self.data.config.save()
+
+        # todo: vyresit lepe
+        self.parent().close()
+
         super(OptionsDialog, self).accept()       
 

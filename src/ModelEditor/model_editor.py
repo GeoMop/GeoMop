@@ -7,19 +7,18 @@ import argparse
 import os
 import signal
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
-import icon
-from meconfig import cfg
-from ui.dialogs.json_editor import JsonEditorDlg
-from ui import MainWindow
-from util import constants
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+import gm_base.icon as icon
+from ModelEditor.meconfig import MEConfig as cfg
+from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
+from ModelEditor.ui import MainWindow
+from ModelEditor.util import constants
 import subprocess
 
 RELOAD_INTERVAL = 5000
@@ -34,6 +33,7 @@ class ModelEditor:
 
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Model app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         self.mainwindow = MainWindow(self)
         cfg.main_window = self.mainwindow
@@ -225,7 +225,7 @@ class ModelEditor:
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
 
 
 def main():
@@ -240,12 +240,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             if model_editor is not None:
                 err_dialog = None
                 # display message box with the exception

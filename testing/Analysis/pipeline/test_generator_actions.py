@@ -1,10 +1,16 @@
-from pipeline.generator_actions import *
-from pipeline.data_types_tree import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.data_types_tree import *
 from .pomfce import *
-import pipeline.action_types as action
+import Analysis.pipeline.action_types as action
 import os
 
-def test_generator_code_init():
+
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+def test_generator_code_init(change_dir_back):
+    os.chdir(this_source_dir)
+
     items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
         {'name':'b', 'value':10, 'step':1, 'n_plus':2, 'n_minus':3,'exponential':True} 
@@ -14,7 +20,7 @@ def test_generator_code_init():
     gen=RangeGenerator(Items=items)
     gen._inicialize()
     test=gen._get_settings_script()
-    compare_with_file(os.path.join("pipeline", "results", "gen1.py"), test)
+    compare_with_file(os.path.join("results", "gen1.py"), test)
     # generator by exec
     exec ('\n'.join(test), globals())
     

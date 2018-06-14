@@ -4,18 +4,17 @@ Start script that inicialize main window
 import sys
 import os
 import signal
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
-
 import argparse
-from ui import MainWindow
-from leconfig import cfg
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+from LayerEditor.ui import MainWindow
+from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
-import icon
-from ui.dialogs.set_diagram import SetDiagramDlg
-from ui.dialogs.make_mesh import MakeMeshDlg
+import gm_base.icon as icon
+from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -23,6 +22,7 @@ class LayerEditor:
     def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
@@ -78,7 +78,7 @@ class LayerEditor:
                 self.mainwindow.show_status_message("New file is opened")
         else:
             self.mainwindow.refresh_all()
-            self.mainwindow.display_all()
+            self.mainwindow.paint_new_data()
         self._update_document_name()
  
     def open_file(self):
@@ -183,7 +183,7 @@ class LayerEditor:
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
         
     def _update_document_name(self):
         """Update document title (add file name)"""
@@ -209,12 +209,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             err_dialog = GMErrorDialog(layer_editor.mainwindow)
             err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
             sys.exit(1)

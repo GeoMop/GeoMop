@@ -1,30 +1,21 @@
 import sys
 import os
 
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-__pexpect_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/pexpect")
-__enum_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/enum")
-    
-sys.path.insert(1, __pexpect_dir__)
-if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(2, __enum_dir__)
-if sys.platform == "win32":
-    sys.path.insert(2, __lib_dir__)
+
 
 import json
 import logging
 import subprocess
 import time
-from communication.installation import Installation
+
+from .communication import installation as inst
+from .communication import Communicator
+from .communication.installation import Installation
+from .communication.installation import __ins_files__, __input_dir__
+
 import data.communicator_conf as comconf
-import communication.installation as inst
-from communication import Communicator
 import data.transport_data as tdata
 
-from communication.installation import __ins_files__, __input_dir__
 
 logger = logging.getLogger("Remote")
 finished = False

@@ -1,12 +1,12 @@
-from geomop_util import Serializable
-import ui.imports.ie_presets as ie
-from ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
-from ui.data.mj_data import MultiJob, MultiJobPreset
-from ui.dialogs.import_dialog import ImportDialog
-from data.states import TaskStatus
+from gm_base.geomop_util import Serializable
+from . import ie_presets as ie
+from JobPanel.ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
+from JobPanel.ui.data.mj_data import MultiJob, MultiJobPreset
+from JobPanel.ui.dialogs.import_dialog import ImportDialog
+from JobPanel.data.states import TaskStatus
 from PyQt5 import QtWidgets
 
-import config as cfg
+import gm_base.config as base_cfg
 import os
 import uuid
 import yaml
@@ -346,13 +346,13 @@ class WorkspacesConf():
             self.workspaces[self.selected].selected_mj = selected_mj
             self.workspaces[self.selected].analysis = selected_analysis
         directory = os.path.join(BASE_DIR, self.DIR)
-        cfg.save_config_file(self.FILE_NAME, self, directory)
+        base_cfg.save_config_file(self.FILE_NAME, self, directory)
     
     @classmethod
     def open(cls):
         """deserialize settings"""    
         directory = os.path.join(BASE_DIR, cls.DIR)
-        config = cfg.get_config_file(cls.FILE_NAME, directory, cls=WorkspacesConf)
+        config = base_cfg.get_config_file(cls.FILE_NAME, directory, cls=WorkspacesConf)
         if config is None:
             config =  WorkspacesConf()
         return config

@@ -344,20 +344,19 @@ class ShpFiles():
         del self.datas[idx]
         self.boundrect = self._shp_rect()
         
-    def serialize(self, shps):
+    def serialize(self):
         """Set shp persistent variable to dictionary"""
-        shps.clear()
         for disp in self.datas:
             shp = {}
             shp['file'] = disp.file
             shp['attr'] = disp.attr
             shp['color'] = disp.color.name()
-            shps.append(shp)
             shp['show'] = []
             shp['highlight'] = []            
             for i in range(0, len(disp.av_show)):
                 shp['show'].append(disp.av_show[i])
-                shp['highlight'].append(disp.av_highlight[i])                
+                shp['highlight'].append(disp.av_highlight[i])
+            yield shp
         
     def deserialize(self, shps):
         """Get shp persistent variable from dictionary"""

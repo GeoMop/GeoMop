@@ -4,7 +4,7 @@
 """
 import pytest
 
-from helpers import LineAnalyzer
+from ModelEditor.helpers import LineAnalyzer
 
 
 @pytest.mark.parametrize('line, expected', [

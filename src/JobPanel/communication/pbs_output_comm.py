@@ -1,11 +1,11 @@
 import logging
 import subprocess
 import re
-import helpers.pbs as pbs
+from JobPanel.helpers import pbs
 import time
 import copy
 import sys
-from communication.exec_output_comm import ExecOutputComm
+from .exec_output_comm import ExecOutputComm
 
 logger = logging.getLogger("Remote")
 
