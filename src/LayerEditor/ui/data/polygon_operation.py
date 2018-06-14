@@ -190,11 +190,12 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
+        spolygon.qregion = self._get_qregion(polygon)
         if spolygon.object is not None:
             spolygon.object.refresh_polygon()
         
     def _assign_add(self, diagram, added_id):
-        """Assign added polzgon to existing polygon in diagram"""
+        """Assign added polygon to existing polygon in diagram"""
         spolygon = self._get_spolygon(diagram, self.tmp_polygon_id)
         spolygon.helpid = added_id
         self._reload_boundary(diagram, added_id)
@@ -265,12 +266,43 @@ class PolygonOperation():
             lines.append(line)
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], -points[0].xy[1]))
         return lines, qtpolygon
-        
+
+    def _get_wire_oriented_vertices(self, wire):
+        seggen = wire.segments()
+        vtxs = np.array([], dtype=float)
+        for seg, side in seggen:
+            if not vtxs.size:
+                other_side = not side
+                vtxs = np.append(vtxs, seg.vtxs[other_side].xy)
+            vtxs = np.append(vtxs, seg.vtxs[side].xy)
+        return vtxs.tolist()
+
+    def _get_qregion(self, polygon):
+        # Full region
+        vtxs = self._get_wire_oriented_vertices(polygon.outer_wire)
+        vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
+        filled = QtGui.QPolygon()
+        filled.setPoints(vtxs)
+        final = QtGui.QRegion(filled)
+        # Subtract all inner parts
+        for inner_object in polygon.outer_wire.childs:
+            vtxs = self._get_wire_oriented_vertices(inner_object)
+            vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
+            inner_region = QtGui.QPolygon()
+            inner_region.setPoints(vtxs)
+            final -= QtGui.QRegion(inner_region)
+        final.RegionType = 0
+        return final
+
     def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
         if polygon == self.decomposition.outer_polygon:
             return
+        parent_polydata = polygon.outer_wire.parent.polygon
+        if not parent_polydata == self.decomposition.outer_polygon:
+            parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
+            parent_spoly.qregion = self._get_qregion(parent_polydata)
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children!=polygon_id:
@@ -284,28 +316,19 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
-        for e in polygon.outer_wire.childs:
-            seggen = e.segments()
-            vtx = []
-            for seg in seggen:
-                if vtx:
-                    if seg[0].vtxs == vtx[-1]
-                   notalreadythere = np.setdiff1d(seg[0].vtxs, vtx[-1])
-                   vtx.append(notalreadythere[0])
-                else:
-                    #first segment
-                    vtx.append(seg[0].vtxs[0])
-                    vtx.append(seg[0].vtxs[1])
-            print(vtx)
-
+        spolygon.qregion = self._get_qregion(polygon)
 
     def _remove_polygon(self, diagram, polygon_id, parent_id, label, not_history):
         """Add polygon to boundary"""
         childs = self.decomposition.get_childs(parent_id)
         for children in childs:
             if children!=parent_id:
-                self._reload_depth(diagram, children) 
-        spolygon = self._get_spolygon(diagram, polygon_id)               
+                self._reload_depth(diagram, children)
+        spolygon = self._get_spolygon(diagram, polygon_id)
+        parent_polydata = self.decomposition.polygons[parent_id]
+        if not parent_polydata == self.decomposition.outer_polygon:
+            parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
+            parent_spoly.qregion = self._get_qregion(parent_polydata)
         diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):

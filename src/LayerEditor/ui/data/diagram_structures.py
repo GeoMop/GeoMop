@@ -194,7 +194,7 @@ class Line():
 
 class Polygon():
     """
-    Class for graphic presentation of line
+    Class for graphic presentation of polygon
     """
     def __init__(self, lines, id=None):
         global __next_id__
@@ -858,7 +858,7 @@ class Diagram():
                 self.regions.add_regions(2, polygon.id, not not_history, label)
         else:
             self.regions.add_regions(2, polygon.id, not not_history, label)
-        self.new_polygons.append(polygon)        
+        self.new_polygons.append(polygon)
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):
