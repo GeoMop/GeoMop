@@ -138,7 +138,16 @@
 #        echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
 #        expr substr ${GIT_COMMIT} 1 6 >> prop.file
     - shell: |
-        git submodule update submodules/intersections
+        git submodule init
+        origin_url=$( git config --get remote.origin.url ) ;\
+        if [ "${origin_url}" != "${origin_url#https}" ]; \
+        then \
+            cp .gitmodules_https .gitmodules; \
+        fi
+        git submodule sync
+        git checkout .gitmodules
+        git submodule update
+    - shell: |
         cd testing
         ./fb_test_wrapper.sh python3 -m pytest -s --junitxml="all_tests.xml" .
     publishers:
