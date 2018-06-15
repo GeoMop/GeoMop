@@ -108,11 +108,17 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.setSceneRect(0, 0, 20, 20)
 
     def remove_graphical_object(self, obj):
+        """Remove the object from the graphics scene and emit appropriate update signals"""
+        # remove the object from the graphical scene
         self.removeItem(obj)
+        # update the regions panel in case some region is no longer in use and can be deleted
         self.regionsUpdateRequired.emit()
 
     def add_graphical_object(self, obj):
+        """Add the object to the graphics scene and emit appropriate update signals"""
+        # Add the object from the graphics scene
         self.addItem(obj)
+        # Get object dimension, selected layer,..
         dim = None
         layer_id = cfg.diagram.regions.current_layer_id
         if isinstance(obj, Point):
@@ -122,10 +128,13 @@ class Diagram(QtWidgets.QGraphicsScene):
         elif isinstance(obj, Polygon):
             dim = 2
         if dim is not None:
+            #..selected region in the regions panel
             reg_id = cfg.main_window.regions.get_current_region()
             if not reg_id == 0:
+                # ..and compare the dimensions with all aspects (region dimension, fracture/bulk layer,..)
                 region = cfg.diagram.regions.regions[reg_id]
                 pas = region.cmp_shape_dim(layer_id, dim)
+                # if the region is actually added to the new object, update the region panel
                 if pas:
                     self.regionsUpdateRequired.emit()
 
