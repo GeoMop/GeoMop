@@ -8,7 +8,13 @@ import Analysis.pipeline.convertors as convertor
 from .pomfce import *
 import os
 
-def test_connector_code_init():
+
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+def test_connector_code_init(change_dir_back):
+    os.chdir(this_source_dir)
+
     action.__action_counter__ = 0
     convertor.__convertor_counter__ = 0
     v1 = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
@@ -51,11 +57,11 @@ def test_connector_code_init():
     test.extend(k2._get_settings_script())
     
     # test code generation
-    compare_with_file( "convertor1.py", test)
+    compare_with_file(os.path.join("results", "convertor1.py"), test)
     
     test2 = k2._get_output()._get_settings_script()
     #check sorting result
-    compare_with_file("convertor2.py", test2)
+    compare_with_file(os.path.join("results", "convertor2.py"), test2)
     
     # test generated code
     exec ('\n'.join(test), globals())   
@@ -66,7 +72,7 @@ def test_connector_code_init():
     Conn_6._inicialize()    
     # test sorting result from generate code
     test = Conn_6._get_output()._get_settings_script()
-    compare_with_file(os.path.join("convertor2.py"), test)
+    compare_with_file(os.path.join("results", "convertor2.py"), test)
     
     assert VariableGenerator_1._get_hash() == v1._get_hash()
     assert VariableGenerator_2._get_hash() == v2._get_hash()
@@ -83,7 +89,7 @@ def test_connector_code_init():
     # test select
     k3._inicialize()
     test = k3._get_output()._get_settings_script()
-    compare_with_file(os.path.join("convertor3.py"), test)
+    compare_with_file(os.path.join("results", "convertor3.py"), test)
     
     adap = Adapter(Struct(a=Struct(a=Input(0).a), b=Struct(a=Input(0).value)))
     conv3 = Convertor(Struct(a=a, b=b, c=Input(2).each(adap)))
@@ -92,6 +98,6 @@ def test_connector_code_init():
     # test each
     k4._inicialize()
     test = k4._get_output()._get_settings_script()
-    compare_with_file("convertor4.py", test)
+    compare_with_file(os.path.join("results", "convertor4.py"), test)
     
 #    assert False

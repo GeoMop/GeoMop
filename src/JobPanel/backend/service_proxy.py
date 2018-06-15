@@ -1,6 +1,6 @@
 from .service_base import ServiceStatus, call_action
 from .connection import ConnectionStatus, SSHError
-from .json_data import JsonData
+from .json_data import JsonData, JsonDataNoConstruct
 
 import time
 import logging
@@ -43,15 +43,26 @@ class ServiceProxy(JsonData):
 
 
     """
-    def __init__(self, config):#service_data, repeater, connection):
+    def __init__(self, config={}):#service_data, repeater, connection):
         self.connection_name = ""
         """Name of connection"""
+        # todo: v budoucnu bude asi jinak
+        self.connection_config = JsonDataNoConstruct()
         self.child_id = -1
         """Child id"""
         self.workspace = ""
         """Service workspace"""
         self.config_file_name = ""
         """Service config file name"""
+
+        # todo: Mozna bude lepsi vytvorit novy typ pro stav
+        self.stopping = False
+        """True if we want stop service"""
+        self.stopped = False
+        """True if service was stopped"""
+
+        self.process_id = ""
+        """Service process id"""
 
         super().__init__(config)
 
@@ -75,7 +86,9 @@ class ServiceProxy(JsonData):
 
         # Result lists
         self._results_process_start = []
-        """Child service process id save as result list"""
+        """Child service process id saved as result list"""
+        self._results_process_kill = []
+        """Result list of process kill request"""
         self._results_get_status = []
         """List of result list of get status request"""
 
@@ -85,6 +98,11 @@ class ServiceProxy(JsonData):
         """We are connected to service"""
         self._downloaded_config = None
         """Config downloaded from service config file"""
+        self._download_config_false_time = 0.0
+        """Time of unsuccessful attempt of download config"""
+
+        self._stop_running_offline_counter = 0
+        """Counter for determine time to kill service"""
 
         # if (self.service.status != None):
         #     # reinit, download port, status, etc. from remote file using delegator
@@ -163,10 +181,14 @@ class ServiceProxy(JsonData):
         """
 
         # 2.
+        # todo: muze byt problem, pokud bude volano pri restartu ssh connection
         delegator_proxy = self._connection.get_delegator()
 
         # 3.
         self.child_id, remote_port = self._repeater.add_child(self._connection)
+
+        # todo: docasne ukladame vcetne hesla
+        self.connection_config = service_data["service_host_connection"]
 
         # update service data, remove password
         service_data = service_data.copy()
@@ -196,7 +218,7 @@ class ServiceProxy(JsonData):
 
         # save config file
         file = os.path.join(
-            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
         with open(file, 'w') as fd:
@@ -209,7 +231,7 @@ class ServiceProxy(JsonData):
                 files.append(os.path.join(service_data["workspace"], file))
         files.append(os.path.join(self.workspace, self.config_file_name))
         self._connection.upload(files,
-                                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+                                self._connection._local_service.get_analysis_workspace(),
                                 self._connection.environment.geomop_analysis_workspace)
 
         # 4.
@@ -231,6 +253,7 @@ class ServiceProxy(JsonData):
 
         if self.download_config():
             self._status = ServiceStatus[self._downloaded_config["status"]]
+        self._last_time = time.time()
 
     def get_status(self):
     #def connect_service(self, child_id):
@@ -241,14 +264,6 @@ class ServiceProxy(JsonData):
 
         Assumes Job is running and listening on given remote port. (we get port either throuhg initial socket
         connection or by reading the remote config file - reinit part of __init__)
-
-        Nasledujici body jiz neplati.
-        1. Check if repeater.client[child_id] have target port (ClientDispatcher exists)
-        2. If No or child_id == None, download service config file and get port from there ( ... postpone)
-        3. Open forward tunnel
-        4. Call repeater.client[id].connect(port)
-           self.repeater._connect_child_repeater(socket_address)
-        5. set Job state to running
         """
 
         #TODO:
@@ -266,36 +281,86 @@ class ServiceProxy(JsonData):
         # 1.
         #self.repeater.clients[self._child_id]
 
+        # save process start result
+        if (self.process_id == "") and (len(self._results_process_start) > 0):
+            res = self._results_process_start.pop(0)
+            if "error" in res:
+                logging.error("Error in process start")
+            else:
+                self.process_id = res["data"]
+
+        # save process kill result
+        while len(self._results_process_kill) > 0:
+            res = self._results_process_kill.pop(0)
+            if "error" in res:
+                logging.error("Error in process kill")
+            elif res["data"]:
+                self.stopped = True
+
         if self._online:
             # check get status result
-            self._results_get_status = self._results_get_status[-5:]
+            self._results_get_status = self._results_get_status[-50:]
             res = None
             for item in reversed(self._results_get_status):
                 if len(item) > 0:
                     res = item[0]
                     break
-            if (res is None and len(self._results_get_status) >= 5) or (res is not None and "error" in res):
+            if (res is None and len(self._results_get_status) >= 50) or (res is not None and "error" in res):
                 self._online = False
             else:
                 if res is not None:
-                    self._status = res["data"]
+                    self._status = ServiceStatus[res["data"]]
                     self._last_time = time.time()
 
                 # request get status
                 result = []
                 self.call("request_get_status", None, result)
                 self._results_get_status.append(result)
+
+                # if stopping request stop
+                if self.stopping:
+                    result = []
+                    self.call("request_stop", None, result)
+                    #self._results_stop.append(result)
+
+            # update config
+            # todo: mozna by bylo lepsi udelat request a stahovat pres nej...
+            if (self._downloaded_config is None) or (ServiceStatus[self._downloaded_config["status"]] != self._status):
+                if time.time() > self._download_config_false_time + 1:
+                    if not self.download_config():
+                        self._download_config_false_time = time.time()
         elif self._status == ServiceStatus.queued or self._status == ServiceStatus.running:
             if time.time() > self._last_time + 1:
                 if self.download_config():
                     self._status = ServiceStatus[self._downloaded_config["status"]]
-                    if self._status == ServiceStatus.running:
-                        disp = self._repeater.clients[self.child_id]
-                        if disp._remote_address is None:
-                            disp.set_remote_address(self._downloaded_config["listen_address"])
+                    if self._status == ServiceStatus.queued:
+                        if self.stopping and (self._connection._status == ConnectionStatus.online) and (self.process_id != ""):
+                            delegator_proxy = self._connection.get_delegator()
+                            process_config = self._downloaded_config["process"].copy()
+                            process_config["process_id"] = self.process_id
+                            delegator_proxy.call("request_process_kill", process_config, self._results_process_kill)
+                    elif self._status == ServiceStatus.running:
+                        cond = self.stopping and (self._connection._status == ConnectionStatus.online) and (self.process_id != "")
+                        if cond:
+                            self._stop_running_offline_counter += 1
+                        if cond and (self._stop_running_offline_counter >= 30):
+                            delegator_proxy = self._connection.get_delegator()
+                            process_config = self._downloaded_config["process"].copy()
+                            process_config["process_id"] = self.process_id
+                            delegator_proxy.call("request_process_kill", process_config, self._results_process_kill)
                         else:
-                            self._repeater.reconnect_child(self.child_id)
+                            disp = self._repeater.clients[self.child_id]
+                            if disp._remote_address is None:
+                                disp.set_remote_address(self._downloaded_config["listen_address"])
+                            else:
+                                self._repeater.reconnect_child(self.child_id)
                 self._last_time = time.time()
+        elif (self._downloaded_config is None) or (ServiceStatus[self._downloaded_config["status"]] != self._status):
+            if time.time() > self._last_time + 1:
+                if self.download_config():
+                    self._status = ServiceStatus[self._downloaded_config["status"]]
+                self._last_time = time.time()
+
         return self._status
 
     def download_config(self):
@@ -306,14 +371,16 @@ class ServiceProxy(JsonData):
         if self._connection._status != ConnectionStatus.online:
             return False
         try:
+            # todo: presunout stahovani do vlakna, takto muze zaseknout hlavni smycku sluzby
             self._connection.download(
                 [os.path.join(self.workspace, self.config_file_name)],
-                self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
-                self._connection.environment.geomop_analysis_workspace)
+                self._connection._local_service.get_analysis_workspace(),
+                self._connection.environment.geomop_analysis_workspace,
+                priority=True)
         except (SSHError, FileNotFoundError, PermissionError):
             return False
         file = os.path.join(
-            self._connection._local_service.service_host_connection.environment.geomop_analysis_workspace,
+            self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
         try:
@@ -326,17 +393,12 @@ class ServiceProxy(JsonData):
             return False
         return True
 
-    # def get(self, variable_name):
-    #     self.call("request_get", variable_name, self.__dict__[variable_name])
-
     def stop(self):
         """
         Sends stop request to service.
         :return:
         """
-        self.call("request_stop", None, [])
-
-
+        self.stopping = True
 
     def on_answer_connect(self, data=None):
         """
@@ -355,23 +417,6 @@ class ServiceProxy(JsonData):
         :return:
         """
         self._repeater.remove_child(self.child_id)
-
-
-
-    # def make_ping(self):
-    #     self.service.repeater.send_request(
-    #         target=[self.child_id],
-    #         data={'action': 'ping'},
-    #         on_answer={'action': 'on_answer_ok'})
-    #
-    # def on_answer_no_error(self, data):
-    #     pass
-    #
-    # def on_answer_ok(self, data):
-    #     answer_data=data[1]
-    #     logging.info(str(answer_data))
-    #     logging.info("answer: OK")
-    #     pass
 
     def error_answer(self, data):
         """
@@ -395,27 +440,3 @@ class DelegatorProxy(ServiceProxy):
 
     def download_config(self):
         return False
-
-
-# """
-# Use class factory to make proxy classes to Service classes.
-# """
-# def class_factory(name, service=None):
-#     """
-#     service: class to which we creat a proxy
-#     Function used for creating subclasses of class Shape
-#     """
-#
-#     def __init__(self, service_data):
-#         super(self.__class__, self).__init__(service_data)
-#
-#     class_dict = {"__init__": __init__}
-#
-#     # just scatch
-#     for  (func_name, func) in service.__dict__.items():
-#         if is_request_method(func_name):
-#             def new_func(self, json_data, result_list):
-#                 self.call("%s"%(func_name), json_data, result_list)
-#
-#             class_dict[func_name] = new_func
-#     return type(name, (ServiceProxy,), class_dict)

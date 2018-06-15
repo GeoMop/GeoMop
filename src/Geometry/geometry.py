@@ -37,6 +37,8 @@ import sys
 #sys.path.append(geomop_src)
 #sys.path.append(intersections_src)
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 import gm_base.json_data as js
 import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io

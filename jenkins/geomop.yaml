@@ -59,7 +59,8 @@
 # Create doc and push to github
 #########################################################################################
 # Not good practice to modify geomop.github.io by CI.
-# TODO: publish on bacula and make links at geomop.github.io
+# TODO:
+#   - publish on bacula and make links at geomop.github.io
 
 - job:
     block-downstream: false
@@ -128,43 +129,42 @@
         - '*'
         url: https://github.com/GeoMop/GeoMop
     triggers:
-      - github
+    - github
     wrappers:
-      - build-name:
-          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+    - build-name:
+        name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
     builders:
-      - shell: |
-          pwd
-          ls -l
-          cd testing
-          ./fb_test_wrapper.sh python3 -m pytest --junitxml="all_tests.xml" .
+#    - shell: |
+#        echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+#        expr substr ${GIT_COMMIT} 1 6 >> prop.file
+    - shell: |
+        git submodule update submodules/intersections
+        cd testing
+        ./fb_test_wrapper.sh python3 -m pytest -s --junitxml="all_tests.xml" .
     publishers:
-      - junit:
-          results: "all_tests.xml"
-    wrappers:
-      - build-name:
-          name: $BUILD_NAME
+    - junit:
+        results: "testing/all_tests.xml"
 
 #- project:
-#    name: "test-{module}"
-#    module:
-#        - common:
-#            test-file: runCm.py
-#            result-file: testCommon.xml
-#        - me:
-#            test-file: runMe.py
-#            result-file: testMe.xml
-#        - le:
-#            test-file: runLe.py
-#            result-file: testLe.xml
-#        - jp:
-#            test-file: runJp.py
-#            result-file: testJp.xml
-#        - an:
-#            test-file: runAn.py
-#            result-file: testAn.xml
-#    jobs:
-#        - "test-{module}"
+#   name: "test-{module}"
+#   module:
+#       - common:
+#           test-file: runCm.py
+#           result-file: testCommon.xml
+#       - me:
+#           test-file: runMe.py
+#           result-file: testMe.xml
+#       - le:
+#           test-file: runLe.py
+#           result-file: testLe.xml
+#       - jp:
+#           test-file: runJp.py
+#           result-file: testJp.xml
+#       - an:
+#           test-file: runAn.py
+#           result-file: testAn.xml
+#   jobs:
+#       -    test-gm-base"
 #
 #- job:
 #    name: "gm-linux-tests"

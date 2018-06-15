@@ -1,4 +1,6 @@
 import gm_base.b_spline
+import sys
+print("PPATH: ", sys.path)
 import bspline as bs
 import gm_base.geometry_files.format_last as gs
 

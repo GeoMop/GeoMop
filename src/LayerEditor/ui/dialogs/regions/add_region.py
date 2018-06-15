@@ -6,6 +6,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg
 from gm_base.geomop_dialogs import GMErrorDialog
+import gm_base.icon as icon
 
 class AddRegionDlg(QtWidgets.QDialog):
     
@@ -41,21 +42,48 @@ class AddRegionDlg(QtWidgets.QDialog):
         # QtGui.QColor("#8effff")  # blue4
     ]
         
+    # REGION_DESCRIPTION = {
+    #     RegionDim.none: "None (default)",
+    #     RegionDim.point: "Point (0D)",
+    #     RegionDim.well: "Well (1D)",
+    #     RegionDim.fracture: "Fracture (2D)",
+    #     RegionDim.bulk: "Bulk (3D)"
+    # }
+
+    # REGION_DESCRIPTION_SHORT = {
+    #     RegionDim.none: "default",
+    #     RegionDim.point: "point",
+    #     RegionDim.well: "well",
+    #     RegionDim.fracture: "fracture",
+    #     RegionDim.bulk: "bulk"
+    # }
+
+
+    # Usage: Add_region dialogue dropdown
     REGION_DESCRIPTION = {
-        RegionDim.none: "None (default)",
+        RegionDim.none: "Default (None)",
         RegionDim.point: "Point (0D)",
-        RegionDim.well: "Well (1D)",
-        RegionDim.fracture: "Fracture (2D)", 
-        RegionDim.bulk: "Bulk (3D)"
+        RegionDim.well: "Edge (1D)",
+        RegionDim.fracture: "Face (2D)",
+        RegionDim.bulk: "Volume (3D)"
     }
-    
+    # Usage: Name suggestions in the dialogue
     REGION_DESCRIPTION_SHORT = {
         RegionDim.none: "default",
         RegionDim.point: "point",
-        RegionDim.well: "well",
-        RegionDim.fracture: "fracture", 
-        RegionDim.bulk: "bulk"
+        RegionDim.well: "edge",
+        RegionDim.fracture: "face",
+        RegionDim.bulk: "volume"
     }
+    # Usage: Region panel dimension hints
+    REGION_DESCRIPTION_DIM = {
+        RegionDim.none: "None",
+        RegionDim.point: "0D",
+        RegionDim.well: "1D",
+        RegionDim.fracture: "2D",
+        RegionDim.bulk: "3D"
+    }
+
 
 
     def __init__(self,  parent=None):
@@ -70,18 +98,30 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.well], RegionDim.well)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
-        # TODO: change the default value according to the maximal dimension of selected elements in the viewport area
-        self.region_dim.setCurrentIndex(3)
+
+        selected_regions = cfg.main_window.diagramScene.selection
+        max_selected_dim = 3
+        if not selected_regions.selected_polygons:
+            max_selected_dim -= 1
+            if not selected_regions.selected_lines:
+                max_selected_dim -= 1
+                if not selected_regions.selected_points:
+                    max_selected_dim -= 1
+        if cfg.diagram.regions.current_layer_id < 0:
+            max_selected_dim -= 1
+
+        self.region_dim.setCurrentIndex(max_selected_dim)
 
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
         self.image = QtWidgets.QLabel(self)
 
         self.image.setMinimumWidth(self.region_name.sizeHint().height())
-        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height()))
+
+        self.image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
         self.have_default_name = True
-        self.set_default_name(3)
+        self.set_default_name(max_selected_dim)
         self.region_name.textChanged.connect(self.reg_name_changed)
 
 
@@ -121,13 +161,13 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_region_name(reg_name):
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.region_name.sizeHint().height())
+                icon.get_app_icon("sign-check").pixmap(self.region_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.region_name.sizeHint().height())
+                icon.get_app_icon("warning").pixmap(self.region_name.sizeHint().height())
             )
             self.image.setToolTip('Name is not unique!')
             self._tranform_button.setEnabled(False)
@@ -142,7 +182,12 @@ class AddRegionDlg(QtWidgets.QDialog):
     def set_default_name(self, dim):
         """ Set default name if it seems to be default name. """
         if self.have_default_name:
-            dim_to_regtype = ["point_", "well_", "fracture_", "bulk_"]
+            dim_to_regtype = [
+                self.REGION_DESCRIPTION_SHORT[RegionDim.point]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.well]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.fracture]+"_",
+                self.REGION_DESCRIPTION_SHORT[RegionDim.bulk]+"_"
+            ]
             reg_id = 0
             name = cfg.diagram.regions.regions[0].name
             while not self.is_unique_region_name(name):

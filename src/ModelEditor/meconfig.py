@@ -381,9 +381,8 @@ class MEConfig:
                     msg.button(QtWidgets.QMessageBox.Reset).setText("Reload")
                     msg.setDefaultButton(QtWidgets.QMessageBox.Ignore);
                     ret = msg.exec_()
-                    if ret==QtWidgets.QMessageBox.Reset: 
-                        with open(cls.curr_file, 'r') as file_d:
-                            cls.document = file_d.read()
+                    if ret==QtWidgets.QMessageBox.Reset:                         
+                        cls.document = cls.read_file(cls.curr_file)
                         cls.curr_file_timestamp = timestamp
                         cls.update()                        
                         return True
@@ -435,34 +434,42 @@ class MEConfig:
         cls._set_file(None)
 
     @classmethod
+    def read_file(cls, file_name):
+        try:
+            # try utf-8
+            try:
+                with codecs.open(file_name, 'r', 'utf-8') as file_d:
+                    return file_d.read().expandtabs(tabsize=2)
+            except UnicodeDecodeError:
+                pass
+
+            # try windows-1250
+            try:
+                with codecs.open(file_name, 'r', 'cp1250') as file_d:
+                    return file_d.read().expandtabs(tabsize=2)
+            except UnicodeDecodeError:
+                cls._report_error("Unknown encoding of the file %s. Should be UTF-8." % file_name)
+
+
+        except (RuntimeError, IOError) as err:
+            cls._report_error("Can not open file: %s."%file_name, err)
+
+    @classmethod
     def open_file(cls, file_name):
         """
         read file
 
         return: if file have good format (boolean)
         """
-        try:
-            try:
-                with codecs.open(file_name, 'r', 'utf-8') as file_d:
-                    cls.document = file_d.read().expandtabs(tabsize=2)
-            except UnicodeDecodeError:
-                with open(file_name, 'r') as file_d:
-                    cls.document = file_d.read().expandtabs(tabsize=2)
-            cls.config.update_last_data_dir(file_name)
-            cls._set_file(file_name)
-            cls.config.add_recent_file(file_name, cls.curr_format_file)
-            cls.update()
-            cls._set_format_file_from_data()
-            cls.update_format()
-            cls.changed = False
-            cls.sync_analysis_for_curr_file()
-            return True
-        except (RuntimeError, IOError) as err:
-            if cls.main_window is not None:
-                cls._report_error("Can't open file", err)
-            else:
-                raise err
-        return False
+        cls.document = cls.read_file(file_name)
+        cls.config.update_last_data_dir(file_name)
+        cls._set_file(file_name)
+        cls.config.add_recent_file(file_name, cls.curr_format_file)
+        cls.update()
+        cls._set_format_file_from_data()
+        cls.update_format()
+        cls.changed = False
+        cls.sync_analysis_for_curr_file()
 
     @classmethod
     def _set_format_file_from_data(cls):
@@ -495,8 +502,7 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         try:
-            with open(file_name, 'r') as file_d:
-                con = file_d.read()
+            con = cls.read_file(file_name)
             cls.document = parse_con(con)
             # find available file name
             cls._set_file(file_name, True)
@@ -554,24 +560,17 @@ class MEConfig:
         # format_file = cls.config.get_format_file(file_name)
         # if format_file is not None:
         #     cls.curr_format_file = format_file
-        try:
-            with open(file_name, 'r') as file_d:
-                cls.document = file_d.read()
-            cls.config.update_last_data_dir(file_name)
-            cls._set_file(file_name)
-            cls.config. add_recent_file(file_name, cls.curr_format_file)
-            cls.update()
-            cls._set_format_file_from_data()
-            cls.update_format()
-            cls.changed = False
-            cls.sync_analysis_for_curr_file()
-            return True
-        except (RuntimeError, IOError) as err:
-            if cls.main_window is not None:
-                cls._report_error("Can't open file", err)
-            else:
-                raise err
-        return False
+
+        cls.document = cls.read_file(file_name)
+        cls.config.update_last_data_dir(file_name)
+        cls._set_file(file_name)
+        cls.config. add_recent_file(file_name, cls.curr_format_file)
+        cls.update()
+        cls._set_format_file_from_data()
+        cls.update_format()
+        cls.changed = False
+        cls.sync_analysis_for_curr_file()
+        return True
 
     @classmethod
     def update(cls):
@@ -639,10 +638,7 @@ class MEConfig:
             cls.config.format_files[0] = cls.curr_format_file
             cls.changed = False
         except (RuntimeError, IOError) as err:
-            if cls.main_window is not None:
-                cls._report_error("Can't save file", err)
-            else:
-                raise err
+            cls._report_error("Can't save file", err)
         else:
             cls.sync_analysis_for_curr_file()
 
@@ -759,7 +755,7 @@ class MEConfig:
         return None
 
     @classmethod
-    def _report_error(cls, mess, err):
+    def _report_error(cls, mess, err=None):
         """Report an error with dialog."""
         from gm_base.geomop_dialogs import GMErrorDialog
         if cls.main_window is not None:

@@ -10,14 +10,14 @@ import Analysis.pipeline.action_types as action
 import os
 
 this_source_dir = os.path.dirname(os.path.realpath(__file__))
-def data_file(test_path):
-    return os.path.join(this_source_dir, "resources", test_path)
 
 
-def test_pipeline_code_init(request):
+def test_pipeline_code_init(request, change_dir_back):
     def clear_backup():
         pass
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     action.__action_counter__ = 0
     items = [
@@ -26,7 +26,7 @@ def test_pipeline_code_init(request):
     ]
     gen = RangeGenerator(Items=items)    
     workflow=Workflow()
-    flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile=data_file("test1.yaml"))
+    flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
     pipeline=Pipeline(ResultActions=[foreach])
@@ -60,8 +60,8 @@ def test_pipeline_code_init(request):
     gen = RangeGenerator(Items=items)
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     workflow = Workflow()
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile=data_file("test1.yaml"))
-    side = Flow123dAction(Inputs=[vg], YAMLFile=data_file("test2.yaml"))
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
     pipeline = Pipeline(ResultActions=[foreach])
@@ -72,7 +72,7 @@ def test_pipeline_code_init(request):
     # TODO: Serialization to the script has to be always to particular file and
     # all internall file paths has to be converted to relative paths.
     # Moreover pipeline should support operation that pass through all actions and translates their paths.
-    compare_with_file("workflow2.py", test)
+    compare_with_file(os.path.join("results", "workflow2.py"), test)
 
     # test validation
     err = pipeline.validate()
@@ -101,8 +101,8 @@ def test_hashes(request):
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile=data_file("test1.yaml"))
-    side = Flow123dAction(Inputs=[vg], YAMLFile=data_file("test2.yaml"))
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
     pipeline._inicialize()
@@ -114,8 +114,8 @@ def test_hashes(request):
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test3"), b=Int(8)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile=data_file("test1.yaml"))
-    side = Flow123dAction(Inputs=[vg], YAMLFile=data_file("test2.yaml"))
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
     pipeline._inicialize()
@@ -140,8 +140,8 @@ def test_set_restore_id(request):
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile=data_file("test1.yaml"))
-    side = Flow123dAction(Inputs=[vg], YAMLFile=data_file("test2.yaml"))
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
 

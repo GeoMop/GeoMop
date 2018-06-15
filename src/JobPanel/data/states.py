@@ -150,13 +150,16 @@ class MultijobActions(IntEnum):
     stop = 3
     terminate = 4
     resume = 6
+    download_whole = 7
 
 
 TASK_STATUS_PERMITTED_ACTIONS = set([
     (TaskStatus.error, MultijobActions.delete_remote),
     (TaskStatus.error, MultijobActions.delete),
+    (TaskStatus.error, MultijobActions.download_whole),
     (TaskStatus.finished, MultijobActions.delete_remote),
     (TaskStatus.finished, MultijobActions.delete),
+    (TaskStatus.finished, MultijobActions.download_whole),
     (TaskStatus.installation, MultijobActions.resume),
     (TaskStatus.installation, MultijobActions.stop),
     (TaskStatus.none, MultijobActions.delete), 
@@ -165,7 +168,8 @@ TASK_STATUS_PERMITTED_ACTIONS = set([
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
     (TaskStatus.stopped, MultijobActions.delete), 
-    (TaskStatus.stopped, MultijobActions.delete_remote)
+    (TaskStatus.stopped, MultijobActions.delete_remote),
+    (TaskStatus.stopped, MultijobActions.download_whole)
 ])
 
 
