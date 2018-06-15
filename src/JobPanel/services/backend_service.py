@@ -44,6 +44,9 @@ class MJInfo(JsonData):
 
         super().__init__(config)
 
+        self._results_download_files = []
+        """List of result list of download files request"""
+
         self._jobs_report = {}
         """jobs report information"""
 
@@ -306,29 +309,66 @@ class Backend(ServiceBase):
 
     def _download_files(self):
         """
-        Download files which are in self.files_to_download.
+        Download files which are in self.mj_info[mj_id].files_to_download.
         :return:
         """
-        # todo: predelat tak, aby probihalo ve vlakne, kazdy MJ bude mit svoje stahovaci vlakno
         for mj in self.mj_info.values():
-            con = mj.proxy._connection
-            if (con is not None) and (con._status == ConnectionStatus.online):
-                while len(mj.files_to_download) > 0:
-                    try:
-                        con.download(
-                            [mj.files_to_download[0]],
-                            os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
-                            os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
-                        del mj.files_to_download[0]
-                        # todo: az bude ve vlakne, bude se muset pouzit zamek nebo resit pres queue - to je asi lepsi
+            if len(mj._results_download_files) > 0:
+                if len(mj._results_download_files[0]) > 0:
+                    res = mj._results_download_files[0][0]
+                    if "error" in res:
+                        logging.error("Error in request_download_files")
+                        # clear list to prevent infinite loop
+                        mj.files_to_download.clear()
                         self._config_changed = True
-                    except SSHError as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        break
-                    except (FileNotFoundError, PermissionError) as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        del mj.files_to_download[0]
-                        self._config_changed = True
+                    else:
+                        downloaded = res["data"]["downloaded"]
+                        error = res["data"]["error"]
+                        remove = downloaded.copy()
+                        remove.extend(error)
+                        for rem in remove:
+                            try:
+                                mj.files_to_download.remove(rem)
+                                self._config_changed = True
+                            except ValueError:
+                                pass
+                    mj._results_download_files.clear()
+            if (len(mj.files_to_download) > 0) and (len(mj._results_download_files) == 0):
+                con = mj.proxy._connection
+                if (con is not None) and (con._status == ConnectionStatus.online):
+                    answer = []
+                    self.call("request_download_files", {"mj": mj, "files": mj.files_to_download.copy()}, answer)
+                    mj._results_download_files.append(answer)
+
+    @LongRequest
+    def request_download_files(self, data):
+        """
+        Download files which are requested to download.
+        :param data: dict with keys "mj" and "files"
+        :return:
+        """
+        mj = data["mj"]
+        files = data["files"]
+
+        ret = {"downloaded": [],
+               "error": []}
+
+        con = mj.proxy._connection
+        for file in files:
+            try:
+                con.download(
+                    [file],
+                    os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
+                ret["downloaded"].append(file)
+            except SSHError as e:
+                logging.error("Downloading file error: {0}".format(e))
+                break
+            except (FileNotFoundError, PermissionError) as e:
+                logging.error("Downloading file error: {0}".format(e))
+                ret["error"].append(file)
+
+        return ret
 
     def _check_mj_status(self):
         """
