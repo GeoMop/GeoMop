@@ -118,25 +118,27 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Add the object to the graphics scene and emit appropriate update signals"""
         # Add the object from the graphics scene
         self.addItem(obj)
-        # Get object dimension, selected layer,..
-        dim = None
-        layer_id = cfg.diagram.regions.current_layer_id
-        if isinstance(obj, Point):
-            dim = 0
-        elif isinstance(obj, Line):
-            dim = 1
-        elif isinstance(obj, Polygon):
-            dim = 2
-        if dim is not None:
-            #..selected region in the regions panel
-            reg_id = cfg.main_window.regions.get_current_region()
-            if not reg_id == 0:
-                # ..and compare the dimensions with all aspects (region dimension, fracture/bulk layer,..)
-                region = cfg.diagram.regions.regions[reg_id]
-                pas = region.cmp_shape_dim(layer_id, dim)
-                # if the region is actually added to the new object, update the region panel
-                if pas:
-                    self.regionsUpdateRequired.emit()
+        #update the regions panel in case some region gets in use and therefore cannot be deleted.
+        self.regionsUpdateRequired.emit()
+        # # Get object dimension, selected layer,..
+        # dim = None
+        # layer_id = cfg.diagram.regions.current_layer_id
+        # if isinstance(obj, Point):
+        #     dim = 0
+        # elif isinstance(obj, Line):
+        #     dim = 1
+        # elif isinstance(obj, Polygon):
+        #     dim = 2
+        # if dim is not None:
+        #     #..selected region in the regions panel
+        #     reg_id = cfg.main_window.regions.get_current_region()
+        #     if not reg_id == 0:
+        #         # ..and compare the dimensions with all aspects (region dimension, fracture/bulk layer,..)
+        #         region = cfg.diagram.regions.regions[reg_id]
+        #         pas = region.cmp_shape_dim(layer_id, dim)
+        #         # if the region is actually added to the new object, update the region panel
+        #         if pas:
+        #             self.regionsUpdateRequired.emit()
 
     def show_mash(self, quad, u, v):
         """Show mash"""
