@@ -190,7 +190,7 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
-        spolygon.qregion = self._get_qregion(polygon)
+        spolygon.drawpath = self._get_polygon_draw_path(polygon)
         if spolygon.object is not None:
             spolygon.object.refresh_polygon()
         
@@ -268,30 +268,38 @@ class PolygonOperation():
         return lines, qtpolygon
 
     def _get_wire_oriented_vertices(self, wire):
+        """Follow the wire segments and get the oriented list of its vertices as a closed loop"""
         seggen = wire.segments()
         vtxs = np.array([], dtype=float)
         for seg, side in seggen:
+            # each segment has two sides, side in the generator is the directional information.
             if not vtxs.size:
+                #first segment - add both vertices, so the loop is closed at the end.
                 other_side = not side
                 vtxs = np.append(vtxs, seg.vtxs[other_side].xy)
             vtxs = np.append(vtxs, seg.vtxs[side].xy)
         return vtxs.tolist()
 
-    def _get_qregion(self, polygon):
-        # Full region
+    def _get_polygon_draw_path(self, polygon):
+        """Get the path to draw the polygon in, i.e. the outer boundary and innerboundaries.
+        The path approach allows holes in polygons and therefore flat depth for polygons (Odd-even paint rule)"""
         vtxs = self._get_wire_oriented_vertices(polygon.outer_wire)
+        #diagram y axis is inverted
         vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
+        # Full region addition to the path
         filled = QtGui.QPolygon()
         filled.setPoints(vtxs)
-        final = QtGui.QRegion(filled)
+        filledF = QtGui.QPolygonF(filled)
+        final = QtGui.QPainterPath()
+        final.addPolygon(filledF)
         # Subtract all inner parts
         for inner_object in polygon.outer_wire.childs:
             vtxs = self._get_wire_oriented_vertices(inner_object)
             vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
             inner_region = QtGui.QPolygon()
             inner_region.setPoints(vtxs)
-            final -= QtGui.QRegion(inner_region)
-        final.RegionType = 0
+            inner_regionF = QtGui.QPolygonF(inner_region)
+            final.addPolygon(inner_regionF)
         return final
 
     def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
@@ -302,7 +310,7 @@ class PolygonOperation():
         parent_polydata = polygon.outer_wire.parent.polygon
         if not parent_polydata == self.decomposition.outer_polygon:
             parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
-            parent_spoly.qregion = self._get_qregion(parent_polydata)
+            parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children!=polygon_id:
@@ -316,7 +324,7 @@ class PolygonOperation():
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
         spolygon.depth = polygon.depth()
-        spolygon.qregion = self._get_qregion(polygon)
+        spolygon.drawpath = self._get_polygon_draw_path(polygon)
 
     def _remove_polygon(self, diagram, polygon_id, parent_id, label, not_history):
         """Add polygon to boundary"""
@@ -328,7 +336,7 @@ class PolygonOperation():
         parent_polydata = self.decomposition.polygons[parent_id]
         if not parent_polydata == self.decomposition.outer_polygon:
             parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
-            parent_spoly.qregion = self._get_qregion(parent_polydata)
+            parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
         diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):

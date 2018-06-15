@@ -83,7 +83,6 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
-        painter.setClipRegion(self.polygon_data.qregion)
         painter.setPen(self.pen())
         painter.setBrush(self.brush())
-        painter.drawPolygon(self.polygon())
+        painter.drawPath(self.polygon_data.drawpath)
