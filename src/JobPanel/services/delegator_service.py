@@ -6,9 +6,9 @@ import json
 import traceback
 import psutil
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from backend import service_base
+from JobPanel.backend import service_base
 
 
 class Delegator(service_base.ServiceBase):
@@ -28,22 +28,22 @@ class Delegator(service_base.ServiceBase):
 ##########
 
 
+if __name__ == "__main__":
+    p = psutil.Process()
+    filename = "{}_{}.log".format(time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime(p.create_time())), p.pid)
+    logging.basicConfig(filename=filename, filemode="w",
+                        format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
+                        level=logging.INFO)
 
-p = psutil.Process()
-filename = "{}_{}.log".format(time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime(p.create_time())), p.pid)
-logging.basicConfig(filename=filename, filemode="w",
-                    format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
-                    level=logging.INFO)
 
-
-try:
-    bs = Delegator({"repeater_address": [int(sys.argv[1])],
-                    "parent_address": [sys.argv[2], int(sys.argv[3])]})
-    bs.run()
-except:
-    #logging.error("{}: {}".format(sys.exc_info()[0].__name__, sys.exc_info()[1]))
-    logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
-    raise
+    try:
+        bs = Delegator({"repeater_address": [int(sys.argv[1])],
+                        "parent_address": [sys.argv[2], int(sys.argv[3])]})
+        bs.run()
+    except:
+        #logging.error("{}: {}".format(sys.exc_info()[0].__name__, sys.exc_info()[1]))
+        logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))
+        raise
 
 
 #print(bs.get_listen_port())

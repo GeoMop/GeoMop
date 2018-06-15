@@ -1,4 +1,4 @@
-from pipeline.data_types_tree import *
+from Analysis.pipeline.data_types_tree import *
 
 def test_struc():
     var1 = Struct(test1=Int(1), test2=String("Test"))

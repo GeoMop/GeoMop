@@ -1,10 +1,12 @@
 import PyQt5.QtWidgets as QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
-from geomop_dialogs import GMErrorDialog
-from ui.dialogs.regions import AddRegionDlg
-from geometry_files import RegionDim
+import gm_base.icon as icon
+from gm_base.geomop_dialogs import GMErrorDialog
+from ..dialogs.regions import AddRegionDlg
+from gm_base.geometry_files.format_last import RegionDim
+
 
 
 class Regions(QtWidgets.QToolBox):
@@ -151,7 +153,7 @@ class Regions(QtWidgets.QToolBox):
         pom_lambda = lambda ii: lambda: self._region_set(ii)
         self.regions[layer_id] = QtWidgets.QComboBox()
         for i in range(0, len(data.regions)):            
-            label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_SHORT[data.regions[i].dim] + ")"
+            label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem(label,  i)
             data.current_regions[layer_id] = region
         curr_index = self.regions[layer_id].findData([key for key, value in data.regions.items() if value == region][0])
@@ -160,13 +162,12 @@ class Regions(QtWidgets.QToolBox):
         self._emit_regionChanged = True
         self.regions[layer_id].currentIndexChanged.connect(pom_lambda(layer_id))
         self.add_button[layer_id] = QtWidgets.QPushButton()
-        self.add_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.add_button[layer_id].setIcon(icon.get_app_icon("add"))
         self.add_button[layer_id].setToolTip('Create new region')
-        #undoicon = QIcon.fromTheme("list - remove", QIcon(":/list_remove.png"))
         self.add_button[layer_id].clicked.connect(self._add_region)
 
         self.remove_button[layer_id] = QtWidgets.QPushButton()
-        self.remove_button[layer_id].setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.remove_button[layer_id].setIcon(icon.get_app_icon("remove"))
         self.remove_button[layer_id].clicked.connect(self._remove_region)
         self.remove_button[layer_id].setEnabled(False)
         self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
@@ -190,8 +191,8 @@ class Regions(QtWidgets.QToolBox):
         self.color_button[layer_id] = QtWidgets.QPushButton()
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
-        self.color_button[layer_id].setIcon(icon)
+        iconPix = QtGui.QIcon(pixmap)
+        self.color_button[layer_id].setIcon(iconPix)
         self.color_button[layer_id].setFixedSize( 25, 25 )
         self.color_button[layer_id].clicked.connect(pom_lamda(layer_id))
         grid.addWidget(self.color_label[layer_id], 2, 0)
@@ -199,7 +200,7 @@ class Regions(QtWidgets.QToolBox):
         
         # dimension
         self.dim_label[layer_id] = QtWidgets.QLabel("Dimension:", self)
-        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION[region.dim], self)
+        self.dims[layer_id] = QtWidgets.QLabel(AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim], self)
         grid.addWidget(self.dim_label[layer_id], 3, 0)
         grid.addWidget(self.dims[layer_id], 3, 1)
         
@@ -281,9 +282,9 @@ class Regions(QtWidgets.QToolBox):
         self.dims[layer_id].setText(str(region.dim.value) + "D")
         pixmap = QtGui.QPixmap(25, 25)
         pixmap.fill(QtGui.QColor(region.color))
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.update_region_data = True
-        self.color_button[layer_id].setIcon(icon)
+        self.color_button[layer_id].setIcon(iconPix)
         self.boundary[layer_id].setChecked(region.boundary) 
         self.notused[layer_id].setChecked(region.not_used)
         self.mesh_step[layer_id].setText(str(region.mesh_step))
@@ -292,7 +293,7 @@ class Regions(QtWidgets.QToolBox):
         
     def _add_disply_region(self, region):
         """Add new region to all combo and display it"""
-        label = region.name + " (" + str(region.dim.value) + "D)"
+        label = region.name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim] + ")"
         for layer_id in self.layers:
             self.regions[layer_id].addItem(label, region.reg_id)
         layer_id = self.layers_id[self.currentIndex()]
@@ -311,7 +312,10 @@ class Regions(QtWidgets.QToolBox):
             region = data.add_new_region(color, name, dim, True, "Add Region")            
             self._add_disply_region(region)
             layer_id = self.layers_id[self.currentIndex()]
-            self._set_box_title(self.currentIndex(), layer_id)
+            self._region_set(layer_id)
+
+
+
 
     def _remove_region(self):
         """Remove region if it is not assigned to any no shapes"""
@@ -364,9 +368,9 @@ class Regions(QtWidgets.QToolBox):
         if region.color!="##":
             color = QtGui.QColor(region.color)
         pixmap.fill(color)
-        icon = QtGui.QIcon(pixmap)
+        iconPix = QtGui.QIcon(pixmap)
         self.setItemText(id, self.layers[layer_id] + " (" + region.name + ")")
-        self.setItemIcon(id, icon)
+        self.setItemIcon(id, iconPix)
             
     def _color_set(self, layer_id):
         """Region color is changed, refresh diagram"""
@@ -383,8 +387,8 @@ class Regions(QtWidgets.QToolBox):
         if selected_color.isValid():
             pixmap = QtGui.QPixmap(16, 16)
             pixmap.fill(selected_color)
-            icon = QtGui.QIcon(pixmap)
-            self.color_button[layer_id].setIcon(icon)
+            iconPix = QtGui.QIcon(pixmap)
+            self.color_button[layer_id].setIcon(iconPix)
             
             cfg.diagram.regions.set_region_color(region_id, 
                 selected_color.name(), True, "Set Color")

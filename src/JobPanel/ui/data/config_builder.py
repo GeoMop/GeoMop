@@ -8,24 +8,26 @@ import copy
 import os
 import uuid
 import json
-import config
+import gm_base.config as config
 
-import communication.installation as ins
-from communication import Installation
-from data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
+import JobPanel.communication.installation as ins
+from JobPanel.communication import Installation
+from JobPanel.data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfig, \
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
-from ui.dialogs.resource_dialog import UiResourceDialog
-from version import Version
-from data import Users
-from ui.dialogs import SshPasswordDialog
-from geomop_analysis import Analysis, InvalidAnalysis
-from ui.imports.workspaces_conf import BASE_DIR
+from ...ui.dialogs.resource_dialog import UiResourceDialog
+from JobPanel.data.user_helper import Users
+from ...ui.dialogs import SshPasswordDialog
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from ...ui.imports.workspaces_conf import BASE_DIR
 
+from gm_base.version import Version
+
+# TODO: If this code will be used must: remove copy of pyssh.
 JOB_NAME_LABEL = "flow"
 COPY_EX_LIBS = ['pyssh']
 EX_LIB_PATH = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "..", "..", "common")
+    os.path.dirname(os.path.realpath(__file__)))[0], "..", "..", "gm_base")
 
 
 class ConfigBuilder:

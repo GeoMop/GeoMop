@@ -3,8 +3,7 @@
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QDialogButtonBox, QFormLayout, QLabel, QComboBox)
-from meconfig import cfg
-
+from ModelEditor.meconfig import MEConfig as cfg
 
 class ChangeISTDialog(QDialog):
     """Dialog containing settings."""

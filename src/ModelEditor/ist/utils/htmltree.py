@@ -4,7 +4,7 @@ import cgi
 
 import xml.etree.ElementTree as ET
 import re
-from ist.formatters.markdown2html import markdown2html
+from ModelEditor.ist.formatters.markdown2html import markdown2html
 
 
 class htmltree(object):

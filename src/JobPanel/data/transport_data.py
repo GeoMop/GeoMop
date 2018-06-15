@@ -6,7 +6,7 @@ import struct
 import zlib
 import binascii
 import logging
-from data.states import MJState, TaskStatus
+from .states import MJState, TaskStatus
 
 logger = logging.getLogger("Remote")
 

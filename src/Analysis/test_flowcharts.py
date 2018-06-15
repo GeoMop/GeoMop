@@ -1,5 +1,8 @@
 import sys
 import PyQt5.QtWidgets as QtWidgets
+
+import pytest
+pytest.importorskip("PyQt5.QtSvg")
 import PyQt5.QtSvg as QtSvg
 
 

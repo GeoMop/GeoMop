@@ -1,14 +1,15 @@
 """CanvasWidget file"""
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtCore as QtCore
 import os
-import b_spline
+import gm_base.b_spline
 import numpy as np
 import bspline_approx as ba
-from geomop_dialogs import GMErrorDialog
-from ui.data import SurfacesHistory
+from gm_base.geomop_dialogs import GMErrorDialog
+import gm_base.icon as icon
+from ..data import SurfacesHistory
 import copy
 
 class FocusEdit(QtWidgets.QLineEdit):
@@ -68,7 +69,7 @@ class Surfaces(QtWidgets.QWidget):
             parent (QWidget): parent window ( empty is None)
         """
         super(Surfaces, self).__init__(parent)
-        surfaces = cfg.layers.surfaces
+
         self.zs = None
         """ Instance of bs.Z_Surface, result of approximation. """
         self.zs_id = None
@@ -90,25 +91,28 @@ class Surfaces(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)     
         
         # surface cobobox
-        d_surface = QtWidgets.QLabel("Surface:")
-        self.surface = QtWidgets.QComboBox()            
+        self.surface = QtWidgets.QComboBox()
+
+        surfaces = cfg.layers.surfaces
         for i in range(0, len(surfaces.surfaces)):            
             label = surfaces.surfaces[i].name 
-            self.surface.addItem( label,  i) 
+            self.surface.addItem( label,  i)
+
         self.surface.currentIndexChanged.connect(self._surface_set)
         self.surface.activated.connect(self._focus_in)
         self.surface.highlighted.connect(self._focus_in)
         self.add_surface = QtWidgets.QPushButton()
-        self.add_surface.setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.add_surface.setIcon(icon.get_app_icon("add"))
         self.add_surface.setToolTip('Add new surface to the assignable list.')
         self.add_surface.clicked.connect(self._add_surface)
         self.add_surface.pressed.connect(self._focus_in)
         self.delete = QtWidgets.QPushButton()
-        self.delete.setIcon(QtGui.QIcon.fromTheme("list-remove"))
+        self.delete.setIcon(icon.get_app_icon("remove"))
         self.delete.setToolTip('Remove selected surface from the list.')
         self.delete.clicked.connect(self._delete)
         self.delete.pressed.connect(self._focus_in)
-        
+
+        d_surface = QtWidgets.QLabel("Surface:")
         grid.addWidget(d_surface, 0, 0)
         grid.addWidget(self.surface, 0, 1, 1, 2)
         grid.addWidget(self.add_surface, 1, 1)
@@ -127,12 +131,12 @@ class Surfaces(QtWidgets.QWidget):
         self.grid_file_name.setStyleSheet("background-color:WhiteSmoke");
         self.grid_file_name.focusIn.connect(self._focus_in)
         self.grid_file_button = QtWidgets.QPushButton()
-        self.grid_file_button.setIcon(QtGui.QIcon.fromTheme("folder"))
+        self.grid_file_button.setIcon(icon.get_app_icon("folder"))
         self.grid_file_button.setToolTip('Browse local files for the grid file.')
         self.grid_file_button.clicked.connect(self._add_grid_file)
         self.grid_file_button.pressed.connect(self._focus_in)
         self.grid_file_refresh_button = QtWidgets.QPushButton()
-        self.grid_file_refresh_button.setIcon(QtGui.QIcon.fromTheme("view-refresh"))
+        self.grid_file_refresh_button.setIcon(icon.get_app_icon("refresh"))
         self.grid_file_refresh_button.setToolTip('Refresh the working surface.')
         self.grid_file_refresh_button.clicked.connect(self._refresh_grid_file)
         self.grid_file_refresh_button.pressed.connect(self._focus_in)
@@ -226,13 +230,13 @@ class Surfaces(QtWidgets.QWidget):
         
         inner_grid = QtWidgets.QGridLayout()
 
-        self.d_depth = QtWidgets.QLabel("Elevation:", self)        
-        self.depth = QtWidgets.QLineEdit()
-        self.depth.setReadOnly(True)
-        self.depth.setStyleSheet("background-color:WhiteSmoke");
-        self.depth.setEnabled(False)
-        inner_grid.addWidget(self.d_depth, 0, 0)
-        inner_grid.addWidget(self.depth, 0, 1)
+        self.d_elevation = QtWidgets.QLabel("Elevation:", self)
+        self.elevation = QtWidgets.QLineEdit()
+        self.elevation.setReadOnly(True)
+        self.elevation.setStyleSheet("background-color:WhiteSmoke");
+        self.elevation.setEnabled(False)
+        inner_grid.addWidget(self.d_elevation, 0, 0)
+        inner_grid.addWidget(self.elevation, 0, 1)
 
         self.d_error = QtWidgets.QLabel("Error:", self)        
         self.error = QtWidgets.QLineEdit()
@@ -296,9 +300,9 @@ class Surfaces(QtWidgets.QWidget):
     def get_surface_id(self):
         return self.surface.currentIndex()
             
-    def reload_surfaces(self, id=None, cfg=None):
+    def reload_surfaces(self, id=None, set_history=False):
         """Reload all surfaces after file loading"""
-        if cfg is not None:
+        if set_history:
             self._history = SurfacesHistory(cfg.history)
         if id is None:
             id = self.surface.currentIndex()
@@ -316,7 +320,7 @@ class Surfaces(QtWidgets.QWidget):
             self._set_new_edit(False)
     
     def _apply(self):
-        """Save changes to file and compute new depth and error"""
+        """Save changes to file and compute new elevation and error"""
         # TODO: chatch and highlite duplicit item error 
         surfaces = cfg.layers.surfaces
         
@@ -325,12 +329,10 @@ class Surfaces(QtWidgets.QWidget):
         
         self.zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
         self.zs.transform(np.array(self._get_transform(), dtype=float), None)
-        self.zs.transform(np.array(self._get_transform(), dtype=float), None)
         self.quad = self.zs.quad.tolist()
         
         if self.new:
-            surfaces.add(self.zs, file, 
-                self.name.text(), self._get_transform(), self.quad) 
+            surfaces.add(self.zs, file, self.name.text())
             self.zs_id = len(surfaces.surfaces)-1
             self.surface.addItem( self.name.text(), len(surfaces.surfaces)-1) 
             self._history.delete_surface(len(surfaces.surfaces)-1)
@@ -338,25 +340,25 @@ class Surfaces(QtWidgets.QWidget):
             self._set_new_edit(False)           
         else:
             id = self.surface.currentData()
+
+            # Set Surface
             surface = copy.copy(surfaces.surfaces[id])
             surface.approximation = self.zs
             surface.grid_file = self.grid_file_name.text()
             if surface.name!=self.name.text():
                 surface.name = self.name.text()    
                 self.surface.setItemText(self.surface.currentIndex(), surface.name)
-            surface.xy_transform = self._get_transform()
-            surface.quad = copy.copy(self.quad)
-            self._history.change_surface(surfaces, id)            
+            self._history.change_surface(surfaces, id)
             surfaces.surfaces[id] = surface
         if self.approx.error is not None:
             self.error.setText(str(self.approx.error))                
         else:
             self.error.setText("")
         center = self.zs.center()
-        self.depth.setText(str(center[2]))  
-        self.depth.setEnabled(True)
+        self.elevation.setText(str(center[2]))
+        self.elevation.setEnabled(True)
         self.error.setEnabled(True)
-        self.depth.home(False) 
+        self.elevation.home(False)
         self.error.home(False) 
         self.showMash.emit(True)
        
@@ -418,7 +420,7 @@ class Surfaces(QtWidgets.QWidget):
             return
 
         self.showMash.emit(True)
-        self.depth.setEnabled(False)
+        self.elevation.setEnabled(False)
         self.error.setEnabled(False)
 
     def _focus_in(self):
@@ -437,22 +439,25 @@ class Surfaces(QtWidgets.QWidget):
         surfaces = cfg.layers.surfaces.surfaces        
         file = surfaces[id].grid_file
         self.grid_file_name.setText(file)
-        self.name.setText(surfaces[id].name) 
-        self.xyscale11.setText(str(surfaces[id].xy_transform[0][0]))        
-        self.xyscale12.setText(str(surfaces[id].xy_transform[0][1]))
-        self.xyscale21.setText(str(surfaces[id].xy_transform[1][0]))
-        self.xyscale22.setText(str(surfaces[id].xy_transform[1][1]))
-        self.xyshift1.setText(str(surfaces[id].xy_transform[0][2]))
-        self.xyshift2.setText(str(surfaces[id].xy_transform[1][2]))
-        u = surfaces[id].approximation.u_basis.n_intervals
-        v = surfaces[id].approximation.v_basis.n_intervals
+        self.name.setText(surfaces[id].name)
+
+        approx = surfaces[id].approximation
+        xy_transform = approx.get_transform()[0]
+        self.xyscale11.setText(str(xy_transform[0][0]))
+        self.xyscale12.setText(str(xy_transform[0][1]))
+        self.xyscale21.setText(str(xy_transform[1][0]))
+        self.xyscale22.setText(str(xy_transform[1][1]))
+        self.xyshift1.setText(str(xy_transform[0][2]))
+        self.xyshift2.setText(str(xy_transform[1][2]))
+        u = approx.u_basis.n_intervals
+        v = approx.v_basis.n_intervals
         self.u_approx.setText(str(u))
         self.v_approx.setText(str(v))
         self.last_u = u
         self.last_v = v  
-        self.depth.setText("")
+        self.elevation.setText("")
         self.error.setText("")
-        self.depth.setEnabled(False)
+        self.elevation.setEnabled(False)
         self.error.setEnabled(False)          
         self.d_message.setText("")
         self.d_message.setVisible(False)
@@ -467,8 +472,9 @@ class Surfaces(QtWidgets.QWidget):
         if self.approx is None:
             self.grid_file_refresh_button.setEnabled(False)
             self._enable_approx(False)
-            self.quad = surfaces[id].quad
             self.zs = surfaces[id].approximation
+            self.quad = self.zs.quad
+            assert np.all(np.array(self.quad) == np.array(self.zs.quad))
             self.zs_id = id
             self.d_message.setText("Set grid file not found.")
             self.d_message.setVisible(True)
@@ -479,9 +485,9 @@ class Surfaces(QtWidgets.QWidget):
             # This approx is recomputed to check that file doesn't change (so the quad match).
             zs = self.approx.compute_approximation(nuv=np.array([u, v], dtype=int))
             zs.transform(np.array(self._get_transform(), dtype=float), None)
-            quad = zs.quad
-            self.quad = surfaces[id].quad            
-            if not self.cmp_quad(quad, surfaces[id].quad):
+
+            self.quad = surfaces[id].approximation.quad
+            if not np.allclose(np.array(zs.quad), np.array(self.quad)) :
                 self.zs = surfaces[id].approximation
                 self.zs_id = id
                 self.d_message.setText("Set grid file get different approximation.")                
@@ -492,23 +498,14 @@ class Surfaces(QtWidgets.QWidget):
                 if self.approx.error is not None:
                     self.error.setText(str(self.approx.error))                
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))  
-                self.depth.setEnabled(True)
+                self.elevation.setText(str(center[2]))
+                self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
-                self.depth.home(False) 
+                self.elevation.home(False)
                 self.error.home(False) 
             # TODO: check focus
             self.showMash.emit(True)
-            
-    def cmp_quad(self, q1, q2):
-        """Compare two quad"""
-        for i in range(0, 2):
-            for j in range(0, 2):
-                p = q1[i][j]/q2[i][j]
-                if p<0.999999999 or i>1.000000001:
-                    return False
-        return True
-    
+
     def _add_surface(self):
         """New surface is added"""
         self._set_new_edit(True)       
@@ -531,10 +528,10 @@ class Surfaces(QtWidgets.QWidget):
             if self.approx.error is not None:
                 self.error.setText(str(self.approx.error) )
             center = self.zs.center()
-            self.depth.setText(str(center[2]))
-            self.depth.setEnabled(True)
+            self.elevation.setText(str(center[2]))
+            self.elevation.setEnabled(True)
             self.error.setEnabled(True) 
-            self.depth.home(False) 
+            self.elevation.home(False)
             self.error.home(False)          
             self.zs.transform(np.array(self._get_transform(), dtype=float), None)
             self.quad = self.zs.quad
@@ -564,7 +561,7 @@ class Surfaces(QtWidgets.QWidget):
         self.xyscale22.setText("1.0")
         self.xyshift1.setText("0.0")
         self.xyshift2.setText("0.0")
-        self.depth.setText("")
+        self.elevation.setText("")
         self.error.setText("") 
         self.d_message.setText("")
         self.d_message.setVisible(False)
@@ -581,6 +578,10 @@ class Surfaces(QtWidgets.QWidget):
             name = os.path.basename(name)
             s_i = ""
             i = 2
+
+            # TODO have general machanism to this in common. Given a list of names
+            # and given a name prefix return a first unique name.
+            # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
             while self._name_exist(name+s_i):
                 s_i = "_"+str(i)
                 i += 1
@@ -610,10 +611,10 @@ class Surfaces(QtWidgets.QWidget):
                 if self.approx.error is not None:
                     self.error.setText(str(self.approx.error) )
                 center = self.zs.center()
-                self.depth.setText(str(center[2]))
-                self.depth.setEnabled(True)
+                self.elevation.setText(str(center[2]))
+                self.elevation.setEnabled(True)
                 self.error.setEnabled(True)
-                self.depth.home(False) 
+                self.elevation.home(False)
                 self.error.home(False)           
                 self.zs.transform(np.array(self._get_transform(), dtype=float), None)
                 self.quad = self.zs.quad                
@@ -621,6 +622,7 @@ class Surfaces(QtWidgets.QWidget):
 
 
     def _name_exist(self, name):
+
         """Test if set surface name exist"""
         surfaces = cfg.layers.surfaces
         for surface in surfaces.surfaces:

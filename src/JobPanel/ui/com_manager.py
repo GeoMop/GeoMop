@@ -5,12 +5,12 @@ JobPanel data reloader
 @contact: jan.gabriel@tul.cz
 """
 import os
-from communication import Communicator
-import data.communicator_conf as comconf
-import communication.installation as inst
-from ui.data.config_builder import ConfigBuilder
-from ui.com_worker import ComWorker
-from data.states import TaskStatus
+from JobPanel.communication import Communicator
+import JobPanel.data.communicator_conf as comconf
+import JobPanel.communication.installation as inst
+from .data.config_builder import ConfigBuilder
+from .com_worker import ComWorker
+from JobPanel.data.states import TaskStatus
 
 
 class ComManager:

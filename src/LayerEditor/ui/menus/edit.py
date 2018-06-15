@@ -1,7 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
-from ui.helpers import CurrentView
-from leconfig import cfg
-from ui.dialogs.diagram import DisplaySizeDlg
+from ..helpers import CurrentView
+from LayerEditor.leconfig import cfg
+from ..dialogs.diagram import DisplaySizeDlg
 
 class EditMenu(QtWidgets.QMenu):
     """Menu with file actions."""

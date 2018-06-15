@@ -15,24 +15,24 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from communication import installation
-from data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
-from ui.actions.main_menu_actions import *
-from ui.data.mj_data import MultiJob, AMultiJobFile
-from ui.imports.workspaces_conf import BASE_DIR
-from ui.dialogs import MessageDialog
-from ui.dialogs.env_presets import EnvPresets
-from ui.dialogs.multijob_dialog import MultiJobDialog
-from ui.dialogs.options_dialog import OptionsDialog
-from ui.dialogs.pbs_presets import PbsPresets
-from ui.dialogs.resource_presets import ResourcePresets
-from ui.dialogs.ssh_presets import SshPresets
-from ui.menus.main_menu_bar import MainMenuBar
-from ui.panels.overview import Overview
-from ui.panels.tabs import Tabs
+from ..communication import installation
+from ..data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
+from ..ui.actions.main_menu_actions import *
+from ..ui.data.mj_data import MultiJob, AMultiJobFile
+from ..ui.imports.workspaces_conf import BASE_DIR
+from ..ui.dialogs import MessageDialog
+from ..ui.dialogs.env_presets import EnvPresets
+from ..ui.dialogs.multijob_dialog import MultiJobDialog
+from ..ui.dialogs.options_dialog import OptionsDialog
+from ..ui.dialogs.pbs_presets import PbsPresets
+from ..ui.dialogs.resource_presets import ResourcePresets
+from ..ui.dialogs.ssh_presets import SshPresets
+from ..ui.menus.main_menu_bar import MainMenuBar
+from ..ui.panels.overview import Overview
+from ..ui.panels.tabs import Tabs
 
-from geomop_analysis import Analysis, MULTIJOBS_DIR
-from config import __config_dir__
+from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
+from gm_base.config import __config_dir__
 
 
 logger = logging.getLogger("UiTrace")
@@ -46,7 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
     Job Panel main window class
     """
 
-    DEFAULT_POLL_INTERVAL = 500
+    DEFAULT_POLL_INTERVAL = 100
     """default polling interval in ms"""
 
     multijobs_changed = QtCore.pyqtSignal(dict)
@@ -65,11 +65,13 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.error = "Multijob data is corrupted"
             action = TASK_STATUS_STARTUP_ACTIONS[status]
             if action == MultijobActions.resume:
-                self.com_manager.resume_jobs.append(mj_id)
+                #self.frontend_service._resume_jobs.append(mj_id)
+                pass
             elif action == MultijobActions.terminate:
-                self.com_manager.terminate_jobs.append(mj_id)
+                #self.frontend_service._terminate_jobs.append(mj_id)
+                pass
 
-    def __init__(self, parent=None, data=None, com_manager=None):
+    def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
         self.__pool_lock = threading.Lock()
         """lock for prevention of pool multiple runnig"""
@@ -81,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data = data
 
         # Com Manager related
-        self.com_manager = com_manager
+        self.frontend_service = frontend_service
 
         self.cm_poll_interval = MainWindow.DEFAULT_POLL_INTERVAL
         """current com manager polling interval in ms"""
@@ -103,6 +105,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_send_report_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
             self._handle_delete_remote_action)
+        self.ui.menuBar.multiJob.actionDownloadWholeMultiJob.triggered.connect(
+            self._handle_download_whole_multijob_action)
         self.multijobs_changed.connect(self.ui.overviewWidget.reload_items)
         self.multijobs_changed.connect(self.data.save_mj)
         # ssh presets
@@ -161,23 +165,24 @@ class MainWindow(QtWidgets.QMainWindow):
         """poll com manager and update gui"""
         if not self.__pool_lock.acquire(False):
             return
-        self.com_manager.poll()
+        self.frontend_service.run_body()
 
         current = self.ui.overviewWidget.currentItem()
         if current is not None:
             current_mj_id = current.text(0)
 
-        for mj_id in self.com_manager.state_change_jobs:
+        state_change_jobs = self.frontend_service.get_mj_changed_state()
+        for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
             if current_mj_id == mj_id:
                 self.update_ui_locks(mj_id)
 
-            if mj.state.status == TaskStatus.finished:
-                # copy app central log into mj
-                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                      MULTIJOBS_DIR, mj.preset.name)
-                shutil.copy(LOG_PATH, mj_dir)
+            # if mj.state.status == TaskStatus.finished:
+            #     # copy app central log into mj
+            #     mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
+            #                           MULTIJOBS_DIR, mj.preset.name)
+            #     shutil.copy(LOG_PATH, mj_dir)
 
                 # check if all jobs finished successfully for a finished multijob
                 for job in mj.get_jobs():
@@ -187,42 +192,34 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.multijobs_changed.emit(self.data.multijobs)
                         break
 
-        overview_change_jobs = set(self.com_manager.results_change_jobs)
-        overview_change_jobs.update(self.com_manager.jobs_change_jobs)
-        overview_change_jobs.update(self.com_manager.logs_change_jobs)
-
-        for mj_id in overview_change_jobs:
+        for mj_id in state_change_jobs:
             if current_mj_id == mj_id:
                 mj = self.data.multijobs[mj_id]
                 self.ui.tabWidget.reload_view(mj)
 
-        for mj_id, error in self.com_manager.jobs_deleted.items():
+        for mj_id, error in self.frontend_service._jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
-            if error is None and mj_id in self._delete_mj_local:
-                mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                      MULTIJOBS_DIR, mj.preset.name)
-                shutil.rmtree(mj_dir)
-                self.data.multijobs.pop(mj_id)  # delete from gui
+            if error is None:
+                if mj_id in self._delete_mj_local:
+                    mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
+                                          MULTIJOBS_DIR, mj.preset.name)
+                    shutil.rmtree(mj_dir)
+                    self.data.multijobs.pop(mj_id)  # delete from gui
+                else:
+                    self.data.multijobs[mj_id].preset.deleted_remote = True
             else:
-                self.data.multijobs[mj_id].preset.deleted_remote = True
-                
-            if error is not None:
                 self.report_error("Deleting error: {0}".format(error))
             mj.get_state().status = mj.last_status
             mj.last_status = None
         
-        if len(self.com_manager.jobs_deleted)>0:
+        if len(self.frontend_service._jobs_deleted)>0:
             self.multijobs_changed.emit(self.data.multijobs)
 
-        self.com_manager.state_change_jobs = []
-        self.com_manager.results_change_jobs = []
-        self.com_manager.jobs_change_jobs = []
-        self.com_manager.logs_change_jobs = []
-        self.com_manager.jobs_deleted = {}
+        self.frontend_service._jobs_deleted = {}
 
         # close application
-        if self.closing and not self.com_manager.run_jobs and not self.com_manager.start_jobs \
-                and not self.com_manager.delete_jobs:
+        if self.closing and not self.frontend_service._run_jobs and not self.frontend_service._start_jobs \
+                and not self.frontend_service._delete_jobs:
             self.close()
         self.__pool_lock.release()
         
@@ -276,6 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_ui_locks(self, mj_id):
         if mj_id is None:
             self.ui.menuBar.multiJob.lock_by_status(True, None)
+            self.ui.tabWidget.reload_view(None)
         else:
             status = self.data.multijobs[mj_id].state.status
             rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
@@ -340,10 +338,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
             if self.data.multijobs[key].preset.deleted_remote:
-                self.com_manager.jobs_deleted[key] = None
+                self.frontend_service._jobs_deleted[key] = None
                 self._delete_mj_local.append(key)
             else:
-                self.com_manager.delete_jobs.append(key)
+                self.frontend_service.mj_delete(key)
                 self._delete_mj_local.append(key)
             self._set_deleting(key)
             
@@ -399,11 +397,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def _handle_delete_remote_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.currentItem().text(0)
-            if not  self.data.multijobs[key].preset.deleted_remote:
-                self.com_manager.delete_jobs.append(key)
+            if not self.data.multijobs[key].preset.deleted_remote:
+                self.frontend_service.mj_delete(key)
                 self._set_deleting(key)
 
-    def handle_multijob_dialog(self, purpose, data):        
+    def _handle_download_whole_multijob_action(self):
+        current = self.ui.overviewWidget.currentItem()
+        key = current.text(0)
+        self.frontend_service.download_whole_mj(key)
+
+    def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
         if purpose in (MultiJobDialog.PURPOSE_ADD, MultiJobDialog.PURPOSE_COPY):
             mj.state.analysis = mj.preset.analysis
@@ -422,7 +425,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 except Exception as e:
                     logger.error("Failed to copy analysis into mj folder: " + str(e))                
                 self.data.multijobs[mj.id] = mj
-                self.com_manager.start_jobs.append(mj.id) 
+                self.frontend_service.mj_start(mj.id)
             elif purpose == MultiJobDialog.PURPOSE_COPY:
                 self.data.multijobs[mj.id] = mj
                 src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
@@ -432,18 +435,18 @@ class MainWindow(QtWidgets.QMainWindow):
                                        MULTIJOBS_DIR, mj.preset.name)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
                     'res', 'log', 'status', 'mj_conf', '*.log'))                
-                self.com_manager.start_jobs.append(mj.id)
+                self.frontend_service.mj_start(mj.id)
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        self.com_manager.resume_jobs.append(key)
+        #self.frontend_service._resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
         current = self.ui.overviewWidget.currentItem()
         key = current.text(0)
-        self.com_manager.stop_jobs.append(key)
+        self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
         OptionsDialog(self, self.data,self.data.env_presets).show()
@@ -480,7 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def report_error(self, msg, err=None):
         """Report an error with dialog."""
-        from geomop_dialogs import GMErrorDialog
+        from gm_base.geomop_dialogs import GMErrorDialog
         err_dialog = GMErrorDialog(self)
         err_dialog.open_error_dialog(msg, err)
 
@@ -495,6 +498,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).showEvent(event)
         self.raise_()
 
+        return
         # select workspace if none is selected
         if self.data.workspaces.get_path() is None:
             import sys
@@ -512,12 +516,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data.config.selected_mj = sel_index
 
         # pause all jobs
-        self.com_manager.pause_all()
+        self.frontend_service.pause_all()
         self.cm_poll_timer.stop()
         self.cm_poll_timer.start(self.cm_poll_interval)
         
-        while self.com_manager.run_jobs or self.com_manager.start_jobs or \
-            self.com_manager.delete_jobs:
+        while self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
+            self.frontend_service._delete_jobs:
             self.poll_com_manager()
             time.sleep(200)
 
@@ -531,20 +535,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.config.selected_mj = sel_index
 
             # pause all jobs
-            self.com_manager.pause_all()
+            self.frontend_service.pause_all()
             self.cm_poll_interval = 200
             self.cm_poll_timer.stop()
             self.cm_poll_timer.start(self.cm_poll_interval)
             
             i=0
-            while (self.com_manager.run_jobs or self.com_manager.start_jobs or \
-                self.com_manager.delete_jobs) and i<3:
+            while (self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
+                self.frontend_service._delete_jobs) and i<3:
                 self.poll_com_manager()
                 time.sleep(200)
                 i += 1
 
-            if self.com_manager.run_jobs or self.com_manager.start_jobs or \
-                self.com_manager.delete_jobs:
+            if self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
+                self.frontend_service._delete_jobs:
                 # show closing dialog
                 self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)
                 self.close_dialog.show()
@@ -552,7 +556,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             event.ignore()
 
-        elif not self.com_manager.run_jobs and not self.com_manager.start_jobs:
+        elif not self.frontend_service._run_jobs and not self.frontend_service._start_jobs:
             # all jobs have been paused, close window
             if self.close_dialog:
                 self.close_dialog.can_close = True

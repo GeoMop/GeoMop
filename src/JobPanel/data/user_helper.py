@@ -4,7 +4,7 @@ import getpass
 import pickle
 import os
 import binascii
-from helpers.pyDes import triple_des as _trim, PAD_PKCS5
+from pyDes import triple_des as _trim, PAD_PKCS5
 
 CODE ="#šč@58"
 UCODE ="#šč@58^5897f"
@@ -40,7 +40,7 @@ class Users():
             else:
                 name = self.name
             code = self.get_reg(name, key1, self.home)
-            from ui.data.reg import Regs        
+            from JobPanel.ui.data.reg import Regs
             regs = Regs(self.home)
             if not self.to_pc:
                 regs.del_id(key2)
@@ -50,7 +50,7 @@ class Users():
     def get_preset_pwd1(self, key, is_remote, long):
         if is_remote:
             if self.to_remote:
-                from ui.data.reg import Regs
+                from JobPanel.ui.data.reg import Regs
         
                 regs = Regs(self.home)
                 reg, text = regs. get_id(self.name)
@@ -90,7 +90,7 @@ class Users():
      
     @staticmethod
     def save_reg(id, text, home, key=None):
-        from ui.data.reg import Regs
+        from JobPanel.ui.data.reg import Regs
         if key is None:
             key = str(uuid.uuid4())
         reg = str(uuid.uuid4())
@@ -108,7 +108,7 @@ class Users():
         
     @staticmethod    
     def get_reg(id, key, home):
-        from ui.data.reg import Regs
+        from JobPanel.ui.data.reg import Regs
         
         regs = Regs(home)
         reg, text = regs. get_id(id)

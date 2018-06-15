@@ -11,9 +11,9 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QColor
 
-from geomop_util import load_stylesheet
-from meconfig import cfg
-from model_data import DataNode
+from gm_base.geomop_util import load_stylesheet
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.model_data import DataNode
 
 
 class TreeWidget(QtWidgets.QTreeView):

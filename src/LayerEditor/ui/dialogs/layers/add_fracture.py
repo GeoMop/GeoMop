@@ -3,8 +3,9 @@ Dialog for adding fracture to interface.
 """
 
 import PyQt5.QtWidgets as QtWidgets
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 import PyQt5.QtGui as QtGui
+import gm_base.icon as icon
 
 class AddFractureDlg(QtWidgets.QDialog):
 
@@ -22,7 +23,7 @@ class AddFractureDlg(QtWidgets.QDialog):
 
         self.image = QtWidgets.QLabel(self)
         self.image.setMinimumWidth(self.fracture_name.sizeHint().height())
-        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.fracture_name.sizeHint().height()))
+        self.image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.fracture_name.sizeHint().height()))
         self.image.setToolTip('Fracture name is unique, everything is fine.')
 
         grid.addWidget(d_fracture_name, 0, 0)
@@ -66,13 +67,13 @@ class AddFractureDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_frac_name(name):
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.fracture_name.sizeHint().height())
+                icon.get_app_icon("sign-check").pixmap(self.fracture_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.fracture_name.sizeHint().height())
+                icon.get_app_icon("warning").pixmap(self.fracture_name.sizeHint().height())
             )
             self.image.setToolTip('Name is not unique!')
             self._tranform_button.setEnabled(False)

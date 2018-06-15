@@ -5,14 +5,14 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from ui import panels
-from leconfig import cfg
-from ui.menus.edit import EditMenu
-from ui.menus.file import MainFileMenu
-from ui.menus.analysis import AnalysisMenu
-from ui.menus.settings import MainSettingsMenu
-from ui.menus.mesh import MeshMenu
-import icon
+from . import panels
+from LayerEditor.leconfig import cfg
+from .menus.edit import EditMenu
+from .menus.file import MainFileMenu
+from .menus.analysis import AnalysisMenu
+from .menus.settings import MainSettingsMenu
+from .menus.mesh import MeshMenu
+import gm_base.icon as icon
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""
@@ -141,12 +141,12 @@ class MainWindow(QtWidgets.QMainWindow):
         cfg.diagram.regions.reload_regions(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
-        if not cfg.diagram.position_set:
-            self.display_all()        
+        if not cfg.diagram.position_set():
+            self.display_area()        
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
-        self.display_all()
+        self.display_area()
         self.layers.change_size()
         self.diagramScene.show_init_area(True)
         if not cfg.config.show_init_area:

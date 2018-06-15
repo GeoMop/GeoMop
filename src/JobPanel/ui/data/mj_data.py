@@ -9,10 +9,10 @@ import os
 import time
 import copy
 
-from communication import Installation
-from data.states import TaskStatus, JobsState
-from ui.data.preset_data import APreset
-from geomop_util import Serializable
+from JobPanel.communication import Installation
+from JobPanel.data.states import TaskStatus, JobsState
+from ..data.preset_data import APreset
+from gm_base.geomop_util import Serializable
 
 
 class MultiJobState:
@@ -206,10 +206,27 @@ class MultiJob:
         """
         log_path = Installation.get_mj_log_dir_static(self.preset.name, self.preset.analysis)
         logs = []
-        for file in os.listdir(log_path):
-            if os.path.isfile(os.path.join(log_path, file)):
-                log = MultiJobLog(log_path, file)
-                logs.append(log)
+        # for file in os.listdir(log_path):
+        #     if os.path.isfile(os.path.join(log_path, file)):
+        #         log = MultiJobLog(log_path, file)
+        #         logs.append(log)
+        mj_config_path = os.path.join(log_path, "..", "..", "mj_config")
+
+        # MJ log
+        file = "mj_service.log"
+        if os.path.isfile(os.path.join(mj_config_path, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+            logs.append(log)
+
+        # Jobs log
+        for dir in os.listdir(mj_config_path):
+            job_dir = os.path.join(mj_config_path, dir)
+            if os.path.isdir(job_dir) and dir.startswith("job_"):
+                file = "job_service.log"
+                if os.path.isfile(os.path.join(job_dir, file)):
+                    log = MultiJobLog(os.path.normpath(job_dir), file)
+                    logs.append(log)
+
         return logs
 
     def get_results(self):

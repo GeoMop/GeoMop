@@ -1,13 +1,13 @@
 """
-Dialogs for settings text name property or depth
+Dialogs for settings text name property or elevation
 """
 
-from geomop_dialogs import GMErrorDialog
+from gm_base.geomop_dialogs import GMErrorDialog
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
-from ui.data import LayerSplitType
-from leconfig import cfg
-import b_spline
+from ...data import LayerSplitType
+from LayerEditor.leconfig import cfg
+import gm_base.b_spline
 import numpy as np
 
 class LayersHelpers():
@@ -15,7 +15,7 @@ class LayersHelpers():
     @staticmethod
     def validate_depth(edit, validator, dialog):
         """
-        Try validate depth parameter. If problem occured,
+        Try validate elevation parameter. If problem occured,
         display error and return False
         """
         pos = 0
@@ -45,7 +45,7 @@ class LayersHelpers():
     def fill_surface(dialog, interface):
         """Return surface"""
         try:
-            interface.depth = float(dialog.depth.text())
+            interface.elevation = float(dialog.elevation.text())
             if dialog.surface is None:
                 interface.surface_id = None
                 interface.transform_z = (1, 0.0)
@@ -69,7 +69,7 @@ class LayersHelpers():
             """Disable all not used controls"""
             if dialog.surface is None:
                return 
-            dialog.depth.setEnabled(dialog.zcoo.isChecked())            
+            dialog.elevation.setEnabled(dialog.zcoo.isChecked())
             dialog.surface.setEnabled(dialog.grid.isChecked())
             dialog.zscale.setEnabled(dialog.grid.isChecked())
             dialog.zshift.setEnabled(dialog.grid.isChecked())
@@ -81,13 +81,13 @@ class LayersHelpers():
         dialog.zcoo = QtWidgets.QRadioButton("Z-Coordinate:")
         dialog.zcoo.clicked.connect(_enable_controls)
         d_depth = QtWidgets.QLabel("Elevation:", dialog)
-        dialog.depth = QtWidgets.QLineEdit() 
+        dialog.elevation = QtWidgets.QLineEdit()
         if interface is not None:
-            dialog.depth.setText(str(interface.depth))
+            dialog.elevation.setText(str(interface.elevation))
         
         grid.addWidget(dialog.zcoo, row, 0)
         grid.addWidget(d_depth, row, 1)
-        grid.addWidget(dialog.depth, row, 2)
+        grid.addWidget(dialog.elevation, row, 2)
         
         def _change_surface():
             """Changed event for surface ComboBox"""
@@ -125,7 +125,7 @@ class LayersHelpers():
         dialog.depth_value = 0
         
         def _compute_depth():
-            """Compute depth for grid file"""
+            """Compute elevation for grid file"""
             if dialog.zs is None:
                 return
             try:
@@ -138,7 +138,7 @@ class LayersHelpers():
                 z2 = 0
             dialog.zs.transform(None, np.array([z1, z2], dtype=float))
             center = dialog.zs.center()
-            dialog.depth.setText(str(center[2]))
+            dialog.elevation.setText(str(center[2]))
 
         d_zshift = QtWidgets.QLabel("Z shift:", dialog)
         dialog.zshift = QtWidgets.QLineEdit()

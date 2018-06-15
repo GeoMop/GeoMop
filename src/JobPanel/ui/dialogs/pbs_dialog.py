@@ -53,7 +53,8 @@ class PbsDialog(AFormContainer):
         self.ui.validator.connect(self.valid)
         
         self.permitted['pbs_system'] = []        
-        dialect_items = DialectImporter.get_available_dialects()
+        #dialect_items = DialectImporter.get_available_dialects()
+        dialect_items = {"PbsDialectPBSPro": "PBSPro"}
         for key in dialect_items:
             self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
             self.permitted['pbs_system'].append(key)

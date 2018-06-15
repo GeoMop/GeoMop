@@ -1,5 +1,5 @@
 import threading
-from ui.helpers.ssh.tests import Tests
+from JobPanel.ui.helpers.ssh.tests import Tests
 class SshTester(threading.Thread):   
     """
     Class created own thread for for testing.

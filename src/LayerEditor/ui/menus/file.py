@@ -2,8 +2,8 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from leconfig import cfg
-from geomop_dialogs import GMAboutDialog
+from LayerEditor.leconfig import cfg
+from gm_base.geomop_dialogs import GMAboutDialog
 
 
 class MainFileMenu(QMenu):

@@ -1,4 +1,4 @@
-import async_repeater as ar
+from . import async_repeater as ar
 
 backend_address = ( "172.17.0.1" , 8123 )
 repeater=ar.AsyncRepeater(None)

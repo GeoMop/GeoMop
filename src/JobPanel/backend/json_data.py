@@ -203,6 +203,23 @@ class JsonData:
         else:
             return obj
 
+    # tools
+    #######
+
+    @staticmethod
+    def construct_dict(temp, data):
+        """
+        Deserialize dict items and return them in new dict.
+        :param temp: template of dict items
+        :param data: dict or JsonDataNoConstruct
+        :return: new dict with constructed items
+        """
+        d = {}
+        if isinstance(data, dict):
+            for k, v in data.items():
+                d[k] = JsonData._deserialize(temp, v)
+        return d
+
     # @staticmethod
     # def make_instance(config):
     #     """

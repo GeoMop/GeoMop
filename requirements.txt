@@ -6,6 +6,9 @@ scipy==0.18.1
 pyshp==1.2.10
 paramiko
 psutil
+pyDes
+pexpect
+mpi4py
 
 # pip3
 # setuptools

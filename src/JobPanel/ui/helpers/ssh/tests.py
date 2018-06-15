@@ -4,11 +4,11 @@ import re
 import shutil
 
 if sys.platform == "win32":
-    import ui.helpers.ssh.win_conn as conn
+    from JobPanel.ui.helpers.ssh import win_conn as conn
 else:
-    import ui.helpers.ssh.linux_conn as conn
-from ui.data.config_builder import ConfFactory
-from  communication.installation import Installation
+    import JobPanel.ui.helpers.ssh.linux_conn as conn
+from JobPanel.ui.data.config_builder import ConfFactory
+from  JobPanel.communication.installation import Installation
 
 class Tests():
     def __init__(self,ssh):

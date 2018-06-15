@@ -2,7 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 class Point(QtWidgets.QGraphicsEllipseItem):
     """ 
@@ -50,7 +50,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         self._tmp = True
         self.state = ItemStates.added
         self.setZValue(self.TMP_ZVALUE) 
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
@@ -97,7 +97,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             self.state = new_state
             if new_state is ItemStates.moved:
                 self.setZValue(self.MOVE_ZVALUE)
-                self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+                #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
                 if ungrab:
                     self.ungrabMouse()
             else:

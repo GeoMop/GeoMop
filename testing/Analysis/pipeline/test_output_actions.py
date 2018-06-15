@@ -1,8 +1,8 @@
-from pipeline.output_actions import *
-from pipeline.generator_actions import *
-from pipeline.data_types_tree import *
-from pipeline.pipeline_processor import *
-from pipeline.pipeline import *
+from Analysis.pipeline.output_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.pipeline_processor import *
+from Analysis.pipeline.pipeline import *
 
 
 import shutil

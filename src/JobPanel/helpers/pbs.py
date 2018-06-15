@@ -1,7 +1,7 @@
 import os
 import copy
 
-from helpers.importer import DialectImporter
+from .importer import DialectImporter
 
 
 class Pbs():

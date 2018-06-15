@@ -7,9 +7,9 @@ import copy
 import subprocess
 import uuid
 import time
-from data.communicator_conf import  PathsConfig
+from JobPanel.data.communicator_conf import  PathsConfig
 
-from locks import Lock, LockFileError
+from JobPanel.locks import Lock, LockFileError
 
 logger = logging.getLogger("Remote")
 

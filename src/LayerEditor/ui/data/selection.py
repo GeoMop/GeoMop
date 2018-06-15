@@ -1,4 +1,4 @@
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 
 class Selection():

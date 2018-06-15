@@ -3,7 +3,7 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 import re
-from model_data import DataNode
+from gm_base.model_data import DataNode
 from .node_analyzer import NodeAnalyzer
 
 class NodeDescription:

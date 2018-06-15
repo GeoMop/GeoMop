@@ -2,11 +2,11 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-import ui.data.diagram_structures as struc
-from ui.data.selection import Selection
-from ui.gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
-from ui.gitems import ItemStates
-from leconfig import cfg
+from ..data import diagram_structures as struc
+from ..data.selection import Selection
+from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
+from ..gitems import ItemStates
+from LayerEditor.leconfig import cfg
     
 class Diagram(QtWidgets.QGraphicsScene):
     """
@@ -48,6 +48,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         Args:
             parent (QWidget): parent window ( empty is None)
         """ 
+        # add point
+        self._add_new_point = False
+        self._add_new_point_counter = 0
+        """counter for add point"""
         # move point variables
         self._point_moving = None
         """point is drawn"""
@@ -255,11 +259,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                 p1, label = self._add_point(self._last_p1_on_line, 
                     QtCore.QPointF(self._last_line.p1.x, self._last_line.p1.y), label)
             p2, label = self._add_point(gobject, p, label)
-            px = p.x()
-            py = p.y()
+            px = p2.point_data.x
+            py = p2.point_data.y
+            # px = p.x()
+            # py = p.y()
             added_points, moved_points, added_lines = cfg.diagram.join_line_intersection(
                 p1.point_data, p2.point_data, label)
-            self.update_changes(added_points, [], moved_points, added_lines, [])            
+            self.update_changes(added_points, [], moved_points, added_lines, [])
             self._last_p1_real = p2
             self._last_p1_on_line = None
             self._remove_last()
@@ -270,7 +276,8 @@ class Diagram(QtWidgets.QGraphicsScene):
             p1 = Point(line.p1, tmp=True)
             self.add_graphical_object(p1)
             p2 = Point(line.p2, tmp=True)
-            self.add_graphical_object(p2)
+            p2.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.add_graphical_object(p2)            
             l = Line(line, tmp=True)
             self.add_graphical_object(l)
             self._last_line = line
@@ -388,6 +395,8 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Standart mouse event"""
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
+        if self._add_new_point:
+            self._add_new_point_counter += 1
         if self._moving: 
             self._moving_counter += 1
             if self._moving_counter%3==0:
@@ -484,6 +493,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
         end_moving = False
+        if self._add_new_point:
+            self._add_new_point = False
+            if self._add_new_point_counter > 5:
+                return
         if self._moving:
             self._moving = False
             if  self._moving_counter>1:
@@ -590,6 +603,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                         self._point_moving_counter = 0
                         self._point_moving = event.gobject
                         self._point_moving_old = event.gobject.point_data.qpointf()
+                    else:
+                        self._add_new_point_counter = 0
+                        self._add_new_point = True
+
+                else:
+                    self._add_new_point_counter = 0
+                    self._add_new_point = True
 
     def wheelEvent(self, event):
         """wheel event for zooming"""

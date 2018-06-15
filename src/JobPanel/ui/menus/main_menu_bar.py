@@ -72,7 +72,9 @@ class MultiJobMenu(QtWidgets.QMenu):
 
         # control actions
         self.actionStopMultiJob = action.ActionStopMultiJob(self)
-        self.actionSendReport = action.ActionSendReport(self)        
+        self.actionSendReport = action.ActionSendReport(self)
+
+        self.actionDownloadWholeMultiJob = action.ActionDownloadWholeMultiJob(self)
 
         # add actions to menu
         self.addAction(self.actionAddMultiJob)
@@ -82,11 +84,14 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addAction(self.actionStopMultiJob)
         self.addAction(self.actionSendReport) 
+        self.addSeparator()
+        self.addAction(self.actionDownloadWholeMultiJob)
 
         self.lockable_actions = {
             MultijobActions.delete: self.actionDeleteMultiJob,
             MultijobActions.delete_remote:  self.actionDeleteRemote, 
-            MultijobActions.stop: self.actionStopMultiJob,             
+            MultijobActions.stop: self.actionStopMultiJob,
+            MultijobActions.download_whole: self.actionDownloadWholeMultiJob
         }
         
         self.rdeleted_actions = {
@@ -132,6 +137,6 @@ class SettingsMenu(QtWidgets.QMenu):
         self.addAction(self.actionSshPresets)
         self.addAction(self.actionPbsPresets)
         self.addAction(self.actionResourcesPresets)
-        self.addAction(self.actionEnvPresets)
+        #self.addAction(self.actionEnvPresets)
         self.addSeparator()
         self.addAction(self.actionOptions)

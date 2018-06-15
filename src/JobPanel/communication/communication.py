@@ -10,7 +10,7 @@ InputComm - base of class responsible for recieving the request and sending back
 """
 
 import abc
-import communication.installation as dinstall
+from . import installation as dinstall
 
 class OutputComm(metaclass=abc.ABCMeta):
     """

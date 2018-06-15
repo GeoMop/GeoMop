@@ -5,7 +5,8 @@ Dialog for appending new layer to the end.
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from .layers_helpers import LayersHelpers
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
+import gm_base.icon as icon
 
 class SplitLayerDlg(QtWidgets.QDialog):
 
@@ -24,7 +25,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
         self.image = QtWidgets.QLabel(self)
         self.image.setMinimumWidth(self.layer_name.sizeHint().height())
-        self.image.setPixmap(QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height()))
+        self.image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.layer_name.sizeHint().height()))
         self.image.setToolTip('Layer name is unique, everything is fine.')
 
         grid.addWidget(d_layer_name, 0, 0)
@@ -44,8 +45,8 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.validator = QtGui.QDoubleValidator()
         self.validator.setBottom(min)
         self.validator.setTop(max)
-        self.depth.setValidator(self.validator)
-        self.depth.setText(str((min+max)/2))
+        self.elevation.setValidator(self.validator)
+        self.elevation.setText(str((min+max)/2))
         
         self._tranform_button = QtWidgets.QPushButton("Split", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -72,13 +73,13 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.have_default_name = False
         if self.is_unique_layer_name(name):
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-default").pixmap(self.layer_name.sizeHint().height())
+                icon.get_app_icon("sign-check").pixmap(self.layer_name.sizeHint().height())
             )
             self.image.setToolTip('Unique name is OK.')
             self._tranform_button.setEnabled(True)
         else:
             self.image.setPixmap(
-                QtGui.QIcon.fromTheme("emblem-important").pixmap(self.layer_name.sizeHint().height())
+                icon.get_app_icon("warning").pixmap(self.layer_name.sizeHint().height())
             )
             self.image.setToolTip('Name is not unique!')
             self._tranform_button.setEnabled(False)
@@ -96,10 +97,10 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
     def accept(self):
         """
-        Accepts the form if depth data fields are valid.
+        Accepts the form if elevation data fields are valid.
         :return: None
         """
-        if LayersHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.elevation, self.validator, self):
             super(SplitLayerDlg, self).accept()
 
     def fill_surface(self, interface):
