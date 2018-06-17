@@ -38,10 +38,14 @@ class TestGeometryStructures:
 
 
 
-    def test_reload_simple(self):
+    def test_reload_simple(self, paths_to_remove):
         layers_file = get_path("layers_simple.json")
-        self.check(layers_file + ".ref", self.reload(layers_file))
+        out_file = self.reload(layers_file)
+        paths_to_remove.append(out_file)
+        assert self.check(layers_file + ".ref", out_file)
 
-    def test_reload_flat(self):
+    def test_reload_flat(self, paths_to_remove):
         layers_file = get_path("layers_flat_0.json")
-        assert self.check(layers_file + ".ref", self.reload(layers_file))
+        out_file = self.reload(layers_file)
+        paths_to_remove.append(out_file)
+        assert self.check(layers_file + ".ref", out_file)

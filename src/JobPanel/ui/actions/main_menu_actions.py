@@ -73,7 +73,14 @@ class ActionDeleteRemote(QtWidgets.QAction):
         super().__init__(parent)
         self.setText("Delete Remote")
         self.setObjectName("actionDeleteRemote")
-        
+
+
+class ActionDownloadWholeMultiJob(QtWidgets.QAction):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("Download Whole MultiJob")
+        self.setObjectName("actionDownloadWholeMultiJob")
+
 
 class ActionResumeMultiJob(QtWidgets.QAction):
     def __init__(self, parent=None):

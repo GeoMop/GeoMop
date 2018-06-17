@@ -16,7 +16,7 @@ from JobPanel.data.communicator_conf import PbsConfig, SshConfig, PythonEnvConfi
     LibsEnvConfig, CommunicatorConfig, CommType, OutputCommType, InputCommType, \
     CommunicatorConfigService
 from ...ui.dialogs.resource_dialog import UiResourceDialog
-from JobPanel.data import Users
+from JobPanel.data.user_helper import Users
 from ...ui.dialogs import SshPasswordDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from ...ui.imports.workspaces_conf import BASE_DIR

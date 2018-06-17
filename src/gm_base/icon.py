@@ -3,13 +3,13 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 import os
 
-__icon_dir__ = None
+__icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources", "icons")
 
 
-def set_path(file):
-    global __icon_dir__
-    __icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(file)), "..", "gm_base", "resources",
-                                "icons")
+# def set_path(file):
+#     global __icon_dir__
+#     __icon_dir__ = os.path.join(os.path.dirname(os.path.realpath(file)), "..", "gm_base", "resources",
+#                                 "icons")
 
 
 def get_file(name,  size):

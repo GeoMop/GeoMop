@@ -49,7 +49,7 @@ class Overview(QtWidgets.QTreeWidget):
                 state.start_time).strftime(time_format))
         else:
             item.setText(5, "Not Started Yet")
-        item.setText(6, str(datetime.timedelta(seconds=state.run_interval)))
+        item.setText(6, str(datetime.timedelta(seconds=int(state.run_interval))))
         item.setText(7, str(state.status))
         item.setText(8, str(state.known_jobs))
         item.setText(9, str(state.estimated_jobs))

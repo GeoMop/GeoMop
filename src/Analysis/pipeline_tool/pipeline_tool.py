@@ -66,7 +66,7 @@ def export_pipeline(pipeline, dir_path, python_script="analysis.py", pipeline_na
     # prepare resources
     for res in pipeline.get_resources():
         if res["name"] == "Flow123d":
-            e = Flow123dActionPreparation.prepare(res, os.getcwd(), dir_path)
+            e, input_files = Flow123dActionPreparation.prepare(res, os.getcwd(), dir_path)
             if len(e) > 0:
                 err.extend(e)
                 return err

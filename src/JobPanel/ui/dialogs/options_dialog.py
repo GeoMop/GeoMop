@@ -64,5 +64,9 @@ class OptionsDialog(QDialog):
             self.data.config.analysis = None
         self.data.config.local_env = self.envPresetComboBox.currentData()
         self.data.config.save()
+
+        # todo: vyresit lepe
+        self.parent().close()
+
         super(OptionsDialog, self).accept()       
 

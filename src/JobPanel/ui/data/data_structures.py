@@ -6,7 +6,7 @@ JobPanel data structures
 """
 import os
 
-import gm_base.config cfg
+import gm_base.config as cfg
 from gm_base.geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
@@ -255,9 +255,11 @@ class DataContainer:
         if self.workspaces.select_workspace(path, self):
             if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
                 self.config.analysis = None
-            self.pause_func()
-            self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())            
-            self.reload_func()            
+            # todo: zakomentovano, nevim jestli to je v poradku
+            #self.pause_func()
+            self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())
+            # todo: zakomentovano, nevim jestli to je v poradku
+            #self.reload_func()
             self.config.selected_mj = self.workspaces.get_selected_mj()
             self.config.analysis = self.workspaces.get_selected_analysis() 
             self.save_mj()

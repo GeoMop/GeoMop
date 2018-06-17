@@ -10,6 +10,9 @@ from .pomfce import *
 import shutil
 
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 def test_calibration_termination_criteria():
     def xfg(x, f, g):
         return np.array(x, np.float64), f, np.array(g, np.float64)
@@ -87,10 +90,12 @@ def test_calibration_termination_criteria():
     assert tt(t, m) == 3
 
 
-def test_calibration(request):
+def test_calibration(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     action.__action_counter__ = 0
     gen = VariableGenerator(
@@ -169,7 +174,7 @@ def test_calibration(request):
 
     # _get_settings_script
     test = cal._get_settings_script()
-    compare_with_file("cal1.py", test)
+    compare_with_file(os.path.join("results", "cal1.py"), test)
 
     # run pipeline
     pp.run()
