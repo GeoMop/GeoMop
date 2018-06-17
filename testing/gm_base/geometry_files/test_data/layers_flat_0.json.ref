@@ -24,7 +24,6 @@
     "layers": [
         {
             "__class__": "FractureLayer",
-            "bottom": null,
             "name": "New Layer",
             "node_region_ids": [
                 0,

@@ -5,6 +5,9 @@ from shutil import copyfile
 import sys
 import os.path
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 # def files_cmp(ref,out):
 #     with open(ref, "r") as f:
 #         t=yml.load(f)
@@ -18,29 +21,36 @@ import os.path
 #     return str
 import Geometry.geometry as geometry
 
-def check_file(filename):
-    file_path = list(os.path.split(filename))
+def check_files(f_geom, f_mesh):
+    file_path = list(os.path.split(f_geom))
     file_path.insert(-1, 'ref')
     ref_file = os.path.join(*file_path)
-    return filecmp.cmp(filename, ref_file)
+    return filecmp.cmp(f_geom, ref_file)
 
-def run_geometry(in_file, mesh_step=0.0):
+    # For mesh just check that the file exists
+    assert os.path.isfile(f_mesh)
+
+@pytest.mark.parametrize("in_file, mesh_step", [
+       ('01_flat_top_side_bc.json', 0),
+       ('02_bump_top_side_bc.json', 0),
+       ('03_flat_real_extension.json', 0),
+       ('04_flat_fracture.json', 0),
+       ('05_split_square.json', 10),
+       ('06_bump_split.json', 10),
+       ('10_bump_step.json', 0),
+       ('11_tectonics.json', 0)
+       ])
+
+def test_run_geometry(in_file, mesh_step):
     full_in_file = os.path.join('test_data', in_file)
-    geometry.make_geometry(layers_file=full_in_file, mesh_step=mesh_step)
+    try:
+        geometry.make_geometry(layers_file=full_in_file, mesh_step=mesh_step)
+    except geometry.ExcGMSHCall as e:
+        print(str(e))
+        assert False
 
     filename_base = os.path.splitext(full_in_file)[0]
     geom_file = filename_base + '.brep'
-    assert check_file(geom_file)
+    msh_file = filename_base + '.msh'
+    assert check_files(geom_file, msh_file)
 
-    # msh_file = filename_base + '.msh'
-    # assert check_file(msh_file)
-
-def test_geometry_script():
-     run_geometry('01_flat_top_side_bc.json')
-     run_geometry('02_bump_top_side_bc.json')
-     run_geometry('03_flat_real_extension.json')
-     run_geometry('04_flat_fracture.json')
-     run_geometry('05_split_square.json', 10)
-     run_geometry('06_bump_split.json', 10)
-     #run_geometry('10_bump_step.json')
-     #run_geometry('11_tectonics.json')

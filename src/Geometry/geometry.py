@@ -29,6 +29,7 @@ Heterogeneous mesh step:
 
 import os
 import sys
+import subprocess
 
 
 
@@ -42,16 +43,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 import gm_base.json_data as js
 import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io
-import gm_base.geometry_files.polygons as polygons
-import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.polygons.polygons as polygons
+import gm_base.polygons.merge as merge
+import gm_base.polygons.polygons_io as polygons_io
 import gm_base.geometry_files.bspline_io as bspline_io
 import Geometry.gmsh_io as gmsh_io
 import numpy as np
 import numpy.linalg as la
 import math
 
-
-import gm_base.b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
@@ -74,6 +74,14 @@ import brep_writer as bw
 
 #import netgen.csg as ngcsg
 #import netgen.meshing as ngmesh
+
+class ExcGMSHCall(Exception):
+    def __init__(self, stdout, stderr):
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def __str__(self):
+        return "Error in GMSH call.\n\nSTDOUT:\n{}\n\nSTDERR:\n{}".format(self.stdout, self.stderr)
 
 
 def check_point_tol(A, B, tol):
@@ -358,7 +366,7 @@ class Interface:
 
         decomps = list(self.decompositions.values())
         decomp_ids = list(self.decompositions.keys())
-        self.common_decomp, all_maps = polygons.intersect_decompositions(decomps)
+        self.common_decomp, all_maps = merge.intersect_decompositions(decomps)
         #plot_polygons.plot_polygon_decomposition(self.common_decomp)
         # make subpolygon lists
         self.subobj_lists={}
@@ -369,17 +377,18 @@ class Interface:
                     subobjs[dim].setdefault(orig_id, list())    # make new instance every time
                     subobjs[dim][orig_id].append(new_id)
 
-            # sort subsegment lists
+            # sort new segments along original segments
             orig_decomp = decomps[decomp_idx]
             for orig_seg_id, seg_list in subobjs[1].items():
                 if orig_seg_id is None:
                     continue
-                pt_to_seg={}
+                pt_to_seg={} # Point ID to outgoing segment
                 for seg_id in seg_list:
                     seg = self.common_decomp.segments[seg_id]
                     pt_id = seg.vtxs[polygons.out_vtx].id
                     pt_to_seg[pt_id] = seg
                 new_seg_list = []
+
                 pt_id = orig_decomp.segments[orig_seg_id].vtxs[polygons.out_vtx].id
                 new_pt_id = subobjs[0][pt_id]
                 assert len(new_pt_id) == 1
@@ -670,7 +679,7 @@ def make_layer_region_maps(layer, regions, extrude):
     top_objs = [top_decomp.points.values(), top_decomp.segments.values(), top_decomp.polygons.values()]
     for dim, (reg_list, obj_list) in enumerate(zip(region_id_lists, top_objs)):
         reg_map={}
-        for reg, obj in zip(reg_list, obj_list):
+        for obj in obj_list:
             i_reg = reg_list[obj.index]
             regions[i_reg].init(topo_dim=dim, extrude=extrude)
             reg_map[obj.id] = regions[i_reg]
@@ -1123,7 +1132,7 @@ class LayerGeometry(gs.LayerGeometry):
             while stack:
 
                 shp = stack.pop(-1)
-                print("shp: {} id: {}\n".format(type(shp), shp.id))
+                #print("shp: {} id: {}\n".format(type(shp), shp.id))
                 for sub in shp.subshapes():
                     if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
                         if shape_dict[sub].visited < i_free:
@@ -1189,10 +1198,9 @@ class LayerGeometry(gs.LayerGeometry):
 
     def call_gmsh(self, mesh_step):
         """
-
         :param mesh_step:
-        :return:
-
+        :return: (stdout, stderr)
+        Raise ExcGMSHCall if the call fails.
         """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
@@ -1215,8 +1223,35 @@ class LayerGeometry(gs.LayerGeometry):
             """
             print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
             print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+
+            # Investigating GMSH sources about effect of "-rand".
+            # It sets internal mesh option variable 'randFactor' whitch influence SOME meshing algorithms.
+            #
+            # delaunayTriangulation - 3d:
+            #         // FIXME : should be zero !!!!
+            #         double dx = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         double dy = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         double dz = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         mv->x() += dx;
+            #         mv->y() += dy;
+            #         mv->z() += dz;
+
+            # meshGFace.meshGenerator - old 2D delunay triangulation under compiler flag
+            # meshGFaceLloyd.optimize_face - ... similar 2D code
+
+            # In Plugin, Triangulate.cpp, it influence perturbation of deterministic point position like:
+            #       double XX = CTX::instance()->mesh.randFactor * lc * (double)rand() / (double)RAND_MAX;
+            #       double YY = CTX::instance()->mesh.randFactor * lc * (double)rand() / (double)RAND_MAX;
+            #       doc.points[i].where.h = points[i]->x() + XX;
+            #       doc.points[i].where.v = points[i]->y() + YY;
+            # Only for 'old_code' algorithm.
+
+            # Result: the option seems to be deprecated
+
+
             # rand_factor has to be increased when the triangle/model ratio
             # multiplied by rand_factor approaches 'machine accuracy'
+
             rand_factor = 1e-14 * np.max(self.aabb[1] - self.aabb[0]) / self.min_step
             print(r'Mesh.RandomFactor = %s;'%rand_factor , file=f)
             print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
@@ -1224,12 +1259,17 @@ class LayerGeometry(gs.LayerGeometry):
             for id, char_length in self.vtx_char_length:
                 print(r'Characteristic Length {%s} = %s;' % (id, char_length), file=f)
 
-        from subprocess import call
-        gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
+                gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
-        #call([gmsh_path, "-3", "-rand 1e-10", self.geo_file])
-        call([gmsh_path, "-3",  self.geo_file])
+
+        process = subprocess.run([gmsh_path, "-3", self.geo_file], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        stderr = process.stderr.decode('ascii')
+        stdout = process.stdout.decode('ascii')
+        if process.returncode != 0:
+            raise ExcGMSHCall(stdout, stderr)
+        return (stdout, stderr)
+
 
     def deform_mesh(self):
         """
@@ -1314,7 +1354,7 @@ class LayerGeometry(gs.LayerGeometry):
         self.msh_file = self.filename_base + ".msh"
         with open(self.msh_file, "w") as f:
             self.mesh.write_ascii(f)
-
+        return self.mesh
 
 
     # def mesh_export(self, mesh, filename):
@@ -1383,13 +1423,23 @@ def construct_derived_geometry(gs_obj):
 
 
 def make_geometry(**kwargs):
+    """
+    TODO: Have LayerGeometry as a class for building geometry, manipulating geometry and meshing.
+    then this function is understood as a top level script to us LayerGemoetry API to perform
+    basic workflow:
+    Read geometry from file or use provided gs.LayerGeometry object.
+    Construct the BREP geometry, call gmsh, postprocess mesh.
+    Write: geo file, brep file, tmp.msh file, msh file
+    """
+    raw_geometry = kwargs.get("geometry", None)
     layers_file = kwargs.get("layers_file", None)
+    filename_base = ""
     mesh_step = kwargs.get("mesh_step", 0.0)
 
-    layers_file = layers_file
-    filename_base = os.path.splitext(layers_file)[0]
-    gs_lg = layers_io.read_geometry(layers_file)
-    lg = construct_derived_geometry(gs_lg)
+    if raw_geometry is None:
+        raw_geometry = layers_io.read_geometry(layers_file)
+        filename_base = os.path.splitext(layers_file)[0]
+    lg = construct_derived_geometry(raw_geometry)
     lg.filename_base = filename_base
 
     lg.init()   # initialize the tree with ids and references where necessary
@@ -1403,6 +1453,7 @@ def make_geometry(**kwargs):
 
     lg.call_gmsh(mesh_step)
     lg.modify_mesh()
+    return lg
 
 
 
@@ -1414,4 +1465,7 @@ if __name__ == "__main__":
     parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
     args = parser.parse_args()
 
-    make_geometry(layers_file=args.layers_file, mesh_step=args.mesh_step)
+    try:
+        make_geometry(layers_file=args.layers_file, mesh_step=args.mesh_step)
+    except ExcGMSHCall as e:
+        print(str(e))
