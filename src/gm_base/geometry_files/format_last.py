@@ -1,4 +1,16 @@
-"""Structures for Layer Geometry File"""
+"""
+This should be the last format of the  Layer Geometry File.
+Classes in this file should already be final data layer used by
+Layer Editor, Analysis (through a frontend), and Geometry.
+
+Format of these classes should be same as the last numbered version
+assuming default (copy) conversion.
+
+TODO:
+- combine polygons and these classes into definitive format data classes
+- introduce common Undo/Redo mechanism
+- modify Layer Editor to operate on this data Layer
+"""
 
 import sys
 import os
