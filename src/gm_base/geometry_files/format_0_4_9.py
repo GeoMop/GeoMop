@@ -186,7 +186,11 @@ class Region(JsonData):
         """List of shape indexes - in BREP geometry """
         super().__init__(config)
 
-
+    @classmethod
+    def convert(cls, other):
+        reg = convert_json_data(other)
+        reg._serialized_attrs_.append("dim")
+        return reg
 
 class GeoLayer(JsonData):
     """Geological layers"""
@@ -212,7 +216,12 @@ class FractureLayer(GeoLayer):
     def __init__(self, config={}):
         super().__init__(config)
         self.layer_type = LayerType.fracture
-        self.top_type = self.top.interface_type
+        #self.top_type = self.top.interface_type
+
+
+    @property
+    def top_type(self):
+        return self.top.interface_type
 
 class StratumLayer(GeoLayer):
     _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
@@ -224,8 +233,17 @@ class StratumLayer(GeoLayer):
 
         super().__init__(config)
         self.layer_type = LayerType.stratum
-        self.top_type = self.top.interface_type
-        self.bottom_type = self.bottom.interface_type
+        #self.top_type = self.top.interface_type
+        #self.bottom_type = self.bottom.interface_type
+
+    @property
+    def top_type(self):
+        return self.bottom.interface_type
+
+    @property
+    def bottom_type(self):
+        return self.top.interface_type
+
 
 class ShadowLayer(GeoLayer):
     def __init__(self, config={}):
@@ -309,7 +327,7 @@ class LayerGeometry(JsonData):
         assert other.regions[2].not_used
         regions =  [ Region(none_region_json) ]
         for reg in  other.regions[3:]:
-            regions.append(convert_json_data(reg))
+            regions.append(Region.convert(reg))
 
         layers = [ LayerGeometry.fix_layer_regions(GeoLayer.convert(layer), regions) for layer in other.layers]
 

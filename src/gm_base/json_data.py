@@ -138,6 +138,9 @@ FUTURE (as soon as we are not about to release):
 #  - example of child classes
 #  - support both types and default values in declaration of serializable attrs
 #  - Just warn for unknown attrs on  input
+#  - because of decalration of keys in __init__ it is not possible to
+#    have propert conversion methods, in particular _serialized_attrs_ has to be set manually afet conversion
+#
 
 from enum import IntEnum
 import inspect
@@ -276,15 +279,18 @@ class JsonData:
         Initialize class dict from config serialization.
         :param config: config dict
         :param serialized_attr: list of serialized attributes
-        """
 
-        # combine serialize attrs to final list
-        if self._not_serialized_attrs_:
-            self.__class__._not_serialized_attrs_.extend(['__class__', '_serialized_attrs_', '_not_serialized_attrs_'])
-        for key in self.__dict__.keys():
-            if key not in self._not_serialized_attrs_ and \
-                    (self._not_serialized_attrs_ or key[0] != "_"):
-               self._serialized_attrs_.append(key)
+        """
+        imposible_attrs = {'__class__', '_serialized_attrs_', '_not_serialized_attrs_'}
+        if self.__class__._serialized_attrs_:
+            self._serialized_attrs_ = [ attr  for attr in self.__class__._serialized_attrs_ if attr not in imposible_attrs]
+        else:
+            if self.__class__._not_serialized_attrs_:
+                not_serialized = set(self.__class__._not_serialized_attrs_)
+            else:
+                not_serialized = { attr for attr in self.__dict__.keys() if attr[0] == "_"}
+            not_serialized.union(imposible_attrs)
+            self._serialized_attrs_ = [attr for attr in self.__dict__.keys() if attr not in not_serialized]
 
 
         path = []

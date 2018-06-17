@@ -5,6 +5,9 @@ from shutil import copyfile
 import sys
 import os.path
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 # def files_cmp(ref,out):
 #     with open(ref, "r") as f:
 #         t=yml.load(f)
