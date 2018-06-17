@@ -26,8 +26,8 @@ analysis="an1"
 mj="mj1"
 python_script="s.py"
 pipeline_name="Pipeline_5"
-err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
-                            python_script=python_script, pipeline_name=pipeline_name)
+err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                                         python_script=python_script, pipeline_name=pipeline_name)
 if len(err) > 0:
     for e in err:
         print(e)
@@ -103,9 +103,9 @@ mj="mj1"
 python_script="s.py"
 pipeline_name="Pipeline_7"
 last_analysis="an1"
-err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
-                            python_script=python_script, pipeline_name=pipeline_name,
-                            last_analysis=last_analysis)
+err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                                         python_script=python_script, pipeline_name=pipeline_name,
+                                         last_analysis=last_analysis)
 if len(err) > 0:
     for e in err:
         print(e)

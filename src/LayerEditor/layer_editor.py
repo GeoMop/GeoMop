@@ -4,8 +4,10 @@ Start script that inicialize main window
 import sys
 import os
 import signal
-
 import argparse
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from LayerEditor.ui import MainWindow
 from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets

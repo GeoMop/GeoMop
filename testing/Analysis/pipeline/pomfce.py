@@ -1,15 +1,13 @@
 import os
 
 
-this_source_dir = os.path.dirname(os.path.realpath(__file__))
-
 def compare_with_file(fname, lines):
     """
-    :param fname: reference file path relative to pipeline/resources
+    :param fname: reference file path
     :param lines: actual output
     :return:
     """
-    with open(os.path.join(this_source_dir, "results", fname)) as f:
+    with open(fname) as f:
         res = f.readlines()
         i=0
         for line in res:

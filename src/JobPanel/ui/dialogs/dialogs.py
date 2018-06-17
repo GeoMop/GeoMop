@@ -388,7 +388,8 @@ class APresetsDialog(QtWidgets.QDialog):
                 if not self._test_opened("PURPOSE_EDIT"):
                     return
                 key = self.ui.presets.currentItem().text(0)
-                preset = self.presets[key]
+                preset = copy.deepcopy(self.presets[key])
+                preset.demangle_secret()
                 data = {
                     "preset": preset
                 }
@@ -413,7 +414,8 @@ class APresetsDialog(QtWidgets.QDialog):
         data = self.presets_dlg.get_data()
         if self.presets_dlg.purpose == self.presets_dlg.PURPOSE_EDIT:
             self.presets.pop(data['old_name'])
-        preset = data['preset']
+        preset = copy.deepcopy(data['preset'])
+        preset.mangle_secret()
         self.presets[preset.name] = preset
         self.presets.save() 
         if self.presets_dlg.purpose == self.presets_dlg.PURPOSE_EDIT:
@@ -436,6 +438,7 @@ class APresetsDialog(QtWidgets.QDialog):
             preset = copy.deepcopy(self.presets[key])
             preset.name = self.presets_dlg.\
                 PURPOSE_COPY_PREFIX + " " + preset.name
+            preset.demangle_secret()
             data = {
                 "key": key,
                 "preset": preset

@@ -7,13 +7,13 @@ Flow123d_3 = Flow123dAction(
     Inputs=[
         Workflow_2.input()
     ],
-    YAMLFile='pipeline/resources/test1.yaml'
+    YAMLFile='resources/test1.yaml'
 )
 Flow123d_4 = Flow123dAction(
     Inputs=[
         Flow123d_3
     ],
-    YAMLFile='pipeline/resources/test2.yaml'
+    YAMLFile='resources/test2.yaml'
 )
 Workflow_2.set_config(
     OutputAction=Flow123d_4,

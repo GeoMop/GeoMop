@@ -244,6 +244,7 @@ class GeoLayer(JsonData):
         other.top = None
         other.bottom = None
         layer = convert_json_data(other)
+
         layer.top = top
         layer.bottom = bottom
         return layer
@@ -384,6 +385,7 @@ class LayerGeometry(JsonData):
     def convert(cls, other):
         basepath = getattr(other, 'base_path', os.getcwd())
         lg = convert_json_data(other)
+        lg._serialized_attrs_.append("interfaces")
         surfaces = []
         surface_ids = []
         for id, surf in enumerate(other.surfaces):
@@ -399,6 +401,7 @@ class LayerGeometry(JsonData):
         lg.version = [0, 5, 0]
         return lg
 
+# TODO: Have to call proper __init__ for copied objects... in particular __init__ of lg is not called it takes just copy of _serialized_attrs_ from predecesor which is wrong.
 def convert_object(old_obj):
     return lfc.convert_object(sys.modules[__name__], old_obj)
 

@@ -435,7 +435,9 @@ class Diagram():
         remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]
 
         poly_id_to_reg = {diagram.po.get_polygon_origin_id(polygon) : regions[2][polygon.id] for polygon in diagram.polygons}
+        poly_id_to_reg[0] = 0 # outer polygon
         remapped_regions[2] = [value for (key, value) in sorted(poly_id_to_reg.items())]
+        
         
         return remapped_regions
                 

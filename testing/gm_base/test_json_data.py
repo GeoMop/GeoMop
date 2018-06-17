@@ -28,7 +28,8 @@ def test_json_data():
     assert a.c == 2.0
     assert a._u == 5
 
-    assert json.dumps(a.serialize(), sort_keys=True) == '{"__class__": "A", "a": 2, "b": "test", "c": 2.0}'
+    dumped = json.dumps(a.serialize(), sort_keys=True)
+    assert  dumped == '{"__class__": "A", "a": 2, "b": "test", "c": 2.0}'
 
     # JsonData object
     class B(JsonData):

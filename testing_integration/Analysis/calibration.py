@@ -21,8 +21,8 @@ analysis="an1"
 mj="mj1"
 python_script="s3a.py"
 pipeline_name="Pipeline_5"
-err = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
-                            python_script=python_script, pipeline_name=pipeline_name)
+err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                                         python_script=python_script, pipeline_name=pipeline_name)
 if len(err) > 0:
     for e in err:
         print(e)
