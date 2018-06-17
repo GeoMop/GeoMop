@@ -93,13 +93,7 @@ def change_dir_back():
         os.chdir("work_dir")
         some_work()
     """
-    class ChangeDirBack:
-        def __init__(self):
-            self._old_dir = os.getcwd()
-
-        def _change_back(self):
-            os.chdir(self._old_dir)
-
-    change_dir_back = ChangeDirBack()
+    change_dir_back = os.getcwd()
     yield
-    change_dir_back._change_back()
+    os.chdir(change_dir_back)
+    #print("CHdir back:", os.getcwd())
