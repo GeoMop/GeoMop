@@ -295,11 +295,12 @@ class PolygonOperation():
         # Subtract all inner parts
         for inner_object in polygon.outer_wire.childs:
             vtxs = self._get_wire_oriented_vertices(inner_object)
-            vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
-            inner_region = QtGui.QPolygon()
-            inner_region.setPoints(vtxs)
-            inner_regionF = QtGui.QPolygonF(inner_region)
-            final.addPolygon(inner_regionF)
+            vector = []
+            for vtxx, vtxy in zip(vtxs[0::2], vtxs[1::2]):
+                # diagram y axis is inverted
+                vector.append(QtCore.QPointF(vtxx, -vtxy))
+            inner_objectF = QtGui.QPolygonF(vector)
+            final.addPolygon(inner_objectF)
         return final
 
     def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
