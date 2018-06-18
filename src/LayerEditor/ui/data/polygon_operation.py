@@ -281,15 +281,15 @@ class PolygonOperation():
         return vtxs.tolist()
 
     def _get_polygon_draw_path(self, polygon):
-        """Get the path to draw the polygon in, i.e. the outer boundary and innerboundaries.
+        """Get the path to draw the polygon in, i.e. the outer boundary and inner boundaries.
         The path approach allows holes in polygons and therefore flat depth for polygons (Odd-even paint rule)"""
         vtxs = self._get_wire_oriented_vertices(polygon.outer_wire)
-        #diagram y axis is inverted
-        vtxs[1::2] = [x * -1 for x in vtxs[1::2]]
         # Full region addition to the path
-        filled = QtGui.QPolygon()
-        filled.setPoints(vtxs)
-        filledF = QtGui.QPolygonF(filled)
+        vector = []
+        for vtxx, vtxy in zip(vtxs[0::2], vtxs[1::2]):
+            # diagram y axis is inverted
+            vector.append(QtCore.QPointF(vtxx, -vtxy))
+        filledF = QtGui.QPolygonF(vector)
         final = QtGui.QPainterPath()
         final.addPolygon(filledF)
         # Subtract all inner parts
