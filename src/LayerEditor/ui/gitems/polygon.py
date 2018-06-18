@@ -3,13 +3,13 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates
 from LayerEditor.leconfig import cfg
+from LayerEditor import definitions
 
 class Polygon(QtWidgets.QGraphicsPolygonItem):
     """ 
         Represents a join of nodes in the diagram
     """
-    
-    MIN_ZVALUE = -999
+
     DEFAUT_COLOR = "#f0f0e8"
     
     def __init__(self, polygon_data, parent=None):
@@ -20,9 +20,8 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.state = ItemStates.standart
         """Item state"""
         self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        self.depth = polygon_data.depth
         #self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
-        self.setZValue(self.MIN_ZVALUE+self.depth)
+        self.setZValue(definitions.ZVALUE_POLYGON)
         self.update_brush()
 
     def update_geometry(self):
@@ -32,12 +31,6 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     def update_color(self):
         """Update color to actual color"""
         self.update_brush()
-
-    def update_depth(self):
-        """Check and set polygon depth"""
-        if self.depth != self.polygon_data.depth:
-            self.depth = self.polygon_data.depth
-            self.setZValue(self.MIN_ZVALUE+self.depth)
 
     def update_brush(self):
         if self.state == ItemStates.selected:

@@ -2,22 +2,21 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from LayerEditor.leconfig import cfg
+from LayerEditor import definitions
 
 class DiagramView(QtWidgets.QGraphicsItem):
     """ 
         Represents some diagram view in edited diagram background
     """
     
-    ZVALUE = -9
-    
     def __init__(self, diagram_uid, parent=None):
         super(DiagramView, self).__init__(parent)
         self.uid = diagram_uid
         cfg.diagram.views_object[diagram_uid] = self
-        self.setZValue(self.ZVALUE) 
+        self.setZValue(definitions.ZVALUE_DIAGRAM_VIEW)
         
     def boundingRect(self):
-        """Redefination of standart boundingRect function, that return boun rect"""
+        """Redefinition of standard boundingRect function, that return bound rect"""
         id = 0
         if self.uid in cfg.diagrams[0].map_id:
             id = cfg.diagrams[0].map_id[self.uid]
@@ -27,7 +26,7 @@ class DiagramView(QtWidgets.QGraphicsItem):
         return rect
 
     def paint(self, painter, option, widget):
-        """Redefination of standart paint function, that paint object from shape file"""
+        """Redefinition of standard paint function, that paint object from shape file"""
         if self.uid in cfg.diagrams[0].map_id:
             id = cfg.diagrams[0].map_id[self.uid]
             r = cfg.diagram.pen.widthF()

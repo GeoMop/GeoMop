@@ -1,15 +1,14 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
+from LayerEditor import definitions
 
 class Blink(QtWidgets.QGraphicsRectItem):
     """ 
-        Represents a shp file diagram background
+    Blink on change for the user friendly behaviour, e.g. layer_block change.
     """
-    
-    ZVALUE = -1000
     
     def __init__(self, rect, parent=None):
         super(Blink, self).__init__(rect, parent)
         brush = QtGui.QBrush(QtGui.QColor(232, 232, 232))
         self.setBrush(brush)     
-        self.setZValue(self.ZVALUE)
+        self.setZValue(definitions.ZVALUE_BLINK)

@@ -3,15 +3,13 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
 from LayerEditor.leconfig import cfg
+from LayerEditor import definitions
 
 class Point(QtWidgets.QGraphicsEllipseItem):
     """ 
     Represents a block in the diagram 
     """
-    
-    STANDART_ZVALUE = 120
-    MOVE_ZVALUE = 20
-    TMP_ZVALUE = 1
+
     POINT_SIZE = 4
     POINT_BOLD_SIZE = 6
 
@@ -30,7 +28,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         self.setPen(cfg.diagram.pen)
         self.setBrush(QtGui.QBrush(self.pen().color()))
         self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))    
-        self.setZValue(self.STANDART_ZVALUE)
+        self.setZValue(definitions.ZVALUE_POINT)
         if tmp:
             self.set_tmp()
         self.update_color()
@@ -49,7 +47,7 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         """set style and z"""
         self._tmp = True
         self.state = ItemStates.added
-        self.setZValue(self.TMP_ZVALUE) 
+        self.setZValue(definitions.ZVALUE_POINT_TMP)
         #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         
     def paint(self, painter, option, widget):
@@ -96,12 +94,12 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         if new_state is not None:
             self.state = new_state
             if new_state is ItemStates.moved:
-                self.setZValue(self.MOVE_ZVALUE)
+                self.setZValue(definitions.ZVALUE_POINT_MOVE)
                 #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
                 if ungrab:
                     self.ungrabMouse()
             else:
-                self.setZValue(self.STANDART_ZVALUE)
+                self.setZValue(definitions.ZVALUE_POINT)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor)) 
         if pos is not None:
             self.point_data.x = pos.x()

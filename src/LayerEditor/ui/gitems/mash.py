@@ -2,13 +2,13 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from LayerEditor.leconfig import cfg
+from LayerEditor import definitions
 
 class Mash(QtWidgets.QGraphicsPolygonItem):
     """ 
         Represents a join of nodes in the diagram
     """
     
-    STANDART_ZVALUE = 1000
     DASH_PATTERN = [10, 5]
     
     def __init__(self, quad, u, v, parent=None):
@@ -20,7 +20,7 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         self.quad = quad 
         self.u = u
         self.v = v
-        self.setZValue(self.STANDART_ZVALUE)
+        self.setZValue(definitions.ZVALUE_SURFACE_MESH)
         
     def set_quad(self, quad, u, v):
         """Set quad"""
@@ -33,8 +33,7 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         self.v = v
         self.setPolygon(polygon)
         self.update()
-        
-        
+
     def paint(self, painter, option, widget):
         """Redefinition of standard paint function"""
         # don't paint if line is null line        
@@ -64,5 +63,3 @@ class Mash(QtWidgets.QGraphicsPolygonItem):
         """Return devided point"""
         return QtCore.QPointF(pmin[0]+(pmax[0]-pmin[0])/max*i,
             -pmin[1]-(pmax[1]-pmin[1])/max*i)
-        
-            

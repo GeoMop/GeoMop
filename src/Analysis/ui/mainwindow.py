@@ -24,13 +24,12 @@ class MainWindow(QtWidgets.QMainWindow):
         
         diagram = data.Diagram()
         self.diagramScene = panels.Diagram(diagram, self._vsplitter)
-        self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._vsplitter)
+        self.diagramView = QtWidgets.QGraphicsView(self.diagramScene, self._vsplitter)
         
         self.diagramView.setSizePolicy(
             QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Expanding))
         self.diagramView.setMinimumSize(QtCore.QSize(500, 500))
- 
 
         self._hsplitter.insertWidget(0, self.diagramView)
         

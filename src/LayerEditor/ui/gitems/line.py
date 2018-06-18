@@ -3,15 +3,13 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .states import ItemStates, get_state_color
 from LayerEditor.leconfig import cfg
+from LayerEditor import definitions
 
 class Line(QtWidgets.QGraphicsLineItem):
     """ 
         Represents a join of nodes in the diagram
     """
-    
-    STANDART_ZVALUE = 110
-    MOVE_ZVALUE = 10
-    TMP_ZVALUE = 0
+
     DASH_PATTERN = [10, 5]
     DASH_PATTERN_BOLD = [5, 2.5]
     
@@ -26,7 +24,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         self.setPen(cfg.diagram.no_pen)
         self.real_pen = QtGui.QPen(cfg.diagram.pen)
         self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
-        self.setZValue(self.STANDART_ZVALUE)
+        self.setZValue(definitions.ZVALUE_LINE)
         self.bold = False
         if tmp:
             self.set_tmp()
@@ -36,7 +34,7 @@ class Line(QtWidgets.QGraphicsLineItem):
         """set style and z"""
         self._tmp = True
         self.state = ItemStates.added
-        self.setZValue(self.TMP_ZVALUE)
+        self.setZValue(definitions.ZVALUE_LINE_TMP)
         #self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
 
     def paint(self, painter, option, widget):
@@ -118,10 +116,10 @@ class Line(QtWidgets.QGraphicsLineItem):
         if new_state is not None:
             self.state = new_state
             if new_state is ItemStates.moved:
-                self.setZValue(self.MOVE_ZVALUE)
+                self.setZValue(definitions.ZVALUE_LINE_MOVE)
                 #self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor))
             else:
-                self.setZValue(self.STANDART_ZVALUE)
+                self.setZValue(definitions.ZVALUE_LINE)
                 self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor)) 
         self.setLine(self.line_data.p1.x, self.line_data.p1.y, self.line_data.p2.x, self.line_data.p2.y)
         self.update_color()

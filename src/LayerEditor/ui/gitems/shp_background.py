@@ -2,14 +2,12 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from LayerEditor.leconfig import cfg
-
+from LayerEditor import definitions
 
 class ShpBackground(QtWidgets.QGraphicsItem):
     """ 
         Represents a shp file diagram background
     """
-    
-    ZVALUE = -10
     
     def __init__(self, shp, color, parent=None):
         super(ShpBackground, self).__init__(parent)
@@ -18,7 +16,7 @@ class ShpBackground(QtWidgets.QGraphicsItem):
         self.color = color
         """shape file objects data color"""
         shp.object = self        
-        self.setZValue(self.ZVALUE) 
+        self.setZValue(definitions.ZVALUE_SHAPEFILES)
         
     def boundingRect(self):
         """Redefination of standart boundingRect function, that return boun rect"""

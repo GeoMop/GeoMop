@@ -102,7 +102,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.blink_timer.setSingleShot(True) 
         #mash
         self.mash=None
-        """Surface mash"""        
+        """Surface mash"""
         
         super(Diagram, self).__init__(parent)
         self.blink_timer.timeout.connect(self.blink_end)
@@ -296,7 +296,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         curr_uid = cfg.diagram.uid
         del_uid = []
         for uid, view in cfg.diagram.views_object.items():            
-            if curr_uid==uid or uid not in cfg.diagram.views:
+            if curr_uid == uid or uid not in cfg.diagram.views:
                 if uid in cfg.diagram.views_object:
                     del_uid.append(uid)
         for uid in del_uid:
@@ -304,7 +304,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             obj.release_view()
             self.removeItem(obj)   
         for uid in cfg.diagram.views:
-            if curr_uid!=uid and uid not in cfg.diagram.views_object:    
+            if curr_uid != uid and uid not in cfg.diagram.views_object:
                 view = DiagramView(uid)
                 self.addItem(view)
         

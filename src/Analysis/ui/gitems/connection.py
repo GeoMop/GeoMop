@@ -2,6 +2,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 from .items_action import RequiredAction
+from LayerEditor import definitions
 
 class Connection(QtWidgets.QGraphicsPathItem):
     """ 
@@ -11,7 +12,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         super(Connection, self).__init__(parent)
         self._conn = connection
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        self.setZValue(10)        
+        self.setZValue(definitions.ZVALUE_CONNECTION)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.set_path()
         

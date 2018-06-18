@@ -189,11 +189,10 @@ class PolygonOperation():
         spolygon.qtpolygon = qtpolygon
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
-        spolygon.depth = polygon.depth()
         spolygon.drawpath = self._get_polygon_draw_path(polygon)
         if spolygon.object is not None:
             spolygon.object.refresh_polygon()
-        
+
     def _assign_add(self, diagram, added_id):
         """Assign added polygon to existing polygon in diagram"""
         spolygon = self._get_spolygon(diagram, self.tmp_polygon_id)
@@ -228,27 +227,6 @@ class PolygonOperation():
             else:
                 line = diagram.find_line(points[i-1].id, points[i].id)
             line.del_polygon(old_spolygon)        
-        
-    def _reload_depth(self, diagram, polygon_id):
-        """reload polygon depth recursivly"""
-        spolygon = self._get_spolygon(diagram, polygon_id)
-        if spolygon is None:
-            return
-        polygon = self.decomposition.polygons[polygon_id]
-
-        # Temorary fix.
-        # TODO: Do not call _reload_depth
-        if spolygon is None:
-            return
-
-        spolygon.depth = polygon.depth()
-        if spolygon.object is not None:
-            spolygon.object.update_depth()
-        childs = self.decomposition.get_childs(polygon_id)
-        for children in childs:
-            spolygon = self._get_spolygon(diagram, children)
-            polygon = self.decomposition.polygons[children]
-            spolygon.depth = polygon.depth()
         
     def _get_lines_and_qtpoly(self, diagram, polygon):
         """Return lines and qt polygon"""
@@ -312,9 +290,6 @@ class PolygonOperation():
             parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
             parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
         childs = self.decomposition.get_childs(polygon_id)
-        for children in childs:
-            if children!=polygon_id:
-                self._reload_depth(diagram, children)
         copy = None
         if copy_id is not None:
             copy = self._get_spolygon(diagram, copy_id)
@@ -323,15 +298,11 @@ class PolygonOperation():
         spolygon.qtpolygon = qtpolygon
         polygon.qtpolygon = qtpolygon
         spolygon.helpid = polygon_id
-        spolygon.depth = polygon.depth()
         spolygon.drawpath = self._get_polygon_draw_path(polygon)
 
     def _remove_polygon(self, diagram, polygon_id, parent_id, label, not_history):
         """Add polygon to boundary"""
         childs = self.decomposition.get_childs(parent_id)
-        for children in childs:
-            if children!=parent_id:
-                self._reload_depth(diagram, children)
         spolygon = self._get_spolygon(diagram, polygon_id)
         parent_polydata = self.decomposition.polygons[parent_id]
         if not parent_polydata == self.decomposition.outer_polygon:
