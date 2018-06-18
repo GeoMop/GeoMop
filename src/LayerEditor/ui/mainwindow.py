@@ -270,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _update_regions(self):
         """Update region panel, eventually set tab according to the selection in diagram"""
         regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
-        if regions[0]:
+        if regions:
             self.regions.select_current_regions(regions)
         self.regions.update_regions_panel()
             

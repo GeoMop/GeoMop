@@ -815,14 +815,25 @@ class Regions():
         """
         Get list of shape instances of specific region
         """
+        layer_region = None
         dim = self.regions[reg_idx].dim.value
-        if dim == 0:
-            layer_region = self.layer_region_0D
+        if self.current_layer_id < 0:
+            dim += 1
+        if dim == -1 or dim == 0:
+            # default region
+            pass
         elif dim == 1:
+            layer_region = self.layer_region_0D
+        elif dim == 2:
             layer_region = self.layer_region_1D
-        else:
+        elif dim == 3:
             layer_region = self.layer_region_2D
-        shapes = []
-        for layer_id in self.layers_topology[self.current_topology_id]:
-            shapes.append([shape for shape in layer_region[layer_id] if layer_region[layer_id][shape]==reg_idx])
-        return shapes
+        else:
+            assert False, "Dimension error in getting region shapes, value: %dim" % dim
+        if layer_region:
+            shapes = []
+            for layer_id in self.layers_topology[self.current_topology_id]:
+                shapes.append([shape for shape in layer_region[layer_id] if layer_region[layer_id][shape]==reg_idx])
+            # len(shapes)==number of layers, in each one shape ids with desired region is returned.
+            return shapes
+        return None
