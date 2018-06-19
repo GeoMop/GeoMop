@@ -267,41 +267,39 @@ class PolygonOperation():
         qtpolygon.append(QtCore.QPointF(points[0].xy[0], -points[0].xy[1]))
         return lines, qtpolygon
 
-    def _get_wire_oriented_vertices(self, wire):
-        """Follow the wire segments and get the oriented list of its vertices as a closed loop"""
+    @staticmethod
+    def _get_wire_oriented_vertices(wire):
+        """
+        Follow the wire segments and get the list of its vertices duplicating the first/last point.
+        return: array, shape: n_vtx, 2
+        """
         seggen = wire.segments()
-        vtxs = np.array([], dtype=float)
+        vtxs = []
         for seg, side in seggen:
-            # each segment has two sides, side in the generator is the directional information.
-            if not vtxs.size:
-                #first segment - add both vertices, so the loop is closed at the end.
+            # Side corresponds to the end point of the segment. (Indicating also on which side thenwire lies.)
+            if not vtxs:
+                # first segment - add both vertices, so the loop is closed at the end.
                 other_side = not side
-                vtxs = np.append(vtxs, seg.vtxs[other_side].xy)
-            vtxs = np.append(vtxs, seg.vtxs[side].xy)
-        return vtxs.tolist()
+                vtxs.append(seg.vtxs[other_side].xy)
+            vtxs.append(seg.vtxs[side].xy)
+        return np.array(vtxs)
+
+    @classmethod
+    def _add_to_painter_path(cls, path, wire):
+        vtxs = cls._get_wire_oriented_vertices(wire)
+        point_list = [QtCore.QPointF(vtxx, -vtxy) for vtxx, vtxy in vtxs]
+        sub_poly = QtGui.QPolygonF(point_list)
+        path.addPolygon(sub_poly)
 
     def _get_polygon_draw_path(self, polygon):
         """Get the path to draw the polygon in, i.e. the outer boundary and inner boundaries.
         The path approach allows holes in polygons and therefore flat depth for polygons (Odd-even paint rule)"""
-        vtxs = self._get_wire_oriented_vertices(polygon.outer_wire)
-        # Full region addition to the path
-        vector = []
-        for vtxx, vtxy in zip(vtxs[0::2], vtxs[1::2]):
-            # diagram y axis is inverted
-            vector.append(QtCore.QPointF(vtxx, -vtxy))
-        filledF = QtGui.QPolygonF(vector)
-        final = QtGui.QPainterPath()
-        final.addPolygon(filledF)
+        complex_path = QtGui.QPainterPath()
+        self._add_to_painter_path(complex_path, polygon.outer_wire)
         # Subtract all inner parts
-        for inner_object in polygon.outer_wire.childs:
-            vtxs = self._get_wire_oriented_vertices(inner_object)
-            vector = []
-            for vtxx, vtxy in zip(vtxs[0::2], vtxs[1::2]):
-                # diagram y axis is inverted
-                vector.append(QtCore.QPointF(vtxx, -vtxy))
-            inner_objectF = QtGui.QPolygonF(vector)
-            final.addPolygon(inner_objectF)
-        return final
+        for inner_wire in polygon.outer_wire.childs:
+            self._add_to_painter_path(complex_path, inner_wire)
+        return complex_path
 
     def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
         """Add polygon to boundary"""
