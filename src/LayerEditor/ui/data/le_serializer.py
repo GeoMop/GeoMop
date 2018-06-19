@@ -216,7 +216,7 @@ class LESerializer():
         """Save diagram data to set file"""
         gf = GeometryFactory()
         gf._base_dir = os.path.dirname(path)
-        for reg in cfg.diagram.regions.regions:
+        for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         for surface in cfg.layers.surfaces.surfaces:
             gf.add_surface(surface.approximation, surface.grid_file, surface.name)
