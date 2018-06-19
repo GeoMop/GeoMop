@@ -266,13 +266,13 @@ class Layers():
             """Layer type is shadow"""
             self.block_idx = 0
             """Block idx, use for topology"""
-            self.diagram_id1 = None
+            self.diag_top_id = None
             """First diagram id"""
             self.surface_id1 = None
             """First surface id"""
             self.stype1 = None
             """First surface type"""
-            self.diagram_id2 = None
+            self.diag_bot_id = None
             """Second diagram id, None for copy block"""
             self.surface_id2 = None
             """Second surface id, None for copy block"""
@@ -298,17 +298,17 @@ class Layers():
             i=1
             while self.interfaces[i].diag_top_id is None:
                 i += 1
-            data.diagram_id1 = self.interfaces[i].diag_top_id
+            data.diag_top_id = self.interfaces[i].diag_top_id
             data.surface1 = self.interfaces[i].surface_id
             data.stype1 = TopologyType.interpolated
-            data.diagram_id2 = None
+            data.diag_bot_id = None
             data.surface2 = None
             if i==1:
                 data.stype2 = TopologyType.given
             else:
                 data.stype2 = TopologyType.interpolated
         else:
-            data.diagram_id1 = self.interfaces[0].diag_top_id
+            data.diag_top_id = self.interfaces[0].diag_top_id
             data.surface1 = self.interfaces[0].surface_id
             data.stype1 = TopologyType.given
             i=1
@@ -319,13 +319,13 @@ class Layers():
                         break
                     i += 1
                 if len(self.interfaces)>i and self.interfaces[i].diag_top_id is not None:
-                    data.diagram_id2 = self.interfaces[i].diag_top_id
+                    data.diag_bot_id = self.interfaces[i].diag_top_id
                     data.surface2 = self.interfaces[i].surface_id
                 else:
-                    data.diagram_id2 = None
+                    data.diag_bot_id = None
                     data.surface2 = None
             else:
-                data.diagram_id2 = self.interfaces[1].diag_top_id
+                data.diag_bot_id = self.interfaces[1].diag_top_id
                 data.surface2 = self.interfaces[1].surface_id
                 data.stype2 = TopologyType.given
             if self.interfaces[0].fracture:
@@ -359,17 +359,17 @@ class Layers():
                         j=i+1
                         while self.interfaces[j].diag_top_id is None:
                             j += 1
-                        data.diagram_id1 = self.interfaces[j].diag_top_id
+                        data.diag_top_id = self.interfaces[j].diag_top_id
                         data.surface1 = self.interfaces[i].surface_id
                         data.stype1 = TopologyType.interpolated
-                        data.diagram_id2 = None
+                        data.diag_bot_id = None
                         data.surface2 = None
                         if i==1:
                             data.stype2 = TopologyType.given
                         else:
                             data.stype2 = TopologyType.interpolated
                     else:
-                        data.diagram_id1 = self.interfaces[i].diag_bot_id
+                        data.diag_top_id = self.interfaces[i].diag_bot_id
                         data.surface1 = self.interfaces[i].surface_id
                         data.stype1 = TopologyType.given
                         j=i+1
@@ -377,18 +377,18 @@ class Layers():
                             data.stype2 = TopologyType.interpolated
                             while len(self.interfaces)>j and self.interfaces[j].diag_top_id is None:
                                 if self.interfaces[j].splited:                        
-                                    data.diagram_id2 = None
+                                    data.diag_bot_id = None
                                     data.surface2 = None
                                     break
                                 j += 1
                             if len(self.interfaces)>j and self.interfaces[j].diag_top_id is not None:
-                                data.diagram_id2 = self.interfaces[j].diag_top_id
+                                data.diag_bot_id = self.interfaces[j].diag_top_id
                                 data.surface2 = self.interfaces[j].surface_id
                             else:
-                                data.diagram_id2 = None
+                                data.diag_bot_id = None
                                 data.surface2 = None
                         else:
-                            data.diagram_id2 = self.interfaces[i+1].diag_top_id
+                            data.diag_bot_id = self.interfaces[i+1].diag_top_id
                             data.surface2 = self.interfaces[i+1].surface_id
                             data.stype2 = TopologyType.given
                 else:
@@ -407,9 +407,9 @@ class Layers():
                         j += 1
                     if next:
                         if self.interfaces[i].diag_top_id is not None:
-                            data.diagram_id1 = self.interfaces[i].diag_top_id
+                            data.diag_top_id = self.interfaces[i].diag_top_id
                             data.surface1 = self.interfaces[i].surface_id
-                            data.diagram_id2 = self.interfaces[i].diag_bot_id
+                            data.diag_bot_id = self.interfaces[i].diag_bot_id
                             data.surface2 = self.interfaces[i].surface_id
                         if j==i+1:
                             data.stype2 = TopologyType.given
