@@ -399,9 +399,9 @@ class Diagram():
     """zoom variable"""
     
     @classmethod
-    def add_region(cls, color, name, dim, step, boundary=False, not_used=False):
+    def add_region(cls, color, name, reg_id, dim, step, boundary=False, not_used=False):
         """Add region"""
-        cls.regions.add_region(color, name, dim, step, boundary, not_used)    
+        cls.regions.add_region(color, name, reg_id, dim, step, boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
@@ -454,7 +454,7 @@ class Diagram():
                 point.object.update_color()
 
     def layer_region_changed(self):
-        """Layer color is changed, refresh all region collors"""
+        """Layer color is changed, refresh all region colors"""
         for polygon in self.polygons:
             if polygon.object is not None:
                 polygon.object.update_color()

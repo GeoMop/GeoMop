@@ -62,8 +62,8 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(geometry._base_file), errors)
-        for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
+        for reg_id, region in enumerate(gf.get_regions()):
+            Diagram.add_region(region.color, region.name, reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for surface in gf.get_surfaces():
             cfg.layers.surfaces.add(surface.approximation, surface.grid_file, surface.name)
@@ -119,9 +119,11 @@ class LESerializer():
                     if last_fracture is not None:
                         if last_fracture.top_type is TopologyType.interpolated:
                             if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(last_fracture):
-                                cfg.layers.add_interface(interface.surface_id, True, interface.elevation, interface.transform_z, last_fracture.name, None, None, FractureInterface.top)   
+                                cfg.layers.add_interface(interface.surface_id, True, interface.elevation,
+                                                         interface.transform_z, last_fracture.name, None, None, FractureInterface.top)
                             else:
-                                cfg.layers.add_interface(interface.surface_id, True, interface.elevation, interface.transform_z, last_fracture.name, None, None, FractureInterface.bottom)   
+                                cfg.layers.add_interface(interface.surface_id, True, interface.elevation,
+                                                         interface.transform_z, last_fracture.name, None, None, FractureInterface.bottom)
                         else:
                             cfg.layers.add_interface(interface.surface_id, True, interface.elevation, interface.transform_z, last_fracture.name, None, None, FractureInterface.own, 
                                 last_fracture.top.nodeset_id)
@@ -133,10 +135,12 @@ class LESerializer():
                 last_stratum.bottom.nodeset_id == layer.top.nodeset_id:
                 # given non splitted interface
                 if last_fracture is not None:
-                    cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, last_fracture.name, layer.top.nodeset_id)
+                    cfg.layers.add_interface(interface.surface_id, False, interface.elevation,
+                                             interface.transform_z, last_fracture.name, layer.top.nodeset_id)
                     last_fracture = None
                 else:
-                    cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, None, layer.top.nodeset_id)
+                    cfg.layers.add_interface(interface.surface_id, False, interface.elevation,
+                                             interface.transform_z, None, layer.top.nodeset_id)
             else:
                 # splitted surface
                 fracture_name = None
@@ -166,7 +170,8 @@ class LESerializer():
                     id1 = last_stratum.bottom.nodeset_id
                 if layer.top_type is TopologyType.given:    
                     id2 = layer.top.nodeset_id
-                cfg.layers.add_interface(interface.surface_id, interface.elevation, interface.transform_z, True, fracture_name, id1, id2, fracture_type, fracture_id)
+                cfg.layers.add_interface(interface.surface_id, True, interface.elevation,
+                                         interface.transform_z, fracture_name, id1, id2, fracture_type, fracture_id)
             # add layer
             cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
             last_stratum = layer
@@ -216,7 +221,7 @@ class LESerializer():
         """Save diagram data to set file"""
         gf = GeometryFactory()
         gf._base_dir = os.path.dirname(path)
-        for reg in cfg.diagram.regions.regions:
+        for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         for surface in cfg.layers.surfaces.surfaces:
             gf.add_surface(surface.approximation, surface.grid_file, surface.name)
