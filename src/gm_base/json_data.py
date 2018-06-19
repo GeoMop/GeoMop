@@ -221,8 +221,8 @@ class ClassFactory:
                     return c(config)
                 except TypeError:
                     raise TypeError("Non-standard JsonData constructor for class: {}\npath: {}".format(c, path))
-                except:
-                    raise Exception("Failed initialization of type: {}\npath: {}".format(c, path))
+                #except:
+                #    raise Exception("Failed initialization of type: {}\npath: {}".format(c, path))
         assert False, "Input class: {} not in the factory list: {}\npath: {} ".format(class_name, self.class_list, path)
 
 # class ClassFromList(ClassFactory):

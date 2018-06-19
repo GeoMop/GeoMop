@@ -62,8 +62,8 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(geometry._base_file), errors)
-        for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.reg_id, region.dim, region.mesh_step,
+        for reg_id, region in enumerate(gf.get_regions()):
+            Diagram.add_region(region.color, region.name, reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for surface in gf.get_surfaces():
             cfg.layers.surfaces.add(surface.approximation, surface.grid_file, surface.name)

@@ -40,7 +40,7 @@ class GeometryFactory:
 
     def set_default(self):
         default_regions = [                                                                                # Stratum layer
-            Region(dict(color="##", name="NONE", reg_id=0, not_used=True, dim=RegionDim.none))         # TopologyDim.polygon
+            Region(dict(color="##", name="NONE", not_used=True, dim=RegionDim.none))         # TopologyDim.polygon
         ]
         for reg in default_regions:
             self.geometry.regions.append(reg)
