@@ -273,7 +273,7 @@ class PolygonOperation():
             return
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
-            if children!=polygon_id:
+            if children != polygon_id:
                 self._reload_depth(diagram, children)
         copy = None
         if copy_id is not None:
