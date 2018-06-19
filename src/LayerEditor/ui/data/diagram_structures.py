@@ -399,9 +399,9 @@ class Diagram():
     """zoom variable"""
     
     @classmethod
-    def add_region(cls, color, name, dim, step, boundary=False, not_used=False):
+    def add_region(cls, color, name, reg_id, dim, step, boundary=False, not_used=False):
         """Add region"""
-        cls.regions.add_region(color, name, dim, step, boundary, not_used)    
+        cls.regions.add_region(color, name, reg_id, dim, step, boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
@@ -432,9 +432,11 @@ class Diagram():
         for line in diagram.lines:
             line_orig_id = diagram.po.get_line_origin_id(line)
             tmp[line_orig_id]=regions[1][line.id]
-        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
+        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]
+        tmp = {}
         for polygon in diagram.polygons:
             tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
+        tmp[0] = 0 # outer polygon
         remapped_regions[2] = [value for (key, value) in sorted(tmp.items())]    
         
         return remapped_regions
@@ -452,7 +454,7 @@ class Diagram():
                 point.object.update_color()
 
     def layer_region_changed(self):
-        """Layer color is changed, refresh all region collors"""
+        """Layer color is changed, refresh all region colors"""
         for polygon in self.polygons:
             if polygon.object is not None:
                 polygon.object.update_color()
@@ -858,7 +860,7 @@ class Diagram():
                 self.regions.add_regions(2, polygon.id, not not_history, label)
         else:
             self.regions.add_regions(2, polygon.id, not not_history, label)
-        self.new_polygons.append(polygon)        
+        self.new_polygons.append(polygon)
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):

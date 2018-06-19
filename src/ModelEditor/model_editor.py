@@ -12,6 +12,8 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 import gm_base.icon as icon
 from ModelEditor.meconfig import MEConfig as cfg
 from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg

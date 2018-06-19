@@ -1,4 +1,4 @@
-from gm_base.geometry_files.polygons import PolygonDecomposition, PolygonChange
+from gm_base.polygons.polygons import PolygonDecomposition, PolygonChange
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import numpy as np
@@ -273,7 +273,7 @@ class PolygonOperation():
             return
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
-            if children!=polygon_id:
+            if children != polygon_id:
                 self._reload_depth(diagram, children)
         copy = None
         if copy_id is not None:

@@ -77,7 +77,7 @@ class IEPbs(IE):
     default_items = {}
     
 class IESsh(IE):
-    items = ["env", "host", "name", "pbs_system", "port", "remote_dir", "uid"]
+    items = ["env", "host", "name", "pbs_system", "port", "geomop_root", "workspace", "uid"]
     default_items = {"key":"", "pwd":"", "to_pc": False, "to_remote": False, 
     "use_tunneling": False}
         

@@ -3,7 +3,7 @@ from gm_base.geometry_files.format_last import  LayerType, TopologyType
 from gm_base.geometry_files.geometry_factory import GeometryFactory
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
-import gm_base.geometry_files.polygons_io as polygons_io
+import gm_base.polygons.polygons_io as polygons_io
 #import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io
 
@@ -62,8 +62,8 @@ class LESerializer():
         if len(errors)>0:
             raise LESerializerException(
                 "Some file consistency errors occure in {0}".format(geometry._base_file), errors)
-        for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
+        for reg_id, region in enumerate(gf.get_regions()):
+            Diagram.add_region(region.color, region.name, reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
         for surface in gf.get_surfaces():
             cfg.layers.surfaces.add(surface.approximation, surface.grid_file, surface.name)
@@ -176,14 +176,16 @@ class LESerializer():
             cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
             last_stratum = layer
         #last interface
-        interface = gf.get_interface(last_stratum.bottom.interface_id)
-        id1 = None
-        if last_stratum.bottom_type is TopologyType.given:
-            id1 = last_stratum.bottom.nodeset_id
-        if last_fracture is not None:
-            cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, last_fracture.name, id1)
-        else:
-            cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, None, id1)        
+        if last_stratum:
+            interface = gf.get_interface(last_stratum.bottom.interface_id)
+            id1 = None
+            if last_stratum.bottom_type is TopologyType.given:
+                id1 = last_stratum.bottom.nodeset_id
+            if last_fracture is not None:
+                cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, last_fracture.name, id1)
+            else:
+                cfg.layers.add_interface(interface.surface_id, False, interface.elevation, interface.transform_z, None, id1)
+
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
@@ -219,7 +221,7 @@ class LESerializer():
         """Save diagram data to set file"""
         gf = GeometryFactory()
         gf._base_dir = os.path.dirname(path)
-        for reg in cfg.diagram.regions.regions:
+        for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         for surface in cfg.layers.surfaces.surfaces:
             gf.add_surface(surface.approximation, surface.grid_file, surface.name)

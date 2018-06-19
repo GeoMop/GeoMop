@@ -8,7 +8,7 @@ import pytest
 @pytest.fixture
 def data():
     import os
-    import config
+    from gm_base import config
     config.__config_dir__ = os.path.join(os.path.split(
             os.path.dirname(os.path.realpath(__file__)))[0], "resources", "mock_settings")
 

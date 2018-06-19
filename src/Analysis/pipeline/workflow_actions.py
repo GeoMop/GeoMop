@@ -40,7 +40,7 @@ class Workflow(WorkflowActionType):
         script = self._get_settings_script()
         self._actions = old_actions
         
-        script.insert(0, "from pipeline import *")
+        script.insert(0, "from Analysis.pipeline import *")
         script = '\n'.join(script)
         script = script.replace(name, "new")
         exec (script, globals())

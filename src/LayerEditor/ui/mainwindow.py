@@ -268,9 +268,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.regions.set_topology(cfg.diagram.topology_idx)
         
     def _update_regions(self):
-        """Update region for set shape"""
-        regions =self.diagramScene.selection.get_selected_regions(cfg.diagram)
-        self.regions.select_current_regions(regions)
+        """Update region panel, eventually set tab according to the selection in diagram"""
+        regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
+        if regions:
+            self.regions.select_current_regions(regions)
+        self.regions.update_regions_panel()
             
     def config_changed(self):
         """Handle changes of config."""

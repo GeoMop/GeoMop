@@ -110,14 +110,47 @@ class Diagram(QtWidgets.QGraphicsScene):
   
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
-        
+
+    def remove_graphical_object(self, obj):
+        """Remove the object from the graphics scene and emit appropriate update signals"""
+        # remove the object from the graphical scene
+        self.removeItem(obj)
+        # update the regions panel in case some region is no longer in use and can be deleted
+        self.regionsUpdateRequired.emit()
+
+    def add_graphical_object(self, obj):
+        """Add the object to the graphics scene and emit appropriate update signals"""
+        # Add the object from the graphics scene
+        self.addItem(obj)
+        #update the regions panel in case some region gets in use and therefore cannot be deleted.
+        self.regionsUpdateRequired.emit()
+        # # Get object dimension, selected layer,..
+        # dim = None
+        # layer_id = cfg.diagram.regions.current_layer_id
+        # if isinstance(obj, Point):
+        #     dim = 0
+        # elif isinstance(obj, Line):
+        #     dim = 1
+        # elif isinstance(obj, Polygon):
+        #     dim = 2
+        # if dim is not None:
+        #     #..selected region in the regions panel
+        #     reg_id = cfg.main_window.regions.get_current_region()
+        #     if not reg_id == 0:
+        #         # ..and compare the dimensions with all aspects (region dimension, fracture/bulk layer,..)
+        #         region = cfg.diagram.regions.regions[reg_id]
+        #         pas = region.cmp_shape_dim(layer_id, dim)
+        #         # if the region is actually added to the new object, update the region panel
+        #         if pas:
+        #             self.regionsUpdateRequired.emit()
+
     def show_mash(self, quad, u, v):
         """Show mash"""
         if quad is None:
             return
         if self.mash is None:
             self.mash = Mash(quad, u, v)
-            self.addItem(self.mash)
+            self.add_graphical_object(self.mash)
         else:
             self.mash.u = u
             self.mash.v = v
@@ -125,23 +158,23 @@ class Diagram(QtWidgets.QGraphicsScene):
         
     def hide_mash(self):
         """hide mash"""
-        self.removeItem(self.mash)
+        self.remove_graphical_object(self.mash)
         self.mash = None
         
     def  show_init_area(self, state):
         """Show initialization area"""
         if self.init_area is not None:
-            self.removeItem(self.init_area)
+            self.remove_graphical_object(self.init_area)
         if state:
             self.init_area = InitArea(cfg.diagram)
-            self.addItem(self.init_area)
+            self.add_graphical_object(self.init_area)
         
     def refresh_shp_backgrounds(self):
         """refresh updated shape files on background"""
         for shp in cfg.diagram.shp.datas:
             if shp.shpdata.object is None:
                 s = ShpBackground(shp.shpdata, shp.color)
-                self.addItem(s) 
+                self.add_graphical_object(s)
                # s.prepareGeometryChange()
                 shp.refreshed = True
             elif not shp.refreshed:
@@ -154,7 +187,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         if gobject is None or isinstance(gobject, Polygon):
             point =cfg.diagram.add_point(p1.x(), p1.y(), label) 
             p = Point(point)
-            self.addItem(p)
+            self.add_graphical_object(p)
         elif isinstance(gobject, Point):
             return gobject, label
         elif isinstance(gobject, Line): 
@@ -162,22 +195,22 @@ class Diagram(QtWidgets.QGraphicsScene):
                 label='Add new point to line'
             point, l2 = cfg.diagram.add_new_point_to_line(gobject.line_data, p1.x(), p1.y(), label)
             l = Line(l2)
-            self.addItem(l) 
+            self.add_graphical_object(l)
             p = Point(point)
-            self.addItem(p)
+            self.add_graphical_object(p)
             self._add_polygons()
         return p, None
         
     def _add_polygons(self):
-        """If is new polygon in data object, created it"""
+        """If is new polygon in data object, create it"""
         if len(cfg.diagram.new_polygons)>0:
             for polygon in cfg.diagram.new_polygons:
                 obj = polygon.object
                 if obj is not None:
                     obj.release_polygon()
-                    self.removeItem(obj)
+                    self.remove_graphical_object(obj)
                 p = Polygon(polygon)
-                self.addItem(p)  
+                self.add_graphical_object(p)
             cfg.diagram.new_polygons = []
             
     def _del_polygons(self):
@@ -187,7 +220,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 obj = polygon.object
                 if obj is not None:                    
                     obj.release_polygon()
-                    self.removeItem(obj)
+                    self.remove_graphical_object(obj)
                 if polygon in self.selection.selected_polygons:
                     self.selection.selected_polygons.remove(polygon)
             cfg.diagram.deleted_polygons = []
@@ -241,12 +274,12 @@ class Diagram(QtWidgets.QGraphicsScene):
         if add_last:                
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
             p1 = Point(line.p1, tmp=True)
-            self.addItem(p1)
+            self.add_graphical_object(p1)
             p2 = Point(line.p2, tmp=True)
             p2.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            self.addItem(p2)
+            self.add_graphical_object(p2)            
             l = Line(line, tmp=True)
-            self.addItem(l)
+            self.add_graphical_object(l)
             self._last_line = line
             self._add_polygons()
         
@@ -257,28 +290,28 @@ class Diagram(QtWidgets.QGraphicsScene):
             p2 = self._last_line.p2.object
             l = self._last_line.object
             p1.release_point()
-            self.removeItem(p1)
+            self.remove_graphical_object(p1)
             p2.release_point()
-            self.removeItem(p2)
+            self.remove_graphical_object(p2)
             self._last_line.object.release_line()
-            self.removeItem(l)                        
+            self.remove_graphical_object(l)
             self._last_line = None            
     
     def update_changes(self, added_points, removed_points, moved_points, added_lines, removed_lines):
         for point in added_points:
             p = Point(point)
-            self.addItem(p)
+            self.add_graphical_object(p)
         for line in added_lines:
             l = Line(line)
-            self.addItem(l)        
+            self.add_graphical_object(l)
         for point in removed_points:
             p = point.object
             p.release_point()
-            self.removeItem(p)
+            self.remove_graphical_object(p)
         for line in removed_lines:
             l = line.object
             l.release_line()
-            self.removeItem(l)
+            self.remove_graphical_object(l)
         for point in moved_points:
             point.object.move_point()
         
@@ -289,7 +322,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             deleted.append(view)
         cfg.diagram.views_object = {}
         while len(deleted)>0:
-            self.removeItem(deleted.pop())            
+            self.remove_graphical_object(deleted.pop())
         
     def update_views(self):
         """update all diagram views"""
@@ -302,51 +335,51 @@ class Diagram(QtWidgets.QGraphicsScene):
         for uid in del_uid:
             obj = cfg.diagram.views_object[uid]
             obj.release_view()
-            self.removeItem(obj)   
+            self.remove_graphical_object(obj)
         for uid in cfg.diagram.views:
             if curr_uid!=uid and uid not in cfg.diagram.views_object:    
                 view = DiagramView(uid)
-                self.addItem(view)
+                self.add_graphical_object(view)
         
     def release_data(self, old_diagram):
         """release all shapes data"""
         for line in cfg.diagrams[old_diagram].lines:
             obj = line.object
             obj.release_line()
-            self.removeItem(obj)
+            self.remove_graphical_object(obj)
         for point in cfg.diagrams[old_diagram].points:
             obj = point.object
             obj.release_point()
-            self.removeItem(obj)
+            self.remove_graphical_object(obj)
         for polygon in cfg.diagrams[old_diagram].polygons:
             obj = polygon.object
             obj.release_polygon()
-            self.removeItem(obj)            
+            self.remove_graphical_object(obj)
         
     def set_data(self):        
         """set new shapes data"""
         for line in cfg.diagram.lines:
             l = Line(line)
-            self.addItem(l) 
+            self.add_graphical_object(l)
         for point in cfg.diagram.points:
             p = Point(point)
-            self.addItem(p)
+            self.add_graphical_object(p)
             for polygon in cfg.diagram.polygons:
                 if polygon.object is None:
                     p = Polygon(polygon)
-                    self.addItem(p)  
+                    self.add_graphical_object(p)
         self._add_polygons()
         
     def blink_start(self, rect):
         """Start blink window"""
         self.blink = Blink(rect)
-        self.addItem(self.blink)
+        self.add_graphical_object(self.blink)
         self.blink_timer.start(self.BLINK_INTERVAL)
         
     def blink_end(self):
         """Finish blink window"""
         if self.blink is not None:
-            self.removeItem(self.blink)        
+            self.remove_graphical_object(self.blink)
         self.blink = None
             
     def update_geometry(self):
@@ -412,7 +445,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         objects_to_remove = self.selection.delete_selected()
         if len(objects_to_remove) > 0:
             for obj in objects_to_remove:
-                self.removeItem(obj)
+                self.remove_graphical_object(obj)
             self._del_polygons()
         else:
             self.regionsUpdateRequired.emit()
@@ -434,7 +467,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line_data,
                 self._point_moving.point_data, None)
             l = Line(new_line)
-            self.addItem(l) 
+            self.add_graphical_object(l)
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
@@ -443,7 +476,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
             self._point_moving.release_point()
-            self.removeItem(self._point_moving)
+            self.remove_graphical_object(self._point_moving)
             self.update_changes([], [],  [], [], removed_lines)            
             below_item.move_point(event.scenePos(), ItemStates.standart)           
         else:

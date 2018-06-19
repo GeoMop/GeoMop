@@ -10,17 +10,21 @@ import sys
 import logging
 import argparse
 import PyQt5.QtWidgets as QtWidgets
+import time
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from JobPanel.ui.com_manager import ComManager
+#from JobPanel.ui.com_manager import ComManager
 from JobPanel.ui.main_window import MainWindow
 from JobPanel.ui.data.data_structures import DataContainer
 from JobPanel.ui.imports.workspaces_conf import BASE_DIR
 import gm_base.icon as icon
-from  JobPanel.communication.installation import Installation
+from JobPanel.communication.installation import Installation
 
-import gm_base.config cfg
+import gm_base.config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
+
+from JobPanel.backend.service_frontend import ServiceFrontend
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
@@ -51,18 +55,32 @@ class JobPanel(object):
         self._app = QtWidgets.QApplication(args)
         
         #icon
-        self._app.setWindowIcon(icon.get_app_icon("js-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("jp-geomap"))
 
         # load data container
         self._data = DataContainer()
         Installation.set_init_paths(CONFIG_DIR, self._data.workspaces.get_path())
 
         # setup com manager
-        self._com_manager = ComManager(self._data)
+        #self._com_manager = ComManager(self._data)
+
+        # todo: presunuto z main_window, nevim jeslti to je v poradku
+        # select workspace if none is selected
+        if self._data.workspaces.get_path() is None:
+            import sys
+            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose workspace")
+            if not sel_dir:
+                sel_dir = None
+            elif sys.platform == "win32":
+                sel_dir = sel_dir.replace('/', '\\')
+            self._data.reload_workspace(sel_dir)
+
+        # setup frontend service
+        self._frontend_service = ServiceFrontend(self._data)
 
         # setup qt UI
         self._main_window = MainWindow(data=self._data,
-                                       com_manager=self._com_manager)
+                                       frontend_service=self._frontend_service)
 
         # connect save all on exit
         self._app.aboutToQuit.connect(self._data.save_all)
@@ -75,11 +93,29 @@ class JobPanel(object):
     def run(self):
         """Run app and show UI"""
 
+        # start frontend service
+        self._frontend_service.run_before()
+
+        # start backend service
+        self._frontend_service.start_backend()
+
         # show UI
         self._main_window.show()
 
         # execute app
-        sys.exit(self._app.exec_())
+        ret = self._app.exec_()
+
+        # stop backend service
+        self._frontend_service.stop_backend()
+        for i in range(10):
+            time.sleep(0.1)
+            self._frontend_service.run_body()
+        self._frontend_service.kill_backend()
+
+        # stop frontend service
+        self._frontend_service.run_after()
+
+        sys.exit(ret)
 
 
 def main():

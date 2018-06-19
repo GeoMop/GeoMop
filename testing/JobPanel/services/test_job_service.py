@@ -12,21 +12,34 @@ import pytest
 logging.basicConfig(filename='test_job_service.log', filemode='w', level=logging.INFO)
 
 
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+geomop_root_local = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(this_source_dir))), "src")
+
 TEST_FILES = "test_files"
 REMOTE_WORKSPACE = "/home/test/workspace"
 
+
 @pytest.mark.slow
 def test_correct_run(request):
-    def clear_test_files():
+    local_service = None
+    local_service_thread = None
+
+    def finalizer():
+        # stopping, closing
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+
         shutil.rmtree(TEST_FILES, ignore_errors=True)
-    request.addfinalizer(clear_test_files)
+    request.addfinalizer(finalizer)
 
     # create analysis and job workspaces
     os.makedirs(os.path.join(TEST_FILES, "workspace/job"), exist_ok=True)
 
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
@@ -34,15 +47,16 @@ def test_correct_run(request):
           "environment": env,
           "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # job data
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services/_job_service.py",
+                         "path": "JobPanel/services/job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services/job_1.py",
+          "path": os.path.join(this_source_dir, "job_1.py"),
           "script": True}
     service_data = {"service_host_connection": cl,
                     "process": pe,
@@ -58,26 +72,38 @@ def test_correct_run(request):
     # check correct job state transition
     time.sleep(5)
     assert job._status == ServiceStatus.queued
-    time.sleep(15)
+    time.sleep(10)
     assert job._status == ServiceStatus.running
-    time.sleep(15)
+    time.sleep(30)
     assert job._status == ServiceStatus.done
 
-    # stopping, closing
-    local_service._closing = True
 
-
+@pytest.mark.slow
+@pytest.mark.ssh
 def test_correct_run_connection_fail(request):
-    def clear_test_files():
+    local_service = None
+    local_service_thread = None
+    port_forwarder = None
+
+    def finalizer():
+        # stopping, closing
+        if port_forwarder is not None:
+            port_forwarder.close_all_forwarded_ports()
+
+        if local_service_thread is not None:
+            local_service._closing = True
+            local_service_thread.join(timeout=5)
+            assert not local_service_thread.is_alive()
+
         shutil.rmtree(TEST_FILES, ignore_errors=True)
-    request.addfinalizer(clear_test_files)
+    request.addfinalizer(finalizer)
 
     # create analysis and job workspaces
     os.makedirs(os.path.join(TEST_FILES, "workspace/job"), exist_ok=True)
 
     # local service
     env = {"__class__": "Environment",
-           "geomop_root": os.path.abspath("../src"),
+           "geomop_root": geomop_root_local,
            "geomop_analysis_workspace": os.path.abspath(os.path.join(TEST_FILES, "workspace")),
            "python": "python3"}
     cl = {"__class__": "ConnectionLocal",
@@ -85,7 +111,8 @@ def test_correct_run_connection_fail(request):
           "environment": env,
           "name": "local"}
     local_service = ServiceBase({"service_host_connection": cl})
-    threading.Thread(target=local_service.run, daemon=True).start()
+    local_service_thread = threading.Thread(target=local_service.run, daemon=True)
+    local_service_thread.start()
 
     # port forwarder
     port_forwarder = PortForwarder()
@@ -93,7 +120,7 @@ def test_correct_run_connection_fail(request):
 
     # job data
     env_rem = {"__class__": "Environment",
-               "geomop_root": os.path.abspath("../src"),
+               "geomop_root": geomop_root_local,
                "geomop_analysis_workspace": REMOTE_WORKSPACE,
                "python": "python3"}
     u, p = get_test_password()
@@ -106,10 +133,10 @@ def test_correct_run_connection_fail(request):
           "name": "remote"}
     pe = {"__class__": "ProcessExec",
           "executable": {"__class__": "Executable",
-                         "path": "JobPanel/services/_job_service.py",
+                         "path": "JobPanel/services/job_service.py",
                          "script": True}}
     je = {"__class__": "Executable",
-          "path": "../testing/JobPanel/services/job_1.py",
+          "path": os.path.join(this_source_dir, "job_1.py"),
           "script": True}
     service_data = {"service_host_connection": cr,
                     "process": pe,
@@ -134,12 +161,8 @@ def test_correct_run_connection_fail(request):
     port_forwarder.discard_data = True
     time.sleep(5)
     port_forwarder.discard_data = False
-    time.sleep(5)
+    time.sleep(10)
     assert job._status == ServiceStatus.running
     assert job._online
     time.sleep(10)
     assert job._status == ServiceStatus.done
-
-    # stopping, closing
-    port_forwarder.close_all_forwarded_ports()
-    local_service._closing = True
