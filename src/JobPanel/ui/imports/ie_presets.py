@@ -88,7 +88,9 @@ class IERes(IE):
     default_items = {}
 
 class IEMj(IE):
-    items = ["analysis", "log_level", "name", "number_of_processes", "resource_preset", "deleted_remote"]
+    items = ["analysis", "log_level", "name", "number_of_processes", "mj_execution_type", "mj_ssh_preset",
+             "mj_remote_execution_type", "mj_pbs_preset", "j_execution_type", "j_ssh_preset",
+             "j_remote_execution_type", "j_pbs_preset", "deleted_remote"]
     default_items = {}
     
     def export_(self, datas):

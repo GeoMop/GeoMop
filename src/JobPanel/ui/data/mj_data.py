@@ -125,11 +125,32 @@ class MultiJobPreset(APreset):
         name = kw_or_def('name', 'Default MultiJob Preset Name')
         super().__init__(name)
 
-        self.resource_preset = kw_or_def('resource_preset')
+        #self.resource_preset = kw_or_def('resource_preset')
         """Selected resource preset"""
        # self.pbs_preset = kw_or_def('pbs_preset')
         """AdHoc PBS preset override"""
-        self.log_level = kw_or_def('log_level', logging.DEBUG)
+
+        # MJ
+        self.mj_execution_type = kw_or_def('mj_execution_type')
+        """Defines how to execute MJ"""
+        self.mj_ssh_preset = kw_or_def('mj_ssh_preset')
+        """SSH preset for option"""
+        self.mj_remote_execution_type = kw_or_def('mj_remote_execution_type')
+        """Defines how to execute MJ remote component"""
+        self.mj_pbs_preset = kw_or_def('mj_pbs_preset')
+        """PBS preset for option"""
+
+        # Job
+        self.j_execution_type = kw_or_def('j_execution_type')
+        """Defines how to execute Job"""
+        self.j_ssh_preset = kw_or_def('j_ssh_preset')
+        """SSH preset for option"""
+        self.j_remote_execution_type = kw_or_def('j_remote_execution_type')
+        """Defines how to execute Job remote component"""
+        self.j_pbs_preset = kw_or_def('j_pbs_preset')
+        """PBS preset for option"""
+
+        self.log_level = kw_or_def('log_level', logging.WARNING)
         """Logging level"""
         self.number_of_processes = kw_or_def('number_of_processes', 1)
         """Number of processes used by MultiJob"""

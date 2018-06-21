@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 from Analysis.client_pipeline.mj_preparation import *
 from ui.dialogs import SshPasswordDialog
@@ -13,33 +14,14 @@ def build(data_app, mj_id):
     mj_preset = data_app.multijobs[mj_id].preset
     mj_name = mj_preset.name
     an_name = mj_preset.analysis
-    res_preset = data_app.resource_presets[mj_preset.resource_preset]
     mj_log_level = mj_preset.log_level
-    mj_number_of_processes = mj_preset.number_of_processes
 
     # resource preset
-    mj_execution_type = res_preset.mj_execution_type
-    mj_ssh_preset = data_app.ssh_presets.get(res_preset.mj_ssh_preset, None)
-    mj_remote_execution_type = res_preset.mj_remote_execution_type
-    mj_pbs_preset = data_app.pbs_presets.get(res_preset.mj_pbs_preset, None)
-    # if mj_ssh_preset is None:
-    #     mj_env = data_app.config.local_env
-    # else:
-    #     mj_env = mj_ssh_preset.env
-    # mj_env = data_app.env_presets[mj_env]
+    mj_ssh_preset = data_app.ssh_presets.get(mj_preset.mj_ssh_preset, None)
+    mj_pbs_preset = data_app.pbs_presets.get(mj_preset.mj_pbs_preset, None)
 
-    j_execution_type = res_preset.j_execution_type
-    j_ssh_preset = data_app.ssh_presets.get(res_preset.j_ssh_preset, None)
-    j_remote_execution_type = res_preset.j_remote_execution_type
-    j_pbs_preset = data_app.pbs_presets.get(res_preset.j_pbs_preset, None)
-    # if j_ssh_preset is None:
-    #     j_env = mj_env
-    # else:
-    #     j_env = j_ssh_preset.env
-    #     j_env = data_app.env_presets[j_env]
-
-
-
+    j_ssh_preset = data_app.ssh_presets.get(mj_preset.j_ssh_preset, None)
+    j_pbs_preset = data_app.pbs_presets.get(mj_preset.j_pbs_preset, None)
 
     # prepare mj
     workspace = data_app.workspaces.workspace
@@ -159,8 +141,10 @@ def build(data_app, mj_id):
                   "exec_args": {"__class__": "ExecArgs",
                                 "pbs_args": _get_pbs_conf(j_pbs_preset)}}
 
+    log_all = mj_log_level == logging.INFO
     job_service_data = {"service_host_connection": j_con,
-                        "process": job_pe}
+                        "process": job_pe,
+                        "log_all": log_all}
     service_data = {"service_host_connection": mj_con,
                     "process": pe,
                     "workspace": analysis + "/mj/" + mj + "/mj_config",
@@ -168,7 +152,8 @@ def build(data_app, mj_id):
                     "pipeline": {"python_script": "analysis.py",
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,
-                    "input_files": input_files}
+                    "input_files": input_files,
+                    "log_all": log_all}
 
     #print(json.dumps(service_data, indent=4, sort_keys=True))
     return service_data

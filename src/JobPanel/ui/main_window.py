@@ -311,9 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     pass
                     
     def _handle_add_multijob_action(self):
-        mj_dlg = MultiJobDialog(parent=self,
-            resources=self.data.resource_presets, data=self.data)
-        mj_dlg.set_analyses(self.data.workspaces)
+        mj_dlg = MultiJobDialog(parent=self, data=self.data)
         ret = mj_dlg.exec_add()
         if ret==QtWidgets.QDialog.Accepted:
             self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
@@ -327,10 +325,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 "key": key,
                 "preset": preset
             }
-            
-            mj_dlg = MultiJobDialog(parent=self,
-            resources=self.data.resource_presets, data=self.data)
-            mj_dlg.set_analyses(self.data.workspaces)
+
+            mj_dlg = MultiJobDialog(parent=self, data=self.data)
             ret = mj_dlg.exec_copy(data)
             if ret==QtWidgets.QDialog.Accepted:
                 self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
