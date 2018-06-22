@@ -99,7 +99,7 @@ class Backend(ServiceBase):
     """
     """
 
-    def __init__(self, config):
+    def __init__(self, config, secret_key):
         self.mj_info = JsonDataNoConstruct()
         """dict of managed MJ information"""
 
@@ -126,7 +126,7 @@ class Backend(ServiceBase):
 
         self._proxies_resuscitated = False
 
-        self._secret = Secret()
+        self._secret = Secret(secret_key)
         self._demangle_secret()
 
     def serialize(self):
@@ -616,7 +616,7 @@ if __name__ == "__main__":
             level = logging.WARNING
         logging.root.setLevel(level)
 
-        bs = Backend(config)
+        bs = Backend(config, sys.argv[1])
         bs.run()
     except:
         logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))

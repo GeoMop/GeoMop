@@ -12,18 +12,24 @@ class Secret:
     """
     Class for mangling and demangling secret data.
     """
-    def __init__(self):
-        self._file = os.path.join(config.__config_dir__, ".secret")
+    def __init__(self, key=None):
         self._key = ""
-        if os.path.isfile(self._file):
-            with open(self._file, "r") as f:
-                self._key = f.readline().strip()
+        if key is not None:
+            self._key = key
         else:
-            self._key = str(uuid.uuid4())
-            with open(self._file, "w") as f:
-                f.write(self._key)
-                f.write("\n")
-            os.chmod(self._file, stat.S_IRUSR | stat.S_IWUSR)
+            file = os.path.join(config.__config_dir__, ".secret")
+            if os.path.isfile(file):
+                with open(file, "r") as f:
+                    self._key = f.readline().strip()
+            else:
+                self._key = str(uuid.uuid4())
+                with open(file, "w") as f:
+                    f.write(self._key)
+                    f.write("\n")
+                os.chmod(file, stat.S_IRUSR | stat.S_IWUSR)
+
+    def get_key(self):
+        return self._key
 
     def mangle(self, text):
         """

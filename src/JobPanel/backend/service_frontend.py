@@ -6,6 +6,7 @@ from services.backend_service import MJReport
 from services.multi_job_service import MJStatus
 from ui.data.mj_data import MultiJobState
 from data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.secret import Secret
 
 import threading
 import time
@@ -312,6 +313,11 @@ class ServiceFrontend(ServiceBase):
 
         # set log level
         service_data["log_all"] = False
+
+        # add secret key
+        if "exec_args" not in service_data["process"]:
+            service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
+        service_data["process"]["exec_args"]["secret_args"] = [Secret().get_key()]
 
         # start backend
         child_id = self.request_start_child(service_data)
