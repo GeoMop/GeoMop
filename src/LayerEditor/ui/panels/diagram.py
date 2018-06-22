@@ -4,7 +4,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from ..data import diagram_structures as struc
 from ..data.selection import Selection
-from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Mash
+from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Grid
 from ..gitems import ItemStates
 from LayerEditor.leconfig import cfg
     
@@ -101,7 +101,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         """Initialization area"""
         self.blink_timer.setSingleShot(True) 
         #mash
-        self.mash=None
+        self.grid=None
         """Surface mash"""        
         
         super(Diagram, self).__init__(parent)
@@ -144,22 +144,22 @@ class Diagram(QtWidgets.QGraphicsScene):
         #         if pas:
         #             self.regionsUpdateRequired.emit()
 
-    def show_mash(self, quad, u, v):
-        """Show mash"""
+    def show_grid(self, quad, nuv):
+        """Show grid of actual surface from surface panel."""
         if quad is None:
             return
-        if self.mash is None:
-            self.mash = Mash(quad, u, v)
-            self.add_graphical_object(self.mash)
+        if self.grid is None:
+            self.grid = Grid(quad, nuv)
+            self.add_graphical_object(self.grid)
         else:
-            self.mash.u = u
-            self.mash.v = v
-            self.mash.set_quad(quad, u, v)
+            self.grid.set_quad(quad, nuv)
+        return self.grid.boundingRect()
         
-    def hide_mash(self):
+    def hide_grid(self):
         """hide mash"""
-        self.remove_graphical_object(self.mash)
-        self.mash = None
+        if self.grid is not None:
+            self.remove_graphical_object(self.grid)
+            self.grid = None
         
     def  show_init_area(self, state):
         """Show initialization area"""
@@ -640,6 +640,6 @@ class Diagram(QtWidgets.QGraphicsScene):
     def focusInEvent(self, event):
         """Standart focus event"""
         super(Diagram, self).focusInEvent(event)
-        if self.mash is not None:
-            self.hide_mash()
+        # if self.grid is not None:
+        #     self.hide_grid()
 

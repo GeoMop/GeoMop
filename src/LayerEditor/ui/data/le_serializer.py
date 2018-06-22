@@ -46,7 +46,6 @@ class LESerializer():
 
     def load(self, cfg, path):
         geometry =  layers_io.read_geometry(path)
-        assert geometry.version == [0, 5, 0]
         self.geometry_to_cfg(path, geometry, cfg)
 
     def geometry_to_cfg(self, path, geometry, cfg):
@@ -65,8 +64,9 @@ class LESerializer():
         for reg_id, region in enumerate(gf.get_regions()):
             Diagram.add_region(region.color, region.name, reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
-        for surface in gf.get_surfaces():
-            cfg.layers.surfaces.add(surface.approximation, surface.grid_file, surface.name)
+
+        cfg.layers.load_surfaces(gf.load_surfaces())
+
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_id
             if new_top != curr_topology:
@@ -191,6 +191,7 @@ class LESerializer():
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
         Diagram.zooming.deserialize(gf.geometry.supplement.zoom)
         Diagram.shp.deserialize(gf.get_shape_files())
+
         cfg.reload_surfaces(gf.geometry.supplement.surface_idx)
         cfg.diagram = cfg.diagrams[ns_idx]         
         cfg.diagram.fix_topologies(cfg.diagrams)
@@ -223,8 +224,8 @@ class LESerializer():
         gf._base_dir = os.path.dirname(path)
         for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
-        for surface in cfg.layers.surfaces.surfaces:
-            gf.add_surface(surface.approximation, surface.grid_file, surface.name)
+        gf.save_surfaces(cfg.layers.surfaces)
+
             
         # layers
         layers_info = cfg.layers.get_first_layer_info()

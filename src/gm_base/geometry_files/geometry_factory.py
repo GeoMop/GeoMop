@@ -33,7 +33,7 @@ class GeometryFactory:
     def __init__(self, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
-            self.geometry.version = [0, 5, 0]
+            self.geometry.version = [0, 5, 5]
         else:
             self.geometry = geometry
         self.used_interfaces = {}
@@ -54,28 +54,28 @@ class GeometryFactory:
         """Get list of regions"""
         return self.geometry.regions
     
-    def get_surfaces(self):
+    def load_surfaces(self):
         """Generator for surfaces of the LayerGeometry."""
         for surface in self.geometry.surfaces:
             surface.grid_file = self.make_abs_path(surface.grid_file)
             surface.approximation = bs_zsurface_read(surface.approximation)
             yield surface
 
-        
+    def save_surfaces(self, surfaces):
+        for s in surfaces:
+            surface = Surface(dict(
+                approximation=bs_zsurface_write(s.approximation),
+                name=s.name,
+                grid_file=self.make_rel_path(s.grid_file),
+                approx_error=s.approx_error
+            ))
+            self.geometry.surfaces.append(surface)
+
     def add_region(self, color, name, dim, step,  boundary, not_used):
         """Get list of regions"""
         region = Region(dict(color=color, name=name, dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
         
-    def add_surface(self, approximation, grid_file, name):
-        """Get list of regions"""
-        
-        surface = Surface(dict(
-            approximation=bs_zsurface_write(approximation),
-            name=name,
-            grid_file=self.make_rel_path(grid_file)
-            ))
-        return self.geometry.surfaces.append(surface)
 
     def get_topology(self, node_set_idx):
         """Get node set topology idx"""

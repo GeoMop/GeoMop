@@ -60,8 +60,8 @@ class MainWindow(QtWidgets.QMainWindow):
        
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True) 
-        self.surfaces = panels.Surfaces(self.scroll_area2)
-        self.scroll_area2.setWidget(self.surfaces)
+        self.wg_surface_panel = panels.Surfaces(cfg.layers, cfg.config.data_dir, parent = self.scroll_area2)
+        self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
         
         self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter2)
@@ -118,9 +118,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.topologyChanged.connect(self.set_topology)
         self.layers.refreshArea.connect(self._refresh_area)
         self.regions.regionChanged.connect(self._region_changed)
-        self.surfaces.showMash.connect(self._show_mash)
-        self.surfaces.hideMash.connect(self._hide_mash)
-        self.surfaces.refreshArea.connect(self._refresh_area)
+        self.wg_surface_panel.show_grid.connect(self._show_grid)
+        #self.surfaces.refreshArea.connect(self._refresh_area)
 
         # initialize components
         self.config_changed()
@@ -207,8 +206,9 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def display_all(self):
         """Display all diagram"""
-        rect = cfg.diagram.rect
-        rect = cfg.diagram.get_diagram_all_rect(rect, cfg.layers, cfg.diagram_id())        
+        #rect = cfg.diagram.rect
+        #rect = cfg.diagram.get_diagram_all_rect(rect, cfg.layers, cfg.diagram_id())
+        rect = self.diagramScene.itemsBoundingRect()
         self.display_rect(rect)
         
     def display_area(self):
@@ -283,15 +283,20 @@ class MainWindow(QtWidgets.QMainWindow):
         """Region in regions panel was changed."""
         self.diagramScene.selection.set_current_region()
         
-    def _show_mash(self, force):
+    def _show_grid(self, show_flag):
         """Show mash"""
-        if force or self.diagramScene.mash is None:
-            quad, u, v = self.surfaces.get_curr_mash()
-            self.diagramScene.show_mash(quad, u, v)
-        
-    def _hide_mash(self):
-        """hide mash"""
-        self.diagramScene.hide_mash()
+        if show_flag:
+            quad, nuv = self.wg_surface_panel.get_curr_quad()
+            if quad is None:
+                return
+            rect = self.diagramScene.show_grid(quad, nuv)
+            view_rect = self.diagramView.sceneRect()
+            if not view_rect.contains(rect):
+                view_rect = view_rect.united(rect)
+                self.display_rect(view_rect)
+        else:
+            self.diagramScene.hide_grid()
+
         
     def _refresh_area(self):
         """Refresh init area"""
@@ -309,6 +314,3 @@ class MainWindow(QtWidgets.QMainWindow):
         """Show a message in status bar for the given duration (in ms)."""
         self._status.showMessage(message, duration)
         
-    def reload_surfaces(self):
-        """reload surface"""
-        self.surfaces.reload_surfaces()

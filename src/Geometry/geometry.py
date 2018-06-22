@@ -715,6 +715,8 @@ class FractureLayer(gs.FractureLayer):
                     self.i_top.edges[sub_seg_id].set_shape(reg.id, self.i_top, self.i_top)
 
         for poly in decomp.polygons.values():
+            if poly.is_outer_polygon():
+                continue
             reg = self.regions[2][poly.id]
             if reg.is_active(2):
                 for sub_poly_id in obj_maps[2][poly.id]:
