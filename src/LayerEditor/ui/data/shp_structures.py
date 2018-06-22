@@ -5,6 +5,20 @@ import struct
 import os
 import os.path
 
+class ShpPolygon():
+    """
+    Polygon from shape file
+    """
+    def __init__(self, polygon_points, highlighted=False):
+        """
+        Data structure for storing the shapefile object data
+        polygon_points: list of QPoint objects
+        """
+        self.polygon_points = QtGui.QPolygonF(polygon_points)
+        """Polygon - derives from qvector, therefore points are accessible ala array"""
+        self.highlighted = highlighted
+        """Object is highlighted"""
+
 class ShpLine():
     """
     Line from shape file 
@@ -36,6 +50,8 @@ class ShpData():
     (Only geometric that will be displayed)
     """
     def __init__(self):
+        self.polygons = []
+        """List of displayed polygons in ShpLine data type"""
         self.lines = []
         """List of displayed lines in ShpLine data type"""
         self.points = []
@@ -49,6 +65,7 @@ class ShpData():
         
     def clear(self):
         """Remove all lines, points ant reset border"""
+        self.polygons = []
         self.lines = []
         self.points = []
         self.min = None
@@ -193,11 +210,27 @@ class ShpDisp():
             name = self.parse_attr(fields[load_attr], self._attrs_types[load_attr], self._attrs_dec[load_attr])
             idx = self.av_names.index(name)
             highlighted = self.av_highlight[idx]
-            shape = sf.shape(i)    
+            shape = sf.shape(i)
+            #shape.shapeType:
+            # NULL = 0
+            # POINT = 1
+            # POLYLINE = 3
+            # POLYGON = 5
+            # MULTIPOINT = 8
+            # POINTZ = 11
+            # POLYLINEZ = 13
+            # POLYGONZ = 15
+            # MULTIPOINTZ = 18
+            # POINTM = 21
+            # POLYLINEM = 23
+            # POLYGONM = 25
+            # MULTIPOINTM = 28
+            # MULTIPATCH = 31
+
             # layer borders
             if shape.shapeType == 0:
                  continue
-            elif shape.shapeType in [5, 3, 8, 13, 15, 23, 25, 28, 31]:                
+            elif shape.shapeType in [3, 5, 8, 13, 15, 18, 23, 25, 28, 31]:
                 if self.shpdata.min is None:
                     self.shpdata.min = QtCore.QPointF(shape.bbox[0], -shape.bbox[3])
                     self.shpdata.max = QtCore.QPointF(shape.bbox[2], -shape.bbox[1])
@@ -237,9 +270,17 @@ class ShpDisp():
                     self.shpdata.points.append(
                         ShpPoint(point, highlighted)
                     )
-            elif shape.shapeType in [3, 5, 13, 15, 23, 25, 31]:                
+            elif shape.shapeType in [5, 15, 25]:
+                point_list = []
+                for j in range(0, len(shape.points)):
+                    point = QtCore.QPointF(shape.points[j][0],-shape.points[j][1])
+                    point_list.append(point)
+                self.shpdata.polygons.append(
+                    ShpPolygon(point_list, highlighted)
+                )
+            elif shape.shapeType in [3, 13, 23, 31]:
                 part = 0
-                point = None                
+                point = None
                 for j in range(0, len(shape.points)):
                     lastPoint = point
                     point = QtCore.QPointF(shape.points[j][0],-shape.points[j][1])
@@ -252,6 +293,7 @@ class ShpDisp():
                             )
             else:
                 raise Exception("Shape file type {0} is not implemented".format(str(shape.shapeType)))
+                #TODO: complete other types as POINTZ, etc.
         return True
     
     def _read_shp_count(self, sf):

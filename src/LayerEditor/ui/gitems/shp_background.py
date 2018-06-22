@@ -34,11 +34,24 @@ class ShpBackground(QtWidgets.QGraphicsItem):
         pen = QtGui.QPen(cfg.diagram.pen)
         pen.setColor(self.color)
         painter.setPen(pen)
+        brush = QtGui.QBrush(QtGui.QColor(self.color.red(),self.color.green(),self.color.blue(),10))
+        painter.setBrush(brush)
         bpen = QtGui.QPen(cfg.diagram.bpen)
         bpen.setColor( self.color)
+        bbrush = QtGui.QBrush(QtGui.QColor(self.color.red(),self.color.green(),self.color.blue(),50))
             
         painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
         highlighted = False
+        for polygon in self.shp.polygons:
+            if polygon.highlighted != highlighted:
+                highlighted = polygon.highlighted
+                if highlighted:
+                    painter.setPen(bpen)
+                    painter.setBrush(bbrush)
+                else:
+                    painter.setPen(pen)
+                    painter.setBrush(brush)
+            painter.drawPolygon(polygon.polygon_points)
         for line in self.shp.lines:
             if line.highlighted != highlighted:
                 highlighted = line.highlighted
