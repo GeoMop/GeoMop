@@ -1740,6 +1740,7 @@ class Polygon(IdObject):
     def is_outer_polygon(self):
         return self.outer_wire.is_root()
 
+    #TODO: remove any polygon depth attribute operations!
     def depth(self):
         """
         LAYERS

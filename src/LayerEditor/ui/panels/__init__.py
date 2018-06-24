@@ -3,3 +3,4 @@ from .shpfiles import ShpFiles
 from .layers import Layers
 from .regions import Regions
 from .surfaces import Surfaces
+from .shptransfer import ShpTransferView

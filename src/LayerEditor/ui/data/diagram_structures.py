@@ -955,7 +955,7 @@ class Diagram():
         if need_recount:
             self.recount_canvas()
 
-    def join_line(self,p1, p2, label=None, id=None, not_history=False, copy=None):
+    def join_line(self, p1, p2, label=None, id=None, not_history=False, copy=None):
         """Add line from point p1 to p2"""
         assert p1 != p2
         if p1>p2:
@@ -1085,10 +1085,10 @@ class Diagram():
         
     def merge_point(self, point, atached_point, label='Merge Points'):
         """
-        Merge two points. Atached_point will be remove from data
-        and shoud be released after discarding graphic object.
-        Return array of lines that should be removed. This lines is 
-        released from data, but object is existed, and should be relesed 
+        Merge two points. Attached_point will be remove from data
+        and should be released after discarding graphic object.
+        Return array of lines that should be removed. These lines are
+        released from data, but object exists, and should be released
         after discarding graphic object.
         """
         releasing_lines = []
