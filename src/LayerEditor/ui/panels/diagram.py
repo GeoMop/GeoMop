@@ -110,7 +110,16 @@ class Diagram(QtWidgets.QGraphicsScene):
   
         self.set_data()    
         self.setSceneRect(0, 0, 20, 20)
-        
+
+        # self.items = QtWidgets.QDockWidget("Dockable", self)
+        # self.listWidget = QtWidgets.QListWidget()
+        # self.listWidget.addItem("item1")
+        # self.listWidget.addItem("item2")
+        # self.listWidget.addItem("item3")
+        # self.items.setWidget(self.listWidget)
+        # self.items.setFloating(False)
+        # self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.items)
+
     def show_mash(self, quad, u, v):
         """Show mash"""
         if quad is None:
@@ -610,3 +619,4 @@ class Diagram(QtWidgets.QGraphicsScene):
         if self.mash is not None:
             self.hide_mash()
 
+# class ViewLayersSetting(QtWidgets.QWidget)

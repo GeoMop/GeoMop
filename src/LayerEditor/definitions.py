@@ -16,6 +16,8 @@ ZVALUE_SHAPEFILES = -10
 
 # TODO: What are those for? Check usage and existence necessity for these structures
 ZVALUE_DIAGRAM_VIEW = -9
-ZVALUE_BLINK = -1000
 
+# Blink when changing topology to notify user the switch operation took place
+ZVALUE_BLINK = -1000
+# Effective area of work
 ZVALUE_CANVAS = -1000
