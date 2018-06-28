@@ -8,6 +8,7 @@ from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 from ..data import SurfacesHistory
 from gm_base.geometry_files.polygons import PolygonDecomposition, PolygonChange
+from ..gitems import Point
 import copy
 
 class ShpTransferData():
@@ -33,24 +34,31 @@ class ShpTransferData():
             cfg.main_window.diagramScene._add_line(None, line.p1)
             cfg.main_window.diagramScene._add_line(None, line.p2)
         for polygon in self.polygons:
-            last_point = None
-            for point in polygon.polygon_points[0:-1]:
-                if not last_point:
-                    p = cfg.diagram.add_point(point.x(), point.y())
-                    added_points.append(p)
-                    last_point = point
-                    continue
-                p1 = added_points[-1]
-                p2 = cfg.diagram.add_point(point.x(), point.y())
-                _, l = cfg.diagram.add_line(p1, p2.x, p2.y)
-                added_points.append(p2)
-                added_lines.append(l)
-                last_point = point
-            l = cfg.diagram.join_line(added_points[-1], added_points[0])
-            added_lines.append(l)
-        cfg.main_window.diagramScene.update_changes(added_points, [], [], added_lines, [])
+            # first_point = cfg.diagram.
+            # cfg.main_window.diagramScene._add_line(None, point)
+            p,_ = cfg.main_window.diagramScene._add_point(None, polygon.polygon_points[0])
+            cfg.main_window.diagramScene._add_line(p, polygon.polygon_points[0])
+            # first_point = cfg.main_window.diagramScene._last_line.p1
+            for point in polygon.polygon_points[1:-1]:
+                #     cfg.main_window.diagramScene._add_line(None, point, False)
+                    # added_points.append(p)
+                    # last_point = points
+                    # continue
+                # p1 = added_points[-1]
+                # p2 = cfg.diagram.add_point(point.x(), point.y())
+                cfg.main_window.diagramScene._add_line(None, point)
+                # _, l = cfg.diagram.add_line(p1, p2.x, p2.y)
+                # added_points.append(p2)
+                # if not last_point:
+                # added_lines.append(l)
+                # last_point = point
+            cfg.main_window.diagramScene._add_line(p, polygon.polygon_points[-1],False)
+            # cfg.diagram.merge_point(first_point, cfg.main_window.diagramScene._last_line.p1, None)
+            # l = cfg.diagram.join_line(added_points[-1], added_points[0])
+            # added_lines.append(l)
+        # cfg.main_window.diagramScene.update_changes(added_points, [], [], added_lines, [])
 
-        #TODO: Diagram structures 972 adds line to polygon operation which asks for the last polygon decomposition change
+        #TODO: Creating line on another error
         #   - how does it change? Search from mouse release event
             # for polygon in polygons:
             #     spolygon = cfg.diagram.add_polygon(lines, label, not_history, copy)
