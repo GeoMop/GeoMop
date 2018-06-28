@@ -176,7 +176,7 @@ class PolygonOperation():
         polygon = self.decomposition.polygons[polygon_id]
         lines, qtpolygon = self._get_lines_and_qtpoly(diagram, polygon)
         for line in lines:
-            if not line in spolygon.lines:
+            if line not in spolygon.lines:
                 line.add_polygon(spolygon)
                 spolygon.lines.append(line)
         rem_lines = []
@@ -301,15 +301,20 @@ class PolygonOperation():
             self._add_to_painter_path(complex_path, inner_wire)
         return complex_path
 
+    def _update_parent_drawpath(self, parent_polydata, diagram):
+        """Update drawpath of the enclosing polygon (parent in decomposition), so it does not draw over the polygon"""
+        # if the polygon is the base diagram polygon, do not update
+        if not parent_polydata == self.decomposition.outer_polygon:
+            parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
+            # recalculates the path by wire segments
+            parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
+
     def _add_polygon(self, diagram, polygon_id, label, not_history, copy_id=None):
         """Add polygon to boundary"""
         polygon = self.decomposition.polygons[polygon_id]
         if polygon == self.decomposition.outer_polygon:
             return
-        parent_polydata = polygon.outer_wire.parent.polygon
-        if not parent_polydata == self.decomposition.outer_polygon:
-            parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
-            parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
+        self._update_parent_drawpath(polygon.outer_wire.parent.polygon, diagram)
         childs = self.decomposition.get_childs(polygon_id)
         for children in childs:
             if children != polygon_id:
@@ -332,10 +337,7 @@ class PolygonOperation():
             if children!=parent_id:
                 self._reload_depth(diagram, children)
         spolygon = self._get_spolygon(diagram, polygon_id)
-        parent_polydata = self.decomposition.polygons[parent_id]
-        if not parent_polydata == self.decomposition.outer_polygon:
-            parent_spoly = self._get_spolygon(diagram, parent_polydata.id)
-            parent_spoly.drawpath = self._get_polygon_draw_path(parent_polydata)
+        self._update_parent_drawpath(self.decomposition.polygons[parent_id], diagram)
         diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):
