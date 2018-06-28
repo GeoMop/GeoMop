@@ -12,7 +12,7 @@ class Diagram(QtWidgets.QGraphicsScene):
     """
     GeoMop Layer Editor design area
     
-    Y coordinetes is negativ for right map orientation. For displying or setting 
+    Y coordinetes is negative for right map orientation. For displaying or setting
     is need set opposite value.
     
     pyqtSignals:

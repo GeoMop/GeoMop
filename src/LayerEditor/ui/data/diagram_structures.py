@@ -194,7 +194,7 @@ class Line():
 
 class Polygon():
     """
-    Class for graphic presentation of line
+    Class for graphic presentation of polygon
     """
     def __init__(self, lines, id=None):
         global __next_id__
@@ -215,6 +215,8 @@ class Polygon():
         """Polygon history id"""
         self.qtpolygon = None
         """Qt polygon for point localization"""
+        self.drawpath = None
+        """Qt path to be drawn (allows complex shapes as holes in polygons)"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1

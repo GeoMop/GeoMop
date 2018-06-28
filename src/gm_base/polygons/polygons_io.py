@@ -53,7 +53,6 @@ def serialize(polydec):
             polygon.holes.append(wire)
         polygon.free_points = [pt.index for pt in poly.free_points]
         topology.polygons.append(polygon)
-
     return (nodes, topology)
 
 
@@ -76,7 +75,6 @@ def deserialize(nodes, topology):
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
         reconstruction_from_old_input(polydec, topology)
         return polydec
-
 
     for id, seg in enumerate(topology.segments):
         vtxs_ids = seg.node_ids
@@ -107,7 +105,7 @@ def reconstruction_from_old_input(polydec, topology):
         s.index = id
         assert s.id == id
 
-    polydec.outer_polygon.index  = 0
+    polydec.outer_polygon.index = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []
@@ -121,3 +119,4 @@ def reconstruction_from_old_input(polydec, topology):
         assert len(candidates) == 1
         candidates[0].index = id + 1
     polydec.decomp.check_consistency()
+
