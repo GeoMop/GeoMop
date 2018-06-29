@@ -10,6 +10,8 @@ from ..data import SurfacesHistory
 from gm_base.geometry_files.polygons import PolygonDecomposition, PolygonChange
 from ..gitems import Point
 import copy
+from LayerEditor.simplification.polysimplify import VWSimplifier
+from time import time
 
 class ShpTransferData():
 
@@ -67,6 +69,12 @@ class ShpTransferData():
                 print("Tried to add solitary point to a position of existing point.")
 
         for line in self.lines:
+            #TODO: polyline simplification requires different data hanling, i.e. polyline separation and individual addition
+            # pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
+            # simplifier = VWSimplifier(pp)
+            # polygon_points = simplifier.from_number(len(pp) / 2)
+            # polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
+            # # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
             start_points = self._point_in_diagram(line.p1)
             if not start_points:
                 cfg.main_window.diagramScene._add_line(None, line.p1)
@@ -78,19 +86,22 @@ class ShpTransferData():
                 print("TODO: I found more points at point1 location, these should be merged")
 
         for polygon in self.polygons:
-            # first_point = cfg.diagram.
-            # cfg.main_window.diagramScene._add_line(None, point)
-            p_in_diagram = self._point_in_diagram(polygon.polygon_points[0])
-            # If is only for the case the polygon first point is on already existing point
+            pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
+            simplifier = VWSimplifier(pp)
+            polygon_points = simplifier.from_number(len(pp) / 2)
+            polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
+            # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
+            p_in_diagram = self._point_in_diagram(polygon_points[0])
             # TODO: line intersection
+            # If is only for the case the polygon first point is on already existing point
             if not p_in_diagram:
-                cfg.main_window.diagramScene._add_line(None, polygon.polygon_points[0])
+                cfg.main_window.diagramScene._add_line(None, polygon_points[0])
             elif len(p_in_diagram) == 1:
-                cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, polygon.polygon_points[0])
+                cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, polygon_points[0])
             else:
                 print("TODO: I found more points at point1 location, these points should be merged")
 
-            for point in polygon.polygon_points[1:]:
+            for point in polygon_points[1:]:
                 p_in_diagram = self._point_in_diagram(point)
                 if not p_in_diagram:
                     cfg.main_window.diagramScene._add_line(None, point)
@@ -99,8 +110,10 @@ class ShpTransferData():
                 else:
                     print("TODO: I found more points at point1 location, these points should be merged")
 
+
+
             # first_point = cfg.main_window.diagramScene._last_line.p1
-                #     cfg.main_window.diagramScene._add_line(None, point, False)
+                #     cfg.main_window.diagramScene._add_`line(None, point, False)
                     # added_points.append(p)
                     # last_point = points
                     # continue
@@ -133,7 +146,6 @@ class ShpTransferData():
             # for point in cfg.diagram.shp.datas.points.highlightened:
             #     print(point.id)
             # cfg.diagram.data.datas[0].av_highlight[j]
-
 
 class ShpTransferView(QtWidgets.QWidget):
 
