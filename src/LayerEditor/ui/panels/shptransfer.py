@@ -88,7 +88,8 @@ class ShpTransferData():
         for polygon in self.polygons:
             pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
             simplifier = VWSimplifier(pp)
-            polygon_points = simplifier.from_number(len(pp) / 2)
+            nb_reduced =
+            polygon_points = simplifier.from_number()
             polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
             # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
             p_in_diagram = self._point_in_diagram(polygon_points[0])
@@ -154,9 +155,26 @@ class ShpTransferView(QtWidgets.QWidget):
         self.shpdata = ShpTransferData()
         grid = QtWidgets.QGridLayout(self)
         self.selection = []
+        self.inputSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.inputSlider.setMinimum(0)
+        self.inputSlider.setMaximum(100)
+        self.inputSlider.setValue(80)
+        self.inputSlider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.inputSlider.setTickInterval(5)
+        self.inputSlider.valueChanged.connect(self._update_object_count)
+        grid.addWidget(self.inputSlider)
         self.button = QtWidgets.QPushButton()
+        self.button.setText("No selected polygons")
         self.button.clicked.connect(self.shpdata.transfer)
         grid.addWidget(self.button)
         self.label = QtWidgets.QLabel("Shapefile help panel: ")
-        grid.addWidget(self.label)
         self.setLayout(grid)
+
+    def _update_object_count(self):
+        percentage = self.inputSlider.value()/100
+        self.shpdata._get_data()
+        if not self.shpdata.polygons:
+            self.button.setText("No selected polygons")
+        else:
+            nb_points = np.floor(len(self.shpdata.polygons[0].polygon_points)*percentage)
+            self.button.setText(str(nb_points)+'/'+str(len(self.shpdata.polygons[0].polygon_points)))
