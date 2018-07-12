@@ -5,6 +5,7 @@ import logging
 from Analysis.client_pipeline.mj_preparation import *
 from ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 
 
 def build(data_app, mj_id):
@@ -27,10 +28,21 @@ def build(data_app, mj_id):
     workspace = data_app.workspaces.workspace
     analysis = an_name
     mj = mj_name
-    err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj)
+    python_script = "analysis.py"
+    try:
+        an = Analysis.open(data_app.workspaces.get_path(), an_name)
+        for file in an.script_files:
+            if file.selected:
+                python_script = file.file_path
+                break
+    except InvalidAnalysis:
+        pass
+    err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
+                                             mj=mj, python_script=python_script)
     if len(err) > 0:
         for e in err:
             print(e)
+            # ToDo: zobrazit uzivateli
         #os.exit()
 
     # mj_config_dir
@@ -149,7 +161,7 @@ def build(data_app, mj_id):
                     "process": pe,
                     "workspace": analysis + "/mj/" + mj + "/mj_config",
                     "config_file_name": "mj_service.conf",
-                    "pipeline": {"python_script": "analysis.py",
+                    "pipeline": {"python_script": python_script,
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,
                     "input_files": input_files,
