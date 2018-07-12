@@ -62,10 +62,11 @@ class AnalysisDialog(AFormDialog):
         # connect slots
         super()._connect_slots()
 
-        self.ui.refreshButton.clicked.connect(self._handle_refreshButton)
-        self.ui.layersFileEditButton.clicked.connect(self._handle_layersFileEditButton)
-        self.ui.flowInputEditButton.clicked.connect(self._handle_flowInputEditButton)
-        self.ui.scriptMakeButton.clicked.connect(self._handle_scriptMakeButton)
+        if purpose == AnalysisDialog.PURPOSE_EDIT:
+            self.ui.refreshButton.clicked.connect(self._handle_refreshButton)
+            self.ui.layersFileEditButton.clicked.connect(self._handle_layersFileEditButton)
+            self.ui.flowInputEditButton.clicked.connect(self._handle_flowInputEditButton)
+            self.ui.scriptMakeButton.clicked.connect(self._handle_scriptMakeButton)
 
     def _handle_refreshButton(self):
         self.analysis.sync_files()
@@ -102,6 +103,21 @@ class AnalysisDialog(AFormDialog):
         defaul_script_name = "analysis.py"
         script_path = os.path.join(self.analysis.analysis_dir, defaul_script_name)
 
+        # script content
+        flow_input_file = self.ui.flowInputComboBox.currentText()
+        if len(flow_input_file) == 0:
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Warning")
+            msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+            msg_box.setText("First select Flow123d input file.")
+            msg_box.exec()
+            return
+        script = (
+            "gen = VariableGenerator(Variable=Struct())\n"
+            "flow = Flow123dAction(Inputs=[gen], YAMLFile='{}')\n"
+            "pipeline = Pipeline(ResultActions=[flow])\n"
+        ).format(flow_input_file)
+
         # confirm overwrite
         if os.path.exists(script_path):
             msg_box = QtWidgets.QMessageBox(self)
@@ -116,14 +132,6 @@ class AnalysisDialog(AFormDialog):
             msg_box.exec()
             if msg_box.clickedButton() != button:
                 return
-
-        # script content
-        flow_input_file = self.ui.flowInputComboBox.currentText()
-        script = (
-            "gen = VariableGenerator(Variable=Struct())\n"
-            "flow = Flow123dAction(Inputs=[gen], YAMLFile='{}')\n"
-            "pipeline = Pipeline(ResultActions=[flow])\n"
-        ).format(flow_input_file)
 
         # save file
         try:
