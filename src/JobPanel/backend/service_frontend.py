@@ -2,10 +2,10 @@ from .service_base import ServiceBase, ServiceStatus
 from . import config_builder
 from .json_data import JsonData, JsonDataNoConstruct
 from .executor import ProcessDocker
-from services.backend_service import MJReport
-from services.multi_job_service import MJStatus
-from ui.data.mj_data import MultiJobState
-from data.states import TaskStatus as GuiTaskStatus
+from JobPanel.services.backend_service import MJReport
+from JobPanel.services.multi_job_service import MJStatus
+from JobPanel.ui.data.mj_data import MultiJobState
+from JobPanel.data.states import TaskStatus as GuiTaskStatus
 from JobPanel.data.secret import Secret
 
 import threading

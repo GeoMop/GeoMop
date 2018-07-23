@@ -3,7 +3,7 @@ import json
 import logging
 
 from Analysis.client_pipeline.mj_preparation import *
-from ui.dialogs import SshPasswordDialog
+from JobPanel.ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 

@@ -15,21 +15,21 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from ..communication import installation
-from ..data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
-from ..ui.actions.main_menu_actions import *
-from ..ui.data.mj_data import MultiJob, AMultiJobFile
-from ..ui.imports.workspaces_conf import BASE_DIR
-from ..ui.dialogs import MessageDialog
-from ..ui.dialogs.env_presets import EnvPresets
-from ..ui.dialogs.multijob_dialog import MultiJobDialog
-from ..ui.dialogs.options_dialog import OptionsDialog
-from ..ui.dialogs.pbs_presets import PbsPresets
-from ..ui.dialogs.resource_presets import ResourcePresets
-from ..ui.dialogs.ssh_presets import SshPresets
-from ..ui.menus.main_menu_bar import MainMenuBar
-from ..ui.panels.overview import Overview
-from ..ui.panels.tabs import Tabs
+from JobPanel.communication import installation
+from JobPanel.data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
+from .actions.main_menu_actions import *
+from .data.mj_data import MultiJob, AMultiJobFile
+from .imports.workspaces_conf import BASE_DIR
+from .dialogs import MessageDialog
+from .dialogs.env_presets import EnvPresets
+from .dialogs.multijob_dialog import MultiJobDialog
+from .dialogs.options_dialog import OptionsDialog
+from .dialogs.pbs_presets import PbsPresets
+from .dialogs.resource_presets import ResourcePresets
+from .dialogs.ssh_presets import SshPresets
+from .menus.main_menu_bar import MainMenuBar
+from .panels.overview import Overview
+from .panels.tabs import Tabs
 
 from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
 from gm_base.config import __config_dir__

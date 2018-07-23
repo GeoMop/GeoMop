@@ -10,7 +10,7 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from data.states import TaskStatus
+from JobPanel.data.states import TaskStatus
 from .overview import ERROR_BRUSH
 
 

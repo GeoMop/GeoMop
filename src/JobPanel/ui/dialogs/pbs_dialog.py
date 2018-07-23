@@ -8,9 +8,9 @@ Pbs dialog
 from PyQt5 import QtCore, QtWidgets
 
 #from helpers.importer import DialectImporter
-from ui.data.preset_data import PbsPreset
-from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetsValidationColorizer
+from JobPanel.ui.data.preset_data import PbsPreset
+from JobPanel.ui.dialogs.dialogs import AFormContainer
+from JobPanel.ui.validators.validation import PresetsValidationColorizer
 
 
 class PbsDialog(AFormContainer):

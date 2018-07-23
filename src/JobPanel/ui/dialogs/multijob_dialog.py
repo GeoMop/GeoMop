@@ -9,11 +9,11 @@ import logging
 import copy
 
 from PyQt5 import QtCore, QtWidgets, QtGui
-from ui.data.mj_data import MultiJobPreset
-from ui.data.preset_data import PbsPreset
-from ui.dialogs.dialogs import UiFormDialog, AFormDialog
+from JobPanel.ui.data.mj_data import MultiJobPreset
+from JobPanel.ui.data.preset_data import PbsPreset
+from JobPanel.ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
-from ui.validators.validation import PresetsValidationColorizer
+from JobPanel.ui.validators.validation import PresetsValidationColorizer
 from gm_base import icon
 
 

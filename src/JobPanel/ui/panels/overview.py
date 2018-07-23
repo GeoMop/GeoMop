@@ -8,7 +8,7 @@ import datetime
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5 import QtCore, QtGui
 
-from data import TaskStatus
+from JobPanel.data import TaskStatus
 
 
 ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
