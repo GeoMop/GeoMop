@@ -6,12 +6,64 @@ Multijob dialog
 """
 
 import logging
+import copy
 
 from PyQt5 import QtCore, QtWidgets, QtGui
 from ui.data.mj_data import MultiJobPreset
+from ui.data.preset_data import PbsPreset
 from ui.dialogs.dialogs import UiFormDialog, AFormDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from ui.validators.validation import PresetsValidationColorizer
+from gm_base import icon
+
+
+class PbsComboBox(QtWidgets.QComboBox):
+    """Modified QComboBox for PBS options purposes."""
+    focusOut = QtCore.pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self._temp_text = ""
+
+        self.setEditable(True)
+
+        self.editTextChanged.connect(self._save_temp_text)
+
+    def focusOutEvent(self, event):
+        self.focusOut.emit(self._temp_text)
+
+        super().focusOutEvent(event)
+
+    def _save_temp_text(self, text):
+        self._temp_text = text
+
+
+class PbsPresetsValidationColorizer(PresetsValidationColorizer):
+    """Modified colorizer for PBS options purposes."""
+    def colorize(self, errors):
+        ret = super().colorize(errors)
+
+        for key, control in self.controls.items():
+            if key in errors:
+                if not isinstance(control, PbsComboBox):
+                    control.setFocus()
+
+        return ret
+
+    def connect(self, edited_func, finished_func):
+        for key, control in self.controls.items():
+            if isinstance(control, QtWidgets.QLineEdit):
+                control.textEdited.connect(edited_func)
+                control.editingFinished.connect(finished_func)
+            elif isinstance(control, QtWidgets.QSpinBox):
+                control.valueChanged.connect(edited_func)
+                control.editingFinished.connect(finished_func)
+            elif isinstance(control, QtWidgets.QComboBox):
+                if not isinstance(control, PbsComboBox):
+                    control.currentIndexChanged.connect(finished_func)
+            elif isinstance(control, QtWidgets.QCheckBox):
+                control.stateChanged.connect(finished_func)
 
 
 class MultiJobDialog(AFormDialog):
@@ -25,7 +77,7 @@ class MultiJobDialog(AFormDialog):
                        windowTitle="Job Panel - Add MultiJob",
                        title="Add MultiJob",
                        subtitle="Please select details to schedule set of "
-                                "tasks for computation and press Run to "
+                                "tasks\nfor computation and press Run to "
                                  "start multijob.")
 
     PURPOSE_COPY = dict(purposeType="PURPOSE_COPY",
@@ -33,7 +85,7 @@ class MultiJobDialog(AFormDialog):
                         windowTitle="Job Panel - Copy MultiJob",
                         title="Copy MultiJob",
                         subtitle="Change desired parameters and press Run to "
-                                 "start multijob.")
+                                 "start multijob.\n")
 
     PURPOSE_COPY_PREFIX = "Copy_of"
 
@@ -46,20 +98,23 @@ class MultiJobDialog(AFormDialog):
         # setup specific UI
         self.ui = UiMultiJobDialog()
         self.ui.setup_ui(self)
-        #self.ui.validator.connect(self.valid)
+        self.ui.validator.connect(self.valid)
         self.data = data
 
         self._from_mj = None
 
         self.preset = None
-        self.pbs = {}
-        self.ssh = {}
+        self.pbs = data.pbs_presets
+        self.ssh = data.ssh_presets
+
+        self._preferred_mj_pbs = ""
+        self._preferred_j_pbs = ""
 
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
         self.set_analyses(data.workspaces)
-        self.set_pbs_presets(data.pbs_presets)
-        self.set_ssh_presets(data.ssh_presets)
+        self.set_pbs_presets()
+        self.set_ssh_presets()
 
         self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Save).setText("Run")
 
@@ -69,6 +124,46 @@ class MultiJobDialog(AFormDialog):
         self.ui.analysisComboBox.currentIndexChanged.connect(self.update_mj_name)
         self.ui.multiJobSshPresetComboBox.currentIndexChanged.connect(self._handle_mj_ssh_changed)
         self.ui.jobSshPresetComboBox.currentIndexChanged.connect(self._handle_j_ssh_changed)
+        self.ui.multiJobPbsPresetComboBox.currentIndexChanged.connect(self._handle_mj_pbs_changed)
+        self.ui.jobPbsPresetComboBox.currentIndexChanged.connect(self._handle_j_pbs_changed)
+
+        # PBS options
+        #############
+
+        self.pbs_block_signals(True)
+
+        self.pbs_old_name = None
+        self.pbs_presets_changed = False
+        """True if pbs presets must be saved"""
+
+        self.pbs_excluded = {"name": []}
+        self.pbs_permitted = {}
+
+        self.ui.pbs_AddButton.clicked.connect(self._handle_pbs_AddButton)
+        self.ui.pbs_RemoveButton.clicked.connect(self._handle_pbs_RemoveButton)
+        self.ui.pbs_validator.connect(self.pbs_edited, self.pbs_editing_finished)
+        self.ui.pbs_nameComboBox.activated[str].connect(self._handle_pbs_name_activated)
+        self.ui.pbs_nameComboBox.editTextChanged.connect(self.pbs_edited)
+        self.ui.pbs_nameComboBox.focusOut.connect(self._handle_pbs_name_focus_out)
+
+        self.pbs_permitted['pbs_system'] = []
+        # dialect_items = DialectImporter.get_available_dialects()
+        dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+        for key in dialect_items:
+            self.ui.pbs_pbsSystemComboBox.addItem(dialect_items[key], key)
+            self.pbs_permitted['pbs_system'].append(key)
+
+        self.pbs_preset = None
+
+        self.pbs_show_pbs()
+
+    def accept(self):
+        self.pbs_save()
+        super().accept()
+
+    def reject(self):
+        self.pbs_save()
+        super().reject()
 
     def update_mj_name(self):
         analysis_name = self.ui.analysisComboBox.currentText()
@@ -130,6 +225,8 @@ class MultiJobDialog(AFormDialog):
         if reselect:
             combo.setCurrentIndex(0)
 
+        combo.blockSignals(False)
+
     def _handle_j_ssh_changed(self, index=0):
         key = self.ui.jobSshPresetComboBox.currentText()
         if key == UiMultiJobDialog.SSH_LOCAL_EXEC:
@@ -145,6 +242,16 @@ class MultiJobDialog(AFormDialog):
         else:
             self._enable_pbs(self.ui.jobPbsPresetComboBox, key)
 
+    def _handle_mj_pbs_changed(self):
+        key = self.ui.multiJobPbsPresetComboBox.currentText()
+        self._preferred_mj_pbs = key
+        self.pbs_show_pbs(key)
+
+    def _handle_j_pbs_changed(self):
+        key = self.ui.jobPbsPresetComboBox.currentText()
+        self._preferred_j_pbs = key
+        self.pbs_show_pbs(key)
+
     def set_analyses(self, config):
         self.ui.analysisComboBox.clear()        
         if config is not None:
@@ -155,7 +262,10 @@ class MultiJobDialog(AFormDialog):
         if self.ui.analysisComboBox.count()==0:            
             self.ui.analysisComboBox.addItem('')
 
-    def set_pbs_presets(self, pbs):
+    def set_pbs_presets(self):
+        self.ui.multiJobPbsPresetComboBox.blockSignals(True)
+        self.ui.jobPbsPresetComboBox.blockSignals(True)
+
         self.ui.multiJobPbsPresetComboBox.clear()
         self.ui.jobPbsPresetComboBox.clear()
 
@@ -168,26 +278,29 @@ class MultiJobDialog(AFormDialog):
         self.permitted['j_pbs_preset'] = []
         self.permitted['j_pbs_preset'].append(None)
 
-        self.pbs = pbs
-
-        if pbs:
+        if self.pbs:
             # sort dict by list, not sure how it works
-            for key in pbs:
-                self.ui.multiJobPbsPresetComboBox.addItem(pbs[key].name, key)
-                self.ui.jobPbsPresetComboBox.addItem(pbs[key].name, key)
+            for key in self.pbs:
+                self.ui.multiJobPbsPresetComboBox.addItem(self.pbs[key].name, key)
+                self.ui.jobPbsPresetComboBox.addItem(self.pbs[key].name, key)
                 self.permitted['mj_pbs_preset'].append(key)
                 self.permitted['j_pbs_preset'].append(key)
 
-            self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
-                self.ui.multiJobPbsPresetComboBox.findData(
-                    'no PBS' if self.preset is None or self.preset.mj_pbs_preset is None else self.preset.mj_pbs_preset))
-            self.ui.jobPbsPresetComboBox.setCurrentIndex(
-                self.ui.jobPbsPresetComboBox.findData(
-                    'no PBS' if self.preset is None or self.preset.j_pbs_preset is None else self.preset.j_pbs_preset))
+            if len(self._preferred_mj_pbs) > 0:
+                ind = self.ui.multiJobPbsPresetComboBox.findData(self._preferred_mj_pbs)
+                if ind >= 0:
+                    self.ui.multiJobPbsPresetComboBox.setCurrentIndex(ind)
+            if len(self._preferred_j_pbs) > 0:
+                ind = self.ui.jobPbsPresetComboBox.findData(self._preferred_j_pbs)
+                if ind >= 0:
+                    self.ui.jobPbsPresetComboBox.setCurrentIndex(ind)
             self._handle_mj_ssh_changed(0)
             self._handle_j_ssh_changed(0)
 
-    def set_ssh_presets(self, ssh):
+        self.ui.multiJobPbsPresetComboBox.blockSignals(False)
+        self.ui.jobPbsPresetComboBox.blockSignals(False)
+
+    def set_ssh_presets(self):
         self.ui.multiJobSshPresetComboBox.clear()
         self.ui.jobSshPresetComboBox.clear()
 
@@ -200,13 +313,11 @@ class MultiJobDialog(AFormDialog):
         self.permitted['j_ssh_preset'] = []
         self.permitted['j_ssh_preset'].append(None)
 
-        self.ssh = ssh
-
-        if ssh:
+        if self.ssh:
             # sort dict by list, not sure how it works
-            for key in ssh:
-                self.ui.multiJobSshPresetComboBox.addItem(ssh[key].name, key)
-                self.ui.jobSshPresetComboBox.addItem(ssh[key].name, key)
+            for key in self.ssh:
+                self.ui.multiJobSshPresetComboBox.addItem(self.ssh[key].name, key)
+                self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 self.permitted['mj_ssh_preset'].append(key)
                 self.permitted['j_ssh_preset'].append(key)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
@@ -278,8 +389,6 @@ class MultiJobDialog(AFormDialog):
     def set_data(self, data=None, is_edit=False):
         # reset validation colors
         self.ui.validator.reset_colorize()
-        self.ui.nameLineEdit.setStyleSheet(
-                "QLineEdit { background-color: #ffffff }")
         if data:
             key = data["key"]
             preset = data["preset"]
@@ -290,16 +399,18 @@ class MultiJobDialog(AFormDialog):
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
                     'local' if preset.mj_ssh_preset is None else preset.mj_ssh_preset))
+            self._preferred_mj_pbs = 'no PBS' if preset.mj_pbs_preset is None else preset.mj_pbs_preset
             self.ui.multiJobPbsPresetComboBox.setCurrentIndex(
                 self.ui.multiJobPbsPresetComboBox.findData(
-                    'no PBS' if preset.mj_pbs_preset is None else preset.mj_pbs_preset))
+                    self._preferred_mj_pbs))
 
             self.ui.jobSshPresetComboBox.setCurrentIndex(
                 self.ui.jobSshPresetComboBox.findData(
                     'local' if preset.j_ssh_preset is None else preset.j_ssh_preset))
+            self._preferred_j_pbs = 'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset
             self.ui.jobPbsPresetComboBox.setCurrentIndex(
                 self.ui.jobPbsPresetComboBox.findData(
-                    'no PBS' if preset.j_pbs_preset is None else preset.j_pbs_preset))
+                    self._preferred_j_pbs))
             self.ui.logLevelComboBox.setCurrentIndex(
                 self.ui.logLevelComboBox.findData(preset.log_level))
             self.ui.analysisComboBox.setCurrentIndex(
@@ -322,6 +433,234 @@ class MultiJobDialog(AFormDialog):
 
             self.update_mj_name()
 
+    # PBS options
+    #############
+
+    def _handle_pbs_AddButton(self):
+        # new preset name
+        name = "new"
+        if name in self.pbs:
+            ind = 1
+            while True:
+                name = "new_{}".format(ind)
+                if name not in self.pbs:
+                    break
+                ind += 1
+
+        # new preset
+        dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+        preset = PbsPreset(
+            name=name,
+            pbs_system=list(dialect_items.keys())[0],
+            queue="",
+            walltime="",
+            nodes=1,
+            ppn=1,
+            memory="",
+            infiniband=False
+        )
+
+        self.pbs[preset.name] = preset
+        self.pbs_preset = preset
+        self.pbs_presets_changed = True
+
+        self.pbs_show_pbs(preset.name)
+        self.ui.pbs_nameComboBox.setFocus()
+        self.ui.pbs_nameComboBox.lineEdit().selectAll()
+
+        self.set_pbs_presets()
+
+    def _handle_pbs_RemoveButton(self):
+        key = self.pbs_old_name
+        if key in self.pbs:
+            del self.pbs[key]
+            self.pbs_presets_changed = True
+            self.set_pbs_presets()
+        self.pbs_show_pbs()
+        self.set_pbs_presets()
+
+    def _handle_pbs_name_activated(self, text):
+        self.pbs_show_pbs(text)
+        self.set_pbs_presets()
+
+    def _handle_pbs_name_focus_out(self, text):
+        if text != self.pbs_old_name:
+            if (text in self.pbs) or (not self.pbs_valid()):
+                self.ui.pbs_nameComboBox.setEditText(self.pbs_old_name)
+            else:
+                self.pbs_editing_finished()
+
+    def pbs_is_dirty(self):
+        """return if data was changes"""
+        if self.pbs_preset is None:
+            return True
+        if self.pbs_old_name!=self.ui.pbs_nameComboBox.currentText():
+            return True
+        p = self.pbs_get_data()['preset']
+        if self.pbs_preset.pbs_system!=p.pbs_system:
+            return True
+        if self.pbs_preset.queue!=p.queue:
+            return True
+        if self.pbs_preset.walltime!=p.walltime:
+            return True
+        if self.pbs_preset.nodes!=p.nodes:
+            return True
+        if self.pbs_preset.ppn!=p.ppn:
+            return True
+        if self.pbs_preset.memory!=p.memory:
+            return True
+        if p.infiniband != self.pbs_preset.infiniband:
+            return True
+        return False
+
+    def pbs_get_data(self):
+        preset = PbsPreset(name=self.ui.pbs_nameComboBox.currentText())
+        if self.ui.pbs_pbsSystemComboBox.currentText():
+            preset.pbs_system = self.ui.pbs_pbsSystemComboBox.currentData()
+        if self.ui.pbs_queueLineEdit.text():
+            preset.queue = self.ui.pbs_queueLineEdit.text()
+        if self.ui.pbs_walltimeLineEdit.text():
+            preset.walltime = self.ui.pbs_walltimeLineEdit.text()
+        else:
+            preset.walltime = ''
+        preset.nodes = self.ui.pbs_nodesSpinBox.value()
+        preset.ppn = self.ui.pbs_ppnSpinBox.value()
+        if self.ui.pbs_memoryLineEdit.text():
+            preset.memory = self.ui.pbs_memoryLineEdit.text()
+        else:
+            preset.memory = ''
+        if self.ui.pbs_infinibandCheckBox.isChecked():
+            preset.infiniband = True
+        else:
+            preset.infiniband = False
+        return {
+            'preset': preset,
+            'old_name': self.pbs_old_name
+        }
+
+    def pbs_set_data(self, data=None):
+        # reset validation colors
+        self.ui.pbs_validator.reset_colorize()
+
+        if data:
+            preset = data["preset"]
+            self.pbs_preset = preset
+            self.pbs_old_name = preset.name
+
+            self.ui.pbs_pbsSystemComboBox.setCurrentIndex(
+                self.ui.pbs_pbsSystemComboBox.findData(preset.pbs_system))
+            self.ui.pbs_nameComboBox.setCurrentText(preset.name)
+            self.ui.pbs_queueLineEdit.setText(preset.queue)
+            self.ui.pbs_walltimeLineEdit.setText(preset.walltime)
+            self.ui.pbs_nodesSpinBox.setValue(preset.nodes)
+            self.ui.pbs_ppnSpinBox.setValue(preset.ppn)
+            self.ui.pbs_memoryLineEdit.setText(preset.memory)
+            self.ui.pbs_infinibandCheckBox.setChecked(preset.infiniband)
+            self.pbs_valid()
+        else:
+            self.ui.pbs_nameComboBox.clear()
+            # dialect_items = DialectImporter.get_available_dialects()
+            dialect_items = {"PbsDialectPBSPro": "PBSPro"}
+            if len(dialect_items) == 0:
+                self.ui.pbs_pbsSystemComboBox.setCurrentIndex(-1)
+            else:
+                self.ui.pbs_pbsSystemComboBox.setCurrentIndex(0)
+            self.ui.pbs_queueLineEdit.clear()
+            self.ui.pbs_walltimeLineEdit.clear()
+            self.ui.pbs_nodesSpinBox.setValue(self.ui.pbs_nodesSpinBox.minimum())
+            self.ui.pbs_ppnSpinBox.setValue(self.ui.pbs_ppnSpinBox.minimum())
+            self.ui.pbs_memoryLineEdit.clear()
+            self.ui.pbs_infinibandCheckBox.setChecked(False)
+
+    def pbs_valid(self):
+        data = self.pbs_get_data()
+
+        # excluded names
+        self.pbs_excluded["name"] = [p.name for p in self.pbs.values() if p.name != self.pbs_old_name]
+
+        errors = data['preset'].validate(self.pbs_excluded, self.pbs_permitted)
+        self.ui.pbs_validator.colorize(errors)
+        return len(errors) == 0
+
+    def pbs_enable(self, enable=True):
+        self.ui.pbs_nameComboBox.setEnabled(enable)
+        self.ui.pbs_pbsSystemComboBox.setEnabled(enable)
+        self.ui.pbs_queueLineEdit.setEnabled(enable)
+        self.ui.pbs_walltimeLineEdit.setEnabled(enable)
+        self.ui.pbs_nodesSpinBox.setEnabled(enable)
+        self.ui.pbs_ppnSpinBox.setEnabled(enable)
+        self.ui.pbs_memoryLineEdit.setEnabled(enable)
+        self.ui.pbs_infinibandCheckBox.setEnabled(enable)
+
+        self.ui.pbs_RemoveButton.setEnabled(enable)
+
+    def pbs_block_signals(self, enable=True):
+        self.ui.pbs_nameComboBox.blockSignals(enable)
+        self.ui.pbs_pbsSystemComboBox.blockSignals(enable)
+        self.ui.pbs_queueLineEdit.blockSignals(enable)
+        self.ui.pbs_walltimeLineEdit.blockSignals(enable)
+        self.ui.pbs_nodesSpinBox.blockSignals(enable)
+        self.ui.pbs_ppnSpinBox.blockSignals(enable)
+        self.ui.pbs_memoryLineEdit.blockSignals(enable)
+        self.ui.pbs_infinibandCheckBox.blockSignals(enable)
+
+    def pbs_edited(self):
+        self.pbs_valid()
+
+    def pbs_editing_finished(self):
+        if self.pbs_valid():
+            if self.pbs_is_dirty():
+                # update presets
+                data = self.pbs_get_data()
+                del self.pbs[data['old_name']]
+                preset = copy.deepcopy(data['preset'])
+                self.pbs[preset.name] = preset
+
+                if self._preferred_mj_pbs == self.pbs_old_name:
+                    self._preferred_mj_pbs = preset.name
+                if self._preferred_j_pbs == self.pbs_old_name:
+                    self._preferred_j_pbs = preset.name
+
+                self.pbs_preset = preset
+                self.pbs_old_name = preset.name
+
+                self.pbs_presets_changed = True
+
+                self.pbs_show_pbs(preset.name)
+                self.set_pbs_presets()
+
+    def pbs_show_pbs(self, preferred_pbs=None):
+        self.pbs_block_signals(True)
+
+        self.ui.pbs_nameComboBox.clear()
+
+        if len(self.pbs) > 0:
+            for key in self.pbs.keys():
+                self.ui.pbs_nameComboBox.addItem(key)
+
+            if (preferred_pbs is not None) and (preferred_pbs in self.pbs):
+                key = preferred_pbs
+            else:
+                key = list(self.pbs.keys())[0]
+
+            preset = copy.deepcopy(self.pbs[key])
+            data = {
+                "preset": preset
+            }
+            self.pbs_set_data(data)
+
+            self.pbs_enable(True)
+            self.pbs_block_signals(False)
+        else:
+            self.pbs_set_data()
+            self.pbs_enable(False)
+
+    def pbs_save(self):
+        """Saves PBS options if needed."""
+        if self.pbs_presets_changed:
+            self.pbs.save()
+            self.pbs_presets_changed = False
+
 
 class UiMultiJobDialog(UiFormDialog):
     """
@@ -341,10 +680,69 @@ class UiMultiJobDialog(UiFormDialog):
     PBS_OPTION_NONE = "no PBS"
 
     def setup_ui(self, dialog):
-        super().setup_ui(dialog)
+        # dialog properties
+        dialog.setObjectName("FormDialog")
+        dialog.setWindowTitle("Form dialog")
+        dialog.setModal(True)
+
+        # main dialog layout
+        self.mainVerticalLayoutWidget = QtWidgets.QWidget(dialog)
+        self.mainVerticalLayout = QtWidgets.QVBoxLayout(self.mainVerticalLayoutWidget)
+
+        # labels
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum,
+                                           QtWidgets.QSizePolicy.Maximum)
+
+        # title label
+        self.titleLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        titleFont = QtGui.QFont()
+        titleFont.setPointSize(15)
+        titleFont.setBold(True)
+        titleFont.setWeight(75)
+        self.titleLabel.setFont(titleFont)
+        self.titleLabel.setObjectName("titleLabel")
+        self.titleLabel.setText("Title")
+        self.titleLabel.setSizePolicy(sizePolicy)
+        # self.titleLabel.setWordWrap(True)
+        self.mainVerticalLayout.addWidget(self.titleLabel)
+
+        # subtitle label
+        #self.subtitleLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.subtitleLabel = QtWidgets.QLabel()
+        subtitleFont = QtGui.QFont()
+        subtitleFont.setWeight(50)
+        self.subtitleLabel.setFont(subtitleFont)
+        self.subtitleLabel.setObjectName("subtitleLabel")
+        self.subtitleLabel.setText("Subtitle text")
+        self.subtitleLabel.setSizePolicy(sizePolicy)
+        # self.subtitleLabel.setWordWrap(True)
+        #self.mainVerticalLayout.addWidget(self.subtitleLabel)
+
+        # divider
+        self.headerDivider = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
+        self.headerDivider.setObjectName("headerDivider")
+        self.headerDivider.setFrameShape(QtWidgets.QFrame.HLine)
+        self.headerDivider.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.mainVerticalLayout.addWidget(self.headerDivider)
+
+        # form layout
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setObjectName("formLayout")
+        self.formLayout.setContentsMargins(0, 5, 0, 5)
+
+        # add form to main layout
+        self.mainVerticalLayout.addLayout(self.formLayout)
+
+        # button box (order of of buttons is set by system default)
+        self.buttonBox = QtWidgets.QDialogButtonBox(self.mainVerticalLayoutWidget)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close | QtWidgets.QDialogButtonBox.Save)
+        self.buttonBox.setObjectName("buttonBox")
+        self.mainVerticalLayout.addWidget(self.buttonBox)
+
 
         # dialog properties
-        dialog.resize(500, 440)
+        dialog.resize(900, 440)
 
         # validators
         self.validator = PresetsValidationColorizer()
@@ -373,6 +771,7 @@ class UiMultiJobDialog(UiFormDialog):
         self.analysisComboBox = QtWidgets.QComboBox(
             self.mainVerticalLayoutWidget)
         self.analysisComboBox.setObjectName("analysisComboBox")
+        self.validator.add('analysis', self.analysisComboBox)
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
                                   self.analysisComboBox)
 
@@ -485,5 +884,126 @@ class UiMultiJobDialog(UiFormDialog):
         self.logLevelComboBox.setCurrentIndex(0)
         self.formLayout.setWidget(12, QtWidgets.QFormLayout.FieldRole,
                                   self.logLevelComboBox)
+
+
+        self.horizontalLayout = QtWidgets.QHBoxLayout(dialog)
+        self.horizontalLayout.addWidget(self.mainVerticalLayoutWidget)
+
+        self.pbsVerticalLayoutWidget = QtWidgets.QWidget(dialog)
+        self.horizontalLayout.addWidget(self.pbsVerticalLayoutWidget)
+        dialog.setLayout(self.horizontalLayout)
+
+
+        # PBS options
+        #############
+
+        self.pbs_validator = PbsPresetsValidationColorizer()
+
+        # form layout
+        self.pbs_formLayout = QtWidgets.QFormLayout()
+        self.pbs_formLayout.setContentsMargins(10, 15, 10, 15)
+        self.pbsVerticalLayoutWidget.setLayout(self.pbs_formLayout)
+
+        # form layout
+        # separator
+        sep = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        sep.setText("")
+        sep.setMinimumHeight(40)
+        self.pbs_formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, sep)
+
+        # PBS options label
+        label = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        label.setFont(labelFont)
+        label.setText("PBS options")
+        self.pbs_formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, label)
+
+        # 2 row
+        self.pbs_nameLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_nameLabel.setText("Name:")
+        self.pbs_formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.pbs_nameLabel)
+        self.pbs_nameComboBox = PbsComboBox(self.pbsVerticalLayoutWidget)
+        self.pbs_nameComboBox.setCompleter(None)
+        self.pbs_validator.add('name', self.pbs_nameComboBox)
+        self.pbs_AddButton = QtWidgets.QPushButton(self.pbsVerticalLayoutWidget)
+        self.pbs_AddButton.setIcon(icon.get_app_icon("add"))
+        self.pbs_AddButton.setToolTip('Create new PBS preset')
+        self.pbs_AddButton.setMaximumWidth(45)
+        self.pbs_RemoveButton = QtWidgets.QPushButton(self.pbsVerticalLayoutWidget)
+        self.pbs_RemoveButton.setIcon(icon.get_app_icon("remove"))
+        self.pbs_RemoveButton.setToolTip('Remove PBS preset')
+        self.pbs_RemoveButton.setMaximumWidth(45)
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.pbs_nameComboBox)
+        layout.addWidget(self.pbs_AddButton)
+        layout.addWidget(self.pbs_RemoveButton)
+        self.pbs_formLayout.setLayout(3, QtWidgets.QFormLayout.FieldRole, layout)
+
+        # 3 row
+        self.pbs_pbsSystemLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_pbsSystemLabel.setText("PBS System:")
+        self.pbs_formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.pbs_pbsSystemLabel)
+        self.pbs_pbsSystemComboBox = QtWidgets.QComboBox(self.pbsVerticalLayoutWidget)
+        self.pbs_validator.add('pbs_system', self.pbs_pbsSystemComboBox)
+        self.pbs_formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.pbs_pbsSystemComboBox)
+
+        # 4 row
+        self.pbs_queueLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_queueLabel.setText("Queue:")
+        self.pbs_formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.pbs_queueLabel)
+        self.pbs_queueLineEdit = QtWidgets.QLineEdit(self.pbsVerticalLayoutWidget)
+        self.pbs_validator.add('queue', self.pbs_queueLineEdit)
+        self.pbs_formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.pbs_queueLineEdit)
+
+        # 5 row
+        self.pbs_walltimeLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_walltimeLabel.setText("Walltime:")
+        self.pbs_formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.pbs_walltimeLabel)
+        self.pbs_walltimeLineEdit = QtWidgets.QLineEdit(self.pbsVerticalLayoutWidget)
+        self.pbs_walltimeLineEdit.setPlaceholderText("1d4h or 20h")
+        self.pbs_walltimeLineEdit.setProperty("clearButtonEnabled", True)
+        self.pbs_validator.add('walltime', self.pbs_walltimeLineEdit)
+        self.pbs_formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.pbs_walltimeLineEdit)
+
+        # 6 row
+        self.pbs_nodesLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_nodesLabel.setText("Number of Nodes:")
+        self.pbs_formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.pbs_nodesLabel)
+        self.pbs_nodesSpinBox = QtWidgets.QSpinBox(self.pbsVerticalLayoutWidget)
+        self.pbs_nodesSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.PlusMinus)
+        self.pbs_nodesSpinBox.setMinimum(1)
+        self.pbs_nodesSpinBox.setMaximum(1000)
+        self.pbs_nodesSpinBox.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pbs_validator.add('nodes', self.pbs_nodesSpinBox)
+        self.pbs_formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.pbs_nodesSpinBox)
+
+        # 7 row
+        self.pbs_ppnLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_ppnLabel.setText("Processes per Node:")
+        self.pbs_formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole, self.pbs_ppnLabel)
+        self.pbs_ppnSpinBox = QtWidgets.QSpinBox(self.pbsVerticalLayoutWidget)
+        self.pbs_ppnSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.PlusMinus)
+        self.pbs_ppnSpinBox.setMinimum(1)
+        self.pbs_ppnSpinBox.setMaximum(100)
+        self.pbs_ppnSpinBox.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pbs_validator.add('ppn', self.pbs_ppnSpinBox)
+        self.pbs_formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.pbs_ppnSpinBox)
+
+        # 8 row
+        self.pbs_memoryLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_memoryLabel.setText("Memory:")
+        self.pbs_formLayout.setWidget(9, QtWidgets.QFormLayout.LabelRole, self.pbs_memoryLabel)
+        self.pbs_memoryLineEdit = QtWidgets.QLineEdit(self.pbsVerticalLayoutWidget)
+        self.pbs_memoryLineEdit.setPlaceholderText("300mb or 1gb")
+        self.pbs_memoryLineEdit.setProperty("clearButtonEnabled", True)
+        self.pbs_validator.add('memory', self.pbs_memoryLineEdit)
+        self.pbs_formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.pbs_memoryLineEdit)
+
+        # 9 row
+        self.pbs_infinibandLabel = QtWidgets.QLabel(self.pbsVerticalLayoutWidget)
+        self.pbs_infinibandLabel.setText("Infiniband:")
+        self.pbs_formLayout.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.pbs_infinibandLabel)
+        self.pbs_infinibandCheckBox = QtWidgets.QCheckBox(self.pbsVerticalLayoutWidget)
+        self.pbs_validator.add('infiniband', self.pbs_infinibandCheckBox)
+        self.pbs_formLayout.setWidget(10, QtWidgets.QFormLayout.FieldRole, self.pbs_infinibandCheckBox)
 
         return dialog
