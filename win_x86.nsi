@@ -197,7 +197,7 @@ Section "Geometry" SecGeometry
 SectionEnd
 
 
-Section /o "-JobPanel" SecJobPanel
+Section "JobPanel" SecJobPanel
 
   # Section is mandatory.
   SectionIn RO
