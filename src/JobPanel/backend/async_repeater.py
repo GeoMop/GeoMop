@@ -45,21 +45,6 @@ def _exception_answer(e):
     """
     return { 'error': 'Exception', 'exception': repr(e), 'traceback': traceback.format_tb() }
 
-# def _close_request():
-#     """
-#     Auxiliary request to inform service about clossed server-side connection.
-#     Action should return no answer.
-#     :return:
-#     """
-#     return {'action': 'request_close'}
-
-# def _close_answer():
-#     """
-#     Auxiliary answer to inform service about clossed clinet-side connection.
-#     :return:
-#     """
-#     return {'action': 'on_answer_close'}
-
 class RequestData:
     """
     Format of request returned by the AsyncRepeater.
@@ -767,19 +752,6 @@ class AsyncRepeater():
                     discard.append(self.clients.pop(k))
         for d in discard:
             d.close_forwarded_ports()
-
-
-    # def close_child_repeater(self, id):
-    #     """
-    #     Check that socket to child is closed. Delete the dispatcher.
-    #
-    #     TODO: thread safe?
-    #     :param id:
-    #     :return:
-    #     """
-    #     self.clients[id].close()
-    #     del self.clients[id]
-    #     return
 
     def send_request(self, target, data, on_answer):
         """

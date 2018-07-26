@@ -5,8 +5,8 @@ Pbs preset
 @contact: jan.gabriel@tul.cz
 """
 
-from ui.dialogs.dialogs import UiPresetsDialog, APresetsDialog
-from ui.dialogs.pbs_dialog import PbsDialog
+from JobPanel.ui.dialogs.dialogs import UiPresetsDialog, APresetsDialog
+from JobPanel.ui.dialogs.pbs_dialog import PbsDialog
 
 
 class PbsPresets(APresetsDialog):

@@ -219,6 +219,12 @@ class ConnectionSSH(ConnectionBase):
     class SftpPool:
         """
         Class for managing SFTP sessions.
+
+        Reasons for use this class:
+        - unable to use one SFTP session in multiple threads
+        - we do not want to open and close SFTP session in each SFTP operation
+        - we want to limit number of SFTP sessions
+        - we want to have some priority SFTP sessions
         """
         PRIORITY_RESERVE = 2
         """Number of sftp sessions reserved to priority operations"""

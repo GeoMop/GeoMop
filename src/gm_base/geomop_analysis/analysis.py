@@ -32,7 +32,9 @@ class Analysis:
                   '_analysis_dir'],
         composite={'params': Parameter,
                    'files': File,
-                   'additional_files': File}
+                   'additional_files': File,
+                   'layers_files': File,
+                   'script_files': File}
     )
 
     current = None
@@ -45,6 +47,8 @@ class Analysis:
         self.params = kwargs['params'] if 'params' in kwargs else []
         self.files = kwargs['files'] if 'files' in kwargs else []
         self.additional_files = kwargs['additional_files'] if 'additional_files' in kwargs else []
+        self.layers_files = kwargs['layers_files'] if 'layers_files' in kwargs else []
+        self.script_files = kwargs['script_files'] if 'script_files' in kwargs else []
         self._analysis_dir = ''
         self.flow123d_version = kwargs['flow123d_version'] if 'flow123d_version' in kwargs else ''
         self.mj_counter = kwargs['mj_counter'] if 'mj_counter' in kwargs else 1
@@ -91,31 +95,49 @@ class Analysis:
 
         # scan and update files
         if sync_files:
-            current_configs = {file.file_path: file for file in analysis.files}
-            current_additional_files = {file.file_path: file for file in analysis.additional_files}
-            analysis.files = []
-            analysis.additional_files = []
-            for root, dirs, files in os.walk(analysis.analysis_dir):
-                # ignore multijobs folder
-                if root.startswith(os.path.join(analysis.analysis_dir, MULTIJOBS_DIR)):
-                    continue
-
-                for filename in files:
-                    file_path = analysis.make_relative_path(os.path.join(root, filename))
-                    if file_path.endswith('.yaml'):
-                        if file_path in current_configs:
-                            analysis.files.append(current_configs[file_path])
-                        else:
-                            analysis.files.append(File(file_path))
-                    else:
-                        if filename == ANALYSIS_MAIN_FILE:
-                            continue
-                        elif file_path in current_additional_files:
-                            analysis.additional_files.append(current_additional_files[file_path])
-                        else:
-                            analysis.additional_files.append(File(file_path))
+            analysis.sync_files()
 
         return analysis
+
+    def sync_files(self):
+        """Scan and update files"""
+        current_configs = {file.file_path: file for file in self.files}
+        current_additional_files = {file.file_path: file for file in self.additional_files}
+        current_layers_files = {file.file_path: file for file in self.layers_files}
+        current_script_files = {file.file_path: file for file in self.script_files}
+        self.files = []
+        self.additional_files = []
+        self.layers_files = []
+        self.script_files = []
+        for root, dirs, files in os.walk(self.analysis_dir):
+            # ignore multijobs folder
+            if root.startswith(os.path.join(self.analysis_dir, MULTIJOBS_DIR)):
+                continue
+
+            for filename in files:
+                file_path = self.make_relative_path(os.path.join(root, filename))
+                if file_path.endswith('.yaml'):
+                    if file_path in current_configs:
+                        self.files.append(current_configs[file_path])
+                    else:
+                        self.files.append(File(file_path))
+                elif file_path.endswith('.json'):
+                    if file_path in current_layers_files:
+                        self.layers_files.append(current_layers_files[file_path])
+                    else:
+                        self.layers_files.append(File(file_path))
+                elif file_path.endswith('.py'):
+                    if file_path in current_script_files:
+                        self.script_files.append(current_script_files[file_path])
+                    else:
+                        self.script_files.append(File(file_path))
+                else:
+                    if filename == ANALYSIS_MAIN_FILE:
+                        continue
+                    elif file_path in current_additional_files:
+                        self.additional_files.append(current_additional_files[file_path])
+                    else:
+                        self.additional_files.append(File(file_path))
 
     @staticmethod
     def open_from_mj(mj_dir, analysis_name='N/A'):

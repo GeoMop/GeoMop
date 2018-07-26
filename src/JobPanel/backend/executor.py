@@ -72,6 +72,8 @@ class ExecArgs(JsonData):
         """
         self.args = []
         """ Arguments passed to executable."""
+        self.secret_args = []
+        """Arguments passed to executable, but not saved to service config file."""
         self.pbs_args = PbsConfig()
         """
         Arguments passed to PBS system.
@@ -167,6 +169,7 @@ class ProcessExec(ProcessBase):
                 args.append(os.path.join(self.environment.geomop_root,
                                          self.executable.path))
             args.extend(self.exec_args.args)
+            args.extend(self.exec_args.secret_args)
             cwd = os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir)
             r, w = os.pipe()
@@ -315,7 +318,8 @@ class ProcessPBS(ProcessBase):
             command = os.path.join(self.environment.geomop_root,
                                    self.executable.path)
 
-        pbs.prepare_file(command, interpreter, [], self.exec_args.args, self._get_limit_args())
+        pbs.prepare_file(command, interpreter, [], self.exec_args.args + self.exec_args.secret_args,
+                         self._get_limit_args())
         logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
         process = subprocess.Popen(pbs.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -455,6 +459,7 @@ class ProcessDocker(ProcessBase):
             args.append(os.path.join(self.environment.geomop_root,
                                      self.executable.path))
         args.extend(self.exec_args.args)
+        args.extend(self.exec_args.secret_args)
         output = subprocess.check_output(args, universal_newlines=True)
         self.process_id = output.strip()
         return self.process_id

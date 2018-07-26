@@ -7,10 +7,10 @@ Pbs dialog
 
 from PyQt5 import QtCore, QtWidgets
 
-from helpers.importer import DialectImporter
-from ui.data.preset_data import PbsPreset
-from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetsValidationColorizer
+#from helpers.importer import DialectImporter
+from JobPanel.ui.data.preset_data import PbsPreset
+from JobPanel.ui.dialogs.dialogs import AFormContainer
+from JobPanel.ui.validators.validation import PresetsValidationColorizer
 
 
 class PbsDialog(AFormContainer):
@@ -140,7 +140,8 @@ class PbsDialog(AFormContainer):
             self.valid()
         else:
             self.ui.nameLineEdit.clear()
-            dialect_items = DialectImporter.get_available_dialects()
+            #dialect_items = DialectImporter.get_available_dialects()
+            dialect_items = {"PbsDialectPBSPro": "PBSPro"}
             if len(dialect_items)==0:
                 self.ui.pbsSystemComboBox.setCurrentIndex(-1)
             else:

@@ -148,6 +148,14 @@ def job_main():
         input_file = sys.argv[1]
     with open(input_file, "r") as f:
         config = json.load(f)
+
+    # set log level
+    if "log_all" in config and config["log_all"]:
+        level = logging.INFO
+    else:
+        level = logging.WARNING
+    logging.root.setLevel(level)
+
     job = Job(config)
     job.run()
     #time.sleep(10)

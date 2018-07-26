@@ -2,10 +2,11 @@ from .service_base import ServiceBase, ServiceStatus
 from . import config_builder
 from .json_data import JsonData, JsonDataNoConstruct
 from .executor import ProcessDocker
-from services.backend_service import MJReport
-from services.multi_job_service import MJStatus
-from ui.data.mj_data import MultiJobState
-from data.states import TaskStatus as GuiTaskStatus
+from JobPanel.services.backend_service import MJReport
+from JobPanel.services.multi_job_service import MJStatus
+from JobPanel.ui.data.mj_data import MultiJobState
+from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.secret import Secret
 
 import threading
 import time
@@ -310,6 +311,14 @@ class ServiceFrontend(ServiceBase):
                             "workspace": workspace,
                             "config_file_name": config_file_name}
 
+        # set log level
+        service_data["log_all"] = False
+
+        # add secret key
+        if "exec_args" not in service_data["process"]:
+            service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
+        service_data["process"]["exec_args"]["secret_args"] = [Secret().get_key()]
+
         # start backend
         child_id = self.request_start_child(service_data)
         self._backend_proxy = self._child_services[child_id]
@@ -364,3 +373,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def ssh_test(self, ssh):
+        """Performs ssh test"""
+        ssh_conf = config_builder.build_ssh_conf(ssh)
+        answer = []
+        self._backend_proxy.call("request_ssh_test", ssh_conf, answer)
+        return answer

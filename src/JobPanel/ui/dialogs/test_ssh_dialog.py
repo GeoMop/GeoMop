@@ -1,11 +1,10 @@
 from PyQt5 import QtWidgets,  QtCore, QtGui
-from JobPanel.ui.ssh_test import SshTester
 
 
 class TestSSHDialog(QtWidgets.QDialog):
     """Dialog to enter shh password."""
 
-    def __init__(self, parent, ssh, data):
+    def __init__(self, parent, ssh, frontend_service):
         """Initializes the class."""
         super(TestSSHDialog, self).__init__(parent)
 
@@ -38,48 +37,63 @@ class TestSSHDialog(QtWidgets.QDialog):
         main_layout.addWidget(self._button_box)
        
         self.finished = False
-        self.test = SshTester(ssh, data)
-        self.test.start()
+        self.test_answer = frontend_service.ssh_test(ssh)
         
         self.log_timer = QtCore.QTimer()
         self.log_timer.timeout.connect(self._handle_messages)
-        self.log_timer.start(500)
+        self.log_timer.start(100)
         
     def reject(self):
         """Handles a canceling."""
         if not self.finished:
             self.log_timer.stop()
             self.finished = True
-            self.test.stop()
-        super(TestSSHDialog, self).reject()      
+        super(TestSSHDialog, self).reject()
         
     def _handle_messages(self):
         """add error to error label"""
-        finished = self.test.finished()
-        i = 0
-        while True:
-            mess = self.test.get_next_error()
-            if mess is None:
-                break
-            i += 1
-            self._error.addItem(mess)
-        if i>0:
-            i = 0
-            self._error.setCurrentRow(self._error.count()-1, QtCore.QItemSelectionModel.NoUpdate)
-        while True:
-            mess = self.test.get_next_log()
-            if mess is None:
-                break
-            i += 1
-            if mess.endswith("..."):            
-                self._log.addItem(mess)
+        finished = False
+        if len(self.test_answer) > 0:
+            res = self.test_answer[0]
+            if "error" in res:
+                self._error.addItem("Error in communication with Backend.")
+                self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
             else:
-                self._log.addItem("- " + mess)
-                if mess.endswith("!!!"):
-                    item = self._log.item(self._log.count()-1)
-                    item.setForeground(QtGui.QColor(255,0,0))
-            if i>0:
-                self._log.setCurrentRow(self._log.count()-1, QtCore.QItemSelectionModel.NoUpdate)
+                if len(res["data"]["errors"]) > 0:
+                    for err in res["data"]["errors"]:
+                        self._error.addItem(err)
+                    self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
+                else:
+                    self._log.addItem("Executables on remote:")
+                    for executable in res["data"]["executables"]:
+                        self._log.addItem(executable)
+                    self._log.setCurrentRow(self._log.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
+            finished = True
+
+        # i = 0
+        # while True:
+        #     mess = self.test.get_next_error()
+        #     if mess is None:
+        #         break
+        #     i += 1
+        #     self._error.addItem(mess)
+        # if i>0:
+        #     i = 0
+        #     self._error.setCurrentRow(self._error.count()-1, QtCore.QItemSelectionModel.NoUpdate)
+        # while True:
+        #     mess = self.test.get_next_log()
+        #     if mess is None:
+        #         break
+        #     i += 1
+        #     if mess.endswith("..."):
+        #         self._log.addItem(mess)
+        #     else:
+        #         self._log.addItem("- " + mess)
+        #         if mess.endswith("!!!"):
+        #             item = self._log.item(self._log.count()-1)
+        #             item.setForeground(QtGui.QColor(255,0,0))
+        #     if i>0:
+        #         self._log.setCurrentRow(self._log.count()-1, QtCore.QItemSelectionModel.NoUpdate)
         if finished:
             self._button_box.button(QtWidgets.QDialogButtonBox.Cancel).setText("Close")
             self.log_timer.stop()

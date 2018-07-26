@@ -6,9 +6,9 @@ Main window menus
 """
 
 import PyQt5.QtWidgets as QtWidgets
-import ui.actions.main_menu_actions as action
-from data.states import TaskStatus, MultijobActions, TASK_STATUS_PERMITTED_ACTIONS
-from ui.menus import AnalysisMenu
+import JobPanel.ui.actions.main_menu_actions as action
+from JobPanel.data.states import TaskStatus, MultijobActions, TASK_STATUS_PERMITTED_ACTIONS
+from JobPanel.ui.menus import AnalysisMenu
 
 
 class MainMenuBar(QtWidgets.QMenuBar):

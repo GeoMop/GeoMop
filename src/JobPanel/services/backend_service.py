@@ -12,7 +12,8 @@ from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
-from JobPanel.backend.connection import ConnectionStatus, SSHError
+from JobPanel.backend.connection import ConnectionStatus, SSHError, SSHAuthenticationError
+from JobPanel.data.secret import Secret
 
 
 class MJInfo(JsonData):
@@ -42,6 +43,9 @@ class MJInfo(JsonData):
         """jobs report save counter"""
 
         super().__init__(config)
+
+        self._results_download_files = []
+        """List of result list of download files request"""
 
         self._jobs_report = {}
         """jobs report information"""
@@ -95,7 +99,7 @@ class Backend(ServiceBase):
     """
     """
 
-    def __init__(self, config):
+    def __init__(self, config, secret_key):
         self.mj_info = JsonDataNoConstruct()
         """dict of managed MJ information"""
 
@@ -121,6 +125,35 @@ class Backend(ServiceBase):
         self._last_config_saved = 0.0
 
         self._proxies_resuscitated = False
+
+        self._secret = Secret(secret_key)
+        self._demangle_secret()
+
+    def serialize(self):
+        """
+        Serialize with mangle secret data.
+        :return:
+        """
+        # todo: chtelo by to vymyslet lepe, asi pouzit nejaky manazer hesel
+        conf = super().serialize().copy()
+        conf["mj_info"] = conf["mj_info"].copy()
+        for k in list(conf["mj_info"].keys()):
+            mj = conf["mj_info"][k] = conf["mj_info"][k].copy()
+            mj["proxy"] = mj["proxy"].copy()
+            con = mj["proxy"]["connection_config"] = mj["proxy"]["connection_config"].copy()
+            if "password" in con:
+                con["password"] = self._secret.mangle(con["password"])
+        return conf
+
+    def _demangle_secret(self):
+        """
+        Demangle deserialized secret data.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            con = mj.proxy.connection_config = mj.proxy.connection_config.copy()
+            if "password" in con:
+                con["password"] = self._secret.demangle(con["password"])
 
     def _do_work(self):
         if not self._proxies_resuscitated:
@@ -276,29 +309,66 @@ class Backend(ServiceBase):
 
     def _download_files(self):
         """
-        Download files which are in self.files_to_download.
+        Download files which are in self.mj_info[mj_id].files_to_download.
         :return:
         """
-        # todo: predelat tak, aby probihalo ve vlakne, kazdy MJ bude mit svoje stahovaci vlakno
         for mj in self.mj_info.values():
-            con = mj.proxy._connection
-            if (con is not None) and (con._status == ConnectionStatus.online):
-                while len(mj.files_to_download) > 0:
-                    try:
-                        con.download(
-                            [mj.files_to_download[0]],
-                            os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
-                            os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
-                        del mj.files_to_download[0]
-                        # todo: az bude ve vlakne, bude se muset pouzit zamek nebo resit pres queue - to je asi lepsi
+            if len(mj._results_download_files) > 0:
+                if len(mj._results_download_files[0]) > 0:
+                    res = mj._results_download_files[0][0]
+                    if "error" in res:
+                        logging.error("Error in request_download_files")
+                        # clear list to prevent infinite loop
+                        mj.files_to_download.clear()
                         self._config_changed = True
-                    except SSHError as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        break
-                    except (FileNotFoundError, PermissionError) as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        del mj.files_to_download[0]
-                        self._config_changed = True
+                    else:
+                        downloaded = res["data"]["downloaded"]
+                        error = res["data"]["error"]
+                        remove = downloaded.copy()
+                        remove.extend(error)
+                        for rem in remove:
+                            try:
+                                mj.files_to_download.remove(rem)
+                                self._config_changed = True
+                            except ValueError:
+                                pass
+                    mj._results_download_files.clear()
+            if (len(mj.files_to_download) > 0) and (len(mj._results_download_files) == 0):
+                con = mj.proxy._connection
+                if (con is not None) and (con._status == ConnectionStatus.online):
+                    answer = []
+                    self.call("request_download_files", {"mj": mj, "files": mj.files_to_download.copy()}, answer)
+                    mj._results_download_files.append(answer)
+
+    @LongRequest
+    def request_download_files(self, data):
+        """
+        Download files which are requested to download.
+        :param data: dict with keys "mj" and "files"
+        :return:
+        """
+        mj = data["mj"]
+        files = data["files"]
+
+        ret = {"downloaded": [],
+               "error": []}
+
+        con = mj.proxy._connection
+        for file in files:
+            try:
+                con.download(
+                    [file],
+                    os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
+                ret["downloaded"].append(file)
+            except SSHError as e:
+                logging.error("Downloading file error: {0}".format(e))
+                break
+            except (FileNotFoundError, PermissionError) as e:
+                logging.error("Downloading file error: {0}".format(e))
+                ret["error"].append(file)
+
+        return ret
 
     def _check_mj_status(self):
         """
@@ -483,6 +553,45 @@ class Backend(ServiceBase):
             except (SSHError, FileNotFoundError, PermissionError):
                 pass
 
+    @LongRequest
+    def request_ssh_test(self, ssh_conf):
+        """
+        Performs ssh test.
+        :param ssh_conf:
+        :return:
+        """
+        ret = {"executables": [],
+               "errors": []}
+
+        try:
+            con = self.get_connection(ssh_conf)
+        except SSHAuthenticationError:
+            ret["errors"].append("Authentication error")
+            return ret
+        except SSHError:
+            ret["errors"].append("Unable to connect to host.")
+            return ret
+
+        delegator_proxy = con.get_delegator()
+        answer = []
+        delegator_proxy.call("request_get_executables_from_installation", con.environment.geomop_root, answer)
+        for i in range(100):
+            time.sleep(0.1)
+            if len(answer) > 0:
+                res = answer[0]
+                if "error" in res:
+                    logging.error("Error in ssh test")
+                    ret["errors"].append("Error in communication with Delegator.")
+                else:
+                    if res["data"] is None:
+                        ret["errors"].append("Error in reading executables.")
+                    else:
+                        for executable in res["data"]:
+                            ret["executables"].append(executable["name"])
+                return ret
+        ret["errors"].append("Timeout in communication with Delegator.")
+        return ret
+
 
 ##########
 # Main body
@@ -499,7 +608,15 @@ if __name__ == "__main__":
         input_file = "backend_service.conf"
         with open(input_file, "r") as f:
             config = json.load(f)
-        bs = Backend(config)
+
+        # set log level
+        if "log_all" in config and config["log_all"]:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+        logging.root.setLevel(level)
+
+        bs = Backend(config, sys.argv[1])
         bs.run()
     except:
         logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))

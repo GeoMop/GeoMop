@@ -3,9 +3,10 @@
 """
 
 import os
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
 from .dialogs import AFormDialog, UiFormDialog
 from gm_base.geomop_analysis import Analysis
+from gm_base import icon
 
 
 class AnalysisDialog(AFormDialog):
@@ -61,6 +62,144 @@ class AnalysisDialog(AFormDialog):
         # connect slots
         super()._connect_slots()
 
+        if purpose == AnalysisDialog.PURPOSE_EDIT:
+            self.ui.refreshButton.clicked.connect(self._handle_refreshButton)
+            self.ui.layersFileEditButton.clicked.connect(self._handle_layersFileEditButton)
+            self.ui.flowInputEditButton.clicked.connect(self._handle_flowInputEditButton)
+            self.ui.scriptMakeButton.clicked.connect(self._handle_scriptMakeButton)
+
+    def _handle_refreshButton(self):
+        self.analysis.sync_files()
+        self._update_files()
+
+    def _handle_layersFileEditButton(self):
+        editor_path = os.path.join("LayerEditor", "layer_editor.py")
+        file = self.ui.layersFileComboBox.currentText()
+        self._start_editor(editor_path, file)
+
+    def _handle_flowInputEditButton(self):
+        editor_path = os.path.join("ModelEditor", "model_editor.py")
+        file = self.ui.flowInputComboBox.currentText()
+        self._start_editor(editor_path, file)
+
+    def _start_editor(self, editor_path, file):
+        """Starts editor with selected file."""
+        geomop_root = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
+        python_bat = os.path.join(geomop_root, "bin", "pythonw.bat")
+        if os.path.exists(python_bat):
+            cmd = python_bat
+        else:
+            cmd = "python3"
+
+        args = [os.path.join(geomop_root, editor_path)]
+        if len(file) > 0:
+            args.append(os.path.join(self.analysis.analysis_dir, file))
+
+        proc = QtCore.QProcess(self)
+        proc.start(cmd, args)
+
+    def _handle_scriptMakeButton(self):
+        """Generate default Flow execution script."""
+        defaul_script_name = "analysis.py"
+        script_path = os.path.join(self.analysis.analysis_dir, defaul_script_name)
+
+        # script content
+        flow_input_file = self.ui.flowInputComboBox.currentText()
+        if len(flow_input_file) == 0:
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Warning")
+            msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+            msg_box.setText("First select Flow123d input file.")
+            msg_box.exec()
+            return
+        script = (
+            "gen = VariableGenerator(Variable=Struct())\n"
+            "flow = Flow123dAction(Inputs=[gen], YAMLFile='{}')\n"
+            "pipeline = Pipeline(ResultActions=[flow])\n"
+        ).format(flow_input_file)
+
+        # confirm overwrite
+        if os.path.exists(script_path):
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Confirmation")
+            msg_box.setIcon(QtWidgets.QMessageBox.Question)
+            msg_box.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+            button = QtWidgets.QPushButton('&Overwrite')
+            msg_box.addButton(button, QtWidgets.QMessageBox.YesRole)
+            msg_box.setDefaultButton(button)
+            msg_box.setText('Script file: "{}" already exists, do you want to overwrite it?'
+                            .format(defaul_script_name))
+            msg_box.exec()
+            if msg_box.clickedButton() != button:
+                return
+
+        # save file
+        try:
+            with open(script_path, 'w') as fd:
+                fd.write(script)
+        except Exception as e:
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Error")
+            msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+            msg_box.setText("Unable to save script: {0}".format(e))
+            msg_box.exec()
+            return
+
+        self._handle_refreshButton()
+
+        # select generated file
+        ind = self.ui.scriptComboBox.findText(defaul_script_name)
+        if ind >= 0:
+            self.ui.scriptComboBox.setCurrentIndex(ind)
+
+    def _update_files(self):
+        """Updates comboboxs according to actual directory content."""
+        # keep selected files
+        flowInputText = self.ui.flowInputComboBox.currentText()
+        layersFileText = self.ui.layersFileComboBox.currentText()
+        scriptText = self.ui.scriptComboBox.currentText()
+
+        # fill file comboboxs
+        self.ui.flowInputComboBox.clear()
+        self.ui.flowInputComboBox.addItems([file.file_path for file in self.analysis.files])
+
+        self.ui.layersFileComboBox.clear()
+        self.ui.layersFileComboBox.addItems([file.file_path for file in self.analysis.layers_files])
+
+        self.ui.scriptComboBox.clear()
+        self.ui.scriptComboBox.addItems([file.file_path for file in self.analysis.script_files])
+
+        # select files
+        ind = self.ui.flowInputComboBox.findText(flowInputText)
+        if ind < 0:
+            for file in self.analysis.files:
+                if file.selected:
+                    ind = self.ui.flowInputComboBox.findText(file.file_path)
+                    break
+            if (ind < 0) and (len(self.analysis.files) > 0):
+                ind = 0
+        self.ui.flowInputComboBox.setCurrentIndex(ind)
+
+        ind = self.ui.layersFileComboBox.findText(layersFileText)
+        if ind < 0:
+            for file in self.analysis.layers_files:
+                if file.selected:
+                    ind = self.ui.layersFileComboBox.findText(file.file_path)
+                    break
+            if (ind < 0) and (len(self.analysis.layers_files) > 0):
+                ind = 0
+        self.ui.layersFileComboBox.setCurrentIndex(ind)
+
+        ind = self.ui.scriptComboBox.findText(scriptText)
+        if ind < 0:
+            for file in self.analysis.script_files:
+                if file.selected:
+                    ind = self.ui.scriptComboBox.findText(file.file_path)
+                    break
+            if (ind < 0) and (len(self.analysis.script_files) > 0):
+                ind = 0
+        self.ui.scriptComboBox.setCurrentIndex(ind)
+
     def valid(self):
         valid = True
         return valid
@@ -70,35 +209,14 @@ class AnalysisDialog(AFormDialog):
 
     def set_data(self, data=None):
         if data:
-            # check files
-            for i in range(self.ui.filesLayout.count()):
-                checkbox = self.ui.filesLayout.itemAt(i).widget()
-                if checkbox.file.file_path in data.selected_file_paths:
-                    checkbox.setChecked(True)
-                else:
-                    checkbox.setChecked(False)
-
-            # check additional files
-            for i in range(self.ui.additionalFilesLayout.count()):
-                checkbox = self.ui.additionalFilesLayout.itemAt(i).widget()
-                if checkbox.file.file_path in data.selected_file_paths:
-                    checkbox.setChecked(True)
-                else:
-                    checkbox.setChecked(False)
-
-            # fill params
-            params = {param.name: param.value for param in data.params}
-            for __, edit_widget in self.ui.paramWidgets:
-                if edit_widget.param.name in params:
-                    edit_widget.setText(params[edit_widget.param.name])
-
-            self.ui.update_params()
+            self._update_files()
 
     def accept(self):
         """Handles a confirmation."""
         super(AnalysisDialog, self).accept()
 
-        self.analysis.flow123d_version = self.ui.f123d_version_combo_box.currentText()
+        #self.analysis.flow123d_version = self.ui.f123d_version_combo_box.currentText()
+        self.analysis.flow123d_version = ""
 
         if self.purpose == AnalysisDialog.PURPOSE_ADD:
             # name
@@ -116,44 +234,15 @@ class AnalysisDialog(AFormDialog):
             self.analysis.analysis_dir = path
             self.analysis.save()
         if self.purpose == AnalysisDialog.PURPOSE_EDIT:
-            # get all config files
-            for i in range(self.ui.filesLayout.count()):
-                checkbox = self.ui.filesLayout.itemAt(i).widget()
+            # set selected files
+            for file in self.analysis.files:
+                file.selected = file.file_path == self.ui.flowInputComboBox.currentText()
 
-                # find the file in analysis and update selected status
-                gen = (f for f in self.analysis.files if f.file_path == checkbox.file.file_path)
-                try:
-                    file = next(gen)
-                except StopIteration:
-                    # file not found
-                    continue
-                file.selected = checkbox.isChecked()
+            for file in self.analysis.layers_files:
+                file.selected = file.file_path == self.ui.layersFileComboBox.currentText()
 
-            # get all additional files
-            for i in range(self.ui.additionalFilesLayout.count()):
-                checkbox = self.ui.additionalFilesLayout.itemAt(i).widget()
-
-                # find the file in analysis and update selected status
-                gen = (f for f in self.analysis.additional_files if f.file_path == checkbox.file.file_path)
-                try:
-                    file = next(gen)
-                except StopIteration:
-                    # file not found
-                    continue
-                file.selected = checkbox.isChecked()
-
-            # get all params
-            for i in range(self.ui.paramsLayout.count()):
-                widget = self.ui.paramsLayout.itemAt(i).widget()
-
-                # find the parameter in analysis
-                gen = (p for p in self.analysis.params if p.name == widget.param.name)
-                try:
-                    param = next(gen)
-                except StopIteration:
-                    # parameter not found
-                    continue
-                param.value = widget.text()
+            for file in self.analysis.script_files:
+                file.selected = file.file_path == self.ui.scriptComboBox.currentText()
 
             self.analysis.save()
 
@@ -173,122 +262,96 @@ class UiAnalysisDialog(UiFormDialog):
 
         # form layout
 
-        # row 0
-        if dialog.purpose == AnalysisDialog.PURPOSE_ADD:
-            self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-            self.nameLabel.setObjectName("nameLabel")
-            self.nameLabel.setText("Name:")
-            self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
-                                      self.nameLabel)
-            self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
-            self.nameLineEdit.setObjectName("nameLineEdit")
-            self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
-                                      self.nameLineEdit)
-        elif dialog.purpose == AnalysisDialog.PURPOSE_EDIT:
+        # name
+        self.nameLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.nameLabel.setObjectName("nameLabel")
+        self.nameLabel.setText("Name:")
+        self.nameLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
+        self.nameLineEdit.setObjectName("nameLineEdit")
+        self.formLayout.addRow(self.nameLabel, self.nameLineEdit)
+        if dialog.purpose == AnalysisDialog.PURPOSE_EDIT:
+            self.nameLineEdit.setReadOnly(True)
+            self.nameLineEdit.setText(self.analysis.name)
+
+        # directory
+        if dialog.purpose == AnalysisDialog.PURPOSE_EDIT:
             self.dirLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
             self.dirLabel.setObjectName("dirLabel")
-            self.dirLabel.setText("Analysis Directory:")
-            self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole,
-                                      self.dirLabel)
+            self.dirLabel.setText("Directory:")
             self.dirPathLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
             self.dirPathLabel.setObjectName("dirPathLabel")
             self.dirPathLabel.setText(self.analysis.analysis_dir)
-            self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole,
-                                      self.dirPathLabel)
+            self.formLayout.addRow(self.dirLabel, self.dirPathLabel)
 
         # remove button box
         self.mainVerticalLayout.removeWidget(self.buttonBox)
 
-        self.f123d_version_label = QtWidgets.QLabel("Flow123d version: ")
-        self.f123d_version_combo_box = QtWidgets.QComboBox()
-        flow123d_versions = dialog.flow123d_versions
-        if not dialog.flow123d_versions:
-            flow123d_versions = [dialog.analysis.flow123d_version]
-        self.f123d_version_combo_box.addItems(sorted(flow123d_versions, reverse=True))
-        index = self.f123d_version_combo_box.findText(dialog.analysis.flow123d_version)
-        index = 0 if index == -1 else index
-        self.f123d_version_combo_box.setCurrentIndex(index)
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
-                                  self.f123d_version_label)
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
-                                  self.f123d_version_combo_box)
+        # self.f123d_version_label = QtWidgets.QLabel("Flow123d version: ")
+        # self.f123d_version_combo_box = QtWidgets.QComboBox()
+        # flow123d_versions = dialog.flow123d_versions
+        # if not dialog.flow123d_versions:
+        #     flow123d_versions = [dialog.analysis.flow123d_version]
+        # self.f123d_version_combo_box.addItems(sorted(flow123d_versions, reverse=True))
+        # index = self.f123d_version_combo_box.findText(dialog.analysis.flow123d_version)
+        # index = 0 if index == -1 else index
+        # self.f123d_version_combo_box.setCurrentIndex(index)
+        # self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole,
+        #                           self.f123d_version_label)
+        # self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole,
+        #                           self.f123d_version_combo_box)
 
         if dialog.purpose != AnalysisDialog.PURPOSE_ADD:
-            # divider
-            self.formDivider = QtWidgets.QFrame(self.mainVerticalLayoutWidget)
-            self.formDivider.setObjectName("formDivider")
-            self.formDivider.setFrameShape(QtWidgets.QFrame.HLine)
-            self.formDivider.setFrameShadow(QtWidgets.QFrame.Sunken)
-            self.mainVerticalLayout.addWidget(self.formDivider)
+            # separator
+            sep = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+            sep.setText("")
+            self.formLayout.addRow(sep)
 
-            # font
-            labelFont = QtGui.QFont()
-            labelFont.setPointSize(11)
-            labelFont.setWeight(65)
+            # layers file
+            self.layersFileLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+            self.layersFileLabel.setText("Layers file:")
+            self.layersFileComboBox = QtWidgets.QComboBox(self.mainVerticalLayoutWidget)
+            self.layersFileEditButton = QtWidgets.QPushButton()
+            self.layersFileEditButton.setText("Edit")
+            self.layersFileEditButton.setIcon(icon.get_app_icon("le-geomap"))
+            self.layersFileEditButton.setToolTip('Edit in Layer Editor')
+            self.layersFileEditButton.setMaximumWidth(100)
+            layout = QtWidgets.QHBoxLayout()
+            layout.addWidget(self.layersFileComboBox)
+            layout.addWidget(self.layersFileEditButton)
+            self.formLayout.addRow(self.layersFileLabel, layout)
 
-            # files label
-            self.filesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-            self.filesLabel.setObjectName("filesLabel")
-            self.filesLabel.setFont(labelFont)
-            self.filesLabel.setText("Configuration Files")
-            self.mainVerticalLayout.addWidget(self.filesLabel)
+            # flow input
+            self.flowInputLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+            self.flowInputLabel.setText("Flow123d input:")
+            self.flowInputComboBox = QtWidgets.QComboBox(self.mainVerticalLayoutWidget)
+            self.flowInputEditButton = QtWidgets.QPushButton()
+            self.flowInputEditButton.setText("Edit")
+            self.flowInputEditButton.setIcon(icon.get_app_icon("me-geomap"))
+            self.flowInputEditButton.setToolTip('Edit in Model Editor')
+            self.flowInputEditButton.setMaximumWidth(100)
+            layout = QtWidgets.QHBoxLayout()
+            layout.addWidget(self.flowInputComboBox)
+            layout.addWidget(self.flowInputEditButton)
+            self.formLayout.addRow(self.flowInputLabel, layout)
 
-            self.filesLayout = QtWidgets.QVBoxLayout()
-            self.filesLayout.setContentsMargins(0, 5, 0, 5)
-            self.mainVerticalLayout.addLayout(self.filesLayout)
+            # script file
+            self.scriptLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+            self.scriptLabel.setText("Analysis script:")
+            self.scriptComboBox = QtWidgets.QComboBox(self.mainVerticalLayoutWidget)
+            self.scriptMakeButton = QtWidgets.QPushButton()
+            self.scriptMakeButton.setText("Make script")
+            self.scriptMakeButton.setToolTip('Generate default Flow execution')
+            self.scriptMakeButton.setMaximumWidth(100)
+            layout = QtWidgets.QHBoxLayout()
+            layout.addWidget(self.scriptComboBox)
+            layout.addWidget(self.scriptMakeButton)
+            self.formLayout.addRow(self.scriptLabel, layout)
 
-            # update config files
-            for file in self.analysis.files:
-                checkbox = QtWidgets.QCheckBox()
-                checkbox.setChecked(True)
-                checkbox.file = file
-                checkbox.setText(file.file_path)
-                checkbox.stateChanged.connect(self.update_params)
-                self.filesLayout.addWidget(checkbox)
-
-            # params label
-            self.paramsLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-            self.paramsLabel.setObjectName("paramsLabel")
-            self.paramsLabel.setFont(labelFont)
-            self.paramsLabel.setText("Parameters")
-            self.mainVerticalLayout.addWidget(self.paramsLabel)
-
-            self.paramsLayout = QtWidgets.QFormLayout()
-            self.paramsLayout.setContentsMargins(0, 5, 0, 5)
-            self.mainVerticalLayout.addLayout(self.paramsLayout)
-
-            # create GUI components for all analysis params
-            self.paramWidgets = []
-            for i, param in enumerate(self.analysis.params):
-                label = QtWidgets.QLabel()
-                label.setText(param.name)
-                label.param = param
-                edit = QtWidgets.QLineEdit()
-                edit.param = param
-                self.paramWidgets.append((label, edit))
-                self.paramsLayout.setWidget(i, 0, label)
-                self.paramsLayout.setWidget(i, 1, edit)
-
-            self.update_params()
-
-            # additional files label
-            self.additionalFilesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-            self.additionalFilesLabel.setObjectName("additionalFilesLabel")
-            self.additionalFilesLabel.setFont(labelFont)
-            self.additionalFilesLabel.setText("Additional Files")
-            self.mainVerticalLayout.addWidget(self.additionalFilesLabel)
-
-            self.additionalFilesLayout = QtWidgets.QVBoxLayout()
-            self.additionalFilesLayout.setContentsMargins(0, 5, 0, 5)
-            self.mainVerticalLayout.addLayout(self.additionalFilesLayout)
-
-            # update additional files
-            for file in self.analysis.additional_files:
-                checkbox = QtWidgets.QCheckBox()
-                checkbox.setChecked(True)
-                checkbox.file = file
-                checkbox.setText(file.file_path)
-                self.additionalFilesLayout.addWidget(checkbox)
+            self.refreshButton = QtWidgets.QPushButton()
+            self.refreshButton.setText("Refresh files")
+            self.refreshButton.setToolTip('Refresh files according to actual directory content.')
+            self.refreshButton.setMaximumWidth(120)
+            self.mainVerticalLayout.addWidget(self.refreshButton)
 
         self.mainVerticalLayout.addStretch(1)
 
@@ -296,21 +359,6 @@ class UiAnalysisDialog(UiFormDialog):
         self.mainVerticalLayout.addWidget(self.buttonBox)
 
         return dialog
-
-    def update_params(self, sender=None):
-        """Hide or show parameters based on currently checked files."""
-        params = []
-        for i in range(self.filesLayout.count()):
-            checkbox = self.filesLayout.itemAt(i).widget()
-            if checkbox.isChecked():
-                params.extend(checkbox.file.params)
-        params = set(params)  # each param only once
-
-        # set visibility for all widgets
-        for i in range(self.paramsLayout.count()):
-            widget = self.paramsLayout.itemAt(i).widget()
-            widget.include_in_data = widget.param.name in params
-            widget.setVisible(widget.include_in_data)
 
 
 IST_FOLDER = os.path.join(os.path.split(
