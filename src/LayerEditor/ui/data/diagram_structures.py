@@ -444,7 +444,7 @@ class Diagram():
         return remapped_regions
                 
     def region_color_changed(self, region_idx):
-        """Region collor was changed"""
+        """Region color was changed"""
         for polygon in self.polygons:
             if self.regions.get_region_id(2, polygon.id)==region_idx:
                 polygon.object.update_color()

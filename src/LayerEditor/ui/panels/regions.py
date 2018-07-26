@@ -44,25 +44,29 @@ class Regions(QtWidgets.QToolBox):
         self._emit_regionChanged = True
         """If True regionChanged is emitted"""
 
-    def update_regions_panel(self):
+    def update_regions_panel(self, changed={}):
         """Refresh the region panel based upon data layer"""
         # TODO: Rewrite whole region panel to utilize this function. When any change occurs outside of this scope, this function should be called as well.
-        data = cfg.diagram.regions
-        reg_idx = self.get_current_region()
-        shapes = data.get_shapes_of_region(reg_idx)
-        # cannot remove default or utilized region
-        if reg_idx == 0:
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(False)
-                self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
-        elif any(shapes):
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(False)
-                self.remove_button[layer_id].setToolTip('Region is still in use!')
-        else:
-            for layer_id in data.layers_topology[data.current_topology_id]:
-                self.remove_button[layer_id].setEnabled(True)
-                self.remove_button[layer_id].setToolTip('Remove selected region')
+        if not changed or ('button' in changed and changed.button):
+            # check if changed has field button and it is true
+            data = cfg.diagram.regions
+            reg_idx = self.get_current_region()
+            shapes = data.get_shapes_of_region(reg_idx)
+            if reg_idx == 0:
+            # cannot remove default or utilized region
+                for layer_id in data.layers_topology[data.current_topology_id]:
+                    self.remove_button[layer_id].setEnabled(False)
+                    self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
+            elif any(shapes):
+                for layer_id in data.layers_topology[data.current_topology_id]:
+                    self.remove_button[layer_id].setEnabled(False)
+                    self.remove_button[layer_id].setToolTip('Region is still in use!')
+            else:
+                for layer_id in data.layers_topology[data.current_topology_id]:
+                    self.remove_button[layer_id].setEnabled(True)
+                    self.remove_button[layer_id].setToolTip('Remove selected region')
+
+
 
     def release_all(self):
         """Remove all items"""
@@ -355,10 +359,23 @@ class Regions(QtWidgets.QToolBox):
             self.name[layer_id].selectAll()
         else:
             data.set_region_name([key for key, item in data.regions.items() if item == region][0],
-                self.name[layer_id].text(), True, "Set region name")
-            combo_text = self.name[layer_id].text()+" ("+str(data.regions[region_id].dim.value)+"D)"
-            self.regions[layer_id].setItemText(
-                self.regions[layer_id].currentIndex(), combo_text)
+                                 self.name[layer_id].text(), True, "Set region name")
+            for l_id in self.layers:
+                # propagate changes to all tabs of region panel
+                region_id = self.regions[l_id].currentData()
+                region = data.regions[region_id]
+                self.name[l_id].setText(region.name)
+
+                tab_id = self.layers_id.index(l_id)
+                self._set_box_title(tab_id, l_id)
+
+                region_id = self.regions[l_id].currentData()
+                combo_text = self.name[layer_id].text() + " (" + str(data.regions[region_id].dim.value) + "D)"
+
+                self.regions[l_id].setItemText(
+                    self.regions[layer_id].currentIndex(), combo_text
+                )
+
                 
     def _set_box_title(self, id, layer_id):
         region_id = self.regions[layer_id].currentData()
@@ -385,15 +402,22 @@ class Regions(QtWidgets.QToolBox):
             i += 1
         selected_color = color_dia.getColor() 
         if selected_color.isValid():
+            # data color change
+            cfg.diagram.regions.set_region_color(region_id,
+                selected_color.name(), True, "Set Color")
+            # propagate color change to the canvas
+            cfg.diagram.region_color_changed(region_id)
+
+            # visual update of region panel
             pixmap = QtGui.QPixmap(16, 16)
             pixmap.fill(selected_color)
             iconPix = QtGui.QIcon(pixmap)
-            self.color_button[layer_id].setIcon(iconPix)
-            
-            cfg.diagram.regions.set_region_color(region_id, 
-                selected_color.name(), True, "Set Color")
-            cfg.diagram.region_color_changed(region_id)
-            self._set_box_title(self.currentIndex(), layer_id)
+            for l_id in self.layers:
+                if self.regions[l_id].currentData() == region_id:
+                    self.color_button[l_id].setIcon(iconPix)
+                    # show color in the tab title as well
+                    tab_id = self.layers_id.index(l_id)
+                    self._set_box_title(tab_id, l_id)
             
     def _region_set(self, layer_id):
         """Region in combo box was changed"""
