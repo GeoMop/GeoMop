@@ -441,6 +441,10 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         data.set_region_not_used(region_id, self.notused[layer_id].isChecked(), 
             True, "Set region usage")
+        for l_id in self.layers:
+            if self.regions[l_id].currentData() == region_id:
+                self.notused[l_id].setChecked(self.notused[layer_id].isChecked())
+
 
     def _boundary_set(self, layer_id):
         """Region boundary property is changed"""
@@ -450,6 +454,9 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         data.set_region_boundary(region_id, self.boundary[layer_id].isChecked(), 
             True, "Set region boundary")
+        for l_id in self.layers:
+            if self.regions[l_id].currentData() == region_id:
+                self.boundary[l_id].setChecked(self.boundary[layer_id].isChecked())
 
     def _mesh_step_set(self, layer_id):
         if self.update_region_data:
@@ -459,6 +466,9 @@ class Regions(QtWidgets.QToolBox):
         region_id = self.regions[layer_id].currentData()
         data.set_region_mesh_step(region_id, step_value,
             True, "Set region mesh step")
+        for l_id in self.layers:
+            if self.regions[l_id].currentData() == region_id:
+                self.mesh_step[l_id].setText("{:.1f}".format(step_value))
 
 
     def _layer_changed(self):
