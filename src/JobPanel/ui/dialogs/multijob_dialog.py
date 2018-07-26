@@ -54,7 +54,7 @@ class PbsPresetsValidationColorizer(PresetsValidationColorizer):
     def connect(self, edited_func, finished_func):
         for key, control in self.controls.items():
             if isinstance(control, QtWidgets.QLineEdit):
-                control.textEdited.connect(edited_func)
+                control.textChanged.connect(edited_func)
                 control.editingFinished.connect(finished_func)
             elif isinstance(control, QtWidgets.QSpinBox):
                 control.valueChanged.connect(edited_func)
@@ -173,6 +173,7 @@ class MultiJobDialog(AFormDialog):
             counter = 1
         name = self.ui.multiJobSshPresetComboBox.currentText() + '_' + str(counter)
         self.ui.nameLineEdit.setText(name)
+        self.valid()
 
     def valid(self):
         preset = self.get_data()["preset"]
@@ -951,6 +952,7 @@ class UiMultiJobDialog(UiFormDialog):
         self.pbs_queueLabel.setText("Queue:")
         self.pbs_formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.pbs_queueLabel)
         self.pbs_queueLineEdit = QtWidgets.QLineEdit(self.pbsVerticalLayoutWidget)
+        self.pbs_queueLineEdit.setProperty("clearButtonEnabled", True)
         self.pbs_validator.add('queue', self.pbs_queueLineEdit)
         self.pbs_formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.pbs_queueLineEdit)
 
@@ -959,7 +961,7 @@ class UiMultiJobDialog(UiFormDialog):
         self.pbs_walltimeLabel.setText("Walltime:")
         self.pbs_formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.pbs_walltimeLabel)
         self.pbs_walltimeLineEdit = QtWidgets.QLineEdit(self.pbsVerticalLayoutWidget)
-        self.pbs_walltimeLineEdit.setPlaceholderText("1d4h or 20h")
+        self.pbs_walltimeLineEdit.setPlaceholderText("number of hours")
         self.pbs_walltimeLineEdit.setProperty("clearButtonEnabled", True)
         self.pbs_validator.add('walltime', self.pbs_walltimeLineEdit)
         self.pbs_formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.pbs_walltimeLineEdit)

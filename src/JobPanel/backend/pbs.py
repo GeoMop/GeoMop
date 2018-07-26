@@ -220,7 +220,7 @@ class PbsDialectPBSPro(PbsDialect):
         # PBS -l walltime=1:00:00
         walltime = "1:00:00"
         if pbs_config.walltime != "":
-            walltime = pbs_config.walltime
+            walltime = "{}:00:00".format(pbs_config.walltime)
         directives.append("#PBS -l walltime=%s" % walltime)
 
         # PBS -q queue

@@ -132,9 +132,9 @@ class PbsPreset(APreset):
         :param permited: Is dictionary of lists permited values for set key.
         """
         ret = super().validate(excluded, permited)       
-        if not re.match("^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?", self.walltime):
+        if not re.match("^(|\d+)$", self.walltime):
             ret["walltime"]="Bad format of walltime"
-        if not re.match("^$|\d+(mb|gb)", self.memory):
+        if not re.match("^(|\d+(mb|gb))$", self.memory):
             ret["memory"]="Bad format of memory"
         return ret
 
