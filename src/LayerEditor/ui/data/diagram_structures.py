@@ -458,12 +458,12 @@ class Diagram():
         for polygon in self.polygons:
             if polygon.object is not None:
                 polygon.object.update_color()
-            
-# TODO: Lines and points
-#            for i in range(0, len(diagram.lines)):                
-#                map[top_id][1][i] = diagram.lines[i].id
-#           for i in range(0, len(diagram.points)):
-#                map[top_id][0][i] = diagram.points[i].id
+        for line in self.lines:
+            if line.object is not None:
+                line.object.update_color()
+        for point in self.points:
+            if point.object is not None:
+                point.object.update_color()
                 
     def get_polygon_lines(self, id):
         """Return polygon lines ndexes"""
@@ -632,6 +632,10 @@ class Diagram():
         """canvas Rect"""
         self.points = []
         """list of points"""
+        self.lines = []
+        """list of lines"""
+        self.polygons = []
+        """list of polygons"""
         self.topology_owner = False
         """First diagram in topology is topology owner, and is 
         responsible for its saving"""
@@ -639,10 +643,6 @@ class Diagram():
             self.topology_owner = True
             self.topologies[topology_idx] = []
         self.topologies[topology_idx].append(self)
-        self.lines = []
-        """list of lines"""
-        self.polygons = []
-        """list of polygons"""
         self.new_polygons = []
         """list of polygons that has not still graphic object"""
         self.deleted_polygons = []
