@@ -7,6 +7,7 @@ from JobPanel.services.multi_job_service import MJStatus
 from JobPanel.ui.data.mj_data import MultiJobState
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
 from JobPanel.data.secret import Secret
+from JobPanel.communication import Installation
 
 import threading
 import time
@@ -345,7 +346,31 @@ class ServiceFrontend(ServiceBase):
     ###############
     def mj_start(self, mj_id):
         """Start multijob"""
-        mj_conf = config_builder.build(self._data_app, mj_id)
+        err, mj_conf = config_builder.build(self._data_app, mj_id)
+
+        # error handling
+        preset = self._data_app.multijobs[mj_id].preset
+        log_path = Installation.get_mj_log_dir_static(preset.name, preset.analysis)
+        mj_config_path = os.path.join(log_path, "..", "..", "mj_config")
+        file = "mj_preparation.log"
+        try:
+            with open(os.path.join(mj_config_path, file), 'w') as fd:
+                if len(err) > 0:
+                    fd.write("Errors in MJ preparation:\n")
+                    for e in err:
+                        fd.write(e + "\n")
+                else:
+                    fd.write("MJ preparation - OK.\n")
+        except (RuntimeError, IOError):
+            pass
+        if len(err) > 0:
+            mj = self._data_app.multijobs[mj_id]
+            mj.state.status = GuiTaskStatus.error
+            mj.state.update_time = time.time()
+            self._mj_changed_state.add(mj_id)
+            return
+
+        # start MJ
         answer = []
         self._backend_proxy.call("request_start_mj", {"mj_id": mj_id, "mj_conf": mj_conf}, answer)
 

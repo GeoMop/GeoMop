@@ -10,6 +10,7 @@ from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 
 def build(data_app, mj_id):
     """Builds configuration for multijob running."""
+    err = []
 
     # multijob preset properties
     mj_preset = data_app.multijobs[mj_id].preset
@@ -37,13 +38,11 @@ def build(data_app, mj_id):
                 break
     except InvalidAnalysis:
         pass
-    err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
-                                             mj=mj, python_script=python_script)
-    if len(err) > 0:
-        for e in err:
-            print(e)
-            # ToDo: zobrazit uzivateli
-        #os.exit()
+    e, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
+                                           mj=mj, python_script=python_script)
+    if len(e) > 0:
+        err.extend(e)
+        return err, None
 
     # mj_config_dir
     mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
@@ -168,7 +167,7 @@ def build(data_app, mj_id):
                     "log_all": log_all}
 
     #print(json.dumps(service_data, indent=4, sort_keys=True))
-    return service_data
+    return err, service_data
 
 
 

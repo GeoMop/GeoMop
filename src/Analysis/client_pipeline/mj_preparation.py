@@ -43,7 +43,11 @@ class MjPreparation():
             return ret
         action_types.__action_counter__ = 0
         loc = {}
-        exec(script_text, globals(), loc)
+        try:
+            exec(script_text, globals(), loc)
+        except Exception as e:
+            err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            return ret
         pipeline = loc[pipeline_name]
 
         # pipeline inicialize
@@ -77,7 +81,11 @@ class MjPreparation():
             return ret
         action_types.__action_counter__ = 0
         loc = {}
-        exec(script_text, globals(), loc)
+        try:
+            exec(script_text, globals(), loc)
+        except Exception as e:
+            err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            return ret
         pipeline2 = loc[pipeline_name]
 
         # validation #2
