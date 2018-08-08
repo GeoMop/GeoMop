@@ -145,6 +145,16 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
 
+  # Install psutil.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\psutil-5.4.6.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.6.tar.gz"'
+
+  # Install pyDes.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\pyDes-2.0.1.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyDes-2.0.1.tar.gz"'
+
   # Install gmsh.
   SetOutPath $INSTDIR
   File /r "${BUILD_DIR}\gmsh"
@@ -175,12 +185,40 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
+/*
+# Flow123d with support for GeoMop.
+Section "Flow123d" SecFlow
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\flow123d"
+  SetOutPath $INSTDIR
+  File /r "${BUILD_DIR}\flow123d"
+  ExecWait '"$INSTDIR\flow123d\install.bat"'
+
+SectionEnd
+*/
+
+
 Section "-JobsScheduler" SecJobsScheduler
 
   # Section is mandatory.
   SectionIn RO
 
   RMDir /r "$INSTDIR\JobsScheduler"
+
+SectionEnd
+
+
+Section "Analysis" SecAnalysis
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\Analysis"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\Analysis"
 
 SectionEnd
 
@@ -380,8 +418,14 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
 "The runtime environment for GeoMop - Python 3.4 with PyQt5."
+# !insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
+# "Flow123d with support for GeoMop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
 "Remove jobs scheduler."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecAnalysis} \
+"Module Analysis."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecGeometry} \
+"Module Geometry."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
 "The job panel."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecLayerEditor} \
