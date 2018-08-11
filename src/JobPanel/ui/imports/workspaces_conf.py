@@ -11,6 +11,7 @@ import os
 import uuid
 import yaml
 import time
+import platform
 
 BASE_DIR = 'JobPanel'
 WORKSPACE_CONF_DIR = 'conf'
@@ -37,7 +38,7 @@ class WorkspaceConf():
         """Workspace path"""
         self.id = kw_or_def("id")
         """Id for link to workspaces mj statisctics (name of mj dir)"""
-        self.pc = os.uname()[1]
+        self.pc = platform.node()
         """computer name"""
         self.selected_mj = kw_or_def("selected_mj", 0) 
         """last selected mj"""
@@ -328,7 +329,9 @@ class WorkspacesConf():
         if path is None:
             return None
         res=os.path.realpath(path)
-        return os.path.normcase(res)
+        #return os.path.normcase(res)
+        # Modified due to docker path problems.
+        return os.path.normpath(res)
     
     def get_id(self):
         """get id selected mj"""

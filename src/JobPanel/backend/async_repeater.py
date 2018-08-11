@@ -600,7 +600,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0):
+    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0, requested_listen_port=0):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater. Empty list mean root repeater.
@@ -626,7 +626,7 @@ class AsyncRepeater():
         self._starter_client_thread = None
         self._starter_client_attempting = False
         if self.parent_address[0] != "":
-            self._server = Server(self, 0, self.clients, map=self._socket_map)
+            self._server = Server(self, requested_listen_port, self.clients, map=self._socket_map)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 

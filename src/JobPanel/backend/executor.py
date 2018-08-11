@@ -438,30 +438,59 @@ class ProcessDocker(ProcessBase):
     the docker info (image in particular) part of the installation so accessible through the environment.
     """
 
+    def __init__(self, process_config):
+        self.docker_port_expose = (0, 0)
+        """Docker port expose (host_port, container_port)"""
+        super().__init__(process_config)
+
     def start(self):
         """
         See client_test_py for a docker starting process.
         :return: process_id - possibly hash of the running container.
         """
-        # ToDo: asi nebude fungovat ve Win
-        home = os.environ["HOME"]
-        cwd = os.path.join(self.environment.geomop_analysis_workspace,
-                           self.exec_args.work_dir)
-        uid = os.getuid()
-        gid = os.getgid()
-        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "-u", "{}:{}".format(uid, gid), "geomop/jobpanel"]
-        args.extend(self._get_limit_args())
+        # port expose
+        arg_p = ""
+        if self.docker_port_expose[1] > 0:
+            arg_p = str(self.docker_port_expose[1])
+            if self.docker_port_expose[0] > 0:
+                arg_p = "{}:".format(self.docker_port_expose[0]) + arg_p
+
+        cwd = self.environment.geomop_analysis_workspace + "/" + self.exec_args.work_dir
+
+        args = self._get_limit_args()
+
         if self.executable.script:
             args.append(self.environment.python)
-        if os.path.isabs(self.executable.path):
-            args.append(self.executable.path)
+
+        if self.executable.path.startswith("/"):
+            path = self.executable.path
         else:
-            args.append(os.path.join(self.environment.geomop_root,
-                                     self.executable.path))
+            path = self.environment.geomop_root + "/" + self.executable.path
+        if sys.platform == "win32":
+            path = "/" + path
+        args.append(path)
+
         args.extend(self.exec_args.args)
         args.extend(self.exec_args.secret_args)
-        output = subprocess.check_output(args, universal_newlines=True)
-        self.process_id = output.strip()
+
+        if sys.platform == "win32":
+            flags = "-d"
+            if arg_p != "":
+                flags += " -p " + arg_p
+            base_args = ["fterm.bat", "--", flags, "/" + cwd]
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.splitlines()[-1].strip()
+        else:
+            home = os.environ["HOME"]
+            uid = os.getuid()
+            gid = os.getgid()
+            base_args = ["docker", "run", "-d"]
+            if arg_p != "":
+                base_args.extend(["-p", arg_p])
+            base_args.extend(["-v", home + ":" + home, "-w", cwd, "-u", "{}:{}".format(uid, gid), "geomop/jobpanel"])
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.strip()
+
         return self.process_id
 
     def kill(self):
@@ -469,8 +498,12 @@ class ProcessDocker(ProcessBase):
         See client_test.py, BackedProxy.__del__
         :return:
         """
+        if sys.platform == "win32":
+            args = ["fdocker.bat"]
+        else:
+            args = ["docker"]
+        args.extend(["rm", "-f", self.process_id])
         try:
-            args = ['docker', 'rm', '-f', self.process_id]
             output = subprocess.check_output(args, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             pass
