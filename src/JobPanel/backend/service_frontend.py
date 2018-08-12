@@ -327,11 +327,11 @@ class ServiceFrontend(ServiceBase):
         if sys.platform == "win32":
             container_port = 33033
             host_port = random.randrange(30001, 60000)
-            service_data["process"]["docker_port_expose"] = (host_port, container_port)
+            service_data["process"]["docker_port_expose"] = [host_port, container_port]
 
             service_data["requested_listen_port"] = container_port
 
-            service_data["listen_address_substitute"] = ("192.168.99.100", host_port)
+            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
 
         # start backend
         child_id = self.request_start_child(service_data)
