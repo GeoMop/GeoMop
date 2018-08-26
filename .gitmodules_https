@@ -2,3 +2,6 @@
 	path = submodules/intersections
 	url = https://github.com/GeoMop/Intersections.git	
 	branch = master
+[submodule "submodules/yaml_converter"]
+    path = submodules/yaml_converter
+    url = https://github.com/flow123d/yaml_converter.git

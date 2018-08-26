@@ -156,13 +156,17 @@ class ModelEditor:
             return True
         return False
 
-    def transform(self, file):
-        """Run transformation according rules in set file"""
+    def transform(self, to_version):
+        """Run transformation to version to_version."""
         cfg.update_yaml_file(self.mainwindow.editor.text())
-        cfg.transform(file)
+        cfg.transform(to_version)
         # synchronize cfg document with editor text
         self.mainwindow.editor.setText(cfg.document, keep_history=True)
         self.mainwindow.reload()
+
+    def transform_get_version_list(self):
+        """Returns list of versions available to transformation."""
+        return cfg.transform_get_version_list()
 
     def edit_transformation_file(self, file):
         """edit transformation rules in file"""

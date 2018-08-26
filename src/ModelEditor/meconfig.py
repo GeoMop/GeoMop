@@ -24,6 +24,12 @@ from gm_base.model_data import (export_con, Loader, Validator, get_root_input_ty
                         autoconvert, notification_handler, Notification)
 from gm_base.model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
 
+import gm_base.yaml_conv
+from change_rules import make_changes
+from yaml_parser_extra import get_yaml_serializer
+from YAMLConverter import Changes
+from ruamel.yaml.compat import StringIO
+
 
 class _Config:
     """Class for ModelEditor serialization"""
@@ -524,7 +530,7 @@ class MEConfig:
                 (Analysis.current.flow123d_version[:5] == '2.0.0' or 
                 Analysis.current.flow123d_version[:5] == '2.1.0'):
                 cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-                cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
+                cls.transform_con("flow123d_1.8.3_to_2.0.0_rc")
             cls.update_format()
             cls.changed = True
             return True
@@ -683,8 +689,11 @@ class MEConfig:
         return False
 
     @classmethod
-    def transform(cls, file, confirmation=True):
-        """Run transformation according rules in set file"""
+    def transform_con(cls, file):
+        """
+        Run transformation according rules in set file.
+        Now used only for .con files import.
+        """
         cls.update()
         text = cls.get_transformation_text(file)
         try:
@@ -695,47 +704,65 @@ class MEConfig:
             else:
                 raise err
             return
-        dialog = None
-        res = True
-        if cls.main_window is not None:
-            import PyQt5.QtWidgets as QtWidgets
-            from ui.dialogs import TranformationDetailDlg
-            if confirmation:
-                dialog = TranformationDetailDlg(transformator.name,
-                                                transformator.description,
-                                                transformator.old_version,
-                                                cls.curr_format_file,
-                                                transformator.new_version,
-                                                transformator.new_version in cls.format_files,
-                                                cls.main_window)
-                res = QtWidgets.QDialog.Accepted == dialog.exec_()
-        else:
+        if cls.main_window is None:
             if cls.curr_format_file != transformator.old_version:
                 print("Transformed file format '" + cls.curr_format_file +
                           "' and format specified in transformation file '" +
                           transformator.old_version + "' are different")
-        if res:
-            try:
-                cls.document = transformator.transform(cls.document, cls)
-                if len(transformator.err)>0:
-                    if cls.main_window is not None:
-                        cls._report_notify(transformator.err)
-                    else:
-                        for err in transformator.err:
-                            print(err)
-            except TransformationFileFormatError as err :
+        try:
+            cls.document = transformator.transform(cls.document, cls)
+            if len(transformator.err)>0:
                 if cls.main_window is not None:
-                    cls._report_error("Transformation format error", err)
+                    cls._report_notify(transformator.err)
                 else:
-                    raise err
-                return
-            if transformator.new_version in cls.format_files:
-                cls.set_current_format_file(transformator.new_version)
+                    for err in transformator.err:
+                        print(err)
+        except TransformationFileFormatError as err :
+            if cls.main_window is not None:
+                cls._report_error("Transformation format error", err)
             else:
-                if cls.main_window is None:
-                    print("Cannot set new fileformat specified in transformation file '" +
-                          transformator.new_version + "'. Format file is not available.")
-                cls.update()
+                raise err
+            return
+        if transformator.new_version in cls.format_files:
+            cls.set_current_format_file(transformator.new_version)
+        else:
+            if cls.main_window is None:
+                print("Cannot set new fileformat specified in transformation file '" +
+                      transformator.new_version + "'. Format file is not available.")
+            cls.update()
+
+    @classmethod
+    def transform(cls, to_version):
+        """Run transformation to version to_version."""
+        cls.update()
+
+        changes = make_changes()
+        yml = get_yaml_serializer()
+        tree = yml.load(cls.document)
+
+        try:
+            actions = changes.apply_changes(tree, to_version, map_insert=Changes.BEGINNING)
+        except:
+            cls._report_error("Transformation format error.")
+            return
+
+        stream = StringIO()
+        yml.dump(tree, stream)
+        cls.document = stream.getvalue()
+
+        if to_version in cls.format_files:
+            cls.set_current_format_file(to_version)
+        else:
+            cls.update()
+
+    @classmethod
+    def transform_get_version_list(cls):
+        """Returns list of versions available to transformation."""
+        changes = make_changes()
+        #versions = changes.get_version_list()
+        # todo: use after it will be implemented
+        versions = ["2.0.0", "2.1.0", "3.0.0"]
+        return [v for v in versions if v in cls.format_files]
 
     @classmethod
     def get_shortcut(cls, name):

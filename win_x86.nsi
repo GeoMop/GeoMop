@@ -145,6 +145,11 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
 
+  # Install ruamel.yaml.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\ruamel.yaml-0.15.58.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\ruamel.yaml-0.15.58.tar.gz"'
+
   # Install gmsh.
   SetOutPath $INSTDIR
   File /r "${BUILD_DIR}\gmsh"
@@ -152,6 +157,10 @@ Section "Runtime Environment" SecRuntime
   # Install intersections.
   SetOutPath $INSTDIR
   File /r "${GIT_DIR}\submodules\intersections"
+
+  # Install yaml_converter.
+  SetOutPath $INSTDIR
+  File /r "${GIT_DIR}\submodules\yaml_converter"
 
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
