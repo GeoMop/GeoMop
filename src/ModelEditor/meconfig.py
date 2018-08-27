@@ -759,10 +759,7 @@ class MEConfig:
     def transform_get_version_list(cls):
         """Returns list of versions available to transformation."""
         changes = make_changes()
-        #versions = changes.get_version_list()
-        # todo: use after it will be implemented
-        versions = ["2.0.0", "2.1.0", "3.0.0"]
-        return [v for v in versions if v in cls.format_files]
+        return [v for v in changes.versions if v in cls.format_files]
 
     @classmethod
     def get_shortcut(cls, name):
