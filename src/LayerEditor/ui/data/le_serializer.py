@@ -233,39 +233,39 @@ class LESerializer():
         self._written_diagram_ids = set()
         self._tp_idx_to_out_tp_idx = {}
         while not layers_info.end:
-            self._write_ns(layers_info.diagram_id1, cfg, gf)
-            self._write_ns(layers_info.diagram_id2, cfg, gf)
+            self._write_ns(layers_info.diag_top_id, cfg, gf)
+            self._write_ns(layers_info.diag_bot_id, cfg, gf)
 
             if layers_info.stype1 is TopologyType.interpolated:
                 interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx])
-                if layers_info.diagram_id2 is None:
-                    id2 = layers_info.diagram_id1
+                if layers_info.diag_bot_id is None:
+                    id2 = layers_info.diag_top_id
                     surface2 = layers_info.surface1
                 else:
-                    id2 = layers_info.diagram_id2
+                    id2 = layers_info.diag_bot_id
                     surface2 = layers_info.surface2
-                ns1 = gf.get_interpolated_ns(layers_info.diagram_id1, id2, interface_idx,
+                ns1 = gf.get_interpolated_ns(layers_info.diag_top_id, id2, interface_idx,
                                              layers_info.surface1, surface2)
                 ns1_type = TopologyType.interpolated
             else:
                 interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx])
-                ns1 = gf.get_interface_ns(layers_info.diagram_id1, interface_idx)
+                ns1 = gf.get_interface_ns(layers_info.diag_top_id, interface_idx)
                 ns1_type = TopologyType.given
 
             if layers_info.stype2 is TopologyType.interpolated:
                 interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx + 1])
-                if layers_info.diagram_id2 is None:
-                    id2 = layers_info.diagram_id1
+                if layers_info.diag_bot_id is None:
+                    id2 = layers_info.diag_top_id
                     surface2 = layers_info.surface1
                 else:
-                    id2 = layers_info.diagram_id2
+                    id2 = layers_info.diag_bot_id
                     surface2 = layers_info.surface2
-                ns2 = gf.get_interpolated_ns(layers_info.diagram_id1, id2, interface_idx,
+                ns2 = gf.get_interpolated_ns(layers_info.diag_top_id, id2, interface_idx,
                                              layers_info.surface1, surface2)
                 ns2_type = TopologyType.interpolated
             else:
                 interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx + 1])
-                ns2 = gf.get_interface_ns(layers_info.diagram_id2, interface_idx)
+                ns2 = gf.get_interface_ns(layers_info.diag_bot_id, interface_idx)
                 ns2_type = TopologyType.given
 
             if layers_info.fracture_before is not None:
