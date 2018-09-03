@@ -9,7 +9,7 @@ import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
 from ModelEditor.meconfig import MEConfig as cfg
 from . import panels
-from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
+from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 from ModelEditor.util import CursorType
 from gm_base.geomop_util import Position
 
@@ -61,10 +61,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_recent_files(0)
         self._edit_menu = MainEditMenu(self, self.editor)
         self._settings_menu = MainSettingsMenu(self, self._model_editor)
-        self._analysis_menu = AnalysisMenu(self, cfg.config, flow123d_versions=cfg.format_files)
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
-        self._menu.addMenu(self._analysis_menu)
         self._menu.addMenu(self._settings_menu)
 
         # status bar
@@ -77,12 +75,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload_icon_timer = QtCore.QTimer(self)
         self._reload_icon_timer.timeout.connect(lambda: self._reload_icon.setVisible(False))
 
-        self._analysis_label = QtWidgets.QLabel(self)
         cfg.config.observers.append(self)
 
         self._status = self.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
-        self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
@@ -212,7 +208,5 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def config_changed(self):
         """Handle changes of config."""
-        analysis = cfg.config.analysis or '(No Analysis)'
-        self._analysis_label.setText(analysis)
         self.editor.set_line_endings(cfg.config.line_endings)
 

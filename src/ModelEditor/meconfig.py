@@ -81,7 +81,9 @@ class _Config:
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
         self._line_endings = kw_or_def('_line_endings', _Config.LINE_ENDINGS_LF)
-        self._analysis = kw_or_def('_analysis')
+        #self._analysis = kw_or_def('_analysis')
+        # analysis no longer in use
+        self._analysis = None
         self._workspace = kw_or_def('_workspace')
 
         # initialize project and workspace
@@ -431,10 +433,11 @@ class MEConfig:
        empty file
         """
         cls.document = ""
-        if Analysis.current is not None:
-            cls.curr_format_file = Analysis.current.flow123d_version
-            if not cls.curr_format_file:
-                cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+        # if Analysis.current is not None:
+        #     cls.curr_format_file = Analysis.current.flow123d_version
+        #     if not cls.curr_format_file:
+        #         cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+        cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
         cls.changed = False
         cls._set_file(None)
@@ -526,11 +529,11 @@ class MEConfig:
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
             cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if Analysis.current is not None and \
-                (Analysis.current.flow123d_version[:5] == '2.0.0' or 
-                Analysis.current.flow123d_version[:5] == '2.1.0'):
-                cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-                cls.transform_con("flow123d_1.8.3_to_2.0.0_rc")
+            # if Analysis.current is not None and \
+            #     (Analysis.current.flow123d_version[:5] == '2.0.0' or
+            #     Analysis.current.flow123d_version[:5] == '2.1.0'):
+            #     cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            #     cls.transform_con("flow123d_1.8.3_to_2.0.0_rc")
             cls.update_format()
             cls.changed = True
             return True
@@ -605,9 +608,9 @@ class MEConfig:
                 cls.notification_handler.report(ntf)
 
         # handle parameters
-        if (Analysis.current is not None and
-                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
-            Analysis.current.merge_params(cls.validator.params)
+        # if (Analysis.current is not None and
+        #         Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+        #     Analysis.current.merge_params(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -670,14 +673,15 @@ class MEConfig:
     @classmethod
     def sync_analysis_for_curr_file(cls):
         """Write current file and params to analysis file."""
-        if (Analysis.current is not None and
-                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
-            Analysis.current.merge_params(cls.validator.params)
-            params = [param.name for param in cls.validator.params]
-            Analysis.current.add_file(cls.curr_file, params)
-            if not Analysis.current.flow123d_version:
-                Analysis.current.flow123d_version = cls.curr_format_file
-            Analysis.current.save()
+        # if (Analysis.current is not None and
+        #         Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+        #     Analysis.current.merge_params(cls.validator.params)
+        #     params = [param.name for param in cls.validator.params]
+        #     Analysis.current.add_file(cls.curr_file, params)
+        #     if not Analysis.current.flow123d_version:
+        #         Analysis.current.flow123d_version = cls.curr_format_file
+        #     Analysis.current.save()
+        pass
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
