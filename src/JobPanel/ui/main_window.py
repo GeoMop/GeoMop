@@ -24,8 +24,6 @@ from .dialogs import MessageDialog
 from .dialogs.env_presets import EnvPresets
 from .dialogs.multijob_dialog import MultiJobDialog
 from .dialogs.options_dialog import OptionsDialog
-from .dialogs.pbs_presets import PbsPresets
-from .dialogs.resource_presets import ResourcePresets
 from .dialogs.ssh_presets import SshPresets
 from .menus.main_menu_bar import MainMenuBar
 from .panels.overview import Overview
@@ -111,12 +109,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.multijobs_changed.connect(self.data.save_mj)
         # ssh presets
         self.ui.menuBar.settings.actionSshPresets.triggered.connect(self.set_ssh)
-        # pbs presets
-        self.ui.menuBar.settings.actionPbsPresets.triggered.connect(self.set_pbs)
         # env presets
         self.ui.menuBar.settings.actionEnvPresets.triggered.connect(self.set_env)
-        # resource presets
-        self.ui.menuBar.settings.actionResourcesPresets.triggered.connect(self.set_res)
 
         # analysis menu
         self.ui.menuBar.analysis.config = self.data.workspaces
@@ -231,21 +225,7 @@ class MainWindow(QtWidgets.QMainWindow):
                              frontend_service=self.frontend_service)
         ssh_dlg.exec_()
                                           
-    def set_pbs(self):                                 
-        """pbs dialog"""
-        pbs_dlg = PbsPresets(parent=self,
-                                          presets=self.data.pbs_presets)
-        pbs_dlg.exec_()
-                                          
-    def set_res(self):                                 
-        """resource dialog"""                                      
-        res_dlg = ResourcePresets(parent=self,
-                              presets=self.data.resource_presets,
-                              pbs=self.data.pbs_presets,
-                              ssh=self.data.ssh_presets)
-        res_dlg.exec_()
-
-    def set_env(self):                                 
+    def set_env(self):
         """Environment dialog"""
         env_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)

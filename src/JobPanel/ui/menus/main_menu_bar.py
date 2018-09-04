@@ -128,15 +128,11 @@ class SettingsMenu(QtWidgets.QMenu):
 
         # preset actions
         self.actionSshPresets = action.ActionSshPresets(self)
-        self.actionPbsPresets = action.ActionPbsPresets(self)
-        self.actionResourcesPresets = action.ActionResourcesPresets(self)
         self.actionEnvPresets = action.ActionEnvPresets(self)
         self.actionOptions = action.ActionOptions(self)
 
         # add actions to menu
         self.addAction(self.actionSshPresets)
-        self.addAction(self.actionPbsPresets)
-        self.addAction(self.actionResourcesPresets)
         #self.addAction(self.actionEnvPresets)
         self.addSeparator()
         self.addAction(self.actionOptions)

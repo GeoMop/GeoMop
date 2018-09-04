@@ -106,22 +106,6 @@ class ActionSshPresets(QtWidgets.QAction):
         self.setObjectName("actionSshPresets")
 
 
-class ActionPbsPresets(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("PBS options")
-        self.setShortcut("Shift+P")
-        self.setObjectName("actionPbsPresets")
-
-
-class ActionResourcesPresets(QtWidgets.QAction):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setText("Resources")
-        self.setShortcut("Shift+R")
-        self.setObjectName("actionResourcesPresets")
-
-
 class ActionEnvPresets(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
