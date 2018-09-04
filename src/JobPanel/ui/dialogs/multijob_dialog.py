@@ -605,6 +605,12 @@ class MultiJobDialog(AFormDialog):
         self.ui.pbs_memoryLineEdit.blockSignals(enable)
         self.ui.pbs_infinibandCheckBox.blockSignals(enable)
 
+        # ClearButton workaround
+        if not enable:
+            self.ui.pbs_queueLineEdit.textChanged.emit(self.ui.pbs_queueLineEdit.text())
+            self.ui.pbs_walltimeLineEdit.textChanged.emit(self.ui.pbs_walltimeLineEdit.text())
+            self.ui.pbs_memoryLineEdit.textChanged.emit(self.ui.pbs_memoryLineEdit.text())
+
     def pbs_edited(self):
         self.pbs_valid()
 

@@ -2,17 +2,21 @@ from .service_base import ServiceBase, ServiceStatus
 from . import config_builder
 from .json_data import JsonData, JsonDataNoConstruct
 from .executor import ProcessDocker
+from .path_converter import if_win_win2lin_conv_path
 from JobPanel.services.backend_service import MJReport
 from JobPanel.services.multi_job_service import MJStatus
 from JobPanel.ui.data.mj_data import MultiJobState
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
 from JobPanel.data.secret import Secret
+from JobPanel.communication import Installation
 
 import threading
 import time
 import logging
 import os
 import json
+import sys
+import random
 
 
 class ServiceFrontend(ServiceBase):
@@ -132,8 +136,8 @@ class ServiceFrontend(ServiceBase):
     def _do_work(self):
         # save backend process id
         if not self._backend_process_id_saved:
-            if (self._backend_proxy is not None) and (len(self._backend_proxy._results_process_start) > 0):
-                self.backend_process_id = self._backend_proxy._results_process_start[-1]["data"]
+            if (self._backend_proxy is not None) and (self._backend_proxy.process_id != ""):
+                self.backend_process_id = self._backend_proxy.process_id
                 self.save_config()
                 self._backend_process_id_saved = True
 
@@ -291,8 +295,8 @@ class ServiceFrontend(ServiceBase):
             # if file doesn't exist create new config
             env = {"__class__": "Environment",
                    # todo: v budoucnu bude odkazovat primo na instalaci v dockeru
-                   "geomop_root": self.get_geomop_root(),
-                   "geomop_analysis_workspace": self.get_analysis_workspace(),
+                   "geomop_root": if_win_win2lin_conv_path(self.get_geomop_root()),
+                   "geomop_analysis_workspace": if_win_win2lin_conv_path(self.get_analysis_workspace()),
                    "python": "python3"}
 
             cd = {"__class__": "ConnectionLocal",
@@ -318,6 +322,16 @@ class ServiceFrontend(ServiceBase):
         if "exec_args" not in service_data["process"]:
             service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
         service_data["process"]["exec_args"]["secret_args"] = [Secret().get_key()]
+
+        # win workaround
+        if sys.platform == "win32":
+            container_port = 33033
+            host_port = random.randrange(30001, 60000)
+            service_data["process"]["docker_port_expose"] = [host_port, container_port]
+
+            service_data["requested_listen_port"] = container_port
+
+            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
 
         # start backend
         child_id = self.request_start_child(service_data)
@@ -345,7 +359,31 @@ class ServiceFrontend(ServiceBase):
     ###############
     def mj_start(self, mj_id):
         """Start multijob"""
-        mj_conf = config_builder.build(self._data_app, mj_id)
+        err, mj_conf = config_builder.build(self._data_app, mj_id)
+
+        # error handling
+        preset = self._data_app.multijobs[mj_id].preset
+        log_path = Installation.get_mj_log_dir_static(preset.name, preset.analysis)
+        mj_config_path = os.path.join(log_path, "..", "..", "mj_config")
+        file = "mj_preparation.log"
+        try:
+            with open(os.path.join(mj_config_path, file), 'w') as fd:
+                if len(err) > 0:
+                    fd.write("Errors in MJ preparation:\n")
+                    for e in err:
+                        fd.write(e + "\n")
+                else:
+                    fd.write("MJ preparation - OK.\n")
+        except (RuntimeError, IOError):
+            pass
+        if len(err) > 0:
+            mj = self._data_app.multijobs[mj_id]
+            mj.state.status = GuiTaskStatus.error
+            mj.state.update_time = time.time()
+            self._mj_changed_state.add(mj_id)
+            return
+
+        # start MJ
         answer = []
         self._backend_proxy.call("request_start_mj", {"mj_id": mj_id, "mj_conf": mj_conf}, answer)
 

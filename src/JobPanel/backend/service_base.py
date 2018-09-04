@@ -7,6 +7,7 @@ from .executor import ProcessExec, ProcessPBS, ProcessDocker
 
 # import in code
 #from .service_proxy import ServiceProxy
+#import fcntl
 
 import logging
 import concurrent.futures
@@ -18,7 +19,6 @@ import threading
 import sys
 import traceback
 import socket
-import fcntl
 import struct
 import hashlib
 
@@ -202,6 +202,10 @@ class ServiceBase(JsonData):
 
         self.listen_address = ("", 0)
         """Socket address where service listening."""
+        self.requested_listen_port = 0
+        """Requested listen port."""
+        self.listen_address_substitute = ("", 0)
+        """Listen address will be substitute with this address. (Only if self.listen_address_substitute[0] != "".)"""
         self.status = ServiceStatus.queued
         """Service status"""
         self.wait_before_run = 0.0
@@ -236,10 +240,14 @@ class ServiceBase(JsonData):
         self._child_services_lock = threading.Lock()
         """Lock for _child_services"""
 
-        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address, repeater_max_client_id)
+        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address,
+                                          repeater_max_client_id, self.requested_listen_port)
         listen_port = self._repeater.listen_port
         if listen_port is not None:
-            self.listen_address = (self.get_ip_address(), listen_port)
+            if self.listen_address_substitute[0] != "":
+                self.listen_address = self.listen_address_substitute
+            else:
+                self.listen_address = (self.get_ip_address(), listen_port)
 
         self._closing = False
 
@@ -444,6 +452,8 @@ class ServiceBase(JsonData):
         If fails return 127.0.0.1.
         :return:
         """
+        import fcntl
+
         ifname = 'eth0'
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:

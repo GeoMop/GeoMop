@@ -284,6 +284,7 @@ class UiSshDialog():
                                   self.geomop_rootLabel)
         self.geomop_rootLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.geomop_rootLineEdit.setText("")
+        self.geomop_rootLineEdit.setProperty("clearButtonEnabled", True)
         self.validator.add('geomop_root',self.geomop_rootLineEdit)
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole,
                                   self.geomop_rootLineEdit)
@@ -295,6 +296,7 @@ class UiSshDialog():
                                   self.workspaceLabel)
         self.workspaceLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
         self.workspaceLineEdit.setText("")
+        self.workspaceLineEdit.setProperty("clearButtonEnabled", True)
         self.validator.add('workspace', self.workspaceLineEdit)
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole,
                                   self.workspaceLineEdit)

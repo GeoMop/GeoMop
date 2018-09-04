@@ -233,6 +233,12 @@ class MultiJob:
         #         logs.append(log)
         mj_config_path = os.path.join(log_path, "..", "..", "mj_config")
 
+        # MJ preparation log
+        file = "mj_preparation.log"
+        if os.path.isfile(os.path.join(mj_config_path, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+            logs.append(log)
+
         # MJ log
         file = "mj_service.log"
         if os.path.isfile(os.path.join(mj_config_path, file)):

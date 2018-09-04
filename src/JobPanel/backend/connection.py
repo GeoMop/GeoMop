@@ -1,11 +1,10 @@
 from .json_data import JsonData
 from .environment import Environment
+from .path_converter import if_win_lin2win_conv_path
 
 # import in code
 #from .service_proxy import DelegatorProxy
 #from .service_base import ServiceStatus
-
-import paramiko
 
 import shutil
 import os
@@ -19,6 +18,10 @@ import socketserver
 import time
 import enum
 import stat
+import sys
+
+if sys.platform != "win32":
+    import paramiko
 
 
 class Error(Exception):
@@ -151,7 +154,7 @@ class ConnectionLocal(ConnectionBase):
 
         Implementation: just copy
         """
-        self._copy(paths, local_prefix, remote_prefix)
+        self._copy(paths, local_prefix, if_win_lin2win_conv_path(remote_prefix))
 
 
     def download(self, paths, local_prefix, remote_prefix, priority=False):
@@ -165,7 +168,7 @@ class ConnectionLocal(ConnectionBase):
 
         Implementation: just copy
         """
-        self._copy(paths, remote_prefix, local_prefix )
+        self._copy(paths, if_win_lin2win_conv_path(remote_prefix), local_prefix)
 
     def delete(self, paths, remote_prefix, priority=False):
         """
@@ -190,7 +193,8 @@ class ConnectionLocal(ConnectionBase):
         return self._delegator_proxy
 
     def _copy(self, paths, from_prefix, to_prefix):
-        if from_prefix == to_prefix:
+        if os.path.normcase(os.path.normpath(from_prefix)) == \
+                os.path.normcase(os.path.normpath(to_prefix)):
             return
         for path in paths:
             src = os.path.join(from_prefix, path)
@@ -313,6 +317,11 @@ class ConnectionSSH(ConnectionBase):
         """
         :param config:
         """
+        try:
+            paramiko
+        except NameError:
+            assert False, "Paramiko is not imported."
+
         super().__init__(config)
 
         self._timeout = 10

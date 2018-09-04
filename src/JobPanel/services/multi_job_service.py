@@ -167,7 +167,12 @@ class MultiJob(ServiceBase):
             return
         action_types.__action_counter__ = 0
         loc = {}
-        exec(script_text, globals(), loc)
+        try:
+            exec(script_text, globals(), loc)
+        except Exception as e:
+            logging.error("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            self.mj_status == MJStatus.error
+            return
         pipeline = loc[self.pipeline["pipeline_name"]]
 
         # pipeline processor

@@ -6,10 +6,12 @@ from Analysis.client_pipeline.mj_preparation import *
 from JobPanel.ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from .path_converter import if_win_win2lin_conv_path
 
 
 def build(data_app, mj_id):
     """Builds configuration for multijob running."""
+    err = []
 
     # multijob preset properties
     mj_preset = data_app.multijobs[mj_id].preset
@@ -37,20 +39,19 @@ def build(data_app, mj_id):
                 break
     except InvalidAnalysis:
         pass
-    err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
-                                             mj=mj, python_script=python_script)
-    if len(err) > 0:
-        for e in err:
-            print(e)
-            # ToDo: zobrazit uzivateli
-        #os.exit()
+    e, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
+                                           mj=mj, python_script=python_script)
+    if len(e) > 0:
+        err.extend(e)
+        return err, None
 
     # mj_config_dir
     mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
 
     # ToDo: vyresit lepe
-    loc_geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-    loc_geomop_analysis_workspace = os.path.abspath(workspace)
+    loc_geomop_root = if_win_win2lin_conv_path(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", ".."))
+    loc_geomop_analysis_workspace = if_win_win2lin_conv_path(os.path.abspath(workspace))
 
     # multi_job_service executable
     multi_job_service = {"__class__": "Executable",
@@ -110,8 +111,8 @@ def build(data_app, mj_id):
             if dialog.exec_():
                 pwd = dialog.password
             else:
-                # todo: asi by bylo lepsi spousteni MJ zrusit
-                pwd = ""
+                err.append("PasswordDialog: Password not entered.")
+                return err, None
         #u, pwd = get_passwords()["metacentrum"]
         mj_con = {"__class__": "ConnectionSSH",
               "address": mj_ssh_preset.host,
@@ -168,7 +169,7 @@ def build(data_app, mj_id):
                     "log_all": log_all}
 
     #print(json.dumps(service_data, indent=4, sort_keys=True))
-    return service_data
+    return err, service_data
 
 
 

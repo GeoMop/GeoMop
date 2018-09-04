@@ -19,7 +19,11 @@ def load_pipeline(python_script="analysis.py", pipeline_name="pipeline"):
         return err, None
     action_types.__action_counter__ = 0
     loc = {}
-    exec(script_text, globals(), loc)
+    try:
+        exec(script_text, globals(), loc)
+    except Exception as e:
+        err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+        return err, None
     pipeline = loc[pipeline_name]
     return err, pipeline
 
