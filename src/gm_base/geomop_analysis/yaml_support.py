@@ -20,20 +20,29 @@ class YamlSupportLocal(YamlSupportRemote):
     @staticmethod
     def _get_root_input_type():
         """Returns root input type."""
-        curr_format_file = "2.1.0"
         err = []
-        #file_name = os.path.join("resources", "ist", curr_format_file + ".json")
-        #file_name = r"d:\geomop\analysis\GeoMop\src\common\resources\ist\2.0.0.json"
-        file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "resources", "ist", curr_format_file + ".json")
+
+        # find newest format file
+        format_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "resources", "ist")
+        format_files = []
+        for file_name in os.listdir(format_dir):
+            if (os.path.isfile(os.path.join(format_dir, file_name)) and
+                    file_name[-5:].lower() == ".json"):
+                format_files.append(file_name[:-5])
+        curr_format_file = sorted(format_files, reverse=True)[0]
+        file_name = os.path.join(format_dir, curr_format_file + ".json")
+
         try:
             with open(file_name, 'r') as file_d:
                 text = file_d.read()
         except (RuntimeError, IOError) as err:
             err.append("Can't open format file '" + curr_format_file + "' (" + str(err) + ")")
+            return None, err
         try:
             root_input_type = get_root_input_type_from_json(text)
         except Exception as e:
             err.append("Can't open format file (" + str(e) + ")")
+            return None, err
         return root_input_type, err
 
     @staticmethod
@@ -83,7 +92,9 @@ class YamlSupportLocal(YamlSupportRemote):
         root = loader.load(document)
         
         root_input_type, new_err = self._get_root_input_type()
-        err.extend(new_err)
+        if len(new_err) > 0:
+            err.extend(new_err)
+            return err
 
         # autoconvert
         root = autoconvert(root, root_input_type)
