@@ -88,9 +88,11 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDownloadWholeMultiJob)
 
         self.lockable_actions = {
+            MultijobActions.reuse: self.actionReuseMultiJob,
+            MultijobActions.delete_remote:  self.actionDeleteRemote,
             MultijobActions.delete: self.actionDeleteMultiJob,
-            MultijobActions.delete_remote:  self.actionDeleteRemote, 
             MultijobActions.stop: self.actionStopMultiJob,
+            MultijobActions.send_report: self.actionSendReport,
             MultijobActions.download_whole: self.actionDownloadWholeMultiJob
         }
         
@@ -102,16 +104,14 @@ class MultiJobMenu(QtWidgets.QMenu):
 
     def lock_by_status(self, rdeleted, task_status=None):
         """
-        Locks UI actions based on selected MultiJob. If status is None then
-        it works like unlock.
+        Locks UI actions based on selected MultiJob. Status None means no MultiJob.
         :param task_status: Status that controls the locks.
         :return:
         """
-        if task_status is None:
-            task_status = TaskStatus.none
         for mj_action, menu_action in self.lockable_actions.items():
-            if not (task_status, mj_action) in TASK_STATUS_PERMITTED_ACTIONS or \
-                (mj_action in self.rdeleted_actions and rdeleted):
+            if task_status is None or \
+                    (task_status, mj_action) not in TASK_STATUS_PERMITTED_ACTIONS or \
+                    (mj_action in self.rdeleted_actions and rdeleted):
                 menu_action.setDisabled(True)
             else:
                 menu_action.setDisabled(False)

@@ -150,25 +150,44 @@ class MultijobActions(IntEnum):
     stop = 3
     terminate = 4
     resume = 6
-    download_whole = 7
+    send_report = 7
+    download_whole = 8
 
 
 TASK_STATUS_PERMITTED_ACTIONS = set([
+    (TaskStatus.error, MultijobActions.reuse),
     (TaskStatus.error, MultijobActions.delete_remote),
     (TaskStatus.error, MultijobActions.delete),
+    (TaskStatus.error, MultijobActions.send_report),
     (TaskStatus.error, MultijobActions.download_whole),
+
+    (TaskStatus.finished, MultijobActions.reuse),
     (TaskStatus.finished, MultijobActions.delete_remote),
     (TaskStatus.finished, MultijobActions.delete),
+    (TaskStatus.finished, MultijobActions.send_report),
     (TaskStatus.finished, MultijobActions.download_whole),
+
     (TaskStatus.installation, MultijobActions.resume),
     (TaskStatus.installation, MultijobActions.stop),
-    (TaskStatus.none, MultijobActions.delete), 
+
+    (TaskStatus.none, MultijobActions.reuse),
+    (TaskStatus.none, MultijobActions.delete),
+    (TaskStatus.none, MultijobActions.send_report),
+
+    (TaskStatus.queued, MultijobActions.reuse),
     (TaskStatus.queued, MultijobActions.resume),
     (TaskStatus.queued, MultijobActions.stop),
+    (TaskStatus.queued, MultijobActions.send_report),
+
+    (TaskStatus.running, MultijobActions.reuse),
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
-    (TaskStatus.stopped, MultijobActions.delete), 
+    (TaskStatus.running, MultijobActions.send_report),
+
+    (TaskStatus.stopped, MultijobActions.reuse),
+    (TaskStatus.stopped, MultijobActions.delete),
     (TaskStatus.stopped, MultijobActions.delete_remote),
+    (TaskStatus.stopped, MultijobActions.send_report),
     (TaskStatus.stopped, MultijobActions.download_whole)
 ])
 
