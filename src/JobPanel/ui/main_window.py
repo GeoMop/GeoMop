@@ -54,7 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.overviewWidget.reload_items(self.data.multijobs)
         for mj_id, mj in self.data.multijobs.items():
             status = mj.get_state().status
-            if status == TaskStatus.deleting:
+            if (status == TaskStatus.deleting) or (status == TaskStatus.downloading):
                 if mj.last_status is not None:
                     mj.get_state().status = mj.last_status
                     mj.last_status = None
@@ -206,10 +206,21 @@ class MainWindow(QtWidgets.QMainWindow):
             mj.get_state().status = mj.last_status
             mj.last_status = None
         
-        if len(self.frontend_service._jobs_deleted)>0:
+        for mj_id, error in self.frontend_service._jobs_downloaded.items():
+            mj = self.data.multijobs[mj_id]
+            if error is None:
+                self.data.multijobs[mj_id].preset.downloaded = True
+            else:
+                self.report_error("Downloading error: {0}".format(error))
+            mj.get_state().status = mj.last_status
+            mj.last_status = None
+
+        if len(self.frontend_service._jobs_deleted) > 0 or \
+                len(self.frontend_service._jobs_downloaded) > 0:
             self.multijobs_changed.emit(self.data.multijobs)
 
         self.frontend_service._jobs_deleted = {}
+        self.frontend_service._jobs_downloaded = {}
 
         # close application
         if self.closing and not self.frontend_service._run_jobs and not self.frontend_service._start_jobs \
@@ -253,12 +264,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_ui_locks(self, mj_id):
         if mj_id is None:
-            self.ui.menuBar.multiJob.lock_by_status(True, None)
+            self.ui.menuBar.multiJob.lock_by_status(True, True, None)
             self.ui.tabWidget.reload_view(None)
         else:
             status = self.data.multijobs[mj_id].state.status
             rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
-            self.ui.menuBar.multiJob.lock_by_status(rdeleted, status)
+            downloaded = self.data.multijobs[mj_id].preset.downloaded
+            self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, status)
             mj = self.data.multijobs[mj_id]
             self.ui.tabWidget.reload_view(mj)
 
@@ -370,6 +382,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.deleting
         self.ui.overviewWidget.update_item(key, mj.get_state())
+        self.update_ui_locks(key)
 
     def _handle_delete_remote_action(self):
         if self.data.multijobs:
@@ -378,10 +391,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.frontend_service.mj_delete(key)
                 self._set_deleting(key)
 
+    def _set_downloading(self, key):
+        """save state before downloading and mark mj as downloaded"""
+        mj = self.data.multijobs[key]
+        if mj.get_state().status == TaskStatus.downloading:
+            return
+        mj.last_status = mj.get_state().status
+        mj.get_state().status = TaskStatus.downloading
+        self.ui.overviewWidget.update_item(key, mj.get_state())
+        self.update_ui_locks(key)
+
     def _handle_download_whole_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
-        key = current.text(0)
-        self.frontend_service.download_whole_mj(key)
+        if self.data.multijobs:
+            key = self.ui.overviewWidget.currentItem().text(0)
+            if not self.data.multijobs[key].preset.downloaded:
+                self.frontend_service.download_whole_mj(key)
+                self._set_downloading(key)
 
     def handle_multijob_dialog(self, purpose, data):
         mj = MultiJob(data['preset'])
@@ -411,7 +436,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dst_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
                                        MULTIJOBS_DIR, mj.preset.name)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
-                    'res', 'log', 'status', 'mj_conf', '*.log'))                
+                    'res', 'log', 'status', 'mj_config', '*.log'))
                 self.frontend_service.mj_start(mj.id)
         self.multijobs_changed.emit(self.data.multijobs)
 
@@ -475,16 +500,16 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).showEvent(event)
         self.raise_()
 
-        return
-        # select workspace if none is selected
-        if self.data.workspaces.get_path() is None:
-            import sys
-            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace")
-            if not sel_dir:
-                sel_dir = None
-            elif sys.platform == "win32":
-                sel_dir = sel_dir.replace('/', '\\')
-            self.data.reload_workspace(sel_dir)
+        # moved to job_panel
+        # # select workspace if none is selected
+        # if self.data.workspaces.get_path() is None:
+        #     import sys
+        #     sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace")
+        #     if not sel_dir:
+        #         sel_dir = None
+        #     elif sys.platform == "win32":
+        #         sel_dir = sel_dir.replace('/', '\\')
+        #     self.data.reload_workspace(sel_dir)
 
     def pause_all(self):        
         # save currently selected mj

@@ -118,6 +118,14 @@ class TaskStatus(IntEnum):
     
     This state is only for gui
     """
+    downloading = 14
+    """
+    MultiJob download attempt is processed
+    :permited actions: no
+    :start app action: no (rename to error or OK)
+
+    This state is only for gui
+    """
 
     def __str__(self):
         """Return string representation."""
@@ -138,7 +146,8 @@ _TASK_STATUS_DISPLAY_NAMES = {
     TaskStatus.running: 'Running',
     TaskStatus.stopped: 'Stopped',
     TaskStatus.stopping: 'Stopping', 
-    TaskStatus.deleting: 'Deleting'
+    TaskStatus.deleting: 'Deleting',
+    TaskStatus.downloading: 'Downloading'
 }
 
 
@@ -206,7 +215,8 @@ TASK_STATUS_STARTUP_ACTIONS = {
     TaskStatus.running: MultijobActions.resume,
     TaskStatus.stopped: None,
     TaskStatus.stopping: MultijobActions.terminate, 
-    TaskStatus.deleting: None
+    TaskStatus.deleting: None,
+    TaskStatus.downloading: None
 }
 
 

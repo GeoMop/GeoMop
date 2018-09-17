@@ -118,6 +118,11 @@ class ServiceFrontend(ServiceBase):
         Dictionary of jobs ids=>None (ids=>error), that was deleted data.
         If job was not deleted, in dictionary value is error text
         """
+        self._jobs_downloaded = {}
+        """
+        Dictionary of jobs ids=>None (ids=>error), that was downloaded data.
+        If job was not downloaded, in dictionary value is error text.
+        """
         self._logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
 
@@ -132,6 +137,8 @@ class ServiceFrontend(ServiceBase):
 
         self._answers_from_delete = []
         """list of answers from request_delete_mj (mj_id, [answer])"""
+        self._answers_from_download = []
+        """list of answers from request_download_whole_mj (mj_id, [answer])"""
 
     def _do_work(self):
         # save backend process id
@@ -143,6 +150,7 @@ class ServiceFrontend(ServiceBase):
 
         self._retrieve_mj_report()
         self._process_delete_answers()
+        self._process_download_answers()
 
     def _retrieve_mj_report(self):
         """
@@ -238,6 +246,25 @@ class ServiceFrontend(ServiceBase):
                         logging.error("Error in delete mj")
                     else:
                         self._jobs_deleted[item[0]] = res["data"]
+                    done = False
+                    break
+
+    def _process_download_answers(self):
+        """
+        Process answers from request_download_whole_mj.
+        :return:
+        """
+        done = False
+        while not done:
+            done = True
+            for i in range(len(self._answers_from_download)):
+                if len(self._answers_from_download[i][1]) > 0:
+                    item = self._answers_from_download.pop(i)
+                    res = item[1][0]
+                    if "error" in res:
+                        logging.error("Error in download mj")
+                    else:
+                        self._jobs_downloaded[item[0]] = res["data"]
                     done = False
                     break
 
@@ -402,6 +429,7 @@ class ServiceFrontend(ServiceBase):
         """Downloads whole multijob"""
         answer = []
         self._backend_proxy.call("request_download_whole_mj", mj_id, answer)
+        self._answers_from_download.append((mj_id, answer))
 
     def get_mj_changed_state(self):
         """

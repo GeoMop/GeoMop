@@ -537,21 +537,34 @@ class Backend(ServiceBase):
         """
         if mj_id not in self.mj_info:
             logging.warning("Attempt to download nonexistent MJ.")
-            return
+            return "Attempt to download nonexistent MJ."
         mj = self.mj_info[mj_id]
+
+        # wait for downloading logs finished
+        log_downloaded = False
+        for i in range(600):
+            # todo: potential race condition
+            # todo: not sure if job's logs already downloaded
+            if mj.log_planed_to_download and (len(mj.files_to_download) == 0):
+                log_downloaded = True
+                break
+            time.sleep(0.1)
+        if not log_downloaded:
+            logging.warning("Wait for downloading logs finished timeout.")
+
         con = mj.proxy._connection
-        if con._status == ConnectionStatus.online:
-            dir = os.path.join(self.get_analysis_workspace(),
-                               mj.proxy.workspace,
-                               "..", "downloaded_config")
-            os.makedirs(dir, exist_ok=True)
+        if (con is not None) and (con._status == ConnectionStatus.online):
             try:
                 con.download(
                     ["mj_config"],
-                    dir,
+                    os.path.join(self.get_analysis_workspace(), mj.proxy.workspace, ".."),
                     os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
             except (SSHError, FileNotFoundError, PermissionError):
-                pass
+                return "Error in downloading MJ data."
+        else:
+            return "Unable to download MJ data, connection is offline."
+
+        return None
 
     @LongRequest
     def request_ssh_test(self, ssh_conf):

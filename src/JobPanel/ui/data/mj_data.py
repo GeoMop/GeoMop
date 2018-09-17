@@ -159,7 +159,9 @@ class MultiJobPreset(APreset):
         self.from_mj = kw_or_def('from_mj', None)
         """Name of the source multijob (if reused)."""
         self.deleted_remote = kw_or_def('deleted_remote', False)
-        """Name of the source multijob (if reused)."""
+        """True if remote was deleted."""
+        self.downloaded = kw_or_def('downloaded', False)
+        """True if mj was downloaded."""
 
     def __repr__(self):
         """
