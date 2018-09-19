@@ -229,18 +229,20 @@ class MultiJob(ServiceBase):
         job_id = self._max_job_id
 
         # job workspace
-        job_dir = os.path.join(self.workspace, "job_{}".format(job_id))
+        #job_dir = os.path.join(self.workspace, "job_{}".format(job_id))
+        job_dir = os.path.join(self.workspace, runner.work_dir)
         analysis_workspace = self.service_host_connection.environment.geomop_analysis_workspace
-        os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
+        #os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
         service_data["workspace"] = job_dir
 
         service_data["config_file_name"] = "job_service.conf"
 
         # copy action input files
-        for file in runner.input_files:
-            src = os.path.join(analysis_workspace, self.workspace, file)
-            dst = os.path.join(analysis_workspace, job_dir, file)
-            shutil.copyfile(src, dst)
+        # already prepared by analysis
+        # for file in runner.input_files:
+        #     src = os.path.join(analysis_workspace, self.workspace, file)
+        #     dst = os.path.join(analysis_workspace, job_dir, file)
+        #     shutil.copyfile(src, dst)
 
         # input_files
         if "input_files" in service_data:
@@ -256,7 +258,7 @@ class MultiJob(ServiceBase):
             service_data["service_host_connection"]["address"] = self.listen_address[0]
 
         # start job
-        logging.info("Job {} starting".format(job_id))
+        logging.info("Job {} ({}) starting".format(job_id, runner.work_dir))
         answer = []
         self.call("request_start_child", service_data, answer)
         job_info = JobInfo(runner, answer, job_dir)
@@ -266,7 +268,8 @@ class MultiJob(ServiceBase):
         # update job report
         job_report = JobReport()
         job_report.status = job_info.status
-        job_report.name = "job_{}".format(job_id)
+        #job_report.name = "job_{}".format(job_id)
+        job_report.name = runner.work_dir
         job_report.insert_time = time.time()
         self.jobs_report[str(job_id)] = job_report
 
@@ -400,7 +403,7 @@ class MultiJob(ServiceBase):
         try:
             # output files
             con.download(self._jobs[job_id].runner.output_files,
-                         os.path.join(loc_an_work, self.workspace),
+                         os.path.join(loc_an_work, self._jobs[job_id].job_dir),
                          os.path.join(rem_an_work, self._jobs[job_id].job_dir))
 
             # log file

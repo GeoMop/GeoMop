@@ -250,7 +250,7 @@ class MultiJob:
         # Jobs log
         for dir in os.listdir(mj_config_path):
             job_dir = os.path.join(mj_config_path, dir)
-            if os.path.isdir(job_dir) and dir.startswith("job_"):
+            if os.path.isdir(job_dir) and dir.startswith("action_"):
                 file = "job_service.log"
                 if os.path.isfile(os.path.join(job_dir, file)):
                     log = MultiJobLog(os.path.normpath(job_dir), file)

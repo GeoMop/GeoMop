@@ -96,7 +96,7 @@ class Job(service_base.ServiceBase):
         args.extend(self.job_exec_args.args)
         cwd = os.path.join(self.process.environment.geomop_analysis_workspace,
                            self.job_exec_args.work_dir)
-        with open(os.path.join(cwd, "job_out.txt"), 'w') as fd_out:
+        with open(os.path.join(cwd, "job_std_out.txt"), 'w') as fd_out:
             p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
             while not self.stopping:
                 try:
