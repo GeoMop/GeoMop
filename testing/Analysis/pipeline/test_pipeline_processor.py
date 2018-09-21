@@ -23,11 +23,11 @@ this_source_dir = os.path.dirname(os.path.realpath(__file__))
 def test_run_pipeline(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
-        remove_if_exist(os.path.join("resources", "test1_3_0.yaml"))
-        remove_if_exist(os.path.join("resources", "test1_3_1.yaml"))
-        remove_if_exist(os.path.join("resources", "test1_3_2.yaml"))
-        remove_if_exist(os.path.join("resources", "test1_3_3.yaml"))
-        remove_if_exist(os.path.join("resources", "test1_3_4.yaml"))
+        shutil.rmtree("action_3_0", ignore_errors=True)
+        shutil.rmtree("action_3_1", ignore_errors=True)
+        shutil.rmtree("action_3_2", ignore_errors=True)
+        shutil.rmtree("action_3_3", ignore_errors=True)
+        shutil.rmtree("action_3_4", ignore_errors=True)
     request.addfinalizer(clear_backup)
 
     os.chdir(this_source_dir)
@@ -132,8 +132,8 @@ def test_hashes_and_store_restore(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
         remove_if_exist("identical_list.json")
-        remove_if_exist(os.path.join("resources", "test1_4.yaml"))
-        remove_if_exist(os.path.join("resources", "test2_5.yaml"))
+        shutil.rmtree("action_4", ignore_errors=True)
+        shutil.rmtree("action_5", ignore_errors=True)
     request.addfinalizer(clear_backup)
 
     os.chdir(this_source_dir)

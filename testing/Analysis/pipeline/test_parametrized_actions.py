@@ -35,7 +35,7 @@ def test_flow_code_init(change_dir_back):
 
 def test_flow_runner_command(request, change_dir_back):
     def clear_backup():
-        remove_if_exist(os.path.join("resources", "test1_2.yaml"))
+        shutil.rmtree("action_2", ignore_errors=True)
     request.addfinalizer(clear_backup)
 
     os.chdir(this_source_dir)
@@ -51,7 +51,7 @@ def test_flow_runner_command(request, change_dir_back):
 
     runner = flow._update()
     assert runner.command == ["flow123d", "-s", "resources/test1_2.yaml",
-                              "-o", "output/2"]
+                              "-o", "output"]
 
 
 def test_function_action(request):

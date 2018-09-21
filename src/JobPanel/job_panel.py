@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 #from JobPanel.ui.com_manager import ComManager
 from JobPanel.ui.main_window import MainWindow
+from JobPanel.ui.dialogs.docker_machine_start_dialog import DockerMachineStartDialog
 from JobPanel.ui.data.data_structures import DataContainer
 from JobPanel.ui.imports.workspaces_conf import BASE_DIR
 import gm_base.icon as icon
@@ -92,6 +93,11 @@ class JobPanel(object):
 
     def run(self):
         """Run app and show UI"""
+
+        # on win start Docker Machine
+        if sys.platform == "win32":
+            dlg = DockerMachineStartDialog()
+            dlg.exec()
 
         # start frontend service
         self._frontend_service.run_before()

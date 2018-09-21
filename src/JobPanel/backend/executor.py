@@ -178,7 +178,7 @@ class ProcessExec(ProcessBase):
                 try:
                     os.close(r)
                     os.setsid()
-                    with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
+                    with open(os.path.join(cwd, "std_out.txt"), 'w') as fd_out:
                         p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
                     os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
                     os.close(w)

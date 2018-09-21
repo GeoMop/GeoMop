@@ -159,7 +159,9 @@ class MultiJobPreset(APreset):
         self.from_mj = kw_or_def('from_mj', None)
         """Name of the source multijob (if reused)."""
         self.deleted_remote = kw_or_def('deleted_remote', False)
-        """Name of the source multijob (if reused)."""
+        """True if remote was deleted."""
+        self.downloaded = kw_or_def('downloaded', False)
+        """True if mj was downloaded."""
 
     def __repr__(self):
         """
@@ -248,7 +250,7 @@ class MultiJob:
         # Jobs log
         for dir in os.listdir(mj_config_path):
             job_dir = os.path.join(mj_config_path, dir)
-            if os.path.isdir(job_dir) and dir.startswith("job_"):
+            if os.path.isdir(job_dir) and dir.startswith("action_"):
                 file = "job_service.log"
                 if os.path.isfile(os.path.join(job_dir, file)):
                     log = MultiJobLog(os.path.normpath(job_dir), file)

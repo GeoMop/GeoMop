@@ -90,7 +90,7 @@ class IERes(IE):
 class IEMj(IE):
     items = ["analysis", "log_level", "name", "number_of_processes", "mj_execution_type", "mj_ssh_preset",
              "mj_remote_execution_type", "mj_pbs_preset", "j_execution_type", "j_ssh_preset",
-             "j_remote_execution_type", "j_pbs_preset", "deleted_remote"]
+             "j_remote_execution_type", "j_pbs_preset", "deleted_remote", "downloaded"]
     default_items = {}
     
     def export_(self, datas):

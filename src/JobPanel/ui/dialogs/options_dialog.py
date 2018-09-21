@@ -26,15 +26,15 @@ class OptionsDialog(QDialog):
         self.data = data
         self.workspace_selector = WorkspaceSelectorWidget(self, data.workspaces.get_path())
         
-        self.envPresetLabel = QLabel(self.ENV_LABEL)
-        self.envPresetComboBox = QComboBox()
-        for key in env:
-            self.envPresetComboBox.addItem(env[key].name, key)
-        if data.config.local_env is not None:
-            self.envPresetComboBox.setCurrentIndex(
-                self.envPresetComboBox.findData(data.config.local_env))
-        else:
-            self.envPresetComboBox.setCurrentIndex(-1)
+        # self.envPresetLabel = QLabel(self.ENV_LABEL)
+        # self.envPresetComboBox = QComboBox()
+        # for key in env:
+        #     self.envPresetComboBox.addItem(env[key].name, key)
+        # if data.config.local_env is not None:
+        #     self.envPresetComboBox.setCurrentIndex(
+        #         self.envPresetComboBox.findData(data.config.local_env))
+        # else:
+        #     self.envPresetComboBox.setCurrentIndex(-1)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
@@ -43,8 +43,8 @@ class OptionsDialog(QDialog):
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.workspace_selector)        
-        main_layout.addWidget(self.envPresetLabel)
-        main_layout.addWidget(self.envPresetComboBox)
+        # main_layout.addWidget(self.envPresetLabel)
+        # main_layout.addWidget(self.envPresetComboBox)
         main_layout.addStretch(1)
         main_layout.addWidget(button_box)
         self.setLayout(main_layout)
@@ -62,7 +62,7 @@ class OptionsDialog(QDialog):
         self.data.reload_workspace(self.workspace_selector.value)
         if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
             self.data.config.analysis = None
-        self.data.config.local_env = self.envPresetComboBox.currentData()
+        #self.data.config.local_env = self.envPresetComboBox.currentData()
         self.data.config.save()
 
         # todo: vyresit lepe

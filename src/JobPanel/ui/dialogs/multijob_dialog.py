@@ -113,8 +113,8 @@ class MultiJobDialog(AFormDialog):
         # preset purpose
         self.set_purpose(self.PURPOSE_ADD)
         self.set_analyses(data.workspaces)
-        self.set_pbs_presets()
         self.set_ssh_presets()
+        self.set_pbs_presets()
 
         self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Save).setText("Run")
 
@@ -314,19 +314,20 @@ class MultiJobDialog(AFormDialog):
         self.permitted['j_ssh_preset'] = []
         self.permitted['j_ssh_preset'].append(None)
 
+        # Currently is for Job SSH host supported only "local", therefore others are commented out
         if self.ssh:
             # sort dict by list, not sure how it works
             for key in self.ssh:
                 self.ui.multiJobSshPresetComboBox.addItem(self.ssh[key].name, key)
-                self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
+                #self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 self.permitted['mj_ssh_preset'].append(key)
-                self.permitted['j_ssh_preset'].append(key)
+                #self.permitted['j_ssh_preset'].append(key)
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
                     'local' if self.preset is None or self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset))
-            self.ui.jobSshPresetComboBox.setCurrentIndex(
-                self.ui.jobSshPresetComboBox.findData(
-                    'local' if self.preset is None or self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
+            # self.ui.jobSshPresetComboBox.setCurrentIndex(
+            #     self.ui.jobSshPresetComboBox.findData(
+            #         'local' if self.preset is None or self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
 
     def get_data(self):
         key = self.ui.idLineEdit.text()

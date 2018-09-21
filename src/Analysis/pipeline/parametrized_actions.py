@@ -83,6 +83,10 @@ class Flow123dAction(ParametrizedActionType):
 
         self._output = self.__file_output()
 
+    def _get_work_dir(self):
+        """returns action's working dir based on store_id"""
+        return "action_" + self._store_id
+
     def _get_variables_script(self):
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
@@ -97,12 +101,18 @@ class Flow123dAction(ParametrizedActionType):
         runner.name = self._get_instance_name()
 
         yaml_file = params[0]
-        output_dir = "output" + "/" + self._store_id
-        # we need "/" as separator because flow runs in docker
+        output_dir = "output"
         runner.command = ["flow123d", "-s", yaml_file, "-o", output_dir]
 
-        runner.input_files = [yaml_file, self._yaml_support.get_mesh_file()]
+        yaml_dir = os.path.dirname(yaml_file)
+        mesh_file = self._yaml_support.get_mesh_file()
+        if yaml_dir != "":
+            mesh_file = yaml_dir + "/" + mesh_file
+            # we need "/" as separator because flow runs in docker
+        runner.input_files = [yaml_file, mesh_file]
         runner.output_files = [output_dir]
+
+        runner.work_dir = self._get_work_dir()
 
         return runner
         
@@ -112,10 +122,19 @@ class Flow123dAction(ParametrizedActionType):
         environment and return Runner class with  process description if 
         action is set for externall processing.        
         """
-        # todo: remove output files
-        shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
-        file = self.__parametrise_file()
-        return self._get_runner([file])
+        work_dir = self._get_work_dir()
+        os.makedirs(work_dir, exist_ok=True)
+        shutil.rmtree(os.path.join(work_dir, "output"), ignore_errors=True)
+
+        yaml_file = self.__parametrise_file()
+        runner = self._get_runner([yaml_file])
+
+        mesh_file = os.path.join(os.path.dirname(self._variables['YAMLFile']), self._yaml_support.get_mesh_file())
+        mesh_dir = os.path.dirname(mesh_file)
+        os.makedirs(os.path.join(work_dir, mesh_dir), exist_ok=True)
+        shutil.copyfile(mesh_file, os.path.join(work_dir, mesh_file))
+
+        return runner
         
     def _after_update(self, store_dir):    
         """
@@ -161,8 +180,8 @@ class Flow123dAction(ParametrizedActionType):
     def __file_result(self):
         """Add to DTT output real values from returned file"""
         # TODO: exception if fail
-        ret = FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
-        #shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
+        ret = FlowOutputType.create_data(self._yaml_support, os.path.join(self._get_work_dir(), "output"))
+        #shutil.rmtree(os.path.join(self._get_work_dir(), "output"), ignore_errors=True)
         return ret
 
     def __parametrise_file(self):
@@ -182,7 +201,8 @@ class Flow123dAction(ParametrizedActionType):
         params_dict = {}
         for param in self.__get_require_params():
             params_dict[param] = getattr(input, param)._to_string()
-        analysis.replace_params_in_file(file, new_file, params_dict)
+        os.makedirs(os.path.join(self._get_work_dir(), dir), exist_ok=True)
+        analysis.replace_params_in_file(file, os.path.join(self._get_work_dir(), new_file), params_dict)
 
         return new_file
 
