@@ -14,7 +14,7 @@ class ObservedQuantitiesValueType(IntEnum):
 class YamlSupportRemote:
     """
     Class for extract regions, params, active processes
-    and mesh file from .yaml files.
+    and input files from .yaml files.
     """
 
     def __init__(self):
@@ -22,8 +22,9 @@ class YamlSupportRemote:
         self._params = []
         self._active_processes = {}
         self._mesh_file = ""
+        self._input_files = []
         self._yaml_file_hash = ""
-        self._mesh_file_hash = ""
+        self._input_files_hashes = {}
 
     def get_regions(self):
         """Return regions."""
@@ -41,13 +42,17 @@ class YamlSupportRemote:
         """Return mesh file."""
         return self._mesh_file
 
+    def get_input_files(self):
+        """Return input files."""
+        return self._input_files
+
     def get_yaml_file_hash(self):
         """Return yaml file hash."""
         return self._yaml_file_hash
 
-    def get_mesh_file_hash(self):
-        """Return mesh file hash."""
-        return self._mesh_file_hash
+    def get_input_files_hashes(self):
+        """Return input files hashes."""
+        return self._input_files_hashes
 
     def save(self, file):
         """Save data to file."""
@@ -58,8 +63,9 @@ class YamlSupportRemote:
                          params=self._params,
                          active_processes=self._active_processes,
                          mesh_file=self._mesh_file,
+                         input_files=self._input_files,
                          yaml_file_hash=self._yaml_file_hash,
-                         mesh_file_hash=self._mesh_file_hash)
+                         input_files_hashes=self._input_files_hashes)
                 json.dump(d, fd, indent=4, sort_keys=True)
         except Exception as e:
             err.append("YamlSupport saving error: {0}".format(e))
@@ -76,8 +82,9 @@ class YamlSupportRemote:
                 self._params = d["params"] if "params" in d else []
                 self._active_processes = d["active_processes"] if "active_processes" in d else {}
                 self._mesh_file = d["mesh_file"] if "mesh_file" in d else ""
+                self._input_files = d["input_files"] if "input_files" in d else []
                 self._yaml_file_hash = d["yaml_file_hash"] if "yaml_file_hash" in d else ""
-                self._mesh_file_hash = d["mesh_file_hash"] if "mesh_file_hash" in d else ""
+                self._input_files_hashes = d["input_files_hashes"] if "input_files_hashes" in d else {}
         except Exception as e:
             err.append("YamlSupport loading error: {0}".format(e))
         return err

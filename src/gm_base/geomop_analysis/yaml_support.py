@@ -11,7 +11,7 @@ RE_PARAM = re.compile('<([a-zA-Z][a-zA-Z0-9_]*)>')
 class YamlSupportLocal(YamlSupportRemote):
     """
     Class for extract regions, params, active processes
-    and mesh file from .yaml files.
+    and input files from .yaml files.
     """
 
     def __init__(self):
@@ -66,22 +66,22 @@ class YamlSupportLocal(YamlSupportRemote):
 
         return vt, mf
 
-    def parse(self, file):
+    def parse(self, yaml_file):
         """
         Parse regions, params and active processes from .yaml file.
-        Also computes hashes from .yaml and mesh files.
+        Also computes hashes from .yaml and input files.
         """
         err = []
 
-        dir_name = os.path.dirname(file)
+        dir_name = os.path.dirname(yaml_file)
 
         document = ""
         try:
             try:
-                with codecs.open(file, 'r', 'utf-8') as file_d:
+                with codecs.open(yaml_file, 'r', 'utf-8') as file_d:
                     document = file_d.read().expandtabs(tabsize=2)
             except UnicodeDecodeError:
-                with open(file, 'r') as file_d:
+                with open(yaml_file, 'r') as file_d:
                     document = file_d.read().expandtabs(tabsize=2)
         except (RuntimeError, IOError) as e:
             err.append("Can't open .yaml file: {0}".format(e))
@@ -237,13 +237,30 @@ class YamlSupportLocal(YamlSupportRemote):
         self._regions.append("ALL")
         self._regions.sort()
 
+        # input files
+        self._input_files = []
+
+        def crawl(node):
+            for child in node.children:
+                it = child.input_type
+                if (it is not None) and (it["base_type"] == "FileName") and \
+                        (it["file_mode"] == "input") and (child.value not in self._input_files):
+                    self._input_files.append(child.value)
+                crawl(child)
+
+        crawl(root)
+
         # .yaml file hash
-        e, self._yaml_file_hash = self.file_hash(file)
+        e, self._yaml_file_hash = self.file_hash(yaml_file)
         err.extend(e)
 
-        # mesh file hash
-        e, self._mesh_file_hash = self.file_hash(mesh_file_path)
-        err.extend(e)
+        # input files hashes
+        self._input_files_hashes = {}
+        for file in self._input_files:
+            file_path = os.path.join(dir_name, os.path.normpath(file))
+            e, hash = self.file_hash(file_path)
+            err.extend(e)
+            self._input_files_hashes[file] = hash
 
         return err
 
