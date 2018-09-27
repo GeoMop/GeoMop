@@ -107,8 +107,9 @@ def run_pipeline(pipeline, executables):
         else:
             command = runner.command
             if command[0] in executables:
+                command = command.copy()
                 command[0] = executables[command[0]]
-            process = subprocess.Popen(command)
+            process = subprocess.Popen(command, cwd=runner.work_dir)
             process.wait()
             pp.set_job_finished(runner.id)
 
@@ -127,6 +128,7 @@ def _create_support_files(pipeline):
                 return err
             dir, name = os.path.split(yaml_file)
             s = name.rsplit(sep=".", maxsplit=1)
-            sprt_file = s[0] + ".sprt"
+            new_name = s[0] + ".sprt"
+            sprt_file = os.path.join(dir, new_name)
             ys.save(sprt_file)
     return err
