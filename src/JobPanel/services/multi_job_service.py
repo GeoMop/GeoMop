@@ -235,7 +235,7 @@ class MultiJob(ServiceBase):
         #os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
         service_data["workspace"] = job_dir
 
-        service_data["config_file_name"] = "job_service.conf"
+        service_data["config_file_name"] = "_job_service.conf"
 
         # copy action input files
         # already prepared by analysis
@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
 
     try:
-        input_file = "mj_service.conf"
+        input_file = "_mj_service.conf"
         with open(input_file, "r") as f:
             config = json.load(f)
 

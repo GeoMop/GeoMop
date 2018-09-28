@@ -143,7 +143,7 @@ class Job(service_base.ServiceBase):
 
 
 def job_main():
-    input_file = "job_service.conf"
+    input_file = "_job_service.conf"
     if len(sys.argv) >  1:
         input_file = sys.argv[1]
     with open(input_file, "r") as f:
