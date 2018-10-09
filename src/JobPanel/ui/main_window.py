@@ -356,7 +356,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.data.config.save()
                 if report_file:
                     central_log_path = installation.Installation.get_central_log_dir_static()
-                    log_path = installation.Installation.get_mj_log_dir_static(mj_name, an_name)
+                    #log_path = installation.Installation.get_mj_log_dir_static(mj_name, an_name)
                     config_path = installation.Installation.get_config_dir_static(mj_name, an_name)
                     tmp_dir = os.path.join(__config_dir__, BASE_DIR, "tmp")
                     output_dir = os.path.join(__config_dir__, BASE_DIR, "tmp", "output_zip")
@@ -369,8 +369,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         shutil.copytree(central_log_path, os.path.join(output_dir, "central"))
                     if os.path.isdir(config_path):
                         shutil.copytree(config_path, os.path.join(output_dir, "config"))
-                    if os.path.isdir(log_path):
-                        shutil.copytree(log_path, os.path.join(output_dir,"log" ))
+                    # if os.path.isdir(log_path):
+                    #     shutil.copytree(log_path, os.path.join(output_dir,"log" ))
                     shutil.make_archive(report_file,"zip", output_dir)
                     shutil.rmtree(output_dir, ignore_errors=True)
             
@@ -421,11 +421,6 @@ class MainWindow(QtWidgets.QMainWindow):
             analysis.mj_counter += 1
             analysis.save()
             if purpose == MultiJobDialog.PURPOSE_ADD:
-                # Create multijob folder and copy analysis into it
-                try:
-                    analysis.copy_into_mj_folder(mj)
-                except Exception as e:
-                    logger.error("Failed to copy analysis into mj folder: " + str(e))                
                 self.data.multijobs[mj.id] = mj
                 self.frontend_service.mj_start(mj.id)
             elif purpose == MultiJobDialog.PURPOSE_COPY:

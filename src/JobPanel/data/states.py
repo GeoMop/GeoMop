@@ -269,25 +269,25 @@ class JobsState:
         self.jobs = []
         """array of jobs states"""
 
-    def save_file(self, res_dir):
-        """Job data serialization"""
-        data = []
-        for job in self.jobs:
-            job.status=job.status.value
-            data.append(job.__dict__)
-        path = os.path.join(res_dir,"state")
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        file = os.path.join(path,"jobs_states.json")
-        try:
-            with open(file, "w") as json_file:
-                json.dump(data, json_file, indent=4, sort_keys=True)
-        except Exception as error:
-            logger.error("Save state error:" + str(error))
+    # def save_file(self, res_dir):
+    #     """Job data serialization"""
+    #     data = []
+    #     for job in self.jobs:
+    #         job.status=job.status.value
+    #         data.append(job.__dict__)
+    #     path = os.path.join(res_dir,"state")
+    #     if not os.path.isdir(path):
+    #         os.makedirs(path)
+    #     file = os.path.join(path,"jobs_states.json")
+    #     try:
+    #         with open(file, "w") as json_file:
+    #             json.dump(data, json_file, indent=4, sort_keys=True)
+    #     except Exception as error:
+    #         logger.error("Save state error:" + str(error))
 
-    def load_file(self, res_dir):
+    def load_file(self, conf_dir):
         """Job data serialization"""       
-        file = os.path.join(res_dir,"state","jobs_states.json")                   
+        file = os.path.join(conf_dir, "_jobs_states.json")
         try:
             with open(file, "r") as json_file:
                 data = json.load(json_file)

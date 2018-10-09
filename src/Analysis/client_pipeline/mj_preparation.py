@@ -24,9 +24,9 @@ class MjPreparation():
         # directory preparation
         analysis_dir = os.path.join(workspace, analysis)
         mj_dir = os.path.join(analysis_dir, "mj", mj)
-        mj_config_dir = os.path.join(mj_dir, "mj_config")
+        mj_config_dir = mj_dir
         os.makedirs(mj_config_dir, exist_ok=True)
-        mj_precondition_dir = os.path.join(mj_dir, "mj_precondition")
+        mj_precondition_dir = mj_dir
         os.makedirs(mj_precondition_dir, exist_ok=True)
 
         # change cwd
@@ -101,25 +101,25 @@ class MjPreparation():
 
         # create compare list
         compare_list = pipeline2._get_hashes_list()
-        e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, "compare_list.json"))
+        e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, "_compare_list.json"))
         if len(e) > 0:
             err.extend(e)
             return ret
 
         # create identical list
         if last_analysis is not None:
-            last_cl_file = os.path.join(workspace, last_analysis, "mj", mj, "mj_precondition", "compare_list.json")
+            last_cl_file = os.path.join(workspace, last_analysis, "mj", mj, "", "_compare_list.json")
             if os.path.isfile(last_cl_file):
                 e, last_cl = ILCreator.load_compare_list(last_cl_file)
                 if len(e) > 0:
                     err.extend(e)
                     return ret
                 il = ILCreator.create_identical_list(compare_list, last_cl)
-                il.save(os.path.join(mj_config_dir, "identical_list.json"))
+                il.save(os.path.join(mj_config_dir, "_identical_list.json"))
 
         # copy backup files
         if last_analysis is not None:
-            last_backup_dir = os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "backup")
+            last_backup_dir = os.path.join(workspace, last_analysis, "mj", mj, "", "backup")
             backup_dir = os.path.join(mj_config_dir, "backup")
             if os.path.isdir(last_backup_dir):
                 shutil.rmtree(backup_dir, ignore_errors=True)
@@ -127,7 +127,7 @@ class MjPreparation():
 
         # copy output files
         if last_analysis is not None:
-            last_output_dir = os.path.join(workspace, last_analysis, "mj", mj, "mj_config", "output")
+            last_output_dir = os.path.join(workspace, last_analysis, "mj", mj, "", "output")
             output_dir = os.path.join(mj_config_dir, "output")
             if os.path.isdir(last_output_dir):
                 shutil.rmtree(output_dir, ignore_errors=True)

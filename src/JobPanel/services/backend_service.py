@@ -296,11 +296,9 @@ class Backend(ServiceBase):
             jobs_states.append(d)
 
         # save to file
-        dir = os.path.join(self.get_analysis_workspace(),
-                           mj.proxy.workspace,
-                           "..", "res", "state")
-        os.makedirs(dir, exist_ok=True)
-        file = os.path.join(dir, "jobs_states.json")
+        file = os.path.join(self.get_analysis_workspace(),
+                            mj.proxy.workspace,
+                            "_jobs_states.json")
         try:
             with open(file, 'w') as fd:
                 json.dump(jobs_states, fd, indent=4, sort_keys=True)
@@ -443,8 +441,8 @@ class Backend(ServiceBase):
         mj = self.mj_info[mj_id]
 
         mj_dir = mj.proxy.workspace
-        if os.path.basename(mj_dir) == "mj_config":
-            mj_dir = os.path.dirname(mj_dir)
+        # if os.path.basename(mj_dir) == "mj_config":
+        #     mj_dir = os.path.dirname(mj_dir)
 
         # delete MJ remote data
         con = mj.proxy._connection
@@ -556,7 +554,7 @@ class Backend(ServiceBase):
         if (con is not None) and (con._status == ConnectionStatus.online):
             try:
                 con.download(
-                    ["mj_config"],
+                    [os.path.basename(os.path.normpath(mj.proxy.workspace))],
                     os.path.join(self.get_analysis_workspace(), mj.proxy.workspace, ".."),
                     os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
             except (SSHError, FileNotFoundError, PermissionError):

@@ -46,7 +46,7 @@ def build(data_app, mj_id):
         return err, None
 
     # mj_config_dir
-    mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
+    mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "")
 
     # ToDo: vyresit lepe
     loc_geomop_root = if_win_win2lin_conv_path(os.path.join(
@@ -160,8 +160,8 @@ def build(data_app, mj_id):
                         "log_all": log_all}
     service_data = {"service_host_connection": mj_con,
                     "process": pe,
-                    "workspace": analysis + "/mj/" + mj + "/mj_config",
-                    "config_file_name": "mj_service.conf",
+                    "workspace": analysis + "/mj/" + mj + "",
+                    "config_file_name": "_mj_service.conf",
                     "pipeline": {"python_script": python_script,
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,

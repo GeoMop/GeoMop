@@ -62,7 +62,7 @@ def test_correct_run(request):
                     "process": pe,
                     "job_executable": je,
                     "workspace": "job",
-                    "config_file_name": "job_service.conf",
+                    "config_file_name": "_job_service.conf",
                     "wait_before_run": 10.0}
 
     # start job
@@ -142,7 +142,7 @@ def test_correct_run_connection_fail(request):
                     "process": pe,
                     "job_executable": je,
                     "workspace": "job",
-                    "config_file_name": "job_service.conf",
+                    "config_file_name": "_job_service.conf",
                     "wait_before_run": 15.0}
 
     # start job

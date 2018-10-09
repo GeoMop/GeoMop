@@ -390,8 +390,7 @@ class ServiceFrontend(ServiceBase):
 
         # error handling
         preset = self._data_app.multijobs[mj_id].preset
-        log_path = Installation.get_mj_log_dir_static(preset.name, preset.analysis)
-        mj_config_path = os.path.join(log_path, "..", "..", "mj_config")
+        mj_config_path = Installation.get_config_dir_static(preset.name, preset.analysis)
         file = "mj_preparation.log"
         try:
             with open(os.path.join(mj_config_path, file), 'w') as fd:
