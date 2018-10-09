@@ -6,7 +6,7 @@ class Polygon(idmap.IdObject):
 
     def __init__(self, outer_wire):
         self.outer_wire = outer_wire
-        # outer boundary wire
+        # outer boundary wire, inside of the polygon boundary.
         self.free_points = set()
         # Dict ID->pt of free points inside the polygon.
 
