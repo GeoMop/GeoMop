@@ -163,10 +163,11 @@ class PolygonDecomposition:
                 else:
                     segment_set.add((seg, side))
 
-        # collect segments fomring envelope(s) of the moving points
+        # collect segments forming envelope(s) of the moving points
         envelope = set()
         for seg, side in segment_set:
             for e_seg_side in seg.wire[side].segments(start = seg.next[side]):
+                # TODO: perhaps opposite, not e_seg_side
                 if e_seg_side in segment_set:
                     break
                 e_seg, e_side = e_seg_side
