@@ -18,6 +18,10 @@ def build(data_app, mj_id):
     mj_name = mj_preset.name
     an_name = mj_preset.analysis
     mj_log_level = mj_preset.log_level
+    if mj_preset.from_mj is not None:
+        reuse_mj = data_app.multijobs[mj_preset.from_mj].preset.name
+    else:
+        reuse_mj = None
 
     # resource preset
     mj_ssh_preset = data_app.ssh_presets.get(mj_preset.mj_ssh_preset, None)
@@ -39,14 +43,14 @@ def build(data_app, mj_id):
                 break
     except InvalidAnalysis:
         pass
-    e, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis,
-                                           mj=mj, python_script=python_script)
+    e, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                                           python_script=python_script, reuse_mj=reuse_mj)
     if len(e) > 0:
         err.extend(e)
         return err, None
 
     # mj_config_dir
-    mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "")
+    mj_config_dir = os.path.join(workspace, analysis, "mj", mj)
 
     # ToDo: vyresit lepe
     loc_geomop_root = if_win_win2lin_conv_path(os.path.join(
@@ -160,13 +164,14 @@ def build(data_app, mj_id):
                         "log_all": log_all}
     service_data = {"service_host_connection": mj_con,
                     "process": pe,
-                    "workspace": analysis + "/mj/" + mj + "",
+                    "workspace": analysis + "/mj/" + mj,
                     "config_file_name": "_mj_service.conf",
                     "pipeline": {"python_script": python_script,
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,
                     "input_files": input_files,
-                    "log_all": log_all}
+                    "log_all": log_all,
+                    "reuse_mj": reuse_mj if (reuse_mj is not None) else ""}
 
     #print(json.dumps(service_data, indent=4, sort_keys=True))
     return err, service_data

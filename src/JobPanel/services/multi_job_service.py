@@ -97,6 +97,9 @@ class MultiJob(ServiceBase):
         self.jobs_report = JsonDataNoConstruct()
         """jobs report information"""
 
+        self.reuse_mj = ""
+        """If not empty, base computation on this MJ."""
+
         super().__init__(config)
 
         # JsonData dict workaround
@@ -173,10 +176,21 @@ class MultiJob(ServiceBase):
             logging.error("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
             self.mj_status == MJStatus.error
             return
-        pipeline = loc[self.pipeline["pipeline_name"]]
+        pipeline_name = self.pipeline["pipeline_name"]
+        if pipeline_name not in loc:
+            logging.error('Analysis script must create variable named "{}".'.format(pipeline_name))
+            self.mj_status == MJStatus.error
+            return
+        pipeline = loc[pipeline_name]
+
+        # copy files from reuse MJ
+        identical_list = None
+        if (self.reuse_mj != "") and self.copy_reuse_mj():
+            identical_list = "_identical_list.json"
 
         # pipeline processor
-        self._pipeline_processor = Pipelineprocessor(pipeline)
+        log_level = logging.INFO if self.log_all else logging.WARNING
+        self._pipeline_processor = Pipelineprocessor(pipeline, log_level=log_level, identical_list=identical_list)
 
         # validation
         err = self._pipeline_processor.validate()
@@ -188,6 +202,38 @@ class MultiJob(ServiceBase):
 
         # run pipeline
         self._pipeline_processor.run()
+
+    def copy_reuse_mj(self):
+        # test if identical list exist
+        if not os.path.isfile("_identical_list.json"):
+            return False
+
+        # test if reuse MJ exist
+        reuse_mj_dir = os.path.join("..", self.reuse_mj)
+        if not os.path.isdir(reuse_mj_dir):
+            return False
+
+        # test if reuse backup dir exist
+        reuse_backup_dir = os.path.join(reuse_mj_dir, "backup")
+        if not os.path.isdir(reuse_backup_dir):
+            return False
+
+        # copy backup dir
+        backup_dir = "backup"
+        shutil.rmtree(backup_dir, ignore_errors=True)
+        shutil.copytree(reuse_backup_dir, backup_dir)
+
+        # copy output dirs
+        for dir in os.listdir(reuse_mj_dir):
+            reuse_action_dir = os.path.join(reuse_mj_dir, dir)
+            if os.path.isdir(reuse_action_dir) and dir.startswith("action_"):
+                reuse_output_dir = os.path.join(reuse_action_dir, "output")
+                if os.path.isdir(reuse_output_dir):
+                    shutil.rmtree(dir, ignore_errors=True)
+                    os.makedirs(dir, exist_ok=True)
+                    shutil.copytree(reuse_output_dir, os.path.join(dir, "output"))
+
+        return True
 
     def run_job(self, runner):
         # job data

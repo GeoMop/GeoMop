@@ -24,6 +24,9 @@ def load_pipeline(python_script="analysis.py", pipeline_name="pipeline"):
     except Exception as e:
         err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
         return err, None
+    if pipeline_name not in loc:
+        err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+        return err, None
     pipeline = loc[pipeline_name]
     return err, pipeline
 

@@ -8,7 +8,7 @@ from Analysis.client_pipeline.identical_list_creator import *
 
 class MjPreparation():
     @staticmethod
-    def prepare(workspace, analysis, mj, python_script="analysis.py", pipeline_name="pipeline", last_analysis=None):
+    def prepare(workspace, analysis, mj, python_script="analysis.py", pipeline_name="pipeline", reuse_mj=None):
         err = []
         input_files = []
         ret = (err, input_files)
@@ -48,6 +48,9 @@ class MjPreparation():
         except Exception as e:
             err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
             return ret
+        if pipeline_name not in loc:
+            err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+            return ret
         pipeline = loc[pipeline_name]
 
         # pipeline inicialize
@@ -86,6 +89,9 @@ class MjPreparation():
         except Exception as e:
             err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
             return ret
+        if pipeline_name not in loc:
+            err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+            return ret
         pipeline2 = loc[pipeline_name]
 
         # validation #2
@@ -101,36 +107,39 @@ class MjPreparation():
 
         # create compare list
         compare_list = pipeline2._get_hashes_list()
-        e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, "_compare_list.json"))
+        compare_list_file_name = "_compare_list.json"
+        e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, compare_list_file_name))
         if len(e) > 0:
             err.extend(e)
             return ret
 
         # create identical list
-        if last_analysis is not None:
-            last_cl_file = os.path.join(workspace, last_analysis, "mj", mj, "", "_compare_list.json")
+        if reuse_mj is not None:
+            last_cl_file = os.path.join(analysis_dir, "mj", reuse_mj, compare_list_file_name)
             if os.path.isfile(last_cl_file):
                 e, last_cl = ILCreator.load_compare_list(last_cl_file)
                 if len(e) > 0:
                     err.extend(e)
                     return ret
                 il = ILCreator.create_identical_list(compare_list, last_cl)
-                il.save(os.path.join(mj_config_dir, "_identical_list.json"))
+                il_file_name = "_identical_list.json"
+                il.save(os.path.join(mj_config_dir, il_file_name))
+                input_files.append(il_file_name)
 
-        # copy backup files
-        if last_analysis is not None:
-            last_backup_dir = os.path.join(workspace, last_analysis, "mj", mj, "", "backup")
-            backup_dir = os.path.join(mj_config_dir, "backup")
-            if os.path.isdir(last_backup_dir):
-                shutil.rmtree(backup_dir, ignore_errors=True)
-                shutil.copytree(last_backup_dir, backup_dir)
-
-        # copy output files
-        if last_analysis is not None:
-            last_output_dir = os.path.join(workspace, last_analysis, "mj", mj, "", "output")
-            output_dir = os.path.join(mj_config_dir, "output")
-            if os.path.isdir(last_output_dir):
-                shutil.rmtree(output_dir, ignore_errors=True)
-                shutil.copytree(last_output_dir, output_dir)
+        # # copy backup files
+        # if last_analysis is not None:
+        #     last_backup_dir = os.path.join(workspace, last_analysis, "mj", mj, "backup")
+        #     backup_dir = os.path.join(mj_config_dir, "backup")
+        #     if os.path.isdir(last_backup_dir):
+        #         shutil.rmtree(backup_dir, ignore_errors=True)
+        #         shutil.copytree(last_backup_dir, backup_dir)
+        #
+        # # copy output files
+        # if last_analysis is not None:
+        #     last_output_dir = os.path.join(workspace, last_analysis, "mj", mj, "output")
+        #     output_dir = os.path.join(mj_config_dir, "output")
+        #     if os.path.isdir(last_output_dir):
+        #         shutil.rmtree(output_dir, ignore_errors=True)
+        #         shutil.copytree(last_output_dir, output_dir)
 
         return ret
