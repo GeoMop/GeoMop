@@ -2,6 +2,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+import numpy as np
 from ..data import diagram_structures as struc
 from ..data.selection import Selection
 from ..gitems import Line, Point, ShpBackground, DiagramView, Blink, Polygon, InitArea, Grid
@@ -397,7 +398,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         super(Diagram, self).mouseMoveEvent(event)
         if self._add_new_point:
             self._add_new_point_counter += 1
-        if self._moving: 
+        if self._moving:    # Moving the diagram view by RMB drag
             self._moving_counter += 1
             if self._moving_counter%3==0:
                 cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
@@ -415,11 +416,18 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         elif self._point_moving is not None:
             self._point_moving_counter += 1
-            if self._point_moving_counter%3==0: 
+            if self._point_moving_counter%3==0:
                 if self._point_moving_counter == 3:
-                    self._point_moving.move_point(event.scenePos(), ItemStates.moved)
+                    displacement = event.scenePos() - self._point_moving_old
+                    point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
+                    partial = cfg.diagram.po.decomposition.check_displacment([point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
+                    self._point_moving.move_point(QtCore.QPointF(self._point_moving_old.x() + partial[0], self._point_moving_old.y() - partial[1]), ItemStates.moved)
                 else:
-                    self._point_moving.move_point(event.scenePos())                
+                    displacement = event.scenePos() - self._point_moving_old
+                    point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
+                    partial = cfg.diagram.po.decomposition.check_displacment([point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
+                    self._point_moving.move_point(QtCore.QPointF(
+                        self._point_moving_old.x() + partial[0], self._point_moving_old.y() - partial[1]))
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         elif self._line_moving is not None:
@@ -451,17 +459,17 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.regionsUpdateRequired.emit()
 
     def _anchor_moved_point(self, event):
-        """Test if point colide with other and move it"""
+        """Test if point collide with other and move it"""
         below_item = self.itemAt(event.scenePos(), QtGui.QTransform())        
-        if below_item==self._point_moving:
-            # moved point with small zorder value is below cursor             
+        if below_item == self._point_moving:
+            # moved point with small zorder value is below cursor (normal case, no obstructions - small z point is the temporary one)
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
             if not cfg.diagram.update_moving_points([self._point_moving.point_data]):
                 self._point_moving.move_point(QtCore.QPointF(
                     self._point_moving.point_data.x, self._point_moving.point_data.y))
             cfg.diagram.move_point_after(self._point_moving.point_data,
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines)==1:
+        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines) == 1:
             cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Move point to Line')
             new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line_data,
@@ -471,7 +479,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point)  and len(self._point_moving.point_data.lines)==1:
+        elif isinstance(below_item, Point) and len(self._point_moving.point_data.lines) == 1:
             cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
@@ -480,7 +488,9 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.update_changes([], [],  [], [], removed_lines)            
             below_item.move_point(event.scenePos(), ItemStates.standart)           
         else:
-            self._point_moving.move_point(event.scenePos(), ItemStates.standart)
+            # Path obstructed
+            self._point_moving.move_point(QtCore.QPointF(
+                self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
             if not cfg.diagram.update_moving_points([self._point_moving.point_data]):
                 self._point_moving.move_point(QtCore.QPointF(
                     self._point_moving.point_data.x, self._point_moving.point_data.y))
@@ -504,16 +514,16 @@ class Diagram(QtWidgets.QGraphicsScene):
                 cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                 self.possChanged.emit()
                 end_moving = True
-        if event.button()==QtCore.Qt.LeftButton and \
-            event.modifiers()==QtCore.Qt.NoModifier:
+        if event.button() == QtCore.Qt.LeftButton and \
+                event.modifiers() == QtCore.Qt.NoModifier:
             if self._point_moving is not None:
-                if  self._point_moving_counter>1:
-                    self._anchor_moved_point(event)                    
+                if self._point_moving_counter > 1:
+                    self._anchor_moved_point(event)
                 else:
                     self._add_line(event.gobject, event.scenePos())           
                 self._point_moving = None
             elif self._line_moving is not None:
-                if  self._line_moving_counter>1:
+                if self._line_moving_counter>1:
                     self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
                     if not cfg.diagram.update_moving_points([self._line_moving.line_data.p1, self._line_moving.line_data.p2]):
                         self._line_moving.line_data.p1.object.move_point(QtCore.QPointF(

@@ -140,7 +140,6 @@ class PolygonDecomposition:
         """
         return self._rm_segment(segment)
 
-
     def check_displacment(self, points, displacement, margin):
         """
         LAYERS
