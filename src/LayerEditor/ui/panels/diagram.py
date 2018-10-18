@@ -420,12 +420,15 @@ class Diagram(QtWidgets.QGraphicsScene):
                 if self._point_moving_counter == 3:
                     displacement = event.scenePos() - self._point_moving_old
                     point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
-                    partial = cfg.diagram.po.decomposition.check_displacment([point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
-                    self._point_moving.move_point(QtCore.QPointF(self._point_moving_old.x() + partial[0], self._point_moving_old.y() - partial[1]), ItemStates.moved)
+                    partial = cfg.diagram.po.decomposition.check_displacment(
+                        [point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
+                    self._point_moving.move_point(QtCore.QPointF(
+                        self._point_moving_old.x() + partial[0], self._point_moving_old.y() - partial[1]), ItemStates.moved)
                 else:
                     displacement = event.scenePos() - self._point_moving_old
                     point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
-                    partial = cfg.diagram.po.decomposition.check_displacment([point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
+                    partial = cfg.diagram.po.decomposition.check_displacment(
+                        [point_data], np.array([displacement.x(), -displacement.y()]), 0.01)
                     self._point_moving.move_point(QtCore.QPointF(
                         self._point_moving_old.x() + partial[0], self._point_moving_old.y() - partial[1]))
             else:
@@ -460,7 +463,9 @@ class Diagram(QtWidgets.QGraphicsScene):
 
     def _anchor_moved_point(self, event):
         """Test if point collide with other and move it"""
-        below_item = self.itemAt(event.scenePos(), QtGui.QTransform())        
+        below_items = self.items(event.scenePos())
+        not_obstructed = any([item == self._point_moving for item in below_items]) #if the moving is not in the stack, its hindered somewhere
+        below_item = below_items[0]  # topmost
         if below_item == self._point_moving:
             # moved point with small zorder value is below cursor (normal case, no obstructions - small z point is the temporary one)
             self._point_moving.move_point(event.scenePos(), ItemStates.standart)
@@ -469,7 +474,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._point_moving.point_data.x, self._point_moving.point_data.y))
             cfg.diagram.move_point_after(self._point_moving.point_data,
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines) == 1:
+        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
             cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Move point to Line')
             new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line_data,
@@ -479,14 +484,14 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._point_moving.move_point(QtCore.QPointF(
                 self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
             self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point) and len(self._point_moving.point_data.lines) == 1:
+        elif isinstance(below_item, Point) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
             cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
                 self._point_moving_old.y(), 'Merge points')
             removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
             self._point_moving.release_point()
             self.remove_graphical_object(self._point_moving)
             self.update_changes([], [],  [], [], removed_lines)            
-            below_item.move_point(event.scenePos(), ItemStates.standart)           
+            below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             # Path obstructed
             self._point_moving.move_point(QtCore.QPointF(
