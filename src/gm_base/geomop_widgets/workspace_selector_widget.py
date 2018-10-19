@@ -37,10 +37,10 @@ class WorkspaceSelectorWidget(SelectorWidget):
         if self._value is None:
             curr_dir = ''
         else:
-            curr_dir = str(os.path.normpath(os.path.join(self._value, '..')))
+            curr_dir = str(os.path.normpath(self._value))
         sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace", curr_dir)
         if not sel_dir:
-            sel_dir = None
+            sel_dir = curr_dir
         elif sys.platform == "win32":
             sel_dir = sel_dir.replace('/', '\\')
         self.value = sel_dir
