@@ -149,8 +149,8 @@ def test_upload_download(request):
         shutil.rmtree(REMOTE_TEST_FILES, ignore_errors=True)
     request.addfinalizer(finalizer)
 
-    files = ["f1.txt", "f2.txt", "d1/f3.txt", "d2/f4.txt", "d2/d3/f5.txt"]
-    paths = ["f1.txt", "f2.txt", "d1/f3.txt", "d2"]
+    files = ["f1.txt", "f2.txt", "l1.txt", "d1/f3.txt", "d2/f4.txt", "d2/d3/f5.txt", "d2/l2.txt"]
+    paths = ["f1.txt", "f2.txt", "l1.txt", "d1/f3.txt", "d2"]
 
     def create_dir(path):
         shutil.rmtree(path, ignore_errors=True)
@@ -163,13 +163,19 @@ def test_upload_download(request):
             dir = os.path.dirname(file)
             if len(dir):
                 os.makedirs(os.path.join(path, dir), exist_ok=True)
-            with open(os.path.join(path, file), 'w') as fd:
-                fd.write(file)
+            if os.path.basename(file).startswith("l"):
+                os.symlink("target", os.path.join(path, file))
+            else:
+                with open(os.path.join(path, file), 'w') as fd:
+                    fd.write(file)
 
     def check_files(path):
         for file in files:
-            with open(os.path.join(path, file), 'r') as fd:
-                assert fd.read() == file
+            if os.path.islink(os.path.join(path, file)):
+                assert os.readlink(os.path.join(path, file)) == "target"
+            else:
+                with open(os.path.join(path, file), 'r') as fd:
+                    assert fd.read() == file
 
     def remove_files(path):
         shutil.rmtree(path, ignore_errors=True)
@@ -179,7 +185,7 @@ def test_upload_download(request):
         try:
             for fileattr in sftp.listdir_attr(path):
                 path_name = os.path.join(path, fileattr.filename)
-                if stat.S_ISDIR(sftp.stat(path_name).st_mode):
+                if stat.S_ISDIR(sftp.lstat(path_name).st_mode):
                     remove_files_rem(path_name, con)
                     sftp.rmdir(path_name)
                 else:
@@ -210,7 +216,7 @@ def test_upload_download(request):
     # upload
     create_files(loc)
     create_dir(rem)
-    con.upload(paths, loc, rem)
+    con.upload(paths, loc, rem, follow_symlinks=False)
     check_files(rem)
     remove_files(loc)
     remove_files(rem)
@@ -218,7 +224,7 @@ def test_upload_download(request):
     # download
     create_files(rem)
     create_dir(loc)
-    con.download(paths, loc, rem)
+    con.download(paths, loc, rem, follow_symlinks=False)
     check_files(loc)
     remove_files(loc)
     remove_files(rem)
@@ -243,7 +249,7 @@ def test_upload_download(request):
     # upload
     create_files(loc)
     create_dir(rem)
-    con.upload(paths, loc, rem)
+    con.upload(paths, loc, rem, follow_symlinks=False)
     check_files(rem)
     remove_files(loc)
     remove_files_rem(rem, con)
@@ -252,7 +258,7 @@ def test_upload_download(request):
     # download
     create_files(rem)
     create_dir(loc)
-    con.download(paths, loc, rem)
+    con.download(paths, loc, rem, follow_symlinks=False)
     check_files(loc)
     remove_files(loc)
     remove_files(rem)

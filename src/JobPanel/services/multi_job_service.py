@@ -203,6 +203,7 @@ class MultiJob(ServiceBase):
         # run pipeline
         self._pipeline_processor.run()
 
+    # todo: it should be run in LongRequest
     def copy_reuse_mj(self):
         # test if identical list exist
         if not os.path.isfile("_identical_list.json"):
@@ -295,6 +296,8 @@ class MultiJob(ServiceBase):
             service_data["input_files"].append(runner.input_files)
         else:
             service_data["input_files"] = runner.input_files
+
+        # todo: in case that Job runs on remote it is needed to copy symlink targets
 
         # update service_host_connection
         if service_data["process"]["__class__"] == "ProcessPBS" and \

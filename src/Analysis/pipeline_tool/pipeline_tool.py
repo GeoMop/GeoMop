@@ -1,6 +1,6 @@
-from client_pipeline.mj_preparation import *
-from client_pipeline.parametrized_actions_preparation import *
-from pipeline.pipeline_processor import *
+from Analysis.client_pipeline.mj_preparation import *
+from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
+from Analysis.pipeline.pipeline_processor import *
 from gm_base.geomop_analysis import YamlSupportLocal
 
 import time

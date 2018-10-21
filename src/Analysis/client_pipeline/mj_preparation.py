@@ -3,7 +3,7 @@ import shutil
 
 from Analysis.pipeline import *
 
-from Analysis.client_pipeline.parametrized_actions_preparation import *
+from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
 from Analysis.client_pipeline.identical_list_creator import *
 
 class MjPreparation():
@@ -40,6 +40,7 @@ class MjPreparation():
                 script_text = fd.read()
         except (RuntimeError, IOError) as e:
             err.append("Can't open script file: {0}".format(e))
+            os.chdir(cwd)
             return ret
         action_types.__action_counter__ = 0
         loc = {}
@@ -47,9 +48,11 @@ class MjPreparation():
             exec(script_text, globals(), loc)
         except Exception as e:
             err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            os.chdir(cwd)
             return ret
         if pipeline_name not in loc:
             err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+            os.chdir(cwd)
             return ret
         pipeline = loc[pipeline_name]
 
@@ -67,6 +70,7 @@ class MjPreparation():
                 input_files.extend(files)
                 if len(e) > 0:
                     err.extend(e)
+                    os.chdir(cwd)
                     return ret
             else:
                 err.append("Missing resource preparation for {0}.".format(res["name"]))
@@ -88,9 +92,11 @@ class MjPreparation():
             exec(script_text, globals(), loc)
         except Exception as e:
             err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            os.chdir(cwd)
             return ret
         if pipeline_name not in loc:
             err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+            os.chdir(cwd)
             return ret
         pipeline2 = loc[pipeline_name]
 
