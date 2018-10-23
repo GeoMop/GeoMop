@@ -141,47 +141,60 @@ class PolygonDecomposition:
         return self._rm_segment(segment)
 
 
-    def check_displacment(self, points, displacement, margin):
+    def check_displacment(self, points, displacement):
         """
         LAYERS
         param: points: List of Points to move.
-        param: displacement: Numpy array, 2D vector of displacement to add to the points.
-        param: margin: float between (0, 1), displacement margin as a fraction of maximal displacement
+        param: displacement: Numpy array, 2D vector of displacement to add to the points,
+                identical for the whole displaced block.
         TODO: Check fails for internal wires and nonconvex poygons.
-        :return: Shortened displacement to not cross any segment.
+        :return: True for no, collision; False if any collision is detected.
         """
-        # Collect fixed sides of segments connecting fixed and moving point.
-        segment_set = set()
+
+
+        # Collect all sides of moving segments.
+        moving_segs = set()
         changed_polygons = set()
         for pt in points:
             for seg, side in pt.segments():
                 changed_polygons.add(seg.wire[out_vtx].polygon)
                 changed_polygons.add(seg.wire[in_vtx].polygon)
-                opposite = (seg, 1-side)
-                if opposite in segment_set:
-                    segment_set.remove(opposite)
-                else:
-                    segment_set.add((seg, side))
+                moving_segs.add( (seg, side) )
+        self.decomp.last_polygon_change = (decomp.PolygonChange.shape, changed_polygons, None)
 
-        # collect segments fomring envelope(s) of the moving points
-        envelope = set()
-        for seg, side in segment_set:
-            for e_seg_side in seg.wire[side].segments(start = seg.next[side]):
-                if e_seg_side in segment_set:
-                    break
-                e_seg, e_side = e_seg_side
-                envelope.add(e_seg)
+        # Todo: For the outer wire of the moving segments, add parent and its holes to the envelope.
+        # Outer wire is the maximal parent wire for the set of all wires connected to moving edges.
+        moving_wires = { poly.outer_wire for poly in changed_polygons}
+        envelope=[]
+        for wire in moving_wires:
+            for seg, side in wire.segments():
+                if (seg, side) not in moving_segs and \
+                    (seg, 1 - side) not in moving_segs:
+                        envelope.append(seg)
 
-        new_displ = np.array(displacement)
-        for seg in envelope:
+
+        for e_seg in envelope:
+            # Check collision of points with envelope.
             for pt in points:
-                (t0, t1) = self.seg_intersection(seg, pt.xy, pt.xy + new_displ)
+                (t0, t1) = self.seg_intersection(e_seg, pt.xy, pt.xy + displacement)
                 # TODO: Treat case of vector and segment in line.
                 # TODO: Check bound checks in intersection.
                 if t0 is not None:
-                    new_displ *= (1.0 - margin) * t1
-        self.decomp.last_polygon_change = (decomp.PolygonChange.shape, changed_polygons, None)
-        return new_displ
+                    return False
+
+            # Check collision of segments with envelope.
+            for (seg, side) in moving_segs:
+                a = seg.vtxs[side].xy + displacement
+
+                if (seg, 1-side) in moving_segs:
+                    b = seg.vtxs[1 - side].xy + displacement
+                else:
+                    b = seg.vtxs[1 - side].xy
+                (t0, t1) = self.seg_intersection(e_seg, a, b)
+                if t0 is not None:
+                    return False
+
+        return True
 
     def move_points(self, points, displacement):
         """
@@ -221,7 +234,7 @@ class PolygonDecomposition:
 
     def get_childs(self, polygon_id):
         """
-        Return list of child ploygons (including itself).
+        Return list of child polygons (including itself).
         :param polygon_id:
         :return: List of polygon IDs.
         """

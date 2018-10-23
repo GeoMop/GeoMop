@@ -57,13 +57,10 @@ class PolygonOperation():
         spoints = []
         for point in points:
             spoints.append(self.decomposition.points[point.de_id])
-        new_displ = self.decomposition.check_displacment(spoints, displacement, 0.01)
-        if new_displ[0]!=displacement[0] or new_displ[1]!=displacement[1]:
+        if self.decomposition.check_displacment(spoints, displacement):
+            self.decomposition.move_points(spoints, displacement)
+        else:
             ret = False
-            for point in points:
-                point.x += new_displ[0]-displacement[0]
-                point.y -= new_displ[1]-displacement[1]
-        self.decomposition.move_points(spoints, new_displ)
         res = self.decomposition.get_last_polygon_changes()
         if res[0]==PolygonChange.shape:
             for polygon_id in res[1]:

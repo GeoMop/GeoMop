@@ -109,14 +109,20 @@ def test_check_displacement():
     decomp.add_line((0, 0), (.5,.5))
     decomp.add_line((2, 0), (.5,.5))
     decomp.add_line( (.5,.5), (0, 2))
+    #print(decomp)
+    #plot_polygon_decomposition(decomp)
 
-    step = decomp.check_displacment([pt0, pt], (1.0, 1.0), 0.1)
-    assert la.norm( step - np.array([0.45, 0.45]) ) < 1e-6
+    res = decomp.check_displacment([pt0, pt], (1.0, 1.0))
+    assert not res  #la.norm( step - np.array([0.45, 0.45]) ) < 1e-6
     assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [0,1,2,3], None)
 
-    decomp.move_points([pt], step)
-    assert la.norm( pt.xy - np.array([0.95, 0.95]) ) < 1e-6
+    res = decomp.check_displacment([pt0, pt], (0.4, 0.4))
+    assert res
 
-    step = decomp.check_displacment([pt], (1.0, 1.0), 0.1)
+    decomp.move_points([pt], (0.4, 0.4))
+    assert la.norm( pt.xy - np.array([0.9, 0.9]) ) < 1e-6
+
+    res = decomp.check_displacment([pt], (1.0, 1.0))
+    assert not res
     assert decomp.get_last_polygon_changes() == (PolygonChange.shape, [1,2,3], None)
 
