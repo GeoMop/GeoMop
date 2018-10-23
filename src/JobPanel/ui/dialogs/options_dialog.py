@@ -66,7 +66,7 @@ class OptionsDialog(QDialog):
         self.data.config.save()
 
         # todo: vyresit lepe
-        self.parent().close()
+        self.close()
 
         super(OptionsDialog, self).accept()       
 

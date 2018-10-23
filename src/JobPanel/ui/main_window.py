@@ -23,6 +23,7 @@ from .imports.workspaces_conf import BASE_DIR
 from .dialogs import MessageDialog
 from .dialogs.env_presets import EnvPresets
 from .dialogs.multijob_dialog import MultiJobDialog
+from .dialogs.edit_workspace_dialog import SetWorkspaceDialog
 from .dialogs.options_dialog import OptionsDialog
 from .dialogs.ssh_presets import SshPresets
 from .menus.main_menu_bar import MainMenuBar
@@ -446,7 +447,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
-        OptionsDialog(self, self.data,self.data.env_presets).show()
+        SetWorkspaceDialog(self, self.data)
+        #OptionsDialog(self, self.data,self.data.env_presets).show()
 
     @staticmethod
     def _get_config_files(conf_dir_path):
