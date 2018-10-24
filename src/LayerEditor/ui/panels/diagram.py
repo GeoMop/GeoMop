@@ -423,13 +423,11 @@ class Diagram(QtWidgets.QGraphicsScene):
                 displacement = event.scenePos() - self._point_moving_old
                 # point at old position
                 point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
-                if self._point_moving_counter == 3:
-                    if cfg.diagram.po.decomposition.check_displacment(
-                            [point_data], np.array([displacement.x(), -displacement.y()])):
+                if cfg.diagram.po.decomposition.check_displacment(
+                        [point_data], np.array([displacement.x(), -displacement.y()])):
+                    if self._point_moving_counter == 3:
                         self._point_moving.move_point(event.scenePos(), ItemStates.moved)
-                else:
-                    if cfg.diagram.po.decomposition.check_displacment(
-                            [point_data], np.array([displacement.x(), -displacement.y()])):
+                    else:
                         self._point_moving.move_point(event.scenePos())
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
@@ -440,16 +438,13 @@ class Diagram(QtWidgets.QGraphicsScene):
                 displacement = event.scenePos() - self._line_moving_old_pos
                 p1_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p1.de_id]
                 p2_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p2.de_id]
-                if self._line_moving_counter == 3:
-                    if cfg.diagram.po.decomposition.check_displacment(
-                            [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
+                if cfg.diagram.po.decomposition.check_displacment(
+                        [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
+                    if self._line_moving_counter == 3:
                         self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.moved)
-                        self._line_moving_pos = event.scenePos()
-                else:
-                    if cfg.diagram.po.decomposition.check_displacment(
-                            [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
+                    else:
                         self._line_moving.shift_line(event.scenePos()-self._line_moving_pos)
-                        self._line_moving_pos = event.scenePos()
+                    self._line_moving_pos = event.scenePos()
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         else:
