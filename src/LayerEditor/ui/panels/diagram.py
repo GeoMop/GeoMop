@@ -444,11 +444,12 @@ class Diagram(QtWidgets.QGraphicsScene):
                     if cfg.diagram.po.decomposition.check_displacment(
                             [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
                         self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.moved)
+                        self._line_moving_pos = event.scenePos()
                 else:
                     if cfg.diagram.po.decomposition.check_displacment(
                             [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
                         self._line_moving.shift_line(event.scenePos()-self._line_moving_pos)
-                self._line_moving_pos = event.scenePos()
+                        self._line_moving_pos = event.scenePos()
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         else:
