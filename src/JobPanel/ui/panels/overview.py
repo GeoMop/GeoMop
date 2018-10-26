@@ -32,6 +32,8 @@ class Overview(QtWidgets.QTreeWidget):
         self.header().resizeSection(4, 120)
         self.header().resizeSection(5, 120)
         self.header().resizeSection(6, 80)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
 
     @staticmethod
     def _update_item(item, state, time_format):
@@ -70,6 +72,8 @@ class Overview(QtWidgets.QTreeWidget):
                     return idx, item
         return None
 
+
+
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
         item.setTextAlignment(3, QtCore.Qt.AlignRight)
@@ -102,4 +106,5 @@ class Overview(QtWidgets.QTreeWidget):
                     self.add_item(key, data[key].state)
         self.setCurrentItem(self.topLevelItem(0))
         self.resizeColumnToContents(1)
+
 
