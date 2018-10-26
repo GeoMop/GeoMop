@@ -446,13 +446,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
-        dialog = WorkspaceSelectorWidget(self,self.data.workspaces.get_path())
+        prewFileName = self.data.workspaces.get_path()
+        dialog = WorkspaceSelectorWidget(self, self.data.workspaces.get_path())
         dialog.select_workspace()
-        self.data.reload_workspace(dialog.value)
-        if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
-            self.data.config.analysis = None
-        self.data.config.save()
-
+        if prewFileName != dialog.value:
+            self.data.reload_workspace(dialog.value)
+            if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
+                self.data.config.analysis = None
+            self.data.config.save()
 
     @staticmethod
     def _get_config_files(conf_dir_path):
