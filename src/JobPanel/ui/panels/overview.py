@@ -9,7 +9,7 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5 import QtCore, QtGui
 
 from JobPanel.data import TaskStatus
-
+from ..menus.main_menu_bar import MultiJobMenu
 
 ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
 
@@ -34,6 +34,9 @@ class Overview(QtWidgets.QTreeWidget):
         self.header().resizeSection(6, 80)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAllColumnsShowFocus(True)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._open_context_menu)
+
 
 
     @staticmethod
@@ -73,7 +76,9 @@ class Overview(QtWidgets.QTreeWidget):
                     return idx, item
         return None
 
-
+    def _open_context_menu(self,position):
+        contextMenu = MultiJobMenu(self)
+        contextMenu.exec(QtGui.QCursor.pos())
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
