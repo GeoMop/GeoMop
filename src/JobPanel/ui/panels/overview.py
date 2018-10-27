@@ -33,6 +33,7 @@ class Overview(QtWidgets.QTreeWidget):
         self.header().resizeSection(5, 120)
         self.header().resizeSection(6, 80)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setAllColumnsShowFocus(True)
 
 
     @staticmethod
