@@ -136,8 +136,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_options)
 
         # connect current multijob changed
-        self.ui.overviewWidget.currentItemChanged.connect(
-            self._handle_current_mj_changed)
+        self.ui.overviewWidget.itemSelectionChanged.connect(
+            self._handle_mj_selection_changed)
 
         # load settings
         self.load_settings()
@@ -262,11 +262,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.analysis = analysis  
         Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
-    def update_ui_locks(self, mj_id):
-        print(type(mj_id))
+    def update_ui_locks(self, mj_id, multi_select = False):
         if mj_id is None:
-            self.ui.menuBar.multiJob.lock_by_status(True, True, None)
             self.ui.tabWidget.reload_view(None)
+            if multi_select:
+                self.ui.menuBar.multiJob.lock_by_status(True, True, None)
+            else:
+                self.ui.menuBar.multiJob.lock_by_status(True, False, None)
         else:
             status = self.data.multijobs[mj_id].state.status
             rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
@@ -275,16 +277,21 @@ class MainWindow(QtWidgets.QMainWindow):
             mj = self.data.multijobs[mj_id]
             self.ui.tabWidget.reload_view(mj)
 
-    def _handle_current_mj_changed(self, current, previous=None):
-        if current is not None:
-            mj_id = current.text(0)
+    def _handle_mj_selection_changed(self):
+        selected_items = self.ui.overviewWidget.selectedItems()
+        if len(selected_items) == 1:
+            mj_id = selected_items[0].text(0)
             mj = self.data.multijobs[mj_id]
 
             # show error message in status bar
             self.ui.status_bar.showMessage(mj.error)
+            self.update_ui_locks(mj_id)
         else:
             mj_id = None
-        self.update_ui_locks(mj_id)
+            if selected_items is None:
+                self.update_ui_locks(mj_id)
+            else:
+                self.update_ui_locks(mj_id,True)
 
     @staticmethod
     def _handle_log_action():

@@ -77,8 +77,10 @@ class Overview(QtWidgets.QTreeWidget):
         return None
 
     def _open_context_menu(self,position):
-        contextMenu = MultiJobMenu(self)
-        contextMenu.exec(QtGui.QCursor.pos())
+        if self.itemAt(position) is None:
+            self.clearSelection()
+        contextMenu = self.parentWidget().parentWidget().findChild(MultiJobMenu,"multiJobMenu")
+        contextMenu.exec(self.viewport().mapToGlobal(position))
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
