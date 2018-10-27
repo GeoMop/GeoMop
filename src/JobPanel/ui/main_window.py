@@ -263,6 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
     def update_ui_locks(self, mj_id):
+        print(type(mj_id))
         if mj_id is None:
             self.ui.menuBar.multiJob.lock_by_status(True, True, None)
             self.ui.tabWidget.reload_view(None)
