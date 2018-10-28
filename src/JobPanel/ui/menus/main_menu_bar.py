@@ -122,6 +122,9 @@ class MultiJobMenu(QtWidgets.QMenu):
             else:
                 menu_action.setDisabled(False)
 
+    def lock_for_selection(self,rdeleted,stopped):
+        tomp = 0
+
 class SettingsMenu(QtWidgets.QMenu):
     """
     Settings sub menu.

@@ -262,36 +262,37 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.analysis = analysis  
         Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
-    def update_ui_locks(self, mj_id, multi_select = False):
-        if mj_id is None:
+    def update_ui_locks(self, mj_ids):
+        if mj_ids is None:
             self.ui.tabWidget.reload_view(None)
-            if multi_select:
-                self.ui.menuBar.multiJob.lock_by_status(True, True, None)
-            else:
-                self.ui.menuBar.multiJob.lock_by_status(True, False, None)
+            self.ui.menuBar.multiJob.lock_by_status(True, True, None)
         else:
-            status = self.data.multijobs[mj_id].state.status
-            rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
-            downloaded = self.data.multijobs[mj_id].preset.downloaded
-            self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, status)
-            mj = self.data.multijobs[mj_id]
-            self.ui.tabWidget.reload_view(mj)
+            if mj_ids == 1:
+                status = self.data.multijobs[mj_ids[0]].state.status
+                rdeleted = self.data.multijobs[mj_ids[0]].preset.deleted_remote
+                downloaded = self.data.multijobs[mj_ids[0]].preset.downloaded
+                self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, status)
+                mj = self.data.multijobs[mj_ids[0]]
+                self.ui.tabWidget.reload_view(mj)
+            else:
+                rdeleted = True
+                statuses = []
+                for id in mj_ids:
+                    if not self.data.multijobs[id].preset.deleted_remote:
+                        rdeleted = False
+                    statuses.append(self.data.multijobs[mj_ids[0]].state.status)
+                self.ui.menuBar.multiJob.lock_for_selection(rdeleted,statuses)
 
     def _handle_mj_selection_changed(self):
-        selected_items = self.ui.overviewWidget.selectedItems()
-        if len(selected_items) == 1:
-            mj_id = selected_items[0].text(0)
-            mj = self.data.multijobs[mj_id]
+        mj_ids = []
+        for item in self.ui.overviewWidget.selectedItems():
+            mj_ids.append(item.text(0))
+        self.update_ui_locks(mj_ids)
+        if len(mj_ids) == 1:
+            mj = self.data.multijobs[mj_ids[0]]
 
             # show error message in status bar
             self.ui.status_bar.showMessage(mj.error)
-            self.update_ui_locks(mj_id)
-        else:
-            mj_id = None
-            if selected_items is None:
-                self.update_ui_locks(mj_id)
-            else:
-                self.update_ui_locks(mj_id,True)
 
     @staticmethod
     def _handle_log_action():
