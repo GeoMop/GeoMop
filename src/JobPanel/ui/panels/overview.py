@@ -107,16 +107,24 @@ class Overview(QtWidgets.QTreeWidget):
         return self.takeTopLevelItem(index)
 
     def reload_items(self, data):
-        current_item = self.currentIndex()
-        selection = self.selectedItems()
+        current_item_id = None
+        if self.topLevelItemCount() > 0:
+            current_item_id = self.currentItem().text(0)
+        selection_ids = []
+        for sel_item in self.selectedItems():
+            selection_ids.append(sel_item.text(0))
+
         self.clear()
         if data:
             for key in data:
                 if data[key].valid:
                     self.add_item(key, data[key].state)
 
-        #self.SelectItems(selection)
-        self.setCurrentItem(self.topLevelItem(0))
+        if current_item_id is not None:
+            self.setCurrentItem(self._get_item_by_key(current_item_id)[1])
+        self.clearSelection()
+        for sel_id in selection_ids:
+            self._get_item_by_key(sel_id)[1].setSelected(True)
         self.resizeColumnToContents(1)
 
 
