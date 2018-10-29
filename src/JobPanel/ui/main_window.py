@@ -454,6 +454,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
                 self.data.config.analysis = None
             self.data.config.save()
+            self.close()
 
     @staticmethod
     def _get_config_files(conf_dir_path):
