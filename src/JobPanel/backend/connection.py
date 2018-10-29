@@ -143,7 +143,7 @@ class ConnectionLocal(ConnectionBase):
         """
         pass
 
-    def upload(self, paths, local_prefix, remote_prefix, priority=False):
+    def upload(self, paths, local_prefix, remote_prefix, priority=False, follow_symlinks=True):
         """
         Upload given relative 'paths' to remote, prefixing them by 'local_prefix' for source and
         by 'remote_prefix' for destination.
@@ -153,11 +153,14 @@ class ConnectionLocal(ConnectionBase):
         :raises PermissionError:
 
         Implementation: just copy
+
+        We assume symlinks only on files (not directories).
+        If it is not possible to create symlink (it can happen on Windows), file is created instead.
         """
-        self._copy(paths, local_prefix, if_win_lin2win_conv_path(remote_prefix))
+        self._copy(paths, local_prefix, if_win_lin2win_conv_path(remote_prefix), follow_symlinks=follow_symlinks)
 
 
-    def download(self, paths, local_prefix, remote_prefix, priority=False):
+    def download(self, paths, local_prefix, remote_prefix, priority=False, follow_symlinks=True):
         """
         Download given relative 'paths' to remote, prefixing them by 'local_prefix' for destination and
         by 'remote_prefix' for source.
@@ -167,8 +170,11 @@ class ConnectionLocal(ConnectionBase):
         :raises PermissionError:
 
         Implementation: just copy
+
+        We assume symlinks only on files (not directories).
+        If it is not possible to create symlink (it can happen on Windows), file is created instead.
         """
-        self._copy(paths, if_win_lin2win_conv_path(remote_prefix), local_prefix)
+        self._copy(paths, if_win_lin2win_conv_path(remote_prefix), local_prefix, follow_symlinks=follow_symlinks)
 
     def delete(self, paths, remote_prefix, priority=False):
         """
@@ -192,7 +198,7 @@ class ConnectionLocal(ConnectionBase):
 
         return self._delegator_proxy
 
-    def _copy(self, paths, from_prefix, to_prefix):
+    def _copy(self, paths, from_prefix, to_prefix, follow_symlinks=True):
         if os.path.normcase(os.path.normpath(from_prefix)) == \
                 os.path.normcase(os.path.normpath(to_prefix)):
             return
@@ -200,21 +206,35 @@ class ConnectionLocal(ConnectionBase):
             src = os.path.join(from_prefix, path)
             dst = os.path.join(to_prefix, path)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if os.path.isdir(src):
-                self._copy_dir(src, dst)
+            if (follow_symlinks and os.path.isdir(src)) or \
+                    (not follow_symlinks and not os.path.islink(src) and os.path.isdir(src)):
+                self._copy_dir(src, dst, follow_symlinks=follow_symlinks)
             else:
-                shutil.copyfile(src, dst)
+                self._copy_file(src, dst, follow_symlinks=follow_symlinks)
 
-    def _copy_dir(self, src, dst):
+    def _copy_file(self, src, dst, follow_symlinks=True):
+        if os.path.lexists(dst):
+            os.remove(dst)
+        if not follow_symlinks and os.path.islink(src):
+            target = os.readlink(src)
+            try:
+                os.symlink(target, dst)
+            except (NotImplementedError, OSError):
+                shutil.copyfile(src, dst)
+        else:
+            shutil.copyfile(src, dst)
+
+    def _copy_dir(self, src, dst, follow_symlinks=True):
         names = os.listdir(src)
         os.makedirs(dst, exist_ok=True)
         for name in names:
             srcname = os.path.join(src, name)
             dstname = os.path.join(dst, name)
-            if os.path.isdir(srcname):
-                self._copy_dir(srcname, dstname)
+            if (follow_symlinks and os.path.isdir(srcname)) or \
+                    (not follow_symlinks and not os.path.islink(srcname) and os.path.isdir(srcname)):
+                self._copy_dir(srcname, dstname, follow_symlinks=follow_symlinks)
             else:
-                shutil.copyfile(srcname, dstname)
+                self._copy_file(srcname, dstname, follow_symlinks=follow_symlinks)
 
 
 class ConnectionSSH(ConnectionBase):
@@ -348,6 +368,9 @@ class ConnectionSSH(ConnectionBase):
         self._delegator_dir = ""
         """directory where delegator is executed"""
 
+        #self._analysis_workspace_absolute_path = ""
+        """Absolute path to analysis workspace on remote."""
+
         # reconnect thread, lock and event
         self._reconnect_thread = None
         self._reconnect_lock = threading.Lock()
@@ -399,6 +422,9 @@ class ConnectionSSH(ConnectionBase):
         sftp = self._sftp_pool.acquire()
         try:
             workspace = self.environment.geomop_analysis_workspace
+            # if not os.path.isabs(workspace):
+            #     workspace = sftp.normalize(workspace)
+            # self._analysis_workspace_absolute_path = workspace
             try:
                 sftp.mkdir(workspace)
             except IOError:
@@ -447,6 +473,9 @@ class ConnectionSSH(ConnectionBase):
     #         except EOFError:
     #             pass
     #     return False
+
+    # def get_analysis_workspace_absolute_path(self):
+    #     return self._analysis_workspace_absolute_path
 
     def forward_local_port(self, remote_port):
         """
@@ -607,7 +636,7 @@ class ConnectionSSH(ConnectionBase):
                 self._ssh.get_transport().cancel_port_forward('', remote_port)
             self._forwarded_remote_ports.remove(remote_port)
 
-    def upload(self, paths, local_prefix, remote_prefix, priority=False):
+    def upload(self, paths, local_prefix, remote_prefix, priority=False, follow_symlinks=True):
         """
         Upload given relative 'paths' to remote, prefixing them by 'local_prefix' for source and
         by 'remote_prefix' for destination.
@@ -618,6 +647,8 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHTimeoutError:
 
         Implementation: just copy
+
+        We assume symlinks only on files (not directories).
         """
         assert os.path.isabs(remote_prefix)
 
@@ -650,10 +681,11 @@ class ConnectionSSH(ConnectionBase):
 
                 loc = os.path.join(local_prefix, path)
                 rem = os.path.join(remote_prefix, path)
-                if os.path.isdir(loc):
-                    self._upload_dir(sftp, loc, rem)
+                if (follow_symlinks and os.path.isdir(loc)) or \
+                        (not follow_symlinks and not os.path.islink(loc) and os.path.isdir(loc)):
+                    self._upload_dir(sftp, loc, rem, follow_symlinks=follow_symlinks)
                 else:
-                    self._upload_file(sftp, loc, rem)
+                    self._upload_file(sftp, loc, rem, follow_symlinks=follow_symlinks)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file/dir", rem)
@@ -671,9 +703,16 @@ class ConnectionSSH(ConnectionBase):
         finally:
             sftp_pool.release(sftp)
 
-    def _upload_file(self, sftp, loc, rem):
+    def _upload_file(self, sftp, loc, rem, follow_symlinks=True):
         try:
-            sftp.put(loc, rem)
+            try:
+                sftp.remove(rem)
+            except IOError:
+                pass
+            if not follow_symlinks and os.path.islink(loc):
+                sftp.symlink(os.readlink(loc), rem)
+            else:
+                sftp.put(loc, rem)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file", rem)
@@ -685,7 +724,7 @@ class ConnectionSSH(ConnectionBase):
             else:
                 raise
 
-    def _upload_dir(self, sftp, loc, rem):
+    def _upload_dir(self, sftp, loc, rem, follow_symlinks=True):
         try:
             names = os.listdir(loc)
             try:
@@ -695,10 +734,11 @@ class ConnectionSSH(ConnectionBase):
             for name in names:
                 loc_name = os.path.join(loc, name)
                 rem_name = os.path.join(rem, name)
-                if os.path.isdir(loc_name):
-                    self._upload_dir(sftp, loc_name, rem_name)
+                if (follow_symlinks and os.path.isdir(loc_name)) or \
+                        (not follow_symlinks and not os.path.islink(loc_name) and os.path.isdir(loc_name)):
+                    self._upload_dir(sftp, loc_name, rem_name, follow_symlinks=follow_symlinks)
                 else:
-                    self._upload_file(sftp, loc_name, rem_name)
+                    self._upload_file(sftp, loc_name, rem_name, follow_symlinks=follow_symlinks)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote dir", rem)
@@ -710,7 +750,7 @@ class ConnectionSSH(ConnectionBase):
             else:
                 raise
 
-    def download(self, paths, local_prefix, remote_prefix, priority=False):
+    def download(self, paths, local_prefix, remote_prefix, priority=False, follow_symlinks=True):
         """
         Download given relative 'paths' to remote, prefixing them by 'local_prefix' for destination and
         by 'remote_prefix' for source.
@@ -721,6 +761,9 @@ class ConnectionSSH(ConnectionBase):
         :raises SSHTimeoutError:
 
         Implementation: just copy
+
+        We assume symlinks only on files (not directories).
+        If it is not possible to create symlink (it can happen on Windows), file is created instead.
         """
         if self._status != ConnectionStatus.online:
             raise SSHError
@@ -736,10 +779,12 @@ class ConnectionSSH(ConnectionBase):
                 loc = os.path.join(local_prefix, path)
                 rem = os.path.join(remote_prefix, path)
                 os.makedirs(os.path.dirname(loc), exist_ok=True)
-                if stat.S_ISDIR(sftp.stat(rem).st_mode):
-                    self._download_dir(sftp, loc, rem)
+                if (follow_symlinks and stat.S_ISDIR(sftp.stat(rem).st_mode)) or \
+                        (not follow_symlinks and not stat.S_ISLNK(sftp.lstat(rem).st_mode) and
+                             stat.S_ISDIR(sftp.stat(rem).st_mode)):
+                    self._download_dir(sftp, loc, rem, follow_symlinks=follow_symlinks)
                 else:
-                    self._download_file(sftp, loc, rem)
+                    self._download_file(sftp, loc, rem, follow_symlinks=follow_symlinks)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file/dir", rem)
@@ -757,9 +802,18 @@ class ConnectionSSH(ConnectionBase):
         finally:
             sftp_pool.release(sftp)
 
-    def _download_file(self, sftp, loc, rem):
+    def _download_file(self, sftp, loc, rem, follow_symlinks=True):
         try:
-            sftp.get(rem, loc)
+            if os.path.lexists(loc):
+                os.remove(loc)
+            if not follow_symlinks and stat.S_ISLNK(sftp.lstat(rem).st_mode):
+                target = sftp.readlink(rem)
+                try:
+                    os.symlink(target, loc)
+                except (NotImplementedError, OSError):
+                    sftp.get(rem, loc)
+            else:
+                sftp.get(rem, loc)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote file", rem)
@@ -771,16 +825,18 @@ class ConnectionSSH(ConnectionBase):
             else:
                 raise
 
-    def _download_dir(self, sftp, loc, rem):
+    def _download_dir(self, sftp, loc, rem, follow_symlinks=True):
         try:
             os.makedirs(loc, exist_ok=True)
             for fileattr in sftp.listdir_attr(rem):
                 loc_name = os.path.join(loc, fileattr.filename)
                 rem_name = os.path.join(rem, fileattr.filename)
-                if stat.S_ISDIR(fileattr.st_mode):
-                    self._download_dir(sftp, loc_name, rem_name)
+                if (follow_symlinks and stat.S_ISDIR(sftp.stat(rem_name).st_mode)) or \
+                        (not follow_symlinks and not stat.S_ISLNK(fileattr.st_mode) and
+                            stat.S_ISDIR(sftp.stat(rem_name).st_mode)):
+                    self._download_dir(sftp, loc_name, rem_name, follow_symlinks=follow_symlinks)
                 else:
-                    self._download_file(sftp, loc_name, rem_name)
+                    self._download_file(sftp, loc_name, rem_name, follow_symlinks=follow_symlinks)
         except FileNotFoundError as e:
             if e.filename is None:
                 raise OSError(errno.ENOENT, "No such remote dir", rem)
@@ -814,7 +870,7 @@ class ConnectionSSH(ConnectionBase):
         try:
             for path in paths:
                 full_path = os.path.join(remote_prefix, path)
-                if stat.S_ISDIR(sftp.stat(full_path).st_mode):
+                if stat.S_ISDIR(sftp.lstat(full_path).st_mode):
                     self._delete_dir(sftp, full_path)
                 else:
                     self._delete_file(sftp, full_path)
@@ -853,7 +909,7 @@ class ConnectionSSH(ConnectionBase):
         try:
             for fileattr in sftp.listdir_attr(path):
                 path_name = os.path.join(path, fileattr.filename)
-                if stat.S_ISDIR(sftp.stat(path_name).st_mode):
+                if stat.S_ISDIR(sftp.lstat(path_name).st_mode):
                     self._delete_dir(sftp, path_name)
                 else:
                     self._delete_file(sftp, path_name)

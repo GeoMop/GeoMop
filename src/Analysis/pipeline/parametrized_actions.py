@@ -106,7 +106,9 @@ class Flow123dAction(ParametrizedActionType):
 
         yaml_file = params[0]
         output_dir = "output"
-        runner.command = ["flow123d", "-s", yaml_file, "-o", output_dir]
+        flow_output_dir = os.path.relpath(output_dir, os.path.dirname(yaml_file))
+        # we need flow_output_dir relative to yaml_file
+        runner.command = ["flow123d", "-s", yaml_file, "-o", flow_output_dir]
 
         runner.input_files = [yaml_file]
         yaml_dir = os.path.dirname(yaml_file)
@@ -139,7 +141,14 @@ class Flow123dAction(ParametrizedActionType):
             file_path = os.path.join(yaml_dir, file)
             dir = os.path.dirname(file_path)
             os.makedirs(os.path.join(work_dir, dir), exist_ok=True)
-            shutil.copyfile(file_path, os.path.join(work_dir, file_path))
+            work_dir_file_path = os.path.join(work_dir, file_path)
+            if os.path.lexists(work_dir_file_path):
+                os.remove(work_dir_file_path)
+            try:
+                os.symlink(os.path.relpath(file_path, os.path.dirname(work_dir_file_path)),
+                           work_dir_file_path)
+            except (NotImplementedError, OSError):
+                shutil.copyfile(file_path, work_dir_file_path)
 
         return runner
         

@@ -262,6 +262,7 @@ class MultiJobDialog(AFormDialog):
                     self.ui.analysisComboBox.addItem(analysis_name, analysis_name)
         if self.ui.analysisComboBox.count()==0:            
             self.ui.analysisComboBox.addItem('')
+        self.ui.analysisComboBox.model().sort(0)
 
     def set_pbs_presets(self):
         self.ui.multiJobPbsPresetComboBox.blockSignals(True)
@@ -280,8 +281,8 @@ class MultiJobDialog(AFormDialog):
         self.permitted['j_pbs_preset'].append(None)
 
         if self.pbs:
-            # sort dict by list, not sure how it works
-            for key in self.pbs:
+            keys = sorted(self.pbs.keys(), key=lambda k: self.pbs[k].name)
+            for key in keys:
                 self.ui.multiJobPbsPresetComboBox.addItem(self.pbs[key].name, key)
                 self.ui.jobPbsPresetComboBox.addItem(self.pbs[key].name, key)
                 self.permitted['mj_pbs_preset'].append(key)
@@ -316,8 +317,8 @@ class MultiJobDialog(AFormDialog):
 
         # Currently is for Job SSH host supported only "local", therefore others are commented out
         if self.ssh:
-            # sort dict by list, not sure how it works
-            for key in self.ssh:
+            keys = sorted(self.ssh.keys(), key=lambda k: self.ssh[k].name)
+            for key in keys:
                 self.ui.multiJobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 #self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 self.permitted['mj_ssh_preset'].append(key)
@@ -645,6 +646,7 @@ class MultiJobDialog(AFormDialog):
         if len(self.pbs) > 0:
             for key in self.pbs.keys():
                 self.ui.pbs_nameComboBox.addItem(key)
+            self.ui.pbs_nameComboBox.model().sort(0)
 
             if (preferred_pbs is not None) and (preferred_pbs in self.pbs):
                 key = preferred_pbs

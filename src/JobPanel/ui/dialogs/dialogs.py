@@ -567,6 +567,7 @@ class UiPresetsDialog:
         self.presets.setHeaderLabels(["Id", "Name"])
         self.presets.setColumnHidden(0, True)
         self.presets.setSortingEnabled(True)
+        self.presets.sortByColumn(0, QtCore.Qt.AscendingOrder)
 
         # add presets to layout
         self.horizontalLayout.addWidget(self.presets)

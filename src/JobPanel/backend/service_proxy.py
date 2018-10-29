@@ -239,7 +239,8 @@ class ServiceProxy(JsonData):
         files.append(os.path.join(self.workspace, self.config_file_name))
         self._connection.upload(files,
                                 self._connection._local_service.get_analysis_workspace(),
-                                self._connection.environment.geomop_analysis_workspace)
+                                self._connection.environment.geomop_analysis_workspace,
+                                follow_symlinks=False)
 
         # 4.
         delegator_proxy.call("request_process_start", process_config, self._results_process_start)

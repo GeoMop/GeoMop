@@ -64,6 +64,8 @@ cat > "$BIN/python" <<EOF
 
 source /etc/profile
 
+module purge
+module load metabase
 module add python-3.4.1-gcc python34-modules-gcc
 
 "$GEOMOP_INST/env/bin/python" "\$@"
@@ -74,7 +76,8 @@ cat > "$BIN/flow123d" <<EOF
 #!/bin/bash
 # flow123d wrapper
 
-module rm python-3.4.1-gcc python34-modules-gcc
+module purge
+module load metabase
 
 "$FLOW_PATH" "\$@"
 EOF
