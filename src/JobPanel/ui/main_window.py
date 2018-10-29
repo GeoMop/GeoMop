@@ -170,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
             if current_mj_id == mj_id:
-                self.update_ui_locks(mj_id)
+                self.update_ui_locks([mj_id])
 
             # if mj.state.status == TaskStatus.finished:
             #     # copy app central log into mj
@@ -267,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.tabWidget.reload_view(None)
             self.ui.menuBar.multiJob.lock_by_status(True, True, None)
         else:
-            if mj_ids == 1:
+            if len(mj_ids) == 1:
                 status = self.data.multijobs[mj_ids[0]].state.status
                 rdeleted = self.data.multijobs[mj_ids[0]].preset.deleted_remote
                 downloaded = self.data.multijobs[mj_ids[0]].preset.downloaded
@@ -391,7 +391,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.deleting
         self.ui.overviewWidget.update_item(key, mj.get_state())
-        self.update_ui_locks(key)
+        self.update_ui_locks([key])
 
     def _handle_delete_remote_action(self):
         if self.data.multijobs:
@@ -408,7 +408,7 @@ class MainWindow(QtWidgets.QMainWindow):
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.downloading
         self.ui.overviewWidget.update_item(key, mj.get_state())
-        self.update_ui_locks(key)
+        self.update_ui_locks([key])
 
     def _handle_download_whole_multijob_action(self):
         if self.data.multijobs:

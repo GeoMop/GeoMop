@@ -122,8 +122,29 @@ class MultiJobMenu(QtWidgets.QMenu):
             else:
                 menu_action.setDisabled(False)
 
-    def lock_for_selection(self,rdeleted,stopped):
-        tomp = 0
+    def lock_for_selection(self, rdeleted, statuses):
+        """
+		Locks UI actions based on selected MultiJobs.
+		Disables actions in UI which don't make sense.
+		:param statuses: statuses of selected MJ
+		"""
+        self.actionDownloadWholeMultiJob.setDisabled(True)
+        self.actionReuseMultiJob.setDisabled(True)
+        self.actionSendReport.setDisabled(True)
+        self.actionDeleteRemote.setDisabled(rdeleted)
+        deleted = True
+        for status in statuses:
+            if (status, MultijobActions.delete) in TASK_STATUS_PERMITTED_ACTIONS:
+                deleted = False
+        self.actionDeleteMultiJob.setDisabled(deleted)
+        stopped = True
+        for status in statuses:
+            if (status, MultijobActions.stop) in TASK_STATUS_PERMITTED_ACTIONS:
+                stopped = False
+        self.actionStopMultiJob.setDisabled(stopped)
+
+
+
 
 class SettingsMenu(QtWidgets.QMenu):
     """
