@@ -617,7 +617,7 @@ if __name__ == "__main__":
 
 
     try:
-        input_file = "backend_service.conf"
+        input_file = "_backend_service.conf"
         with open(input_file, "r") as f:
             config = json.load(f)
 

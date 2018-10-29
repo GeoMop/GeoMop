@@ -368,6 +368,9 @@ class ConnectionSSH(ConnectionBase):
         self._delegator_dir = ""
         """directory where delegator is executed"""
 
+        #self._analysis_workspace_absolute_path = ""
+        """Absolute path to analysis workspace on remote."""
+
         # reconnect thread, lock and event
         self._reconnect_thread = None
         self._reconnect_lock = threading.Lock()
@@ -419,6 +422,9 @@ class ConnectionSSH(ConnectionBase):
         sftp = self._sftp_pool.acquire()
         try:
             workspace = self.environment.geomop_analysis_workspace
+            # if not os.path.isabs(workspace):
+            #     workspace = sftp.normalize(workspace)
+            # self._analysis_workspace_absolute_path = workspace
             try:
                 sftp.mkdir(workspace)
             except IOError:
@@ -467,6 +473,9 @@ class ConnectionSSH(ConnectionBase):
     #         except EOFError:
     #             pass
     #     return False
+
+    # def get_analysis_workspace_absolute_path(self):
+    #     return self._analysis_workspace_absolute_path
 
     def forward_local_port(self, remote_port):
         """

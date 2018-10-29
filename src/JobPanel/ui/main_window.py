@@ -567,7 +567,7 @@ class UiMainWindow(object):
         Setup basic UI
         """
         # main window
-        main_window.resize(1154, 702)
+        main_window.resize(1180, 702)
         main_window.setObjectName("MainWindow")
         main_window.setWindowTitle('Job Panel')
 
