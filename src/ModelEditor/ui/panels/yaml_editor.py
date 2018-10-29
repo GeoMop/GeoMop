@@ -307,13 +307,6 @@ class YamlEditorWidget(QsciScintilla):
     def comment(self):
         """
         Toggle comment for selected lines.
-        
-        If var. line is not none and line is in selected lines, toggle
-        comment for selected lines else line comment in var. line.        
-        If  is var. line is none no line and selected, toggle comment 
-       for the current line.
-
-        If no line is selected, toggle comment for current line.
         """
         with self.reload_chunk:
             orig_sel = from_line, from_col, to_line, to_col = self.getSelection()
@@ -691,10 +684,10 @@ class YamlEditorWidget(QsciScintilla):
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
-        line = None
-        if event.reason()==QContextMenuEvent.Mouse:
-            line=self.lineAt(event.pos())
-        context_menu = EditMenu(self, self, line)
+        # line = None
+        # if event.reason()==QContextMenuEvent.Mouse:
+        #     line=self.lineAt(event.pos())
+        context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
 
