@@ -161,34 +161,38 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         self.frontend_service.run_body()
 
-        current = self.ui.overviewWidget.currentItem()
-        if current is not None:
-            current_mj_id = current.text(0)
+        selected_items = self.ui.overviewWidget.selectedItems()
+        selected_mj_ids = []
+        for item in selected_items:
+            selected_mj_ids.append(item.text(0))
+        self.update_ui_locks(selected_mj_ids)
 
         state_change_jobs = self.frontend_service.get_mj_changed_state()
         for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
-            if current_mj_id == mj_id:
-                self.update_ui_locks([mj_id])
 
-            # if mj.state.status == TaskStatus.finished:
-            #     # copy app central log into mj
-            #     mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-            #                           MULTIJOBS_DIR, mj.preset.name)
-            #     shutil.copy(LOG_PATH, mj_dir)
 
-                # check if all jobs finished successfully for a finished multijob
-                for job in mj.get_jobs():
-                    if job.status == TaskStatus.error:
-                        mj.state.status = TaskStatus.error
-                        mj.error = "Not all jobs finished successfully."
-                        self.multijobs_changed.emit(self.data.multijobs)
-                        break
+        # if mj.state.status == TaskStatus.finished:
+        #     # copy app central log into mj
+        #     mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
+        #                           MULTIJOBS_DIR, mj.preset.name)
+        #     shutil.copy(LOG_PATH, mj_dir)
+
+            # check if all jobs finished successfully for a finished multijob
+            for job in mj.get_jobs():
+                if job.status == TaskStatus.error:
+                    mj.state.status = TaskStatus.error
+                    mj.error = "Not all jobs finished successfully."
+                    self.multijobs_changed.emit(self.data.multijobs)
+                    break
 
         for mj_id in state_change_jobs:
-            if current_mj_id == mj_id:
-                mj = self.data.multijobs[mj_id]
+            if len(selected_mj_ids) == 1:
+                if selected_mj_ids[0] == mj_id:
+                    mj = self.data.multijobs[mj_id]
+                    self.ui.tabWidget.reload_view(mj)
+            else:
                 self.ui.tabWidget.reload_view(mj)
 
         for mj_id, error in self.frontend_service._jobs_deleted.items():
@@ -251,7 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if item_count > 0 and item_count > tmp_index:
                 index = tmp_index
         item = self.ui.overviewWidget.topLevelItem(index)
-        self.ui.overviewWidget.setCurrentItem(item)        
+        self.ui.overviewWidget.setCurrentItem(item)
 
     def notify(self):
         """Handle update of data.set_data."""
@@ -277,6 +281,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, mj_local, status)
                 self.ui.tabWidget.reload_view(mj)
             else:
+                self.ui.tabWidget.reload_view(None)
                 rdeleted = True
                 statuses = []
                 for id in mj_ids:
@@ -290,6 +295,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for item in self.ui.overviewWidget.selectedItems():
             mj_ids.append(item.text(0))
         self.update_ui_locks(mj_ids)
+        #print(mj_ids)
+        #print(self.ui.overviewWidget.currentItem().text(0))
+        #print("handle... end")
         if len(mj_ids) == 1:
             mj = self.data.multijobs[mj_ids[0]]
             # show error message in status bar
@@ -320,7 +328,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_reuse_multijob_action(self):
         if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
+            key = self.ui.overviewWidget.selectedItems()[0].text(0)
             preset = copy.deepcopy(self.data.multijobs[key].get_preset())
             preset.from_mj = key
             data = {
@@ -346,7 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def _handle_send_report_action(self):
         if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
+            key = self.ui.overviewWidget.selectedItems()[0].text(0)
             mj = self.data.multijobs[key]
             mj_name = mj.preset.name
             an_name = mj.preset.analysis
@@ -413,7 +421,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _handle_download_whole_multijob_action(self):
         if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
+            key = self.ui.overviewWidget.selectedItems()[0].text(0)
             if not self.data.multijobs[key].preset.downloaded:
                 self.frontend_service.download_whole_mj(key)
                 self._set_downloading(key)
@@ -435,7 +443,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
+        current = self.ui.overviewWidget.selectedItems()[0]
         key = current.text(0)
         #self.frontend_service._resume_jobs.append(key)
 
@@ -493,7 +501,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @property
     def current_mj(self):
-        current = self.ui.overviewWidget.currentItem()
+        current = self.ui.overviewWidget.selectedItems()[0]
         key = current.text(0)
         mj = self.data.multijobs[key]
         return mj
