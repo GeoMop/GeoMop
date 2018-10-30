@@ -55,7 +55,7 @@ class Regions(QtWidgets.QToolBox):
             for layer_id in data.layers_topology[data.current_topology_id]:
                 self.remove_button[layer_id].setEnabled(False)
                 self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
-        elif any(shapes):
+        elif shapes:
             for layer_id in data.layers_topology[data.current_topology_id]:
                 self.remove_button[layer_id].setEnabled(False)
                 self.remove_button[layer_id].setToolTip('Region is still in use!')
