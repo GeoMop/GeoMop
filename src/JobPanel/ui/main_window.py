@@ -23,7 +23,7 @@ from .imports.workspaces_conf import BASE_DIR
 from .dialogs import MessageDialog
 from .dialogs.env_presets import EnvPresets
 from .dialogs.multijob_dialog import MultiJobDialog
-from .dialogs.options_dialog import OptionsDialog
+from gm_base.geomop_widgets import WorkspaceSelectorWidget
 from .dialogs.ssh_presets import SshPresets
 from .menus.main_menu_bar import MainMenuBar
 from .panels.overview import Overview
@@ -437,7 +437,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
-        OptionsDialog(self, self.data,self.data.env_presets).show()
+        prewFileName = self.data.workspaces.get_path()
+        dialog = WorkspaceSelectorWidget(self, self.data.workspaces.get_path())
+        dialog.select_workspace()
+        if prewFileName != dialog.value:
+            self.data.reload_workspace(dialog.value)
+            if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
+                self.data.config.analysis = None
+            self.data.config.save()
+            self.close()
 
     @staticmethod
     def _get_config_files(conf_dir_path):

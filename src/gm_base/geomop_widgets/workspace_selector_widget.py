@@ -15,7 +15,7 @@ class WorkspaceSelectorWidget(SelectorWidget):
     """Widget for selecting the workspace."""
 
     selected = QtCore.pyqtSignal(str)
-    """Signal is emitted when a worksace is selected.
+    """Signal is emitted when a workspace is selected.
 
     :param str path: path to the workspace folder
     """
@@ -35,12 +35,12 @@ class WorkspaceSelectorWidget(SelectorWidget):
     def select_workspace(self):
         """Show file dialog to select path to workspace."""
         if self._value is None:
-            curr_dir = ''
+            curr_dir = None
         else:
-            curr_dir = str(os.path.normpath(os.path.join(self._value, '..')))
+            curr_dir = str(os.path.normpath(self._value))
         sel_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose workspace", curr_dir)
         if not sel_dir:
-            sel_dir = None
+            sel_dir = curr_dir
         elif sys.platform == "win32":
             sel_dir = sel_dir.replace('/', '\\')
         self.value = sel_dir
