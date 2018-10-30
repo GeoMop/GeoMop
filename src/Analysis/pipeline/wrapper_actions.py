@@ -146,6 +146,7 @@ class ForEach(WrapperActionType):
                 if not instance._is_state(ActionStateType.finished):
                     return ActionRunningState.wait, None
             self._set_state(ActionStateType.processed)
+            self.__make_output()
             return ActionRunningState.repeat, self
         next_wa = self._procesed_instances
         while next_wa < len(self._wa_instances):    
@@ -165,15 +166,7 @@ class ForEach(WrapperActionType):
             next_wa += 1            
         return  ActionRunningState.wait, None
 
-    def _after_update(self, store_dir):    
-        """
-        Set real output variable and set finished state.
-        """
-        self.__make_output()
-        self._store_results(store_dir)
-        self._set_state(ActionStateType.finished)
-
-    def _check_params(self):    
+    def _check_params(self):
         """check if all require params is set"""
         err = super(ForEach, self)._check_params()
         if len(self._inputs) == 0:
@@ -235,14 +228,10 @@ class Calibration(WrapperActionType):
         :param Action Input: action that return input to calibration
         """
 
-        self._wa_instances = []
-        """
-        Set wrapper class serve only as template, for run is make
-        copy of this class. The variable is for the copies.
-        """
-        self._procesed_instances = 0
-        """How many instances is procesed"""
+        self._scipy_started = False
+        """true if scipy thread was started"""
         self._tmp_action = None
+        self._tmp_action_index = 0
 
         self._scipy_thread = None
         """thread for running scipy optimize"""
@@ -301,7 +290,7 @@ class Calibration(WrapperActionType):
 
     def __make_output(self):
         """return output relevant for set action"""
-        if self._is_state(ActionStateType.finished):
+        if self._is_state(ActionStateType.processed) or self._is_state(ActionStateType.finished):
             opt = Sequence(SingleIterationInfo.create_type(
                 self._variables['Parameters'], self._variables['Observations']))
 
@@ -450,8 +439,7 @@ class Calibration(WrapperActionType):
             return ActionRunningState.wait,  None
         if self._is_state(ActionStateType.finished):
             return ActionRunningState.finished,  self
-        if len(self._wa_instances) == 0:
-            # ToDo: promyslet
+        if not self._scipy_started:
             if self._restore_id is not None:
                 # restoring - set processed state as in classic action
                 if self._is_state(ActionStateType.processed):
@@ -465,12 +453,7 @@ class Calibration(WrapperActionType):
             self._scipy_thread = threading.Thread(target=self._scipy_run)
             self._scipy_thread.daemon = True
             self._scipy_thread.start()
-            self._wa_instances.append(1)
-        if self._procesed_instances == len(self._wa_instances):
-            if len(self._wa_instances) > 0:
-                return ActionRunningState.wait, None
-            self._set_state(ActionStateType.processed)
-            return ActionRunningState.repeat, self
+            self._scipy_started = True
         while True:
             if self._get_scipy_state() == self.ScipyState.running:
                 if self._scipy_event.is_set():
@@ -492,13 +475,15 @@ class Calibration(WrapperActionType):
                     if state is ActionRunningState.wait and action is not None:
                         return ActionRunningState.repeat, action
             if self._get_scipy_state() == self.ScipyState.finished:
-                self._set_state(ActionStateType.finished)
+                self._set_state(ActionStateType.processed)
                 self.__make_output()
-                return ActionRunningState.wait, None
+                return ActionRunningState.repeat, self
             return ActionRunningState.wait, None
         return ActionRunningState.wait, None
 
     def _create_tmp_action(self, input):
+        self._tmp_action_index += 1
+
         gen = VariableGenerator(Variable=input)
         gen._inicialize()
         gen._update()
@@ -515,17 +500,9 @@ class Calibration(WrapperActionType):
         exec(script, globals())
         new_dupl_workflow.set_inputs(inputs)
         new_dupl_workflow._inicialize()
-        #new_dupl_workflow._reset_storing(
-            #self._variables['WrappedAction'], self._index_iden + "_" + str(i))
+        new_dupl_workflow._reset_storing(
+            self._variables['WrappedAction'], self._index_iden + "_" + str(self._tmp_action_index))
         return new_dupl_workflow
-
-    def _after_update(self, store_dir):
-        """
-        Set real output variable and set finished state.
-        """
-        self.__make_output()
-        self._store_results(store_dir)
-        self._set_state(ActionStateType.finished)
 
     def _check_params(self):
         """check if all require params is set"""

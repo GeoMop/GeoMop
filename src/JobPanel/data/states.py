@@ -179,16 +179,13 @@ TASK_STATUS_PERMITTED_ACTIONS = set([
     (TaskStatus.installation, MultijobActions.resume),
     (TaskStatus.installation, MultijobActions.stop),
 
-    (TaskStatus.none, MultijobActions.reuse),
     (TaskStatus.none, MultijobActions.delete),
     (TaskStatus.none, MultijobActions.send_report),
 
-    (TaskStatus.queued, MultijobActions.reuse),
     (TaskStatus.queued, MultijobActions.resume),
     (TaskStatus.queued, MultijobActions.stop),
     (TaskStatus.queued, MultijobActions.send_report),
 
-    (TaskStatus.running, MultijobActions.reuse),
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
     (TaskStatus.running, MultijobActions.send_report),

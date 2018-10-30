@@ -1,5 +1,6 @@
 import abc
 import copy
+import math
 from .generic_tree import TT, GDTT
 from .code_formater import Formater
 
@@ -231,10 +232,12 @@ class Float(BaseDTT):
     description = "Wrapper for standart python float variable"    
     """Display description of variable type"""
 
-    def __init__(self, float=None):
-        self.__float = float
+    def __init__(self, float_value=None):
+        self.__float = None
         """value"""
-        
+        if float_value is not None:
+            self.__float = float(float_value)
+
     def duplicate(self):
         """
         make deep copy
@@ -249,7 +252,10 @@ class Float(BaseDTT):
         """return python script, that create instance of this class"""
         if self.__float is None:
             return ["Float()"]
-        return ["Float({0})".format(str(self.__float))]
+        s = str(self.__float)
+        if not math.isfinite(self.__float):
+            s = "'{}'".format(s)
+        return ["Float({0})".format(s)]
       
     def _is_set(self):
         """

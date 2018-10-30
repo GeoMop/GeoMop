@@ -1,0 +1,5 @@
+flow123d_version:
+problem: !Coupling_Sequential
+  description:
+  mesh:
+    mesh_file: <mesh_file>

@@ -78,7 +78,10 @@ class SimulationTime(Float):
         """return python script, that create instance of this class"""
         if self.value is None:
             return ["SimulationTime()"]
-        return ["SimulationTime({0})".format(str(self.value))]
+        s = str(self.value)
+        if not math.isfinite(self.value):
+            s = "'{}'".format(s)
+        return ["SimulationTime({})".format(s)]
 
 
 class Enum(String):

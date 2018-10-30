@@ -154,10 +154,10 @@ class SshDialog(AFormContainer):
             #     self.ui.envPresetComboBox.findData(preset.env))
             self.valid()
         else:
-            self.ui.nameLineEdit.clear()
-            self.ui.hostLineEdit.clear()
-            self.ui.geomop_rootLineEdit.setText('')
-            self.ui.workspaceLineEdit.setText('')
+            self.ui.nameLineEdit.setText("charon")
+            self.ui.hostLineEdit.setText("charon-ft.nti.tul.cz")
+            self.ui.geomop_rootLineEdit.setText('/storage/liberec1-tul/home/radeksrb/geomop_1.1.0')
+            self.ui.workspaceLineEdit.setText('workspace')
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
             self.ui.rememberPasswordCheckbox.setChecked(True)
@@ -171,6 +171,7 @@ class SshDialog(AFormContainer):
             dialect_items = {"PbsDialectPBSPro": "PBSPro"}
             for key in dialect_items:
                 self.ui.pbsSystemComboBox.addItem(dialect_items[key], key)
+            self.ui.pbsSystemComboBox.setCurrentIndex(1)
 
             #self.ui.envPresetComboBox.setCurrentIndex(-1)
         return 
@@ -280,6 +281,7 @@ class UiSshDialog():
         # 3 row
         self.geomop_rootLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.geomop_rootLabel.setText("GeoMop root directory:")
+        self.geomop_rootLabel.setToolTip("Absolute path to GeoMop installation on remote server.")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.geomop_rootLabel)
         self.geomop_rootLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
@@ -292,6 +294,8 @@ class UiSshDialog():
         # 4 row
         self.workspaceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.workspaceLabel.setText("Analysis workspace directory:")
+        self.workspaceLabel.setToolTip("Absolute or relative (relative to user home) path on remote server "
+                                       "to directory where will be stored remote computations.")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.workspaceLabel)
         self.workspaceLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)

@@ -71,7 +71,7 @@ class JobPanel(object):
             import sys
             sel_dir = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose workspace")
             if not sel_dir:
-                sel_dir = None
+                sys.exit(0)
             elif sys.platform == "win32":
                 sel_dir = sel_dir.replace('/', '\\')
             self._data.reload_workspace(sel_dir)

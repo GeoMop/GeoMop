@@ -14,11 +14,11 @@ if 'APPDATA' in os.environ:
 else:
     __config_dir__ = os.path.join(os.environ['HOME'], '.geomop')
 
-try:
-    if not os.path.isdir(__config_dir__):
-        os.makedirs(__config_dir__)
-except:
-    raise Exception('Cannot create config directory')
+# try:
+#     if not os.path.isdir(__config_dir__):
+#         os.makedirs(__config_dir__)
+# except:
+#     raise Exception('Cannot create config directory')
 
 
 def get_config_file(name, directory=None, cls=None, extension='yaml'):
@@ -48,13 +48,12 @@ def save_config_file(name, config, directory=None, extension='yaml'):
     """Save config object to file name.extension in config directory"""
     if directory is not None:
         directory = os.path.join(__config_dir__, directory)
-        try:
-            if not os.path.isdir(directory):
-                os.makedirs(directory)
-        except:
-            raise Exception('Cannot create config directory: ' + directory)
     else:
         directory = __config_dir__
+    try:
+        os.makedirs(directory, exist_ok=True)
+    except:
+        raise Exception('Cannot create config directory: ' + directory)
     file_name = os.path.join(directory, name+'.'+extension)
     data = Serializable.dump(config)
     yaml_file = open(file_name, 'w')

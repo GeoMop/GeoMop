@@ -517,6 +517,14 @@ class ServiceBase(JsonData):
         """
         connection = self.get_connection(service_data["service_host_connection"])
 
+        # determine absolute workspace path, in case of connection is ConnectionSSH
+        # shc = service_data["service_host_connection"]
+        # if (shc["__class__"] == "ConnectionSSH") and \
+        #         (not os.path.isabs(shc["environment"]["geomop_analysis_workspace"])):
+        #     abspath = connection.get_analysis_workspace_absolute_path()
+        #     if abspath != "":
+        #         shc["environment"] = shc["environment"].copy()
+        #         shc["environment"]["geomop_analysis_workspace"] = abspath
 
         from .service_proxy import ServiceProxy
         proxy = ServiceProxy({})
