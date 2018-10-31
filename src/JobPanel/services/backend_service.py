@@ -556,7 +556,8 @@ class Backend(ServiceBase):
                 con.download(
                     [os.path.basename(os.path.normpath(mj.proxy.workspace))],
                     os.path.join(self.get_analysis_workspace(), mj.proxy.workspace, ".."),
-                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."),
+                    follow_symlinks=False)
             except (SSHError, FileNotFoundError, PermissionError):
                 return "Error in downloading MJ data."
         else:
@@ -616,7 +617,7 @@ if __name__ == "__main__":
 
 
     try:
-        input_file = "backend_service.conf"
+        input_file = "_backend_service.conf"
         with open(input_file, "r") as f:
             config = json.load(f)
 

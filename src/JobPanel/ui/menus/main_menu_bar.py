@@ -105,9 +105,9 @@ class MultiJobMenu(QtWidgets.QMenu):
             MultijobActions.download_whole: self.actionDownloadWholeMultiJob
         }
 
-        self.lock_by_status(True, True)
+        self.lock_by_status(True, True, True)
 
-    def lock_by_status(self, rdeleted, downloaded, task_status=None):
+    def lock_by_status(self, rdeleted, downloaded, mj_local, task_status=None):
         """
         Locks UI actions based on selected MultiJob. Status None means no MultiJob.
         :param task_status: Status that controls the locks.
@@ -117,7 +117,9 @@ class MultiJobMenu(QtWidgets.QMenu):
             if task_status is None or \
                     (task_status, mj_action) not in TASK_STATUS_PERMITTED_ACTIONS or \
                     (mj_action in self.rdeleted_actions and rdeleted) or \
-                    (mj_action in self.downloaded_actions and downloaded):
+                    (mj_action in self.downloaded_actions and downloaded) or \
+                    (mj_action == MultijobActions.reuse and not mj_local and rdeleted) or \
+                    (mj_action == MultijobActions.download_whole and mj_local):
                 menu_action.setDisabled(True)
             else:
                 menu_action.setDisabled(False)

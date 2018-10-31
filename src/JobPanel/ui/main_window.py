@@ -23,7 +23,7 @@ from .imports.workspaces_conf import BASE_DIR
 from .dialogs import MessageDialog
 from .dialogs.env_presets import EnvPresets
 from .dialogs.multijob_dialog import MultiJobDialog
-from .dialogs.options_dialog import OptionsDialog
+from gm_base.geomop_widgets import WorkspaceSelectorWidget
 from .dialogs.ssh_presets import SshPresets
 from .menus.main_menu_bar import MainMenuBar
 from .panels.overview import Overview
@@ -264,13 +264,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_ui_locks(self, mj_id):
         if mj_id is None:
-            self.ui.menuBar.multiJob.lock_by_status(True, True, None)
+            self.ui.menuBar.multiJob.lock_by_status(True, True, True, None)
             self.ui.tabWidget.reload_view(None)
         else:
-            status = self.data.multijobs[mj_id].state.status
-            rdeleted = self.data.multijobs[mj_id].preset.deleted_remote
-            downloaded = self.data.multijobs[mj_id].preset.downloaded
-            self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, status)
+            mj = self.data.multijobs[mj_id]
+            status = mj.state.status
+            rdeleted = mj.preset.deleted_remote
+            downloaded = mj.preset.downloaded
+            mj_local = mj.preset.mj_ssh_preset is None
+            self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, mj_local, status)
             mj = self.data.multijobs[mj_id]
             self.ui.tabWidget.reload_view(mj)
 
@@ -420,19 +422,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             analysis.mj_counter += 1
             analysis.save()
-            if purpose == MultiJobDialog.PURPOSE_ADD:
-                self.data.multijobs[mj.id] = mj
-                self.frontend_service.mj_start(mj.id)
-            elif purpose == MultiJobDialog.PURPOSE_COPY:
-                self.data.multijobs[mj.id] = mj
-                src_mj_name = self.data.multijobs[mj.preset.from_mj].preset.name
-                src_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                       MULTIJOBS_DIR, src_mj_name)
-                dst_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-                                       MULTIJOBS_DIR, mj.preset.name)
-                shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(
-                    'res', 'log', 'status', 'mj_config', '*.log'))
-                self.frontend_service.mj_start(mj.id)
+            self.data.multijobs[mj.id] = mj
+            self.frontend_service.mj_start(mj.id)
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):
@@ -446,7 +437,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frontend_service.mj_stop(key)
 
     def _handle_options(self):
-        OptionsDialog(self, self.data,self.data.env_presets).show()
+        prewFileName = self.data.workspaces.get_path()
+        dialog = WorkspaceSelectorWidget(self, self.data.workspaces.get_path())
+        dialog.select_workspace()
+        if prewFileName != dialog.value:
+            self.data.reload_workspace(dialog.value)
+            if not Analysis.exists(self.data.workspaces.get_path(), self.data.config.analysis):
+                self.data.config.analysis = None
+            self.data.config.save()
+            self.close()
 
     @staticmethod
     def _get_config_files(conf_dir_path):
@@ -576,7 +575,7 @@ class UiMainWindow(object):
         Setup basic UI
         """
         # main window
-        main_window.resize(1154, 702)
+        main_window.resize(1180, 702)
         main_window.setObjectName("MainWindow")
         main_window.setWindowTitle('Job Panel')
 

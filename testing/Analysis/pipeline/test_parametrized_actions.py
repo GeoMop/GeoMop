@@ -51,7 +51,7 @@ def test_flow_runner_command(request, change_dir_back):
 
     runner = flow._update()
     assert runner.command == ["flow123d", "-s", "resources/test1_2.yaml",
-                              "-o", "output"]
+                              "-o", "../output"]
 
 
 def test_function_action(request):

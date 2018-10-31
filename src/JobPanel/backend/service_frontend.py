@@ -51,7 +51,7 @@ class ServiceFrontend(ServiceBase):
         geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
         geomop_analysis_workspace = data_app.workspaces.get_path()
         workspace = ""
-        config_file_name = "frontend_service.conf"
+        config_file_name = "_frontend_service.conf"
 
         # try load frontend service config file
         file = os.path.join(geomop_analysis_workspace,
@@ -293,7 +293,7 @@ class ServiceFrontend(ServiceBase):
         :return:
         """
         workspace = ""
-        config_file_name = "backend_service.conf"
+        config_file_name = "_backend_service.conf"
 
         # kill old backend container
         self.kill_backend()
