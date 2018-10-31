@@ -145,8 +145,8 @@ class PolygonDecomposition:
         """
         LAYERS
         param: points: List of Points to move.
-        param: displacement: Numpy array, 2D vector of displacement to add to the points.
-        param: margin: float between (0, 1), displacement margin as a fraction of maximal displacement
+        param: displacement: Numpy array, 2D vector of displacement to add to the points,
+                identical for the whole displaced block.
         TODO: Check fails for internal wires and nonconvex poygons.
         :return: True for no, collision; False if any collision is detected.
         """
