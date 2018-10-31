@@ -64,7 +64,7 @@ class ActionDeleteMultiJob(QtWidgets.QAction):
 class ActionSendReport(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText("Send Report")
+        self.setText("Create Report")
         self.setObjectName("actionSendReport")    
 
 
@@ -116,6 +116,6 @@ class ActionEnvPresets(QtWidgets.QAction):
 class ActionOptions(QtWidgets.QAction):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setText("Options...")
+        self.setText("Set workspace")
         self.setShortcut("Shift+O")
         self.setObjectName("actionOptions")

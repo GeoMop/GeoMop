@@ -90,7 +90,7 @@ class MakeMeshDlg(QtWidgets.QDialog):
             msg_box = QtWidgets.QMessageBox(self)
             msg_box.setWindowTitle("Error")
             msg_box.setIcon(QtWidgets.QMessageBox.Critical)
-            msg_box.setText("The process failed to start.")
+            msg_box.setText("Failed to start: {} \nwith arguments: {}".format(self._proc.program(), self._proc.arguments()))
             msg_box.exec()
 
     def _step_checkbox_changed(self):

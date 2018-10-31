@@ -2,8 +2,8 @@ import os
 import shutil
 import subprocess
 
-from client_pipeline.mj_preparation import *
-from pipeline.pipeline_processor import *
+from Analysis.client_pipeline.mj_preparation import *
+from Analysis.pipeline.pipeline_processor import *
 
 # setting testing directory
 test_dir = "d:/test/calibration"
@@ -29,7 +29,7 @@ if len(err) > 0:
     exit()
 
 # mj_config_dir
-mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
+mj_config_dir = os.path.join(workspace, analysis, "mj", mj)
 
 # change cwd
 cwd = os.getcwd()
@@ -70,7 +70,7 @@ while pp.is_run():
         command = runner.command
         if command[0] == "flow123d":
             command[0] = "flow123d.bat"
-        process = subprocess.Popen(command, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, stderr=subprocess.PIPE, cwd=runner.work_dir)
         return_code = process.wait(100)
         if return_code is not None:
             #print(process.stderr)

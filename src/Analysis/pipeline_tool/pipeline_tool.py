@@ -1,6 +1,6 @@
-from client_pipeline.mj_preparation import *
-from client_pipeline.parametrized_actions_preparation import *
-from pipeline.pipeline_processor import *
+from Analysis.client_pipeline.mj_preparation import *
+from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
+from Analysis.pipeline.pipeline_processor import *
 from gm_base.geomop_analysis import YamlSupportLocal
 
 import time
@@ -23,6 +23,9 @@ def load_pipeline(python_script="analysis.py", pipeline_name="pipeline"):
         exec(script_text, globals(), loc)
     except Exception as e:
         err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+        return err, None
+    if pipeline_name not in loc:
+        err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
         return err, None
     pipeline = loc[pipeline_name]
     return err, pipeline

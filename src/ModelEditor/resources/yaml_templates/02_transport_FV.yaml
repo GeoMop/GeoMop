@@ -1,0 +1,44 @@
+##################################################################
+###             !Coupling_OperatorSplitting - !Solute_Advection_FV 
+##################################################################
+  solute_equation: !Coupling_OperatorSplitting
+    substances:
+      - name:
+        molar_mass:
+    balance:
+      times:
+      cumulative:
+    time:
+      start_time:
+      end_time:
+      min_dt:
+      max_dt:
+    output_stream:
+      format: !vtk
+        variant: ascii
+      precision:
+      observe_points:
+        - name:
+          point:
+    transport: !Solute_Advection_FV
+      input_fields:
+        - region: BULK
+          time: 0.0
+          init_conc:
+          porosity:
+          sources_density:
+          sources_sigma:
+          sources_conc:
+        - region: .BOUNDARY
+          time: 0.0
+          bc_conc:
+      output:
+        times:
+        - begin:
+          step:
+          end:
+        fields:
+            - conc
+            - field: init_conc
+              times: [ 0.0 ]
+        observe_fields: conc

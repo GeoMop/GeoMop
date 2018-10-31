@@ -5,6 +5,3 @@
 [submodule "submodules/yaml_converter"]
 	path = submodules/yaml_converter
 	url = git@github.com:flow123d/yaml_converter.git
-[submodule "yaml_converter"]
-	path = yaml_converter
-	url = git@github.com:flow123d/yaml_converter.git

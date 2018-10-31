@@ -48,6 +48,7 @@ def _get_root_context_logger(context_name):
     """""
     name = LOGGER_PREFIX + context_name
     format_ = '%(asctime)s %(levelname)s %(message)s'
+    os.makedirs(__config_dir__, exist_ok=True)
     filename = os.path.join(__config_dir__, name + '.log.txt')
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

@@ -23,6 +23,7 @@ class Secret:
                     self._key = f.readline().strip()
             else:
                 self._key = str(uuid.uuid4())
+                os.makedirs(config.__config_dir__, exist_ok=True)
                 with open(file, "w") as f:
                     f.write(self._key)
                     f.write("\n")
