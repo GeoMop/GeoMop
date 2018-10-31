@@ -424,7 +424,10 @@ class Diagram():
         """Get shapes from region""" 
         regions = cls.regions.get_shapes_from_region(is_fracture, layer_id)        
         remapped_regions = [[], [], []]
-        diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
+        if is_fracture:
+            diagram = cls.topologies[cls.regions.find_top_id(-layer_id-1)][0]
+        else:
+            diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
         tmp = {}
         for point in diagram.points:
             point_orig_id = diagram.po.get_point_origin_id(point.de_id)
@@ -439,8 +442,7 @@ class Diagram():
         poly_id_to_reg = {diagram.po.get_polygon_origin_id(polygon) : regions[2][polygon.id] for polygon in diagram.polygons}
         poly_id_to_reg[0] = 0 # outer polygon
         remapped_regions[2] = [value for (key, value) in sorted(poly_id_to_reg.items())]
-        
-        
+
         return remapped_regions
                 
     def region_color_changed(self, region_idx):
