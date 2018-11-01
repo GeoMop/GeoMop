@@ -193,7 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     mj = self.data.multijobs[mj_id]
                     self.ui.tabWidget.reload_view(mj)
             else:
-                self.ui.tabWidget.reload_view(mj)
+                self.ui.tabWidget.reload_view(None)
 
         for mj_id, error in self.frontend_service._jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
@@ -270,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_ui_locks(self, mj_ids):
         if mj_ids is None:
             self.ui.tabWidget.reload_view(None)
-            self.ui.menuBar.multiJob.lock_by_status(True,True, True, None)
+            self.ui.menuBar.multiJob.lock_by_status(True, True, True, None)
         else:
             if len(mj_ids) == 1:
                 mj = self.data.multijobs[mj_ids[0]]

@@ -127,7 +127,7 @@ class MultiJobMenu(QtWidgets.QMenu):
     def lock_for_selection(self, rdeleted, statuses):
         """
 		Locks UI actions based on selected MultiJobs.
-		Disables actions in UI which don't make sense.
+		Disables those actions in UI, which don't make sense.
 		:param statuses: statuses of selected MJ
 		"""
         self.actionDownloadWholeMultiJob.setDisabled(True)
