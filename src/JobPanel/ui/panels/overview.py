@@ -36,7 +36,6 @@ class Overview(QtWidgets.QTreeWidget):
         self.setAllColumnsShowFocus(True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._open_context_menu)
-        self.selectionModel().selectionChanged.connect(self._debug)
 
 
     @staticmethod
@@ -107,50 +106,18 @@ class Overview(QtWidgets.QTreeWidget):
         return self.takeTopLevelItem(index)
 
     def reload_items(self, data):
-        current_item_id = None
-        if self.topLevelItemCount() > 0:
-            current_item_id = self.currentItem().text(0)
         selection_ids = []
         for sel_item in self.selectedItems():
             selection_ids.append(sel_item.text(0))
-
+        self.reset()
         self.clear()
         if data:
             for key in data:
                 if data[key].valid:
                     self.add_item(key, data[key].state)
-
-        self.selectionModel().SelectionFlag = 0x0012
-
-        print(current_item_id)
-        print("")
-        print(selection_ids)
-        print("\n")
-        self.selectionModel().reset()
-        if current_item_id is not None:
-            self.setCurrentItem(self._get_item_by_key(current_item_id)[1])
-            print(self.itemFromIndex(self.selectionModel().currentIndex()).text(0))
-        #self.clearSelection()
-        #for sel_id in selection_ids:
-        #    self._get_item_by_key(sel_id)[1].setSelected(True)
-
+        
+        for id in selection_ids:
+            item = self._get_item_by_key(id)[1]
+            if item is not None:
+                item.setSelected(True)
         self.resizeColumnToContents(1)
-
-    def _debug(self, selected, deselected):
-        sindexes = selected.indexes()
-        dindexes = deselected.indexes()
-        print(len(sindexes))
-        for index in sindexes:
-            print("selected")
-            print(self.itemFromIndex(index).text(0))
-        print(len(dindexes))
-        for index in dindexes:
-            print("deselected")
-            print(self.itemFromIndex(index).text(0))
-        print("current")
-        if self.itemFromIndex(self.selectionModel().currentIndex()) is not None:
-            print(self.itemFromIndex(self.selectionModel().currentIndex()).text(0))
-
-
-
-        print("_debug end")

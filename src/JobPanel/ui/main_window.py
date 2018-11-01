@@ -440,6 +440,10 @@ class MainWindow(QtWidgets.QMainWindow):
             analysis.save()
             self.data.multijobs[mj.id] = mj
             self.frontend_service.mj_start(mj.id)
+        self.ui.overviewWidget.reset()
+        item = self.ui.overviewWidget.add_item(mj.id,mj.state)
+        item.setSelected(True)
+        self.ui.overviewWidget.scrollToItem(item)
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):
