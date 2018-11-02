@@ -124,26 +124,37 @@ class MultiJobMenu(QtWidgets.QMenu):
             else:
                 menu_action.setDisabled(False)
 
-    def lock_for_selection(self, rdeleted, statuses):
+    def lock_for_selection(self, multijobs, mj_ids):
         """
-		Locks UI actions based on selected MultiJobs.
-		Disables those actions in UI, which don't make sense.
-		:param statuses: statuses of selected MJ
-		"""
+        Locks UI actions based on selected MultiJobs.
+        Disables those actions in UI, which don't make sense.
+        :param multijobs: list of all multijobs
+        :param mj_ids: list ids of selected multijobs
+        """
         self.actionDownloadWholeMultiJob.setDisabled(True)
         self.actionReuseMultiJob.setDisabled(True)
         self.actionSendReport.setDisabled(True)
-        self.actionDeleteRemote.setDisabled(rdeleted)
-        deleted = True
-        for status in statuses:
-            if (status, MultijobActions.delete) in TASK_STATUS_PERMITTED_ACTIONS:
-                deleted = False
-        self.actionDeleteMultiJob.setDisabled(deleted)
-        stopped = True
-        for status in statuses:
-            if (status, MultijobActions.stop) in TASK_STATUS_PERMITTED_ACTIONS:
-                stopped = False
-        self.actionStopMultiJob.setDisabled(stopped)
+
+        disable_remote_delete = True
+        for mj_id in mj_ids:
+            if ((multijobs[mj_id].state.status, MultijobActions.delete_remote) in TASK_STATUS_PERMITTED_ACTIONS) and not multijobs[mj_id].preset.deleted_remote:
+                disable_remote_delete = False
+                break
+        self.actionDeleteRemote.setDisabled(disable_remote_delete)
+
+        disable_delete = True
+        for mj_id in mj_ids:
+            if (multijobs[mj_id].state.status, MultijobActions.delete) in TASK_STATUS_PERMITTED_ACTIONS:
+                disable_delete = False
+                break
+        self.actionDeleteMultiJob.setDisabled(disable_delete)
+
+        disable_stop = True
+        for mj_id in mj_ids:
+            if (multijobs[mj_id].state.status, MultijobActions.stop) in TASK_STATUS_PERMITTED_ACTIONS:
+                disable_stop = False
+                break
+        self.actionStopMultiJob.setDisabled(disable_stop)
 
 
 

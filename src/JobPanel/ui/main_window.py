@@ -17,12 +17,14 @@ from PyQt5.QtGui import QDesktopServices
 
 from JobPanel.communication import installation
 from JobPanel.data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
+from ..data.states import TASK_STATUS_PERMITTED_ACTIONS
 from .actions.main_menu_actions import *
 from .data.mj_data import MultiJob, AMultiJobFile
 from .imports.workspaces_conf import BASE_DIR
 from .dialogs import MessageDialog
 from .dialogs.env_presets import EnvPresets
 from .dialogs.multijob_dialog import MultiJobDialog
+from .dialogs.confirm_dialog import ConfirmDialog
 from gm_base.geomop_widgets import WorkspaceSelectorWidget
 from .dialogs.ssh_presets import SshPresets
 from .menus.main_menu_bar import MainMenuBar
@@ -165,13 +167,15 @@ class MainWindow(QtWidgets.QMainWindow):
         selected_mj_ids = []
         for item in selected_items:
             selected_mj_ids.append(item.text(0))
-        self.update_ui_locks(selected_mj_ids)
 
         state_change_jobs = self.frontend_service.get_mj_changed_state()
         for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
-
+        for mj_id in state_change_jobs:
+            if mj_id in selected_mj_ids:
+                self.update_ui_locks(selected_mj_ids)
+                break;
 
         # if mj.state.status == TaskStatus.finished:
         #     # copy app central log into mj
@@ -192,8 +196,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 if selected_mj_ids[0] == mj_id:
                     mj = self.data.multijobs[mj_id]
                     self.ui.tabWidget.reload_view(mj)
-            else:
-                self.ui.tabWidget.reload_view(None)
 
         for mj_id, error in self.frontend_service._jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
@@ -266,7 +268,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.analysis = analysis  
         Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
-
     def update_ui_locks(self, mj_ids):
         if mj_ids is None:
             self.ui.tabWidget.reload_view(None)
@@ -282,22 +283,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ui.tabWidget.reload_view(mj)
             else:
                 self.ui.tabWidget.reload_view(None)
-                rdeleted = True
-                statuses = []
-                for id in mj_ids:
-                    if not self.data.multijobs[id].preset.deleted_remote:
-                        rdeleted = False
-                    statuses.append(self.data.multijobs[mj_ids[0]].state.status)
-                self.ui.menuBar.multiJob.lock_for_selection(rdeleted,statuses)
+                self.ui.menuBar.multiJob.lock_for_selection(self.data.multijobs,mj_ids)
 
     def _handle_mj_selection_changed(self):
         mj_ids = []
         for item in self.ui.overviewWidget.selectedItems():
             mj_ids.append(item.text(0))
         self.update_ui_locks(mj_ids)
-        #print(mj_ids)
-        #print(self.ui.overviewWidget.currentItem().text(0))
-        #print("handle... end")
         if len(mj_ids) == 1:
             mj = self.data.multijobs[mj_ids[0]]
             # show error message in status bar
@@ -335,22 +327,32 @@ class MainWindow(QtWidgets.QMainWindow):
                 "key": key,
                 "preset": preset
             }
-
             mj_dlg = MultiJobDialog(parent=self, data=self.data)
             ret = mj_dlg.exec_copy(data)
             if ret==QtWidgets.QDialog.Accepted:
                 self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
 
     def _handle_delete_multijob_action(self):
-        if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            if self.data.multijobs[key].preset.deleted_remote:
-                self.frontend_service._jobs_deleted[key] = None
-                self._delete_mj_local.append(key)
-            else:
-                self.frontend_service.mj_delete(key)
-                self._delete_mj_local.append(key)
-            self._set_deleting(key)
+        mj_to_delete = []
+        for item in self.ui.overviewWidget.selectedItems():
+            mj_id = item.text(0)
+            if (self.data.multijobs[mj_id].state.status, MultijobActions.delete) in TASK_STATUS_PERMITTED_ACTIONS:
+                mj_to_delete.append(item)
+        confirmation = ConfirmDialog(mj_to_delete, "MultiJobs shown below will be deleted:",
+                                     self, "Confirm deleting Multijobs").exec()
+        if self.data.multijobs and confirmation == QtWidgets.QDialog.Accepted:
+            mj_ids = []
+            for item in mj_to_delete:
+                mj_id = item.text(0)
+                mj_ids.append(mj_id)
+                if self.data.multijobs[mj_id].preset.deleted_remote:
+                    self.frontend_service._jobs_deleted[mj_id] = None
+                    self._delete_mj_local.append(mj_id)
+                else:
+                    self.frontend_service.mj_delete(mj_id)
+                    self._delete_mj_local.append(mj_id)
+                self._set_deleting(mj_id)
+                self.update_ui_locks(mj_ids)
             
     def _handle_send_report_action(self):
         if self.data.multijobs:
@@ -400,14 +402,26 @@ class MainWindow(QtWidgets.QMainWindow):
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.deleting
         self.ui.overviewWidget.update_item(key, mj.get_state())
-        self.update_ui_locks([key])
+
 
     def _handle_delete_remote_action(self):
-        if self.data.multijobs:
-            key = self.ui.overviewWidget.currentItem().text(0)
-            if not self.data.multijobs[key].preset.deleted_remote:
-                self.frontend_service.mj_delete(key)
-                self._set_deleting(key)
+        mj_to_delete = []
+        for item in self.ui.overviewWidget.selectedItems():
+            mj_id = item.text(0)
+            if ((self.data.multijobs[mj_id].state.status, MultijobActions.delete_remote) in
+                    TASK_STATUS_PERMITTED_ACTIONS) and not self.data.multijobs[mj_id].preset.deleted_remote:
+                mj_to_delete.append(item)
+        confirmation = ConfirmDialog(mj_to_delete, "MultiJobs shown below will be deleted from remote:",
+                                     self, "Confirm deleting from remote").exec()
+        if self.data.multijobs and confirmation == QtWidgets.QDialog.Accepted:
+            mj_ids = []
+            for item in mj_to_delete:
+                mj_id = item.text(0)
+                mj_ids.append(mj_id)
+                if not self.data.multijobs[mj_id].preset.deleted_remote:
+                    self.frontend_service.mj_delete(mj_id)
+                    self._set_deleting(mj_id)
+            self.update_ui_locks(mj_ids)
 
     def _set_downloading(self, key):
         """save state before downloading and mark mj as downloaded"""
@@ -440,10 +454,9 @@ class MainWindow(QtWidgets.QMainWindow):
             analysis.save()
             self.data.multijobs[mj.id] = mj
             self.frontend_service.mj_start(mj.id)
-        self.ui.overviewWidget.reset()
-        item = self.ui.overviewWidget.add_item(mj.id,mj.state)
-        item.setSelected(True)
-        self.ui.overviewWidget.scrollToItem(item)
+            item = self.ui.overviewWidget.add_item(mj.id,mj.state)
+            self.ui.overviewWidget.setCurrentItem(item)
+            self.ui.overviewWidget.scrollToItem(item)
         self.multijobs_changed.emit(self.data.multijobs)
 
     def _handle_resume_multijob_action(self):
@@ -452,9 +465,17 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.frontend_service._resume_jobs.append(key)
 
     def _handle_stop_multijob_action(self):
-        current = self.ui.overviewWidget.currentItem()
-        key = current.text(0)
-        self.frontend_service.mj_stop(key)
+        mj_to_stop = []
+        for item in self.ui.overviewWidget.selectedItems():
+            mj_id = item.text(0)
+            if (self.data.multijobs[mj_id].state.status, MultijobActions.stop) in TASK_STATUS_PERMITTED_ACTIONS:
+                mj_to_stop.append(item)
+        confirmation = ConfirmDialog(mj_to_stop, "MultiJobs shown below will be stopped:",
+                                     self, "Confirm stop MultiJobs").exec()
+        if confirmation == QtWidgets.QDialog.Accepted:
+            for item in mj_to_stop:
+                mj_id = item.text(0)
+                self.frontend_service.mj_stop(mj_id)
 
     def _handle_options(self):
         prewFileName = self.data.workspaces.get_path()
@@ -505,10 +526,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @property
     def current_mj(self):
-        current = self.ui.overviewWidget.selectedItems()[0]
-        key = current.text(0)
-        mj = self.data.multijobs[key]
-        return mj
+        if len(self.ui.overviewWidget.selectedItems()) == 1:
+            current = self.ui.overviewWidget.selectedItems()[0]
+            key = current.text(0)
+            mj = self.data.multijobs[key]
+            return mj
+        else:
+            return None
 
     def showEvent(self, event):
         super(MainWindow, self).showEvent(event)

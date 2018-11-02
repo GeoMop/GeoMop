@@ -79,7 +79,7 @@ class Overview(QtWidgets.QTreeWidget):
         if self.itemAt(position) is None:
             self.clearSelection()
         contextMenu = self.parentWidget().parentWidget().findChild(MultiJobMenu,"multiJobMenu")
-        contextMenu.exec(self.viewport().mapToGlobal(position))
+        contextMenu.popup(self.viewport().mapToGlobal(position))
 
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
@@ -106,6 +106,10 @@ class Overview(QtWidgets.QTreeWidget):
         return self.takeTopLevelItem(index)
 
     def reload_items(self, data):
+        current_id = None
+        if self.currentItem() is not None:
+            current_id = self.currentItem().text(0)
+
         selection_ids = []
         for sel_item in self.selectedItems():
             selection_ids.append(sel_item.text(0))
@@ -115,9 +119,13 @@ class Overview(QtWidgets.QTreeWidget):
             for key in data:
                 if data[key].valid:
                     self.add_item(key, data[key].state)
-        
-        for id in selection_ids:
-            item = self._get_item_by_key(id)[1]
+
+        if current_id is not None:
+            if self._get_item_by_key(current_id) is not None:
+                self.setCurrentItem(self._get_item_by_key(current_id)[1], 1)
+
+        for mj_id in selection_ids:
+            item = self._get_item_by_key(mj_id)
             if item is not None:
-                item.setSelected(True)
+                item[1].setSelected(True)
         self.resizeColumnToContents(1)
