@@ -14,6 +14,7 @@ from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
 from JobPanel.backend.connection import ConnectionStatus, SSHError, SSHAuthenticationError
 from JobPanel.data.secret import Secret
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJInfo(JsonData):
@@ -248,7 +249,7 @@ class Backend(ServiceBase):
                 changed = True
 
                 if (v.status in [JobStatus.done, JobStatus.error]) and (v.name not in mj.job_log_planed_to_download):
-                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
+                    mj.files_to_download.append(os.path.join(v.name, GEOMOP_INTERNAL_DIR_NAME, "job_service.log"))
                     mj.job_log_planed_to_download.append(v.name)
 
             # We need update run_interval
@@ -298,7 +299,8 @@ class Backend(ServiceBase):
         # save to file
         file = os.path.join(self.get_analysis_workspace(),
                             mj.proxy.workspace,
-                            "_jobs_states.json")
+                            GEOMOP_INTERNAL_DIR_NAME,
+                            "jobs_states.json")
         try:
             with open(file, 'w') as fd:
                 json.dump(jobs_states, fd, indent=4, sort_keys=True)
@@ -375,7 +377,7 @@ class Backend(ServiceBase):
         """
         for mj in self.mj_info.values():
             if mj.proxy._status == ServiceStatus.done and not mj.log_planed_to_download:
-                mj.files_to_download.append("mj_service.log")
+                mj.files_to_download.append(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"))
                 mj.log_planed_to_download = True
 
     def _process_queues(self):
@@ -611,13 +613,13 @@ class Backend(ServiceBase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='backend_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 
 
     try:
-        input_file = "_backend_service.conf"
+        input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.conf")
         with open(input_file, "r") as f:
             config = json.load(f)
 

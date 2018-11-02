@@ -21,6 +21,7 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 # import in code
 #from .service_base import ServiceStatus
@@ -178,7 +179,9 @@ class ProcessExec(ProcessBase):
                 try:
                     os.close(r)
                     os.setsid()
-                    with open(os.path.join(cwd, "std_out.txt"), 'w') as fd_out:
+                    conf_dir = os.path.join(cwd, GEOMOP_INTERNAL_DIR_NAME)
+                    os.makedirs(conf_dir, exist_ok=True)
+                    with open(os.path.join(conf_dir, "std_out.txt"), 'w') as fd_out:
                         p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
                     os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
                     os.close(w)

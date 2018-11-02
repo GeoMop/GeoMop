@@ -274,6 +274,7 @@ class ServiceBase(JsonData):
         file = os.path.join(self.get_analysis_workspace(),
                             self.workspace,
                             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
