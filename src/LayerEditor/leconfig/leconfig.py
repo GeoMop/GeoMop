@@ -197,7 +197,7 @@ class LEConfig:
     """Path to the root directory of the GeoMop installation."""
     
     @classmethod
-    def reload_surfaces(cls, id):
+    def reload_surfaces(cls, id=None):
         """Reload surface panel"""
         if cls.main_window is not None:
             cls.main_window.wg_surface_panel.change_surface(id)
