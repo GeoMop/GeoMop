@@ -429,14 +429,20 @@ class Layers():
                 data.fracture_after = self.interfaces[i+1].fracture
         return data
         
-    def add_interface(self, surface_id, splited, elevation, transform_z=None,
+    def add_interface(self, gl_interface, splited,
                       fracture_name=None, diag_top_id=None, diag_bot_id=None,
                       fracture_interface=FractureInterface.none, fracture_id=None):
         """add new interface"""
-        self.interfaces.append(Interface(surface_id, splited, elevation, transform_z, fracture_name,
-                                         diag_top_id, diag_bot_id,fracture_interface, fracture_id))
+        print("----")
+        print("iface: ", gl_interface, "splt: ", splited)
+        print("dg top: ",  diag_top_id, "dg bot: ", diag_bot_id)
+        print("fr_name: ", fracture_name, "fr type: ", fracture_interface, "fr id: ", fracture_id)
+
+        iface = Interface(gl_interface.surface_id, splited, gl_interface.elevation, gl_interface.transform_z,
+                        fracture_name, diag_top_id, diag_bot_id,fracture_interface, fracture_id)
+        self.interfaces.append(iface)
         return len(self.interfaces)-1
-        
+
     def add_layer(self, name, shadow=False):
         """add new layer"""
         self.layers.append(Layer(name, shadow))
@@ -445,8 +451,9 @@ class Layers():
     def append_layer(self, name):
         """Append layer to the end"""
         self.add_layer(name)
-        id = self.add_interface(None, False, 0.0)
-        return self.interfaces[id]
+        interface = Interface(surface_id=None, splited=False, elevation=0.0)
+        self.interfaces.append(interface)
+        return interface
         
     def prepend_layer(self, name):
         """Prepend layer to the start"""
