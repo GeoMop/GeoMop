@@ -7,16 +7,6 @@ from .format_last import FractureLayer, ShadowLayer
 from .bspline_io import bs_zsurface_read, bs_zsurface_write
 
 
-# class Unique:
-#     def __init__(self, item_list):
-#         self.id=0
-#         self.add()
-#
-#     def add(self, item):
-#         for it in self.item_list:
-#             if self.item_list._id ==
-#         item._id = self.id
-#         item_list.append()
 
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
@@ -82,26 +72,6 @@ class GeometryFactory:
         ns = self.geometry.node_sets[node_set_idx]
         return ns.topology_id
 
-    # def set_topology(self, tp_idx, decomp):
-    #     topology = self.add_topologies_to_count(tp_idx)
-    #
-    #     topology.segments = []
-    #     for seg in decomp.segments.values():
-    #         segment = Segment(dict(node_ids=(seg.vtxs[0].index, seg.vtxs[1].index)))
-    #         topology.segments.append(segment)
-    #
-    #     topology.polygons = []
-    #     for poly in decomp.polygons.values():
-    #         polygon = Polygon()
-    #         polygon.outer_wire = [seg.index for seg, side in poly.outer_wire.segments()]
-    #         polygon.holes = []
-    #         for hole in poly.holes.values():
-    #             wire = [seg.index for seg, side in hole.segments()]
-    #             polygon.holes.append(wire)
-    #         polygon.free_points = []
-    #         for pt in poly.free_points.values():
-    #             polygon.free_points.append(pt.index)
-    #         topology.polygons.append(polygon)
 
     def set_topology(self, tp_idx, topology):
         topology = self.add_topologies_to_count(tp_idx)
@@ -207,46 +177,11 @@ class GeometryFactory:
         self.geometry.curves = []
         self.used_interfaces = {}
         
-    # def add_node(self, node_set_idx, x, y):
-    #     """Add one node"""
-    #     self.geometry.node_sets[node_set_idx].nodes.append( (x, y) )
-    #     return len(self.geometry.node_sets[node_set_idx].nodes)-1
-        
+
     def get_nodes(self, node_set_idx):
         """Get list of nodes"""
         return
      
-    # def add_segment(self,topology_idx, n1_idx, n2_idx):
-    #     """Add one segment"""
-    #     segment = Segment(dict( node_ids=(n1_idx, n2_idx) ))
-    #     self.geometry.topologies[topology_idx].segments.append(segment)
-    #
-    #     return len(self.geometry.topologies[topology_idx].segments)-1
-
-    # def add_polygon(self,topology_idx, p_idxs):
-    #     """Add one polygon"""
-    #     poly = Polygon(dict( segment_ids=p_idxs ))
-    #     self.geometry.topologies[topology_idx].polygons.append(poly)
-    #     return len(self.geometry.topologies[topology_idx].polygons)-1
-        
-    # def get_segments(self, node_set_idx):
-    #     """Get list of segments"""
-    #     ns =  self.geometry.node_sets[node_set_idx]
-    #     return self.geometry.topologies[ns.topology_id].segments
-        
-    # def  get_polygons(self, node_set_idx):
-    #     """Get list of polygons"""
-    #     ns =  self.geometry.node_sets[node_set_idx]
-    #     return self.geometry.topologies[ns.topology_id].polygons
-        
-    def get_GL_regions(self, gl_idx):
-        """Return lis of gl regions"""
-        return [
-                self.geometry.layers[gl_idx].node_region_ids,
-                self.geometry.layers[gl_idx].segment_region_ids,
-                self.geometry.layers[gl_idx].polygon_region_ids
-            ]
-
 
     # TODO: move checks into clases ??
 

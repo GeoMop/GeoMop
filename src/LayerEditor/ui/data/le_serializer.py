@@ -80,9 +80,12 @@ class LESerializer():
         last_fracture = None
         last_stratum = None
         layer_id=0
-        for i in range(0, len(gf.geometry.layers)):
-            layer = gf.geometry.layers[i]
-            regions = gf.get_GL_regions(i)
+        for layer in gf.geometry.layers:
+            regions = [
+                layer.node_region_ids,
+                layer.segment_region_ids,
+                layer.polygon_region_ids]
+
             if layer.layer_type is LayerType.shadow:
                 cfg.add_shapes_to_region(False, layer_id, layer.name, -1, regions)
             else:
