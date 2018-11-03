@@ -483,8 +483,10 @@ class Surfaces(QtWidgets.QWidget):
         """
         Event for changed surface in combo box. Called also when new item is added.
         """
-        if new_idx is None:
+        if new_idx is None\
+                or not (0 < new_idx < len(self.layers.surfaces)):
             new_idx = self.wg_surf_combo.currentData()
+
         if not self.empty_forms():
             self.wg_surf_combo.setCurrentIndex(self.data._idx)
             return
