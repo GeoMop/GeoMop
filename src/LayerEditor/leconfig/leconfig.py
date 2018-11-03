@@ -331,6 +331,8 @@ class LEConfig:
     @classmethod
     def new_file(cls):
         """Open new empty file"""
+        if cls.main_window is None:
+            return
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
         cls.le_serializer.set_new(cls)

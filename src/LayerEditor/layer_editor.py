@@ -37,80 +37,81 @@ QLabel[status="error"] {
 class LayerEditor:
     """Analyzis editor main class"""
     
-    def __init__(self, init_dialog=True):
-        # main window
-        self._app = QtWidgets.QApplication(sys.argv)
-        self._app.setStyleSheet(style_sheet)
-        #print("Layer app: ", str(self._app))
-        self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
-        
-        # load config        
+    def __init__(self, app, input_file=None):
+        self._app = app
+        # load config
         cfg.init()
-
-        # set default font to layers
-        #cfg.layers.font = self._app.font()
-
-        # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        
-        self.exit = False
-        if init_dialog:
-            init_dlg = SetDiagramDlg()
-            ret = init_dlg.exec_()
-            if init_dlg.closed:
-                self.exit = True
-                return
-        else:
-            ret = QtWidgets.QDialog.Accepted
-            cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
-            
+
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
-        
-        # show
-        self.mainwindow.show()        
-        
-        if ret!=QtWidgets.QDialog.Accepted:
-            if not self.open_file():
-                self.mainwindow.close()
-                self.mainwindow._layer_editor = None
-                del self.mainwindow
-                self.exit = True
-                return
+
+        assert not cfg.changed()
+        if input_file is None:
+            self.exit = not self.new_file()
+        else:
+            self.open_file(False, input_file)
+            self.exit = False
+
+        # if ret!=QtWidgets.QDialog.Accepted:
+        #     if not self.open_file():
+        #         self.mainwindow.close()
+        #         self.mainwindow._layer_editor = None
+        #         del self.mainwindow
+        #         self.exit = True
+        #         return
         
         # set default values
         self.mainwindow.paint_new_data()
-        self._update_document_name()        
-        
+        self._update_document_name()
+
+    def exec(self):
+        """
+        Show main window and start event loop.
+        """
+        if self.exit:
+            return
+        self.mainwindow.show()
+        self._app.exec()
+
     def new_file(self):
-        """new file menu action"""
+        """
+        New file action handler.
+        return close if no file is created nor openned.
+        """
         if not self.save_old_file():
             return
+
         init_dlg = SetDiagramDlg()
-        ret = init_dlg.exec_()
+        accepted = init_dlg.exec_()
         if init_dlg.closed:
-            return
-        cfg.new_file()        
-        if ret!=QtWidgets.QDialog.Accepted:
-            if not self.open_file():
-                self.new_file()
-                self.mainwindow.show_status_message("New file is opened")
+            return False
+
+        if not accepted:
+            if not self.open_file(False):
+                return False
         else:
+            cfg.new_file()
             self.mainwindow.refresh_all()
             self.mainwindow.paint_new_data()
         self._update_document_name()
- 
-    def open_file(self):
-        """open file menu action"""
+        return True
+
+    def open_file(self, checked, in_file=None):
+        """
+        open file menu action
+        handler for triggered signal.
+        """
         if not self.save_old_file():
             return False
-        file = QtWidgets.QFileDialog.getOpenFileName(
-            self.mainwindow, "Choose Json Geometry File",
-            cfg.config.data_dir, "Json Files (*.json)")
-        if file[0]:
-            cfg.open_file(file[0])
+        if in_file is None:
+            in_file, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self.mainwindow, "Choose Json Geometry File",
+                cfg.config.data_dir, "Json Files (*.json)")
+        if in_file:
+            cfg.open_file(in_file)
             self._update_document_name()
-            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
+            self.mainwindow.show_status_message("File '{}' is opened.".format(in_file))
             return True
         return False
             
@@ -200,10 +201,7 @@ class LayerEditor:
                     self.save_file()
         return True
 
-    def main(self):
-        """go"""
-        self._app.exec()
-        
+
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
@@ -213,65 +211,54 @@ class LayerEditor:
             title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
 
+def make_application():
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(style_sheet)
+    app.setWindowIcon(icon.get_app_icon("le-geomap"))
+    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+    return app
+
+def error_dialog():
+    """
+    Set error dialog for exception hook.
+    :return:
+    """
+    from gm_base.geomop_util.logging import log_unhandled_exceptions
+
+    def on_unhandled_exception(type_, exception, tback):
+        """Unhandled exception callback."""
+        # pylint: disable=unused-argument
+        from gm_base.geomop_dialogs import GMErrorDialog
+        err_dialog = GMErrorDialog(layer_editor.mainwindow)
+        err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+        sys.exit(1)
+
+    log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+
 
 def main():
     """LayerEditor application entry point."""
     parser = argparse.ArgumentParser(description='LayerEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('file', help='Layers geometry JSON file.', default=None, nargs='?')
     args = parser.parse_args()
+
+    app = make_application()
 
     if args.debug:
         cfg.config.__class__.DEBUG_MODE = True
-        
-    #set locale    
-    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
-
-    # logging
-    if not args.debug:
-        from gm_base.geomop_util.logging import log_unhandled_exceptions
-
-        def on_unhandled_exception(type_, exception, tback):
-            """Unhandled exception callback."""
-            # pylint: disable=unused-argument
-            from gm_base.geomop_dialogs import GMErrorDialog
-            err_dialog = GMErrorDialog(layer_editor.mainwindow)
-            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-            sys.exit(1)
-            
-            
-            
-#            from geomop_dialogs import GMErrorDialog
-#            if layer_editor is not None:
-#                err_dialog = None
-#                # display message box with the exception
-#                if layer_editor.mainwindow is not None:
-#                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-#
-#                # try to reload editor to avoid inconsistent state
-#                if callable(layer_editor.mainwindow.reload):
-#                    try:
-#                        layer_editor.mainwindow.reload()
-#                    except:
-#                        if err_dialog is not None:
-#                            err_dialog.open_error_dialog("Application performed invalid operation!",
-#                                                         error=exception)
-#                            sys.exit(1)
-#
-#                if err_dialog is not None:
-#                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-#
-        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+    #else:
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     # launch the application
-    layer_editor = LayerEditor()
-    if not layer_editor.exit:
-        layer_editor.main()
+    in_file = args.file
+    layer_editor = LayerEditor(app, in_file)
+    layer_editor.exec()
 
-    layer_editor._app.quit()
-    del layer_editor._app
+    app.quit()
+    del app
     del layer_editor
     sys.exit(0)
 
