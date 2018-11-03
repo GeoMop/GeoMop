@@ -78,6 +78,9 @@ class GeometryFactory:
       
     def get_gl_topology(self, gl):
         """Get gl topology idx"""
+        if type(gl) is ShadowLayer:
+            return -1
+
         if type(gl.top) == InterpolatedNodeSet:
             return self.get_topology(gl.top.surf_nodesets[0].nodeset_id)
         elif type(gl.top) == InterfaceNodeSet:
