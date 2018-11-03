@@ -120,7 +120,9 @@ class LESerializer():
                     assert diagram_fr_id is not None
 
         # for add_interface single diagram ID must be always first one
-        if top_diag_id is None:
+        # TODO: Refactor data structures and have methods to add individual layers
+        # then we can remove this complicated method.
+        if not splitted and top_diag_id is None:
             top_diag_id = bot_diag_id
             bot_diag_id = None
         self.cfg.layers.add_interface(gl_interface, splitted,

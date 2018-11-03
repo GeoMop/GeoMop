@@ -310,7 +310,7 @@ class FractureLayer(GeoLayer):
     def __init__(self, config={}):
         super().__init__(config)
         self.layer_type = LayerType.fracture
-        self.top_type = self.top.interface_type
+        #self.top_type = self.top.interface_type
 class StratumLayer(GeoLayer):
     _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
 
@@ -322,8 +322,8 @@ class StratumLayer(GeoLayer):
 
         super().__init__(config)
         self.layer_type = LayerType.stratum
-        self.top_type = self.top.interface_type
-        self.bottom_type = self.bottom.interface_type
+        #self.top_type = self.top.interface_type
+        #self.bottom_type = self.bottom.interface_type
 
 
 class ShadowLayer(GeoLayer):
