@@ -70,7 +70,7 @@ class LESerializer():
 
     def eq_layer_topology(self, layer_a, layer_b):
         if layer_a is None or layer_b is None:
-            return False
+            return True
         return self.gf.get_gl_topology(layer_a) == self.gf.get_gl_topology(layer_b)
 
     def _get_ns_id(self, ns_set):
@@ -88,7 +88,7 @@ class LESerializer():
         fracture_name = None
         fracture_type = FractureInterface.none
         diagram_fr_id = None
-        splitted = self.eq_layer_topology(top_layer, bot_layer)
+        splitted = not self.eq_layer_topology(top_layer, bot_layer)
 
 
         top_nodesets = self.get_layer_nodesets(top_layer, top=False)
