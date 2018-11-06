@@ -20,7 +20,7 @@ else:
 # except:
 #     raise Exception('Cannot create config directory')
 
-GEOMOP_INTERNAL_DIR_NAME = "_geomop"
+GEOMOP_INTERNAL_DIR_NAME = ".geomop"
 """Dir name for storing geomop internal files."""
 
 
