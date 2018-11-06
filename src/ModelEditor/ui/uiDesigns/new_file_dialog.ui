@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>NewFileWidget</class>
- <widget class="QDialog" name="NewFileWidget">
+ <class>NewFileDialog</class>
+ <widget class="QDialog" name="NewFileDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -31,22 +31,43 @@
   <property name="windowTitle">
    <string>New File</string>
   </property>
+  <property name="layoutDirection">
+   <enum>Qt::LeftToRight</enum>
+  </property>
   <property name="sizeGripEnabled">
-   <bool>true</bool>
+   <bool>false</bool>
   </property>
   <property name="modal">
    <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>10</number>
+   </property>
    <property name="sizeConstraint">
-    <enum>QLayout::SetDefaultConstraint</enum>
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <property name="leftMargin">
+    <number>10</number>
+   </property>
+   <property name="topMargin">
+    <number>10</number>
+   </property>
+   <property name="rightMargin">
+    <number>10</number>
+   </property>
+   <property name="bottomMargin">
+    <number>10</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>5</number>
+     </property>
      <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
       <widget class="QLabel" name="label_2">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -69,7 +90,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPlainTextEdit" name="plainTextEdit">
+      <widget class="QPlainTextEdit" name="Name">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -103,6 +124,9 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="spacing">
+      <number>5</number>
+     </property>
      <item alignment="Qt::AlignVCenter">
       <widget class="QLabel" name="label_6">
        <property name="sizePolicy">
@@ -129,7 +153,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPlainTextEdit" name="plainTextEdit_2">
+      <widget class="QPlainTextEdit" name="Location">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -160,7 +184,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QToolButton" name="browseButton">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -169,14 +193,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>30</width>
-         <height>25</height>
+         <width>0</width>
+         <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>30</width>
-         <height>25</height>
+         <width>16777215</width>
+         <height>16777215</height>
         </size>
        </property>
        <property name="text">
@@ -192,12 +216,12 @@
       <enum>Qt::Vertical</enum>
      </property>
      <property name="sizeType">
-      <enum>QSizePolicy::Expanding</enum>
+      <enum>QSizePolicy::MinimumExpanding</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>13</width>
-       <height>0</height>
+       <width>20</width>
+       <height>20</height>
       </size>
      </property>
     </spacer>
@@ -225,7 +249,7 @@
      </property>
      <item>
       <layout class="QGridLayout" name="gridLayout">
-       <property name="horizontalSpacing">
+       <property name="spacing">
         <number>0</number>
        </property>
        <item row="0" column="1">
@@ -251,6 +275,9 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
          </property>
          <property name="text">
           <string>Water Flow:</string>
@@ -398,25 +425,9 @@
    </item>
   </layout>
  </widget>
- <layoutdefault spacing="6" margin="11"/>
+ <layoutdefault spacing="6" margin="0"/>
  <resources/>
  <connections>
-  <connection>
-   <sender>checkBox</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>radioButton</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>29</x>
-     <y>109</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>140</x>
-     <y>109</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>checkBox</sender>
    <signal>clicked(bool)</signal>
@@ -424,12 +435,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>23</x>
-     <y>109</y>
+     <x>35</x>
+     <y>144</y>
     </hint>
     <hint type="destinationlabel">
-     <x>134</x>
-     <y>137</y>
+     <x>214</x>
+     <y>153</y>
     </hint>
    </hints>
   </connection>
@@ -440,12 +451,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>238</x>
-     <y>123</y>
+     <x>372</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
-     <x>387</x>
-     <y>117</y>
+     <x>423</x>
+     <y>141</y>
     </hint>
    </hints>
   </connection>
@@ -456,12 +467,28 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>259</x>
-     <y>124</y>
+     <x>372</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
      <x>389</x>
      <y>150</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>radioButton</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>41</x>
+     <y>144</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>192</x>
+     <y>144</y>
     </hint>
    </hints>
   </connection>
