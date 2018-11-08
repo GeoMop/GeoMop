@@ -14,6 +14,8 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
+from LayerEditor.ui.dialogs.init_dialog import InitDialog
+
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 
@@ -82,9 +84,11 @@ class LayerEditor:
         if not self.save_old_file():
             return
 
-        init_dlg = SetDiagramDlg()
-        accepted = init_dlg.exec_()
-        if init_dlg.closed:
+        init_dlg = InitDialog()
+        init_dlg.open_existing_signal.connect(self.open_file)
+
+        accepted = init_dlg.exec()
+        if not accepted:
             return False
 
         if not accepted:
@@ -210,6 +214,13 @@ class LayerEditor:
         else:
             title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
+
+    def _update_document(self):
+        """
+        Update whole document after file open or new file.
+        :return:
+        """
+
 
 def make_application():
     app = QtWidgets.QApplication(sys.argv)
