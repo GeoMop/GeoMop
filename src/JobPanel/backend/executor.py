@@ -460,7 +460,10 @@ class ProcessDocker(ProcessBase):
 
         cwd = self.environment.geomop_analysis_workspace + "/" + self.exec_args.work_dir
 
-        args = self._get_limit_args()
+        # wrapper
+        args = [self.environment.python, self.environment.geomop_root + "/JobPanel/backend/docker_wrapper.py"]
+
+        args.extend(self._get_limit_args())
 
         if self.executable.script:
             args.append(self.environment.python)
