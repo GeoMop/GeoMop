@@ -4,6 +4,7 @@
 """
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
+from PyQt5.QtGui import QKeySequence
 
 import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
@@ -99,6 +100,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # set focus
         self.editor.setFocus()
+
+        self.installEventFilter(self)
+
+    def eventFilter(self, object, event):
+
+        if event.type() == QtCore.QEvent.KeyPress|event.type() == QtCore.QEvent.KeyRelease:
+            if event.matches(QKeySequence.Copy):
+                if self.editor.selectedText() == '':
+                    QtWidgets.QApplication.clipboard().setText(self.info.selectedText())
+                return True
+        return super().eventFilter(object,event)
 
     def reload(self):
         """reload panels after structure changes"""

@@ -13,10 +13,10 @@ class NewFileDialog(QDialog):
     def __init__(self, parent=None, default_directory=''):
         """Initializes the class."""
         super(NewFileDialog, self).__init__(parent)
-        uic.loadUi(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                '..','ui_designs','new_file_dialog.ui'), self)
+        uic.loadUi(os.path.join(os.path.dirname(os.path.realpath(__file__)),'new_file_dialog.ui'), self)
 
-        self.findChild(QLineEdit, "location").setText(default_directory)
+        self.location.setText(default_directory)
+        #self.findChild(QLineEdit, "location").setText(default_directory)
         self.findChild(QToolButton, "browse_button").clicked.connect(self._open_file_browser)
         self.findChild(QDialogButtonBox, "button_box").button(QDialogButtonBox.Ok).setText("Create")
 
@@ -27,8 +27,6 @@ class NewFileDialog(QDialog):
                                                         location_widget.text(), QFileDialog.ShowDirsOnly)
         location_widget.setText(QDir.toNativeSeparators(new_location))
         location_widget.setFocus()
-        print(self.get_file_name())
-        print(self.get_directory())
 
     def get_directory(self):
         """Returns location specified by user"""
@@ -63,7 +61,6 @@ class NewFileDialog(QDialog):
 
     def done(self, p_int):
         """Check if provided information are correct and end dialog if they are"""
-        print(self.templates())
         if p_int == QDialog.Rejected:
             super().done(p_int)
         else:

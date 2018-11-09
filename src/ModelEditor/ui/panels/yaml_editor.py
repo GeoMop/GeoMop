@@ -382,8 +382,8 @@ class YamlEditorWidget(QsciScintilla):
 
     def copy(self):
         """Copy to clipboard."""
-        with self.reload_chunk:
-            super(YamlEditorWidget, self).copy()
+        #if reload chunk is used then the info_panel will be also reloaded
+        super(YamlEditorWidget, self).copy()
 
     def cut(self):
         """Cut to clipboard."""
