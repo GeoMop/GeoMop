@@ -22,7 +22,9 @@ class Layers(QtWidgets.QWidget):
     All regions function contains history operation without label and
     must be placed after first history operation with label.
     """
-    
+    clearDiagramSelection = QtCore.pyqtSignal()
+    """Signal is sent when selection needs to be cleared to prevent topology switch issues."""
+
     topologyChanged = QtCore.pyqtSignal()
     """Signal is sent when current selected topology or some 
     topology structure is changed."""
@@ -297,9 +299,10 @@ class Layers(QtWidgets.QWidget):
         cfg.layers.set_edited_interface(i, second, fracture)
         diagram_idx = cfg.layers.get_diagram_idx(i, second, fracture)
         old = cfg.set_curr_diagram(diagram_idx)
-        self.update() 
+        self.update()
+        self.clearDiagramSelection.emit() # different topology selection cannot correlate to the new one
         self.topologyChanged.emit() # first update regions      
-        self. editInterfaceChanged.emit(old, diagram_idx)        
+        self.editInterfaceChanged.emit(old, diagram_idx)
     
     def add_interface(self, i):
         """Split layer by new interface"""
