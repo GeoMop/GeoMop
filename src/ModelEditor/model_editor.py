@@ -19,6 +19,7 @@ from ModelEditor.meconfig import MEConfig as cfg
 from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
 from ModelEditor.ui import MainWindow
 from ModelEditor.util import constants
+from ModelEditor.ui.dialogs.new_file_dialog import NewFileDialog
 import subprocess
 
 RELOAD_INTERVAL = 5000
@@ -59,7 +60,13 @@ class ModelEditor:
         """new file menu action"""
         if not self.save_old_file():
             return
+
+        dialog = NewFileDialog(self.mainwindow, cfg.config.data_dir)
+        if dialog.exec_() == dialog.Rejected:
+            return
+
         cfg.new_file()
+        cfg.save_as(dialog.get_file_name())
         self.mainwindow.reload()
         self.mainwindow.update_recent_files(0)
         self._update_document_name()
