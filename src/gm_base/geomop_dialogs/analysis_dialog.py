@@ -3,6 +3,9 @@
 """
 
 import os
+import sys
+import subprocess
+import tempfile
 from PyQt5 import QtWidgets, QtGui, QtCore
 from .dialogs import AFormDialog, UiFormDialog
 from gm_base.geomop_analysis import Analysis
@@ -85,18 +88,34 @@ class AnalysisDialog(AFormDialog):
     def _start_editor(self, editor_path, file):
         """Starts editor with selected file."""
         geomop_root = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
-        python_bat = os.path.join(geomop_root, "bin", "pythonw.bat")
-        if os.path.exists(python_bat):
-            cmd = python_bat
-        else:
-            cmd = "python3"
-
-        args = [os.path.join(geomop_root, editor_path)]
-        if len(file) > 0:
+        args = [sys.executable, os.path.join(geomop_root, editor_path)]
+        if file:
             args.append(os.path.join(self.analysis.analysis_dir, file))
 
-        proc = QtCore.QProcess(self)
-        proc.start(cmd, args)
+        with tempfile.TemporaryFile(mode='w+') as fd_err:
+            try:
+                proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=fd_err, cwd=self.analysis.analysis_dir)
+            except OSError as e:
+                self._start_editor_error_dialog("Error in starting editor:\n{}: {}".format(e.__class__.__name__, e))
+            else:
+                try:
+                    proc.wait(1)
+                except subprocess.TimeoutExpired:
+                    pass
+                else:
+                    if proc.returncode != 0:
+                        fd_err.seek(0)
+                        err_text = fd_err.read()
+                        if not err_text:
+                            err_text = "returncode == {}".format(proc.returncode)
+                        self._start_editor_error_dialog("Error in editor:\n{}".format(err_text))
+
+    def _start_editor_error_dialog(self, error_text):
+        msg_box = QtWidgets.QMessageBox(self)
+        msg_box.setWindowTitle("Error")
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+        msg_box.setText(error_text)
+        msg_box.exec()
 
     def _handle_scriptMakeButton(self):
         """Generate default Flow execution script."""
