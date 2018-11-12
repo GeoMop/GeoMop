@@ -18,5 +18,9 @@ if not args:
 os.makedirs(GEOMOP_INTERNAL_DIR_NAME, exist_ok=True)
 out_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "docker_std_out.txt")
 with open(out_file, 'w') as fd_out:
-    process = subprocess.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)
-process.wait()
+    try:
+        process = subprocess.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT)
+    except OSError as e:
+        fd_out.write("Error in starting docker process:\n{}: {}\n".format(e.__class__.__name__, e))
+    else:
+        process.wait()
