@@ -14,11 +14,11 @@ import threading
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
+from PyQt5 import QtWidgets
 
 from JobPanel.communication import installation
 from JobPanel.data.states import TaskStatus, TASK_STATUS_STARTUP_ACTIONS, MultijobActions
 from ..data.states import TASK_STATUS_PERMITTED_ACTIONS
-from .actions.main_menu_actions import *
 from .data.mj_data import MultiJob, AMultiJobFile
 from .imports.workspaces_conf import BASE_DIR
 from .dialogs import MessageDialog
@@ -163,39 +163,30 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         self.frontend_service.run_body()
 
-        selected_items = self.ui.overviewWidget.selectedItems()
         selected_mj_ids = []
-        for item in selected_items:
+        for item in self.ui.overviewWidget.selectedItems():
             selected_mj_ids.append(item.text(0))
 
         state_change_jobs = self.frontend_service.get_mj_changed_state()
         for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
             self.ui.overviewWidget.update_item(mj_id, mj.get_state())
-        for mj_id in state_change_jobs:
-            if mj_id in selected_mj_ids:
-                self.update_ui_locks(selected_mj_ids)
-                break;
+            if mj.state.status == TaskStatus.finished:
+                # check if all jobs finished successfully for a finished multijob
+                for job in mj.get_jobs():
+                    if job.status == TaskStatus.error:
+                        mj.state.status = TaskStatus.error
+                        mj.error = "Not all jobs finished successfully."
+                        self.multijobs_changed.emit(self.data.multijobs)
+                        break
 
-        # if mj.state.status == TaskStatus.finished:
-        #     # copy app central log into mj
-        #     mj_dir = os.path.join(self.data.workspaces.get_path(), mj.preset.analysis,
-        #                           MULTIJOBS_DIR, mj.preset.name)
-        #     shutil.copy(LOG_PATH, mj_dir)
+        selected_changed_mj_ids = set(selected_mj_ids).intersection(set(state_change_jobs))
+        if selected_changed_mj_ids:
+            self.update_ui_locks(selected_mj_ids)
 
-            # check if all jobs finished successfully for a finished multijob
-            for job in mj.get_jobs():
-                if job.status == TaskStatus.error:
-                    mj.state.status = TaskStatus.error
-                    mj.error = "Not all jobs finished successfully."
-                    self.multijobs_changed.emit(self.data.multijobs)
-                    break
-
-        for mj_id in state_change_jobs:
-            if len(selected_mj_ids) == 1:
-                if selected_mj_ids[0] == mj_id:
-                    mj = self.data.multijobs[mj_id]
-                    self.ui.tabWidget.reload_view(mj)
+        if len(selected_mj_ids) == 1 and selected_changed_mj_ids:
+            mj = self.data.multijobs[selected_mj_ids[0]]
+            self.ui.tabWidget.reload_view(mj)
 
         for mj_id, error in self.frontend_service._jobs_deleted.items():
             mj = self.data.multijobs[mj_id]
@@ -269,21 +260,16 @@ class MainWindow(QtWidgets.QMainWindow):
         Analysis.notify(ConfigI( self.data.workspaces.get_path(), self.data.config.analysis))
 
     def update_ui_locks(self, mj_ids):
-        if mj_ids is None:
-            self.ui.tabWidget.reload_view(None)
-            self.ui.menuBar.multiJob.lock_by_status(True, True, True, None)
+        if len(mj_ids) == 1:
+            mj = self.data.multijobs[mj_ids[0]]
+            self.ui.menuBar.multiJob.lock_by_mj(mj)
+            self.ui.tabWidget.reload_view(mj)
         else:
-            if len(mj_ids) == 1:
-                mj = self.data.multijobs[mj_ids[0]]
-                status = self.data.multijobs[mj_ids[0]].state.status
-                rdeleted = self.data.multijobs[mj_ids[0]].preset.deleted_remote
-                downloaded = self.data.multijobs[mj_ids[0]].preset.downloaded
-                mj_local = mj.preset.mj_ssh_preset is None
-                self.ui.menuBar.multiJob.lock_by_status(rdeleted, downloaded, mj_local, status)
-                self.ui.tabWidget.reload_view(mj)
+            self.ui.tabWidget.reload_view(None)
+            if mj_ids is None:
+                self.ui.menuBar.multiJob.lock_by_mj()
             else:
-                self.ui.tabWidget.reload_view(None)
-                self.ui.menuBar.multiJob.lock_for_selection(self.data.multijobs,mj_ids)
+                self.ui.menuBar.multiJob.lock_by_selection(self.data.multijobs, mj_ids)
 
     def _handle_mj_selection_changed(self):
         mj_ids = []
@@ -351,8 +337,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     self.frontend_service.mj_delete(mj_id)
                     self._delete_mj_local.append(mj_id)
+
                 self._set_deleting(mj_id)
-                self.update_ui_locks(mj_ids)
+
+            self.update_ui_locks(mj_ids)
             
     def _handle_send_report_action(self):
         if self.data.multijobs:
@@ -459,11 +447,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.overviewWidget.scrollToItem(item)
         self.multijobs_changed.emit(self.data.multijobs)
 
-    def _handle_resume_multijob_action(self):
-        current = self.ui.overviewWidget.selectedItems()[0]
-        key = current.text(0)
-        #self.frontend_service._resume_jobs.append(key)
-
     def _handle_stop_multijob_action(self):
         mj_to_stop = []
         for item in self.ui.overviewWidget.selectedItems():
@@ -524,15 +507,6 @@ class MainWindow(QtWidgets.QMainWindow):
         err_dialog = GMErrorDialog(self)
         err_dialog.open_error_dialog(msg, err)
 
-    @property
-    def current_mj(self):
-        if len(self.ui.overviewWidget.selectedItems()) == 1:
-            current = self.ui.overviewWidget.selectedItems()[0]
-            key = current.text(0)
-            mj = self.data.multijobs[key]
-            return mj
-        else:
-            return None
 
     def showEvent(self, event):
         super(MainWindow, self).showEvent(event)
