@@ -192,7 +192,7 @@ class MultiJob:
         self.last_status = kw_or_def('last_status', None)
         """State before deleting"""
         self.valid = True
-        """actions """
+        """actions dependent on internal state of mj"""
         self.rdeleted_actions = {
             MultijobActions.delete_remote,
             MultijobActions.download_whole
@@ -228,6 +228,10 @@ class MultiJob:
         return states.jobs
 
     def is_action_forbidden(self, action):
+        """Return True if specified action is forbidden for this MultiJob
+        :param action: MultiJob action e.g. delete or stop
+        :return: False if action is permitted and true if it is forbidden
+        """
         mj_local = self.preset.mj_ssh_preset is None
         return(self.state.status is None or
                (self.state.status, action) not in TASK_STATUS_PERMITTED_ACTIONS or
