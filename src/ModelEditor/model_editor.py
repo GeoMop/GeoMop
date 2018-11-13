@@ -68,9 +68,9 @@ class ModelEditor:
 
         cfg.new_file()
         for template in dialog.templates():
-            file = open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources',
-                                                     'yaml_templates',template),'r')
-            cfg.document += file.read()
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources',
+                                   'yaml_templates',template),'r') as file:
+                cfg.document += file.read()
 
         cfg.save_as(dialog.get_file_name())
         self.mainwindow.reload()

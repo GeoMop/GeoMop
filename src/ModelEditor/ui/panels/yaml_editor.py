@@ -714,7 +714,10 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut_name, action in actions:
             shortcut = cfg.get_shortcut(shortcut_name)
             if shortcut.matches_key_event(event):
-                return action()
+                if shortcut_name == 'copy' and not self.hasSelectedText():
+                    return super(YamlEditorWidget, self).keyPressEvent(event)
+                else:
+                    return action()
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
 

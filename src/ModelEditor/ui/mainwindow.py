@@ -101,16 +101,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # set focus
         self.editor.setFocus()
 
-        self.installEventFilter(self)
-
-    def eventFilter(self, object, event):
-
-        if event.type() == QtCore.QEvent.KeyPress|event.type() == QtCore.QEvent.KeyRelease:
-            if event.matches(QKeySequence.Copy):
-                if self.editor.selectedText() == '':
-                    QtWidgets.QApplication.clipboard().setText(self.info.selectedText())
-                return True
-        return super().eventFilter(object,event)
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.Copy) and self.info.selectedText() != "":
+            QtWidgets.QApplication.clipboard().setText(self.info.selectedText())
+        else:
+            super().keyReleaseEvent(event)
 
     def reload(self):
         """reload panels after structure changes"""
