@@ -21,11 +21,11 @@ class AnalysisMenu(QMenu):
         self.config = config
         self.analysis_name = None
         self._actions = []
-        self._create_analysis_action = QAction('&Create', self)
-        self._create_analysis_action.triggered.connect(self._create_analysis)
+        #self._create_analysis_action = QAction('&Create', self)
+        #self._create_analysis_action.triggered.connect(self._create_analysis)
         self._analysis_settings_action = QAction('&Edit', self)
         self._analysis_settings_action.triggered.connect(self._show_analysis_settings)
-        self.addAction(self._create_analysis_action)
+        #self.addAction(self._create_analysis_action)
         self.addAction(self._analysis_settings_action)
         self.setTitle(title)
 
@@ -44,20 +44,23 @@ class AnalysisMenu(QMenu):
     def _show_analysis_settings(self):
         """Show analysis settings dialog."""
         # get analysis to edit
-        dialog = AnalysisSelectDialog(self, self.config)
-        if dialog.exec_():
-            try:
-                analysis = Analysis.open(self.config.get_path(), dialog.analysis_name, sync_files=True)
-            except InvalidAnalysis:
-                QtWidgets.QMessageBox.critical(
-                        self, 'Analysis not found',
-                        'Analysis "{an_name}" was not found in the current workspace.'.format(
-                            an_name=self.analysis_name)
-                    )
-            else:
-                AnalysisDialog(self, AnalysisDialog.PURPOSE_EDIT,
-                               config=self.config,
-                               analysis=analysis).exec_()
+        # dialog = AnalysisSelectDialog(self, self.config)
+        # if dialog.exec_():
+        #     try:
+        #         analysis = Analysis.open(self.config.get_path(), dialog.analysis_name, sync_files=True)
+        #     except InvalidAnalysis:
+        #         QtWidgets.QMessageBox.critical(
+        #                 self, 'Analysis not found',
+        #                 'Analysis "{an_name}" was not found in the current workspace.'.format(
+        #                     an_name=self.analysis_name)
+        #             )
+        #     else:
+        if self.config.get_path() is None:
+            QtWidgets.QMessageBox.information(
+                self, 'No Workspace',
+                'Please select workspace in Settings before creating an analysis.')
+        else:
+            AnalysisDialog(self, config=self.config).exec_()
 
 
 class AnalysisSelectDialog(QtWidgets.QDialog):
