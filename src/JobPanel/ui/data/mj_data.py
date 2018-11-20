@@ -179,6 +179,11 @@ class MultiJob:
         excluded=['valid']
     )
 
+    rdeleted_actions = {
+        MultijobActions.delete_remote,
+        MultijobActions.download_whole
+    }
+
     def __init__(self, preset, **kwargs):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
@@ -193,10 +198,7 @@ class MultiJob:
         """State before deleting"""
         self.valid = True
         """actions dependent on internal state of mj"""
-        self.rdeleted_actions = {
-            MultijobActions.delete_remote,
-            MultijobActions.download_whole
-        }
+
 
     @property
     def id(self):
