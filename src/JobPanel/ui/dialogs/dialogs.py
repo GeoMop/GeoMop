@@ -372,7 +372,7 @@ class APresetsDialog(QtWidgets.QDialog):
                 row.setText(1, data[key].get_name())
                 if first or key==new_sel:
                     first = False
-                    self.ui.presets.setCurrentItem(row)                                        
+                    self.ui.presets.setCurrentItem(row)
             if first:
                 self._handle_add_preset_action()
             else:

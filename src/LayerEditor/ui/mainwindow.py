@@ -117,6 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
         self.layers.refreshArea.connect(self._refresh_area)
+        self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
         self.regions.regionChanged.connect(self._region_changed)
         self.wg_surface_panel.show_grid.connect(self._show_grid)
         #self.surfaces.refreshArea.connect(self._refresh_area)
@@ -266,7 +267,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_topology(self):
         """Current topology or its structure is changed"""
         self.regions.set_topology(cfg.diagram.topology_idx)
-        
+
+    def clear_diagram_selection(self):
+        """Selection has to be emptied"""
+        self.diagramScene.selection.deselect_selected()
+
     def _update_regions(self):
         """Update region panel, eventually set tab according to the selection in diagram"""
         regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)

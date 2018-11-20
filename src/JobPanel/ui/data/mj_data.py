@@ -10,7 +10,7 @@ import time
 import copy
 
 from JobPanel.communication import Installation
-from JobPanel.data.states import TaskStatus, JobsState
+from JobPanel.data.states import TaskStatus, JobsState, TASK_STATUS_PERMITTED_ACTIONS, MultijobActions
 from ..data.preset_data import APreset
 from gm_base.geomop_util import Serializable
 
@@ -179,6 +179,11 @@ class MultiJob:
         excluded=['valid']
     )
 
+    rdeleted_actions = {
+        MultijobActions.delete_remote,
+        MultijobActions.download_whole
+    }
+
     def __init__(self, preset, **kwargs):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
@@ -192,6 +197,8 @@ class MultiJob:
         self.last_status = kw_or_def('last_status', None)
         """State before deleting"""
         self.valid = True
+        """actions dependent on internal state of mj"""
+
 
     @property
     def id(self):
@@ -221,6 +228,18 @@ class MultiJob:
         states = JobsState()
         states.load_file(conf_path)
         return states.jobs
+
+    def is_action_forbidden(self, action):
+        """Return True if specified action is forbidden for this MultiJob
+        :param action: MultiJob action e.g. delete or stop
+        :return: False if action is permitted and true if it is forbidden
+        """
+        mj_local = self.preset.mj_ssh_preset is None
+        return(self.state.status is None or
+               (self.state.status, action) not in TASK_STATUS_PERMITTED_ACTIONS or
+               (action in self.rdeleted_actions and self.preset.deleted_remote) or
+               (action == MultijobActions.download_whole and (self.preset.downloaded or mj_local)) or
+               (action == MultijobActions.reuse and not mj_local and self.preset.deleted_remote))
 
     def get_logs(self):
         """
@@ -282,7 +301,6 @@ class MultiJob:
             elif recurs and os.path.isdir(new):
                 ress.extend(self._get_result_from_dir(new))
         return ress
-                
 
     def get_configs(self):
         """
