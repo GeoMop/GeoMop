@@ -187,10 +187,10 @@ class Line():
         """Set line region to default region"""
         return Diagram.regions.set_default(1, self.id, True, "Set Default Region")
 
-        
     def get_regions(self):
         """Return polygon regions"""
         return Diagram.regions.get_regions(1, self.id)
+
 
 class Polygon():
     """
