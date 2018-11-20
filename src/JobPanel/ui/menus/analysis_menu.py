@@ -2,11 +2,13 @@
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
-from PyQt5 import QtWidgets
+import os
+
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMenu, QAction
 
-from geomop_dialogs import AnalysisDialog
-from geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.geomop_dialogs import AnalysisDialog
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 
 
 class AnalysisMenu(QMenu):
@@ -71,7 +73,23 @@ class AnalysisSelectDialog(QtWidgets.QDialog):
         analysis_label = QtWidgets.QLabel("Analysis: ")
         self.analysis_combo_box = QtWidgets.QComboBox()
         self.analysis_combo_box.addItems(Analysis.list_analyses_in_workspace(config.get_path()))
+
+        # add dirs without analysis as gray items
+        workspace_path = config.get_path()
+        gray_items = []
+        for name in os.listdir(workspace_path):
+            if os.path.isdir(os.path.join(workspace_path, name)) and (self.analysis_combo_box.findText(name) == -1):
+                self.analysis_combo_box.addItem(name)
+                gray_items.append(name)
+        model = self.analysis_combo_box.model()
+        for i in range(self.analysis_combo_box.count()):
+            item = model.item(i)
+            if item.text() in gray_items:
+                item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled))
+
+        model.sort(0)
         self.analysis_combo_box.setCurrentIndex(0)
+
         form_layout.addRow(analysis_label, self.analysis_combo_box)
 
         main_layout = QtWidgets.QVBoxLayout()

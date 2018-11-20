@@ -5,7 +5,7 @@
 
 import pytest
 
-from helpers import AutocompleteHelper, AutocompleteContext
+from ModelEditor.helpers import AutocompleteHelper, AutocompleteContext
 
 
 @pytest.fixture

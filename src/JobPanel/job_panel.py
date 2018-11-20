@@ -10,29 +10,22 @@ import sys
 import logging
 import argparse
 import PyQt5.QtWidgets as QtWidgets
+import time
 
-# import common directory to path (should be in __init__)
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-__pexpect_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/pexpect")
-__enum_dir__ = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "twoparty/enum")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-sys.path.insert(1, __lib_dir__)
-sys.path.insert(2, __pexpect_dir__)
-if sys.version_info[0] != 3 or sys.version_info[1] < 4:
-    sys.path.insert(3, __enum_dir__)
+#from JobPanel.ui.com_manager import ComManager
+from JobPanel.ui.main_window import MainWindow
+from JobPanel.ui.dialogs.docker_machine_start_dialog import DockerMachineStartDialog
+from JobPanel.ui.data.data_structures import DataContainer
+from JobPanel.ui.imports.workspaces_conf import BASE_DIR
+import gm_base.icon as icon
+from JobPanel.communication.installation import Installation
 
-from ui.com_manager import ComManager
-from ui.main_window import MainWindow
-from ui.data.data_structures import DataContainer
-from ui.imports.workspaces_conf import BASE_DIR
-import icon
-from  communication.installation import Installation
-
-import config as cfg
+import gm_base.config as cfg
 CONFIG_DIR = os.path.join(cfg.__config_dir__, BASE_DIR)
+
+from JobPanel.backend.service_frontend import ServiceFrontend
 
 # logging setup on STDOUT or to FILE
 logger = logging.getLogger("UiTrace")
@@ -63,18 +56,32 @@ class JobPanel(object):
         self._app = QtWidgets.QApplication(args)
         
         #icon
-        self._app.setWindowIcon(icon.get_app_icon("js-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("jp-geomap"))
 
         # load data container
         self._data = DataContainer()
         Installation.set_init_paths(CONFIG_DIR, self._data.workspaces.get_path())
 
         # setup com manager
-        self._com_manager = ComManager(self._data)
+        #self._com_manager = ComManager(self._data)
+
+        # todo: presunuto z main_window, nevim jeslti to je v poradku
+        # select workspace if none is selected
+        if self._data.workspaces.get_path() is None:
+            import sys
+            sel_dir = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose workspace")
+            if not sel_dir:
+                sys.exit(0)
+            elif sys.platform == "win32":
+                sel_dir = sel_dir.replace('/', '\\')
+            self._data.reload_workspace(sel_dir)
+
+        # setup frontend service
+        self._frontend_service = ServiceFrontend(self._data)
 
         # setup qt UI
         self._main_window = MainWindow(data=self._data,
-                                       com_manager=self._com_manager)
+                                       frontend_service=self._frontend_service)
 
         # connect save all on exit
         self._app.aboutToQuit.connect(self._data.save_all)
@@ -87,11 +94,34 @@ class JobPanel(object):
     def run(self):
         """Run app and show UI"""
 
+        # on win start Docker Machine
+        if sys.platform == "win32":
+            dlg = DockerMachineStartDialog()
+            dlg.exec()
+
+        # start frontend service
+        self._frontend_service.run_before()
+
+        # start backend service
+        self._frontend_service.start_backend()
+
         # show UI
         self._main_window.show()
 
         # execute app
-        sys.exit(self._app.exec_())
+        ret = self._app.exec_()
+
+        # stop backend service
+        self._frontend_service.stop_backend()
+        for i in range(10):
+            time.sleep(0.1)
+            self._frontend_service.run_body()
+        self._frontend_service.kill_backend()
+
+        # stop frontend service
+        self._frontend_service.run_after()
+
+        sys.exit(ret)
 
 
 def main():
@@ -106,12 +136,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             # display message box with the exception
             if job_panel is not None and job_panel.mainwindow is not None:
                 err_dialog = GMErrorDialog(job_panel.mainwindow)

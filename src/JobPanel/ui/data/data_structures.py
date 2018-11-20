@@ -6,13 +6,13 @@ JobPanel data structures
 """
 import os
 
-import config as cfg
-from geomop_util import Serializable
+import gm_base.config as cfg
+from gm_base.geomop_util import Serializable
 
 from .preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
 from .mj_data import MultiJob
-from ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
-from geomop_analysis import Analysis
+from ...ui.imports.workspaces_conf import WorkspacesConf, BASE_DIR
+from gm_base.geomop_analysis import Analysis
 
 class PersistentDict(dict):
     """Persistent dictionary containing configuration."""
@@ -256,8 +256,8 @@ class DataContainer:
             if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
                 self.config.analysis = None
             self.pause_func()
-            self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())            
-            self.reload_func()            
+            self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())
+            self.reload_func()
             self.config.selected_mj = self.workspaces.get_selected_mj()
             self.config.analysis = self.workspaces.get_selected_analysis() 
             self.save_mj()

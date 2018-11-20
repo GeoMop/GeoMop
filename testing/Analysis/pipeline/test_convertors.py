@@ -1,6 +1,6 @@
-from pipeline.convertors import *
-from pipeline.data_types_tree import *
-from pipeline.generic_tree import *
+from Analysis.pipeline.convertors import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.generic_tree import *
 
 def test_convertors_validation():
     v1 = VariableGenerator(Variable=Ensemble(

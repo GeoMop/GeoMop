@@ -4,8 +4,8 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-from leconfig import cfg
-from ui.dialogs.settings import SettingsDialog
+#from leconfig import cfg
+from ..dialogs.settings import SettingsDialog
 
 
 class MainSettingsMenu(QMenu):

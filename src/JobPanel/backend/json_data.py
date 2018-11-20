@@ -45,6 +45,13 @@ class ClassFactory:
         assert False
 
 
+class JsonDataNoConstruct:
+    """
+    Template class for data that will not be deserialized.
+    """
+    pass
+
+
 class JsonData:
     """
     Abstract base class for various data classes.
@@ -112,6 +119,11 @@ class JsonData:
         elif isinstance(temp, ClassFactory):
             assert data.__class__ is dict
             return temp.make_instance(data)
+
+        # JsonDataNoConstruct
+        elif isinstance(temp, JsonDataNoConstruct):
+            assert data.__class__ is dict
+            return data
 
         # IntEnum
         elif isinstance(temp, IntEnum):
@@ -191,27 +203,19 @@ class JsonData:
         else:
             return obj
 
-    # @staticmethod
-    # def make_instance(config):
-    #     """
-    #     Make instance from config dict.
-    #     Dict must contain item "__class__" with name of desired class.
-    #     :param config:
-    #     :return:
-    #     """
-    #     if "__class__" not in config:
-    #         return None
-    #
-    #     # find class by name
-    #     cn = config["__class__"]
-    #     if cn in locals():
-    #         c = locals()[cn]
-    #     elif cn in globals():
-    #         c = globals()[cn]
-    #     else:
-    #         return None
-    #
-    #     # instantiate class
-    #     d = config.copy()
-    #     del d["__class__"]
-    #     return c(d)
+    # tools
+    #######
+
+    @staticmethod
+    def construct_dict(temp, data):
+        """
+        Deserialize dict items and return them in new dict.
+        :param temp: template of dict items
+        :param data: dict or JsonDataNoConstruct
+        :return: new dict with constructed items
+        """
+        d = {}
+        if isinstance(data, dict):
+            for k, v in data.items():
+                d[k] = JsonData._deserialize(temp, v)
+        return d

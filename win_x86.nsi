@@ -119,6 +119,9 @@ Section "Runtime Environment" SecRuntime
   # Copy the common folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
 
+  # Copy the gm_base folder.
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\gm_base"
+
   # Copy LICENSE, CHANGELOG, VERSION.
   File "${GIT_DIR}\VERSION"
   File "${GIT_DIR}\CHANGELOG.md"
@@ -142,6 +145,21 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
 
+  # Install ruamel.yaml.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\ruamel.yaml-0.15.58.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\ruamel.yaml-0.15.58.tar.gz"'
+
+  # Install psutil.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\psutil-5.4.6.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.6.tar.gz"'
+
+  # Install pyDes.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\pyDes-2.0.1.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyDes-2.0.1.tar.gz"'
+
   # Install gmsh.
   SetOutPath $INSTDIR
   File /r "${BUILD_DIR}\gmsh"
@@ -149,6 +167,10 @@ Section "Runtime Environment" SecRuntime
   # Install intersections.
   SetOutPath $INSTDIR
   File /r "${GIT_DIR}\submodules\intersections"
+
+  # Install yaml_converter.
+  SetOutPath $INSTDIR
+  File /r "${GIT_DIR}\submodules\yaml_converter"
 
   # Create directories with samples.
   CreateDirectory "$INSTDIR\sample"
@@ -172,12 +194,40 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
+/*
+# Flow123d with support for GeoMop.
+Section "Flow123d" SecFlow
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\flow123d"
+  SetOutPath $INSTDIR
+  File /r "${BUILD_DIR}\flow123d"
+  ExecWait '"$INSTDIR\flow123d\install.bat"'
+
+SectionEnd
+*/
+
+
 Section "-JobsScheduler" SecJobsScheduler
 
   # Section is mandatory.
   SectionIn RO
 
   RMDir /r "$INSTDIR\JobsScheduler"
+
+SectionEnd
+
+
+Section "Analysis" SecAnalysis
+
+  # Section is mandatory.
+  SectionIn RO
+
+  RMDir /r "$INSTDIR\Analysis"
+  SetOutPath $INSTDIR
+  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\Analysis"
 
 SectionEnd
 
@@ -194,7 +244,7 @@ Section "Geometry" SecGeometry
 SectionEnd
 
 
-Section /o "-JobPanel" SecJobPanel
+Section "JobPanel" SecJobPanel
 
   # Section is mandatory.
   SectionIn RO
@@ -245,27 +295,31 @@ Section "-Batch files" SecBatchFiles
   CreateDirectory "$INSTDIR\bin"
   SetOutPath $INSTDIR\bin
 
-  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +5
+  IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +6
     FileOpen $0 "job_panel.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\JobPanel\job_panel.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +5
+  IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +6
     FileOpen $0 "layer_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\layer_editor.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +5
+  IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +6
     FileOpen $0 "model_editor.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +5
+  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +6
     FileOpen $0 "geometry.bat" w
     FileWrite $0 "@echo off$\r$\n"
+    FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py" %*$\r$\n'
     FileClose $0
 
@@ -274,6 +328,12 @@ Section "-Batch files" SecBatchFiles
     FileWrite $0 "@echo off$\r$\n"
     FileWrite $0 '"$INSTDIR\gmsh\gmsh.exe" %*$\r$\n'
     FileClose $0
+
+  FileOpen $0 "pythonw.bat" w
+  FileWrite $0 "@echo off$\r$\n"
+  FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
+  FileWrite $0 'start "" "$PYTHON_SCRIPTS\pythonw.exe" %*$\r$\n'
+  FileClose $0
 
 SectionEnd
 
@@ -292,15 +352,15 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\LayerEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\gm_base\resources\icons\ico\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\ModelEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\gm_base\resources\icons\ico\me-geomap.ico" 0
 
 SectionEnd
 
@@ -309,15 +369,15 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortCut "$DESKTOP\JobPanel.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\common\icon\128x128\jp-geomap.ico" 0
+    CreateShortCut "$DESKTOP\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\jp-geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
-    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\common\icon\128x128\le-geomap.ico" 0
+    CreateShortCut "$DESKTOP\LayerEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\LayerEditor\layer_editor.py"' "$INSTDIR\gm_base\resources\icons\ico\le-geomap.ico" 0
 
   IfFileExists "$INSTDIR\ModelEditor\model_editor.py" 0 +3
     SetOutPath $INSTDIR\ModelEditor
-    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$PYTHON_SCRIPTS\pythonw.exe" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\common\icon\128x128\me-geomap.ico" 0
+    CreateShortCut "$DESKTOP\ModelEditor.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\ModelEditor\model_editor.py"' "$INSTDIR\gm_base\resources\icons\ico\me-geomap.ico" 0
 
 SectionEnd
 
@@ -367,8 +427,14 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
 "The runtime environment for GeoMop - Python 3.4 with PyQt5."
+# !insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
+# "Flow123d with support for GeoMop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
 "Remove jobs scheduler."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecAnalysis} \
+"Module Analysis."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecGeometry} \
+"Module Geometry."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
 "The job panel."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecLayerEditor} \

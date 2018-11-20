@@ -4,8 +4,8 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from meconfig import cfg
-from geomop_dialogs import GMAboutDialog
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.geomop_dialogs import GMAboutDialog
 
 
 class MainFileMenu(QMenu):
@@ -87,8 +87,9 @@ class MainFileMenu(QMenu):
             return
         self._recent.setEnabled(True)
         for i in range(from_row, len(cfg.config.recent_files)):
-            reaction = self._recent_group.addAction(QAction(
-                cfg.config.recent_files[i], self, checkable=True))
+            action = QAction(cfg.config.recent_files[i], self, checkable=True)
+            action.setData(cfg.config.recent_files[i])            
+            reaction = self._recent_group.addAction(action)            
             self._recent.addAction(reaction)
         self._recent_group.triggered.connect(self._model_editor.open_recent)
         self._recent_file_signal_connect = True

@@ -9,10 +9,10 @@ import os
 import time
 import copy
 
-from communication import Installation
-from data.states import TaskStatus, JobsState
-from ui.data.preset_data import APreset
-from geomop_util import Serializable
+from JobPanel.communication import Installation
+from JobPanel.data.states import TaskStatus, JobsState, TASK_STATUS_PERMITTED_ACTIONS, MultijobActions
+from ..data.preset_data import APreset
+from gm_base.geomop_util import Serializable
 
 
 class MultiJobState:
@@ -125,11 +125,32 @@ class MultiJobPreset(APreset):
         name = kw_or_def('name', 'Default MultiJob Preset Name')
         super().__init__(name)
 
-        self.resource_preset = kw_or_def('resource_preset')
+        #self.resource_preset = kw_or_def('resource_preset')
         """Selected resource preset"""
        # self.pbs_preset = kw_or_def('pbs_preset')
         """AdHoc PBS preset override"""
-        self.log_level = kw_or_def('log_level', logging.DEBUG)
+
+        # MJ
+        self.mj_execution_type = kw_or_def('mj_execution_type')
+        """Defines how to execute MJ"""
+        self.mj_ssh_preset = kw_or_def('mj_ssh_preset')
+        """SSH preset for option"""
+        self.mj_remote_execution_type = kw_or_def('mj_remote_execution_type')
+        """Defines how to execute MJ remote component"""
+        self.mj_pbs_preset = kw_or_def('mj_pbs_preset')
+        """PBS preset for option"""
+
+        # Job
+        self.j_execution_type = kw_or_def('j_execution_type')
+        """Defines how to execute Job"""
+        self.j_ssh_preset = kw_or_def('j_ssh_preset')
+        """SSH preset for option"""
+        self.j_remote_execution_type = kw_or_def('j_remote_execution_type')
+        """Defines how to execute Job remote component"""
+        self.j_pbs_preset = kw_or_def('j_pbs_preset')
+        """PBS preset for option"""
+
+        self.log_level = kw_or_def('log_level', logging.WARNING)
         """Logging level"""
         self.number_of_processes = kw_or_def('number_of_processes', 1)
         """Number of processes used by MultiJob"""
@@ -138,7 +159,9 @@ class MultiJobPreset(APreset):
         self.from_mj = kw_or_def('from_mj', None)
         """Name of the source multijob (if reused)."""
         self.deleted_remote = kw_or_def('deleted_remote', False)
-        """Name of the source multijob (if reused)."""
+        """True if remote was deleted."""
+        self.downloaded = kw_or_def('downloaded', False)
+        """True if mj was downloaded."""
 
     def __repr__(self):
         """
@@ -156,6 +179,11 @@ class MultiJob:
         excluded=['valid']
     )
 
+    rdeleted_actions = {
+        MultijobActions.delete_remote,
+        MultijobActions.download_whole
+    }
+
     def __init__(self, preset, **kwargs):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
@@ -169,6 +197,8 @@ class MultiJob:
         self.last_status = kw_or_def('last_status', None)
         """State before deleting"""
         self.valid = True
+        """actions dependent on internal state of mj"""
+
 
     @property
     def id(self):
@@ -194,22 +224,52 @@ class MultiJob:
         Return list of Jobs that belong to MultiJob.
         :return: List of Jobs
         """
-        res_path = Installation.get_result_dir_static(self.preset.name, self.preset.analysis)
+        conf_path = Installation.get_config_dir_static(self.preset.name, self.preset.analysis)
         states = JobsState()
-        states.load_file(res_path)
+        states.load_file(conf_path)
         return states.jobs
+
+    def is_action_forbidden(self, action):
+        """Return True if specified action is forbidden for this MultiJob
+        :param action: MultiJob action e.g. delete or stop
+        :return: False if action is permitted and true if it is forbidden
+        """
+        mj_local = self.preset.mj_ssh_preset is None
+        return(self.state.status is None or
+               (self.state.status, action) not in TASK_STATUS_PERMITTED_ACTIONS or
+               (action in self.rdeleted_actions and self.preset.deleted_remote) or
+               (action == MultijobActions.download_whole and (self.preset.downloaded or mj_local)) or
+               (action == MultijobActions.reuse and not mj_local and self.preset.deleted_remote))
 
     def get_logs(self):
         """
         Scans log directory and returns log files.
         :return: List of MultiJobLog objects
         """
-        log_path = Installation.get_mj_log_dir_static(self.preset.name, self.preset.analysis)
         logs = []
-        for file in os.listdir(log_path):
-            if os.path.isfile(os.path.join(log_path, file)):
-                log = MultiJobLog(log_path, file)
-                logs.append(log)
+        mj_config_path = Installation.get_config_dir_static(self.preset.name, self.preset.analysis)
+
+        # MJ preparation log
+        file = "mj_preparation.log"
+        if os.path.isfile(os.path.join(mj_config_path, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+            logs.append(log)
+
+        # MJ log
+        file = "mj_service.log"
+        if os.path.isfile(os.path.join(mj_config_path, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+            logs.append(log)
+
+        # Jobs log
+        for dir in os.listdir(mj_config_path):
+            job_dir = os.path.join(mj_config_path, dir)
+            if os.path.isdir(job_dir) and dir.startswith("action_"):
+                file = "job_service.log"
+                if os.path.isfile(os.path.join(job_dir, file)):
+                    log = MultiJobLog(os.path.normpath(job_dir), file)
+                    logs.append(log)
+
         return logs
 
     def get_results(self):
@@ -241,7 +301,6 @@ class MultiJob:
             elif recurs and os.path.isdir(new):
                 ress.extend(self._get_result_from_dir(new))
         return ress
-                
 
     def get_configs(self):
         """

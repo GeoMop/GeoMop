@@ -344,19 +344,19 @@ class ShpFiles():
         del self.datas[idx]
         self.boundrect = self._shp_rect()
         
-    def serialize(self, shps):
+    def serialize(self):
         """Set shp persistent variable to dictionary"""
-        shps.clear()
         for disp in self.datas:
             shp = {}
             shp['file'] = disp.file
             shp['attr'] = disp.attr
-            shps.append(shp)
+            shp['color'] = disp.color.name()
             shp['show'] = []
-            shp['highlight'] = []
+            shp['highlight'] = []            
             for i in range(0, len(disp.av_show)):
-                shp['show'] .append(disp.av_show[i])
-                shp['highlight'] .append(disp.av_highlight[i])
+                shp['show'].append(disp.av_show[i])
+                shp['highlight'].append(disp.av_highlight[i])
+            yield shp
         
     def deserialize(self, shps):
         """Get shp persistent variable from dictionary"""
@@ -364,6 +364,8 @@ class ShpFiles():
             if os.path.exists(shp['file']):
                 disp = self.add_file(shp['file'])
                 disp.set_attr(shp['attr'])
+                if "color" in shp:
+                    disp.set_color(QtGui.QColor(shp['color']))
                 for i in range(0, len(disp.av_show)):
                     if i<len(shp['show'] ):
                         disp.set_show(i, shp['show'] [i])

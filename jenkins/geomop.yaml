@@ -1,0 +1,227 @@
+# TODO
+# - create multi job as in Flow123d
+# - try single test job
+# - reuse doc job, use build name for commit message
+# - build job, version given by  file version.txt
+# - review response from tests, nee to see only failing tests
+#########################################################################################
+# Test and build all platform
+#########################################################################################
+
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    # Mark the build with branch name    
+    - shell: |
+        echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+        expr substr ${GIT_COMMIT} 1 6 >> prop.file
+        pwd
+        ls -l
+    # Build packages    
+    - shell: VERSION=${version} TESTS=${process_tests} /home/geomop/docker/jenkins.sh
+    concurrent: false
+    description: null
+    disabled: false
+    name: 'gm-build'
+    display-name: "GeoMop Build"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    - string:
+        default: ''
+        description: Specify version string.
+        name: version
+    - bool:
+        default: true
+        description: Test GeoMop application before installation building.
+        name: process_tests
+    project-type: freestyle
+    publishers:
+    - archive:
+        artifacts: 'dist/*.deb, dist/*.exe'
+        allow-empty: false
+        only-if-success: false
+        fingerprint: true
+        default-excludes: false
+        case-sensitive: true
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+    triggers: []
+    wrappers: []
+
+#########################################################################################
+# Create doc and push to github
+#########################################################################################
+# Not good practice to modify geomop.github.io by CI.
+# TODO:
+#   - publish on bacula and make links at geomop.github.io
+
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell: |
+        cd /var/lib/jenkins/workspace/gm-doc/doc
+        make html
+        cd /home/geomop/geomop_doc/geomop.github.io
+        git pull
+        rm -R GeoMop
+        cp -R /var/lib/jenkins/workspace/gm-doc/doc/_build/html GeoMop
+        git add . 
+        git commit -m "${cname}"
+        git push
+    concurrent: false
+    description: null
+    disabled: false
+    name: 'gm-doc'
+    display-name: "Update GeoMop Doc"
+    parameters:
+    - string:
+        default: master
+        description: Select git branch.
+        name: branch
+    - string:
+        default: new version
+        description: Commit doc version name
+        name: cname
+    project-type: freestyle
+    scm:
+    - git:
+        branches:
+        - refs/heads/${branch}
+        url: https://github.com/GeoMop/GeoMop
+
+#########################################################################################
+# Test after commit
+#########################################################################################
+- job-template:
+    name: "test-{module}"
+    display-name: "Test {module} module"
+    builders:
+      - shell:
+          pwd
+          ls -l|
+          cd testing/{module}
+          ./fb_test_wrapper.sh python3 -m pytest --junitxml="{module}.xml" . 
+    publishers:
+      - junit:
+          results: "{result-file}"
+    wrappers:
+      - build-name:
+          name: $BUILD_NAME
+
+
+#########################################################################################
+# Test after commit
+#########################################################################################
+- job:
+    name: "test-all"
+    display-name: "All tests"
+    scm:
+    - git:
+        branches:
+        - '*'
+        url: https://github.com/GeoMop/GeoMop
+    triggers:
+    - github
+    wrappers:
+    - build-name:
+        name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+    builders:
+#    - shell: |
+#        echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+#        expr substr ${GIT_COMMIT} 1 6 >> prop.file
+    - shell: |
+        git submodule init
+        origin_url=$( git config --get remote.origin.url ) ;\
+        if [ "${origin_url}" != "${origin_url#https}" ]; \
+        then \
+            cp .gitmodules_https .gitmodules; \
+        fi
+        git submodule sync
+        git checkout .gitmodules
+        git submodule update
+    - shell: |
+        cd testing
+        ./fb_test_wrapper.sh python3 -m pytest -s --junitxml="all_tests.xml" .
+    publishers:
+    - junit:
+        results: "testing/all_tests.xml"
+
+#- project:
+#   name: "test-{module}"
+#   module:
+#       - common:
+#           test-file: runCm.py
+#           result-file: testCommon.xml
+#       - me:
+#           test-file: runMe.py
+#           result-file: testMe.xml
+#       - le:
+#           test-file: runLe.py
+#           result-file: testLe.xml
+#       - jp:
+#           test-file: runJp.py
+#           result-file: testJp.xml
+#       - an:
+#           test-file: runAn.py
+#           result-file: testAn.xml
+#   jobs:
+#       -    test-gm-base"
+#
+#- job:
+#    name: "gm-linux-tests"
+#    display-name: "GeoMop Linux Tests"
+#    scm:
+#    - git:
+#        branches:
+#        - '*'
+#        url: https://github.com/GeoMop/GeoMop
+#    project-type: multijob
+#    triggers:
+#      - github
+#    wrappers:
+#      - build-name:
+#          name: "${GIT_BRANCH}@${GIT_REVISION, length=6}"
+#    builders:
+#      - shell: |
+#          echo -n BUILD_NAME=${GIT_BRANCH}@ > prop.file
+#          expr substr ${GIT_COMMIT} 1 6 >> prop.file
+#          pwd
+#          ls -l
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - gm_base'
+#          projects:
+#            - name: test-gm-base
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Analysis'
+#          projects:
+#            - name: test-analysis
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Model Editor'
+#          projects:
+#            - name: test-model-editor
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Layers'
+#          projects:
+#            - name: test-layers
+#              property-file: prop.file
+#      - multijob:
+#          condition: COMPLETED
+#          name: 'Unit tests - Job Panel'
+#          projects:
+#            - name: test-job-panel
+#              property-file: prop.file

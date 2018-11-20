@@ -1,8 +1,12 @@
-from geometry_files import GeometryFactory, LayerType, TopologyType
+import os
+from gm_base.geometry_files.format_last import  LayerType, TopologyType, InterpolatedNodeSet, InterfaceNodeSet
+from gm_base.geometry_files.geometry_factory import GeometryFactory
 from .diagram_structures import Diagram
-from .layers_structures import FractureInterface, Surface
-import geometry_files.polygons_io as polygons_io
-import geometry_files.geometry_structures as gs
+from .layers_structures import FractureInterface
+import gm_base.polygons.polygons_io as polygons_io
+#import gm_base.geometry_files.format_last as gs
+import gm_base.geometry_files.layers_io as layers_io
+
 
 class LESerializer():
     """Class for diagram data serialization"""
@@ -14,7 +18,8 @@ class LESerializer():
     def set_new(self, cfg):
         """Set new file"""
         first_geometry = self._get_first_geometry()
-        self.geometry_to_cfg(first_geometry, cfg)
+        Diagram.area.serialize(first_geometry.supplement.init_area)
+        self.geometry_to_cfg("", first_geometry, cfg)
 
     def cfg_reset(self, cfg):
         #TODO: move definiftion and calls to cfg
@@ -24,13 +29,13 @@ class LESerializer():
         cfg.diagram = None
 
     def _get_first_geometry(self):
-        lname = "Layer 1"
+        lname = "Layer_1"
         gf = GeometryFactory()
         gf.set_default()
 
         regions = ([], [], []) # No node, segment, polygon or regions.
-        ns_top = gf.get_surface_ns(0, gf.add_surface_plane(0.0))
-        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_surface_plane(100.0))
+        ns_top = gf.get_interface_ns(0, gf.add_interface_plane(0.0))
+        ns_bot = gf.get_interpolated_ns(0, 0, gf.add_interface_plane(-100.0))
         gf.add_GL(lname, LayerType.stratum, regions,
                   TopologyType.given, ns_top,
                   TopologyType.interpolated, ns_bot)
@@ -40,25 +45,110 @@ class LESerializer():
         return gf.geometry
 
     def load(self, cfg, path):
-        geometry =  gs.read_geometry(path)
-        assert geometry.version == [0, 5, 0]
-        self.geometry_to_cfg(geometry, cfg, path)
+        geometry =  layers_io.read_geometry(path)
+        self.geometry_to_cfg(path, geometry, cfg)
 
-    def geometry_to_cfg(self, geometry, cfg, path=""):
+    def get_layer_nodesets(self, layer, top):
+        """
+
+        :param layer:
+        :param side:
+        :return:
+        """
+        if layer is None:
+            return []
+        else:
+            if top:
+                ns = layer.top
+            else:
+                ns = layer.bottom
+            if type(ns) is InterfaceNodeSet:
+                return [ns.nodeset_id]
+            else:
+                ns_ids = [ n.nodeset_id for n in ns.surf_nodesets]
+                return ns_ids
+
+    def eq_layer_topology(self, layer_a, layer_b):
+        if layer_a is None or layer_b is None:
+            return True
+        return self.gf.get_gl_topology(layer_a) == self.gf.get_gl_topology(layer_b)
+
+    def _get_ns_id(self, ns_set):
+        if len(ns_set) == 1:
+            return ns_set[0]
+        else:
+            return None
+
+    def isec_ns(self, ns_a, ns_b):
+        if not ns_a or not ns_b:
+            return True
+        return len(set(ns_a) & set(ns_b)) == 0
+
+    def add_interface(self, gl_interface, top_layer, fracture,  bot_layer):
+        fracture_name = None
+        fracture_type = FractureInterface.none
+        diagram_fr_id = None
+        splitted = not self.eq_layer_topology(top_layer, bot_layer)
+
+
+        top_nodesets = self.get_layer_nodesets(top_layer, top=False)
+        top_diag_id = self._get_ns_id(top_nodesets)
+        bot_nodesets = self.get_layer_nodesets(bot_layer, top=True)
+        bot_diag_id = self._get_ns_id(bot_nodesets)
+
+        # Topologies should be different iff layers have no common nodeset.
+        have_isec = bool(top_nodesets) and bool(bot_nodesets) and self.isec_ns(top_nodesets, bot_nodesets)
+        assert splitted == have_isec
+
+        if fracture is not None:
+            fracture_name = fracture.name
+            if splitted:
+                fr_nodesets = self.get_layer_nodesets(fracture, top=True)
+                is_top_topology = self.isec_ns(fr_nodesets, top_nodesets)
+                is_bot_topology = self.isec_ns(fr_nodesets, top_nodesets)
+
+                assert is_top_topology == self.eq_layer_topology(fracture, top_layer)
+                assert is_bot_topology == self.eq_layer_topology(fracture, bot_layer)
+                assert not (is_top_topology  and is_bot_topology)
+                if is_top_topology:
+                    fracture_type = FractureInterface.top
+                elif is_bot_topology:
+                    fracture_type = FractureInterface.bottom
+                else:
+                    fracture_type = FractureInterface.own
+                    diagram_fr_id = self._get_ns_id(fr_nodesets)
+                    assert diagram_fr_id is not None
+
+        # for add_interface single diagram ID must be always first one
+        # TODO: Refactor data structures and have methods to add individual layers
+        # then we can remove this complicated method.
+        if not splitted and top_diag_id is None:
+            top_diag_id = bot_diag_id
+            bot_diag_id = None
+        self.cfg.layers.add_interface(gl_interface, splitted,
+                          fracture_name, top_diag_id, bot_diag_id, fracture_type, diagram_fr_id)
+
+    def geometry_to_cfg(self, path, geometry, cfg):
         """Load diagram data from set file"""
         self.cfg_reset(cfg)
+        self.cfg = cfg
 
         curr_topology = 0
         curr_block = 0
         # curr_topology and curr_block is for mapping topology to consistent line
         gf = GeometryFactory(geometry)
+        self.gf = gf
+        gf._base_dir = os.path.dirname(path)
         errors = gf.check_file_consistency()        
         if len(errors)>0:
             raise LESerializerException(
-                "Some file consistency errors occure in {0}".format(path), errors)
-        for region in gf.get_regions():
-            Diagram.add_region(region.color, region.name, region.dim, region.mesh_step,
+                "Some file consistency errors occure in {0}".format(geometry._base_file), errors)
+        for reg_id, region in enumerate(gf.get_regions()):
+            Diagram.add_region(region.color, region.name, reg_id, region.dim, region.mesh_step,
                 region.boundary, region.not_used)
+
+        cfg.layers.load_surfaces(gf.load_surfaces())
+
         for i in range(0, len(gf.geometry.node_sets)):
             new_top = gf.geometry.node_sets[i].topology_id
             if new_top != curr_topology:
@@ -68,116 +158,48 @@ class LESerializer():
             if len(cfg.diagrams)==1:
                 cfg.diagram = cfg.diagrams[0]
             self._read_ns(cfg.diagrams[-1], i, gf)
+
         ns_idx = 0
         last_fracture = None
         last_stratum = None
-        layer_id=0
-        for i in range(0, len(gf.geometry.layers)):
-            layer = gf.geometry.layers[i]
-            regions = gf.get_GL_regions(i)
-            if layer.layer_type is LayerType.shadow:
-                cfg.add_shapes_to_region(False, layer_id, layer.name, -1, regions)
-            else:
-                cfg.add_shapes_to_region(layer.layer_type == LayerType.fracture, 
-                    layer_id, layer.name, gf.get_gl_topology(layer), regions)            
-            if layer.layer_type == LayerType.fracture:
+        layer_id = 0
+
+        for layer in gf.geometry.layers:
+            regions = [
+                layer.node_region_ids,
+                layer.segment_region_ids,
+                layer.polygon_region_ids]
+
+            is_fracture_layer = layer.layer_type == LayerType.fracture
+            topology_id = gf.get_gl_topology(layer)
+            cfg.add_shapes_to_region(is_fracture_layer, layer_id, layer.name, topology_id, regions)
+
+            if is_fracture_layer:
                 last_fracture = layer
                 continue
             layer_id += 1
+
             # add interface
-            surface = gf.geometry.surfaces[layer.top.surface_id]
-            #surface = Surface(surface_.depth, surface_.transform_xy,
-            #    surface_.transform_z, surface_.grid_file)
-            if last_stratum is None:
-                # first surface
-                name = None
-                id1 = None
-                if last_fracture is not None:
-                    name = last_fracture.name
-                    last_fracture = None
-                if layer.top_type is TopologyType.given:                
-                    id1 = layer.top.nodeset_id
-                cfg.layers.add_interface(surface, False, name, id1)
-            elif last_stratum.bottom_type is TopologyType.interpolated and \
-                layer.top_type is TopologyType.interpolated:                
-                # interpolated non splitted interface
-                if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(layer):                    
-                    if last_fracture is not None:
-                        cfg.layers.add_interface(surface, False, last_fracture.name)
-                        last_fracture = None
-                    else:
-                        cfg.layers.add_interface(surface, False)
-                else:
-                    if last_fracture is not None:
-                        if last_fracture.top_type is TopologyType.interpolated:
-                            if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(last_fracture):
-                                cfg.layers.add_interface(surface, True, last_fracture.name, None, None, FractureInterface.top)   
-                            else:
-                                cfg.layers.add_interface(surface, True, last_fracture.name, None, None, FractureInterface.bottom)   
-                        else:
-                            cfg.layers.add_interface(surface, True, last_fracture.name, None, None, FractureInterface.own, 
-                                last_fracture.top.nodeset_id)
-                        last_fracture = None    
-                    else:
-                        cfg.layers.add_interface(surface, True, last_fracture.name)
-            elif last_stratum.bottom_type is TopologyType.given and \
-                layer.top_type is TopologyType.given and \
-                last_stratum.bottom.nodeset_id == layer.top.nodeset_id:
-                # given non splitted interface
-                if last_fracture is not None:
-                    cfg.layers.add_interface(surface, False, last_fracture.name, layer.top.nodeset_id)
-                    last_fracture = None
-                else:
-                    cfg.layers.add_interface(surface, False, None, layer.top.nodeset_id)
-            else:
-                # splitted surface
-                fracture_name = None
-                fracture_type = FractureInterface.none
-                fracture_id = None
-                if last_fracture is not None:
-                    fracture_name = last_fracture.name
-                    if last_fracture.top_type is TopologyType.interpolated:
-                        if gf.get_gl_topology(last_stratum) == gf.get_gl_topology(last_fracture):
-                            fracture_type = FractureInterface.top
-                        else:
-                            fracture_type = FractureInterface.bottom   
-                    else:                        
-                        if last_stratum.bottom_type is TopologyType.given and \
-                            last_fracture.top.nodeset_id == last_stratum.bottom.nodeset_id:
-                            fracture_type = FractureInterface.top
-                        elif layer.top_type is TopologyType.given and \
-                            last_fracture.top.nodeset_id == layer.top.nodeset_id:
-                            fracture_type = FractureInterface.bottom
-                        else:
-                            fracture_id = last_fracture.top.nodeset_id
-                            fracture_type = FractureInterface.own
-                    last_fracture = None
-                id1 = None
-                id2 = None
-                if last_stratum.bottom_type is TopologyType.given:
-                    id1 = last_stratum.bottom.nodeset_id
-                if layer.top_type is TopologyType.given:    
-                    id2 = layer.top.nodeset_id
-                cfg.layers.add_interface(surface, True, fracture_name, id1, id2, fracture_type, fracture_id)
-            # add layer
-            cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow) 
+            interface = gf.get_interface(layer.top.interface_id)
+            self.add_interface(interface, last_stratum, last_fracture, layer)
+
+            cfg.layers.add_layer(layer.name, layer.layer_type is LayerType.shadow)
             last_stratum = layer
-        #last interface
-        surface_ = gf.geometry.surfaces[last_stratum.bottom.surface_id]
-        surface = Surface(surface_.depth, surface_.transform_xy, 
-                surface_.transform_z, surface_.grid_file)
-        id1 = None
-        if last_stratum.bottom_type is TopologyType.given:
-            id1 = last_stratum.bottom.nodeset_id
-        if last_fracture is not None:
-            cfg.layers.add_interface(surface, False, last_fracture.name, id1)
-        else:
-            cfg.layers.add_interface(surface, False, None, id1)        
+            if last_fracture is not None:
+                last_fracture = None
+
+
+        if last_stratum:
+            interface = gf.get_interface(last_stratum.bottom.interface_id)
+            self.add_interface(interface, last_stratum, last_fracture, None)
+
         if gf.geometry.supplement.last_node_set < len(gf.geometry.node_sets):
             ns_idx = gf.geometry.supplement.last_node_set        
         Diagram.area.deserialize(gf.geometry.supplement.init_area)
         Diagram.zooming.deserialize(gf.geometry.supplement.zoom)
-        Diagram.shp.deserialize(gf.geometry.supplement.shps)        
+        Diagram.shp.deserialize(gf.get_shape_files())
+
+        cfg.reload_surfaces(gf.geometry.supplement.surface_idx)
         cfg.diagram = cfg.diagrams[ns_idx]         
         cfg.diagram.fix_topologies(cfg.diagrams)
         cfg.layers.compute_composition()
@@ -193,60 +215,64 @@ class LESerializer():
 
         for input_id, node in enumerate(nodes):
             x, y = node
-            node_id = diagram.add_point_id(x, -y)
-            assert node_id == input_id
+            node_id = diagram.add_point_id(x, -y, input_id)
+            assert node_id>=input_id
 
         decomp = polygons_io.deserialize(nodes, topology)
         diagram.import_decomposition(decomp)
 
     def save(self, cfg, path):
-        geometry = self.cfg_to_geometry(cfg)
-        gs.write_geometry(path, geometry)
+        geometry = self.cfg_to_geometry(cfg, path)
+        layers_io.write_geometry(path, geometry)
 
-    def cfg_to_geometry(self, cfg):
+    def cfg_to_geometry(self, cfg, path):
         """Save diagram data to set file"""
         gf = GeometryFactory()
-        for reg in cfg.diagram.regions.regions:
+        gf._base_dir = os.path.dirname(path)
+        for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
+        gf.save_surfaces(cfg.layers.surfaces)
+
+            
         # layers
         layers_info = cfg.layers.get_first_layer_info()
 
         self._written_diagram_ids = set()
         self._tp_idx_to_out_tp_idx = {}
         while not layers_info.end:
-            self._write_ns(layers_info.diagram_id1, cfg, gf)
-            self._write_ns(layers_info.diagram_id2, cfg, gf)
+            self._write_ns(layers_info.diag_top_id, cfg, gf)
+            self._write_ns(layers_info.diag_bot_id, cfg, gf)
 
             if layers_info.stype1 is TopologyType.interpolated:
-                surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
-                if layers_info.diagram_id2 is None:
-                    id2 = layers_info.diagram_id1
+                interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx])
+                if layers_info.diag_bot_id is None:
+                    id2 = layers_info.diag_top_id
                     surface2 = layers_info.surface1
                 else:
-                    id2 = layers_info.diagram_id2
+                    id2 = layers_info.diag_bot_id
                     surface2 = layers_info.surface2
-                ns1 = gf.get_interpolated_ns(layers_info.diagram_id1, id2, surface_idx,
+                ns1 = gf.get_interpolated_ns(layers_info.diag_top_id, id2, interface_idx,
                                              layers_info.surface1, surface2)
                 ns1_type = TopologyType.interpolated
             else:
-                surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx].surface)
-                ns1 = gf.get_surface_ns(layers_info.diagram_id1, surface_idx)
+                interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx])
+                ns1 = gf.get_interface_ns(layers_info.diag_top_id, interface_idx)
                 ns1_type = TopologyType.given
 
             if layers_info.stype2 is TopologyType.interpolated:
-                surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
-                if layers_info.diagram_id2 is None:
-                    id2 = layers_info.diagram_id1
+                interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx + 1])
+                if layers_info.diag_bot_id is None:
+                    id2 = layers_info.diag_top_id
                     surface2 = layers_info.surface1
                 else:
-                    id2 = layers_info.diagram_id2
+                    id2 = layers_info.diag_bot_id
                     surface2 = layers_info.surface2
-                ns2 = gf.get_interpolated_ns(layers_info.diagram_id1, id2, surface_idx,
+                ns2 = gf.get_interpolated_ns(layers_info.diag_top_id, id2, interface_idx,
                                              layers_info.surface1, surface2)
                 ns2_type = TopologyType.interpolated
             else:
-                surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
-                ns2 = gf.get_surface_ns(layers_info.diagram_id2, surface_idx)
+                interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx + 1])
+                ns2 = gf.get_interface_ns(layers_info.diag_bot_id, interface_idx)
                 ns2_type = TopologyType.given
 
             if layers_info.fracture_before is not None:
@@ -264,16 +290,20 @@ class LESerializer():
                 gf.add_GL(layers_info.fracture_after.name, LayerType.fracture, regions, ns2_type, ns2)
             if layers_info.fracture_own is not None:
                 self._write_ns(layers_info.fracture_own.fracture_diagram_id, cfg, gf)
-                surface_idx = gf.add_surface(cfg.layers.interfaces[layers_info.layer_idx + 1].surface)
-                ns = gf.get_surface_ns(layers_info.fracture_own.fracture_diagram_id, surface_idx)
+                interface_idx = gf.add_interface(cfg.layers.interfaces[layers_info.layer_idx + 1])
+                ns = gf.get_interface_ns(layers_info.fracture_own.fracture_diagram_id, interface_idx)
                 regions = cfg.get_shapes_from_region(True, layers_info.layer_idx + 1)
                 gf.add_GL(layers_info.fracture_own.name, LayerType.fracture, regions, TopologyType.given, ns)
                 layers_info.block_idx += 1
             layers_info = cfg.layers.get_next_layer_info(layers_info)
         gf.geometry.supplement.last_node_set = cfg.get_curr_diagram()
+        gf.geometry.supplement.surface_idx = cfg.get_curr_surfaces()
         Diagram.area.serialize(gf.geometry.supplement.init_area)
         Diagram.zooming.serialize(gf.geometry.supplement.zoom)
-        Diagram.shp.serialize(gf.geometry.supplement.shps)
+
+        for shp in Diagram.shp.serialize():
+            gf.add_shape_file(shp)
+
         errors = gf.check_file_consistency()
         if len(errors) > 0:
             raise LESerializerException("Some file consistency errors occure", errors)

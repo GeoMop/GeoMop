@@ -6,15 +6,15 @@
 import logging
 import os
 from copy import deepcopy
-import config as cfg
-from geomop_shortcuts import shortcuts
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from geomop_util.logging import LOGGER_PREFIX
-from geomop_util import Serializable
-from geomop_dialogs import GMErrorDialog
-from geomop_analysis import Analysis, InvalidAnalysis
-import ui.data
-from ui.helpers import CurrentView
+import gm_base.config as cfg
+from gm_base.geomop_shortcuts import shortcuts
+from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
+from gm_base.geomop_util.logging import LOGGER_PREFIX
+from gm_base.geomop_util import Serializable
+from gm_base.geomop_dialogs import GMErrorDialog
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from LayerEditor.ui import data as le_data
+from LayerEditor.ui.helpers import CurrentView
 
 
 class _Config:
@@ -176,7 +176,7 @@ class LEConfig:
     """List of diagram data"""
     history = None
     """History for current geometry data"""
-    layers = ui.data.Layers()
+    layers = None
     """Layers structure"""
     diagram =  None
     """Current diagram data"""
@@ -195,6 +195,18 @@ class LEConfig:
     """Current geometry data file path"""
     geomop_root = ""
     """Path to the root directory of the GeoMop installation."""
+    
+    @classmethod
+    def reload_surfaces(cls, id=None):
+        """Reload surface panel"""
+        if cls.main_window is not None:
+            cls.main_window.wg_surface_panel.change_surface(id)
+        
+    @classmethod
+    def get_curr_surfaces(cls):
+        """Get current surface id from surface panel"""
+        return  cls.main_window.wg_surface_panel.get_surface_id()
+        
 
     @classmethod
     def changed(cls):
@@ -204,17 +216,17 @@ class LEConfig:
     @classmethod
     def add_region(cls, color, name, dim, step,  boundary, not_used):
         """Add region"""
-        ui.data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
+        le_data.Diagram.add_region(color, name, dim, step,  boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
         """Add shape to region"""
-        ui.data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
+        le_data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
     
     @classmethod
     def get_shapes_from_region(cls, is_fracture, layer_id):
         """Get shapes from region""" 
-        return ui.data.Diagram.get_shapes_from_region(is_fracture, layer_id)
+        return le_data.Diagram.get_shapes_from_region(is_fracture, layer_id)
         
     @classmethod
     def set_curr_diagram(cls, i):
@@ -244,9 +256,9 @@ class LEConfig:
                 cls.diagrams.insert(dup.insert_id, cls.diagrams[dup.insert_id-1].dcopy())
             else:
                 cls.diagrams.insert(dup.insert_id, cls.make_middle_diagram(dup))
-        if oper is ui.data.TopologyOperations.insert:
+        if oper is le_data.TopologyOperations.insert:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id, cls.diagrams)
-        elif oper is ui.data.TopologyOperations.insert_next:
+        elif oper is le_data.TopologyOperations.insert_next:
             cls.diagrams[dup.insert_id].move_diagram_topologies(dup.insert_id+1, cls.diagrams)
             
     @classmethod
@@ -256,8 +268,8 @@ class LEConfig:
         for i in range(0, len(diagrams)):
             cls.diagrams.insert(id+i, diagrams[i])
             cls.diagrams[id+i].join()
-        if oper is ui.data.TopologyOperations.insert or \
-            oper is ui.data.TopologyOperations.insert_next:
+        if oper is le_data.TopologyOperations.insert or \
+            oper is le_data.TopologyOperations.insert_next:
             cls.diagrams[id].move_diagram_topologies(id+len(diagrams), cls.diagrams)
             
     @classmethod
@@ -267,26 +279,27 @@ class LEConfig:
         cls.history.removed_diagrams.append(cls.diagrams[idx])
         curr_id = cls.diagram_id()
         del cls.diagrams[idx]
-        ui.data.Diagram.fix_topologies(cls.diagrams)
+        le_data.Diagram.fix_topologies(cls.diagrams)
         return curr_id == idx
         
     @classmethod
     def make_middle_diagram(cls, dup):
-        """return interpolated new diagram in set depth"""
+        """return interpolated new diagram in set elevation"""
         # TODO: instead copy compute middle diagram
         return cls.diagrams[dup.dup1_id].dcopy()
         
     @classmethod
     def release_all(cls):
         """Release all diagram data"""
-        ui.data.Diagram.release_all(cls.history)
+        le_data.Diagram.release_all(cls.history)
     
     @classmethod
     def init(cls):
         """Init class with static method"""
-        cls.history = ui.data.GlobalHistory(cls)
-        ui.data.Diagram.release_all(cls.history)
-        cls.le_serializer = ui.data.LESerializer(cls)
+        cls.history = le_data.GlobalHistory(cls)
+        cls.layers = le_data.Layers(cls.history)
+        le_data.Diagram.release_all(cls.history)
+        cls.le_serializer = le_data.LESerializer(cls)
         
     @staticmethod
     def get_current_view(location):
@@ -305,7 +318,7 @@ class LEConfig:
         if cls.diagram is not None:
             if not cls.diagram.shp.is_file_open(file):
                 try:
-                    disp = cls.diagram.shp.add_file(file)
+                    disp = cls.diagram.add_file(file)
                     if len(disp.errors)>0:
                         err_dialog = GMErrorDialog(cls.main_window)
                         err_dialog.open_error_report_dialog(disp.errors, msg="Shape file parsing errors:" ,  title=file)
@@ -420,8 +433,8 @@ class LEConfig:
         shortcut = None
         if name in shortcuts_definition.SYSTEM_SHORTCUTS:
             shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
-        elif name in cls.config.shortcuts:
-            shortcut = cls.config.shortcuts[name]
+        elif name in shortcuts_definition.DEFAULT_USER_SHORTCUTS:
+            shortcut = shortcuts_definition.DEFAULT_USER_SHORTCUTS[name]
         if shortcut:
             return shortcuts.get_shortcut(shortcut)
         return None

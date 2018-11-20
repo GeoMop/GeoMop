@@ -53,15 +53,21 @@ class Pbs():
         dirs = self.config.dialect.get_pbs_directives(self.mj_path, self.config)
         for dl in dirs:
             f.write(dl + '\n')
-
         f.write('#\n')
         f.write('\n')
+
         for line in self.config.pbs_params:
             f.write(line + '\n')
+        if len(self.config.pbs_params) > 0:
+            f.write('\n')
         for com in load_commands:
             f.write(com + '\n')
         if len(load_commands) > 0:
             f.write('\n')
+
+        # work dir
+        f.write('cd "{}"\n\n'.format(self.mj_path))
+
         line = ""
         for arg in limit_args:
             line += arg + " "
@@ -176,17 +182,14 @@ class PbsDialectPBSPro(PbsDialect):
         :param pbs_config: PbsConf object with data.
         :return: List of PBS directives.
         """
-        directives = list()
-        # ToDo fix cwd work around
-        # http://www.uibk.ac.at/zid/systeme/hpc-systeme/common/tutorials/pbs-howto.html
-        # directives.append("#PBS -cwd")
+        directives = []
         directives.append("#PBS -S /bin/bash")
         # ToDo fix terse
         # There seems to be no option for that
         # http://docs.adaptivecomputing.com/torque/4-0-2/Content/topics/commands/qsub.htm#-t
         # directives.append("#PBS -terse")
-        directives.append("#PBS -o " + os.path.join(work_dir, "pbs_output"))
-        directives.append("#PBS -e " + os.path.join(work_dir, "pbs_error"))
+        directives.append('#PBS -o "{}"'.format(os.path.join(work_dir, "pbs_output")))
+        directives.append('#PBS -e "{}"'.format(os.path.join(work_dir, "pbs_error")))
         #directives.append("#PBS -d " + work_dir)
 
         # PBS -N name
@@ -217,7 +220,7 @@ class PbsDialectPBSPro(PbsDialect):
         # PBS -l walltime=1:00:00
         walltime = "1:00:00"
         if pbs_config.walltime != "":
-            walltime = pbs_config.walltime
+            walltime = "{}:00:00".format(pbs_config.walltime)
         directives.append("#PBS -l walltime=%s" % walltime)
 
         # PBS -q queue

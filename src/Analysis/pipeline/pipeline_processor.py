@@ -184,7 +184,7 @@ class Pipelineprocessor():
                         if self._action is QueueType.internal:
                             logger.info("Internal action {0} processing is began".format(
                                 self._action. _get_instance_name()))
-                            process = subprocess.Popen(runner.command, stderr=subprocess.PIPE)
+                            process = subprocess.Popen(runner.command, stderr=subprocess.PIPE, cwd=runner.work_dir)
                             return_code = process.poll()
                             if return_code is not None:
                                 out =  self.__read_err(process.stderr)
@@ -211,7 +211,7 @@ class Pipelineprocessor():
                 self._action_lock.acquire()
                 self._action = None
                 self._action_lock.release()
-        
+
         def stop(self):
             self._action_lock.acquire()
             self._stop = True
@@ -370,25 +370,30 @@ class Pipelineprocessor():
             self._pipeline._set_restore_id(il)
 
         # rename output files
-        output_dir = "./output"
-        output_tmp_dir = "./output_tmp"
-        if os.path.isdir(output_dir):
-            shutil.rmtree(output_tmp_dir, ignore_errors=True)
-            os.makedirs(output_tmp_dir)
-            if il is not None:
-                inverse_il = {v: k for k, v in il._instance_dict.items()}
-                for entry in os.listdir(output_dir):
-                    if os.path.isdir(os.path.join(output_dir, entry)):
-                        s = entry.split(sep="_", maxsplit=1)
-                        old_id = s[0]
-                        suffix = "_" + (s[1] if len(s) == 2 else "")
-                        if old_id in inverse_il:
-                            new_id = inverse_il[old_id]
-                            shutil.move(os.path.join(output_dir, old_id + suffix),
-                                        os.path.join(output_tmp_dir, new_id + suffix))
-            shutil.rmtree(output_dir, ignore_errors=True)
-            os.rename(output_tmp_dir, output_dir)
-        
+        output_tmp_dir = "output_tmp"
+        shutil.rmtree(output_tmp_dir, ignore_errors=True)
+        os.makedirs(output_tmp_dir)
+        for entry in os.listdir("."):
+            if os.path.isdir(entry) and entry.startswith("action_"):
+                shutil.move(entry, os.path.join(output_tmp_dir, entry[7:]))
+        if il is not None:
+            inverse_il = {v: k for k, v in il._instance_dict.items()}
+            for entry in os.listdir(output_tmp_dir):
+                tmp_output = os.path.join(output_tmp_dir, entry, "output")
+                if os.path.isdir(tmp_output):
+                    s = entry.split(sep="_", maxsplit=1)
+                    old_id = s[0]
+                    if len(s) == 2:
+                        suffix = "_" + s[1]
+                    else:
+                        suffix = ""
+                    if old_id in inverse_il:
+                        new_id = inverse_il[old_id]
+                        action_dir = "action_" + new_id + suffix
+                        os.makedirs(action_dir)
+                        shutil.move(tmp_output, os.path.join(action_dir, "output"))
+        shutil.rmtree(output_tmp_dir, ignore_errors=True)
+
     def __set_loger(self,  path,  level):
         """set logger"""        
         if not os.path.isdir(path):
@@ -441,7 +446,6 @@ class Pipelineprocessor():
             # get all available actions
             while state is ActionRunningState.repeat:
                 state, action = self._pipeline. _plan_action(self._save_path)
-                i +=1
                 if action is not None and state is not ActionRunningState.finished:
                     wait_actions.append(action)
             wait_actions = sorted(wait_actions, key=lambda item: item._get_priority())

@@ -45,21 +45,6 @@ def _exception_answer(e):
     """
     return { 'error': 'Exception', 'exception': repr(e), 'traceback': traceback.format_tb() }
 
-# def _close_request():
-#     """
-#     Auxiliary request to inform service about clossed server-side connection.
-#     Action should return no answer.
-#     :return:
-#     """
-#     return {'action': 'request_close'}
-
-# def _close_answer():
-#     """
-#     Auxiliary answer to inform service about clossed clinet-side connection.
-#     :return:
-#     """
-#     return {'action': 'on_answer_close'}
-
 class RequestData:
     """
     Format of request returned by the AsyncRepeater.
@@ -110,7 +95,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         4. Connected.
     """
-    def __init__(self, repeater_address, server_dispatcher, connection, get_answer_on_connect=None):
+    def __init__(self, repeater_address, server_dispatcher, connection, get_answer_on_connect=None, map=None):
         """
         :param repeater_address: Address of this repeater.
         :param server_dispatcher: Server side of the repeater (can be None). Used to resend answers.
@@ -135,26 +120,51 @@ class _ClientDispatcher(asynchat.async_chat):
         self.received_data = bytearray()
         # Storage for partially received answer.
         self.connection = connection
-        self.connection_id = connection._id
+        """connection for creating tunnels"""
         self.forwarded_local_port = None
+        """forwarded local port for connection to service"""
+        self.forwarded_local_port_id = None
+        """forwarded local port connection id"""
+        self.forwarded_remote_port = None
+        """forwarded remote port for back connection from service"""
+        self.forwarded_remote_port_id = None
+        """forwarded remote port connection id"""
 
         self.connect_to_address_queue = []
         """Queue for connect request"""
         self.push_queue = []
         """Queue for push request"""
+        self.request_close = False
+        """True if service thread wants to close dispatcher."""
+        self.request_close_done = False
+        """True if dispatcher was closed."""
 
         self.set_remote_address_lock = threading.Lock()
         """Lock for set_remote_address()"""
 
-        asynchat.async_chat.__init__(self)
+        asynchat.async_chat.__init__(self, map=map)
 
     def connect_to_address_safe(self, address):
+        """
+        Thread safe version of connect_to_address.
+        :param address:
+        :return:
+        """
         self.connect_to_address_queue.append(address)
 
     def connect_to_address(self, address):
+        """
+        Connect dispatcher to child service.
+        :param address: address where child service listening
+        :return:
+        """
         self.close()
         #self.discard_buffers()
         self.received_data.clear()
+
+        # clear push_queue
+        for i in range(len(self.push_queue)):
+            self.push_queue.pop(0)
 
         # create request 0
         with self.sent_requests_lock:
@@ -162,7 +172,7 @@ class _ClientDispatcher(asynchat.async_chat):
 
         self.address = address
         self.create_socket()
-        self.socket.settimeout(1)
+        self.socket.settimeout(5)
         logging.info("Connecting: %s" % (str(self.address)))
         try:
             self.connect(self.address)
@@ -219,34 +229,75 @@ class _ClientDispatcher(asynchat.async_chat):
             self._remote_address = address
 
         # forward tunnel
-        self.connection_id = self.connection._id
+        self.forwarded_local_port_id = self.connection._id
         self.forwarded_local_port = self.connection.forward_local_port(self._remote_address[1])
 
         #self.connect_to_address(("localhost", local_port))
         self.connect_to_address_safe((self._remote_address[0], self.forwarded_local_port))
 
     def reconnect(self):
-        if self.connection._id > self.connection_id:
-            self.connection_id = self.connection._id
+        """
+        Reconnect dispatcher.
+        :return:
+        """
+        if self.connection._id > self.forwarded_local_port_id:
+            self.forwarded_local_port_id = self.connection._id
             self.forwarded_local_port = self.connection.forward_local_port(self._remote_address[1])
         self.connect_to_address_safe((self._remote_address[0], self.forwarded_local_port))
 
-    def process_queues(self):
-        # connect to address
-        l = len(self.connect_to_address_queue)
-        if l > 0:
-            address = None
-            for i in range(l):
-                address = self.connect_to_address_queue.pop(0)
-            self.connect_to_address(address)
+    def forward_remote_port(self, local_port):
+        """
+        Forwards remote port for service back connection.
+        :param local_port:
+        :return:
+        """
+        self.forwarded_remote_port_id = self.connection._id
+        self.forwarded_remote_port = self.connection.forward_remote_port(local_port)
+        return self.forwarded_remote_port
 
-        # push
-        l = len(self.push_queue)
-        if l > 0:
-            for i in range(l):
-                self.push(self.push_queue.pop(0))
+    def close_forwarded_ports(self):
+        """
+        Close forwarded ports opened by dispatcher.
+        :return:
+        """
+        # forwarded_local_port
+        if (self.forwarded_local_port_id is not None) and (self.forwarded_local_port_id == self.connection._id):
+            self.connection.close_forwarded_local_port(self.forwarded_local_port)
+
+        # forwarded_remote_port
+        if (self.forwarded_remote_port_id is not None) and (self.forwarded_remote_port_id == self.connection._id):
+            self.connection.close_forwarded_remote_port(self.forwarded_remote_port)
+
+    def process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
+        if self.request_close:
+            if not self.request_close_done:
+                self.close()
+                self.request_close_done = True
+        else:
+            # connect to address
+            l = len(self.connect_to_address_queue)
+            if l > 0:
+                address = None
+                for i in range(l):
+                    address = self.connect_to_address_queue.pop(0)
+                self.connect_to_address(address)
+
+            # push
+            l = len(self.push_queue)
+            if l > 0:
+                for i in range(l):
+                    self.push(self.push_queue.pop(0))
 
     def push_safe(self, data):
+        """
+        Thread safe version of push.
+        :param data:
+        :return:
+        """
         self.push_queue.append(data)
 
 
@@ -304,13 +355,13 @@ class _ClientDispatcher(asynchat.async_chat):
 
 
 class Server(asyncore.dispatcher):
-    def __init__(self,  repeater, port, clients):
+    def __init__(self,  repeater, port, clients, map=None):
         """
         host - get automatically
         :param port - port ( same as in socket module)
         """
         self.repeater = repeater
-        asyncore.dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self, map=map)
         self.server_dispatcher = ServerDispatcher(repeater.repeater_address, port, clients)
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -330,15 +381,14 @@ class Server(asyncore.dispatcher):
         self.repeater._starter_client_attempting = False
 
         # close previous connection
-        #self.server_dispatcher.close()
+        self.server_dispatcher.close()
         #self.server_dispatcher.discard_buffers()
         self.server_dispatcher.received_data.clear()
 
         client_info = self.accept()
         logging.info("Incomming connection accepted.")
         #print("Incomming connection accepted.")
-        self.server_dispatcher.accept(client_info[0])
-        return
+        self.server_dispatcher.accept2(client_info[0], self._map)
 
     def handle_close(self):
         self.close()
@@ -368,11 +418,15 @@ class ServerDispatcher(asynchat.async_chat):
         self.push_queue = []
         """Queue for push request"""
 
+        self._async_chat_init = False
+        """True if async_chat was initialized"""
 
-    def accept(self, socket):
+
+    def accept2(self, socket, map):
         logging.info("Accept")
         #socket.settimeout(2)
-        asynchat.async_chat.__init__(self, sock = socket)
+        asynchat.async_chat.__init__(self, sock = socket, map=map)
+        self._async_chat_init = True
         #self.set_socket(socket)
         self.set_terminator(_terminator)
         return
@@ -404,6 +458,10 @@ class ServerDispatcher(asynchat.async_chat):
                 self.push_safe( _pack_message(id, self.repeater_address, sender, data) )
 
     def process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
         # push
         l = len(self.push_queue)
         if l > 0:
@@ -411,7 +469,16 @@ class ServerDispatcher(asynchat.async_chat):
                 self.push(self.push_queue.pop(0))
 
     def push_safe(self, data):
+        """
+        Thread safe version of push.
+        :param data:
+        :return:
+        """
         self.push_queue.append(data)
+
+    def close(self):
+        if self._async_chat_init:
+            super().close()
 
 
     """
@@ -438,8 +505,12 @@ class ServerDispatcher(asynchat.async_chat):
                 self.requests.append( msg )
                 logging.info("requests len: %d"%( len(self.requests)  ))
             else:
-                if recipient[0] in self.clients:
+                try:
                     client = self.clients[recipient[0]]
+                except KeyError:
+                    msg={ 'error' : "Unknown recipient", 'recipient': self.own_address + recipient[0] }
+                    self.push( _pack_message(id, self.repeater_address, sender, msg ) )
+                else:
                     if client.connected:
                         try:
                             # forward message
@@ -451,11 +522,6 @@ class ServerDispatcher(asynchat.async_chat):
                     else:
                         msg = {'error': "Recipient not connected", 'recipient': self.repeater_address + recipient[0]}
                         self.push(_pack_message(id, self.repeater_address, sender, msg) )
-
-                else:
-                    msg={ 'error' : "Unknown recipient", 'recipient': self.own_address + recipient[0] }
-                    self.push( _pack_message(id, self.repeater_address, sender, msg ) )
-
 
     def handle_close(self):
         #self.logger.debug('handle_close()')
@@ -470,11 +536,11 @@ class StarterServer(asyncore.dispatcher):
     """
     Server which accepts reverse connection from child repeaters.
     """
-    def __init__(self, async_repeater):
+    def __init__(self, async_repeater, map=None):
         """
         :param async_repeater:
         """
-        asyncore.dispatcher.__init__(self)
+        asyncore.dispatcher.__init__(self, map=map)
 
         self.async_repeater = async_repeater
 
@@ -491,7 +557,7 @@ class StarterServer(asyncore.dispatcher):
 
 class StarterServerDispatcher(asyncore.dispatcher):
     def __init__(self, sock, async_repeater):
-        super().__init__(sock)
+        super().__init__(sock, map=async_repeater._socket_map)
         self.async_repeater = async_repeater
 
     def handle_read(self):
@@ -504,14 +570,23 @@ class StarterServerDispatcher(asyncore.dispatcher):
             if len(s) == 2:
                 child_id = int(s[0])
                 port = int(s[1])
-                print((child_id, port))
+                #print((child_id, port))
                 #print(self.async_repeater.clients)
 
-                if child_id in self.async_repeater.clients:
-                    self.async_repeater.clients[child_id].set_remote_address((peername[0], port))
-                    logging.info("Initial back connection done.")
+                try:
+                    client = self.async_repeater.clients[child_id]
+                except KeyError:
+                    pass
+                else:
+                    if not client.request_close:
+                        client.set_remote_address((peername[0], port))
+                        logging.info("Initial back connection done.")
         self.close()
         # We close also if we get wrong data. As whole connection is from bad guy.
+
+    def handle_error(self):
+        self.close()
+
 
 class AsyncRepeater():
     """
@@ -525,7 +600,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, parent_address=("", 0)):
+    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0, requested_listen_port=0):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater. Empty list mean root repeater.
@@ -535,11 +610,15 @@ class AsyncRepeater():
         :param parent_address:
                 socket address ( address, port) of the parent repeater to connect for initialization.
         """
+        self._socket_map = {}
+        """asyncore socket map"""
         self.repeater_address = repeater_address
         self.parent_address = parent_address
-        self.max_client_id=0
+        self.max_client_id = max_client_id
         self.clients = {}
         """ Dict of clients. Keys client_id. """
+        self.clients_lock = threading.Lock()
+        """Lock for clients"""
         self._server = None
         self._server_dispatcher = None
         self.listen_port = None
@@ -547,19 +626,15 @@ class AsyncRepeater():
         self._starter_client_thread = None
         self._starter_client_attempting = False
         if self.parent_address[0] != "":
-            self._server = Server(self, 0, self.clients)
+            self._server = Server(self, requested_listen_port, self.clients, map=self._socket_map)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
             self._starter_client_attempting = True
 
-        self._starter_server = StarterServer(self)
+        self._starter_server = StarterServer(self, map=self._socket_map)
         self._loop_thread = None
         self._loop_closing = False
-
-        self.add_child_lock = threading.Lock()
-        """Lock for add_child()"""
-
 
     def run(self):
         """
@@ -578,18 +653,31 @@ class AsyncRepeater():
             logging.info("Starter client started.")
 
     def _loop(self):
+        """
+        Repeater loop.
+        :return:
+        """
         while not self._loop_closing:
-            asyncore.loop(timeout=0.01, count=1)
+            asyncore.loop(timeout=0.01, map=self._socket_map, count=1)
             self._process_queues()
 
     def _process_queues(self):
+        """
+        Process requests from other threads.
+        :return:
+        """
+        # server dispatcher
         if self._server_dispatcher is not None:
             self._server_dispatcher.process_queues()
-        for c in self.clients.values():
+
+        # clients
+        with self.clients_lock:
+            clients = list(self.clients.values())
+        for c in clients:
             c.process_queues()
 
 
-    def add_child(self, connection, remote_address=None):
+    def add_child(self, connection, remote_address=None, id=None):
         """
         Setup connection to a child repeater.
         1. Create a Dispatcher for connection to the child repeater, but do not connect.
@@ -613,40 +701,57 @@ class AsyncRepeater():
              Then it servers also as a unique token to check that the correct repeater is connecting to the StarterServer.
              Must keep generating of ID atomic.
         """
-        with self.add_child_lock:
-            self.max_client_id += 1
-            id = self.max_client_id
-        self.clients[id] = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection)
+        client = _ClientDispatcher(self.repeater_address, self._server_dispatcher, connection, map=self._socket_map)
+
+        with self.clients_lock:
+            if id is not None:
+                assert id not in self.clients
+                if id > self.max_client_id:
+                    self.max_client_id = id
+            else:
+                self.max_client_id += 1
+                id = self.max_client_id
+
+            self.clients[id] = client
 
         if remote_address:
-            self.clients[id].set_remote_address(remote_address)
+            client.set_remote_address(remote_address)
             remote_port = None
         else:
             # remote tunnel
             local_port = self._starter_server.address[1]
-            remote_port = connection.forward_remote_port(local_port)
+            remote_port = client.forward_remote_port(local_port)
 
         return id, remote_port
 
     def reconnect_child(self, id):
+        """
+        Reconnect client dispatcher.
+        :param id:
+        :return:
+        """
         self.clients[id].reconnect()
 
     def remove_child(self, id):
-        self.clients[id].close()
-        del self.clients[id]
+        """
+        Remove connection to child repeater.
+        :param id:
+        :return:
+        """
+        self.clients[id].request_close = True
 
-
-    # def close_child_repeater(self, id):
-    #     """
-    #     Check that socket to child is closed. Delete the dispatcher.
-    #
-    #     TODO: thread safe?
-    #     :param id:
-    #     :return:
-    #     """
-    #     self.clients[id].close()
-    #     del self.clients[id]
-    #     return
+    def discard_closed_childs(self):
+        """
+        Remove closed childs from self.clients and close their forwarded ports.
+        :return:
+        """
+        discard = []
+        with self.clients_lock:
+            for k in list(self.clients.keys()):
+                if self.clients[k].request_close_done:
+                    discard.append(self.clients.pop(k))
+        for d in discard:
+            d.close_forwarded_ports()
 
     def send_request(self, target, data, on_answer):
         """
@@ -699,21 +804,31 @@ class AsyncRepeater():
 
     def close(self):
         """
-
+        Close repeater.
         :return:
         """
+        # repeater loop
         if self._loop_thread is not None:
             self._loop_closing = True
             self._loop_thread.join(timeout=1)
             if self._loop_thread.is_alive():
                 logging.warning("Repeater loop closing timeout.")
+
+        # server
         if self._server is not None:
             self._server.close()
+
+        # server dispatcher
         if self._server_dispatcher is not None:
             self._server_dispatcher.close()
+
+        # client dispatchers
         for c in self.clients.values():
             if c is not None:
                 c.close()
+                c.close_forwarded_ports()
+
+        # starter server
         self._starter_server.close()
 
     def _starter_client_run(self):

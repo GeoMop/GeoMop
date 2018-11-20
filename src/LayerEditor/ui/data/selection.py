@@ -1,4 +1,4 @@
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 
 class Selection():
@@ -100,21 +100,24 @@ class Selection():
         self.selected_polygons = []
         
     def get_selected_regions(self, diagram):
-        """ For all layers of set diagram return: 
-            - selected region, if selected shapes have same regions
-            - or None region if regions is different
+        """ For all layers of set diagram return:
+            - selected region, if selected shapes have same regions and dimensions
+            - previous point return applies to the highest dimension shape in case of mismatch
+            - or None region if regions of the highest dimension are different
         """
         ret = None
         default = diagram.get_default_regions()
         for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
-            for shape in selected:
-                next =  shape.get_regions()
-                if ret is None:
-                    ret = next
-                else:
-                    for i in range (0, len(default)):
-                        if ret[i]!=next[i]:
-                            ret[i]=default[i]
+            if selected:
+                ret = None
+                for shape in selected:
+                    next = shape.get_regions()
+                    if ret is None:
+                        ret = next
+                    else:
+                        for i in range (0, len(default)):
+                            if ret[i] != next[i]:
+                                ret[i] = default[i]
         if ret is None:
             return default
         return ret
@@ -128,11 +131,11 @@ class Selection():
         with_region = False
         for point in self.selected_points:
             if point.set_default_region():
-                point.object.update()
+                point.object.update_color()
                 with_region = True
         for line in self.selected_lines:
             if line.set_default_region():
-                line.object.update()
+                line.object.update_color()
                 with_region = True
         for polygon in self.selected_polygons:
             if polygon.set_default_region():
@@ -174,17 +177,17 @@ class Selection():
         set current region to selected shapes of appropriate dimension,
         restricts selection to this shapes
         """
-        for point in self.selected_points:
+        for point in self.selected_points.copy():
             if point.set_current_region():
-                point.object.update()
+                point.object.update_color()
             else:
                 self.select_point(point)
-        for line in self.selected_lines:
+        for line in self.selected_lines.copy():
             if line.set_current_region():
-                line.object.update()
+                line.object.update_color()
             else:
                 self.select_line(line, False)
-        for polygon in self.selected_polygons:
+        for polygon in self.selected_polygons.copy():
             if polygon.set_current_region():
                 polygon.object.update_color()
             else:

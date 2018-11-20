@@ -7,8 +7,8 @@ Tree widget panel
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from ui.data.shp_structures import ShpDisp
-from ui.menus.shpfiles import ShpFilesMenu
+from ..data.shp_structures import ShpDisp
+from ..menus.shpfiles import ShpFilesMenu
 
 class ShpFiles(QtWidgets.QTableWidget):
     """Widget displays the config file structure in table.

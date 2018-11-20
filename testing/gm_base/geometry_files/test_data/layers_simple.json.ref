@@ -1,0 +1,171 @@
+{
+    "__class__": "LayerGeometry",
+    "curves": [],
+    "interfaces": [],
+    "layers": [
+        {
+            "__class__": "StratumLayer",
+            "bottom": {
+                "__class__": "InterpolatedNodeSet",
+                "interface_id": 0,
+                "surf_nodesets": [
+                    {
+                        "__class__": "InterfaceNodeSet",
+                        "interface_id": 0,
+                        "nodeset_id": 0
+                    },
+                    {
+                        "__class__": "InterfaceNodeSet",
+                        "interface_id": 0,
+                        "nodeset_id": 0
+                    }
+                ]
+            },
+            "name": "New Layer",
+            "node_region_ids": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "polygon_region_ids": [
+                0,
+                0
+            ],
+            "segment_region_ids": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "top": {
+                "__class__": "InterfaceNodeSet",
+                "interface_id": 0,
+                "nodeset_id": 0
+            }
+        }
+    ],
+    "node_sets": [
+        {
+            "__class__": "NodeSet",
+            "linked_node_ids": [],
+            "linked_node_set_id": null,
+            "nodes": [
+                [
+                    131.1953352769679,
+                    145.6268221574344
+                ],
+                [
+                    251.23906705539355,
+                    87.9008746355685
+                ],
+                [
+                    279.44606413994165,
+                    158.09037900874634
+                ],
+                [
+                    133.16326530612244,
+                    144.6804951488792
+                ]
+            ],
+            "topology_id": 0
+        }
+    ],
+    "regions": [
+        {
+            "__class__": "Region",
+            "boundary": false,
+            "brep_shape_ids": [],
+            "color": "##",
+            "dim": "none",
+            "mesh_step": null,
+            "name": "NONE",
+            "not_used": true
+        }
+    ],
+    "supplement": {
+        "__class__": "UserSupplement",
+        "init_area": [
+            [
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0
+            ],
+            [
+                1.0,
+                1.0
+            ],
+            [
+                0.0,
+                1.0
+            ]
+        ],
+        "last_node_set": 0,
+        "shps": [],
+        "surface_idx": null,
+        "zoom": {
+            "position_set": false,
+            "x": 0.0,
+            "y": 0.0,
+            "zoom": 1.0
+        }
+    },
+    "surfaces": [],
+    "topologies": [
+        {
+            "__class__": "Topology",
+            "polygons": [
+                {
+                    "__class__": "Polygon",
+                    "segment_ids": [
+                        2,
+                        1
+                    ],
+                    "surface_id": null
+                }
+            ],
+            "segments": [
+                {
+                    "__class__": "Segment",
+                    "node_ids": [
+                        0,
+                        3
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "__class__": "Segment",
+                    "node_ids": [
+                        1,
+                        2
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "__class__": "Segment",
+                    "node_ids": [
+                        3,
+                        1
+                    ],
+                    "surface_id": null
+                },
+                {
+                    "__class__": "Segment",
+                    "node_ids": [
+                        3,
+                        2
+                    ],
+                    "surface_id": null
+                }
+            ]
+        }
+    ],
+    "version": [
+        0,
+        5,
+        0
+    ]
+}

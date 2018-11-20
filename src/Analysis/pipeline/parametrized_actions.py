@@ -1,7 +1,7 @@
 from .action_types import ParametrizedActionType, Runner, QueueType,  ActionStateType
 from .data_types_tree import Struct, String
 
-from flow_util import YamlSupportRemote, analysis
+from gm_base.flow_util import YamlSupportRemote, analysis
 from .flow_data_types import *
 
 import os
@@ -55,12 +55,12 @@ class Flow123dAction(ParametrizedActionType):
             self._extend_error(self._load_errs, err)
             return
 
-        # check if mesh file exist
-        mesh_file = self._yaml_support.get_mesh_file()
-        mesh_file_path = os.path.join(dir, os.path.normpath(mesh_file))
-        if not os.path.isfile(mesh_file_path):
-            self._add_error(self._load_errs, "Mesh file don't exist.")
-            return
+        # check if input files exist
+        for file in self._yaml_support.get_input_files():
+            file_path = os.path.join(dir, os.path.normpath(file))
+            if not os.path.isfile(file_path):
+                self._add_error(self._load_errs, """Input file "{}" don't exist.""".format(file))
+                return
 
         # check hash consistency
         err, yaml_file_hash_real = YamlSupportRemote.file_hash(yaml_file)
@@ -70,18 +70,26 @@ class Flow123dAction(ParametrizedActionType):
         if self._yaml_support.get_yaml_file_hash() != yaml_file_hash_real:
             self._add_error(self._load_errs, "YAML file hash is inconsistent.")
 
-        err, mesh_file_hash_real = YamlSupportRemote.file_hash(mesh_file_path)
-        if len(err) > 0:
-            self._extend_error(self._load_errs, err)
-            return
-        if self._yaml_support.get_mesh_file_hash() != mesh_file_hash_real:
-            self._add_error(self._load_errs, "Mesh file hash is inconsistent.")
+        input_files_hashes = self._yaml_support.get_input_files_hashes()
+        for file in self._yaml_support.get_input_files():
+            file_path = os.path.join(dir, os.path.normpath(file))
+            err, file_hash_real = YamlSupportRemote.file_hash(file_path)
+            if len(err) > 0:
+                self._extend_error(self._load_errs, err)
+                return
+            if input_files_hashes[file] != file_hash_real:
+                self._add_error(self._load_errs, 'Input file "{}" hash is inconsistent.'.format(file))
 
         # process file hashes
         self._hash.update(bytes(self._yaml_support.get_yaml_file_hash(), "utf-8"))
-        self._hash.update(bytes(self._yaml_support.get_mesh_file_hash(), "utf-8"))
+        for file in self._yaml_support.get_input_files():
+            self._hash.update(bytes(input_files_hashes[file], "utf-8"))
 
         self._output = self.__file_output()
+
+    def _get_work_dir(self):
+        """returns action's working dir based on store_id"""
+        return "action_" + self._store_id
 
     def _get_variables_script(self):
         """return array of variables python scripts"""
@@ -96,8 +104,22 @@ class Flow123dAction(ParametrizedActionType):
         runner = Runner(self)
         runner.name = self._get_instance_name()
 
-        runner.command = ["flow123d", "-s", params[0], "-o", "output" + "/" + self._store_id]
-        # we need "/" as separator because flow runs in docker
+        yaml_file = params[0]
+        output_dir = "output"
+        flow_output_dir = os.path.relpath(output_dir, os.path.dirname(yaml_file))
+        # we need flow_output_dir relative to yaml_file
+        runner.command = ["flow123d", "-s", yaml_file, "-o", flow_output_dir]
+
+        runner.input_files = [yaml_file]
+        yaml_dir = os.path.dirname(yaml_file)
+        for file in self._yaml_support.get_input_files():
+            if yaml_dir != "":
+                file = yaml_dir + "/" + file
+                # we need "/" as separator because flow runs in docker
+            runner.input_files.append(file)
+        runner.output_files = [output_dir]
+
+        runner.work_dir = self._get_work_dir()
 
         return runner
         
@@ -107,10 +129,28 @@ class Flow123dAction(ParametrizedActionType):
         environment and return Runner class with  process description if 
         action is set for externall processing.        
         """
-        # todo: remove output files
-        shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
-        file = self.__parametrise_file()
-        return self._get_runner([file])
+        work_dir = self._get_work_dir()
+        os.makedirs(work_dir, exist_ok=True)
+        shutil.rmtree(os.path.join(work_dir, "output"), ignore_errors=True)
+
+        yaml_file = self.__parametrise_file()
+        runner = self._get_runner([yaml_file])
+
+        yaml_dir = os.path.dirname(self._variables['YAMLFile'])
+        for file in self._yaml_support.get_input_files():
+            file_path = os.path.join(yaml_dir, file)
+            dir = os.path.dirname(file_path)
+            os.makedirs(os.path.join(work_dir, dir), exist_ok=True)
+            work_dir_file_path = os.path.join(work_dir, file_path)
+            if os.path.lexists(work_dir_file_path):
+                os.remove(work_dir_file_path)
+            try:
+                os.symlink(os.path.relpath(file_path, os.path.dirname(work_dir_file_path)),
+                           work_dir_file_path)
+            except (NotImplementedError, OSError):
+                shutil.copyfile(file_path, work_dir_file_path)
+
+        return runner
         
     def _after_update(self, store_dir):    
         """
@@ -156,8 +196,8 @@ class Flow123dAction(ParametrizedActionType):
     def __file_result(self):
         """Add to DTT output real values from returned file"""
         # TODO: exception if fail
-        ret = FlowOutputType.create_data(self._yaml_support, os.path.join("output", self._store_id))
-        #shutil.rmtree(os.path.join("output", self._store_id), ignore_errors=True)
+        ret = FlowOutputType.create_data(self._yaml_support, os.path.join(self._get_work_dir(), "output"))
+        #shutil.rmtree(os.path.join(self._get_work_dir(), "output"), ignore_errors=True)
         return ret
 
     def __parametrise_file(self):
@@ -177,7 +217,8 @@ class Flow123dAction(ParametrizedActionType):
         params_dict = {}
         for param in self.__get_require_params():
             params_dict[param] = getattr(input, param)._to_string()
-        analysis.replace_params_in_file(file, new_file, params_dict)
+        os.makedirs(os.path.join(self._get_work_dir(), dir), exist_ok=True)
+        analysis.replace_params_in_file(file, os.path.join(self._get_work_dir(), new_file), params_dict)
 
         return new_file
 

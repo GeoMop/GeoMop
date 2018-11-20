@@ -9,4 +9,3 @@ from .edit_menu import EditMenu
 from .edit_menu import MainEditMenu
 from .file_menu import MainFileMenu
 from .settings_menu import MainSettingsMenu
-from .analysis_menu import AnalysisMenu

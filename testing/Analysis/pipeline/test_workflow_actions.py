@@ -1,32 +1,37 @@
-from pipeline.parametrized_actions import *
-from pipeline.generator_actions import *
-from pipeline.wrapper_actions import *
-from pipeline.data_types_tree import *
-from pipeline.workflow_actions import *
-from pipeline.pipeline import *
+from Analysis.pipeline.parametrized_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.wrapper_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.workflow_actions import *
+from Analysis.pipeline.pipeline import *
 from .pomfce import *
-import pipeline.action_types as action
+import Analysis.pipeline.action_types as action
 import os
 
 
-def test_workflow_code_init(request):
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+def test_workflow_code_init(request, change_dir_back):
     def clear_backup():
         pass
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     # test workflow with more action
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     workflow = Workflow(Inputs=[vg])
-    f1 = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    f2 = Flow123dAction(Inputs=[f1], YAMLFile="pipeline/resources/test2.yaml")
+    f1 = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    f2 = Flow123dAction(Inputs=[f1], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=f2, InputAction=f1)
     workflow._inicialize()
     vg._inicialize()
     f1._output = Struct()
     test = workflow._get_settings_script()
 
-    compare_with_file(os.path.join("pipeline", "results", "workflow3.py"), test)
+    compare_with_file(os.path.join("results", "workflow3.py"), test)
 
     # test validation
     err = workflow.validate()
@@ -42,15 +47,15 @@ def test_workflow_code_init(request):
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    side = Flow123dAction(Inputs=[vg], YAMLFile="pipeline/resources/test2.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     flow._output = String()
     workflow._inicialize()
     vg2._inicialize()
     test = workflow._get_settings_script()
 
-    compare_with_file(os.path.join("pipeline", "results", "workflow4.py"), test)
+    compare_with_file(os.path.join("results", "workflow4.py"), test)
 
     # test validation
     err = workflow.validate()
@@ -64,7 +69,7 @@ def test_workflow_code_init(request):
     # test workflow duplication
     action.__action_counter__ = 0
     workflow = Workflow()
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     w1 = workflow.duplicate()
@@ -75,7 +80,7 @@ def test_workflow_code_init(request):
     pipeline._inicialize()
     test = pipeline._get_settings_script()
 
-    compare_with_file(os.path.join("pipeline", "results", "workflow5.py"), test)
+    compare_with_file(os.path.join("results", "workflow5.py"), test)
 
     # test validation
     err = pipeline.validate()
@@ -100,7 +105,7 @@ def test_workflow_code_init(request):
     gen2 = RangeGenerator(Items=items2)
     workflow = Workflow()
     workflow2 = Workflow()
-    flow = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="pipeline/resources/test1.yaml")
+    flow = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="resources/test1.yaml")
     workflow2.set_config(OutputAction=flow, InputAction=flow)
     foreach2 = ForEach(Inputs=[gen2], WrappedAction=workflow2)
     workflow.set_config(OutputAction=foreach2, InputAction=foreach2)
@@ -110,7 +115,7 @@ def test_workflow_code_init(request):
     pipeline._inicialize()
     test = pipeline._get_settings_script()
 
-    compare_with_file(os.path.join("pipeline", "results", "workflow6.py"), test)
+    compare_with_file(os.path.join("results", "workflow6.py"), test)
 
     # test validation
     err = pipeline.validate()
@@ -125,13 +130,13 @@ def test_workflow_code_init(request):
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     workflow = Workflow(Inputs=[vg])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     workflow._inicialize()
     vg._inicialize()
     test = workflow._get_settings_script()
 
-    compare_with_file(os.path.join("pipeline", "results", "workflow7.py"), test)
+    compare_with_file(os.path.join("results", "workflow7.py"), test)
 
     # test validation
     err = workflow.validate()
@@ -145,14 +150,14 @@ def test_workflow_code_init(request):
     # test comparation of workflow hash
     action.__action_counter__ = 0
     workflow = Workflow()
-    f1 = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    f2 = Flow123dAction(Inputs=[f1], YAMLFile="pipeline/resources/test2.yaml")
+    f1 = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    f2 = Flow123dAction(Inputs=[f1], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=f2, InputAction=f1)
     workflow._inicialize()
 
     workflow2 = Workflow()
-    f12 = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="pipeline/resources/test1.yaml")
-    f22 = Flow123dAction(Inputs=[f12], YAMLFile="pipeline/resources/test2.yaml")
+    f12 = Flow123dAction(Inputs=[workflow2.input()], YAMLFile="resources/test1.yaml")
+    f22 = Flow123dAction(Inputs=[f12], YAMLFile="resources/test2.yaml")
     workflow2.set_config(OutputAction=f22, InputAction=f12)
     workflow2._inicialize()
 

@@ -1,2 +1,0 @@
-hydra: {infiniband: false, memory: null, name: hydra, nodes: 1, ppn: 1, queue: null,
-  walltime: null}

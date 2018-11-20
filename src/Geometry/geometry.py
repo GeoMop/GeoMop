@@ -1,4 +1,12 @@
 """
+This file contains algorithms for
+1. constructing a 3D geometry in the BREP format
+   (see https://docs.google.com/document/d/1qWq1XKfHTD-xz8vpINxpfQh4k6l1upeqJNjTJxeeOwU/edit#)
+   from the Layer File format (see geometry_structures.py).
+2. meshing the 3D geometry (e.g. using GMSH)
+3. setting regions to the elements of the resulting mesh and other mesh postprocessing
+
+
 TODO:
 - check how GMSH number surfaces standing alone,
   seems that it number object per dimension by the IN time in DFS from solids down to Vtx,
@@ -8,40 +16,50 @@ TODO:
 - implement intersection in interface_finish_init
 - tests
 
+Heterogeneous mesh step:
+
+- storing mesh step from regions into shape info objects
+- ( brep created )
+-
+- add include
+
+
 """
 
 
 import os
 import sys
+import subprocess
 
 
 
-geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "common")
+#geomop_src = os.path.join(os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
 #intersections_src = os.path.join(os.path.dirname(os.path.realpath(__file__)), "intersections","src")
-sys.path.append(geomop_src)
+#sys.path.append(geomop_src)
 #sys.path.append(intersections_src)
 
-import json_data as js
-import geometry_files.geometry_structures as gs
-import gmsh_io
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+import gm_base.json_data as js
+import gm_base.geometry_files.format_last as gs
+import gm_base.geometry_files.layers_io as layers_io
+import gm_base.polygons.polygons as polygons
+import gm_base.polygons.merge as merge
+import gm_base.polygons.polygons_io as polygons_io
+import gm_base.geometry_files.bspline_io as bspline_io
+import Geometry.gmsh_io as gmsh_io
 import numpy as np
 import numpy.linalg as la
 import math
 
-import geometry_files.polygons as polygons
-import geometry_files.polygons_io as polygons_io
-
-
-
-import b_spline
 import bspline as bs
 import bspline_approx as bs_approx
 import brep_writer as bw
-#def import_plotting():
-#global plt
-#global bs_plot
+# def import_plotting():
+# global plt
+# global bs_plot
 
-#import geometry_files.plot_polygons as plot_polygons
+#import gm_base.geometry_files.plot_polygons as plot_polygons
 
 #import matplotlib
 #import matplotlib.pyplot as plt
@@ -57,6 +75,14 @@ import brep_writer as bw
 #import netgen.csg as ngcsg
 #import netgen.meshing as ngmesh
 
+class ExcGMSHCall(Exception):
+    def __init__(self, stdout, stderr):
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def __str__(self):
+        return "Error in GMSH call.\n\nSTDOUT:\n{}\n\nSTDERR:\n{}".format(self.stdout, self.stderr)
+
 
 def check_point_tol(A, B, tol):
     diff = B - A
@@ -65,23 +91,21 @@ def check_point_tol(A, B, tol):
         raise Exception("Points too far: {} - {} = {}, norm: {}".format(A,B,diff, norm))
 
 
-
-
 class ShapeInfo:
-    #count_by_dim = [0,0,0,0]
+    # count_by_dim = [0,0,0,0]
     """
     Class to capture information about individual shapes finally meshed by GMSH as independent objects.
     """
 
-    _shapes_dim ={'Vertex':0, 'Edge':1, 'Face':2, 'Solid':3}
+    _shapes_dim ={'Vertex': 0, 'Edge': 1, 'Face': 2, 'Solid': 3}
 
     def __init__(self, shape, i_reg=None, top=None, bot=None):
         self.shape = shape
-        #self.dim = shapes_dim.get(type(shape).__name__)
-        #assert self.dim is not None
+        # self.dim = shapes_dim.get(type(shape).__name__)
+        # assert self.dim is not None
 
-        #self.dim_spec_id = self.count_by_dim[dim]
-        #self.count_by_dim += 1
+        # self.dim_spec_id = self.count_by_dim[dim]
+        # self.count_by_dim += 1
 
         if i_reg is None:
             self.free = False
@@ -107,7 +131,7 @@ class ShapeInfo:
         the self.curve_z, which is the full 3d curve of the edge set in Interface.make_shapes.
         TODO: set curve_z through a method.
         :param v_to_z: (min_z, max_z) ... bounds of the vertical face
-        :param u_to_xy: (min_u, max_u)
+        :param xy_to_u: (min_u, max_u)
         :return: Curve for U or V parameter.
         """
         z_min, z_max = v_to_z
@@ -118,6 +142,7 @@ class ShapeInfo:
         poles_uv[:, 0] *= (u_max - u_min)
         poles_uv[:, 0] += u_min
         return bs.Curve(self.curve_z.basis, poles_uv)
+
 
 class Curve(gs.Curve):
     pass
@@ -134,45 +159,56 @@ class Surface(gs.Surface):
     """
     Represents a z(x,y) function surface given by grid of points, but optionaly approximated by a B-spline surface.
     """
+    def __init__(self):
+        """
+        Construct a planar surface from a depth.
+        """
+        self.z_surface = None
 
-    def set_file(self, geom_file_base):
+    def init(self):
+        """
+        Initialize a B-spline surface.
+        :param geom_file_base:
+        :return:
+        """
+        self.z_surface = bspline_io.bs_zsurface_read(self.approximation)
+        # Surface approx conatains transform
+        #self.z_surface.transform(self.xy_transform)
 
-        # allow relative position to the main layers.json file
-        if self.grid_file:
-            self.is_bumpy = True
-            if self.grid_file[0] == '.':
-                self.grid_file = os.path.join(os.path.dirname(geom_file_base), self.grid_file)
-        else:
-            self.is_bumpy = False
-
-
-    def make_bumpy_surface(self):
+    def make_bumpy_surface(self, z_transform):
         # load grid surface and make its approximation
+        #
+        # self.grid_surf = bs.GridSurface.load(self.grid_file)
+        # self.approx_surf = bs_approx.surface_from_grid(self.grid_surf, (16, 16))
+        # self.mat_xy = mat_xy = np.array(self.transform_xy)
+        # mat_z = np.array(self.transform_z)
+        # self.approx_surf.transform(mat_xy, mat_z)
+        assert self.z_surface is not None
+        surf = self.z_surface.get_copy()
+        surf.transform(None, z_transform)
+        return surf
 
-        self.grid_surf = bs.GridSurface.load(self.grid_file)
-        self.approx_surf = bs_approx.surface_from_grid(self.grid_surf, (16, 16))
-        self.mat_xy = mat_xy = np.array(self.transform_xy)
-        mat_z = np.array(self.transform_z)
-        self.approx_surf.transform(mat_xy, mat_z)
-        self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
 
 
-    def make_flat_surface(self, xy_aabb):
+    def make_flat_surface(self, xy_aabb, z_transform):
         # flat surface
+        #z_const = z_transform[1]
+
         corners = np.zeros( (3, 3) )
         corners[[1, 0], 0] = xy_aabb[0][0]  # min X
         corners[2, 0] = xy_aabb[1][0]  # max X
         corners[[1, 2], 1] = xy_aabb[0][1]  # min Y
         corners[0, 1] = xy_aabb[1][1]  # max Y
-        corners[:,2] = self.depth
+        corners[:,2] = 0.0
 
         basis = bs.SplineBasis.make_equidistant(2, 1)
-        z_const = - self.depth
-        poles = np.ones( (3, 3, 1 ) ) * z_const
+
+        poles = np.zeros( (3, 3, 1 ) )
         surf_z = bs.Surface( (basis, basis), poles)
-        self.grid_surf = bs.Z_Surface(corners[:, 0:2], surf_z)
-        self.approx_surf = self.grid_surf
-        self.bw_surface = bw.surface_from_bs(self.approx_surf.make_full_surface())
+        self.z_surface = bs.Z_Surface(corners[:, 0:2], surf_z)
+        return self.make_bumpy_surface(z_transform)
+
+
 
 
     def plot_nodes(self, nodes):
@@ -199,98 +235,6 @@ class Surface(gs.Surface):
 
         plt.plot(xy[:, 0], xy[:, 1], color='green')
         plt.show()
-
-
-    def check_nodes(self, nodes):
-        """
-        :param nodes:
-        :return:
-        """
-        if self.is_bumpy:
-            self.make_bumpy_surface()
-            uv_nodes = self.approx_surf.xy_to_uv(np.array(nodes))
-            for i, uv in enumerate(uv_nodes):
-                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
-                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
-        else:
-            nod = np.array(nodes)
-            nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
-            self.make_flat_surface(nod_aabb)
-            # self.plot_nodes(nodes)
-
-
-    def approx_eval_z(self, x, y):
-        return self.approx_surf.z_eval_xy_array(np.array([[x, y]]))[0]
-
-
-    def eval_z(self, x, y):
-        return self.grid_surf.eval_in_xy(np.array([ [x,y] ]).T)[0]
-
-
-    @staticmethod
-    def interpol(a, b, t):
-        return (t * b + (1-t) * a)
-
-    def line_intersect(self, a, b):
-        # TODO:
-        z = self.depth
-        t = (a[2] - z) / (a[2] - b[2])
-        # (1-t) = (z - bz) / (az - bz)
-        x = self.interpol(a[0], b[0], t )
-        y = self.interpol(a[1], b[1], t )
-        return (x, y, z)
-
-
-    def add_curve_to_edge(self, edge):
-        """
-        Make the projection curve for an edge on the surface.
-        :param edge: BRepWriter Edge object
-        :return:
-        """
-        axyz, bxyz = edge.points()
-
-        n_points = 16
-        x_points = np.linspace(axyz[0], bxyz[0], n_points)
-        y_points = np.linspace(axyz[1], bxyz[1], n_points)
-        xy_points = np.stack( (x_points, y_points), axis =1)
-        xyz_points = self.approx_surf.eval_xy_array(xy_points)
-        curve_xyz = bs_approx.curve_from_grid(xyz_points)
-        start, end = curve_xyz.eval_array(np.array([0, 1]))
-        check_point_tol( start, axyz, 1e-3)
-        check_point_tol( end, bxyz, 1e-3)
-        edge.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve_xyz))
-
-        # TODO: make simple line approximation
-        xy_points = np.array([ axyz[0:2], bxyz[0:2]])
-        uv_points = self.approx_surf.xy_to_uv(xy_points)
-        curve_uv = bs_approx.line( uv_points )
-        start, end = self.approx_surf.eval_array(curve_uv.eval_array(np.array([0, 1])))
-        check_point_tol( start, axyz, 1e-3)
-        check_point_tol( end, bxyz, 1e-3)
-        edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
-
-        # vertical curve
-        poles_z = curve_xyz.poles[:, 2].copy()
-        x_diff, y_diff, z_diff = np.abs(bxyz - axyz)
-        if x_diff > y_diff:
-            axis = 0
-        else:
-            axis = 1
-        poles_t = curve_xyz.poles[:, axis].copy()
-        poles_t -= axyz[axis]
-        poles_t /= (bxyz[axis] - axyz[axis])
-        poles_tz = np.stack( (poles_t, poles_z), axis=1 )
-        # overhang = 0.1
-        # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
-        # poles_tz[:, 0] -= axyz[1]
-        # poles_tz[:, 0] *= scale
-        # poles_tz[:, 0] += overhang
-
-
-        #poles_tz[:, 0] -= axyz[1]
-        #poles_tz[:, 0] /= (bxyz[1] - axyz[1])
-
-        return bs.Curve(curve_xyz.basis, poles_tz)
 
 
 
@@ -386,12 +330,15 @@ class Interface:
     It maps nodes onto surface, create complete decompositions and their intersection, and produce all
     shapes laying on the surface.
     """
-    def __init__(self, surface):
+    def init(self, lg):
         """
         Interface is bounded to a single surface.
         :param surface:
         """
-        self.surface = surface
+        if self.surface_id is None:
+            self._surface = None
+        else:
+            self._surface = lg.surfaces[self.surface_id]
         self.common_decomp = None
         self.decompositions = {}
 
@@ -419,7 +366,7 @@ class Interface:
 
         decomps = list(self.decompositions.values())
         decomp_ids = list(self.decompositions.keys())
-        self.common_decomp, all_maps = polygons.intersect_decompositions(decomps)
+        self.common_decomp, all_maps = merge.intersect_decompositions(decomps)
         #plot_polygons.plot_polygon_decomposition(self.common_decomp)
         # make subpolygon lists
         self.subobj_lists={}
@@ -430,17 +377,18 @@ class Interface:
                     subobjs[dim].setdefault(orig_id, list())    # make new instance every time
                     subobjs[dim][orig_id].append(new_id)
 
-            # sort subsegment lists
+            # sort new segments along original segments
             orig_decomp = decomps[decomp_idx]
             for orig_seg_id, seg_list in subobjs[1].items():
                 if orig_seg_id is None:
                     continue
-                pt_to_seg={}
+                pt_to_seg={} # Point ID to outgoing segment
                 for seg_id in seg_list:
                     seg = self.common_decomp.segments[seg_id]
                     pt_id = seg.vtxs[polygons.out_vtx].id
                     pt_to_seg[pt_id] = seg
                 new_seg_list = []
+
                 pt_id = orig_decomp.segments[orig_seg_id].vtxs[polygons.out_vtx].id
                 new_pt_id = subobjs[0][pt_id]
                 assert len(new_pt_id) == 1
@@ -455,8 +403,8 @@ class Interface:
 
         #self.common_decomp = decomps[0]
         nodes_xy = { pt.id: pt.xy for pt in self.common_decomp.points.values() }
-        self.surface.check_nodes(list(nodes_xy.values()))
-        self.nodes = { id: (x, y, self.surface.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
+        self._check_nodes(list(nodes_xy.values()))
+        self.nodes = { id: (x, y, self.approx_eval_z(x, y) ) for id, (x,y) in nodes_xy.items() }
 
 
     def make_shapes(self):
@@ -478,7 +426,7 @@ class Interface:
             #nodes_id, surface_id = segment
             pa, pb = segment.vtxs
             edge = bw.Edge( [self.vertices[pa.id].shape, self.vertices[pb.id].shape] )
-            curve_z = self.surface.add_curve_to_edge(edge)
+            curve_z = self.add_curve_to_edge(edge)
             si = ShapeInfo(edge)
             si.curve_z = curve_z
             self.edges[segment.id] =  si
@@ -491,7 +439,7 @@ class Interface:
             for hole in poly.outer_wire.childs:
                 wires.append(self._make_bw_wire(hole).m())
 
-            face = bw.Face(wires, surface = self.surface.bw_surface)
+            face = bw.Face(wires, surface = self.bw_surface)
             self.faces[poly.id] = ShapeInfo(face)
 
     def _make_bw_wire(self, decomp_wire):
@@ -519,17 +467,17 @@ class Interface:
         """
         return self.subpoly_lists[decomp_id][poly_id]
 
-    def interpolate_nodes(self, a_surface, a_nodes, b_surface, b_nodes):
+    def interpolate_nodes(self, a_iface, a_nodes, b_iface, b_nodes):
         """
         Used by InterpolatedNodeSet.
         """
         assert len(a_nodes) == len(b_nodes)
         nodes=[]
         for (ax, ay), (bx, by) in zip(a_nodes, b_nodes):
-            az = a_surface.depth
-            bz = b_surface.depth
-            line = ( (ax, ay, az), (bx,by,bz) )
-            x,y,z = self.surface.line_intersect( *line )
+            az = a_iface.approx_eval_z(ax, ay)
+            bz = b_iface.approx_eval_z(bx, by)
+            line = ( (ax, ay, az), (bx, by, bz) )
+            x,y,z = self.line_intersect( *line )
             nodes.append( (x,y,z) )
         return nodes
 
@@ -542,17 +490,125 @@ class Interface:
                 yield shp
 
 
-class SurfaceNodeSet(gs.SurfaceNodeSet):
+    def _check_nodes(self, nodes):
+        """
+        :param nodes:
+        :return:
+        """
+        if self._surface is None:
+            # planar surface
+            nod = np.array(nodes)
+            nod_aabb = (np.amin(nod, axis=0), np.amax(nod, axis=0))
+            self._surface = Surface()
+
+            # TODO: remove after test correctness of Layer editor
+            if self.transform_z[1] != self.elevation:
+                self.transform_z = [ 1.0, self.elevation]
+            self.surface_approx = self._surface.make_flat_surface(nod_aabb, self.transform_z)
+
+        else:
+            # bumpy surface
+            self.surface_approx = self._surface.make_bumpy_surface(self.transform_z)
+
+            uv_nodes = self.surface_approx.xy_to_uv(np.array(nodes))
+            for i, uv in enumerate(uv_nodes):
+                if not ( 0.0 < uv[0] < 1.0 and 0.0 < uv[1] < 1.0 ):
+                    raise IndexError("Node {}: {} is out of surface domain, uv: {}".format(i, nodes[i], uv))
+        self.bw_surface = bw.surface_from_bs(self.surface_approx.make_full_surface())
+
+
+    def approx_eval_z(self, x, y):
+        return self.surface_approx.z_eval_xy_array(np.array([[x, y]]))[0]
+
+
+    # TODO:
+    # - test
+
+    @staticmethod
+    def interpol(a, b, t):
+        return (t * b + (1-t) * a)
+
+    def line_intersect(self, a, b):
+        # TODO: Compute true intersection.
+        t = 0.5
+        z = (a[2] + b[2]) / 2
+        z_diff = 1.0
+        tol = np.abs(a[2] - b[2]) * 0.001
+        while abs(z_diff) > tol:
+            x = self.interpol(a[0], b[0], t)
+            y = self.interpol(a[1], b[1], t)
+            z_new = self.approx_eval_z(x, y)
+            z_diff = z - z_new
+            z = z_new
+            t = (z - b[2]) / (a[2] - b[2])
+        return (x, y, z)
+
+
+    def add_curve_to_edge(self, edge):
+        """
+        Make the projection curve for an edge on the surface.
+        :param edge: BRepWriter Edge object
+        :return:
+        """
+        axyz, bxyz = edge.points()
+
+        n_points = 16
+        x_points = np.linspace(axyz[0], bxyz[0], n_points)
+        y_points = np.linspace(axyz[1], bxyz[1], n_points)
+        xy_points = np.stack( (x_points, y_points), axis =1)
+        xyz_points = self.surface_approx.eval_xy_array(xy_points)
+        curve_xyz = bs_approx.curve_from_grid(xyz_points)
+        start, end = curve_xyz.eval_array(np.array([0, 1]))
+        check_point_tol( start, axyz, 1e-3)
+        check_point_tol( end, bxyz, 1e-3)
+        edge.attach_to_3d_curve((0.0, 1.0), bw.curve_from_bs(curve_xyz))
+
+        # TODO: make simple line approximation
+        xy_points = np.array([ axyz[0:2], bxyz[0:2]])
+        uv_points = self.surface_approx.xy_to_uv(xy_points)
+        curve_uv = bs_approx.line( uv_points )
+        start, end = self.surface_approx.eval_array(curve_uv.eval_array(np.array([0, 1])))
+        check_point_tol( start, axyz, 1e-3)
+        check_point_tol( end, bxyz, 1e-3)
+        edge.attach_to_2d_curve((0.0, 1.0), bw.curve_from_bs(curve_uv), self.bw_surface)
+
+        # vertical curve
+        poles_z = curve_xyz.poles[:, 2].copy()
+        x_diff, y_diff, z_diff = np.abs(bxyz - axyz)
+        if x_diff > y_diff:
+            axis = 0
+        else:
+            axis = 1
+        poles_t = curve_xyz.poles[:, axis].copy()
+        poles_t -= axyz[axis]
+        poles_t /= (bxyz[axis] - axyz[axis])
+        poles_tz = np.stack( (poles_t, poles_z), axis=1 )
+        # overhang = 0.1
+        # scale = (1 - 2*overhang) / (bxyz[1] - axyz[1])
+        # poles_tz[:, 0] -= axyz[1]
+        # poles_tz[:, 0] *= scale
+        # poles_tz[:, 0] += overhang
+
+
+        #poles_tz[:, 0] -= axyz[1]
+        #poles_tz[:, 0] /= (bxyz[1] - axyz[1])
+
+        return bs.Curve(curve_xyz.basis, poles_tz)
+
+
+
+
+class InterfaceNodeSet(gs.InterfaceNodeSet):
 
     def init(self, lg):
-        self.surface = lg.surfaces[self.surface_id]
+        self.interface = lg.interfaces[self.interface_id]
         self.nodeset = lg.node_sets[self.nodeset_id]
         self.topology = lg.topologies[self.nodeset.topology_id]
         #self.topology.check(self.nodeset)
 
     def make_interface(self, lg ):
         self.init(lg)
-        interface = lg.interfaces[self.surface_id]
+        interface = lg.interfaces[self.interface_id]
         self.decomp = interface.add_decomposition(self.nodeset.nodes, self.topology)
         return interface
 
@@ -560,8 +616,8 @@ class SurfaceNodeSet(gs.SurfaceNodeSet):
 class InterpolatedNodeSet(gs.InterpolatedNodeSet):
 
     def make_interface(self, lg):
-        interface = lg.interfaces[self.surface_id]
-        surface = lg.surfaces[self.surface_id]
+        interface = lg.interfaces[self.interface_id]
+        #surface = lg.surfaces[self.interface_id]
         a, b = self.surf_nodesets
         a.init(lg)
         b.init(lg)
@@ -570,8 +626,9 @@ class InterpolatedNodeSet(gs.InterpolatedNodeSet):
         if a.nodeset_id == b.nodeset_id:
             self.nodes = a.nodeset.nodes
         else:
-            assert a.surface_id != b.surface_id
-            self.nodes = interface.interpolate_nodes(a.surface, a.nodeset.nodes, b.surface, b.nodeset.nodes)
+            assert False, "Interpolation ofr different nodesets not supported yet."
+            assert a.interface_id != b.interface_id
+            self.nodes = interface.interpolate_nodes(a.interface, a.nodeset.nodes, b.interface, b.nodeset.nodes)
         self.decomp = interface.add_decomposition(self.nodes, self.topology)
         return interface
 
@@ -605,6 +662,14 @@ class Region(gs.Region):
 #    pass
 
 def make_layer_region_maps(layer, regions, extrude):
+    """
+    Return list of obj->region map for every dimension.
+    This replace just list of region ids on the input.
+    :param layer:
+    :param regions:
+    :param extrude:
+    :return:
+    """
     top_decomp = layer.top.decomp
     #bot_decomp = layer.bottom.decomp
     #assert top_decomp == bot_decomp
@@ -614,7 +679,7 @@ def make_layer_region_maps(layer, regions, extrude):
     top_objs = [top_decomp.points.values(), top_decomp.segments.values(), top_decomp.polygons.values()]
     for dim, (reg_list, obj_list) in enumerate(zip(region_id_lists, top_objs)):
         reg_map={}
-        for reg, obj in zip(reg_list, obj_list):
+        for obj in obj_list:
             i_reg = reg_list[obj.index]
             regions[i_reg].init(topo_dim=dim, extrude=extrude)
             reg_map[obj.id] = regions[i_reg]
@@ -624,11 +689,12 @@ def make_layer_region_maps(layer, regions, extrude):
 class FractureLayer(gs.FractureLayer):
     def init(self, lg):
         self.i_top = self.top.make_interface(lg)
+        # Top interface.
         self.topology = self.top.topology
+        # Common topology.
         self.regions = make_layer_region_maps(self, lg.regions, False)
-        #for dim, reg_list in enumerate([self.node_region_ids, self.segment_region_ids, self.polygon_region_ids]):
-        #    for i_reg in reg_list:
-        #        self.regions[i_reg].init(topo_dim=dim, extrude = False)
+        # List of dictionaries.
+        # [ points_ids to regions, segment_ids to regions, polygon_ids to regions]
 
     def make_shapes(self):
         """
@@ -649,6 +715,8 @@ class FractureLayer(gs.FractureLayer):
                     self.i_top.edges[sub_seg_id].set_shape(reg.id, self.i_top, self.i_top)
 
         for poly in decomp.polygons.values():
+            if poly.is_outer_polygon():
+                continue
             reg = self.regions[2][poly.id]
             if reg.is_active(2):
                 for sub_poly_id in obj_maps[2][poly.id]:
@@ -677,15 +745,29 @@ class StratumLayer(gs.StratumLayer):
 
 
     def make_vert_bw_surface(self, top_edges, bot_edges, edge_start, edge_end):
-        # vertical edges (edge_start, edge_end) are oriented from bottom to top
+        """
+        Make vertical surface surface from set of 4 boundary edges.
+
+        Sequence of edge shape info, which are subdivision (after partition) of a single edge:
+        :param top_edges: Subdivision of the top edge (V01 - > V11)
+        :param bot_edges: Subdivision of the bottom edge (V00 -> V10)
+
+        Vertical edges oriented from bottom to top:
+        :param edge_start: Connecting start points of (top and bot edges), V00 -> V01
+        :param edge_end: Connecting end points of (top and bot edges), V10 -> V11
+        :return: BW surface object.
+        """
+        #
 
         top_boxes = [edg_si.curve_z.aabb() for edg_si in top_edges]
         bot_boxes = [edg_si.curve_z.aabb() for edg_si in bot_edges]
 
+        # Z range
         top_z = max([ box[:, 1].max() for box in top_boxes]) + 1.0
         bot_z = min([ box[:, 1].min() for box in bot_boxes]) - 1.0
 
-        # XYZ of corners, vUV, U is horizontal start to end, V is vartical bot to top
+        # XYZ of corners, vUV,
+        # U is horizontal start to end, V is vertical bot to top
         edg_start_vtxs = np.array(edge_start.shape.points())
         edg_end_vtxs = np.array(edge_end.shape.points())
         v00, v01 = edg_start_vtxs.copy()
@@ -727,6 +809,19 @@ class StratumLayer(gs.StratumLayer):
         return bw_surf
 
     def _curve_for_horizontal_edges(self, edge_list, v_to_z, xy_vtxs, bw_surf):
+        """
+        Scale and attach boundary curves of edges to the surface bounded by the edges.
+        U - horizontal parameter, V - vertical parameter; parameters of the vertical surface
+        'bw_surf'. Boundary curves (U->V) are part of the shape info objects.
+
+
+        :param edge_list: List of edge shape info objects, forming a subdivision of a segment
+         with endpoints 'xy_vtxs'
+        :param v_to_z: Mapping vertica V parameter to real Z coordinate.
+        :param xy_vtxs: Segment end points.
+        :param bw_surf: Surface to which attache the
+        :return: None
+        """
         axis = np.argmax(np.abs(xy_vtxs[1] - xy_vtxs[0]))
         axis_diff = xy_vtxs[1][axis] - xy_vtxs[0][axis]
         for edg_si in edge_list:
@@ -738,6 +833,8 @@ class StratumLayer(gs.StratumLayer):
             assert 0.0 <= xy_to_u[1] <= 1.0
             boundary_curve = edg_si.vert_curve(v_to_z, xy_to_u)
             uv_vtx = boundary_curve.eval_array(np.array([0, 1]))
+            # Fix errors in U coordinate which should be a sequence from 0 to 1.
+            uv_vtx[:, 0] = np.clip(uv_vtx[:,0], 0.0, 1.0)
 
             if not (np.all( 0 <= uv_vtx ) and np.all( uv_vtx <= 1)):
                 raise Exception("Top point < bottom point, for layer id = {}. Z-range: {}. {}"\
@@ -877,22 +974,32 @@ class LayerGeometry(gs.LayerGeometry):
 
     @staticmethod
     def set_ids(xlist):
+        """
+        Set .id attribute to all items of the xlist.
+        :param xlist:
+        :return:
+        """
         for i, item in enumerate(xlist):
             item.id = i
 
     def init(self):
         # keep unique interface per surface
         self.brep_shapes=[]     # Final shapes in top compound to being meshed.
-
+        self.min_step = np.inf
+        self.max_step = 0
         self.set_ids(self.surfaces)
         self.set_ids(self.regions)
-        self.interfaces = [ Interface(surface) for surface in self.surfaces ]
+        #self.interfaces = [ Interface(surface) for surface in self.surfaces ]
         self.set_ids(self.topologies)
         #self.set_ids(self.nodesets)
 
+        # funish initialization of interfaces
+        for iface in self.interfaces:
+            iface.init(self)
+
         # load and construct grid surface functions
         for surf in self.surfaces:
-            surf.set_file(self.filename_base)
+            surf.init()
 
 
         # initialize layers, neigboring layers refer to common interface
@@ -900,13 +1007,11 @@ class LayerGeometry(gs.LayerGeometry):
             layer.id = id
             layer.init(self)
 
-
-
     def construct_brep_geometry(self):
         """
         Algorithm for creating geometry from Layers:
 
-        3d_region = CompoundSolid of Soligs from extruded polygons
+        3d_region = CompoundSolid of Solids from extruded polygons
         2d_region, .3d_region = Shell of:
             - Faces from extruded segments (vertical 2d region)
             - Faces from polygons (horizontal 2d region)
@@ -942,55 +1047,121 @@ class LayerGeometry(gs.LayerGeometry):
 
         self.split_to_blocks()
 
-        #self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
-        #self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
+        # self.vertices={}            # (interface_id, interface_node_id) : bw.Vertex
+        # self.extruded_edges = {}    # (layer_id, node_id) : bw.Edge, orented upward, Loacl to Layer
 
-
-        self.all_shapes=[]
-        self.free_shapes =[]
+        self.all_shapes = []
+        self.free_shapes = []
 
         for block in self.blocks:
             for layer in block:
                 self.all_shapes += layer.make_shapes()
 
-
         for i_face in self.interfaces:
             for shp in i_face.iter_shapes():
                 self.all_shapes.append(shp)
 
-        self.free_shapes = [ shp_info for shp_info in self.all_shapes if shp_info.free ]
+        self.free_shapes = [shp_info for shp_info in self.all_shapes if shp_info.free]
         # sort down from solids to vertices
         self.free_shapes.sort(key=lambda shp: shp.dim(), reverse=True)
-        self.free_shapes = [shp_info.shape for shp_info in self.free_shapes]
+        free_shapes = [shp_info.shape for shp_info in self.free_shapes]
 
-        compound = bw.Compound(self.free_shapes)
+        compound = bw.Compound(free_shapes)
         compound.set_free_shapes()
         self.brep_file = os.path.abspath(self.filename_base + ".brep")
         with open(self.brep_file, 'w') as f:
-            bw.write_model(f, compound, bw.Location() )
+            bw.write_model(f, compound, bw.Location())
 
-
+    def make_gmsh_shape_dict(self):
+        """
+        Construct a dictionary self.gmsh_shape_dict, mapping the pair (dim, gmsh_object_id) -> shape info object
+        :return:
+        """
         # ignore shapes without ID - not part of the output
-        self.all_shapes = [ si for si in self.all_shapes if hasattr(si.shape,  'id') ]
-        self.compute_bounding_box()
+        output_shapes = [si for si in self.all_shapes if hasattr(si.shape, 'id')]
 
         # prepare dict: (dim, shape_id) : shape info
-        self.all_shapes.sort(key=lambda si: si.shape.id, reverse=True)
-        shape_by_dim=[[] for i in range(4)]
-        for shp_info in self.all_shapes:
+        output_shapes.sort(key=lambda si: si.shape.id, reverse=True)
+        shape_by_dim = [[] for i in range(4)]
+        for shp_info in output_shapes:
             dim = shp_info.dim()
             shape_by_dim[dim].append(shp_info)
 
-        self.shape_dict = {}
+        self.gmsh_shape_dist = {}
         for dim, shp_list in enumerate(shape_by_dim):
             for gmsh_shp_id, si in enumerate(shp_list):
-                self.shape_dict[(dim, gmsh_shp_id + 1)] = si
+                self.gmsh_shape_dist[(dim, gmsh_shp_id + 1)] = si
 
-        # debug listing
-        #xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
-        #xx.sort(key=lambda x: x[0])
-        #for i in xx:
-        #    print(i[0][0], i[0][1], i[1])
+    def set_free_si_mesh_step(self, si, step):
+        """
+        Set the mesh step to the free SI (root of local DFS tree).
+        :param si: A free shape info object
+        :param step: Meash step from corresponding region.
+        :return:
+        """
+        if step <= 0.0:
+            step = self.global_mesh_step
+        self.min_step = min(self.min_step, step)
+        self.max_step = max(self.max_step, step)
+        si.mesh_step = step
+
+    def distribute_mesh_step(self):
+        """
+        For every free shape:
+         1. get the mesh step from the region
+         2. pass down through its tree using DFS
+         3. set the mesh_step  to all child vertices, take minimum of exisiting and new mesh_step
+        :return:
+        """
+        print("distribute mesh\n")
+        self.compute_bounding_box()
+        self.global_mesh_step = self.mesh_step_estimate()
+
+        # prepare map from shapes to their shape info objs
+        # initialize mesh_step of individual shape infos
+        shape_dict = {}
+        for shp_info in self.all_shapes:
+            shape_dict[shp_info.shape] = shp_info
+            shp_info.mesh_step = np.inf
+            shp_info.visited = -1
+
+        # Propagate mesh_step from the free_shapes to vertices via DFS
+        # use global mesh step if the local mesh_step is zero.
+        for i_free, shp_info in enumerate(self.free_shapes):
+            self.set_free_si_mesh_step(shp_info, self.regions[shp_info.i_reg].mesh_step)
+            shape_dict[shp_info.shape].visited = i_free
+            stack = [shp_info.shape]
+            while stack:
+
+                shp = stack.pop(-1)
+                #print("shp: {} id: {}\n".format(type(shp), shp.id))
+                for sub in shp.subshapes():
+                    if isinstance(sub, (bw.Vertex, bw.Edge, bw.Face, bw.Solid)):
+                        if shape_dict[sub].visited < i_free:
+                            shape_dict[sub].visited = i_free
+                            stack.append(sub)
+                    else:
+
+                        stack.append(sub)
+                if isinstance(shp, bw.Vertex):
+                    shape_dict[shp].mesh_step = min(shape_dict[shp].mesh_step, shp_info.mesh_step)
+
+        self.min_step *= 0.2
+        self.vtx_char_length = []
+        for (dim, gmsh_shp_id), si in self.gmsh_shape_dist.items():
+            if dim == 0:
+                mesh_step = si.mesh_step
+                if mesh_step == np.inf:
+                    mesh_step = self.global_mesh_step
+                self.vtx_char_length.append((gmsh_shp_id, mesh_step))
+
+
+
+            # debug listing
+            # xx=[ (k, v.shape.id) for k, v in self.shape_dict.items()]
+            # xx.sort(key=lambda x: x[0])
+            # for i in xx:
+            #    print(i[0][0], i[0][1], i[1])
 
     def split_to_blocks(self):
         blocks=[]
@@ -1027,23 +1198,79 @@ class LayerGeometry(gs.LayerGeometry):
         print("Char length: {} mesh step: {}", char_length, mesh_step)
         return mesh_step
 
-
     def call_gmsh(self, mesh_step):
+        """
+        :param mesh_step:
+        :return: (stdout, stderr)
+        Raise ExcGMSHCall if the call fails.
+        """
         if mesh_step == 0.0:
             mesh_step = self.mesh_step_estimate()
         self.geo_file = self.filename_base + ".tmp.geo"
         with open(self.geo_file, "w") as f:
-            print('Merge "%s";\n'%(self.brep_file), file=f)
-            print('Field[1] = MathEval;\n', file=f)
-            print('Field[1].F = "%f";\n'%(mesh_step), file=f)
-            print('Background Field = 1;\n', file=f)
+            print(r'SetFactory("OpenCASCADE");', file=f)
+            # print(r'Mesh.Algorithm = 2;', file=f)
+            """
+            TODO: GUI interface for algorithm selection and element optimizaion.
+            Related options:
+            Mesh.Algorithm
+            2D mesh algorithm (1=MeshAdapt, 2=Automatic, 5=Delaunay, 6=Frontal, 7=BAMG, 8=DelQuad)
 
-        from subprocess import call
-        gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
+            Mesh.Algorithm3D
+            3D mesh algorithm (1=Delaunay, 2=New Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
+            """
+            """
+            TODO: ? Meaning of char length limits. Possibly to prevent to small elements at intersection points,
+            they must be derived from min and max mesh step.
+            """
+            print(r'Mesh.CharacteristicLengthMin = %s;'% self.min_step, file=f)
+            print(r'Mesh.CharacteristicLengthMax = %s;'% self.max_step, file=f)
+
+            # Investigating GMSH sources about effect of "-rand".
+            # It sets internal mesh option variable 'randFactor' whitch influence SOME meshing algorithms.
+            #
+            # delaunayTriangulation - 3d:
+            #         // FIXME : should be zero !!!!
+            #         double dx = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         double dy = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         double dz = d * CTX::instance()->mesh.randFactor3d * (double)rand() / RAND_MAX;
+            #         mv->x() += dx;
+            #         mv->y() += dy;
+            #         mv->z() += dz;
+
+            # meshGFace.meshGenerator - old 2D delunay triangulation under compiler flag
+            # meshGFaceLloyd.optimize_face - ... similar 2D code
+
+            # In Plugin, Triangulate.cpp, it influence perturbation of deterministic point position like:
+            #       double XX = CTX::instance()->mesh.randFactor * lc * (double)rand() / (double)RAND_MAX;
+            #       double YY = CTX::instance()->mesh.randFactor * lc * (double)rand() / (double)RAND_MAX;
+            #       doc.points[i].where.h = points[i]->x() + XX;
+            #       doc.points[i].where.v = points[i]->y() + YY;
+            # Only for 'old_code' algorithm.
+
+            # Result: the option seems to be deprecated
+
+
+            # rand_factor has to be increased when the triangle/model ratio
+            # multiplied by rand_factor approaches 'machine accuracy'
+
+            rand_factor = 1e-14 * np.max(self.aabb[1] - self.aabb[0]) / self.min_step
+            print(r'Mesh.RandomFactor = %s;'%rand_factor , file=f)
+            print(r'ShapeFromFile("%s")' % self.brep_file, file=f)
+
+            for id, char_length in self.vtx_char_length:
+                print(r'Characteristic Length {%s} = %s;' % (id, char_length), file=f)
+
+                gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
-        call([gmsh_path, "-3", self.geo_file])
 
+        process = subprocess.run([gmsh_path, "-3", self.geo_file], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        stderr = process.stderr.decode('ascii')
+        stdout = process.stdout.decode('ascii')
+        if process.returncode != 0:
+            raise ExcGMSHCall(stdout, stderr)
+        return (stdout, stderr)
 
 
     def deform_mesh(self):
@@ -1059,6 +1286,9 @@ class LayerGeometry(gs.LayerGeometry):
         # new empty nodes list
         # go through volume elements; every volume region should have reference to its top and bot interface;
         # move nodes of volume element
+
+        assert False, "Mesh deformation code must be revisited."
+
         nodes_shift = { id: [] for id, el in self.mesh.nodes.items()}
         for id, elm in self.mesh.elements.items():
             el_type, tags, nodes = elm
@@ -1107,7 +1337,7 @@ class LayerGeometry(gs.LayerGeometry):
                 raise Exception("Less then 2 tags.")
             dim = self.el_type_to_dim[el_type]
             shape_id = tags[1]
-            shape_info = self.shape_dict[ (dim, shape_id) ]
+            shape_info = self.gmsh_shape_dist[ (dim, shape_id)]
 
             if not shape_info.free:
                 continue
@@ -1126,7 +1356,7 @@ class LayerGeometry(gs.LayerGeometry):
         self.msh_file = self.filename_base + ".msh"
         with open(self.msh_file, "w") as f:
             self.mesh.write_ascii(f)
-
+        return self.mesh
 
 
     # def mesh_export(self, mesh, filename):
@@ -1194,6 +1424,41 @@ def construct_derived_geometry(gs_obj):
     return geo_obj
 
 
+def make_geometry(**kwargs):
+    """
+    TODO: Have LayerGeometry as a class for building geometry, manipulating geometry and meshing.
+    then this function is understood as a top level script to us LayerGemoetry API to perform
+    basic workflow:
+    Read geometry from file or use provided gs.LayerGeometry object.
+    Construct the BREP geometry, call gmsh, postprocess mesh.
+    Write: geo file, brep file, tmp.msh file, msh file
+    """
+    raw_geometry = kwargs.get("geometry", None)
+    layers_file = kwargs.get("layers_file", None)
+    filename_base = ""
+    mesh_step = kwargs.get("mesh_step", 0.0)
+
+    if raw_geometry is None:
+        raw_geometry = layers_io.read_geometry(layers_file)
+        filename_base = os.path.splitext(layers_file)[0]
+    lg = construct_derived_geometry(raw_geometry)
+    lg.filename_base = filename_base
+
+    lg.init()   # initialize the tree with ids and references where necessary
+
+    lg.construct_brep_geometry()
+    lg.make_gmsh_shape_dict()
+    lg.distribute_mesh_step()
+
+    #geom.mesh_netgen()
+    #geom.netgen_to_gmsh()
+
+    lg.call_gmsh(mesh_step)
+    lg.modify_mesh()
+    return lg
+
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -1202,18 +1467,7 @@ if __name__ == "__main__":
     parser.add_argument("--mesh-step", type=float, default=0.0, help="Maximal global mesh step.")
     args = parser.parse_args()
 
-    layers_file = args.layers_file
-    filename_base = os.path.splitext(layers_file)[0]
-    gs_lg = gs.read_geometry(layers_file)
-    lg = construct_derived_geometry(gs_lg)
-    lg.filename_base = filename_base
-
-    lg.init()   # initialize the tree with ids and references where necessary
-
-    lg.construct_brep_geometry()
-    #geom.mesh_netgen()
-    #geom.netgen_to_gmsh()
-
-    lg.call_gmsh(args.mesh_step)
-    lg.modify_mesh()
-
+    try:
+        make_geometry(layers_file=args.layers_file, mesh_step=args.mesh_step)
+    except ExcGMSHCall as e:
+        print(str(e))

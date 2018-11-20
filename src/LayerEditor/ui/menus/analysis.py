@@ -5,8 +5,8 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMenu, QAction
 
-from geomop_dialogs import AnalysisDialog
-from geomop_analysis import Analysis
+from gm_base.geomop_dialogs import AnalysisDialog
+from gm_base.geomop_analysis import Analysis
 
 
 class AnalysisMenu(QMenu):
@@ -20,13 +20,13 @@ class AnalysisMenu(QMenu):
         self._group = QtWidgets.QActionGroup(self, exclusive=True)
         self._group.triggered.connect(self._analysis_selected)
         self._actions = []
-        self._create_analysis_action = QAction('&Create', self)
-        self._create_analysis_action.triggered.connect(self._create_analysis)
-        self._analysis_settings_action = QAction('&Edit', self)
-        self._analysis_settings_action.triggered.connect(self._show_analysis_settings)
-        self.addAction(self._create_analysis_action)
-        self.addAction(self._analysis_settings_action)
-        self.addSeparator()
+        # self._create_analysis_action = QAction('&Create', self)
+        # self._create_analysis_action.triggered.connect(self._create_analysis)
+        # self._analysis_settings_action = QAction('&Edit', self)
+        # self._analysis_settings_action.triggered.connect(self._show_analysis_settings)
+        # self.addAction(self._create_analysis_action)
+        # self.addAction(self._analysis_settings_action)
+        # self.addSeparator()
         self.aboutToShow.connect(self.reload_analysis)
         self.setTitle(title)
 
@@ -40,8 +40,9 @@ class AnalysisMenu(QMenu):
         # find analyses in workspace
         if not self.config.workspace:
             return
-        for analysis_name in Analysis.list_analyses_in_workspace(self.config.workspace):
+        for analysis_name in Analysis.list_analyses_in_workspace(self.config.workspace):            
             action = QtWidgets.QAction(analysis_name, self, checkable=True)
+            action.setData(analysis_name)
             action.setChecked(self.config.analysis == analysis_name)
             self.addAction(action)
             self._group.addAction(action)
@@ -53,7 +54,7 @@ class AnalysisMenu(QMenu):
     def _analysis_selected(self):
         """Handle analysis selection."""
         action = self._group.checkedAction()
-        self.config.analysis = action.text()
+        self.config.analysis = action.data()
         self.config.save()
 
     def _create_analysis(self):

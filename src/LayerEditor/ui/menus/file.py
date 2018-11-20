@@ -2,8 +2,9 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from leconfig import cfg
-from geomop_dialogs import GMAboutDialog
+from LayerEditor.leconfig import cfg
+from gm_base.geomop_dialogs import GMAboutDialog
+from LayerEditor.ui.dialogs import LE_help_dialog
 
 
 class MainFileMenu(QMenu):
@@ -58,12 +59,17 @@ class MainFileMenu(QMenu):
         self._about_action.triggered.connect(self._on_about_action_clicked)
         self.addAction(self._about_action)
 
+        self._help_dialog = LE_help_dialog(parent)
+        self._help_action = QAction('Help', self)
+        self._help_action.triggered.connect(self._on_help_action_clicked)
+        self.addAction(self._help_action)
+
         self.addSeparator()
 
         self._exit_action = QAction('E&xit', self)
         self._exit_action.setShortcut(cfg.get_shortcut('exit').key_sequence)
         self._exit_action.setStatusTip('Exit application')
-        self._exit_action.triggered.connect(qApp.quit)
+        self._exit_action.triggered.connect(self._exit_clicked)
         self.addAction(self._exit_action)
 
     def update_recent_files(self, from_row=1):
@@ -78,8 +84,9 @@ class MainFileMenu(QMenu):
             return
         self._recent.setEnabled(True)
         for i in range(from_row, len(cfg.config.recent_files)):
-            reaction = self._recent_group.addAction(QAction(
-                cfg.config.recent_files[i], self, checkable=True))
+            action = QAction(cfg.config.recent_files[i], self, checkable=True)
+            action.setData(cfg.config.recent_files[i])            
+            reaction = self._recent_group.addAction(action)
             self._recent.addAction(reaction)
         self._recent_group.triggered.connect(self._layer_editor.open_recent)
         self._recent_file_signal_connect = True
@@ -88,3 +95,15 @@ class MainFileMenu(QMenu):
         """Displays about dialog."""
         if not self._about_dialog.isVisible():
             self._about_dialog.show()
+
+    def _on_help_action_clicked(self):
+        """Displays help dialog."""
+        if not self._help_dialog.isVisible():
+            self._help_dialog.show()
+
+    def _exit_clicked(self):
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._layer_editor.mainwindow.close():
+            return
+        qApp.quit()

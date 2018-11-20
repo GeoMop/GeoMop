@@ -1,6 +1,7 @@
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from geometry_files import TopologyType
+import gm_base.geometry_files.format_last as GL
+
 from enum import IntEnum
 import copy
 
@@ -101,45 +102,36 @@ class Fracture():
         self.edited = False
         """fracture diagram is  edited"""
         
-class Surface():
-    """Surface structure class"""
-    
-    def __init__(self, depth, transform_xy=None, transform_z=None, grid_file=None): 
-        self.depth = 0.0
-        """Float depth description"""
-        try:
-            self.depth = float(depth)            
-        except:
-            raise ValueError("Invalid depth type")
-        self.transform_xy = transform_xy
-        """Transformation matrix and shift in XY plane.""" 
-        if self.transform_xy is None:
-            self.transform_xy = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        self.transform_z = transform_z
-        """Transformation in Z direction (scale and shift)."""
-        if self.transform_z is None:
-            self.transform_z = [1.0, 0.0]
-        self.grid_file = grid_file
-        """List of input grid 3DPoints. None for plane"""
 
 class Interface():
     """One interface in panel. Diagram 1 is top and 2 is bottom. If diagram 2
     is None"""
 
-    def __init__(self, surface, splited, fracture_name=None, diagram_id1=None, diagram_id2=None, fracture_interface=FractureInterface.none, fracture_diagram_id=None):
-        
-        self.surface = surface
+    def __init__(self, surface_id, splited, elevation, transform_z=None, fracture_name=None,
+                 diagram_top_id=None, diagram_bot_id=None, fracture_interface=FractureInterface.none,
+                 fracture_diagram_id=None):
+        self.elevation = 0.0
+        """Float elevation description"""
+        try:
+            self.elevation = float(elevation)
+        except:
+            raise ValueError("Invalid elevation type")
+        self.surface_id = surface_id
         """Surface structure"""
         self.splited = splited
         """Interface have two independent surfaces"""
+        self.transform_z = transform_z
+        """Transformation in Z direction (scale and shift)."""
+        if self.transform_z is None:
+            self.transform_z = [1.0, 0.0]
         self.fracture = None
         """Fracture object or None if fracture is not on interface"""
         if fracture_name is not None:
             self.fracture = Fracture( fracture_name, fracture_interface, fracture_diagram_id)
         """Fracture object or None if fracture is not on interface"""
-        self.diagram_id1 = diagram_id1
+        self.diag_top_id = diagram_top_id
         """First diagram id (top). None if interface is interpolated"""
-        self.diagram_id2 = diagram_id2
+        self.diag_bot_id = diagram_bot_id
         """Second diagram id (bottom). None if interface has not two independent Note Sets"""
         self.edited1 = False
         """is first diagram edited (grafic control is set)"""
@@ -167,9 +159,9 @@ class Interface():
         """Clicable edit check box area"""
         
     @property
-    def str_depth(self):
-        """Retuen depth in string format"""
-        return str(self.surface.depth)
+    def str_elevation(self):
+        """Retuen elevation in string format"""
+        return str(self.elevation)
     
     def get_fracture_position(self):
         """Return dictionry with string description of fracture possitions -> FractureInterface enum
@@ -192,7 +184,7 @@ class Layers():
     
     @property
     def x_ilabel(self):
-        """depth label x left coordinate"""
+        """elevation label x left coordinate"""
         return self.x_label +self.__dx__*3+self.x_label_width
         
     @property
@@ -210,7 +202,7 @@ class Layers():
         """edit button x left coordinate"""
         return self.__dx__*4+self.__dx_controls__    
     
-    def __init__(self):
+    def __init__(self, global_history):
         self.font = QtGui.QFont("times", 12)
         """Layer diagram font"""
         self.layers = []
@@ -223,11 +215,43 @@ class Layers():
         """Coordinate of the longest interface name end"""
         self.y_font = 0
         """Font height"""
-        
+        self.surfaces = []
+        """Class with list of surfaces"""
+
+        from LayerEditor.ui.data import SurfacesHistory
+        self.surfaces_history = SurfacesHistory(global_history)
+
+    def load_surfaces(self, gl_surfaces):
+        """ TODO: deserialize directly into the Surface object."""
+        self.surfaces = list(gl_surfaces)
+
+    def add_surface(self, surf_in):
+        self.surfaces.append(surf_in)
+        self.surfaces_history.delete_surface(len(self.surfaces) - 1)
+
+    def set_surface(self, idx, new_surface):
+        self.surfaces_history.change_surface(self.surfaces, idx)
+        self.surfaces[idx] = new_surface
+
+
+    def delete_surface(self, idx):
+        """Delete surface if is not used or return False"""
+        for interface in self.interfaces:
+            if interface.surface_id == idx:
+                return False
+        for interface in self.interfaces:
+            if interface.surface_id is not None and interface.surface_id > idx:
+                interface.surface_id -= 1
+        self.surfaces_history.insert_surface(copy.copy(self.surfaces[idx]), idx)
+        self.surfaces.pop(idx)
+        return True
+
+
     def delete(self):
-        """delete all data structure"""
         self.layers = []
+        """delete all data structure"""
         self.interfaces = []
+        self.surfaces = []
      
     class LayersIterData():
         """Data clas for passing between itarion functions 
@@ -240,13 +264,13 @@ class Layers():
             """Layer type is shadow"""
             self.block_idx = 0
             """Block idx, use for topology"""
-            self.diagram_id1 = None
+            self.diag_top_id = None
             """First diagram id"""
             self.surface_id1 = None
             """First surface id"""
             self.stype1 = None
             """First surface type"""
-            self.diagram_id2 = None
+            self.diag_bot_id = None
             """Second diagram id, None for copy block"""
             self.surface_id2 = None
             """Second surface id, None for copy block"""
@@ -268,40 +292,40 @@ class Layers():
         return 
         """
         data = self.LayersIterData()
-        if self.interfaces[0].diagram_id1 is None:
+        if self.interfaces[0].diag_top_id is None:
             i=1
-            while self.interfaces[i].diagram_id1 is None:
+            while self.interfaces[i].diag_top_id is None:
                 i += 1
-            data.diagram_id1 = self.interfaces[i].diagram_id1
-            data.surface1 = self.interfaces[i].surface
-            data.stype1 = TopologyType.interpolated
-            data.diagram_id2 = None
+            data.diag_top_id = self.interfaces[i].diag_top_id
+            data.surface1 = self.interfaces[i].surface_id
+            data.stype1 = GL.TopologyType.interpolated
+            data.diag_bot_id = None
             data.surface2 = None
             if i==1:
-                data.stype2 = TopologyType.given
+                data.stype2 = GL.TopologyType.given
             else:
-                data.stype2 = TopologyType.interpolated
+                data.stype2 = GL.TopologyType.interpolated
         else:
-            data.diagram_id1 = self.interfaces[0].diagram_id1
-            data.surface1 = self.interfaces[0].surface
-            data.stype1 = TopologyType.given
+            data.diag_top_id = self.interfaces[0].diag_top_id
+            data.surface1 = self.interfaces[0].surface_id
+            data.stype1 = GL.TopologyType.given
             i=1
-            if self.interfaces[1].diagram_id1 is None:
-                data.stype2 = TopologyType.interpolated
-                while len(self.interfaces)>i and self.interfaces[i].diagram_id1 is None:
+            if self.interfaces[1].diag_top_id is None:
+                data.stype2 = GL.TopologyType.interpolated
+                while len(self.interfaces)>i and self.interfaces[i].diag_top_id is None:
                     if self.interfaces[i].splited:                        
                         break
                     i += 1
-                if len(self.interfaces)>i and self.interfaces[i].diagram_id1 is not None:
-                    data.diagram_id2 = self.interfaces[i].diagram_id1
-                    data.surface2 = self.interfaces[i].surface
+                if len(self.interfaces)>i and self.interfaces[i].diag_top_id is not None:
+                    data.diag_bot_id = self.interfaces[i].diag_top_id
+                    data.surface2 = self.interfaces[i].surface_id
                 else:
-                    data.diagram_id2 = None
+                    data.diag_bot_id = None
                     data.surface2 = None
             else:
-                data.diagram_id2 = self.interfaces[1].diagram_id1
-                data.surface2 = self.interfaces[1].surface
-                data.stype2 = TopologyType.given
+                data.diag_bot_id = self.interfaces[1].diag_top_id
+                data.surface2 = self.interfaces[1].surface_id
+                data.stype2 = GL.TopologyType.given
             if self.interfaces[0].fracture:
                 data.fracture_before = self.interfaces[0].fracture
         if self.interfaces[1].fracture:
@@ -329,66 +353,66 @@ class Layers():
                 data.is_shadow = False
                 if self.interfaces[i].splited:
                     data.block_idx += 1
-                    if self.interfaces[i].diagram_id2 is None:
+                    if self.interfaces[i].diag_bot_id is None:
                         j=i+1
-                        while self.interfaces[j].diagram_id1 is None:
+                        while self.interfaces[j].diag_top_id is None:
                             j += 1
-                        data.diagram_id1 = self.interfaces[j].diagram_id1
-                        data.surface1 = self.interfaces[i].surface
-                        data.stype1 = TopologyType.interpolated
-                        data.diagram_id2 = None
+                        data.diag_top_id = self.interfaces[j].diag_top_id
+                        data.surface1 = self.interfaces[i].surface_id
+                        data.stype1 = GL.TopologyType.interpolated
+                        data.diag_bot_id = None
                         data.surface2 = None
                         if i==1:
-                            data.stype2 = TopologyType.given
+                            data.stype2 = GL.TopologyType.given
                         else:
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
                     else:
-                        data.diagram_id1 = self.interfaces[i].diagram_id2
-                        data.surface1 = self.interfaces[i].surface
-                        data.stype1 = TopologyType.given
+                        data.diag_top_id = self.interfaces[i].diag_bot_id
+                        data.surface1 = self.interfaces[i].surface_id
+                        data.stype1 = GL.TopologyType.given
                         j=i+1
-                        if self.interfaces[j].diagram_id1 is None:
-                            data.stype2 = TopologyType.interpolated
-                            while len(self.interfaces)>j and self.interfaces[j].diagram_id1 is None:
+                        if self.interfaces[j].diag_top_id is None:
+                            data.stype2 = GL.TopologyType.interpolated
+                            while len(self.interfaces)>j and self.interfaces[j].diag_top_id is None:
                                 if self.interfaces[j].splited:                        
-                                    data.diagram_id2 = None
+                                    data.diag_bot_id = None
                                     data.surface2 = None
                                     break
                                 j += 1
-                            if len(self.interfaces)>j and self.interfaces[j].diagram_id1 is not None:
-                                data.diagram_id2 = self.interfaces[j].diagram_id1
-                                data.surface2 = self.interfaces[j].surface
+                            if len(self.interfaces)>j and self.interfaces[j].diag_top_id is not None:
+                                data.diag_bot_id = self.interfaces[j].diag_top_id
+                                data.surface2 = self.interfaces[j].surface_id
                             else:
-                                data.diagram_id2 = None
+                                data.diag_bot_id = None
                                 data.surface2 = None
                         else:
-                            data.diagram_id2 = self.interfaces[i+1].diagram_id1
-                            data.surface2 = self.interfaces[i+1].surface
-                            data.stype2 = TopologyType.given
+                            data.diag_bot_id = self.interfaces[i+1].diag_top_id
+                            data.surface2 = self.interfaces[i+1].surface_id
+                            data.stype2 = GL.TopologyType.given
                 else:
-                    if self.interfaces[i].diagram_id1 is not None:                    
-                        data.stype1 = TopologyType.given
+                    if self.interfaces[i].diag_top_id is not None:
+                        data.stype1 = GL.TopologyType.given
                     else:
-                        data.stype1 = TopologyType.interpolated
+                        data.stype1 = GL.TopologyType.interpolated
                     j = i+1
                     next = True
-                    while len(self.interfaces)>j and self.interfaces[j].diagram_id1 is None:
+                    while len(self.interfaces)>j and self.interfaces[j].diag_top_id is None:
                         if j==len(self.interfaces) or \
                             self.interfaces[j].splited:                        
                             next = False
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
                             break
                         j += 1
                     if next:
-                        if self.interfaces[i].diagram_id1 is not None:
-                            data.diagram_id1 = self.interfaces[i].diagram_id1
-                            data.surface1 = self.interfaces[i].surface
-                            data.diagram_id2 = self.interfaces[i].diagram_id2
-                            data.surface2 = self.interfaces[i].surface
+                        if self.interfaces[i].diag_top_id is not None:
+                            data.diag_top_id = self.interfaces[i].diag_top_id
+                            data.surface1 = self.interfaces[i].surface_id
+                            data.diag_bot_id = self.interfaces[i].diag_bot_id
+                            data.surface2 = self.interfaces[i].surface_id
                         if j==i+1:
-                            data.stype2 = TopologyType.given
+                            data.stype2 = GL.TopologyType.given
                         else:
-                            data.stype2 = TopologyType.interpolated
+                            data.stype2 = GL.TopologyType.interpolated
             data.fracture_before = None
             data.fracture_after = None
             data.fracture_own = None
@@ -405,38 +429,50 @@ class Layers():
                 data.fracture_after = self.interfaces[i+1].fracture
         return data
         
-    def add_interface(self, surface, splited, fracture_name=None, diagram_id1=None, diagram_id2=None,fracture_interface=FractureInterface.none, fracture_id=None):
+    def add_interface(self, gl_interface, splited,
+                      fracture_name=None, diag_top_id=None, diag_bot_id=None,
+                      fracture_interface=FractureInterface.none, fracture_id=None):
         """add new interface"""
-        self.interfaces.append(Interface(surface, splited, fracture_name, diagram_id1, diagram_id2,fracture_interface, fracture_id))
+        print("----")
+        print("iface: ", gl_interface, "splt: ", splited)
+        print("dg top: ",  diag_top_id, "dg bot: ", diag_bot_id)
+        print("fr_name: ", fracture_name, "fr type: ", fracture_interface, "fr id: ", fracture_id)
+
+        iface = Interface(gl_interface.surface_id, splited, gl_interface.elevation, gl_interface.transform_z,
+                        fracture_name, diag_top_id, diag_bot_id,fracture_interface, fracture_id)
+        self.interfaces.append(iface)
         return len(self.interfaces)-1
-        
+
     def add_layer(self, name, shadow=False):
         """add new layer"""
         self.layers.append(Layer(name, shadow))
         return len(self.layers)-1
         
-    def append_layer(self, name, surface):
+    def append_layer(self, name):
         """Append layer to the end"""
         self.add_layer(name)
-        self.add_interface(surface, False)
+        interface = Interface(surface_id=None, splited=False, elevation=0.0)
+        self.interfaces.append(interface)
+        return interface
         
-    def prepend_layer(self, name, surface):
+    def prepend_layer(self, name):
         """Prepend layer to the start"""
         self.layers.insert(0, Layer(name))
-        self.interfaces.insert(0, Interface(surface, False)) 
+        self.interfaces.insert(0, Interface(None, False, 0.0)) 
+        return self.interfaces[0]
  
-    def add_layer_to_shadow(self, idx, name, surface, dup):
+    def add_layer_to_shadow(self, idx, name, interface, elevation, dup):
         """Append new layer to shadow block, return True if 
         shadow block is replaces"""
-        self.interfaces[idx].diagram_id2 = dup.insert_id
+        self.interfaces[idx].diag_bot_id = dup.insert_id
         self._move_diagram_idx(idx+1, 1)  
-        if float(surface.depth)==self.interfaces[idx+1].surface.depth:
+        if interface.elevation==self.interfaces[idx+1].elevation:
             self.layers[idx].shadow=False
             self.layers[idx].name=name
             return True
         else:
             self.layers.insert(idx, Layer(name))
-            self.interfaces.insert(idx+1, Interface(Surface(surface.depth), True))
+            self.interfaces.insert(idx+1, interface)
         return False       
        
     def add_fracture(self, idx, name, position, dup):
@@ -451,7 +487,7 @@ class Layers():
         else:
             fracture_diagram_id = None
             if position is FractureInterface.own:
-                self.interfaces[idx].diagram_id2 += 1    
+                self.interfaces[idx].diag_bot_id += 1
                 self._move_diagram_idx(idx, 1)
                 fracture_diagram_id = dup.insert_id-1
             self.interfaces[idx].fracture = Fracture(name, position, fracture_diagram_id)
@@ -464,22 +500,22 @@ class Layers():
         id_pred = None
         for i in range(idx, -1, -1):
             if i<idx:
-                if self.interfaces[i].diagram_id2 is not None:
+                if self.interfaces[i].diag_bot_id is not None:
                     if id is None:
-                        id = self.interfaces[i].diagram_id2
+                        id = self.interfaces[i].diag_bot_id
                     elif id_pred is None:
-                        id_pred = self.interfaces[i].diagram_id2
+                        id_pred = self.interfaces[i].diag_bot_id
                 if self.interfaces[i].splited:
                     break
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                 if i==idx:
-                    id = self.interfaces[i].diagram_id1
+                    id = self.interfaces[i].diag_top_id
                     # copy is maked
                     break
                 if id is None:
-                    id = self.interfaces[i].diagram_id1
+                    id = self.interfaces[i].diag_top_id
                 elif id_pred is None:
-                    id_pred = self.interfaces[i].diagram_id1
+                    id_pred = self.interfaces[i].diag_top_id
                 else:
                     break
         if id is not None and id_pred is None:
@@ -500,26 +536,26 @@ class Layers():
         id2 = None
         id_po = None
         for i in range(idx, -1, -1):
-            if self.interfaces[i].diagram_id2 is not None:
+            if self.interfaces[i].diag_bot_id is not None:
                 if id is None:
-                    id = self.interfaces[i].diagram_id2
+                    id = self.interfaces[i].diag_bot_id
                 elif id_pred is None:
-                    id_pred = self.interfaces[i].diagram_id2
+                    id_pred = self.interfaces[i].diag_bot_id
             if self.interfaces[i].splited:
                 break
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                 if id is None:
-                    id = self.interfaces[i].diagram_id1
+                    id = self.interfaces[i].diag_top_id
                 elif id_pred is None:
-                    id_pred = self.interfaces[i].diagram_id1
+                    id_pred = self.interfaces[i].diag_top_id
                 else:
                     break
         for i in range(idx+1, len(self.interfaces)):
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                 if id2 is None:
-                    id2 = self.interfaces[i].diagram_id1
+                    id2 = self.interfaces[i].diag_top_id
                 elif id_po is None:
-                    id_po = self.interfaces[i].diagram_id1
+                    id_po = self.interfaces[i].diag_top_id
                 else:
                     break
             if self.interfaces[i].splited:
@@ -542,10 +578,10 @@ class Layers():
     def _move_diagram_idx(self, idx, incr):
         """Increase diagram indexes increment in interfaces bigger than idx"""
         for i in range(idx+1, len( self.interfaces)):
-            if self.interfaces[i].diagram_id1 is not None:
-                self.interfaces[i].diagram_id1 += incr
-            if self.interfaces[i].diagram_id2 is not None:
-                self.interfaces[i].diagram_id2 += incr
+            if self.interfaces[i].diag_top_id is not None:
+                self.interfaces[i].diag_top_id += incr
+            if self.interfaces[i].diag_bot_id is not None:
+                self.interfaces[i].diag_bot_id += incr
             if self.interfaces[i].fracture is not None and \
                 self.interfaces[i].fracture.fracture_diagram_id is not None:
                 self.interfaces[i].fracture.fracture_diagram_id += incr
@@ -555,7 +591,7 @@ class Layers():
         count = 0
         i = idx
         while i<len(self.interfaces):
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                     count += 1
             if self.interfaces[i].splited:                
                 break
@@ -563,10 +599,10 @@ class Layers():
         i = idx-1
         while i>=0:
             if self.interfaces[i].splited:
-                if self.interfaces[i].diagram_id2 is not None:
+                if self.interfaces[i].diag_bot_id is not None:
                     count += 1
                 break                
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                 count += 1            
             i -= 1
         return count
@@ -577,18 +613,18 @@ class Layers():
         count = self._count_of_editable(idx)
         if self.interfaces[idx].splited:
             count2 = self._count_of_editable(idx+1)
-            if self.interfaces[idx].diagram_id1 is not None and count>1:
+            if self.interfaces[idx].diag_top_id is not None and count>1:
                 ret.append(ChangeInterfaceActions.top_interpolated)
-            if self.interfaces[idx].diagram_id1 is None:
+            if self.interfaces[idx].diag_top_id is None:
                 ret.append(ChangeInterfaceActions.top_editable)           
-            if self.interfaces[idx].diagram_id2 is not None and count2>1:
+            if self.interfaces[idx].diag_bot_id is not None and count2>1:
                 ret.append(ChangeInterfaceActions.bottom_interpolated)
-            if self.interfaces[idx].diagram_id2 is None:
+            if self.interfaces[idx].diag_bot_id is None:
                 ret.append(ChangeInterfaceActions.bottom_editable)           
         else:
-            if self.interfaces[idx].diagram_id1 is not None and count>1:
+            if self.interfaces[idx].diag_top_id is not None and count>1:
                 ret.append(ChangeInterfaceActions.interpolated)
-            if self.interfaces[idx].diagram_id1 is None:
+            if self.interfaces[idx].diag_top_id is None:
                 ret.append(ChangeInterfaceActions.editable)
             if idx>0 and idx<len(self.interfaces)-1:
                 ret.append(ChangeInterfaceActions.split)
@@ -599,7 +635,7 @@ class Layers():
         if idx==0:
            return len(self.layers)>1 and self.interfaces[1].splited            
         if idx==len(self.layers)-1 or self.interfaces[idx+1].splited:
-            if self.interfaces[idx].splited or self.interfaces[idx+1].diagram_id1 is None:
+            if self.interfaces[idx].splited or self.interfaces[idx+1].diag_top_id is None:
                 return True
             return self._count_of_editable(idx+1)>1               
         return False
@@ -610,7 +646,7 @@ class Layers():
             return False
         if idx==0 or idx==len(self.interfaces)-1:
             return False
-        if self.interfaces[idx].diagram_id1 is None:
+        if self.interfaces[idx].diag_top_id is None:
             return True
         return self._count_of_editable(idx+1)>1               
         
@@ -631,7 +667,7 @@ class Layers():
                 del self.interfaces[-1]
                 del self.layers[-1]
                 self.interfaces[idx-1].splited = False
-                self.interfaces[idx-1].diagram_id2 = None                
+                self.interfaces[idx-1].diag_bot_id = None
             else:                
                 if self.interfaces[idx].fracture is not None:
                     if self.interfaces[idx].fracture.type is FractureInterface.bottom:
@@ -639,7 +675,7 @@ class Layers():
                     else:
                         self.interfaces[idx].fracture.type = FractureInterface.none
                 self.interfaces[idx].splited = False
-                self.interfaces[idx].diagram_id2 = None
+                self.interfaces[idx].diag_bot_id = None
             return
         if idx == 0:
             del self.interfaces[0]
@@ -661,19 +697,19 @@ class Layers():
             del self.interfaces[idx]
             del self.layers[idx]
             self.interfaces[idx].splited = True
-            self.interfaces[idx].diagram_id2 = None
+            self.interfaces[idx].diag_bot_id = None
             return 1
         if self.layers[idx +1].shadow:
             del self.interfaces[idx]
             del self.layers[idx+1]
             self.interfaces[idx+1].splited = True
-            self.interfaces[idx+1].diagram_id1 = None            
+            self.interfaces[idx+1].diag_top_id = None
             return 1
         self.interfaces[idx].splited = True
-        self.interfaces[idx].diagram_id2 = None
+        self.interfaces[idx].diag_bot_id = None
         self.layers[idx].shadow = True
         self.interfaces[idx+1].splited = True
-        self.interfaces[idx+1].diagram_id1 = None
+        self.interfaces[idx+1].diag_top_id = None
         if self.interfaces[idx].fracture is not None:
             if self.interfaces[idx].fracture.type is FractureInterface.bottom:
                 self.interfaces[idx].fracture = None
@@ -692,25 +728,25 @@ class Layers():
         
         if removed_res[1]==1:
             assert removed_res[0]==1
-            self.interfaces[idx].diagram_id1=self.interfaces[idx+1].diagram_id1
+            self.interfaces[idx].diag_top_id=self.interfaces[idx+1].diag_top_id
             count_res = self._add_shadow(idx)
-            return [self.interfaces[idx].diagram_id1+1], count_res
+            return [self.interfaces[idx].diag_top_id+1], count_res
         diagrams = []
         if removed_res[0]==1:
             self._move_diagram_idx(idx, -1)
-            if self.interfaces[idx+1].diagram_id1 is not None:
-                diagrams.append(self.interfaces[idx+1].diagram_id1)
+            if self.interfaces[idx+1].diag_top_id is not None:
+                diagrams.append(self.interfaces[idx+1].diag_top_id)
             else:
-                if self.interfaces[idx].diagram_id2 is not None:
-                    diagrams.append(self.interfaces[idx].diagram_id2)
+                if self.interfaces[idx].diag_bot_id is not None:
+                    diagrams.append(self.interfaces[idx].diag_bot_id)
                 else:
-                    diagrams.append(self.interfaces[idx].diagram_id1)
+                    diagrams.append(self.interfaces[idx].diag_top_id)
         if removed_res[0]==2:
-            diagrams.append(self.interfaces[idx+1].diagram_id1)
-            if self.interfaces[idx].diagram_id2 is not None:
-                diagrams.append(self.interfaces[idx].diagram_id2)
+            diagrams.append(self.interfaces[idx+1].diag_top_id)
+            if self.interfaces[idx].diag_bot_id is not None:
+                diagrams.append(self.interfaces[idx].diag_bot_id)
             else:
-                diagrams.append(self.interfaces[idx].diagram_id1)            
+                diagrams.append(self.interfaces[idx].diag_top_id)
         if removed_res[0]>2:
             raise Exception("Invalid remove layer {0} operation".format(str(idx)))
         count_res = self._add_shadow(idx)
@@ -721,8 +757,8 @@ class Layers():
         """Remove interface and merge layers. Variable removed_res is one, that is
         was returned by remove_interface_changes."""
         diagrams = [] 
-        if self.interfaces[idx].diagram_id1  is not None:
-            diagrams.append(self.interfaces[idx].diagram_id1)
+        if self.interfaces[idx].diag_top_id  is not None:
+            diagrams.append(self.interfaces[idx].diag_top_id)
             self._move_diagram_idx(idx, -1)
         del self.interfaces[idx]
         del self.layers[idx]
@@ -772,23 +808,23 @@ class Layers():
                     first = True
                     fractures += 1
                     ret +=1
-                if self.interfaces[idx].diagram_id2 is not None:
+                if self.interfaces[idx].diag_bot_id is not None:
                     ret += 1
-                if self.interfaces[idx+1].diagram_id1  is not None:
+                if self.interfaces[idx+1].diag_top_id  is not None:
                     ret += 1                    
                 return (ret, 0, fractures, first)
             # layer is first all block
             if idx==0:
-                if self.interfaces[idx+1].diagram_id1  is None or \
-                    self.interfaces[idx].diagram_id1  is None:
+                if self.interfaces[idx+1].diag_top_id  is None or \
+                    self.interfaces[idx].diag_top_id  is None:
                     return (ret+1, 0, fractures, first)
                 else:
                     return (ret+2, 0, fractures, first)
             # interpolated
-            if self.interfaces[idx+1].diagram_id1  is None:                
+            if self.interfaces[idx+1].diag_top_id  is None:
                 return (ret, 0, fractures, first)
             # remain editable and before is not splited
-            if self.interfaces[idx].diagram_id1  is not None or \
+            if self.interfaces[idx].diag_top_id  is not None or \
                 idx==0:    
                 return (ret+1, 0, fractures, first)
             else:
@@ -806,8 +842,8 @@ class Layers():
         i=idx
         while i>=0:
             layers += 1
-            if self.interfaces[i].diagram_id2 is not None:
-                first_slice_id = self.interfaces[i].diagram_id2
+            if self.interfaces[i].diag_bot_id is not None:
+                first_slice_id = self.interfaces[i].diag_bot_id
                 slices += 1
             if self.interfaces[i].splited:
                 first_idx = i
@@ -817,17 +853,17 @@ class Layers():
                 break
             if self.interfaces[i].fracture is not None:
                 fractures += 1
-            if self.interfaces[i].diagram_id1 is not None:
-                first_slice_id = self.interfaces[i].diagram_id1
+            if self.interfaces[i].diag_top_id is not None:
+                first_slice_id = self.interfaces[i].diag_top_id
                 slices += 1
             i -= 1
         i = idx+1
         layers -= 1
         while i<len(self.interfaces):
             layers += 1
-            if self.interfaces[i].diagram_id1 is not None:
+            if self.interfaces[i].diag_top_id is not None:
                 if first_slice_id is None:
-                    first_slice_id = self.interfaces[i].diagram_id1
+                    first_slice_id = self.interfaces[i].diag_top_id
                 slices += 1
             if self.interfaces[i].splited:
                 if self.interfaces[i].fracture is not None and \
@@ -843,7 +879,7 @@ class Layers():
         """Return tuple with count (removed slices, removed fractures)"""        
         fractures = 0
         slices = 0
-        if self.interfaces[idx].diagram_id1  is not None:
+        if self.interfaces[idx].diag_top_id  is not None:
             slices += 1 
         if self.interfaces[idx].fracture is not None:
             fractures += 1              
@@ -855,8 +891,8 @@ class Layers():
         ret = None
         if self.interfaces[idx].fracture.type==FractureInterface.own:
             ret = self.interfaces[idx].fracture.fracture_diagram_id
-            if self.interfaces[idx].diagram_id2 is not None:
-                self.interfaces[idx].diagram_id2 -= 1
+            if self.interfaces[idx].diag_bot_id is not None:
+                self.interfaces[idx].diag_bot_id -= 1
             self._move_diagram_idx(idx, -1)
         self.interfaces[idx].fracture = None
         return ret
@@ -865,21 +901,21 @@ class Layers():
         """Change interface type to interpolated"""
         diagram = None
         if type is ChangeInterfaceActions.interpolated:
-            diagram = self.interfaces[idx].diagram_id1
-            self.interfaces[idx].diagram_id1 = None
+            diagram = self.interfaces[idx].diag_top_id
+            self.interfaces[idx].diag_top_id = None
             self._move_diagram_idx(idx, -1)
         elif type is ChangeInterfaceActions.top_interpolated:
-            diagram = self.interfaces[idx].diagram_id1
-            self.interfaces[idx].diagram_id1 = None
-            if self.interfaces[idx].diagram_id2 is not None:
-                self.interfaces[idx].diagram_id2 -= 1
+            diagram = self.interfaces[idx].diag_top_id
+            self.interfaces[idx].diag_top_id = None
+            if self.interfaces[idx].diag_bot_id is not None:
+                self.interfaces[idx].diag_bot_id -= 1
             if self.interfaces[idx].fracture is not None and \
                 self.interfaces[idx].fracture.fracture_diagram_id is not None:
                 self.interfaces[idx].fracture.fracture_diagram_id -= 1                
             self._move_diagram_idx(idx, -1)
         elif type is ChangeInterfaceActions.bottom_interpolated:
-            diagram = self.interfaces[idx].diagram_id2
-            self.interfaces[idx].diagram_id2 = None
+            diagram = self.interfaces[idx].diag_bot_id
+            self.interfaces[idx].diag_bot_id = None
             self._move_diagram_idx(idx, -1)
         return diagram
         
@@ -889,13 +925,13 @@ class Layers():
         Variable dup is returned by get_diagram_dup and new diagrams was added
         outside this function"""    
         if type is ChangeInterfaceActions.editable:
-            self.interfaces[idx].diagram_id1 = dup.insert_id
+            self.interfaces[idx].diag_top_id = dup.insert_id
             self._move_diagram_idx(idx, 1)
         elif type is ChangeInterfaceActions.bottom_editable:
-            self.interfaces[idx].diagram_id2 = dup.insert_id
+            self.interfaces[idx].diag_bot_id = dup.insert_id
             self._move_diagram_idx(idx, 1)
         elif type is ChangeInterfaceActions.top_editable:
-            self.interfaces[idx].diagram_id1 = dup.insert_id
+            self.interfaces[idx].diag_top_id = dup.insert_id
             self._move_diagram_idx(idx, 1) 
         
     def split_interface(self, idx, dup):
@@ -905,44 +941,78 @@ class Layers():
         self.interfaces[idx].splited = True
         if self.interfaces[idx].fracture is not None:
             self.interfaces[idx].fracture.type = FractureInterface.top
-        self.interfaces[idx].diagram_id2 = dup.insert_id
+        self.interfaces[idx].diag_bot_id = dup.insert_id
         self._move_diagram_idx(idx, 1)
         
-    def split_layer(self, idx, name, surface, split_type, dup):
+    def split_layer(self, idx, name, split_type, dup):
         """Split set layer by interface with split_type type in set surface
         
         Variable dup is returned by get_diagram_dup and new diagrams was added
         outside this function"""
         new_layer = Layer(name)
         if split_type is LayerSplitType.interpolated:
-            new_interface = Interface(surface, False)
+            new_interface = Interface(None, False, 0.0)
         elif split_type is LayerSplitType.editable:
-            new_interface = Interface(surface, False, None, dup.insert_id)
+            new_interface = Interface(None, False, 0.0, None, dup.insert_id)
         elif split_type is LayerSplitType.split:
-            new_interface = Interface(surface, True, None, dup.insert_id, dup.insert_id+1)
+            new_interface = Interface(None, True, 0.0, None, dup.insert_id, dup.insert_id+1)
         else:
             raise Exception("Invalid split operation in interface {0}".format(str(idx)))
         if dup is not None:
             self._move_diagram_idx(idx, dup.count)
         self.layers.insert(idx+1, new_layer)
         self.interfaces.insert(idx+1, new_interface)
+        return self.interfaces[idx+1]
 
     def set_edited_diagram(self, diagram_id):
         """Find interface accoding to diagram id, and set id as
         edited"""
         for i in range(0, len(self.interfaces)):
-            if self.interfaces[i].diagram_id1 is not None and \
-                self.interfaces[i].diagram_id1 == diagram_id:
+            if self.interfaces[i].diag_top_id is not None and \
+                self.interfaces[i].diag_top_id == diagram_id:
                 return self.set_edited_interface(i, False)
             if self.interfaces[i].fracture is not None and \
                 self.interfaces[i].fracture.fracture_diagram_id is not None and \
                 self.interfaces[i].fracture.fracture_diagram_id == diagram_id:
                 return self.set_edited_interface(i, False, True)
-            if self.interfaces[i].diagram_id2 is not None and \
-                self.interfaces[i].diagram_id2 == diagram_id:
+            if self.interfaces[i].diag_bot_id is not None and \
+                self.interfaces[i].diag_bot_id == diagram_id:
                 return self.set_edited_interface(i, True)
-        return True 
-        
+        return True
+       
+    def get_diagram_quads(self, diagram_id):
+        """Find and return list of quads in set diagram"""
+        ret = []
+        found = False
+        for i in range(0, len(self.interfaces)):  
+            if self.interfaces[i].fracture is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id is not None and \
+                self.interfaces[i].fracture.fracture_diagram_id == diagram_id:
+                if self.interfaces[i].surface_id is not None:
+                    return [self.surfaces[self.interfaces[i].surface_id].quad]
+                else:
+                    return []            
+            if self.interfaces[i].diag_top_id is not None and \
+                self.interfaces[i].diag_top_id == diagram_id:
+                found = True  
+            if self.interfaces[i].splited:
+                if found:
+                    if self.interfaces[i].surface_id is not None:
+                        ret.append(self.surfaces[self.interfaces[i].surface_id].quad)
+                    return ret
+                else:
+                    if self.interfaces[i].surface_id is not None:
+                        ret = [self.surfaces[self.interfaces[i].surface_id].quad]
+                    else:
+                        ret = []
+            else:
+                if self.interfaces[i].surface_id is not None:
+                    ret.append(self.surfaces[self.interfaces[i].surface_id].quad)
+            if self.interfaces[i].diag_bot_id is not None and \
+                self.interfaces[i].diag_bot_id == diagram_id:
+                found = True
+        return ret
+
     def set_edited_interface(self, idx, second, fracture=False):
         """If interface with set idx is set as edited return False, 
         else change edited interface in data and return True"""
@@ -998,8 +1068,8 @@ class Layers():
                 return None
             return self.interfaces[idx].fracture.fracture_diagram_id
         elif second:
-            return self.interfaces[idx].diagram_id2
-        return self.interfaces[idx].diagram_id1
+            return self.interfaces[idx].diag_bot_id
+        return self.interfaces[idx].diag_top_id
 
     def set_viewed_interface(self, idx, second, fracture=False):
         """Invert set viewed value and return its value"""
@@ -1037,11 +1107,11 @@ class Layers():
         del self.layers[idx]
         return ret
         
-    def change_layer(self, layer, idx):
-        """Switch idx layer to set layer"""
-        old = self.layers[idx]
-        self.layers[idx] = layer
-        return old
+#    def change_layer(self, layer, idx):
+#        """Switch idx layer to set layer"""
+#        old = self.layers[idx]
+#        self.layers[idx] = layer
+#        return old
         
     def strip_edited(self, interface):
         """If some of interface diagram editing is set to true, 
@@ -1062,9 +1132,9 @@ class Layers():
         """insert set layer and move diagram indexes, if is needed"""
         self.interfaces.insert(idx, interface)
         move = 0
-        if interface.diagram_id1 is not None:
+        if interface.diag_top_id is not None:
             move += 1
-        if interface.diagram_id2 is not None:
+        if interface.diag_bot_id is not None:
             move += 1
         if interface.fracture is not None and \
             interface.fracture.fracture_diagram_id is not None:
@@ -1079,16 +1149,17 @@ class Layers():
 
         del self.interfaces[idx]
         move = 0
-        if ret.diagram_id1 is not None:
+        if ret.diag_top_id is not None:
             move += 1
-        if ret.diagram_id2 is not None:
+        if ret.diag_bot_id is not None:
             move += 1
         if ret.fracture is not None and \
             ret.fracture.fracture_diagram_id is not None:
             move += 1
         if move>0:
             self._move_diagram_idx(idx, -move)
-        return ret 
+        return ret
+       
 
     def change_interface(self, interface, idx):
         """Switch idx layer to set layer"""
@@ -1096,16 +1167,16 @@ class Layers():
         self.interfaces[idx] = interface
         
         move = 0
-        if interface.diagram_id1 is not None:
+        if interface.diag_top_id is not None:
             move += 1
-        if interface.diagram_id2 is not None:
+        if interface.diag_bot_id is not None:
             move += 1
         if interface.fracture is not None and \
             interface.fracture.fracture_diagram_id is not None:
             move += 1
-        if old.diagram_id1 is not None:
+        if old.diag_top_id is not None:
             move -= 1
-        if old.diagram_id2 is not None:
+        if old.diag_bot_id is not None:
             move -= 1
         if old.fracture is not None and \
             old.fracture.fracture_diagram_id is not None:
@@ -1145,17 +1216,17 @@ class Layers():
             
         move = 0
         for interface in new_interfaces: 
-            if interface.diagram_id1 is not None:
+            if interface.diag_top_id is not None:
                 move += 1
-            if interface.diagram_id2 is not None:
+            if interface.diag_bot_id is not None:
                 move += 1
             if interface.fracture is not None and \
                 interface.fracture.fracture_diagram_id is not None:
                 move += 1
         for interface in interfaces:
-            if interface.diagram_id1 is not None:
+            if interface.diag_top_id is not None:
                 move -= 1
-            if interface.diagram_id2 is not None:
+            if interface.diag_bot_id is not None:
                 move -= 1
             if interface.fracture is not None and \
                 interface.fracture.fracture_diagram_id is not None:
@@ -1180,15 +1251,15 @@ class Layers():
         if self.interfaces[idx].fracture is not None:
             raise Exception("Interface {0} has already fracture.".format(str(idx)))
         if position is FractureInterface.own:
-            self.interfaces[idx].diagram_id2 += 1    
+            self.interfaces[idx].diag_bot_id += 1
             self._move_diagram_idx(idx, 1)                
         self.interfaces[idx].fracture = fracture 
         
     def remove_fracture_history(self, idx):
         """Remove fracture from idx interface and return it"""
         if self.interfaces[idx].fracture.type==FractureInterface.own:
-            if self.interfaces[idx].diagram_id2 is not None:
-                self.interfaces[idx].diagram_id2 -= 1
+            if self.interfaces[idx].diag_bot_id is not None:
+                self.interfaces[idx].diag_bot_id -= 1
             self._move_diagram_idx(idx, -1)
         ret = self.interfaces[idx].fracture
         self.interfaces[idx].fracture = None
@@ -1231,7 +1302,7 @@ class Layers():
                     self.interfaces[i].fracture.view_rect = None
                     self.interfaces[i].fracture.edit_rect = None
                     y_pos += fontHeight+self.__dy_row__
-                if self.interfaces[i].diagram_id1 is not None:
+                if self.interfaces[i].diag_top_id is not None:
                     (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y)
             else:
                 # two given or interpolated and given blok
@@ -1274,9 +1345,9 @@ class Layers():
                         self.interfaces[i].fracture.view_rect = None
                         self.interfaces[i].fracture.edit_rect = None                       
                     y_pos += fontHeight+4*self.__dy_row__
-                if self.interfaces[i].diagram_id1 is not None:
+                if self.interfaces[i].diag_top_id is not None:
                     (self.interfaces[i].view_rect1, self.interfaces[i].edit_rect1) = self._compute_controls(self.interfaces[i].y_top)
-                if self.interfaces[i].diagram_id2 is not None:
+                if self.interfaces[i].diag_bot_id is not None:
                     (self.interfaces[i].view_rect2, self.interfaces[i].edit_rect2) = self._compute_controls(self.interfaces[i].y_bottom)
             # 
             #layers
@@ -1293,8 +1364,9 @@ class Layers():
                 y_pos += fontHeight+self.__dy_row__
             
         # interface label
+        self.x_ilabel_width = fm.width("elevation")
         for i in range(0, len(self.interfaces)):
-            width = fm.width(self.interfaces[i].str_depth)
+            width = fm.width(self.interfaces[i].str_elevation)
             if  width>self.x_ilabel_width:
                     self.x_ilabel_width = width
             self.interfaces[i].y

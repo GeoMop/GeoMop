@@ -2,15 +2,15 @@
 import sys
 import os
 import signal
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
+#__lib_dir__ = os.path.join(os.path.split(
+#    os.path.dirname(os.path.realpath(__file__)))[0], "gm_base")
+#sys.path.insert(1, __lib_dir__)
 
 import argparse
-from ui import MainWindow
-from aeconfig import cfg
+from .ui import MainWindow
+from .aeconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
-import icon
+import gm_base.icon as icon
 
 class AnalyzisEditor:
     """Analyzis editor main class"""
@@ -50,12 +50,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             if analyzis_editor is not None:
                 err_dialog = None
                 # display message box with the exception

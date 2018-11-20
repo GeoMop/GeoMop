@@ -6,7 +6,7 @@ Customized QScintilla editor widget.
 """
 
 # pylint: disable=invalid-name
-import icon
+import gm_base.icon as icon
 from contextlib import ContextDecorator
 import math
 
@@ -16,16 +16,16 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import PyQt5.QtCore as QtCore
 import PyQt5.QtWidgets as QtWidgets
 
-from meconfig import cfg
-from model_data import DataNode, Notification
-from helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.model_data import DataNode, Notification
+from ModelEditor.helpers import (AutocompleteContext, LineAnalyzer, ChangeAnalyzer,
                      NodeAnalyzer, StructureAnalyzer)
-from helpers import keyboard_shortcuts_definition as shortcuts_definition
-from ui.dialogs import FindReplaceDialog
-from ui.menus import EditMenu
-from ui.template import EditorAppearance as appearance
-from util import PosType, CursorType
-from geomop_util import Position
+from ModelEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
+from ..dialogs import FindReplaceDialog
+from ..menus import EditMenu
+from ..template import EditorAppearance as appearance
+from ModelEditor.util import PosType, CursorType
+from gm_base.geomop_util import Position
 
 RELOAD_INTERVAL = 5000
 """default reload interval in ms"""
@@ -382,8 +382,8 @@ class YamlEditorWidget(QsciScintilla):
 
     def copy(self):
         """Copy to clipboard."""
-        with self.reload_chunk:
-            super(YamlEditorWidget, self).copy()
+        #if reload chunk is used then the info_panel will be also reloaded
+        super(YamlEditorWidget, self).copy()
 
     def cut(self):
         """Cut to clipboard."""
@@ -714,7 +714,10 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut_name, action in actions:
             shortcut = cfg.get_shortcut(shortcut_name)
             if shortcut.matches_key_event(event):
-                return action()
+                if shortcut_name == 'copy' and not self.hasSelectedText():
+                    return super(YamlEditorWidget, self).keyPressEvent(event)
+                else:
+                    return action()
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
 

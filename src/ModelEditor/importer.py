@@ -25,13 +25,10 @@ Description:
 
 import os
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import argparse
 
-from meconfig import cfg
+from ModelEditor.meconfig import MEConfig as cfg
 
 
 if __name__ == "__main__":
@@ -59,7 +56,7 @@ if __name__ == "__main__":
         cfg.import_file(args.con_file)
         if args.transformation_name is not None:
             for transf in args.transformation_name:
-                cfg.transform(transf)
+                cfg.transform_con(transf)
 
         file_d = open(file, 'w')
         file_d.write(cfg.document)

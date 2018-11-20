@@ -33,7 +33,7 @@
             "topo_dim": 0,
             "color": "#000000",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": false,
@@ -42,7 +42,7 @@
             "topo_dim": 1,
             "color": "#000000",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": false,
@@ -51,43 +51,43 @@
             "topo_dim": 2,
             "color": "#000000",
             "brep_shape_ids": [],
-            "mesh_step": 0.01
+            "mesh_step": 0.0
         },
         {
             "boundary": true,
             "name": ".side",
             "not_used": false,
             "topo_dim": 1,
-            "color": "#000000",
+            "color": "#600000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": false,
             "name": "3d_01",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#006000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": false,
             "name": "3d_02",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#000060",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         },
         {
             "boundary": true,
             "name": ".top",
             "not_used": false,
             "topo_dim": 2,
-            "color": "#000000",
+            "color": "#900000",
             "brep_shape_ids": [],
-            "mesh_step": 1
+            "mesh_step": 0
         }
         
     ],
@@ -97,7 +97,7 @@
             "polygon_region_ids": [ 6,6,6 ],
             "segment_region_ids": [ 1,1,1,1,1,1,1,1],
             "node_region_ids": [0,0,0,0,0,0],
-            "name": "New Layer",
+            "name": "top fracture",
             "top": {
                 "__class__" : "SurfaceNodeSet",
                 "nodeset_id": 0,
@@ -117,7 +117,7 @@
             "polygon_region_ids": [ 4,5,5 ],
             "segment_region_ids": [ 3,1,1,1,1,1,1,1],
             "node_region_ids": [0,0,0,0,0,0],
-            "name": "New Layer",
+            "name": "stratum",
             "top": {
                 "__class__" : "SurfaceNodeSet",
                 "nodeset_id": 0,
