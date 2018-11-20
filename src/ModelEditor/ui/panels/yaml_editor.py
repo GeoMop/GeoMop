@@ -1004,20 +1004,29 @@ class EditorPosition:
             self._old_line_indent = self.line
             pre_line = editor.text(self.line)
             indent = LineAnalyzer.get_indent(pre_line)
-            index = pre_line.find("- ")
-            if index > -1 and index == indent:
+            if (self.node is None or
+                    self.node.implementation != DataNode.Implementation.scalar or
+                    not StructureAnalyzer.is_edit_parent_array(self.node)) and\
+                    cfg.config.symbol_completion:
+                self._new_line_indent = indent*' ' + "  "
+            else:
+                self._new_line_indent = indent*' ' + "- "
+
+        '''
                 indent_bullet = ("- " if cfg.config.symbol_completion else "")
+                print(self.node is None)
+                print(self.node.implementation != DataNode.Implementation.scalar)
+                print(StructureAnalyzer.is_edit_parent_array(self.node))
                 if self.node is None or  \
                    self.node.implementation != DataNode.Implementation.scalar or \
                    not StructureAnalyzer.is_edit_parent_array(self.node):
                     self._new_line_indent = indent*' '+"  "
                 else:
                     self._new_line_indent = indent*' ' + indent_bullet
-                self._old_line_prefix = indent*' ' + indent_bullet
             else:
                 self._new_line_indent = indent*' '
-            self._old_line_prefix = indent*' '
-            
+        '''
+
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
         fix parent if new line is added (new_line_completation
