@@ -4,7 +4,6 @@ import enum
 import gm_base.polygons.aabb_lookup as aabb_lookup
 import gm_base.polygons.decomp as decomp
 from gm_base.polygons.decomp import PolygonChange
-
 # TODO: careful unification of tolerance usage.
 # - Snapping is consistent.
 # - Still we may get points closer then tolerance for an edge crossing very acute angle.
@@ -205,7 +204,7 @@ class PolygonDecomposition:
         :return: None
         """
         for pt in points:
-            pt.xy += displacement
+            pt.move(displacement)
 
 
     def get_last_polygon_changes(self):
@@ -528,10 +527,10 @@ class PolygonDecomposition:
         :return: (t0, t1) Parameters of the intersection for 'self' and other edge.
         """
 
-        mat = np.array([ seg.vector, a - b])
-        rhs = a - seg.vtxs[0].xy
+        mat = np.array([ -seg.vector, b - a]).T
+        rhs = seg.vtxs[0].xy - a
         try:
-            t0, t1 = la.solve(mat.T, rhs)
+            t0, t1 = la.solve(mat, rhs)
         except la.LinAlgError:
             return (None, None)
             # TODO: possibly treat case of overlapping segments
