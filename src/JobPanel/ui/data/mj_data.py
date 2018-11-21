@@ -13,6 +13,7 @@ from JobPanel.communication import Installation
 from JobPanel.data.states import TaskStatus, JobsState, TASK_STATUS_PERMITTED_ACTIONS, MultijobActions
 from ..data.preset_data import APreset
 from gm_base.geomop_util import Serializable
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MultiJobState:
@@ -248,17 +249,18 @@ class MultiJob:
         """
         logs = []
         mj_config_path = Installation.get_config_dir_static(self.preset.name, self.preset.analysis)
+        mj_config_path_conf = os.path.join(mj_config_path, GEOMOP_INTERNAL_DIR_NAME)
 
         # MJ preparation log
         file = "mj_preparation.log"
-        if os.path.isfile(os.path.join(mj_config_path, file)):
-            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+        if os.path.isfile(os.path.join(mj_config_path_conf, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path_conf), file)
             logs.append(log)
 
         # MJ log
         file = "mj_service.log"
-        if os.path.isfile(os.path.join(mj_config_path, file)):
-            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+        if os.path.isfile(os.path.join(mj_config_path_conf, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path_conf), file)
             logs.append(log)
 
         # Jobs log
@@ -266,8 +268,9 @@ class MultiJob:
             job_dir = os.path.join(mj_config_path, dir)
             if os.path.isdir(job_dir) and dir.startswith("action_"):
                 file = "job_service.log"
-                if os.path.isfile(os.path.join(job_dir, file)):
-                    log = MultiJobLog(os.path.normpath(job_dir), file)
+                job_dir_conf = os.path.join(job_dir, GEOMOP_INTERNAL_DIR_NAME)
+                if os.path.isfile(os.path.join(job_dir_conf, file)):
+                    log = MultiJobLog(os.path.normpath(job_dir_conf), file)
                     logs.append(log)
 
         return logs

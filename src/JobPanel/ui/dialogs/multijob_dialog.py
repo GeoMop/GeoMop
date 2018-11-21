@@ -321,14 +321,26 @@ class MultiJobDialog(AFormDialog):
             for key in keys:
                 self.ui.multiJobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 #self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
-                self.permitted['mj_ssh_preset'].append(key)
-                #self.permitted['j_ssh_preset'].append(key)
+                if self.ssh[key].tested:
+                    self.permitted['mj_ssh_preset'].append(key)
+                    #self.permitted['j_ssh_preset'].append(key)
+                else:
+                    model = self.ui.multiJobSshPresetComboBox.model()
+                    item = model.item(self.ui.multiJobSshPresetComboBox.count() - 1)
+                    item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled))
+                    # model = self.ui.jobSshPresetComboBox.model()
+                    # item = model.item(self.ui.jobSshPresetComboBox.count() - 1)
+                    # item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled))
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
-                    'local' if self.preset is None or self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset))
+                    'local' if self.preset is None or self.preset.mj_ssh_preset is None or
+                               self.preset.mj_ssh_preset not in self.permitted['mj_ssh_preset']
+                        else self.preset.mj_ssh_preset))
             # self.ui.jobSshPresetComboBox.setCurrentIndex(
             #     self.ui.jobSshPresetComboBox.findData(
-            #         'local' if self.preset is None or self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
+            #         'local' if self.preset is None or self.preset.j_ssh_preset is None or
+            #                    self.preset.j_ssh_preset not in self.permitted['j_ssh_preset']
+            #             else self.preset.j_ssh_preset))
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
