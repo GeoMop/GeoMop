@@ -36,6 +36,19 @@ class SshDialog(AFormContainer):
         self.ui.validator.connect(self.valid)
 
         self.preset = None
+
+        self.parent = parent
+
+        self.ui.nameLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.hostLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.geomop_rootLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.workspaceLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.userLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.passwordLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.rememberPasswordCheckbox.stateChanged.connect(self.handle_data_changed)
+        self.ui.pbsSystemComboBox.currentIndexChanged.connect(self.handle_data_changed)
+
+        self.edit_enable(False)
        
     def first_focus(self):
         """
@@ -174,8 +187,22 @@ class SshDialog(AFormContainer):
             self.ui.pbsSystemComboBox.setCurrentIndex(1)
 
             #self.ui.envPresetComboBox.setCurrentIndex(-1)
-        return 
-            
+        self.update_test_labels()
+        self.edit_enable(True)
+
+    def edit_enable(self, enable=True):
+        self.ui.nameLineEdit.setEnabled(enable)
+        self.ui.hostLineEdit.setEnabled(enable)
+        self.ui.geomop_rootLineEdit.setEnabled(enable)
+        self.ui.workspaceLineEdit.setEnabled(enable)
+        self.ui.userLineEdit.setEnabled(enable)
+        self.ui.passwordLineEdit.setEnabled(enable)
+        self.ui.rememberPasswordCheckbox.setEnabled(enable)
+        self.ui.pbsSystemComboBox.setEnabled(enable)
+
+        if enable:
+            self.ui._handle_remember_password_checkbox_changed()
+
     def set_data_container(self, data, frontend_service):
         self.data = data
         self.frontend_service = frontend_service
@@ -208,6 +235,10 @@ class SshDialog(AFormContainer):
                 
     def handle_test(self):
         """Do ssh connection test"""
+        if self.is_dirty():
+            if not self.parent._handle_save_preset_action():
+                return
+
         preset = self.get_data()['preset']
         if not preset.to_pc:
             dialog = SshPasswordDialog(None, preset)
@@ -217,8 +248,34 @@ class SshDialog(AFormContainer):
                 return
         else:
             preset.pwd = self.ui.passwordLineEdit.text()
-        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.frontend_service)
+        dialog = TestSSHDialog(self.parent, preset, self.frontend_service)
         dialog.exec_()
+        if dialog.finished and (dialog.res_data is not None) and (not dialog.res_data["errors"]):
+            self.parent.presets[preset.name].tested = True
+            self.parent.presets[preset.name].home_dir = dialog.res_data["home_dir"]
+            self.parent.presets[preset.name].executables = dialog.res_data["executables"]
+            self.parent.presets.save()
+        else:
+            self.parent.presets[preset.name].tested = False
+            self.parent.presets[preset.name].home_dir = ""
+            self.parent.presets[preset.name].executables = []
+            self.parent.presets.save()
+        self.update_test_labels()
+
+    def handle_data_changed(self):
+        self.update_test_labels()
+
+    def update_test_labels(self):
+        exec_text = "Available executables:\n"
+        if self.parent.presets and (not self.is_dirty()) and self.preset.name in self.parent.presets and \
+                self.parent.presets[self.preset.name].tested:
+            self.ui.testedLabel.setText("The connection is tested.")
+            self.ui.testedLabel.setStyleSheet("QLabel { color : green; }")
+            exec_text += ", ".join(self.parent.presets[self.preset.name].executables)
+        else:
+            self.ui.testedLabel.setText("The connection must be tested before use.")
+            self.ui.testedLabel.setStyleSheet("QLabel { color : red; }")
+        self.ui.availableExecutablesLabel.setText(exec_text)
 
 
 class UiSshDialog():
@@ -379,12 +436,20 @@ class UiSshDialog():
                                    
         # 9 row
         self.btnTest = QtWidgets.QPushButton(dialog)
-        self.btnTest.setText("Test Connection")
+        self.btnTest.setText("Save and Test")
         #self.btnTest.setEnabled(False)
         self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
                                    self.btnTest)
                                    
         self.btnTest.clicked.connect(parent.handle_test)
+
+        self.testedLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.testedLabel.setWordWrap(True)
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.testedLabel)
+
+        self.availableExecutablesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.availableExecutablesLabel.setWordWrap(True)
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.availableExecutablesLabel)
 
         return self.formLayout
 

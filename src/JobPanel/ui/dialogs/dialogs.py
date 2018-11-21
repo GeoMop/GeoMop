@@ -378,6 +378,8 @@ class APresetsDialog(QtWidgets.QDialog):
             else:
                 self._handle_item_changed()
             self.ui.presets.resizeColumnToContents(1)
+        else:
+            self.presets_dlg.edit_enable(False)
             
     def _handle_item_changed(self):
         """item changet signal function in presets list""" 
@@ -452,6 +454,18 @@ class APresetsDialog(QtWidgets.QDialog):
             self.presets.pop(key)  # delete by key
             self.reload_view(self.presets)
             
+    def _handle_restore_preset_action(self):
+        if self.presets:
+            if self.ui.presets.currentItem():
+                key = self.ui.presets.currentItem().text(0)
+                preset = copy.deepcopy(self.presets[key])
+                preset.demangle_secret()
+                data = {
+                    "preset": preset
+                }
+                self.presets_dlg.exec_edit(data)
+                self.presets_dlg.first_focus()
+
     def _test_opened(self, new_purpose):
         """
         test if in subdialog changed presset and 
@@ -528,6 +542,7 @@ class APresetsDialog(QtWidgets.QDialog):
         self.ui.btnSave.clicked.connect(self._handle_save_preset_action)
         self.ui.btnCopy.clicked.connect(self._handle_copy_preset_action)
         self.ui.btnDelete.clicked.connect(self._handle_delete_preset_action)
+        self.ui.btnRestore.clicked.connect(self._handle_restore_preset_action)
         self.ui.btnClose.clicked.connect(self._handle_close_action)
 
 class UiPresetsDialog:
@@ -567,7 +582,7 @@ class UiPresetsDialog:
         self.presets.setHeaderLabels(["Id", "Name"])
         self.presets.setColumnHidden(0, True)
         self.presets.setSortingEnabled(True)
-        self.presets.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        self.presets.sortByColumn(1, QtCore.Qt.AscendingOrder)
 
         # add presets to layout
         self.horizontalLayout.addWidget(self.presets)
@@ -596,9 +611,14 @@ class UiPresetsDialog:
         self.btnDelete.setObjectName("btnDelete")
         self.buttonLayout.addWidget(self.btnDelete)
 
+        self.btnRestore = QtWidgets.QPushButton(dialog)
+        self.btnRestore.setText("&Restore")
+        self.btnRestore.setObjectName("btnRestore")
+        self.buttonLayout.addWidget(self.btnRestore)
+
         spacerItem = QtWidgets.QSpacerItem(20, 40,
                                            QtWidgets.QSizePolicy.Minimum,
-                                           QtWidgets.QSizePolicy.Expanding)
+                                           QtWidgets.QSizePolicy.Minimum)
         self.buttonLayout.addItem(spacerItem)
 
         self.btnClose = QtWidgets.QPushButton(dialog)

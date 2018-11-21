@@ -575,16 +575,23 @@ class Backend(ServiceBase):
         :return:
         """
         ret = {"executables": [],
-               "errors": []}
+               "errors": [],
+               "home_dir": "",
+               "successful_steps": []}
 
         try:
             con = self.get_connection(ssh_conf)
         except SSHAuthenticationError:
-            ret["errors"].append("Authentication error")
+            ret["errors"].append("Authentication error\n"
+                                 "Check your user name and password, edit boxes 'User' and 'Password'.")
             return ret
         except SSHError:
-            ret["errors"].append("Unable to connect to host.")
+            ret["errors"].append("Unable to connect to host.\nCheck the host address, edit box 'Host'.")
             return ret
+        else:
+            ret["successful_steps"].append("Connected to host server.")
+
+        ret["home_dir"] = con.get_home_dir()
 
         delegator_proxy = con.get_delegator()
         answer = []
@@ -595,15 +602,19 @@ class Backend(ServiceBase):
                 res = answer[0]
                 if "error" in res:
                     logging.error("Error in ssh test")
-                    ret["errors"].append("Error in communication with Delegator.")
+                    ret["errors"].append("Error in communication with Delegator.\n"
+                                         "Check GeoMop root directory, edit box 'GeoMop root directory'")
                 else:
+                    ret["successful_steps"].append("Communication with Delegator.")
                     if res["data"] is None:
                         ret["errors"].append("Error in reading executables.")
                     else:
+                        ret["successful_steps"].append("Executables were read.")
                         for executable in res["data"]:
                             ret["executables"].append(executable["name"])
                 return ret
-        ret["errors"].append("Timeout in communication with Delegator.")
+        ret["errors"].append("Timeout in communication with Delegator.\n"
+                             "Check GeoMop root directory, edit box 'GeoMop root directory'")
         return ret
 
 
