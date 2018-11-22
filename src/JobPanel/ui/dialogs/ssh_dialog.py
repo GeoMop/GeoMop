@@ -199,6 +199,7 @@ class SshDialog(AFormContainer):
         self.ui.passwordLineEdit.setEnabled(enable)
         self.ui.rememberPasswordCheckbox.setEnabled(enable)
         self.ui.pbsSystemComboBox.setEnabled(enable)
+        self.ui.btnTest.setEnabled(enable)
 
         if enable:
             self.ui._handle_remember_password_checkbox_changed()

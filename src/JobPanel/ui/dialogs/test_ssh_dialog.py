@@ -59,6 +59,8 @@ class TestSSHDialog(QtWidgets.QDialog):
             res = self.test_answer[0]
             if "error" in res:
                 self._error.addItem("Error in communication with Backend.\nTry restart frontend.")
+                item = self._error.item(self._error.count() - 1)
+                item.setForeground(QtGui.QColor(255, 0, 0))
                 self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
             else:
                 self.res_data = res["data"]
@@ -110,8 +112,8 @@ class TestSSHDialog(QtWidgets.QDialog):
             self._button_box.button(QtWidgets.QDialogButtonBox.Cancel).setText("Close")
             self.log_timer.stop()
             self.finished = True
-            if len(self.res_data["errors"]) > 0:
-                self._error.addItem("Test finished with {0} errors".format(len(self.res_data["errors"])))
+            if (self.res_data is None) or (len(self.res_data["errors"]) > 0):
+                self._error.addItem("Test finished with errors")
                 item = self._error.item(self._error.count()-1)
                 item.setForeground(QtGui.QColor(255, 0, 0))
                 font = item.font()
