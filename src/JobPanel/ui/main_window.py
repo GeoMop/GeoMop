@@ -32,6 +32,7 @@ from .panels.overview import Overview
 from .panels.tabs import Tabs
 
 from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
+from gm_base.geomop_dialogs import AnalysisDialog
 from gm_base.config import __config_dir__
 
 
@@ -114,8 +115,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # env presets
         self.ui.menuBar.settings.actionEnvPresets.triggered.connect(self.set_env)
 
-        # analysis menu
-        self.ui.menuBar.analysis.config = self.data.workspaces
+        # analyses
+        self.ui.menuBar.actionAnalyses.triggered.connect(self.edit_analyses)
         
         # connect exit action
         self.ui.menuBar.app.actionExit.triggered.connect(
@@ -238,6 +239,15 @@ class MainWindow(QtWidgets.QMainWindow):
         env_dlg = EnvPresets(parent=self,
                                           presets=self.data.env_presets)
         env_dlg.exec_()
+
+    def edit_analyses(self):
+        config = self.data.workspaces
+        if config.get_path() is None:
+            QtWidgets.QMessageBox.information(
+                self, 'No Workspace',
+                'Please select workspace in Settings before creating an analysis.')
+        else:
+            AnalysisDialog(self, config=config).exec_()
 
     def load_settings(self):
         # select last selected mj

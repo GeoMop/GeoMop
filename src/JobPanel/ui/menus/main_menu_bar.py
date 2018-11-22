@@ -7,7 +7,6 @@ Main window menus
 
 import PyQt5.QtWidgets as QtWidgets
 from JobPanel.data.states import TaskStatus, MultijobActions, TASK_STATUS_PERMITTED_ACTIONS
-from JobPanel.ui.menus import AnalysisMenu
 
 
 def create_action(parent, text, shortcut="", object_name=""):
@@ -31,12 +30,12 @@ class MainMenuBar(QtWidgets.QMenuBar):
         self.app = AppMenu(self)
         self.multiJob = MultiJobMenu(self)
         self.settings = SettingsMenu(self)
-        self.analysis = AnalysisMenu(self, {})
+        self.actionAnalyses = create_action(self, "Analyses")
 
         # add menus to main menu
         self.addAction(self.app.menuAction())
         self.addAction(self.multiJob.menuAction())
-        self.addAction(self.analysis.menuAction())
+        self.addAction(self.actionAnalyses)
         self.addAction(self.settings.menuAction())
 
 
