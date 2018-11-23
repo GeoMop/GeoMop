@@ -60,7 +60,7 @@ class _Config:
 
         self.observers = []
         """objects to be notified of changes"""
-        self.current_working_dir = kw_or_def('current_working_dir', os.getcwd())
+        self.current_working_dir = os.getcwd()
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
