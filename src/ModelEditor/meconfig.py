@@ -58,10 +58,9 @@ class _Config:
             """Get keyword arg or default value."""
             return kwargs[key] if key in kwargs else default
 
-        from os.path import expanduser
         self.observers = []
         """objects to be notified of changes"""
-        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        self.current_working_dir = kw_or_def('current_working_dir', os.getcwd())
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
@@ -90,14 +89,14 @@ class _Config:
         self.workspace = self._workspace
         self.analysis = self._analysis
 
-    def update_last_data_dir(self, file_name):
+    def update_current_working_dir(self, file_name):
         """Save dir from last used file"""
         analysis_directory = None
         directory = os.path.dirname(os.path.realpath(file_name))
         if self.workspace is not None and self.analysis is not None:
             analysis_dir = os.path.join(self.workspace, self.analysis)
         if analysis_directory is None or directory != analysis_dir:
-            self.last_data_dir = directory
+            self.current_working_dir = directory
 
     @staticmethod
     def open():
@@ -166,11 +165,11 @@ class _Config:
 
     @property
     def data_dir(self):
-        """Data directory - either an analysis dir or the last used dir."""
+        """Data directory - either an analysis dir or the current working dir."""
         if self.workspace and self.analysis:
             return os.path.join(self.workspace, self.analysis)
         else:
-            return self.last_data_dir
+            return self.current_working_dir
 
     @property
     def workspace(self):
@@ -407,7 +406,7 @@ class MEConfig:
             base_name = os.path.splitext(os.path.basename(file))[0]
             cls.imported_file_name = base_name
             i = 1
-            dir_path = cls.config.last_data_dir + os.path.sep
+            dir_path = cls.config.current_working_dir + os.path.sep
             while os.path.isfile(dir_path + cls.imported_file_name + '.yaml'):
                 if i > 999:
                     break
@@ -471,7 +470,7 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         cls.document = cls.read_file(file_name)
-        cls.config.update_last_data_dir(file_name)
+        cls.config.update_current_working_dir(file_name)
         cls._set_file(file_name)
         cls.config.add_recent_file(file_name, cls.curr_format_file)
         cls.update()
@@ -571,7 +570,7 @@ class MEConfig:
         #     cls.curr_format_file = format_file
 
         cls.document = cls.read_file(file_name)
-        cls.config.update_last_data_dir(file_name)
+        cls.config.update_current_working_dir(file_name)
         cls._set_file(file_name)
         cls.config. add_recent_file(file_name, cls.curr_format_file)
         cls.update()
@@ -658,7 +657,7 @@ class MEConfig:
         try:
             with codecs.open(file_name, 'w', 'utf-8') as file_d:
                 file_d.write(cls.document)
-            cls.config.update_last_data_dir(file_name)
+            cls.config.update_current_working_dir(file_name)
             cls._set_file(file_name)
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
