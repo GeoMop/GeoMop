@@ -1001,23 +1001,21 @@ class EditorPosition:
         symbol if need be.
         """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
-            self._old_line_indent = self.line
-            pre_line = editor.text(self.line)
-            indent = LineAnalyzer.get_indent(pre_line)
-            indent_bullet = ("- " if cfg.config.symbol_completion else "")
-            index = pre_line.find("- ")
-            if index > -1 and index == indent:
-                indent += 2
+            if self.node is not None:
+                self._old_line_indent = self.line
+                #cfg.get_data_node(Position(line + 1, index + 1))
+                indent = (editor.curr_node.absolute_path.count('/') - 1) * 2
+                indent_bullet = ("- " if cfg.config.symbol_completion else "")
 
-            if self.node is None:
-                self._new_line_indent = (indent + 2) * ' '
-            elif self.node.implementation == DataNode.Implementation.sequence:
-                self._new_line_indent = (indent + 2) * ' ' + indent_bullet
-            elif self.node.implementation == DataNode.Implementation.scalar and \
-                    StructureAnalyzer.is_edit_parent_array(self.node):
-                self._new_line_indent = (indent - 2) * ' ' + indent_bullet
+                if self.node.implementation == DataNode.Implementation.sequence:
+                    self._new_line_indent = (indent + 2) * ' ' + indent_bullet
+                elif self.node.implementation == DataNode.Implementation.scalar and \
+                        StructureAnalyzer.is_edit_parent_array(self.node):
+                    self._new_line_indent = indent * ' ' + indent_bullet
+                else:
+                    self._new_line_indent = indent * ' '
             else:
-                self._new_line_indent = indent * ' '
+                self._new_line_indent = ""
 
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
@@ -1040,9 +1038,11 @@ class EditorPosition:
                     if self.node is not None:
                         na = NodeAnalyzer(self._old_text, self.node)
                     else:
-                        na = NodeAnalyzer(self._old_text, cfg.root)                
+                        na = NodeAnalyzer(self._old_text, cfg.root)
+
                     self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
-                                                                    editor.text(self.line))                    
+                                                                    editor.text(self.line))
+                    print(self.pred_parent)
             self._old_line_indent = None
         if cfg.config.symbol_completion and self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
