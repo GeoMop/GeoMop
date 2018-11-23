@@ -1004,28 +1004,20 @@ class EditorPosition:
             self._old_line_indent = self.line
             pre_line = editor.text(self.line)
             indent = LineAnalyzer.get_indent(pre_line)
-            if (self.node is None or
-                    self.node.implementation != DataNode.Implementation.scalar or
-                    not StructureAnalyzer.is_edit_parent_array(self.node)) and\
-                    cfg.config.symbol_completion:
-                self._new_line_indent = indent*' ' + "  "
-            else:
-                self._new_line_indent = indent*' ' + "- "
+            indent_bullet = ("- " if cfg.config.symbol_completion else "")
+            index = pre_line.find("- ")
+            if index > -1 and index == indent:
+                indent += 2
 
-        '''
-                indent_bullet = ("- " if cfg.config.symbol_completion else "")
-                print(self.node is None)
-                print(self.node.implementation != DataNode.Implementation.scalar)
-                print(StructureAnalyzer.is_edit_parent_array(self.node))
-                if self.node is None or  \
-                   self.node.implementation != DataNode.Implementation.scalar or \
-                   not StructureAnalyzer.is_edit_parent_array(self.node):
-                    self._new_line_indent = indent*' '+"  "
-                else:
-                    self._new_line_indent = indent*' ' + indent_bullet
+            if self.node is None:
+                self._new_line_indent = (indent + 2) * ' '
+            elif self.node.implementation == DataNode.Implementation.sequence:
+                self._new_line_indent = (indent + 2) * ' ' + indent_bullet
+            elif self.node.implementation == DataNode.Implementation.scalar and \
+                    StructureAnalyzer.is_edit_parent_array(self.node):
+                self._new_line_indent = (indent - 2) * ' ' + indent_bullet
             else:
-                self._new_line_indent = indent*' '
-        '''
+                self._new_line_indent = indent * ' '
 
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
