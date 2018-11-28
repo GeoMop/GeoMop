@@ -12,7 +12,8 @@ from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
 from JobPanel.data.states import TaskStatus as GuiTaskStatus
-from JobPanel.backend.connection import ConnectionStatus, SSHError, SSHAuthenticationError
+from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
+                                         SSHDelegatorError)
 from JobPanel.data.secret import Secret
 from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
@@ -584,6 +585,15 @@ class Backend(ServiceBase):
         except SSHAuthenticationError:
             ret["errors"].append("Authentication error\n"
                                  "Check your user name and password, edit boxes 'User' and 'Password'.")
+            return ret
+        except SSHWorkspaceError:
+            ret["errors"].append("Unable to write to workspace.\n"
+                                 "Check your workspace directory, edit box 'Analysis workspace directory'.")
+            return ret
+        except SSHDelegatorError as e:
+            ret["errors"].append("Unable to start or connect to delegator.\n"
+                                 "Check your GeoMop root directory, edit box 'GeoMop root directory'.\n"
+                                 "Delegator std output and error:\n{}\n{}".format(e.std_out, e.std_err))
             return ret
         except SSHError:
             ret["errors"].append("Unable to connect to host.\nCheck the host address, edit box 'Host'.")
