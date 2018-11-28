@@ -521,6 +521,9 @@ class YamlEditorWidget(QsciScintilla):
         option = selected.decode('utf-8')
         option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
+        if len(text) < position or text[position - 1] == ":":
+            self.insert_at_cursor(' ')
+            self.getCursorPosition()
         lines = text[position:]
         line = lines.split('\n')[0]
         word_to_replace = LineAnalyzer.get_autocompletion_word(line)
@@ -528,7 +531,6 @@ class YamlEditorWidget(QsciScintilla):
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
         with self.reload_chunk:
             self.replaceSelectedText(option_text)
-
 # ---------------------------- FIND / REPLACE --------------------------------
 
     def show_find_replace_dialog(self, replace_visible=False):
@@ -1215,7 +1217,9 @@ class EditorPosition:
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
-            if self.cursor_type_position == CursorType.key and self.node.parent is not None:
+            if self.cursor_type_position == CursorType.key and \
+                    self.node.parent is not None and \
+                    editor.text(self.line)[self.index - 1] != ":":
                 node = self.node.parent
             else:
                 node = self.node
