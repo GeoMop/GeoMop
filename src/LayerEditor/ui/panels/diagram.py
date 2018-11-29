@@ -449,15 +449,13 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._line_moving_counter += 1
             if self._line_moving_counter%3==0:
                 # point at old position
-                displacement = event.scenePos() - self._line_moving_old_pos
-                p1_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p1.de_id]
-                p2_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p2.de_id]
-                if cfg.diagram.po.decomposition.check_displacment(
-                        [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
-                    if self._line_moving_counter == 3:
-                        self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.moved)
-                    else:
-                        self._line_moving.shift_line(event.scenePos()-self._line_moving_pos)
+                if self._line_moving_counter == 3:
+                    self._line_moving.shift_line(event.scenePos() - self._line_moving_pos, ItemStates.moved)
+                else:
+                    self._line_moving.shift_line(event.scenePos() - self._line_moving_pos)
+                if not cfg.diagram.update_moving_points([self._line_moving.line_data.p1, self._line_moving.line_data.p2]):
+                    self._line_moving.shift_line(-event.scenePos() + self._line_moving_pos)
+                else:
                     self._line_moving_pos = event.scenePos()
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
