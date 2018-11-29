@@ -44,6 +44,19 @@ class SSHTimeoutError(SSHError):
     pass
 
 
+class SSHWorkspaceError(SSHError):
+    """Raised when unable to write to workspace."""
+    pass
+
+
+class SSHDelegatorError(SSHError):
+    """Raised when unable to start or connect to delegator."""
+
+    def __init__(self, std_out="", std_err=""):
+        self.std_out = std_out
+        self.std_err = std_err
+
+
 class ConnectionStatus(enum.IntEnum):
     not_connected = 1
     online = 2
@@ -431,6 +444,15 @@ class ConnectionSSH(ConnectionBase):
                 sftp.mkdir(workspace)
             except IOError:
                 pass
+
+            # test writing to workspace
+            filename = os.path.join(workspace, "writing_test_file")
+            try:
+                with sftp.open(filename, mode='w'):
+                    pass
+                sftp.remove(filename)
+            except IOError:
+                raise SSHWorkspaceError
 
             self._delegator_dir = os.path.join(workspace, "Delegators")
             try:
@@ -993,6 +1015,10 @@ class ConnectionSSH(ConnectionBase):
                 self._delegator_proxy.child_id = child_id
                 self._delegator_proxy.on_answer_connect()
                 break
+
+        if not connected:
+            raise SSHDelegatorError(self._delegator_std_in_out_err[1].read().decode(errors="replace"),
+                                    self._delegator_std_in_out_err[2].read().decode(errors="replace"))
 
         return self._delegator_proxy
 
