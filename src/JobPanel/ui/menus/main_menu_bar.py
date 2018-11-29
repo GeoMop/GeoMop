@@ -78,7 +78,7 @@ class MultiJobMenu(QtWidgets.QMenu):
 
         # control actions
         self.actionStopMultiJob = create_action(self, "Stop", "Ctrl+S", "actionStopMultiJob")
-        self.actionSendReport = create_action(self, "Create Report", "actionSendReport")
+        self.actionCreateReport = create_action(self, "Create Report", "actionCreateReport")
 
         self.actionDownloadWholeMultiJob = create_action(self, "Download Whole MultiJob", "actionDownloadWholeMultiJob")
 
@@ -89,7 +89,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionStopMultiJob)
-        self.addAction(self.actionSendReport) 
+        self.addAction(self.actionCreateReport)
         self.addSeparator()
         self.addAction(self.actionDownloadWholeMultiJob)
 
@@ -98,7 +98,7 @@ class MultiJobMenu(QtWidgets.QMenu):
             MultijobActions.delete_remote:  self.actionDeleteRemote,
             MultijobActions.delete: self.actionDeleteMultiJob,
             MultijobActions.stop: self.actionStopMultiJob,
-            MultijobActions.send_report: self.actionSendReport,
+            MultijobActions.send_report: self.actionCreateReport,
             MultijobActions.download_whole: self.actionDownloadWholeMultiJob
         }
 
@@ -127,7 +127,7 @@ class MultiJobMenu(QtWidgets.QMenu):
 
         self.actionDownloadWholeMultiJob.setDisabled(True)
         self.actionReuseMultiJob.setDisabled(True)
-        self.actionSendReport.setDisabled(True)
+        self.actionCreateReport.setDisabled(True)
 
         remote_delete = all([multijobs[mj_id].is_action_forbidden(MultijobActions.delete_remote) for mj_id in mj_ids])
         self.actionDeleteRemote.setDisabled(remote_delete)
