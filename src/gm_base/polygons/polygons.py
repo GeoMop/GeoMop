@@ -173,7 +173,6 @@ class PolygonDecomposition:
                 if (seg, side) not in moving_segs and (seg, 1 - side) not in moving_segs:
                         envelope.append(seg)
 
-
         for e_seg in envelope:
             # Check collision of points with envelope.
             for pt in points:
