@@ -11,7 +11,7 @@ from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatu
 from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.states import TaskStatus
 from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
                                          SSHDelegatorError)
 from JobPanel.data.secret import Secret
@@ -270,17 +270,17 @@ class Backend(ServiceBase):
         jobs_states = []
         for k, v in mj._jobs_report.items():
             # status
-            status = GuiTaskStatus.none
+            status = TaskStatus.none
             if v.status in [JobStatus.starting, JobStatus.queued]:
-                status = GuiTaskStatus.queued
+                status = TaskStatus.queued
             elif v.status in [JobStatus.running, JobStatus.downloading_result]:
-                status = GuiTaskStatus.running
+                status = TaskStatus.running
             elif v.status == JobStatus.done:
-                status = GuiTaskStatus.finished
+                status = TaskStatus.finished
             elif v.status == JobStatus.error:
-                status = GuiTaskStatus.error
+                status = TaskStatus.error
             elif v.status == JobStatus.stopped:
-                status = GuiTaskStatus.stopped
+                status = TaskStatus.stopped
 
             # run_interval
             run_interval = 0.0
