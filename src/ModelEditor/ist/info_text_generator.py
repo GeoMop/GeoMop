@@ -8,6 +8,7 @@ from copy import copy
 __author__ = 'Tomas Krizek'
 
 
+
 class InfoTextGenerator:
     """
     Generates info_text for `DataNode`.
@@ -354,9 +355,10 @@ class InfoTextGenerator:
             parts.append("{0}=1".format(direction))
 
         if not parts:
-            return '#'
-        return '?' + '&'.join(parts)
-
+            href = '#'
+        else:
+            href = '?' + '&'.join(parts)
+        return "" + href
 
 class NumberRange:
     """
