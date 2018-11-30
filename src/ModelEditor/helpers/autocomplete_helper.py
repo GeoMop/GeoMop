@@ -64,7 +64,7 @@ class AutocompleteHelper:
         if hasattr(editor, 'SCN_AUTOCCANCELLED'):
             editor.SCN_AUTOCCANCELLED.connect(self._handle_autocompletion_canceled)
 
-    def create_options(self, input_type):
+    def create_options(self, input_type,show_keys=True):
         """Create a list of options based on the input type.
 
         Each option is identified by a string that should be displayed as QScintilla
@@ -85,7 +85,8 @@ class AutocompleteHelper:
         #     })
 
         if input_type['base_type'] == 'Record':  # input type Record
-            self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
+            if show_keys:
+                self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
             if 'implemented_abstract_record' in input_type:
                 self._options.update({'!' + type_: 'type' for type_ in
                                       input_type['implemented_abstract_record']['implementations']})
@@ -141,6 +142,7 @@ class AutocompleteHelper:
         filter_ = None
         if context is not None:
             filter_ = context.hint
+            print(context.hint)
         prev_options = self.scintilla_options
         self._prepare_options(filter_)
         if len(self.scintilla_options) == 0:
@@ -182,6 +184,8 @@ class AutocompleteHelper:
 
         :param str filter_: only allow options that starts with this string
         """
+
+
         if filter_ is None:
             filter_ = ''
         options = [option for option in self._options.keys() if option.startswith(filter_)]
