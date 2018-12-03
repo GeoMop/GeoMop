@@ -181,8 +181,8 @@ Section "Runtime Environment" SecRuntime
 
   # Install psutil.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\psutil-5.4.6.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.6.tar.gz"'
+  File "${BUILD_DIR}\psutil-5.4.8-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.8-cp36-cp36m-win_amd64.whl"'
 
   # Install pyDes.
   SetOutPath $INSTDIR\prerequisites
