@@ -162,7 +162,7 @@ Section "Runtime Environment" SecRuntime
   # Install NumPy.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.3+mkl-cp36-cp36m-win_amd64.whl"'
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"'
 
   # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
