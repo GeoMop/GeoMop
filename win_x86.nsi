@@ -69,10 +69,10 @@ Function .onInit
 
   CheckPython:
     # Check if Python is installed.
-    ReadRegStr $PYTHON_EXE HKCU "${PYTHON_HK_64}" ""
+    ReadRegStr $PYTHON_EXE HKCU "${PYTHON_HK}" ""
 
     ${If} $PYTHON_EXE == ""
-        ReadRegStr $PYTHON_EXE HKLM "${PYTHON_HK_64}" ""
+        ReadRegStr $PYTHON_EXE HKLM "${PYTHON_HK}" ""
     ${Endif}
 
     # Install Python.
