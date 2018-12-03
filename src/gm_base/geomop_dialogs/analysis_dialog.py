@@ -10,7 +10,7 @@ import re
 from PyQt5 import QtWidgets, QtGui, QtCore
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from gm_base import icon
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class AddAnalysisDialog(QtWidgets.QDialog):

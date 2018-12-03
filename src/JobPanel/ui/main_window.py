@@ -33,7 +33,8 @@ from .panels.tabs import Tabs
 
 from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
 from gm_base.geomop_dialogs import AnalysisDialog
-from gm_base.config import __config_dir__, GEOMOP_INTERNAL_DIR_NAME
+from gm_base.config import __config_dir__
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 logger = logging.getLogger("UiTrace")

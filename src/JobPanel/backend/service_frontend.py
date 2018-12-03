@@ -9,7 +9,7 @@ from JobPanel.ui.data.mj_data import MultiJobState
 from JobPanel.data.states import TaskStatus
 from JobPanel.data.secret import Secret
 from JobPanel.communication import Installation
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import time

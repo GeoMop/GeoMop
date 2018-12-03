@@ -6,7 +6,7 @@ from Analysis.client_pipeline.mj_preparation import *
 from JobPanel.ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 from .path_converter import if_win_win2lin_conv_path
 
 
