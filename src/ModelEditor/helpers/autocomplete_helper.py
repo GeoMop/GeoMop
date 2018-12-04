@@ -119,8 +119,6 @@ class AutocompleteHelper:
         if self._editor is not None:
             position = self._editor.getCursorPosition()
             line = self._editor.text(position[0])
-            print(position)
-            print(len(line))
             if line[position[1] - 1] == ':' or line[position[1] - 1] == '-':
                 if len(line) > position[1] + 1:
                     indent = len(line[position[1]:]) - len(line[position[1]:].lstrip(' '))
