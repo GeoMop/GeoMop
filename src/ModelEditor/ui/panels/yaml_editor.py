@@ -521,9 +521,6 @@ class YamlEditorWidget(QsciScintilla):
         option = selected.decode('utf-8')
         option_text = cfg.autocomplete_helper.get_autocompletion(option)
         text = self.text()
-        if len(text) < position or text[position - 1] == ":":
-            self.insert_at_cursor(' ')
-            self.getCursorPosition()
         lines = text[position:]
         line = lines.split('\n')[0]
         word_to_replace = LineAnalyzer.get_autocompletion_word(line)
@@ -1214,21 +1211,15 @@ class EditorPosition:
     def reload_autocompletion(self, editor):
         """Create new autocomplete options when newline is added."""
         node = None
-        print(self.cursor_type_position)
-        print(self.node.implementation)
-        print(self.node.span)
-        print(self.node.start)
+
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
-            if self.cursor_type_position == CursorType.key and \
-                    self.node.parent is not None: #and \
-                    #self.node.span.end.column == self.index:
-                    #editor.text(self.line)[self.index + 1] != ":":
+            if self.cursor_type_position == CursorType.key and self.node.parent is not None:
                 node = self.node.parent
             else:
                 node = self.node
-
+                
         if node is not None and \
             node.origin is not DataNode.Origin.structure and \
             node.parent is not None:
@@ -1239,11 +1230,8 @@ class EditorPosition:
             input_type = cfg.root_input_type
         else:
             input_type = node.input_type
-        print(editor.text(self.line)[:self.index])
-        if editor.text(self.line)[:self.index].find(':') == - 1:
-            cfg.autocomplete_helper.create_options(input_type)
-        else:
-            cfg.autocomplete_helper.create_options(input_type, False)
+
+        cfg.autocomplete_helper.create_options(input_type)
         return True
 
     def node_init(self, node, editor):

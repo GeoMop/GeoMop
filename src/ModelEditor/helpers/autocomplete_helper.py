@@ -4,6 +4,7 @@
 """
 from copy import copy
 from PyQt5.Qsci import QsciScintilla
+from PyQt5 import QtWidgets
 
 from gm_base.model_data.format import is_scalar
 
@@ -64,7 +65,7 @@ class AutocompleteHelper:
         if hasattr(editor, 'SCN_AUTOCCANCELLED'):
             editor.SCN_AUTOCCANCELLED.connect(self._handle_autocompletion_canceled)
 
-    def create_options(self, input_type,show_keys=True):
+    def create_options(self, input_type):
         """Create a list of options based on the input type.
 
         Each option is identified by a string that should be displayed as QScintilla
@@ -85,8 +86,7 @@ class AutocompleteHelper:
         #     })
 
         if input_type['base_type'] == 'Record':  # input type Record
-            if show_keys:
-                self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
+            self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
             if 'implemented_abstract_record' in input_type:
                 self._options.update({'!' + type_: 'type' for type_ in
                                       input_type['implemented_abstract_record']['implementations']})
@@ -115,6 +115,12 @@ class AutocompleteHelper:
 
         :param AutocompleteContext context: current word and position
         """
+        position = self._editor.getCursorPosition()
+        line = self._editor.text(position[0])
+        if line[position[1] - 1] == ':' and line.find(': ') == -1:
+            self._editor.insert_at_cursor(' ')
+            QtWidgets.QApplication.processEvents()
+
         self.refresh_autocompletion(context, create_options=True)
         if len(self.scintilla_options) > 0:
             self.visible = True
@@ -142,7 +148,6 @@ class AutocompleteHelper:
         filter_ = None
         if context is not None:
             filter_ = context.hint
-            print(context.hint)
         prev_options = self.scintilla_options
         self._prepare_options(filter_)
         if len(self.scintilla_options) == 0:
@@ -184,11 +189,16 @@ class AutocompleteHelper:
 
         :param str filter_: only allow options that starts with this string
         """
-
+        show_keys = True
+        if self._editor is not None:
+            position = self._editor.getCursorPosition()
+            if self._editor.text(position[0])[:position[1]].find(":") > -1:
+                show_keys = False
 
         if filter_ is None:
             filter_ = ''
-        options = [option for option in self._options.keys() if option.startswith(filter_)]
+        options = [option for option in self._options.keys() if
+                   option.startswith(filter_) and (self._options[option] != 'key' or show_keys)]
         self.possible_options = sorted(options, key=self._sorting_key)
 
         # if there is only one option and it matches the word exactly, do not show options
