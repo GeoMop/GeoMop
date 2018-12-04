@@ -528,6 +528,7 @@ class YamlEditorWidget(QsciScintilla):
         self.SendScintilla(QsciScintilla.SCI_SETSELECTION, end_position, position)
         with self.reload_chunk:
             self.replaceSelectedText(option_text)
+
 # ---------------------------- FIND / REPLACE --------------------------------
 
     def show_find_replace_dialog(self, replace_visible=False):
@@ -1219,7 +1220,7 @@ class EditorPosition:
                 node = self.node.parent
             else:
                 node = self.node
-                
+
         if node is not None and \
             node.origin is not DataNode.Origin.structure and \
             node.parent is not None:

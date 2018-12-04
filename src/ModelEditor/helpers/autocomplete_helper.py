@@ -111,15 +111,23 @@ class AutocompleteHelper:
     def show_autocompletion(self, context=None):
         """Get autocomplete options for the context.
 
+        If the cursor is at the end of key, then add space and reload autocomplete.
         If there are some options to be displayed, :py:attr:`visible` is set to True.
 
         :param AutocompleteContext context: current word and position
         """
-        position = self._editor.getCursorPosition()
-        line = self._editor.text(position[0])
-        if line[position[1] - 1] == ':' and line.find(': ') == -1:
-            self._editor.insert_at_cursor(' ')
-            QtWidgets.QApplication.processEvents()
+        if self._editor is not None:
+            position = self._editor.getCursorPosition()
+            line = self._editor.text(position[0])
+            print(position)
+            print(len(line))
+            if line[position[1] - 1] == ':' or line[position[1] - 1] == '-':
+                if len(line) > position[1] + 1:
+                    indent = len(line[position[1]:]) - len(line[position[1]:].lstrip(' '))
+                    self._editor.setCursorPosition(position[0], position[1] + indent)
+                else:
+                    self._editor.insert_at_cursor(' ')
+                QtWidgets.QApplication.processEvents()
 
         self.refresh_autocompletion(context, create_options=True)
         if len(self.scintilla_options) > 0:
@@ -186,6 +194,9 @@ class AutocompleteHelper:
 
     def _prepare_options(self, filter_=None):
         """Sort filtered options and prepare QScintilla string representation.
+
+        If there is whole key on current line before cursor position,
+        don't show key options in autocomplete.
 
         :param str filter_: only allow options that starts with this string
         """
