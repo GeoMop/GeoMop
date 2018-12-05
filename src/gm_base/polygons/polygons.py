@@ -163,14 +163,15 @@ class PolygonDecomposition:
 
         # Todo: For the outer wire of the moving segments, add parent and its holes to the envelope.
         # Outer wire is the maximal parent wire for the set of all wires connected to moving edges.
-        moving_wires = { poly.outer_wire for poly in changed_polygons}
+        boundary_wires = [poly.outer_wire for poly in changed_polygons]
+        for wire in boundary_wires:
+            for child in wire.childs:
+                boundary_wires.append(child)
         envelope=[]
-        for wire in moving_wires:
+        for wire in boundary_wires:
             for seg, side in wire.segments():
-                if (seg, side) not in moving_segs and \
-                    (seg, 1 - side) not in moving_segs:
+                if (seg, side) not in moving_segs and (seg, 1 - side) not in moving_segs:
                         envelope.append(seg)
-
 
         for e_seg in envelope:
             # Check collision of points with envelope.
@@ -539,7 +540,6 @@ class PolygonDecomposition:
             return (t0, t1)
         else:
             return (None, None)
-
 
     ################################
     # Serialization methods - should move into polygon_io

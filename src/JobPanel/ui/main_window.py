@@ -33,7 +33,7 @@ from .panels.tabs import Tabs
 
 from gm_base.geomop_analysis import Analysis, MULTIJOBS_DIR
 from gm_base.geomop_dialogs import AnalysisDialog
-from gm_base.config import __config_dir__
+from gm_base.config import __config_dir__, GEOMOP_INTERNAL_DIR_NAME
 
 
 logger = logging.getLogger("UiTrace")
@@ -102,8 +102,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._handle_reuse_multijob_action)
         self.ui.menuBar.multiJob.actionDeleteMultiJob.triggered.connect(
             self._handle_delete_multijob_action)
-        self.ui.menuBar.multiJob.actionSendReport.triggered.connect(
-            self._handle_send_report_action)
+        self.ui.menuBar.multiJob.actionCreateReport.triggered.connect(
+            self._handle_create_report_action)
         self.ui.menuBar.multiJob.actionDeleteRemote.triggered.connect(
             self._handle_delete_remote_action)
         self.ui.menuBar.multiJob.actionDownloadWholeMultiJob.triggered.connect(
@@ -352,7 +352,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.update_ui_locks(mj_ids)
             
-    def _handle_send_report_action(self):
+    def _handle_create_report_action(self):
         if self.data.multijobs:
             key = self.ui.overviewWidget.selectedItems()[0].text(0)
             mj = self.data.multijobs[key]
@@ -373,9 +373,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.data.config.report_dir = dir
                     self.data.config.save()
                 if report_file:
-                    central_log_path = installation.Installation.get_central_log_dir_static()
+                    #central_log_path = installation.Installation.get_central_log_dir_static()
                     #log_path = installation.Installation.get_mj_log_dir_static(mj_name, an_name)
                     config_path = installation.Installation.get_config_dir_static(mj_name, an_name)
+                    workspace_path = self.data.workspaces.get_path()
+                    w_conf = os.path.join(workspace_path, GEOMOP_INTERNAL_DIR_NAME)
+                    an_path = os.path.join(workspace_path, an_name)
                     tmp_dir = os.path.join(__config_dir__, BASE_DIR, "tmp")
                     output_dir = os.path.join(__config_dir__, BASE_DIR, "tmp", "output_zip")
                     if not os.path.isdir(tmp_dir):
@@ -383,12 +386,18 @@ class MainWindow(QtWidgets.QMainWindow):
                     if os.path.isdir(output_dir):
                         shutil.rmtree(output_dir, ignore_errors=True)
                     os.makedirs(output_dir)
-                    if os.path.isdir(output_dir):
-                        shutil.copytree(central_log_path, os.path.join(output_dir, "central"))
+                    # if os.path.isdir(output_dir):
+                    #     shutil.copytree(central_log_path, os.path.join(output_dir, "central"))
                     if os.path.isdir(config_path):
-                        shutil.copytree(config_path, os.path.join(output_dir, "config"))
+                        shutil.copytree(config_path, os.path.join(output_dir, "mj_conf"), symlinks=True)
+                    if os.path.isdir(w_conf):
+                        shutil.copytree(w_conf, os.path.join(output_dir, "w_conf"))
+                    if os.path.isdir(an_path):
+                        shutil.copytree(an_path, os.path.join(output_dir, "an_conf"), ignore=shutil.ignore_patterns("mj"))
                     # if os.path.isdir(log_path):
                     #     shutil.copytree(log_path, os.path.join(output_dir,"log" ))
+                    if report_file.lower().endswith(".zip") and len(report_file) >= 5:
+                        report_file = report_file[:-4]
                     shutil.make_archive(report_file,"zip", output_dir)
                     shutil.rmtree(output_dir, ignore_errors=True)
             

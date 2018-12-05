@@ -6,7 +6,7 @@ from .path_converter import if_win_win2lin_conv_path
 from JobPanel.services.backend_service import MJReport
 from JobPanel.services.multi_job_service import MJStatus
 from JobPanel.ui.data.mj_data import MultiJobState
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.states import TaskStatus
 from JobPanel.data.secret import Secret
 from JobPanel.communication import Installation
 from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
@@ -187,29 +187,29 @@ class ServiceFrontend(ServiceBase):
                 self._mj_report[k] = v
 
                 # update MJ data
-                status = GuiTaskStatus.none
+                status = TaskStatus.none
                 if v.proxy_stopped:
-                    status = GuiTaskStatus.stopped
+                    status = TaskStatus.stopped
                 elif v.service_status == ServiceStatus.queued:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.queued
+                        status = TaskStatus.queued
                 elif v.service_status == ServiceStatus.running:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
                 elif v.service_status == ServiceStatus.done:
                     if v.mj_status == MJStatus.success:
-                        status = GuiTaskStatus.finished
+                        status = TaskStatus.finished
                     elif v.mj_status == MJStatus.error:
-                        status = GuiTaskStatus.error
+                        status = TaskStatus.error
                     elif v.mj_status == MJStatus.stopping:
-                        status = GuiTaskStatus.stopped
+                        status = TaskStatus.stopped
                     else:
                         # todo: divny, nemelo by nikdy nastat
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
 
                 run_interval = 0.0
                 if v.done_time:
@@ -407,7 +407,7 @@ class ServiceFrontend(ServiceBase):
             pass
         if len(err) > 0:
             mj = self._data_app.multijobs[mj_id]
-            mj.state.status = GuiTaskStatus.error
+            mj.state.status = TaskStatus.error
             mj.state.update_time = time.time()
             self._mj_changed_state.add(mj_id)
             return

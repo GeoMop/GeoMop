@@ -1,4 +1,4 @@
-# GeoMop nsi build script for Windows x86 platform
+# GeoMop nsi build script for Windows x86_64 platform
 # 
 #--------------------------------
 
@@ -10,7 +10,7 @@
 !define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
-!define PYTHON_MINOR   "4"
+!define PYTHON_MINOR   "6"
 
 # The following are derived from the above.
 !define PYTHON_VERS    "${PYTHON_MAJOR}.${PYTHON_MINOR}"
@@ -34,7 +34,7 @@ SetCompressor /SOLID lzma
 Name "GeoMop ${VERSION}"
 Caption "GeoMop ${VERSION} Setup"
 InstallDir "$PROGRAMFILES\GeoMop"
-OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86.exe"
+OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86_64.exe"
 
 # Registry key to check for directory (so if you install again, it will 
 # overwrite the old one automatically)
@@ -68,7 +68,7 @@ Var PYTHON_SCRIPTS
 Function .onInit
 
   CheckPython:
-    # Check if 32b Python is installed.
+    # Check if Python is installed.
     ReadRegStr $PYTHON_EXE HKCU "${PYTHON_HK}" ""
 
     ${If} $PYTHON_EXE == ""
@@ -77,12 +77,12 @@ Function .onInit
 
     # Install Python.
     ${If} $PYTHON_EXE == ""
-      MessageBox MB_YESNO|MB_ICONQUESTION "Python ${PYTHON_VERS} 32b is not installed. Do you wish to install it?" IDYES InstallPython
+      MessageBox MB_YESNO|MB_ICONQUESTION "Python ${PYTHON_VERS} 64b is not installed. Do you wish to install it?" IDYES InstallPython
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.4.4.msi"
-        ExecWait 'msiexec /i python-3.4.4.msi'
+        File "${BUILD_DIR}\python-3.6.7-amd64.exe"
+        ExecWait 'python-3.6.7-amd64.exe'
 
         # Check installation.
         Goto CheckPython
@@ -108,13 +108,13 @@ Section "Runtime Environment" SecRuntime
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\virtualenv-15.1.0-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-15.1.0-py2.py3-none-any.whl"'
+  File "${BUILD_DIR}\virtualenv-16.1.0-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-16.1.0-py2.py3-none-any.whl"'
   ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
   SetOutPath $INSTDIR
-  File /r "${BUILD_DIR}\env"
+  #File /r "${BUILD_DIR}\env"
 
   # Copy the common folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
@@ -130,15 +130,44 @@ Section "Runtime Environment" SecRuntime
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
+  # Install Markdown.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\Markdown-3.0.1-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\Markdown-3.0.1-py2.py3-none-any.whl"'
+
+  # Install PyYAML.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\PyYAML-3.13-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyYAML-3.13-cp36-cp36m-win_amd64.whl"'
+
+  # Install six.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\six-1.11.0-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\six-1.11.0-py2.py3-none-any.whl"'
+
+  # Install pyperclip.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\pyperclip-1.7.0.tar.gz"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyperclip-1.7.0.tar.gz"'
+
+  # Install PyQt5.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"'
+  File "${BUILD_DIR}\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
+  File "${BUILD_DIR}\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
+
   # Install NumPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"'
+  File "${BUILD_DIR}\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"'
 
   # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
+  File "${BUILD_DIR}\scipy-0.18.1-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp36-cp36m-win_amd64.whl"'
 
   # Install pyshp.
   SetOutPath $INSTDIR\prerequisites
@@ -152,8 +181,8 @@ Section "Runtime Environment" SecRuntime
 
   # Install psutil.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\psutil-5.4.6.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.6.tar.gz"'
+  File "${BUILD_DIR}\psutil-5.4.8-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.8-cp36-cp36m-win_amd64.whl"'
 
   # Install pyDes.
   SetOutPath $INSTDIR\prerequisites
@@ -188,8 +217,8 @@ Section "Runtime Environment" SecRuntime
   File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_vtk_source.yaml"
 
   # Copy the DLLs.
-  SetOutPath "$WINDIR\System32\"
-  File /r "${BUILD_DIR}\dll\"
+  #SetOutPath "$WINDIR\System32\"
+  #File /r "${BUILD_DIR}\dll\"
 
 SectionEnd
 
