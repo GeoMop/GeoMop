@@ -11,16 +11,17 @@ class TestSSHDialog(QtWidgets.QDialog):
         message1 = "Test ssh connection ({0})".format(ssh.get_description())
         self._main_label = QtWidgets.QLabel(message1, self)
         self._main_label.setMinimumSize(400, 40)
-        message2 = "Errors:" 
-        self._error_label = QtWidgets.QLabel(message2, self)
+        #message2 = "Errors:"
+        #self._error_label = QtWidgets.QLabel(message2, self)
         self._error = QtWidgets.QListWidget(self)
-        self._error.resize(400,60)
+        #self._error.resize(400,60)
+        self._error.setMinimumSize(600, 300)
         self._error.itemDoubleClicked.connect(self._error_item_clicked)       
-        message3 = "Log:"
-        self._log_label = QtWidgets.QLabel(message3, self)
-        self._log = QtWidgets.QListWidget(self)
-        self._log.resize(400,260)
-        self._log.itemDoubleClicked.connect(self._log_item_clicked)       
+        #message3 = "Log:"
+        #self._log_label = QtWidgets.QLabel(message3, self)
+        # self._log = QtWidgets.QListWidget(self)
+        # self._log.resize(400,260)
+        # self._log.itemDoubleClicked.connect(self._log_item_clicked)
         
         self._button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Cancel)
         self._button_box.rejected.connect(self.reject)
@@ -30,14 +31,15 @@ class TestSSHDialog(QtWidgets.QDialog):
         main_layout.setContentsMargins(5, 5, 5, 5)
 
         main_layout.addWidget(self._main_label)
-        main_layout.addWidget(self._error_label)
+        #main_layout.addWidget(self._error_label)
         main_layout.addWidget(self._error)
-        main_layout.addWidget(self._log_label)
-        main_layout.addWidget(self._log)
+        #main_layout.addWidget(self._log_label)
+        #main_layout.addWidget(self._log)
         main_layout.addWidget(self._button_box)
        
         self.finished = False
         self.test_answer = frontend_service.ssh_test(ssh)
+        self.res_data = None
         
         self.log_timer = QtCore.QTimer()
         self.log_timer.timeout.connect(self._handle_messages)
@@ -56,18 +58,30 @@ class TestSSHDialog(QtWidgets.QDialog):
         if len(self.test_answer) > 0:
             res = self.test_answer[0]
             if "error" in res:
-                self._error.addItem("Error in communication with Backend.")
+                self._error.addItem("Error in communication with Backend.\nTry restart frontend.")
+                item = self._error.item(self._error.count() - 1)
+                item.setForeground(QtGui.QColor(255, 0, 0))
                 self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
             else:
+                self.res_data = res["data"]
                 if len(res["data"]["errors"]) > 0:
                     for err in res["data"]["errors"]:
-                        self._error.addItem(err)
+                        self._error.addItem("Error: {}".format(err))
+                        item = self._error.item(self._error.count() - 1)
+                        item.setForeground(QtGui.QColor(255, 0, 0))
                     self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
                 else:
-                    self._log.addItem("Executables on remote:")
+                    self._error.addItem("Successful steps:")
+                    for step in res["data"]["successful_steps"]:
+                        self._error.addItem(step)
+                        item = self._error.item(self._error.count() - 1)
+                        item.setForeground(QtGui.QColor(0, 128, 0))
+
+                    self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
+                    self._error.addItem("Executables on remote:")
                     for executable in res["data"]["executables"]:
-                        self._log.addItem(executable)
-                    self._log.setCurrentRow(self._log.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
+                        self._error.addItem(executable)
+                    self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
             finished = True
 
         # i = 0
@@ -98,8 +112,8 @@ class TestSSHDialog(QtWidgets.QDialog):
             self._button_box.button(QtWidgets.QDialogButtonBox.Cancel).setText("Close")
             self.log_timer.stop()
             self.finished = True
-            if self._error.count()>0:
-                self._error.addItem("Test finished with {0} errors".format(self._error.count()))
+            if (self.res_data is None) or (len(self.res_data["errors"]) > 0):
+                self._error.addItem("Test finished with errors")
                 item = self._error.item(self._error.count()-1)
                 item.setForeground(QtGui.QColor(255, 0, 0))
                 font = item.font()
@@ -118,9 +132,9 @@ class TestSSHDialog(QtWidgets.QDialog):
         """error item is clicked"""
         self._list_item_clicked(self._error, item)
         
-    def _log_item_clicked(self, item):
-        """log item is clicked"""
-        self._list_item_clicked(self._log, item)
+    # def _log_item_clicked(self, item):
+    #     """log item is clicked"""
+    #     self._list_item_clicked(self._log, item)
  
     def _copy(self, txt, list=None):
         """copy item text to clicbord (if txt is None copy all lines)"""

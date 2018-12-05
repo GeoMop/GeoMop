@@ -21,6 +21,7 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 # import in code
 #from .service_base import ServiceStatus
@@ -178,7 +179,9 @@ class ProcessExec(ProcessBase):
                 try:
                     os.close(r)
                     os.setsid()
-                    with open(os.path.join(cwd, "std_out.txt"), 'w') as fd_out:
+                    conf_dir = os.path.join(cwd, GEOMOP_INTERNAL_DIR_NAME)
+                    os.makedirs(conf_dir, exist_ok=True)
+                    with open(os.path.join(conf_dir, "std_out.txt"), 'w') as fd_out:
                         p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
                     os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
                     os.close(w)
@@ -457,7 +460,10 @@ class ProcessDocker(ProcessBase):
 
         cwd = self.environment.geomop_analysis_workspace + "/" + self.exec_args.work_dir
 
-        args = self._get_limit_args()
+        # wrapper
+        args = [self.environment.python, self.environment.geomop_root + "/JobPanel/backend/docker_wrapper.py"]
+
+        args.extend(self._get_limit_args())
 
         if self.executable.script:
             args.append(self.environment.python)
@@ -487,7 +493,12 @@ class ProcessDocker(ProcessBase):
             base_args = ["docker", "run", "-d"]
             if arg_p != "":
                 base_args.extend(["-p", arg_p])
-            base_args.extend(["-v", home + ":" + home, "-w", cwd, "-u", "{}:{}".format(uid, gid), "geomop/jobpanel"])
+            base_args.extend(["-v", home + ":" + home, "-w", cwd,
+                              "-e", "uid={}".format(uid), "-e", "gui={}".format(gid),
+                              "flow123d/2.2.1-geomop"])
+            # When we want to use ssh keys, it is possible to add following arguments,
+            # then keys will be copied to docker.
+            # "-e", "home=/mnt//home/radek", "-v", "/home/radek:/mnt//home/radek"
             output = subprocess.check_output(base_args + args, universal_newlines=True)
             self.process_id = output.strip()
 

@@ -9,7 +9,7 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5 import QtCore, QtGui
 
 from JobPanel.data import TaskStatus
-
+from ..menus.main_menu_bar import MultiJobMenu
 
 ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
 
@@ -32,6 +32,11 @@ class Overview(QtWidgets.QTreeWidget):
         self.header().resizeSection(4, 120)
         self.header().resizeSection(5, 120)
         self.header().resizeSection(6, 80)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setAllColumnsShowFocus(True)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._open_context_menu)
+
 
     @staticmethod
     def _update_item(item, state, time_format):
@@ -70,6 +75,12 @@ class Overview(QtWidgets.QTreeWidget):
                     return idx, item
         return None
 
+    def _open_context_menu(self, position):
+        if self.itemAt(position) is None:
+            self.clearSelection()
+        contextMenu = self.parentWidget().parentWidget().findChild(MultiJobMenu,"multiJobMenu")
+        contextMenu.popup(self.viewport().mapToGlobal(position))
+
     def add_item(self, key, data):
         item = QtWidgets.QTreeWidgetItem(self)
         item.setTextAlignment(3, QtCore.Qt.AlignRight)
@@ -95,11 +106,26 @@ class Overview(QtWidgets.QTreeWidget):
         return self.takeTopLevelItem(index)
 
     def reload_items(self, data):
+        current_id = None
+        if self.currentItem() is not None:
+            current_id = self.currentItem().text(0)
+
+        selection_ids = []
+        for sel_item in self.selectedItems():
+            selection_ids.append(sel_item.text(0))
+        self.reset()
         self.clear()
         if data:
             for key in data:
                 if data[key].valid:
                     self.add_item(key, data[key].state)
-        self.setCurrentItem(self.topLevelItem(0))
-        self.resizeColumnToContents(1)
 
+        if current_id is not None:
+            if self._get_item_by_key(current_id) is not None:
+                self.setCurrentItem(self._get_item_by_key(current_id)[1], 1)
+
+        for mj_id in selection_ids:
+            item = self._get_item_by_key(mj_id)
+            if item is not None:
+                item[1].setSelected(True)
+        self.resizeColumnToContents(1)

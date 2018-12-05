@@ -14,7 +14,7 @@ import time
 import platform
 
 BASE_DIR = 'JobPanel'
-WORKSPACE_CONF_DIR = 'conf'
+WORKSPACE_CONF_DIR = base_cfg.GEOMOP_INTERNAL_DIR_NAME
 
 
 class WorkspaceConf():

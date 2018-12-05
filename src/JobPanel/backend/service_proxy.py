@@ -228,6 +228,7 @@ class ServiceProxy(JsonData):
             self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(service_data, fd, indent=4, sort_keys=True)
 

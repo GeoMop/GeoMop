@@ -17,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 
 from JobPanel.backend import service_base
 from JobPanel.backend.executor import Executable, ExecArgs
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 
 """
@@ -96,7 +97,7 @@ class Job(service_base.ServiceBase):
         args.extend(self.job_exec_args.args)
         cwd = os.path.join(self.process.environment.geomop_analysis_workspace,
                            self.job_exec_args.work_dir)
-        with open(os.path.join(cwd, "job_std_out.txt"), 'w') as fd_out:
+        with open(os.path.join(cwd, GEOMOP_INTERNAL_DIR_NAME, "job_std_out.txt"), 'w') as fd_out:
             p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
             while not self.stopping:
                 try:
@@ -143,7 +144,7 @@ class Job(service_base.ServiceBase):
 
 
 def job_main():
-    input_file = "_job_service.conf"
+    input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "job_service.conf")
     if len(sys.argv) >  1:
         input_file = sys.argv[1]
     with open(input_file, "r") as f:
@@ -162,7 +163,7 @@ def job_main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='job_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "job_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 

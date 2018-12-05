@@ -1,7 +1,7 @@
 """
 Info Panel Widget
 
-Widget that shows info text with QWebView.
+Widget that shows info text with QWebEngineView.
 
 .. codeauthor:: Tomas Krizek <tomas.krizek1@tul.cz>
 """
@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 import os
 from copy import copy
 
-from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtCore import QUrl, Qt
 import PyQt5.QtCore as QtCore
 
@@ -20,13 +20,9 @@ from ModelEditor.meconfig import MEConfig as cfg
 
 # pylint: disable=invalid-name
 
-
-class InfoPanelWidget(QWebView):
-    """Widget for displaying HTML info text."""
-
-    def __init__(self, parent=None):
-        """Initialize the class."""
-        super(InfoPanelWidget, self).__init__(parent)
+class InfoPanelPage(QWebEnginePage):
+    def __init__(self, parent = None):
+        super().__init__(parent)
 
         self._context = {
             'home': None,
@@ -43,12 +39,20 @@ class InfoPanelWidget(QWebView):
 
         # self.setMinimumSize(700, 200)
         # self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.setContextMenuPolicy(Qt.NoContextMenu)
-        self.setFocusPolicy(Qt.NoFocus)
+
+        #self.setFocusPolicy(Qt.NoFocus)
 
         self._html_root_url = QUrl.fromLocalFile(cfg.info_text_html_root_dir + os.path.sep)
-        self.linkClicked.connect(self.navigate_to)
-        self.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+
+
+    def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
+        """
+        Overloaded method for own processing of navigation events.
+        Return True if the url should be loaded.
+        """
+        if (navigation_type == QWebEnginePage.NavigationTypeLinkClicked):
+            self.navigate_to(url)
+        return True
 
     def update_from_node(self, node, cursor_type=None):
         """Update the info text for the given node and cursor_type.
@@ -56,17 +60,17 @@ class InfoPanelWidget(QWebView):
         :param DataNode node: current node
         :param CursorType cursor_type: indicates cursor position in node
         """
-        is_parent = self._is_parent(cursor_type, node)        
+        is_parent = self._is_parent(cursor_type, node)
         node, data = node.get_info_text_data(is_parent)
-        
+
         parent = {}
-        parent['id']=None
-        parent['arr']=[]
+        parent['id'] = None
+        parent['arr'] = []
         while node.parent is not None:
             node, next_parent = node.get_info_text_data(False)
-            parent['arr'].append(next_parent)            
+            parent['arr'].append(next_parent)
         self.update_from_data(data, True, parent)
-        
+
     def _is_parent(self, cursor_type, node):
         """return if parent is need for info"""
         is_parent = False
@@ -74,11 +78,11 @@ class InfoPanelWidget(QWebView):
             is_parent = True
         elif cursor_type == CursorType.value.value:
             new_node = node.get_node_at_position(node.span.start)
-            if new_node is not  None:
+            if new_node is not None:
                 node = new_node
         elif cursor_type == CursorType.parent.value:
             is_parent = True
-        return  is_parent
+        return is_parent
 
     def update_from_data(self, data, set_home, parent=None):
         """Generate and show the info text from data.
@@ -91,17 +95,17 @@ class InfoPanelWidget(QWebView):
         if set_home:
             if parent is None:
                 parent = {}
-                parent['id']=None
-                parent['arr']=[]
+                parent['id'] = None
+                parent['arr'] = []
             self._context['home'] = self._data
             self._context['back'] = []
             self._context['forward'] = []
             self._context['parent'] = parent
-            self._context['parent_id'] = 0 
+            self._context['parent_id'] = 0
         args = copy(self._data)
         args.update({'context': self._context})
         html = InfoTextGenerator.get_info_text(**args)
-        super(InfoPanelWidget, self).setHtml(html, self._html_root_url)
+        self.setHtml(html, self._html_root_url)
 
     def navigate_to(self, url_):
         """Navigate to given URL.
@@ -122,7 +126,7 @@ class InfoPanelWidget(QWebView):
         elif 'home' in data:
             self._context['back'].clear()
             self._context['forward'].clear()
-            self._context['parent']['id']=None
+            self._context['parent']['id'] = None
             del data['home']
         elif 'parent' in data:
             self._context['back'].append(self._data)
@@ -133,14 +137,7 @@ class InfoPanelWidget(QWebView):
 
         self.update_from_data(data, set_home=False)
 
-    def resizeEvent(self, event):
-        """Handle window resize."""
-        super(InfoPanelWidget, self).resizeEvent(event)
-        self.page().setViewportSize(event.size())
 
-    def sizeHint(self):
-        """Return the preferred size of widget."""
-        return QtCore.QSize(700, 250)
 
 
 def main():
