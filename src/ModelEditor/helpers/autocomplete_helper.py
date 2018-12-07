@@ -200,11 +200,15 @@ class AutocompleteHelper:
         :param str filter_: only allow options that starts with this string
         """
         show_keys = True
-        show_types = False
         if self._editor is not None:
             position = self._editor.getCursorPosition()
             if self._editor.text(position[0])[:position[1]].find(":") > -1:
                 show_keys = False
+
+        show_types = False
+        if self._editor is not None:
+            if self._editor.text(position[0])[:position[1]].find(":") > -1 or \
+                    self._editor.text(position[0])[:position[1]].find("-") > -1:
                 show_types = True
 
         if filter_ is None:
