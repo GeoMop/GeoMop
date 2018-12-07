@@ -814,7 +814,6 @@ class YamlEditorWidget(QsciScintilla):
                 cfg.autocomplete_helper.refresh_autocompletion()
         else:
             cfg.autocomplete_helper.refresh_autocompletion()
-        print(self._pos.node.implementation if self._pos.node is not None else "None")
 
     def _text_changed(self):
         """Handle :py:attr:`textChanged` signal."""
@@ -1017,20 +1016,22 @@ class EditorPosition:
             indent = LineAnalyzer.get_indent(pre_line)
             index = pre_line.find("-")
             indent_bullet = ("- " if cfg.config.symbol_completion else "")
-            if index > -1 and index == indent:
-                # if last line contained '-' at the beginning, add '- ' on the new line
+
+            # if this is first line after sequence keyword than add '- '
+            if node is not None and \
+                    node.implementation == DataNode.Implementation.sequence and \
+                    pre_line.find(node.key.value + ':') > -1:
+                self._new_line_indent = (indent + tab_width) * ' ' + indent_bullet
+
+            elif index > -1 and index == indent:
+                # if last line contained '-' at the beginning, add '- ' to the new line
                 if (node is not None and
-                        node.implementation == DataNode.Implementation.scalar and
-                        StructureAnalyzer.is_edit_parent_array(node)):
+                        pre_line.find(':') == -1 and
+                        pre_line.find('!') == -1):
                     self._new_line_indent = indent * ' ' + indent_bullet
                 else:
                     self._new_line_indent = (indent + tab_width) * ' '
 
-            # if this is first line after sequence keyword than add '- '
-            elif node is not None and \
-                    node.implementation == DataNode.Implementation.sequence and \
-                    pre_line.find(node.key.value + ':') > -1:
-                self._new_line_indent = (indent + tab_width) * ' ' + indent_bullet
             else:
                 self._new_line_indent = indent * ' '
 
