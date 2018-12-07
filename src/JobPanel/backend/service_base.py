@@ -274,6 +274,7 @@ class ServiceBase(JsonData):
         file = os.path.join(self.get_analysis_workspace(),
                             self.workspace,
                             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
@@ -516,15 +517,6 @@ class ServiceBase(JsonData):
         :return: STATUS
         """
         connection = self.get_connection(service_data["service_host_connection"])
-
-        # determine absolute workspace path, in case of connection is ConnectionSSH
-        # shc = service_data["service_host_connection"]
-        # if (shc["__class__"] == "ConnectionSSH") and \
-        #         (not os.path.isabs(shc["environment"]["geomop_analysis_workspace"])):
-        #     abspath = connection.get_analysis_workspace_absolute_path()
-        #     if abspath != "":
-        #         shc["environment"] = shc["environment"].copy()
-        #         shc["environment"]["geomop_analysis_workspace"] = abspath
 
         from .service_proxy import ServiceProxy
         proxy = ServiceProxy({})

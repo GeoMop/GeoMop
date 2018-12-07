@@ -185,7 +185,7 @@ class Diagram(QtWidgets.QGraphicsScene):
                 shp.shpdata.object.update()
                 shp.refreshed = True
     
-    def _add_point(self, gobject, p1, label='Add point'):
+    def _add_point(self, gobject, p1, label='Add point', add_next=False):
         """Add point to diagram and paint it."""
         if gobject is None or isinstance(gobject, Polygon):
             point =cfg.diagram.add_point(p1.x(), p1.y(), label) 
@@ -201,6 +201,20 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.add_graphical_object(l)
             p = Point(point)
             self.add_graphical_object(p)
+            self._add_polygons()
+        if add_next:
+            self._last_p1_real = p
+            self._last_p1_on_line = None
+            self._remove_last()
+            line = struc.Diagram.make_tmp_line(p1.x(), p1.y(), p1.x(), p1.y())
+            pt1 = Point(line.p1, tmp=True)
+            self.add_graphical_object(pt1)
+            pt2 = Point(line.p2, tmp=True)
+            pt2.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.add_graphical_object(pt2)
+            l = Line(line, tmp=True)
+            self.add_graphical_object(l)
+            self._last_line = line
             self._add_polygons()
         return p, None
         
@@ -274,7 +288,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             self._remove_last()
             self._add_polygons()
             self._del_polygons()
-        if add_last:                
+        if add_last:
             line = struc.Diagram.make_tmp_line(px, py, p.x(), p.y())
             p1 = Point(line.p1, tmp=True)
             self.add_graphical_object(p1)
@@ -419,31 +433,29 @@ class Diagram(QtWidgets.QGraphicsScene):
         elif self._point_moving is not None:
             self._point_moving_counter += 1
             if self._point_moving_counter%3==0:
-                # displacement from old position
-                displacement = event.scenePos() - self._point_moving_old
                 # point at old position
                 point_data = cfg.diagram.po.decomposition.points[self._point_moving.point_data.de_id]
-                if cfg.diagram.po.decomposition.check_displacment(
-                        [point_data], np.array([displacement.x(), -displacement.y()])):
-                    if self._point_moving_counter == 3:
-                        self._point_moving.move_point(event.scenePos(), ItemStates.moved)
-                    else:
-                        self._point_moving.move_point(event.scenePos())
+                if self._point_moving_counter == 3:
+                    self._point_moving.move_point(event.scenePos(), ItemStates.moved)
+                else:
+                    self._point_moving.move_point(event.scenePos())
+                if not cfg.diagram.update_moving_points([self._point_moving.point_data]):
+                    self._point_moving.move_point(
+                        QtCore.QPointF(point_data.xy[0], -point_data.xy[1])
+                    )
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
         elif self._line_moving is not None:
             self._line_moving_counter += 1
             if self._line_moving_counter%3==0:
                 # point at old position
-                displacement = event.scenePos() - self._line_moving_old_pos
-                p1_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p1.de_id]
-                p2_data = cfg.diagram.po.decomposition.points[self._line_moving.line_data.p2.de_id]
-                if cfg.diagram.po.decomposition.check_displacment(
-                        [p1_data, p2_data], np.array([displacement.x(), -displacement.y()])):
-                    if self._line_moving_counter == 3:
-                        self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.moved)
-                    else:
-                        self._line_moving.shift_line(event.scenePos()-self._line_moving_pos)
+                if self._line_moving_counter == 3:
+                    self._line_moving.shift_line(event.scenePos() - self._line_moving_pos, ItemStates.moved)
+                else:
+                    self._line_moving.shift_line(event.scenePos() - self._line_moving_pos)
+                if not cfg.diagram.update_moving_points([self._line_moving.line_data.p1, self._line_moving.line_data.p2]):
+                    self._line_moving.shift_line(-event.scenePos() + self._line_moving_pos)
+                else:
                     self._line_moving_pos = event.scenePos()
             else:
                 self.cursorChanged.emit(event.scenePos().x(), event.scenePos().y())
@@ -512,26 +524,47 @@ class Diagram(QtWidgets.QGraphicsScene):
         event.gobject = None
         super(Diagram, self).mouseMoveEvent(event)
         end_moving = False
+        below_items = self.items(event.scenePos())
         if self._add_new_point:
             self._add_new_point = False
             if self._add_new_point_counter > 5:
                 return
         if self._moving:
             self._moving = False
-            if  self._moving_counter>1:
+            if self._moving_counter > 1:
                 cfg.diagram.x += (self._moving_x-event.screenPos().x())/cfg.diagram.zoom
                 cfg.diagram.y += (self._moving_y-event.screenPos().y())/cfg.diagram.zoom
                 self.possChanged.emit()
                 end_moving = True
+
         if event.button() == QtCore.Qt.LeftButton and \
                 event.modifiers() == QtCore.Qt.NoModifier:
             if self._point_moving is not None:
+                # either moving point or clicked on existing one
                 if self._point_moving_counter > 1:
+                    # TODO: take care of cases when point is moving in wrong manner, e.g. creating overlapping lines. This should be taken care of on data layer.
+                    # if the point is actually moving in space (mouseMoveEvent occurred)
                     self._anchor_moved_point(event)
                 else:
-                    self._add_line(event.gobject, event.scenePos())           
+                    # this is a workaround for mousePressEvent setting up the _point_moving
+                    if self._last_p1_real is not None and list(set(self._last_p1_real.point_data.lines) & set(self._point_moving.point_data.lines)):
+                        # if any of the start point lines are identical with the end point lines,
+                        #  two overlapping lines would be created -> don't create anything
+                        self._remove_last()
+                        self._last_p1_real = None
+                        self._last_p1_on_line = None
+                        self._last_line = None
+                        # and start creating from the new point
+                        self._add_line(event.gobject, event.scenePos())
+                    else:
+                        # In case of beginning the creation - create setup last_p1_real and create tmp elements
+                        #  or in case of connecting to an existing real point
+                        self._add_line(event.gobject, event.scenePos())
+                # anchored or entered 'creation' mode with tmp elements through else statement above,
+                #   no point is moving anymore
                 self._point_moving = None
             elif self._line_moving is not None:
+                # TODO: take care of cases when line is moving and its points should create duplicate lines (return back over another line). This should be taken care of on data layer.
                 if self._line_moving_counter>1:
                     self._line_moving.shift_line(event.scenePos()-self._line_moving_pos, ItemStates.standart)
                     if not cfg.diagram.update_moving_points([self._line_moving.line_data.p1, self._line_moving.line_data.p2]):
@@ -547,12 +580,57 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._add_line(event.gobject, event.scenePos())
                 self._line_moving = None
             else:
-                self._add_line(event.gobject, event.scenePos())
+                # creation of elements
+                if self._last_line is not None:
+                    # case line is created as well, i.e. second click.
+                    if self._last_line.p1 in [point.point_data for point in below_items if isinstance(point, Point)]:
+                        # eliminate the case when starting point of the line corresponds to the end point,
+                        # i.e. zero length line creation case -> double click on the same position creates real point
+                        self._add_point(event.gobject, event.scenePos(), add_next=True)
+                    else:
+                        # normal addition of line
+                        self._add_line(event.gobject, event.scenePos())
+                else:
+                    # First point - all set up in add_line method, including temporary line and end point
+                    self._add_line(event.gobject, event.scenePos())
         if event.button()==QtCore.Qt.LeftButton and \
             event.modifiers()==QtCore.Qt.ControlModifier:
-            if self._last_line is not None:                 
-                self._add_line(event.gobject, event.scenePos(), False)                
+            if self._point_moving is not None:
+                if self._point_moving_counter > 1:
+                    # in case ctrl was pressed on release when point is actually moving (mouseMoveEvent occurred), this should mirror the no modifier
+                    self._anchor_moved_point(event)
+                    self._point_moving = None
+            elif self._last_line is not None:
+                # case line is created as well, i.e. second click.
+                points_underneath = [point.point_data for point in below_items if
+                                     isinstance(point, Point) and point.point_data is not self._last_line.p2]
+                if self._last_line.p1 in points_underneath:
+                    # eliminate the case when starting point of the line corresponds to the end point,
+                    # i.e. zero length line creation case
+                    if self._last_p1_real is not None:
+                        # if the first point already exists dont create new one
+                        pass
+                    else:
+                        # the first point is tmp as well -> create it
+                        self._add_point(event.gobject, event.scenePos())
+                    # delete the tmp elements and reset appropriate variables
+                    self._remove_last()
+                    self._last_p1_real = None
+                    self._last_p1_on_line = None
+                    self._last_line = None
+                elif (self._last_p1_real is not None) and points_underneath \
+                        and list(set(self._last_p1_real.point_data.lines) & set(points_underneath[0].lines)):
+                    # if any of the start point lines are identical with the end point lines,
+                    #  two overlaping lines would be created -> dont create anything
+                    self._remove_last()
+                    self._last_p1_real = None
+                    self._last_p1_on_line = None
+                    self._last_line = None
+                else:
+                    # simple creation in normal cases terminating the tmp elements (third 'False' parameter)
+                    self._add_line(event.gobject, event.scenePos(), False)
             else:
+                # creation of point only
                 self._add_point(event.gobject, event.scenePos())
                 
         if event.button()==QtCore.Qt.RightButton:

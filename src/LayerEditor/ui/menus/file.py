@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
 from LayerEditor.leconfig import cfg
 from gm_base.geomop_dialogs import GMAboutDialog
+from LayerEditor.ui.dialogs import LE_help_dialog
 
 
 class MainFileMenu(QMenu):
@@ -58,6 +59,11 @@ class MainFileMenu(QMenu):
         self._about_action.triggered.connect(self._on_about_action_clicked)
         self.addAction(self._about_action)
 
+        self._help_dialog = LE_help_dialog(parent)
+        self._help_action = QAction('Help', self)
+        self._help_action.triggered.connect(self._on_help_action_clicked)
+        self.addAction(self._help_action)
+
         self.addSeparator()
 
         self._exit_action = QAction('E&xit', self)
@@ -88,8 +94,13 @@ class MainFileMenu(QMenu):
     def _on_about_action_clicked(self):
         """Displays about dialog."""
         if not self._about_dialog.isVisible():
-            self._about_dialog.show()        
-            
+            self._about_dialog.show()
+
+    def _on_help_action_clicked(self):
+        """Displays help dialog."""
+        if not self._help_dialog.isVisible():
+            self._help_dialog.show()
+
     def _exit_clicked(self):
         """Performs actions before app is closed."""
         # prompt user to save changes (if any)

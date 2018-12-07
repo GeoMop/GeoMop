@@ -6,9 +6,15 @@ Main window menus
 """
 
 import PyQt5.QtWidgets as QtWidgets
-import JobPanel.ui.actions.main_menu_actions as action
 from JobPanel.data.states import TaskStatus, MultijobActions, TASK_STATUS_PERMITTED_ACTIONS
-from JobPanel.ui.menus import AnalysisMenu
+
+
+def create_action(parent, text, shortcut="", object_name=""):
+    action = QtWidgets.QAction(parent)
+    action.setText(text)
+    action.setShortcut(shortcut)
+    action.setObjectName(object_name)
+    return action
 
 
 class MainMenuBar(QtWidgets.QMenuBar):
@@ -24,12 +30,12 @@ class MainMenuBar(QtWidgets.QMenuBar):
         self.app = AppMenu(self)
         self.multiJob = MultiJobMenu(self)
         self.settings = SettingsMenu(self)
-        self.analysis = AnalysisMenu(self, {})
+        self.actionAnalyses = create_action(self, "Analyses")
 
         # add menus to main menu
         self.addAction(self.app.menuAction())
         self.addAction(self.multiJob.menuAction())
-        self.addAction(self.analysis.menuAction())
+        self.addAction(self.actionAnalyses)
         self.addAction(self.settings.menuAction())
 
 
@@ -44,9 +50,9 @@ class AppMenu(QtWidgets.QMenu):
         self.setObjectName("appMenu")
 
         # app actions
-        self.actionExit = action.ActionExit(self)
-        self.actionLog = action.ActionLog(self)
-        self.actionRemLog = action.ActionRemLog(self)
+        self.actionExit = create_action(self, "Exit", "Ctrl+Q", "actionExit")
+        self.actionLog = create_action(self, "Log", "Ctrl+L", "actionLog")
+        self.actionRemLog = create_action(self, "Remove Log", "Ctrl+R", "actionRemLog")
 
         # add actions to menu
         self.addAction(self.actionExit)
@@ -65,16 +71,16 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.setObjectName("multiJobMenu")
 
         # creating actions
-        self.actionAddMultiJob = action.ActionAddMultiJob(self)
-        self.actionReuseMultiJob = action.ActionReuseMultiJob(self)
-        self.actionDeleteRemote = action.ActionDeleteRemote(self)
-        self.actionDeleteMultiJob = action.ActionDeleteMultiJob(self)
+        self.actionAddMultiJob = create_action(self, "Add", "Alt+A", "actionAddMultiJob")
+        self.actionReuseMultiJob = create_action(self, "Reuse", "Alt+C", "actionReuseMultiJob")
+        self.actionDeleteRemote = create_action(self, "Delete Remote", "actionDeleteRemote")
+        self.actionDeleteMultiJob = create_action(self, "Delete MultiJob", "actionDeleteMultiJob")
 
         # control actions
-        self.actionStopMultiJob = action.ActionStopMultiJob(self)
-        self.actionSendReport = action.ActionSendReport(self)
+        self.actionStopMultiJob = create_action(self, "Stop", "Ctrl+S", "actionStopMultiJob")
+        self.actionCreateReport = create_action(self, "Create Report", "actionCreateReport")
 
-        self.actionDownloadWholeMultiJob = action.ActionDownloadWholeMultiJob(self)
+        self.actionDownloadWholeMultiJob = create_action(self, "Download Whole MultiJob", "actionDownloadWholeMultiJob")
 
         # add actions to menu
         self.addAction(self.actionAddMultiJob)
@@ -83,7 +89,7 @@ class MultiJobMenu(QtWidgets.QMenu):
         self.addAction(self.actionDeleteMultiJob)
         self.addSeparator()
         self.addAction(self.actionStopMultiJob)
-        self.addAction(self.actionSendReport) 
+        self.addAction(self.actionCreateReport)
         self.addSeparator()
         self.addAction(self.actionDownloadWholeMultiJob)
 
@@ -92,37 +98,46 @@ class MultiJobMenu(QtWidgets.QMenu):
             MultijobActions.delete_remote:  self.actionDeleteRemote,
             MultijobActions.delete: self.actionDeleteMultiJob,
             MultijobActions.stop: self.actionStopMultiJob,
-            MultijobActions.send_report: self.actionSendReport,
-            MultijobActions.download_whole: self.actionDownloadWholeMultiJob
-        }
-        
-        self.rdeleted_actions = {
-            MultijobActions.delete_remote:  self.actionDeleteRemote,
+            MultijobActions.send_report: self.actionCreateReport,
             MultijobActions.download_whole: self.actionDownloadWholeMultiJob
         }
 
-        self.downloaded_actions = {
-            MultijobActions.download_whole: self.actionDownloadWholeMultiJob
-        }
+        self.lock_by_mj()
 
-        self.lock_by_status(True, True, True)
-
-    def lock_by_status(self, rdeleted, downloaded, mj_local, task_status=None):
+    def lock_by_mj(self, mj=None):
         """
-        Locks UI actions based on selected MultiJob. Status None means no MultiJob.
-        :param task_status: Status that controls the locks.
+        Locks UI actions based on selected MultiJob.
+        :param mj: MultiJob that controls the locks.
         :return:
         """
-        for mj_action, menu_action in self.lockable_actions.items():
-            if task_status is None or \
-                    (task_status, mj_action) not in TASK_STATUS_PERMITTED_ACTIONS or \
-                    (mj_action in self.rdeleted_actions and rdeleted) or \
-                    (mj_action in self.downloaded_actions and downloaded) or \
-                    (mj_action == MultijobActions.reuse and not mj_local and rdeleted) or \
-                    (mj_action == MultijobActions.download_whole and mj_local):
+        if mj is not None:
+            for mj_action, menu_action in self.lockable_actions.items():
+                menu_action.setDisabled(mj.is_action_forbidden(mj_action))
+        else:
+            for mj_action, menu_action in self.lockable_actions.items():
                 menu_action.setDisabled(True)
-            else:
-                menu_action.setDisabled(False)
+
+    def lock_by_selection(self, multijobs, mj_ids):
+        """
+        Locks UI actions based on selected MultiJobs.
+        Disables those actions in UI, which don't make sense.
+        :param multijobs: list of all MultiJobs
+        :param mj_ids: ids of selected MultiJobs
+        """
+
+        self.actionDownloadWholeMultiJob.setDisabled(True)
+        self.actionReuseMultiJob.setDisabled(True)
+        self.actionCreateReport.setDisabled(True)
+
+        remote_delete = all([multijobs[mj_id].is_action_forbidden(MultijobActions.delete_remote) for mj_id in mj_ids])
+        self.actionDeleteRemote.setDisabled(remote_delete)
+
+        delete = all([multijobs[mj_id].is_action_forbidden(MultijobActions.delete) for mj_id in mj_ids])
+        self.actionDeleteMultiJob.setDisabled(delete)
+
+        stop = all([multijobs[mj_id].is_action_forbidden(MultijobActions.stop) for mj_id in mj_ids])
+        self.actionStopMultiJob.setDisabled(stop)
+
 
 class SettingsMenu(QtWidgets.QMenu):
     """
@@ -135,9 +150,9 @@ class SettingsMenu(QtWidgets.QMenu):
         self.setObjectName("settingsMenu")
 
         # preset actions
-        self.actionSshPresets = action.ActionSshPresets(self)
-        self.actionEnvPresets = action.ActionEnvPresets(self)
-        self.actionOptions = action.ActionOptions(self)
+        self.actionSshPresets = create_action(self, "SSH hosts", "Shift+S", "actionSshPresets")
+        self.actionEnvPresets = create_action(self, "Environments", "Shift+E", "actionEnvPresets")
+        self.actionOptions = create_action(self, "Set workspace", "Shift+O", "actionOptions")
 
         # add actions to menu
         self.addAction(self.actionSshPresets)
