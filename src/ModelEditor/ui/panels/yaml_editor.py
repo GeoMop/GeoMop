@@ -1019,9 +1019,8 @@ class EditorPosition:
             if index > -1 and index == indent:
                 # if last line contained '-' at the beginning, add '- ' on the new line
                 if (node is not None and
-                        ((  node.implementation == DataNode.Implementation.scalar and
-                            StructureAnalyzer.is_edit_parent_array(node)) or
-                            node.implementation == DataNode.Implementation.sequence)):
+                        node.implementation == DataNode.Implementation.scalar and
+                        StructureAnalyzer.is_edit_parent_array(node)):
                     self._new_line_indent = indent * ' ' + indent_bullet
                 else:
                     self._new_line_indent = (indent + tab_width) * ' '
