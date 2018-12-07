@@ -6,9 +6,10 @@ from .path_converter import if_win_win2lin_conv_path
 from JobPanel.services.backend_service import MJReport
 from JobPanel.services.multi_job_service import MJStatus
 from JobPanel.ui.data.mj_data import MultiJobState
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.states import TaskStatus
 from JobPanel.data.secret import Secret
 from JobPanel.communication import Installation
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import time
@@ -51,7 +52,7 @@ class ServiceFrontend(ServiceBase):
         geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
         geomop_analysis_workspace = data_app.workspaces.get_path()
         workspace = ""
-        config_file_name = "_frontend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/frontend_service.conf"
 
         # try load frontend service config file
         file = os.path.join(geomop_analysis_workspace,
@@ -186,29 +187,29 @@ class ServiceFrontend(ServiceBase):
                 self._mj_report[k] = v
 
                 # update MJ data
-                status = GuiTaskStatus.none
+                status = TaskStatus.none
                 if v.proxy_stopped:
-                    status = GuiTaskStatus.stopped
+                    status = TaskStatus.stopped
                 elif v.service_status == ServiceStatus.queued:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.queued
+                        status = TaskStatus.queued
                 elif v.service_status == ServiceStatus.running:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
                 elif v.service_status == ServiceStatus.done:
                     if v.mj_status == MJStatus.success:
-                        status = GuiTaskStatus.finished
+                        status = TaskStatus.finished
                     elif v.mj_status == MJStatus.error:
-                        status = GuiTaskStatus.error
+                        status = TaskStatus.error
                     elif v.mj_status == MJStatus.stopping:
-                        status = GuiTaskStatus.stopped
+                        status = TaskStatus.stopped
                     else:
                         # todo: divny, nemelo by nikdy nastat
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
 
                 run_interval = 0.0
                 if v.done_time:
@@ -293,7 +294,7 @@ class ServiceFrontend(ServiceBase):
         :return:
         """
         workspace = ""
-        config_file_name = "_backend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/backend_service.conf"
 
         # kill old backend container
         self.kill_backend()
@@ -391,9 +392,11 @@ class ServiceFrontend(ServiceBase):
         # error handling
         preset = self._data_app.multijobs[mj_id].preset
         mj_config_path = Installation.get_config_dir_static(preset.name, preset.analysis)
+        mj_config_path_conf = os.path.join(mj_config_path, GEOMOP_INTERNAL_DIR_NAME)
         file = "mj_preparation.log"
         try:
-            with open(os.path.join(mj_config_path, file), 'w') as fd:
+            os.makedirs(mj_config_path_conf, exist_ok=True)
+            with open(os.path.join(mj_config_path_conf, file), 'w') as fd:
                 if len(err) > 0:
                     fd.write("Errors in MJ preparation:\n")
                     for e in err:
@@ -404,7 +407,7 @@ class ServiceFrontend(ServiceBase):
             pass
         if len(err) > 0:
             mj = self._data_app.multijobs[mj_id]
-            mj.state.status = GuiTaskStatus.error
+            mj.state.status = TaskStatus.error
             mj.state.update_time = time.time()
             self._mj_changed_state.add(mj_id)
             return

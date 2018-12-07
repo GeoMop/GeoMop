@@ -44,6 +44,19 @@ class SSHTimeoutError(SSHError):
     pass
 
 
+class SSHWorkspaceError(SSHError):
+    """Raised when unable to write to workspace."""
+    pass
+
+
+class SSHDelegatorError(SSHError):
+    """Raised when unable to start or connect to delegator."""
+
+    def __init__(self, std_out="", std_err=""):
+        self.std_out = std_out
+        self.std_err = std_err
+
+
 class ConnectionStatus(enum.IntEnum):
     not_connected = 1
     online = 2
@@ -368,8 +381,8 @@ class ConnectionSSH(ConnectionBase):
         self._delegator_dir = ""
         """directory where delegator is executed"""
 
-        #self._analysis_workspace_absolute_path = ""
-        """Absolute path to analysis workspace on remote."""
+        self._home_dir = ""
+        """User's home directory."""
 
         # reconnect thread, lock and event
         self._reconnect_thread = None
@@ -421,14 +434,25 @@ class ConnectionSSH(ConnectionBase):
         # prepare workspace
         sftp = self._sftp_pool.acquire()
         try:
+            sftp.chdir()
+            self._home_dir = sftp.normalize(".")
+
             workspace = self.environment.geomop_analysis_workspace
-            # if not os.path.isabs(workspace):
-            #     workspace = sftp.normalize(workspace)
-            # self._analysis_workspace_absolute_path = workspace
+            if not os.path.isabs(workspace):
+                workspace = os.path.join(self._home_dir, workspace)
             try:
                 sftp.mkdir(workspace)
             except IOError:
                 pass
+
+            # test writing to workspace
+            filename = os.path.join(workspace, "writing_test_file")
+            try:
+                with sftp.open(filename, mode='w'):
+                    pass
+                sftp.remove(filename)
+            except IOError:
+                raise SSHWorkspaceError
 
             self._delegator_dir = os.path.join(workspace, "Delegators")
             try:
@@ -474,8 +498,8 @@ class ConnectionSSH(ConnectionBase):
     #             pass
     #     return False
 
-    # def get_analysis_workspace_absolute_path(self):
-    #     return self._analysis_workspace_absolute_path
+    def get_home_dir(self):
+        return self._home_dir
 
     def forward_local_port(self, remote_port):
         """
@@ -991,6 +1015,10 @@ class ConnectionSSH(ConnectionBase):
                 self._delegator_proxy.child_id = child_id
                 self._delegator_proxy.on_answer_connect()
                 break
+
+        if not connected:
+            raise SSHDelegatorError(self._delegator_std_in_out_err[1].read().decode(errors="replace"),
+                                    self._delegator_std_in_out_err[2].read().decode(errors="replace"))
 
         return self._delegator_proxy
 

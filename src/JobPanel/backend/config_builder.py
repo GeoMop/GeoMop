@@ -6,6 +6,7 @@ from Analysis.client_pipeline.mj_preparation import *
 from JobPanel.ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 from .path_converter import if_win_win2lin_conv_path
 
 
@@ -77,9 +78,12 @@ def build(data_app, mj_id):
 
     # mj environment
     if mj_ssh_preset is not None:
+        workspace = mj_ssh_preset.workspace
+        if not os.path.isabs(workspace):
+            workspace = os.path.join(mj_ssh_preset.home_dir, workspace)
         env_mj = {"__class__": "Environment",
                   "geomop_root": mj_ssh_preset.geomop_root,
-                  "geomop_analysis_workspace": mj_ssh_preset.workspace,
+                  "geomop_analysis_workspace": workspace,
                   "executables": [],
                   "python": mj_ssh_preset.geomop_root + "/" + "bin/python"}
     else:
@@ -91,9 +95,12 @@ def build(data_app, mj_id):
 
     # job environment
     if j_ssh_preset is not None:
+        workspace = j_ssh_preset.workspace
+        if not os.path.isabs(workspace):
+            workspace = os.path.join(j_ssh_preset.home_dir, workspace)
         env_j = {"__class__": "Environment",
                  "geomop_root": j_ssh_preset.geomop_root,
-                 "geomop_analysis_workspace": j_ssh_preset.workspace,
+                 "geomop_analysis_workspace": workspace,
                  "executables": [job_service],
                  "python": j_ssh_preset.geomop_root + "/" + "bin/python"}
     else:
@@ -165,7 +172,7 @@ def build(data_app, mj_id):
     service_data = {"service_host_connection": mj_con,
                     "process": pe,
                     "workspace": analysis + "/mj/" + mj,
-                    "config_file_name": "_mj_service.conf",
+                    "config_file_name": GEOMOP_INTERNAL_DIR_NAME + "/mj_service.conf",
                     "pipeline": {"python_script": python_script,
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,

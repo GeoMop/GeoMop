@@ -57,7 +57,7 @@ def test_config(request):
     assert cfg.config.get_format_file("test_file1") == "test_format_file_new_1"
     assert cfg.config.get_format_file("test_file2") == "1.8.3"
 
-    config. update_last_data_dir("/home/test.yaml")
+    config. update_current_working_dir("/home/test.yaml")
     # test update_last_data_dir
     assert config.last_data_dir == "/home"
 

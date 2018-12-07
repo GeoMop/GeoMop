@@ -179,6 +179,12 @@ class SshPreset(APreset):
         """Defines PBS system dialect"""
         self.env = kw_or_def('env')
         """Settings for remote environment"""
+        self.tested = kw_or_def('tested', False)
+        """True if SSH preset is tested"""
+        self.home_dir = kw_or_def('home_dir', '')
+        """User's home directory"""
+        self.executables = kw_or_def('executables', [])
+        """Available executables"""
 
     def get_description(self):
         """

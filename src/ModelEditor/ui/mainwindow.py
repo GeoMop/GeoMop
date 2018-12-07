@@ -5,6 +5,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
@@ -34,7 +35,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._tab.setMinimumSize(600, 200)
         self._tab.sizeHint = lambda: QtCore.QSize(700, 250)
 
-        self.info = panels.InfoPanelWidget(self._tab)
+        self.info = QWebEngineView(self._tab)
+        self.info.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+        self.info_page = panels.InfoPanelPage()
+        self.info.setPage(self.info_page)
+
         """info panel"""
         self.err = panels.ErrorWidget(self._tab)
         """error message panel"""
@@ -181,15 +186,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def _update_info(self, cursor_type):
         """Update the info panel."""
         if self.editor.pred_parent is not None:
-            self.info.update_from_node(self.editor.pred_parent,
+            self.info_page.update_from_node(self.editor.pred_parent,
                                        CursorType.parent.value)
             return
         if self.editor.curr_node is not None:
-            self.info.update_from_node(self.editor.curr_node, cursor_type)
+            self.info_page.update_from_node(self.editor.curr_node, cursor_type)
             return
 
         # show root input type info by default
-        self.info.update_from_data({'record_id': cfg.root_input_type['id']}, True)
+        self.info_page.update_from_data({'record_id': cfg.root_input_type['id']}, True)
         return
 
     def _on_node_selected(self, line, column):

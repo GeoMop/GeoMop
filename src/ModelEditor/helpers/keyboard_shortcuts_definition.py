@@ -52,6 +52,7 @@ SYSTEM_SHORTCUTS = {
     'paste': 'Ctrl+V',
     'cut': 'Ctrl+X',
     'select_all': 'Ctrl+A',
+    'indent': 'Tab',
     'unindent': 'Shift+Tab',
     'delete': 'Delete',
     'tab': 'Tab',
