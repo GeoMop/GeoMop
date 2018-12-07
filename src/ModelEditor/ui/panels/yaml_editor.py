@@ -500,7 +500,8 @@ class YamlEditorWidget(QsciScintilla):
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
-        self._valid_bounds = self._pos.node_init(node, self)
+        if node is not None:
+            self._valid_bounds = self._pos.node_init(node, self)
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
