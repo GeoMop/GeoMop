@@ -202,8 +202,9 @@ class AnalysisDialog(QtWidgets.QDialog):
     def _confirm_save(self):
         """Return True if it is possible to continue."""
         msg = QtWidgets.QMessageBox(self)
-        msg.setText("Data record is not saved.")
-        msg.setInformativeText("Do you want to save record?")
+        msg.setWindowTitle("Analyses")
+        msg.setText("Analysis has been changed.")
+        msg.setInformativeText("Do you want to save it?")
         msg.setStandardButtons(QtWidgets.QMessageBox.Save |
                                QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Reset)
         msg.button(QtWidgets.QMessageBox.Discard).setText("Discard changes")
