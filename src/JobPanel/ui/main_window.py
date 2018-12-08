@@ -65,13 +65,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     mj.get_state().status = TaskStatus.error
                     self.error = "Multijob data is corrupted"
-            action = TASK_STATUS_STARTUP_ACTIONS[status]
-            if action == MultijobActions.resume:
-                #self.frontend_service._resume_jobs.append(mj_id)
-                pass
-            elif action == MultijobActions.terminate:
-                #self.frontend_service._terminate_jobs.append(mj_id)
-                pass
 
     def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
@@ -163,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """poll com manager and update gui"""
         if not self.__pool_lock.acquire(False):
             return
+
         self.frontend_service.run_body()
 
         selected_mj_ids = []
@@ -222,9 +216,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frontend_service._jobs_downloaded = {}
 
         # close application
-        if self.closing and not self.frontend_service._run_jobs and not self.frontend_service._start_jobs \
-                and not self.frontend_service._delete_jobs:
+        if self.closing and (self._local_mj_stopped() or (self.close_dialog and self.close_dialog.force_close)):
             self.close()
+
         self.__pool_lock.release()
         
     def set_ssh(self):                                 
@@ -549,18 +543,40 @@ class MainWindow(QtWidgets.QMainWindow):
         sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
         self.data.config.selected_mj = sel_index
 
-        # pause all jobs
-        self.frontend_service.pause_all()
-        self.cm_poll_timer.stop()
-        self.cm_poll_timer.start(self.cm_poll_interval)
-        
-        while self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
-            self.frontend_service._delete_jobs:
-            self.poll_com_manager()
-            time.sleep(200)
+    def _local_mj_stopped(self):
+        """Returns True if all local MJ are stopped."""
+        for i in range(self.ui.overviewWidget.topLevelItemCount()):
+            item = self.ui.overviewWidget.topLevelItem(i)
+            mj_id = item.text(0)
+            if (self.data.multijobs[mj_id].preset.mj_ssh_preset is None) and \
+                    (self.data.multijobs[mj_id].state.status in
+                         (TaskStatus.queued, TaskStatus.running, TaskStatus.stopping)):
+                return False
+        return True
 
     def closeEvent(self, event):
         if not self.closing:
+            # stop local running MJ
+            mj_to_stop = []
+            for i in range(self.ui.overviewWidget.topLevelItemCount()):
+                item = self.ui.overviewWidget.topLevelItem(i)
+                mj_id = item.text(0)
+                if (self.data.multijobs[mj_id].preset.mj_ssh_preset is None) and \
+                        (self.data.multijobs[mj_id].state.status in (TaskStatus.queued, TaskStatus.running)):
+                    mj_to_stop.append(item)
+            if mj_to_stop:
+                confirmation = ConfirmDialog(mj_to_stop,
+                                             "Local MultiJobs shown below will be stopped.\n"
+                                             "Are you sure you want to continue?",
+                                             self, "Confirm stop MultiJobs").exec()
+                if confirmation == QtWidgets.QDialog.Accepted:
+                    for item in mj_to_stop:
+                        mj_id = item.text(0)
+                        self.frontend_service.mj_stop(mj_id)
+                else:
+                    event.ignore()
+                    return
+
             self.closing = True
 
             # save currently selected mj
@@ -568,21 +584,7 @@ class MainWindow(QtWidgets.QMainWindow):
             sel_index = self.ui.overviewWidget.indexOfTopLevelItem(current)
             self.data.config.selected_mj = sel_index
 
-            # pause all jobs
-            self.frontend_service.pause_all()
-            self.cm_poll_interval = 200
-            self.cm_poll_timer.stop()
-            self.cm_poll_timer.start(self.cm_poll_interval)
-            
-            i=0
-            while (self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
-                self.frontend_service._delete_jobs) and i<3:
-                self.poll_com_manager()
-                time.sleep(200)
-                i += 1
-
-            if self.frontend_service._run_jobs or self.frontend_service._start_jobs or \
-                self.frontend_service._delete_jobs:
+            if not self._local_mj_stopped():
                 # show closing dialog
                 self.close_dialog = MessageDialog(self, MessageDialog.MESSAGE_ON_EXIT)
                 self.close_dialog.show()
@@ -590,7 +592,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             event.ignore()
 
-        elif not self.frontend_service._run_jobs and not self.frontend_service._start_jobs:
+        elif self._local_mj_stopped() or (self.close_dialog and self.close_dialog.force_close):
             # all jobs have been paused, close window
             if self.close_dialog:
                 self.close_dialog.can_close = True

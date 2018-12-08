@@ -99,21 +99,6 @@ class ServiceFrontend(ServiceBase):
         self._mj_report_time = 0.0
         """Last time request_get_mj_report sent"""
 
-
-        # Interface old
-        ###############
-        self._start_jobs = []
-        """array of job ids, that will be started"""
-        self._delete_jobs = []
-        """array of jobs ids, that will be stopped"""
-        self._run_jobs = []
-        """array of running jobs ids"""
-        self._state_change_jobs = []
-        """array of jobs ids, that have changed state"""
-        self._results_change_jobs = []
-        """array of jobs ids, that have changed results"""
-        self._jobs_change_jobs = []
-        """array of jobs ids, that have changed jobs state"""
         self._jobs_deleted = {}
         """
         Dictionary of jobs ids=>None (ids=>error), that was deleted data.
@@ -124,9 +109,6 @@ class ServiceFrontend(ServiceBase):
         Dictionary of jobs ids=>None (ids=>error), that was downloaded data.
         If job was not downloaded, in dictionary value is error text.
         """
-        self._logs_change_jobs=[]
-        """array of jobs ids, that have changed jobs logs"""
-
 
         self._data_app = data_app
         self._backend_proxy = None
@@ -269,25 +251,6 @@ class ServiceFrontend(ServiceBase):
                     done = False
                     break
 
-    # Interface old
-    ###############
-    def poll(self):
-        """
-        This function plans and makes all the needed actions in the main thread.
-        Function should be called periodically from the UI.
-        """
-        pass
-
-    def pause_all(self):
-        """Pause all running and starting jobs (use when app is closing)."""
-        pass
-
-    def stop_all(self):
-        """stop all running and starting jobs"""
-        pass
-
-
-
     def start_backend(self):
         """
         Starts backend.
@@ -383,8 +346,6 @@ class ServiceFrontend(ServiceBase):
             executor = ProcessDocker({"process_id": self.backend_process_id})
             executor.kill()
 
-    # Interface new
-    ###############
     def mj_start(self, mj_id):
         """Start multijob"""
         err, mj_conf = config_builder.build(self._data_app, mj_id)
