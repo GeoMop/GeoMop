@@ -534,6 +534,8 @@ class MultiJobDialog(AFormDialog):
             preset.pbs_system = self.ui.pbs_pbsSystemComboBox.currentData()
         if self.ui.pbs_queueLineEdit.text():
             preset.queue = self.ui.pbs_queueLineEdit.text()
+        else:
+            preset.queue = ''
         if self.ui.pbs_walltimeLineEdit.text():
             preset.walltime = self.ui.pbs_walltimeLineEdit.text()
         else:
