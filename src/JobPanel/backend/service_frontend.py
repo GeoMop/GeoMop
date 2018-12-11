@@ -213,6 +213,10 @@ class ServiceFrontend(ServiceBase):
 
                 self._mj_changed_state.add(k)
 
+        # remove old items
+        for k in [k for k in self._mj_report.keys() if k not in new_mj_report]:
+            del self._mj_report[k]
+
     def _process_delete_answers(self):
         """
         Process answers from request_delete_mj.
@@ -229,6 +233,8 @@ class ServiceFrontend(ServiceBase):
                         logging.error("Error in delete mj")
                     else:
                         self._jobs_deleted[item[0]] = res["data"]
+                        if item[0] in self._mj_report:
+                            del self._mj_report[item[0]]
                     done = False
                     break
 
@@ -346,6 +352,10 @@ class ServiceFrontend(ServiceBase):
             executor = ProcessDocker({"process_id": self.backend_process_id})
             executor.kill()
 
+    def get_backend_status(self):
+        """Returns True if backend is online."""
+        return (self._backend_proxy is not None) and self._backend_proxy._online
+
     def mj_start(self, mj_id):
         """Start multijob"""
         err, mj_conf = config_builder.build(self._data_app, mj_id)
@@ -402,6 +412,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def get_mj_delegator_online(self):
+        """Returns dict of MJ delegator online"""
+        return {k: v.delegator_online for k, v in self._mj_report.items()}
 
     def ssh_test(self, ssh):
         """Performs ssh test"""

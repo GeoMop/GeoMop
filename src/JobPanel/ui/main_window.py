@@ -68,6 +68,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
+
+        self.frontend_service = frontend_service
+
         self.__pool_lock = threading.Lock()
         """lock for prevention of pool multiple runnig"""
         self.close_dialog = None
@@ -76,9 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = UiMainWindow()
         self.ui.setup_ui(self)
         self.data = data
-
-        # Com Manager related
-        self.frontend_service = frontend_service
 
         self.cm_poll_interval = MainWindow.DEFAULT_POLL_INTERVAL
         """current com manager polling interval in ms"""
@@ -152,12 +152,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle('Jobs Panel')
 
+        self.backend_online_last = None
+
     def poll_com_manager(self):
         """poll com manager and update gui"""
         if not self.__pool_lock.acquire(False):
             return
 
         self.frontend_service.run_body()
+
+        backend_online = self.frontend_service.get_backend_status()
+        if (self.backend_online_last is None) or (backend_online != self.backend_online_last):
+            self.show_backend_status(backend_online)
+            self.ui.menuBar.multiJob.setEnabled(backend_online)
+            self.multijobs_changed.emit(self.data.multijobs)
+            self.backend_online_last = backend_online
 
         selected_mj_ids = []
         for item in self.ui.overviewWidget.selectedItems():
@@ -166,7 +175,7 @@ class MainWindow(QtWidgets.QMainWindow):
         state_change_jobs = self.frontend_service.get_mj_changed_state()
         for mj_id in state_change_jobs:
             mj = self.data.multijobs[mj_id]
-            self.ui.overviewWidget.update_item(mj_id, mj.get_state())
+            self.ui.overviewWidget.update_item(mj_id, self.data.multijobs)
             if mj.state.status == TaskStatus.finished:
                 # check if all jobs finished successfully for a finished multijob
                 for job in mj.get_jobs():
@@ -304,7 +313,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     pass
                     
     def _handle_add_multijob_action(self):
-        mj_dlg = MultiJobDialog(parent=self, data=self.data)
+        mj_dlg = MultiJobDialog(parent=self, data=self.data, frontend_service=self.frontend_service)
         ret = mj_dlg.exec_add()
         if ret==QtWidgets.QDialog.Accepted:
             self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
@@ -318,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "key": key,
                 "preset": preset
             }
-            mj_dlg = MultiJobDialog(parent=self, data=self.data)
+            mj_dlg = MultiJobDialog(parent=self, data=self.data, frontend_service=self.frontend_service)
             ret = mj_dlg.exec_copy(data)
             if ret==QtWidgets.QDialog.Accepted:
                 self.handle_multijob_dialog(mj_dlg.purpose, mj_dlg.get_data())
@@ -403,7 +412,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.deleting
-        self.ui.overviewWidget.update_item(key, mj.get_state())
+        self.ui.overviewWidget.update_item(key, self.data.multijobs)
 
 
     def _handle_delete_remote_action(self):
@@ -432,7 +441,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         mj.last_status = mj.get_state().status
         mj.get_state().status = TaskStatus.downloading
-        self.ui.overviewWidget.update_item(key, mj.get_state())
+        self.ui.overviewWidget.update_item(key, self.data.multijobs)
         self.update_ui_locks([key])
 
     def _handle_download_whole_multijob_action(self):
@@ -456,7 +465,7 @@ class MainWindow(QtWidgets.QMainWindow):
             analysis.save()
             self.data.multijobs[mj.id] = mj
             self.frontend_service.mj_start(mj.id)
-            item = self.ui.overviewWidget.add_item(mj.id,mj.state)
+            item = self.ui.overviewWidget.add_item(mj.id, self.data.multijobs)
             self.ui.overviewWidget.setCurrentItem(item)
             self.ui.overviewWidget.scrollToItem(item)
         self.multijobs_changed.emit(self.data.multijobs)
@@ -605,6 +614,14 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
+    def show_backend_status(self, online=False):
+        if online:
+            self.ui.backend_status.setText("Backend online")
+            self.ui.backend_status.setStyleSheet("QLabel { color : green; }")
+        else:
+            self.ui.backend_status.setText("Backend offline")
+            self.ui.backend_status.setStyleSheet("QLabel { color : red; }")
+
 
 class UiMainWindow(object):
     """
@@ -630,7 +647,7 @@ class UiMainWindow(object):
         main_window.setMenuBar(self.menuBar)
 
         # multiJob Overview panel
-        self.overviewWidget = Overview(self.centralwidget)
+        self.overviewWidget = Overview(self.centralwidget, main_window.frontend_service)
         self.mainVerticalLayout.addWidget(self.overviewWidget)
 
         # tabWidget panel
@@ -642,3 +659,8 @@ class UiMainWindow(object):
 
         # status bar
         self.status_bar = main_window.statusBar()
+
+        # backend status
+        self.backend_status = QtWidgets.QLabel(main_window)
+        self.backend_status.setFrameStyle(QtWidgets.QFrame.StyledPanel)
+        self.status_bar.addPermanentWidget(self.backend_status)

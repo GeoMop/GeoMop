@@ -89,7 +89,7 @@ class MultiJobDialog(AFormDialog):
 
     PURPOSE_COPY_PREFIX = "Copy_of"
 
-    def __init__(self, parent=None, data=None):
+    def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
 
         self.excluded = {"name": []}
@@ -100,6 +100,7 @@ class MultiJobDialog(AFormDialog):
         self.ui.setup_ui(self)
         self.ui.validator.connect(self.valid)
         self.data = data
+        self.frontend_service = frontend_service
 
         self._from_mj = None
 
@@ -158,6 +159,14 @@ class MultiJobDialog(AFormDialog):
         self.pbs_show_pbs()
 
     def accept(self):
+        if not self.frontend_service.get_backend_status():
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Error")
+            msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+            msg_box.setText("Backend is offline.\nWait a while or try restart frontend.")
+            msg_box.exec()
+            return
+
         self.pbs_save()
         super().accept()
 
