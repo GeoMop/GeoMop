@@ -14,7 +14,7 @@ from JobPanel.backend.json_data import JsonData, ClassFactory, JsonDataNoConstru
 from JobPanel.backend.connection import ConnectionStatus, SSHError
 from Analysis.pipeline.pipeline_processor import Pipelineprocessor
 from Analysis.pipeline import *
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJStatus(enum.IntEnum):
