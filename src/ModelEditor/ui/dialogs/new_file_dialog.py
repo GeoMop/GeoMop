@@ -3,8 +3,9 @@
 .. codeauthor:: Tomas Blazek <tomas.blazek@tul.cz>
 """
 from PyQt5 import uic
-from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox, QDialogButtonBox
+from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox, QDialogButtonBox, QPushButton
 from PyQt5.QtCore import QDir
+from PyQt5.QtGui import QIcon
 import os
 
 """
@@ -23,11 +24,13 @@ class NewFileDialog(QDialog):
     def __init__(self, parent=None, default_directory=''):
         """Initializes the class."""
         super(NewFileDialog, self).__init__(parent)
-        uic.loadUi(os.path.join(os.path.dirname(os.path.realpath(__file__)),'new_file_dialog.ui'), self)
+        uic.loadUi(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'new_file_dialog.ui'), self)
 
         self.location.setText(default_directory)
         self.browse_button.clicked.connect(self._open_file_browser)
         self.button_box.button(QDialogButtonBox.Ok).setText("Create")
+        self.button_box.button(QDialogButtonBox.Ok).setIcon(QIcon())
+        self.button_box.button(QDialogButtonBox.Cancel).setIcon(QIcon())
 
     def _open_file_browser(self):
         """Gets location to store new file from user"""

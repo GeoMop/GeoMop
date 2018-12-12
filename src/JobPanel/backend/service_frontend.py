@@ -9,7 +9,7 @@ from JobPanel.ui.data.mj_data import MultiJobState
 from JobPanel.data.states import TaskStatus
 from JobPanel.data.secret import Secret
 from JobPanel.communication import Installation
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import time
@@ -99,21 +99,6 @@ class ServiceFrontend(ServiceBase):
         self._mj_report_time = 0.0
         """Last time request_get_mj_report sent"""
 
-
-        # Interface old
-        ###############
-        self._start_jobs = []
-        """array of job ids, that will be started"""
-        self._delete_jobs = []
-        """array of jobs ids, that will be stopped"""
-        self._run_jobs = []
-        """array of running jobs ids"""
-        self._state_change_jobs = []
-        """array of jobs ids, that have changed state"""
-        self._results_change_jobs = []
-        """array of jobs ids, that have changed results"""
-        self._jobs_change_jobs = []
-        """array of jobs ids, that have changed jobs state"""
         self._jobs_deleted = {}
         """
         Dictionary of jobs ids=>None (ids=>error), that was deleted data.
@@ -124,9 +109,6 @@ class ServiceFrontend(ServiceBase):
         Dictionary of jobs ids=>None (ids=>error), that was downloaded data.
         If job was not downloaded, in dictionary value is error text.
         """
-        self._logs_change_jobs=[]
-        """array of jobs ids, that have changed jobs logs"""
-
 
         self._data_app = data_app
         self._backend_proxy = None
@@ -231,6 +213,10 @@ class ServiceFrontend(ServiceBase):
 
                 self._mj_changed_state.add(k)
 
+        # remove old items
+        for k in [k for k in self._mj_report.keys() if k not in new_mj_report]:
+            del self._mj_report[k]
+
     def _process_delete_answers(self):
         """
         Process answers from request_delete_mj.
@@ -247,6 +233,8 @@ class ServiceFrontend(ServiceBase):
                         logging.error("Error in delete mj")
                     else:
                         self._jobs_deleted[item[0]] = res["data"]
+                        if item[0] in self._mj_report:
+                            del self._mj_report[item[0]]
                     done = False
                     break
 
@@ -268,25 +256,6 @@ class ServiceFrontend(ServiceBase):
                         self._jobs_downloaded[item[0]] = res["data"]
                     done = False
                     break
-
-    # Interface old
-    ###############
-    def poll(self):
-        """
-        This function plans and makes all the needed actions in the main thread.
-        Function should be called periodically from the UI.
-        """
-        pass
-
-    def pause_all(self):
-        """Pause all running and starting jobs (use when app is closing)."""
-        pass
-
-    def stop_all(self):
-        """stop all running and starting jobs"""
-        pass
-
-
 
     def start_backend(self):
         """
@@ -383,8 +352,10 @@ class ServiceFrontend(ServiceBase):
             executor = ProcessDocker({"process_id": self.backend_process_id})
             executor.kill()
 
-    # Interface new
-    ###############
+    def get_backend_status(self):
+        """Returns True if backend is online."""
+        return (self._backend_proxy is not None) and self._backend_proxy._online
+
     def mj_start(self, mj_id):
         """Start multijob"""
         err, mj_conf = config_builder.build(self._data_app, mj_id)
@@ -441,6 +412,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def get_mj_delegator_online(self):
+        """Returns dict of MJ delegator online"""
+        return {k: v.delegator_online for k, v in self._mj_report.items()}
 
     def ssh_test(self, ssh):
         """Performs ssh test"""
