@@ -1,5 +1,5 @@
 from .json_data import JsonData, ClassFactory
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import os
 

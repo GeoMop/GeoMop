@@ -5,7 +5,7 @@ from Analysis.pipeline import *
 
 from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
 from Analysis.client_pipeline.identical_list_creator import *
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MjPreparation():

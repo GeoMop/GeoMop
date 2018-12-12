@@ -16,7 +16,8 @@ class TestSSHDialog(QtWidgets.QDialog):
         self._error = QtWidgets.QListWidget(self)
         #self._error.resize(400,60)
         self._error.setMinimumSize(600, 300)
-        self._error.itemDoubleClicked.connect(self._error_item_clicked)       
+        self._error.itemDoubleClicked.connect(self._error_item_clicked)
+        self._error.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         #message3 = "Log:"
         #self._log_label = QtWidgets.QLabel(message3, self)
         # self._log = QtWidgets.QListWidget(self)

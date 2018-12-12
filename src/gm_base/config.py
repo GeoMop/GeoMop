@@ -20,9 +20,6 @@ else:
 # except:
 #     raise Exception('Cannot create config directory')
 
-GEOMOP_INTERNAL_DIR_NAME = ".geomop"
-"""Dir name for storing geomop internal files."""
-
 
 def get_config_file(name, directory=None, cls=None, extension='yaml'):
     """
