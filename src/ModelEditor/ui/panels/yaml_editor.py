@@ -1176,6 +1176,7 @@ class EditorPosition:
     def reload_autocompletion(self, editor):
         """Create new autocomplete options when newline is added."""
         node = None
+
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:
