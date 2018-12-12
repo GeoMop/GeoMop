@@ -464,7 +464,8 @@ class YamlEditorWidget(QsciScintilla):
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
-        self._valid_bounds = self._pos.node_init(node, self)
+        if node is not None:
+            self._valid_bounds = self._pos.node_init(node, self)
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
@@ -947,8 +948,6 @@ class EditorPosition:
             number is for intendation purpose"""
         self._new_line_indent = None
         """indentation for  new array item operation"""
-        self._old_line_prefix = None
-        """indentation for  old array item operation"""
         self._spec_char = ""
         """make special char operation"""
         self.fatal = False
@@ -960,28 +959,46 @@ class EditorPosition:
 
     def new_line_completation(self, editor):
         """Add specific symbols to start of line when new line was added.
-
-        ``_old_line_prefix`` is set to indentation and new array (-)
-        symbol if need be.
         """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
+            tab_width = LineAnalyzer.TAB_WIDTH
             self._old_line_indent = self.line
-            pre_line = editor.text(self.line)
+            pre_line = LineAnalyzer.strip_comment(editor.text(self.line)).rstrip()
+            curr_line_index = self.line
+
+            # find previous non-empty line and erase whitespaces from the end
+            while LineAnalyzer.is_empty(pre_line) and curr_line_index > 0:
+                curr_line_index -= 1
+                pre_line = LineAnalyzer.strip_comment(editor.text(curr_line_index)).rstrip()
+
+            # get last node on line
+            node = cfg.get_data_node(Position(curr_line_index + 1, len(pre_line)))
+
+            if node is None:
+                node = self.node
+
             indent = LineAnalyzer.get_indent(pre_line)
-            index = pre_line.find("- ")
-            if index > -1 and index == indent:
-                indent_bullet = ("- " if cfg.config.symbol_completion else "")
-                if self.node is None or  \
-                   self.node.implementation != DataNode.Implementation.scalar or \
-                   not StructureAnalyzer.is_edit_parent_array(self.node):
-                    self._new_line_indent = indent*' '+"  "
+            index = pre_line.find("-")
+            indent_bullet = ("- " if cfg.config.symbol_completion else "")
+
+            # if this is first line after sequence keyword than add '- '
+            if node is not None and \
+                    node.implementation == DataNode.Implementation.sequence and \
+                    pre_line.find(node.key.value + ':') > -1:
+                self._new_line_indent = (indent + tab_width) * ' ' + indent_bullet
+
+            elif index > -1 and index == indent:
+                # if last line contained '-' at the beginning, add '- ' to the new line
+                if (node is not None and
+                        pre_line.find(':') == -1 and
+                        pre_line.find('!') == -1):
+                    self._new_line_indent = indent * ' ' + indent_bullet
                 else:
-                    self._new_line_indent = indent*' ' + indent_bullet
-                self._old_line_prefix = indent*' ' + indent_bullet
+                    self._new_line_indent = (indent + tab_width) * ' '
+
             else:
-                self._new_line_indent = indent*' '
-            self._old_line_prefix = indent*' '
-            
+                self._new_line_indent = indent * ' '
+
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
         fix parent if new line is added (new_line_completation
@@ -1003,9 +1020,10 @@ class EditorPosition:
                     if self.node is not None:
                         na = NodeAnalyzer(self._old_text, self.node)
                     else:
-                        na = NodeAnalyzer(self._old_text, cfg.root)                
+                        na = NodeAnalyzer(self._old_text, cfg.root)
+
                     self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
-                                                                    editor.text(self.line))                    
+                                                                    editor.text(self.line))
             self._old_line_indent = None
         if cfg.config.symbol_completion and self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
