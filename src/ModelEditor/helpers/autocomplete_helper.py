@@ -195,7 +195,7 @@ class AutocompleteHelper:
         """Sort filtered options and prepare QScintilla string representation.
 
         If there is whole key on current line before cursor position,
-        don't show key options in autocomplete.
+        don't show key options in autocomplete. Otherwise don't show types.
 
         :param str filter_: only allow options that starts with this string
         """
@@ -205,10 +205,18 @@ class AutocompleteHelper:
             if self._editor.text(position[0])[:position[1]].find(":") > -1:
                 show_keys = False
 
+        show_types = False
+        if self._editor is not None:
+            if self._editor.text(position[0])[:position[1]].find(":") > -1 or \
+                    self._editor.text(position[0])[:position[1]].find("-") > -1:
+                show_types = True
+
         if filter_ is None:
             filter_ = ''
         options = [option for option in self._options.keys() if
-                   option.startswith(filter_) and (self._options[option] != 'key' or show_keys)]
+                   option.startswith(filter_) and
+                   ((self._options[option] == 'key' and show_keys) or
+                   (self._options[option] == 'type' and show_types))]
         self.possible_options = sorted(options, key=self._sorting_key)
 
         # if there is only one option and it matches the word exactly, do not show options
