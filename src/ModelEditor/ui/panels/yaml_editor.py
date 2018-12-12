@@ -464,7 +464,8 @@ class YamlEditorWidget(QsciScintilla):
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
-        self._valid_bounds = self._pos.node_init(node, self)
+        if node is not None:
+            self._valid_bounds = self._pos.node_init(node, self)
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
@@ -971,24 +972,30 @@ class EditorPosition:
                 pre_line = LineAnalyzer.strip_comment(editor.text(curr_line_index)).rstrip()
 
             # get last node on line
-            node = cfg.get_data_node(Position(curr_line_index + 1, len(pre_line)-1))
+            node = cfg.get_data_node(Position(curr_line_index + 1, len(pre_line)))
+
+            if node is None:
+                node = self.node
+
             indent = LineAnalyzer.get_indent(pre_line)
-            index = pre_line.find("- ")
+            index = pre_line.find("-")
             indent_bullet = ("- " if cfg.config.symbol_completion else "")
-            if index > -1 and index == indent:
-                # if last line contained '-' at the begining, add '- ' on the new line
-                if node is None or \
-                        node.implementation != DataNode.Implementation.scalar or \
-                        not StructureAnalyzer.is_edit_parent_array(node):
-                    self._new_line_indent = (indent + tab_width) * ' '
-                else:
-                    self._new_line_indent = indent * ' ' + indent_bullet
 
             # if this is first line after sequence keyword than add '- '
-            elif node is not None and \
+            if node is not None and \
                     node.implementation == DataNode.Implementation.sequence and \
                     pre_line.find(node.key.value + ':') > -1:
                 self._new_line_indent = (indent + tab_width) * ' ' + indent_bullet
+
+            elif index > -1 and index == indent:
+                # if last line contained '-' at the beginning, add '- ' to the new line
+                if (node is not None and
+                        pre_line.find(':') == -1 and
+                        pre_line.find('!') == -1):
+                    self._new_line_indent = indent * ' ' + indent_bullet
+                else:
+                    self._new_line_indent = (indent + tab_width) * ' '
+
             else:
                 self._new_line_indent = indent * ' '
 
