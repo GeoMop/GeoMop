@@ -11,3 +11,4 @@ class Event(enum.IntEnum):
     Ctrl = Qt.ControlModifier
     Alt = Qt.AltModifier
 
+
